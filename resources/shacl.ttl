@@ -1,0 +1,314 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+@prefix datacite: <http://purl.org/spar/datacite/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix doco: <http://purl.org/spar/doco/> .
+@prefix fabio: <http://purl.org/spar/fabio/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix frbr: <http://purl.org/vocab/frbr/core#> .
+@prefix literal: <http://www.essepuntato.it/2010/06/literalreification/> .
+@prefix oco: <https://w3id.org/oc/ontology/> .
+@prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
+@prefix pro: <http://purl.org/spar/pro/> .
+
+
+schema:IdentifierShape
+  	a sh:NodeShape ;
+    sh:targetClass datacite:Identifier ;
+    sh:property
+    [
+      sh:path rdf:type ;
+      sh:hasValue datacite:Identifier ;
+      sh:minCount 1 ;
+      sh:maxCount 1 ;
+    ];
+    sh:property
+    [
+      sh:path literal:hasLiteralValue ;
+      sh:datatype xsd:string ;
+      sh:minCount 1 ;
+      sh:maxCount 1 ;
+    ] ;
+    sh:property
+    [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:in (
+        datacite:oci
+        datacite:doi
+        datacite:pmid
+        datacite:pmcid
+        datacite:orcid
+        datacite:local-resource-identifier-scheme
+        datacite:intrepid
+        datacite:isbn
+        datacite:issn
+        datacite:url
+        datacite:viaf
+        datacite:crossref
+        datacite:datacite
+        datacite:wikidata
+        datacite:wikipedia
+        datacite:openalex
+        datacite:jid      
+      ) ;
+      sh:minCount 1 ;
+      sh:maxCount 1 ;
+    ] ;
+    sh:property
+    [
+      sh:path [sh:inversePath datacite:hasIdentifier] ;
+      sh:classIn (
+        fabio:Expression
+        foaf:Agent
+      ) ;
+    ]
+.
+
+############################# ENTITIES #############################
+
+# AgentRole
+schema:AgentRoleShape
+    a sh:NodeShape ;
+    rdfs:subClassOf schema:BibliographicEntityShape ;
+    sh:targetClass pro:RoleInTime ;
+    sh:nodeKind sh:IRI ;
+    sh:property
+    [
+      sh:path rdf:type ;
+      sh:hasValue pro:RoleInTime ;
+      sh:minCount 1 ;
+      sh:maxCount 1 ;
+    ];
+    sh:property
+    [
+      sh:path oco:hasNext ;
+      sh:class pro:RoleInTime ;
+      sh:minCount 0 ;
+      sh:maxCount 1 ;
+    ] ;
+    sh:property
+    [
+      sh:path pro:isHeldBy ;
+      sh:class foaf:Agent ;
+      sh:minCount 0 ;
+      sh:maxCount 1 ;
+    ] ;
+    sh:property
+    [
+      sh:path pro:withRole ;
+      sh:classIn (pro:publisher
+                  pro:author
+                  pro:editor) ;
+      sh:minCount 0 ;
+      sh:maxCount 1 ;
+    ] ;
+    sh:property
+    [
+      sh:path [sh:inversePath oco:hasNext] ;
+      sh:class pro:RoleInTime ;
+      sh:minCount 0 ;
+      sh:maxCount 1 ;
+    ] ;
+    sh:property
+    [
+      sh:path [sh:inversePath pro:isDocumentContextFor] ;
+      sh:class fabio:Expression ;
+      sh:minCount 0 ;
+      sh:maxCount 1 ;
+    ] 
+.
+
+# BibliographicResource
+schema:BibliographicResourceShape
+	a sh:NodeShape ;
+  sh:targetClass fabio:Expression ;
+  sh:property
+  [
+    sh:path datacite:hasIdentifier ;
+    sh:class datacite:Identifier ;
+  ] ;
+  sh:property
+  [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+	[
+    sh:path rdf:type ;
+    sh:in (fabio:ArchivalDocument
+      fabio:Book
+      fabio:BookChapter
+      doco:Part
+      fabio:ExpressionCollection
+      fabio:BookSeries
+      fabio:BookSet
+      fabio:DataFile
+      fabio:Thesis
+      fabio:JournalArticle
+      fabio:JournalIssue
+      fabio:JournalVolume
+      fabio:Journal
+      fabio:ProceedingsPaper
+      fabio:AcademicProceedings
+      fabio:ReferenceBook
+      fabio:ReferenceEntry
+      fabio:ReportDocument
+      fabio:Series
+      fabio:SpecificationDocument) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path fabio:hasSubtitle ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path frbr:partOf ;
+    sh:class fabio:Expression ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path frbr:embodiment ;
+    sh:class fabio:Manifestation ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path fabio:hasSequenceIdentifier ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path pro:isDocumentContextFor ;
+    sh:class pro:RoleInTime ;
+  ] ;
+  sh:property
+  [
+    sh:path [sh:inversePath frbr:partOf] ;
+    sh:class fabio:Expression ;
+  ] 
+.
+
+# ResourceEmbodiment
+schema:ResourceEmbodimentShape
+  a sh:NodeShape ;
+  rdfs:subClassOf schema:BibliographicEntityShape ;
+  sh:targetClass fabio:Manifestation ;
+  sh:nodeKind sh:IRI ;
+  sh:property
+  [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Manifestation ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ];
+  sh:property
+	[
+    sh:path rdf:type ;
+    sh:in (
+      fabio:Manifestation
+      fabio:DigitalManifestation
+      fabio:PrintObject
+      ) ;
+    sh:minCount 1 ;
+    sh:maxCount 2 ;
+  ] ;
+  sh:property
+	[
+    sh:path prism:startingPage ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+	[
+    sh:path prism:endingPage ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+	[
+    sh:path [sh:inversePath frbr:embodiment] ;
+    sh:class fabio:Expression ;
+  ] 
+.
+
+# ResponsibleAgent
+schema:ResponsibleAgentShape
+  a sh:NodeShape ;
+  rdfs:subClassOf schema:BibliographicEntityShape ;
+  sh:targetClass foaf:Agent ;
+  sh:nodeKind sh:IRI ;
+  sh:property
+  [
+    sh:path rdf:type ;
+    sh:hasValue foaf:Agent ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ];
+  sh:property
+  [
+    sh:path datacite:hasIdentifier ;
+    sh:class datacite:Identifier ;
+  ] ;
+  sh:property
+	[
+    sh:path foaf:name ;
+    sh:datatype xsd:string;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+	[
+    sh:path foaf:givenName ;
+    sh:datatype xsd:string;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+	[
+    sh:path foaf:familyName ;
+    sh:datatype xsd:string;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+	[
+    sh:path [sh:inversePath pro:isHeldBy] ;
+    sh:class pro:RoleInTime;
+  ] 
+.

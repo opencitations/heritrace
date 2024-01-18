@@ -1,0 +1,25 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-5">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}" alt="Go to the home">Edit Sphere</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}" alt="{{_('Go to the home')}}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="{{ url_for('catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" aria-current="page" href="{{ url_for('endpoint') }}" alt="{{_('SPARQL Endpoint')}}">{{_('SPARQL Endpoint')}}</a>
+                </li>
+            </ul>
+            <form class="d-flex" action="{{ url_for('search') }}" method="GET" role="search">
+                <input class="form-control me-2" type="search" placeholder="{{_('Search')}}" aria-label="Search" name="q">
+                <button class="btn btn-outline-success" type="submit">{{_('Search')}}</button>
+            </form> 
+        </div>
+    </div>
+</nav>

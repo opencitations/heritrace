@@ -1,0 +1,25 @@
+<!-- footer.jinja -->
+<footer class="bg-dark mt-5 py-3 text-white">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4 mb-sm-4 mb-md-0">
+                2023 Edit Sphere
+            </div>
+            <div class="col-md-4 text-md-center mb-sm-4 mb-md-0">
+                <a href="https://github.com/arcangelo7/edit-sphere" target="_blank" alt="Visit our GitHub repository">
+                    <i class="bi bi-github" style="font-size: 1.5rem;"></i>
+                </a>
+            </div>
+            <div class="col-md-4 text-md-end mb-sm-4 mb-md-0">
+                <a class="dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {{ _('Language') }}
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+                    <li><a class="dropdown-item" href="{{ url_for('set_language', lang_code='en') }}">English</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('set_language', lang_code='it') }}">Italiano</a></li>
+                </ul>
+            </div>
+        </div>
+        </div>
+    </div>
+</footer>

@@ -1,0 +1,143 @@
+{% macro render_triple(triple, subject) %}
+    <li class="d-flex align-items-center">
+        <span class="flex-grow-1 d-flex flex-column justify-content-center p-3 w-75">
+            <span class="object-value word-wrap">
+                {{ triple[2] | human_readable_predicate(subject_classes) }}
+            </span>
+        </span>
+    </li>
+{% endmacro %}
+
+{% macro render_modification_triple(triple, subject) %}
+    <li class="d-flex align-items-center">
+        <span class="flex-grow-1 d-flex flex-column justify-content-center p-3 w-75">
+            <strong>{{ triple[1] | human_readable_predicate(subject_classes) }}:</strong>
+            <span class="object-value word-wrap">
+                {{ triple[2] | human_readable_predicate(subject_classes) }}
+            </span>
+        </span>
+    </li>
+{% endmacro %}
+
+{% extends "_base.jinja" %}
+
+{% block content %}
+<div class="container">
+    {% set first_snapshot_uri = metadata.keys()|first %}
+    {% set version_number = first_snapshot_uri.split('/')[-1] %}
+
+    <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('show_triples', subject=subject) }}">{{_('About %(subject)s', subject=subject)}}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('entity_history', entity_uri=subject) }}">{{_('History of %(subject)s', subject=subject)}}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{_('Version %(version_number)s of %(subject)s', version_number=version_number, subject=subject)}}</li>
+    </ol>
+    </nav>
+
+    <h2 class="mb-4 word-wrap">{{_('Version')}} {{ version_number }} {{_('of')}} <span title="{{subject | human_readable_predicate(subject_classes, False)}}">{{ subject | human_readable_predicate(subject_classes, False) }}</span></h2>
+
+    <div class="d-flex">
+        <div class="me-4">
+            <a href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary">
+                <i class="bi bi-clock-history"></i> {{_('Time machine')}}
+            </a>    
+        </div>
+    
+        {% if next_snapshot_timestamp %}
+            <form action="{{ url_for('restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post">
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-arrow-counterclockwise"></i> {{ _('Restore this version') }}
+                </button>
+            </form>
+        {% endif %}    
+    </div>
+    
+    {% if grouped_triples %}
+
+        {# Pulsanti per navigare tra gli snapshot #}
+        <div class="mt-5 mb-5 d-flex justify-content-start">
+
+            {% if prev_snapshot_timestamp %}
+            <div class="me-4">
+                <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> {{ _('Previous version') }}
+                </a>
+            </div>
+            {% else %}
+            <div style="visibility: hidden;" class="me-4">
+                <a href="#" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> {{ _('Previous version') }}
+                </a>
+            </div>
+            {% endif %}
+        
+            {% if next_snapshot_timestamp %}
+            <div>
+                <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" class="btn btn-outline-primary">
+                    {{ _('Next version') }} <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="row mb-5">
+            {% for snapshot_uri, meta in metadata.items() %}
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        {{_('Metadata of snapshot')}} {{ snapshot_uri.split('/')[-1] }}
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong>{{_('Generation time')}}:</strong> {{ meta['generatedAtTime'] | format_datetime }}</li>
+                        {% if meta['invalidatedAtTime'] %}
+                            <li class="list-group-item"><strong>{{_('Invalidation time')}}:</strong> {{ meta['invalidatedAtTime'] | format_datetime }}</li>
+                        {% endif %}
+                        <li class="list-group-item"><strong>{{_('Attributed to')}}:</strong> <a href="{{ meta['wasAttributedTo'] }}" target="_blank">{{ meta['wasAttributedTo'] }}</a></li>
+                        <li class="list-group-item"><strong>{{_('Primary source')}}:</strong> {{ meta['hadPrimarySource'] | human_readable_primary_source }}</li>
+                        {% if meta['description'] %}
+                        <li class="list-group-item"><strong>{{_('Description')}}:</strong> {{ meta['description'] }}</li>
+                        {% endif %}
+                        {% if modifications %}
+                            <li class="list-group-item">
+                                <p><strong>{{_('Modifications')}}:</strong></p>
+                                {% for mod_type, triples in modifications.items() %}
+                                    {% if triples %}
+                                        <ul class="list-group mb-3">
+                                            <p>
+                                                {% if mod_type in ["Aggiunte", "Additions"] %}
+                                                    <i class="bi bi-plus-circle-fill text-success"></i>
+                                                {% elif mod_type in ["Cancellazioni", "Deletions"] %}
+                                                    <i class="bi bi-dash-circle-fill text-danger"></i>
+                                                {% endif %}
+                                                <em>{{ mod_type }}</em>
+                                            </p>
+                                            {% for triple in triples %}
+                                                {{ render_modification_triple(triple, subject) }}
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                {% endfor %}
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% for display_name, data in grouped_triples.items() %}
+            <div class="predicate-group mb-4">
+                {% if data['triples'] %}
+                    <span class="fw-bold">{{ display_name | human_readable_predicate(subject_classes) }}</span>
+                    {% for triple_data in data['triples'] %}
+                        {{ render_triple(triple_data['triple'], subject) }}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endfor %}
+    
+    {% else %}
+        <p class="alert alert-warning my-5">{{_('This snapshot does not exist')}}</p>
+    {% endif %}
+</div>
+{% endblock %}

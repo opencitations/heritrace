@@ -1,0 +1,356 @@
+{% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy) %}
+    <li class="d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" data-subject-id="{{subject}}" data-property-id="{{ triple[1] }}" data-old-object-id="{{object}}" data-ordered_by="{{ orderedBy }}">
+        <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center p-3 w-75">
+            {% if externalEntity %}
+                {% if isDraggable %}
+                    <span class="drag-handle"><span style="display: none;">☰</span><span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('show_triples', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span></span>
+                {% else %}
+                    <span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('show_triples', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span>
+                {% endif %}
+            {% else %}
+                {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
+                    <span style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
+                {% elif shacl and optional_values[triple[1]] %}
+                    <select name="new_value" class="form-control editable-select" disabled=true>
+                        {% for value in optional_values[triple[1]] %}
+                            <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>{{ value | human_readable_predicate(subject_classes) }}</option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <span>{{ update_form.new_value(class="form-control editable-field", value=triple[2], readonly=true) }}</span>
+                {% endif %}
+            {% endif %}
+        </span>
+        <div class="align-self-start">
+            <div class="d-flex flex-column flex-sm-row">
+                {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
+                    <div title="{{ _('This property is mandatory and cannot be edited') }}" class="info-cursor">
+                {% endif %}
+                {% if externalEntity %}
+                    <a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" class="btn btn-outline-primary mx-2 mt-3" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('show_triples', subject=externalEntity)}}">
+                        <i class="bi bi-arrow-right-square"></i>
+                    </a>
+                {% endif %}
+                {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
+                    </div>
+                {% endif %}
+                {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]])) %}
+                    <div title="{{ _('This property is mandatory and cannot be deleted') }}" class="info-cursor">
+                {% endif %}
+                    <button class="btn btn-outline-danger delete-button mt-3 mx-2"
+                            style="display: none;"
+                            data-subject="{{ subject }}" 
+                            data-predicate="{{ triple[1] }}" 
+                            data-object="{{ externalEntity if externalEntity else triple[2] }}"
+                            {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]])) %}disabled{% endif %}>
+                        <i class="bi bi-trash"></i> <!-- Icona di cancellazione -->
+                    </button>
+                {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]])) %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </li>
+{% endmacro %}
+
+{% macro add_form() %}
+    <div class="mb-5 add-form d-none">
+        <h5>{{_('Add a new piece of information')}}</h5>
+        <form action="{{ url_for('add_triple') }}" method="post">
+            {{ create_form.subject(value=subject) }}
+            <div class="form-group">
+                {{ create_form.predicate(class="form-control predicate-select") }}
+            </div>
+            <div class="form-group mt-3">
+                <label for="addObject">{{_('Value')}}</label>
+                {% if shacl %}
+                    <select id="addObject" name="object" class="form-control object-input">
+                        {% for pred, values in optional_values.items() %}
+                            {% for value in values %}
+                                <option value="{{ value }}" data-predicate="{{ pred }}">{{ value | human_readable_predicate(subject_classes) }}</option>
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                {% endif %}
+                <input type="text" name="object" class="form-control object-input-text">
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">{{_('Add')}}</button>
+                <button type="button" class="btn btn-secondary cancel-add-button">{{_('Cancel')}}</button>
+            </div>
+        </form>
+    </div>
+{% endmacro %}
+
+{% extends "_base.jinja" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4 word-wrap">{{_('About')}} {{ subject | human_readable_predicate(subject_classes, False) }}</h2>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="row col-sm-12 col-md-6 text-center mb-4 mx-auto">
+                <div class="alert alert-warning">
+                    {{ messages[0] }}
+                </div>
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% if history[subject] %}
+    <div>
+        <a href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary">
+            <i class="bi bi-clock-history"></i> {{_('Time machine')}}
+        </a>
+    </div>
+    {% endif %}
+    <div class="triples mb-5">
+        {% if grouped_triples %}
+            <div class="d-flex justify-content-start align-items-baseline my-4">
+                <button id="editEntityBtn" class="btn btn-outline-primary me-2" title="{{_('Edit')}}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                {% if shacl and not can_be_added %}
+                    <span title="{{ _('You cannot add more properties; the limit for each property has been reached') }}" class="info-cursor">
+                        <button class="btn btn-outline-success add-button" disabled><i class="bi bi-plus-lg"></i></button>
+                    </span>
+                {% else %}
+                    <button class="btn btn-outline-success add-button" title="{{_('Add new information')}}"><i class="bi bi-plus-lg"></i></button>
+                {% endif %}
+            </div>
+            {{ add_form() }}
+            {% for display_name, data in grouped_triples.items() %}
+                <div class="predicate-group mb-4">
+                    {% if data['triples'] %}
+                        <span class="fw-bold">{{ display_name | human_readable_predicate(subject_classes) }}</span>
+                        {% set isDraggable = data['is_draggable'] and data['triples']|length > 1 %}
+                        {% for triple_data in data['triples'] %}
+                            {{ render_triple(triple_data['triple'], subject, triple_data['external_entity'], isDraggable, triple_data['object'], data['ordered_by']) }}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="alert alert-warning mt-5 mb-4">{{_('There is no information related to this entity in the dataset')}}</p>
+            <button class="btn btn-outline-success add-button" title="{{_('Add new information')}}">{{_("Let's add some metadata")}}</button>
+            {{ add_form() }}
+        {% endif %}
+    </div>
+    <div>
+        <button class="btn btn-primary" id="saveChangesBtn" style="display: none;">{{_('Save Changes')}}</button>
+        <button class="btn btn-secondary" id="cancelChangesBtn" style="display: none;">{{_('Cancel')}}</button>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        var pendingChanges = [];
+
+        const optional_values = {{ optional_values|tojson|safe }};
+        const shacl = {{ shacl|tojson|safe }};
+        let isInEditMode = false;
+
+        function toggleEditForm(listItem) {
+            const form = listItem.find('.edit-form');
+            const valueSpan = listItem.find('.object-value');
+            form.toggleClass('d-none');
+            valueSpan.toggleClass('d-none');
+        }
+
+        function showAddFormOrAlert() {
+            can_be_added = {{ can_be_added|tojson|safe }}
+            if (can_be_added == null) {
+                $(`.add-form`).toggleClass('d-none');
+            } else {
+                if (can_be_added.length == 0) {
+                    Swal.fire({
+                        title: "{{ _('Warning') }}",
+                        text: "{{ _('You cannot add more properties; the limit for each property has been reached') }}",
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6'
+                    });
+                } else {
+                    $(`.add-form`).toggleClass('d-none');
+                }
+            }
+        }
+
+        function updateObjectInput() {
+            if (!shacl) {
+                $('.object-input-text').show();
+                $('.object-input').prop('disabled', true);
+                return
+            }
+            const selectedPredicate = $('.predicate-select').val();
+            if (optional_values[selectedPredicate].length > 0) {
+                $('.object-input-text').hide().prop('disabled', true);
+                $('.object-input').show().prop('disabled', false).find('option').hide().filter(`[data-predicate="${selectedPredicate}"]`).show();
+            } else {
+                $('.object-input').hide().prop('disabled', true);
+                $('.object-input-text').show().prop('disabled', false);
+            }
+        }
+
+        function storePendingChange(action, subject, predicate, object, newObject = null) {
+            pendingChanges.push({
+                action: action, 
+                subject: subject, 
+                predicate: predicate, 
+                object: object, 
+                newObject: newObject
+            });
+        }
+
+        function restoreOriginalValues() {
+            $('.editable-field, .editable-select').each(function() {
+                $(this).val($(this).data('original-value'));
+            });
+        }
+
+        $('.edit-button').click(function () {
+            const isRedirect = $(this).find('i').hasClass('bi-arrow-right-square');
+            if (isRedirect) {
+                pass
+            } else {
+                toggleEditForm($(this).closest('.property-value'));
+            }
+        });
+
+        $('.cancel-button').click(function () {
+            toggleEditForm($(this).closest('.property-value'));
+            toggleEditForm($(this).closest('form'));
+        });
+        $('.add-button').click(function() {
+            showAddFormOrAlert();
+            updateObjectInput();
+        });
+        $('.cancel-add-button').click(function() {
+            $('.add-form').addClass('d-none');
+        });
+        $('.predicate-select').change(updateObjectInput);
+        $('.predicate-group').each(function() {
+            new Sortable(this, {
+                animation: 150,
+                draggable: '.draggable',
+                handle: '.drag-handle',
+                onEnd: function(evt) {
+                    let new_order = [];
+                    let predicate = null;
+                    let orderedBy = null;
+                    $(evt.from).find('.property-value').each(function() {
+                        new_order.push($(this).data('old-object-id'));
+                        predicate = $(this).data('property-id');
+                        orderedBy = $(this).data('ordered_by');
+                    });
+                    storePendingChange('order', '{{ subject }}', predicate, new_order, orderedBy);
+                }
+            });
+        });
+        $('#editEntityBtn').click(function(){
+            if (isInEditMode) {
+                restoreOriginalValues();
+                $(".editable-field").prop('readonly', true);
+                $(".editable-select").prop('disabled', true);
+                $(".delete-button").hide();
+                $(".drag-handle").children('span:first-child').hide(); // Nascondi gli handle
+                $("#saveChangesBtn").hide();
+                $("#cancelChangesBtn").hide();
+                $(this).removeClass('edit-mode'); // Rimuovi lo stile di modalità di modifica
+                isInEditMode = false;
+                pendingChanges = [];
+            } else {
+                $('.editable-field, .editable-select').each(function() {
+                    $(this).data('original-value', $(this).val());
+                });
+                $(".editable-field").prop('readonly', false);
+                $(".editable-select").prop('disabled', false);
+                $(".delete-button").show();
+                $(".drag-handle").children('span:first-child').show(); // Mostra gli handle
+                $("#saveChangesBtn").show();
+                $("#cancelChangesBtn").show();
+                $(this).addClass('edit-mode'); // Aggiungi lo stile di modalità di modifica
+                isInEditMode = true;
+            }
+        });
+        $('#cancelChangesBtn').click(function(){
+            $('#editEntityBtn').click();
+        });
+        $('.editable-field, .editable-select').change(function() {
+            const listItem = $(this).closest('.property-value');
+            const subject = listItem.data('subject-id');
+            const predicate = listItem.data('property-id');
+            const oldObject = listItem.data('old-object-id');
+            const newObject = $(this).val();
+            storePendingChange('update', subject, predicate, oldObject, newObject);
+        });
+        $('.delete-button').click(function() {
+            const listItem = $(this).closest('.property-value');
+            const subject = listItem.data('subject-id');
+            const predicate = listItem.data('property-id');
+            const object_value = listItem.data('old-object-id');
+            listItem.find('.tripleObject').addClass('striked');
+            listItem.find('.editable-field').prop('readonly', true);
+            listItem.find('.editable-select').prop('disabled', true);
+            $(this).hide();
+            storePendingChange('delete', subject, predicate, object_value);
+            const undoButton = $('<button>')
+                .addClass('btn btn-outline-warning undo-delete-button mt-3 mx-2')
+                .html('<i class="bi bi-arrow-counterclockwise"></i>')
+                .insertAfter($(this));
+                undoButton.click(function() {
+                    listItem.find('.tripleObject').removeClass('striked');
+                    listItem.find('.editable-field').prop('readonly', false);
+                    listItem.find('.editable-select').prop('disabled', false);
+                    $(this).siblings('.delete-button').show();
+                    $(this).hide();
+                    const index = pendingChanges.findIndex(change => change.action === 'delete' && change.subject === subject && change.predicate === predicate && change.object === object_value);
+                    if (index > -1) {
+                        pendingChanges.splice(index, 1);
+                    }
+                });
+        });
+        $('#saveChangesBtn').click(function(){
+            $.ajax({
+                url: '/apply_changes',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(pendingChanges),
+                success: function(response) {
+                    if (response.status === "success") {
+                        pendingChanges = [];
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: response.message,
+                            confirmButtonColor: '#3085d6'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '{{url_for('show_triples', subject=subject)}}';
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message,
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    pendingChanges = [];
+                    response = $.parseJSON(jqXHR.responseText);
+                    let errorMessage = response && response.message ? response.message : "{{_('An unexpected error occurred!')}}";
+                    Swal.fire({
+                        icon: 'error',
+                        title: "{{_('Oops...')}}",
+                        html: errorMessage,
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "_base.jinja" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">{{_('SPARQL Endpoint')}}</h2>
+    <div id="yasgui"></div>
+</div>
+
+<script>
+    const yasgui = new Yasgui(document.getElementById("yasgui"), {
+        requestConfig: { endpoint: "/dataset-endpoint" }
+    });
+</script>
+{% endblock %}

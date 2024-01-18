@@ -1,0 +1,165 @@
+{% macro render_form_field(entity_type, prop, details, entity_types, prefix, form_fields, depth=0, max_depth=5) %}
+    {% if depth <= max_depth %}
+        {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_")) %}
+
+        <div data-repeater-list="{{ unique_id_base }}" data-counter="1" data-max-items="{{ details.max }}">
+            <div data-repeater-item class="input-group mb-3">
+                {% if details.objectClass and details.objectClass in entity_types %}
+                    <div class="d-flex flex-column">
+                        <div class="nested-form-header mb-4">
+                            <h6>{{ prop | human_readable_predicate(entity_types, False) }}</h6>
+                            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="#{{ unique_id_base }}_nested_form">
+                                <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
+                            </button>
+                        </div>
+                        <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse">
+                            {% for nested_prop, nested_details in form_fields[details.objectClass].items() %}
+                                {{ render_form_field(details.objectClass, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, depth + 1, max_depth) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% elif details.optionalValues and details.optionalValues|length %}
+                    <div class="form-floating flex-grow-1">
+                        <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}">
+                            {% for val in details.optionalValues %}
+                                <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
+                            {% endfor %}
+                        </select>
+                        <label for="{{ unique_id_base }}" class="input-group-select">{{ prop | human_readable_predicate(entity_types, False) }}</label>
+                    </div>
+                {% else %}
+                    <div class="form-floating flex-grow-1">
+                        <input type="text" class="form-control" id="{{ unique_id_base }}" name="{{ unique_id_base }}" placeholder="{{ prop | human_readable_predicate(entity_types, False) }}" {{ 'required' if details.min and details.min > 0 }}>
+                        <label for="{{ unique_id_base }}">{{ prop | human_readable_predicate(entity_types, False) }}</label>
+                    </div>
+                {% endif %}
+                {% if not details.max or details.max > 1 %}
+                    <button data-repeater-delete type="button" class="btn btn-outline-danger input-group-text repeater-delete-btn" style="display: none;">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                {% endif %}
+            </div>
+            {% if not details.max or details.max > 1 %}
+                <div class="mb-3 text-start" data-repeater-create>
+                    <button type="button" class="btn btn-link text-secondary">{{ _("Add another %(element_type)s", element_type=prop | human_readable_predicate(entity_types, False)) }}</button>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{% extends "_base.jinja" %}
+{% block content %}
+
+<style>
+    .nested-form-container {
+        border-left: .2rem solid #eee;
+        padding-left: 1rem;
+        margin-left: 1rem;
+    }
+</style>
+
+<div class="container mt-5">
+
+    <form action="{{ url_for('create_entity') }}" method="post" id="entityForm">
+
+        <div class="form-floating mb-3">
+            <select class="form-select" id="entity_type" name="entity_type">
+                <option value="" disabled selected>{{_('Select an entity type')}}</option>
+                {% for entity_type in entity_types %}
+                    <option value="{{ entity_type | human_readable_predicate(entity_types, False) | replace(' ', '_') }}">{{ entity_type | human_readable_predicate(entity_types, False) }}</option>
+                {% endfor %}
+            </select>
+            <label for="entity_type" class="form-label">{{_('Select an entity type')}}</label>
+        </div>
+
+        {% for entity_type, properties in form_fields.items() %}
+            {% set group_id = (entity_type | human_readable_predicate(entity_types, False) + "_group") | replace(" ", "_") %}
+            <div class="property-group mb-3" id="{{ group_id }}" style="display:none">
+                {% for prop, details in properties.items() %}
+                    {{ render_form_field(entity_type, prop, details, entity_types, '', form_fields) }}
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <div class="mb-3">
+            <input type="submit" value="Create" class="btn btn-primary">
+        </div>
+
+    </form>
+
+    <script>
+        function updateRemoveButtons(list) {
+            // Prendi tutti gli elementi tranne il primo e mostra il pulsante Remove
+            list.find('[data-repeater-item]:gt(0)').find('.repeater-delete-btn').show();
+            // Nascondi il pulsante Remove per il primo elemento
+            list.find('[data-repeater-item]:first').find('.repeater-delete-btn').hide();
+        }
+
+        function updateAddButton(list) {
+            var maxItems = parseInt(list.data('max-items')) || Infinity;
+            var counter = list.data('counter');
+            var addButton = list.find('[data-repeater-create]');
+            if (counter >= maxItems) {
+                addButton.hide(); // Nascondi o disabilita il bottone se il numero massimo di elementi è stato raggiunto
+            } else {
+                addButton.show(); // Altrimenti mostralo
+            }
+        }
+
+        $(document).ready(function(){
+            $('#entity_type').change(function(){
+                let selectedType = $(this).val().replace(" ", "_");
+                $('.property-group').hide();
+                $(`#${selectedType}_group`).show();
+            });
+            
+            // Handler for adding new fields
+            $('[data-repeater-create]').click(function(){
+                var list = $(this).closest('[data-repeater-list]');
+                var maxItems = parseInt(list.data('max-items')) || Infinity; // Get the maximum number of items, if defined
+                var counter = list.data('counter') || 1; // Start the counter if not already set
+                if (counter < maxItems) {
+                    var newItem = list.find('[data-repeater-item]').first().clone();
+                    
+                    // Update all IDs and 'for' attributes of labels for the cloned new inputs
+                    newItem.find('input, select').each(function(){
+                        var baseId = $(this).attr('id').replace(/_[0-9]+$/, ''); // Remove the previous counter if present
+                        $(this).attr('id', baseId + '_' + counter); // Set a new unique ID
+                        $(this).val(''); // Reset the input field value
+                    });
+                    newItem.find('label').each(function(){
+                        var baseFor = $(this).attr('for').replace(/_[0-9]+$/, ''); // Remove the previous counter if present
+                        $(this).attr('for', baseFor + '_' + counter); // Update the 'for' attribute with the new input ID
+                    });
+                    
+                    newItem.appendTo(list); // Add the new item to the DOM
+                    var addButton = list.find('[data-repeater-create]').last().detach();
+                    addButton.insertAfter(newItem); 
+                    newItem.find('.repeater-delete-btn').show(); // Show the delete button
+                    list.data('counter', counter + 1); // Increment the counter for the next use
+
+                    updateRemoveButtons(list); // Update the remove buttons
+                    updateAddButton(list); // Update the add button visibility based on the new counter value
+                }
+            });
+
+            // Handler for removing fields
+            $(document).on('click', '[data-repeater-delete]', function(){
+                var list = $(this).closest('[data-repeater-list]');
+                $(this).closest('[data-repeater-item]').remove();
+                var counter = list.data('counter');
+                list.data('counter', counter - 1); // Decrementa il contatore quando un elemento viene rimosso
+                updateAddButton(list); // Controlla se il bottone di aggiunta deve essere riabilitato
+                updateRemoveButtons(list);
+            });
+
+            // Initial check to hide the remove button for the first item
+            $('[data-repeater-list]').each(function() {
+                updateRemoveButtons($(this));
+            });
+        });
+    </script>
+</div>
+
+{% endblock %}

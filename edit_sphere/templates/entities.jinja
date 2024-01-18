@@ -1,0 +1,45 @@
+{% extends "_base.jinja" %}
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">{{_('Catalogue')}}</h1>
+    <ul class="list-group">
+        {% for subject in subjects %}
+        <li class="list-group-item">
+            <a href="{{ url_for('show_triples', subject=subject['subject']['value']|urlencode) }}">{{
+                subject['subject']['value'] }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <nav class="mt-4">
+        <ul class="pagination">
+            <!-- Pagina precedente -->
+            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('catalogue', page=page-1) }}">{{_('Previous')}}</a>
+            </li>
+    
+            <!-- Sempre mostra la pagina 1 -->
+            <li class="page-item {% if page == 1 %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('catalogue', page=1) }}">1</a>
+            </li>
+    
+            <!-- Se la pagina corrente è maggiore di 2, mostra i puntini di sospensione -->
+            {% if page > 2 %}
+                <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+            {% endif %}
+    
+            <!-- Mostra il numero di pagina corrente, ma solo se non è la pagina 1 -->
+            {% if page != 1 %}
+                <li class="page-item active">
+                    <a class="page-link" href="#">{{ page }}</a>
+                </li>
+            {% endif %}
+    
+            <!-- Pagina successiva -->
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('catalogue', page=page+1) }}">{{_('Next')}}</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+{% endblock %}

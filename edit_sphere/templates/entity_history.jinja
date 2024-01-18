@@ -1,0 +1,21 @@
+{% extends "_base.jinja" %}
+
+{% block content %}
+<div class="container">
+    <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('show_triples', subject=entity_uri) }}">{{_('About %(subject)s', subject=entity_uri)}}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{_('History of %(subject)s', subject=entity_uri)}}</li>
+    </ol>
+    </nav>
+</div>
+
+<div class="container">
+    <div id="timeline-embed"></div>
+</div>
+
+<script type="text/javascript">
+    var timeline_json = {{ timeline_data|tojson }};
+    window.timeline = new TL.Timeline('timeline-embed', timeline_json);
+</script>
+{% endblock %}
