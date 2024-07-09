@@ -625,6 +625,7 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
                     'object': str(triple[2])
                 }
                 grouped_triples[display_name]['triples'].append(new_triple_data)
+
     if display_rules:
         ordered_display_names = []
         for rule in display_rules:
@@ -834,6 +835,19 @@ def get_form_fields_from_shacl():
             "objectClass": str(row.objectClass) if row.objectClass else None,
             "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
         }
+
+    # Aggiungi intermediateRelation dalle regole di visualizzazione
+    for rule in display_rules:
+        entity_class = rule.get('class')
+        if entity_class and entity_class in form_fields:
+            for prop in rule.get('displayProperties', []):
+                if 'intermediateRelation' in prop:
+                    intermediate_relation = prop['intermediateRelation']
+                    form_fields[entity_class][prop['property']]['intermediateRelation'] = {
+                        "class": intermediate_relation['class'],
+                        "properties": intermediate_relation['properties']
+                    }
+    
     ordered_form_fields = OrderedDict()
     if display_rules:
         for rule in display_rules:

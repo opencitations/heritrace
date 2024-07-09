@@ -34,6 +34,11 @@
         fetchValueFromQuery: null
       orderedBy: null
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
+      isProxyOf:
+        class: "http://purl.org/spar/pro/RoleInTime"
+        properties:
+          - name: "heldBy"
+            predicate: "http://purl.org/spar/pro/isHeldBy"
       values:
       - displayName: "Author"
         shouldBeDisplayed: true

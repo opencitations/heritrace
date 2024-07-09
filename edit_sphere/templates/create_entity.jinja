@@ -4,7 +4,20 @@
 
         <div data-repeater-list="{{ unique_id_base }}" data-counter="1" data-max-items="{{ details.max }}">
             <div data-repeater-item class="input-group mb-3">
-                {% if details.objectClass and details.objectClass in entity_types %}
+                {% if details.intermediateRelation %}
+                    <div class="d-flex flex-column">
+                        <div class="nested-form-header mb-4">
+                            <h6>{{ prop | human_readable_predicate(entity_types, False) }}</h6>
+                            {% for inter_prop in details.intermediateRelation.properties %}
+                                {% set inter_field_id = unique_id_base + "_" + inter_prop.name %}
+                                <div class="form-floating flex-grow-1 mb-3">
+                                    <input type="text" class="form-control" id="{{ inter_field_id }}" name="{{ inter_field_id }}" placeholder="{{ inter_prop.name | human_readable_predicate(entity_types, False) }}" {% if not inter_prop.fixedValue %}required{% endif %}>
+                                    <label for="{{ inter_field_id }}">{{ inter_prop.name | human_readable_predicate(entity_types, False) }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% elif details.objectClass and details.objectClass in entity_types %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
                             <h6>{{ prop | human_readable_predicate(entity_types, False) }}</h6>
@@ -60,6 +73,7 @@
 </style>
 
 <div class="container mt-5">
+    <h2 class="mb-4">{{ _('Add New Record') }}</h2>
 
     <form action="{{ url_for('create_entity') }}" method="post" id="entityForm">
 
