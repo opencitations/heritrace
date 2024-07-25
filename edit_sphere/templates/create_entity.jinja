@@ -79,7 +79,7 @@
         right: 0.5rem;
         background-color: transparent;
         border: 1px solid #dc3545;
-        border-radius: 1rem;  /* Assicurati che gli angoli siano netti */
+        border-radius: 1rem;
         color: #dc3545;
         font-size: 1.2rem;
         cursor: pointer;
@@ -141,7 +141,7 @@
         function updateAddButton(list) {
             var maxItems = parseInt(list.data('max-items')) || Infinity;
             var counter = list.find('[data-repeater-item]').length;
-            var addButton = list.find('[data-repeater-create]');
+            var addButton = list.find('[data-repeater-create]').first();
             if (counter >= maxItems) {
                 addButton.hide();
             } else {
@@ -167,7 +167,6 @@
                 var counter = list.find('[data-repeater-item]').length;
                 if (counter < maxItems) {
                     var newItem = list.find('[data-repeater-item]').first().clone(true, true);
-                    
                     // Reset values in the cloned item
                     newItem.find('input, select').val('');
                     newItem.find('.nested-form-container').removeClass('show');
@@ -179,8 +178,9 @@
                         $(this).attr('name', newId);
                     });
                     newItem.find('label').each(function(){
-                        var newFor = generateUniqueId($(this).attr('for').replace(/_[a-zA-Z0-9]+$/, ''));
-                        $(this).attr('for', newFor);
+                        var newFor = $(this).attr('for').replace(/_[a-zA-Z0-9]+$/, '');
+                        var newId = newItem.find('#' + newFor).attr('id');
+                        $(this).attr('for', newId);
                     });
 
                     // Update toggle button and nested form container IDs if present
@@ -192,9 +192,9 @@
                         newItem.find('.nested-form-container').attr('id', uniqueId + '_nested_form');
                     }
 
-                    // Append the new item and manage the add button
+                    // Append the new item within its level
                     newItem.appendTo(list);
-                    list.find('[data-repeater-create]').detach().appendTo(list);
+                    list.children('[data-repeater-create]').appendTo(list);
                     updateRemoveButtons(list);
                     updateAddButton(list);
                 }
@@ -209,6 +209,7 @@
 
             $('[data-repeater-list]').each(function() {
                 updateRemoveButtons($(this));
+                updateAddButton($(this));
             });
         });
     </script>
