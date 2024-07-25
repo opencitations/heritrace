@@ -129,21 +129,23 @@
     </form>
 
     <script>
+        function generateUniqueId(prefix) {
+            return prefix + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
         function updateRemoveButtons(list) {
-            // Prendi tutti gli elementi tranne il primo e mostra il pulsante Remove
             list.find('[data-repeater-item]:gt(0)').find('.repeater-delete-btn').show();
-            // Nascondi il pulsante Remove per il primo elemento
             list.find('[data-repeater-item]:first').find('.repeater-delete-btn').hide();
         }
 
         function updateAddButton(list) {
             var maxItems = parseInt(list.data('max-items')) || Infinity;
-            var counter = list.data('counter');
+            var counter = list.find('[data-repeater-item]').length;
             var addButton = list.find('[data-repeater-create]');
             if (counter >= maxItems) {
-                addButton.hide(); // Nascondi o disabilita il bottone se il numero massimo di elementi è stato raggiunto
+                addButton.hide();
             } else {
-                addButton.show(); // Altrimenti mostralo
+                addButton.show();
             }
         }
 
@@ -154,53 +156,57 @@
                 $(`#${selectedType}_group`).show();
             });
 
-            // Handler for toggling collapsible sections
             $(document).on('click', '.toggle-btn', function() {
                 let target = $(this).data('target');
                 $(target).collapse('toggle');
             });
 
-            // Handler for adding new fields
             $('[data-repeater-create]').click(function(){
                 var list = $(this).closest('[data-repeater-list]');
-                var maxItems = parseInt(list.data('max-items')) || Infinity; // Get the maximum number of items, if defined
-                var counter = list.data('counter') || 1; // Start the counter if not already set
+                var maxItems = parseInt(list.data('max-items')) || Infinity;
+                var counter = list.find('[data-repeater-item]').length;
                 if (counter < maxItems) {
-                    var newItem = list.find('[data-repeater-item]').first().clone();
+                    var newItem = list.find('[data-repeater-item]').first().clone(true, true);
+                    
+                    // Reset values in the cloned item
+                    newItem.find('input, select').val('');
+                    newItem.find('.nested-form-container').removeClass('show');
 
-                    // Update all IDs and 'for' attributes of labels for the cloned new inputs
+                    // Update IDs and names
                     newItem.find('input, select').each(function(){
-                        var baseId = $(this).attr('id').replace(/_[0-9]+$/, ''); // Remove the previous counter if present
-                        $(this).attr('id', baseId + '_' + counter); // Set a new unique ID
-                        $(this).val(''); // Reset the input field value
+                        var newId = generateUniqueId($(this).attr('id').replace(/_[a-zA-Z0-9]+$/, ''));
+                        $(this).attr('id', newId);
+                        $(this).attr('name', newId);
                     });
                     newItem.find('label').each(function(){
-                        var baseFor = $(this).attr('for').replace(/_[0-9]+$/, ''); // Remove the previous counter if present
-                        $(this).attr('for', baseFor + '_' + counter); // Update the 'for' attribute with the new input ID
+                        var newFor = generateUniqueId($(this).attr('for').replace(/_[a-zA-Z0-9]+$/, ''));
+                        $(this).attr('for', newFor);
                     });
 
-                    newItem.appendTo(list); // Add the new item to the DOM
-                    var addButton = list.find('[data-repeater-create]').last().detach();
-                    addButton.insertAfter(newItem);
-                    newItem.find('.repeater-delete-btn').show(); // Show the delete button
-                    list.data('counter', counter + 1); // Increment the counter for the next use
+                    // Update toggle button and nested form container IDs if present
+                    var toggleBtn = newItem.find('button.toggle-btn');
+                    if (toggleBtn.length > 0) {
+                        var uniqueId = generateUniqueId(toggleBtn.attr('data-bs-target').replace('#', ''));
+                        toggleBtn.attr('data-bs-target', '#' + uniqueId + '_nested_form');
+                        toggleBtn.attr('aria-controls', uniqueId + '_nested_form');
+                        newItem.find('.nested-form-container').attr('id', uniqueId + '_nested_form');
+                    }
 
-                    updateRemoveButtons(list); // Update the remove buttons
-                    updateAddButton(list); // Update the add button visibility based on the new counter value
+                    // Append the new item and manage the add button
+                    newItem.appendTo(list);
+                    list.find('[data-repeater-create]').detach().appendTo(list);
+                    updateRemoveButtons(list);
+                    updateAddButton(list);
                 }
             });
 
-            // Handler for removing fields
             $(document).on('click', '[data-repeater-delete]', function(){
                 var list = $(this).closest('[data-repeater-list]');
                 $(this).closest('[data-repeater-item]').remove();
-                var counter = list.data('counter');
-                list.data('counter', counter - 1); // Decrementa il contatore quando un elemento viene rimosso
-                updateAddButton(list); // Controlla se il bottone di aggiunta deve essere riabilitato
                 updateRemoveButtons(list);
+                updateAddButton(list);
             });
 
-            // Initial check to hide the remove button for the first item
             $('[data-repeater-list]').each(function() {
                 updateRemoveButtons($(this));
             });
