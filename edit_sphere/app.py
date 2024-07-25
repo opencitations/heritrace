@@ -799,6 +799,7 @@ def get_valid_predicates(triples):
 def get_form_fields_from_shacl():
     if not shacl:
         return dict()
+    
     query = prepareQuery(f"""
         SELECT ?type ?predicate ?datatype ?maxCount ?minCount ?hasValue ?objectClass (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
             ?shape sh:targetClass ?type ;
@@ -820,7 +821,7 @@ def get_form_fields_from_shacl():
             }}
             FILTER (isURI(?predicate))
         }}
-        GROUP BY ?predicate ?datatype ?maxCount ?minCount ?hasValue ?objectClass
+        GROUP BY ?type ?predicate ?datatype ?maxCount ?minCount ?hasValue ?objectClass
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
     results = shacl.query(query)
     form_fields = defaultdict(dict)
@@ -843,11 +844,13 @@ def get_form_fields_from_shacl():
             for prop in rule.get('displayProperties', []):
                 if 'intermediateRelation' in prop:
                     intermediate_relation = prop['intermediateRelation']
+                    target_entity_type = intermediate_relation.get('targetEntityType')
                     form_fields[entity_class][prop['property']]['intermediateRelation'] = {
                         "class": intermediate_relation['class'],
-                        "properties": intermediate_relation['properties']
+                        "targetEntityType": target_entity_type,
+                        "properties": form_fields[target_entity_type]
                     }
-    
+
     ordered_form_fields = OrderedDict()
     if display_rules:
         for rule in display_rules:

@@ -34,11 +34,9 @@
         fetchValueFromQuery: null
       orderedBy: null
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
-      isProxyOf:
+      intermediateRelation:
         class: "http://purl.org/spar/pro/RoleInTime"
-        properties:
-          - name: "heldBy"
-            predicate: "http://purl.org/spar/pro/isHeldBy"
+        targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
       values:
       - displayName: "Author"
         shouldBeDisplayed: true
@@ -260,6 +258,20 @@
       - displayName: "Type"
         shouldBeDisplayed: true
         fetchValueFromQuery: null
+      orderedBy: null
+    - property: "http://purl.org/spar/datacite/hasIdentifier"
+      values:
+      - displayName: "Identifier"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: |
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+            SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
+            WHERE {
+                [[subject]] datacite:hasIdentifier ?identifier.
+                ?identifier datacite:usesIdentifierScheme ?scheme;
+                            literal:hasLiteralValue ?literal.
+            }
       orderedBy: null
     - property: "http://xmlns.com/foaf/0.1/name"
       values:

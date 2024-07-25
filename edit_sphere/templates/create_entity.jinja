@@ -1,19 +1,20 @@
-{% macro render_form_field(entity_type, prop, details, entity_types, prefix, form_fields, depth=0, max_depth=5) %}
+{% macro render_form_field(entity_type, prop, details, entity_types, prefix, form_fields, counter=1, depth=0, max_depth=5) %}
     {% if depth <= max_depth %}
-        {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_")) %}
+        {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + counter | string) %}
 
-        <div data-repeater-list="{{ unique_id_base }}" data-counter="1" data-max-items="{{ details.max }}">
-            <div data-repeater-item class="input-group mb-3">
+        <div data-repeater-list="{{ unique_id_base }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}">
+            <div data-repeater-item class="input-group mb-3" style="position: relative;">
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
                             <h6>{{ prop | human_readable_predicate(entity_types, False) }}</h6>
-                            {% for inter_prop in details.intermediateRelation.properties %}
-                                {% set inter_field_id = unique_id_base + "_" + inter_prop.name %}
-                                <div class="form-floating flex-grow-1 mb-3">
-                                    <input type="text" class="form-control" id="{{ inter_field_id }}" name="{{ inter_field_id }}" placeholder="{{ inter_prop.name | human_readable_predicate(entity_types, False) }}" {% if not inter_prop.fixedValue %}required{% endif %}>
-                                    <label for="{{ inter_field_id }}">{{ inter_prop.name | human_readable_predicate(entity_types, False) }}</label>
-                                </div>
+                            <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
+                                <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
+                            </button>
+                        </div>
+                        <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse">
+                            {% for inter_prop, inter_details in form_fields[details.intermediateRelation.targetEntityType].items() %}
+                                {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, unique_id_base + '_', form_fields, counter, depth + 1, max_depth) }}
                             {% endfor %}
                         </div>
                     </div>
@@ -21,13 +22,13 @@
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
                             <h6>{{ prop | human_readable_predicate(entity_types, False) }}</h6>
-                            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="#{{ unique_id_base }}_nested_form">
+                            <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
                                 <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
                             </button>
                         </div>
                         <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse">
                             {% for nested_prop, nested_details in form_fields[details.objectClass].items() %}
-                                {{ render_form_field(details.objectClass, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, depth + 1, max_depth) }}
+                                {{ render_form_field(details.objectClass, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, counter, depth + 1, max_depth) }}
                             {% endfor %}
                         </div>
                     </div>
@@ -47,8 +48,8 @@
                     </div>
                 {% endif %}
                 {% if not details.max or details.max > 1 %}
-                    <button data-repeater-delete type="button" class="btn btn-outline-danger input-group-text repeater-delete-btn" style="display: none;">
-                        <i class="bi bi-x-lg"></i>
+                    <button data-repeater-delete type="button" class="repeater-delete-btn">
+                        <i class="bi bi-x"></i>
                     </button>
                 {% endif %}
             </div>
@@ -69,6 +70,31 @@
         border-left: .2rem solid #eee;
         padding-left: 1rem;
         margin-left: 1rem;
+        position: relative;
+    }
+
+    .repeater-delete-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background-color: transparent;
+        border: 1px solid #dc3545;
+        border-radius: 1rem;  /* Assicurati che gli angoli siano netti */
+        color: #dc3545;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0.3rem 0.6rem;
+        transition: background-color 0.2s, color 0.2s, border 0.2s;
+    }
+
+    .repeater-delete-btn:hover {
+        background-color: #dc3545;
+        color: #fff;
+        border-color: #dc3545;
+    }
+
+    .input-group {
+        position: relative;
     }
 </style>
 
@@ -127,7 +153,13 @@
                 $('.property-group').hide();
                 $(`#${selectedType}_group`).show();
             });
-            
+
+            // Handler for toggling collapsible sections
+            $(document).on('click', '.toggle-btn', function() {
+                let target = $(this).data('target');
+                $(target).collapse('toggle');
+            });
+
             // Handler for adding new fields
             $('[data-repeater-create]').click(function(){
                 var list = $(this).closest('[data-repeater-list]');
@@ -135,7 +167,7 @@
                 var counter = list.data('counter') || 1; // Start the counter if not already set
                 if (counter < maxItems) {
                     var newItem = list.find('[data-repeater-item]').first().clone();
-                    
+
                     // Update all IDs and 'for' attributes of labels for the cloned new inputs
                     newItem.find('input, select').each(function(){
                         var baseId = $(this).attr('id').replace(/_[0-9]+$/, ''); // Remove the previous counter if present
@@ -146,10 +178,10 @@
                         var baseFor = $(this).attr('for').replace(/_[0-9]+$/, ''); // Remove the previous counter if present
                         $(this).attr('for', baseFor + '_' + counter); // Update the 'for' attribute with the new input ID
                     });
-                    
+
                     newItem.appendTo(list); // Add the new item to the DOM
                     var addButton = list.find('[data-repeater-create]').last().detach();
-                    addButton.insertAfter(newItem); 
+                    addButton.insertAfter(newItem);
                     newItem.find('.repeater-delete-btn').show(); // Show the delete button
                     list.data('counter', counter + 1); // Increment the counter for the next use
 

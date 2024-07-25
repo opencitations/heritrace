@@ -73,9 +73,7 @@ schema:IdentifierShape
 # AgentRole
 schema:AgentRoleShape
     a sh:NodeShape ;
-    rdfs:subClassOf schema:BibliographicEntityShape ;
     sh:targetClass pro:RoleInTime ;
-    sh:nodeKind sh:IRI ;
     sh:property
     [
       sh:path rdf:type ;
@@ -225,9 +223,7 @@ schema:BibliographicResourceShape
 # ResourceEmbodiment
 schema:ResourceEmbodimentShape
   a sh:NodeShape ;
-  rdfs:subClassOf schema:BibliographicEntityShape ;
   sh:targetClass fabio:Manifestation ;
-  sh:nodeKind sh:IRI ;
   sh:property
   [
     sh:path rdf:type ;
@@ -270,20 +266,18 @@ schema:ResourceEmbodimentShape
 # ResponsibleAgent
 schema:ResponsibleAgentShape
   a sh:NodeShape ;
-  rdfs:subClassOf schema:BibliographicEntityShape ;
   sh:targetClass foaf:Agent ;
-  sh:nodeKind sh:IRI ;
+  sh:property
+  [
+    sh:path datacite:hasIdentifier ;
+    sh:class datacite:Identifier ;
+  ] ;
   sh:property
   [
     sh:path rdf:type ;
     sh:hasValue foaf:Agent ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ];
-  sh:property
-  [
-    sh:path datacite:hasIdentifier ;
-    sh:class datacite:Identifier ;
   ] ;
   sh:property
 	[
