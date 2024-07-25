@@ -149,6 +149,15 @@
             }
         }
 
+        function updateNestedIds(container) {
+            container.find('[data-bs-toggle="collapse"]').each(function() {
+                var newTargetId = generateUniqueId('nested_form');
+                $(this).attr('data-bs-target', '#' + newTargetId);
+                $(this).attr('aria-controls', newTargetId);
+                $(this).closest('.nested-form-header').next('.nested-form-container').attr('id', newTargetId);
+            });
+        }
+
         $(document).ready(function(){
             $('#entity_type').change(function(){
                 let selectedType = $(this).val().replace(" ", "_");
@@ -184,13 +193,7 @@
                     });
 
                     // Update toggle button and nested form container IDs if present
-                    var toggleBtn = newItem.find('button.toggle-btn');
-                    if (toggleBtn.length > 0) {
-                        var uniqueId = generateUniqueId(toggleBtn.attr('data-bs-target').replace('#', ''));
-                        toggleBtn.attr('data-bs-target', '#' + uniqueId + '_nested_form');
-                        toggleBtn.attr('aria-controls', uniqueId + '_nested_form');
-                        newItem.find('.nested-form-container').attr('id', uniqueId + '_nested_form');
-                    }
+                    updateNestedIds(newItem);
 
                     // Append the new item within its level
                     newItem.appendTo(list);
