@@ -7,13 +7,13 @@
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
-                            <h6>{{ prop | human_readable_predicate(entity_types, False) }}</h6>
+                            <h6>{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</h6>
                             <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
                                 <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
                             </button>
                         </div>
                         <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse">
-                            {% for inter_prop, inter_details in form_fields[details.intermediateRelation.targetEntityType].items() %}
+                            {% for inter_prop, inter_details in details.intermediateRelation.properties.items() %}
                                 {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, unique_id_base + '_', form_fields, counter, depth + 1, max_depth) }}
                             {% endfor %}
                         </div>
@@ -21,7 +21,7 @@
                 {% elif details.objectClass and details.objectClass in entity_types %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
-                            <h6>{{ prop | human_readable_predicate(entity_types, False) }}</h6>
+                            <h6>{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</h6>
                             <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
                                 <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
                             </button>
@@ -39,12 +39,12 @@
                                 <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
                             {% endfor %}
                         </select>
-                        <label for="{{ unique_id_base }}" class="input-group-select">{{ prop | human_readable_predicate(entity_types, False) }}</label>
+                        <label for="{{ unique_id_base }}" class="input-group-select">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</label>
                     </div>
                 {% else %}
                     <div class="form-floating flex-grow-1">
-                        <input type="text" class="form-control" id="{{ unique_id_base }}" name="{{ unique_id_base }}" placeholder="{{ prop | human_readable_predicate(entity_types, False) }}" {{ 'required' if details.min and details.min > 0 }}>
-                        <label for="{{ unique_id_base }}">{{ prop | human_readable_predicate(entity_types, False) }}</label>
+                        <input type="text" class="form-control" id="{{ unique_id_base }}" name="{{ unique_id_base }}" placeholder="{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}" {{ 'required' if details.min and details.min > 0 }}>
+                        <label for="{{ unique_id_base }}">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</label>
                     </div>
                 {% endif %}
                 {% if not details.max or details.max > 1 %}
@@ -55,7 +55,7 @@
             </div>
             {% if not details.max or details.max > 1 %}
                 <div class="mb-3 text-start" data-repeater-create>
-                    <button type="button" class="btn btn-link text-secondary">{{ _("Add another %(element_type)s", element_type=prop | human_readable_predicate(entity_types, False)) }}</button>
+                    <button type="button" class="btn btn-link text-secondary">{{ _("Add another %(element_type)s", element_type=details.displayName or (prop | human_readable_predicate(entity_types, False))) }}</button>
                 </div>
             {% endif %}
         </div>
@@ -162,18 +162,6 @@
             }
         }
 
-        function updateNestedIds(container) {
-            container.find('[data-bs-toggle="collapse"]').each(function() {
-                var toggleButton = $(this);
-                var nestedContainer = toggleButton.closest('.nested-form-header').next('.nested-form-container');
-                
-                var newId = generateUniqueId('nested_form');
-                toggleButton.attr('data-bs-target', '#' + newId);
-                toggleButton.attr('aria-controls', newId);
-                nestedContainer.attr('id', newId);
-            });
-        }
-
         $(document).ready(function() {
             // Store initial copies of repeater items
             var initialCopies = {};
@@ -205,27 +193,38 @@
                         var newItem = initialCopies[list.data('repeater-list')].clone(true, true);
 
                         // Reset values and nested elements
-                        newItem.find('input').val('');
-                        newItem.find('select').each(function() {
-                            // Seleziona il primo option come default
-                            $(this).val($(this).find("option:first").val());
+                        newItem.find('input, select, textarea').each(function() {
+                            var elem = $(this);
+                            var elemId = elem.attr('id');
+                            
+                            if (elemId) {
+                                var newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
+                                elem.attr('id', newId);
+                                elem.attr('name', newId);
+                            }
+                            
+                            // Reset value
+                            if (elem.is('select')) {
+                                elem.find('option:first').prop('selected', true);
+                            } else {
+                                elem.val('');
+                            }
                         });
-                        newItem.find('.nested-form-container').removeClass('show');
 
-                        // Update IDs and names
-                        newItem.find('input, select').each(function() {
-                            var newId = generateUniqueId($(this).attr('id').replace(/_[a-zA-Z0-9]+$/, ''));
-                            $(this).attr('id', newId);
-                            $(this).attr('name', newId);
+                        // Update nested IDs for collapse elements
+                        newItem.find('.nested-form-header').each(function() {
+                            var $header = $(this);
+                            var $toggleBtn = $header.find('.toggle-btn');
+                            var $collapseDiv = $header.next('.nested-form-container');
+                            
+                            var newId = generateUniqueId('nested_form');
+                            $toggleBtn.attr('data-bs-target', '#' + newId);
+                            $toggleBtn.attr('aria-controls', newId);
+                            $collapseDiv.attr('id', newId);
+                            
+                            // Re-initialize Bootstrap collapse
+                            $collapseDiv.collapse({toggle: false});
                         });
-                        newItem.find('label').each(function() {
-                            var newFor = $(this).attr('for').replace(/_[a-zA-Z0-9]+$/, '');
-                            var newId = newItem.find('#' + newFor).attr('id');
-                            $(this).attr('for', newId);
-                        });
-
-                        // Update nested IDs
-                        updateNestedIds(newItem);
 
                         // Append the new item within its level
                         newItem.appendTo(list);
@@ -262,6 +261,7 @@
                     }
                 });
             }
+
 
             bindRepeaterEvents($(document));
         });

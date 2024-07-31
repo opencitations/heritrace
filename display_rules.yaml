@@ -140,9 +140,6 @@
                 ?issue a fabio:JournalIssue;
                     fabio:hasSequenceIdentifier ?issueNumber.
             }
-      orderedBy: null
-    - property: "http://purl.org/vocab/frbr/core#partOf"
-      values:
       - displayName: "Volume"
         shouldBeDisplayed: true
         fetchValueFromQuery: |
@@ -155,9 +152,6 @@
                 ?volume a fabio:JournalVolume;
                     fabio:hasSequenceIdentifier ?volumeNumber.
             }
-      orderedBy: null
-    - property: "http://purl.org/vocab/frbr/core#partOf"
-      values:
       - displayName: "Journal"
         shouldBeDisplayed: true
         fetchValueFromQuery: |

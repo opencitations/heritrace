@@ -801,7 +801,8 @@ def get_form_fields_from_shacl():
         return dict()
     
     query = prepareQuery(f"""
-        SELECT ?type ?predicate ?datatype ?maxCount ?minCount ?hasValue ?objectClass (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
+        SELECT ?type ?predicate ?datatype ?maxCount ?minCount ?hasValue ?objectClass
+               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
             ?property sh:path ?predicate .
@@ -837,19 +838,38 @@ def get_form_fields_from_shacl():
             "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
         }
 
-    # Aggiungi intermediateRelation dalle regole di visualizzazione
+    # Aggiungi informazioni dalle regole di visualizzazione
     for rule in display_rules:
         entity_class = rule.get('class')
         if entity_class and entity_class in form_fields:
             for prop in rule.get('displayProperties', []):
-                if 'intermediateRelation' in prop:
-                    intermediate_relation = prop['intermediateRelation']
-                    target_entity_type = intermediate_relation.get('targetEntityType')
-                    form_fields[entity_class][prop['property']]['intermediateRelation'] = {
-                        "class": intermediate_relation['class'],
-                        "targetEntityType": target_entity_type,
-                        "properties": form_fields[target_entity_type]
-                    }
+                if prop['property'] in form_fields[entity_class]:
+                    if 'intermediateRelation' in prop:
+                        intermediate_relation = prop['intermediateRelation']
+                        target_entity_type = intermediate_relation.get('targetEntityType')
+                        form_fields[entity_class][prop['property']]['intermediateRelation'] = {
+                            "class": intermediate_relation['class'],
+                            "targetEntityType": target_entity_type,
+                            "properties": form_fields[target_entity_type] if target_entity_type in form_fields else {}
+                        }
+                    if 'values' in prop:
+                        # Crea campi separati per ogni ruolo
+                        for value in prop['values']:
+                            display_name = value['displayName']
+                            new_field_name = f"{prop['property']}_{display_name}"
+                            form_fields[entity_class][new_field_name] = {
+                                "datatype": form_fields[entity_class][prop['property']].get("datatype"),
+                                "min": form_fields[entity_class][prop['property']].get("min"),
+                                "max": form_fields[entity_class][prop['property']].get("max"),
+                                "hasValue": form_fields[entity_class][prop['property']].get("hasValue"),
+                                "objectClass": form_fields[entity_class][prop['property']].get("objectClass"),
+                                "intermediateRelation": form_fields[entity_class][prop['property']].get("intermediateRelation"),
+                                "displayName": display_name,
+                                "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", [])  # Mantieni optionalValues
+                            }
+                        # Rimuovi il campo originale solo se abbiamo creato nuovi campi
+                        if len(prop['values']) > 0:
+                            del form_fields[entity_class][prop['property']]
 
     ordered_form_fields = OrderedDict()
     if display_rules:
@@ -857,13 +877,16 @@ def get_form_fields_from_shacl():
             entity_class = rule.get('class')
             if entity_class and entity_class in form_fields:
                 ordered_properties = [prop_rule['property'] for prop_rule in rule.get('displayProperties', [])]
-                ordered_form_fields[entity_class] = {prop: form_fields[entity_class][prop] for prop in ordered_properties if prop in form_fields[entity_class]}
+                ordered_form_fields[entity_class] = OrderedDict()
+                for prop in ordered_properties:
+                    if prop in form_fields[entity_class]:
+                        ordered_form_fields[entity_class][prop] = form_fields[entity_class][prop]
                 for prop in form_fields[entity_class]:
                     if prop not in ordered_properties:
                         ordered_form_fields[entity_class][prop] = form_fields[entity_class][prop]
-    for entity_class in form_fields:
-        if entity_class not in ordered_form_fields:
-            ordered_form_fields[entity_class] = form_fields[entity_class]
+    else:
+        ordered_form_fields = form_fields
+
     return ordered_form_fields
 
 def execute_sparql_query(query: str, subject: str, value: str) -> Tuple[str, str]:
