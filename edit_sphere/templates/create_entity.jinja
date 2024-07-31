@@ -197,7 +197,11 @@
                         var newItem = initialCopies[list.data('repeater-list')].clone(true, true);
 
                         // Reset values and nested elements
-                        newItem.find('input, select').val('');
+                        newItem.find('input').val('');
+                        newItem.find('select').each(function() {
+                            // Seleziona il primo option come default
+                            $(this).val($(this).find("option:first").val());
+                        });
                         newItem.find('.nested-form-container').removeClass('show');
 
                         // Update IDs and names
