@@ -96,6 +96,14 @@
     .input-group {
         position: relative;
     }
+
+    .nested-form-header .toggle-btn.collapsed {
+        transform: rotate(0deg);
+    }
+
+    .nested-form-header .toggle-btn:not(.collapsed) {
+        transform: rotate(90deg);
+    }
 </style>
 
 <div class="container mt-5">
@@ -166,7 +174,7 @@
             });
         }
 
-        $(document).ready(function(){
+        $(document).ready(function() {
             // Store initial copies of repeater items
             var initialCopies = {};
 
@@ -176,7 +184,7 @@
                 initialCopies[list.data('repeater-list')] = firstItem.clone(true, true);
             });
 
-            $('#entity_type').change(function(){
+            $('#entity_type').change(function() {
                 let selectedType = $(this).val().replace(" ", "_");
                 $('.property-group').hide();
                 $(`#${selectedType}_group`).show();
@@ -188,7 +196,7 @@
             });
 
             function bindRepeaterEvents(context) {
-                context.find('[data-repeater-create]').off('click').on('click', function(){
+                context.find('[data-repeater-create]').off('click').on('click', function() {
                     var list = $(this).closest('[data-repeater-list]');
                     var maxItems = parseInt(list.data('max-items')) || Infinity;
                     var counter = list.find('[data-repeater-item]').length;
@@ -205,12 +213,12 @@
                         newItem.find('.nested-form-container').removeClass('show');
 
                         // Update IDs and names
-                        newItem.find('input, select').each(function(){
+                        newItem.find('input, select').each(function() {
                             var newId = generateUniqueId($(this).attr('id').replace(/_[a-zA-Z0-9]+$/, ''));
                             $(this).attr('id', newId);
                             $(this).attr('name', newId);
                         });
-                        newItem.find('label').each(function(){
+                        newItem.find('label').each(function() {
                             var newFor = $(this).attr('for').replace(/_[a-zA-Z0-9]+$/, '');
                             var newId = newItem.find('#' + newFor).attr('id');
                             $(this).attr('for', newId);
@@ -230,11 +238,28 @@
                     }
                 });
 
-                context.find('[data-repeater-delete]').off('click').on('click', function(){
+                context.find('[data-repeater-delete]').off('click').on('click', function() {
                     var list = $(this).closest('[data-repeater-list]');
                     $(this).closest('[data-repeater-item]').remove();
                     updateRemoveButtons(list);
                     updateAddButton(list);
+                });
+
+                context.find('.collapse').on('shown.bs.collapse', function() {
+                    $(this).prev('.nested-form-header').find('.toggle-btn').removeClass('collapsed');
+                });
+
+                context.find('.collapse').on('hidden.bs.collapse', function() {
+                    $(this).prev('.nested-form-header').find('.toggle-btn').addClass('collapsed');
+                });
+
+                // Initial state check
+                context.find('.collapse').each(function() {
+                    if ($(this).hasClass('show')) {
+                        $(this).prev('.nested-form-header').find('.toggle-btn').removeClass('collapsed');
+                    } else {
+                        $(this).prev('.nested-form-header').find('.toggle-btn').addClass('collapsed');
+                    }
                 });
             }
 
