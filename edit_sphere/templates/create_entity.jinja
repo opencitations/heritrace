@@ -3,7 +3,7 @@
         {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + counter | string) %}
 
         <div data-repeater-list="{{ unique_id_base }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}">
-            <div data-repeater-item class="input-group mb-3" style="position: relative;">
+            <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;">
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
@@ -79,11 +79,9 @@
         right: 0.5rem;
         background-color: transparent;
         border: 1px solid #dc3545;
-        border-radius: 1rem;
         color: #dc3545;
         font-size: 1.2rem;
         cursor: pointer;
-        padding: 0.3rem 0.6rem;
         transition: background-color 0.2s, color 0.2s, border 0.2s;
     }
 
@@ -95,6 +93,7 @@
 
     .input-group {
         position: relative;
+        padding-right: 3.5rem; /* Adjusted padding to make space for delete button */
     }
 
     .nested-form-header .toggle-btn.collapsed {
@@ -178,7 +177,8 @@
                 $(`#${selectedType}_group`).show();
             });
 
-            $(document).on('click', '.toggle-btn', function() {
+            $(document).on('click', '.toggle-btn', function(e) {
+                e.stopPropagation(); // Prevent the event from bubbling up
                 let target = $(this).attr('data-bs-target');
                 $(target).collapse('toggle');
             });
@@ -244,11 +244,13 @@
                     updateAddButton(list);
                 });
 
-                context.find('.collapse').on('shown.bs.collapse', function() {
+                context.find('.collapse').on('shown.bs.collapse', function(e) {
+                    e.stopPropagation(); // Prevent the event from bubbling up
                     $(this).prev('.nested-form-header').find('.toggle-btn').removeClass('collapsed');
                 });
 
-                context.find('.collapse').on('hidden.bs.collapse', function() {
+                context.find('.collapse').on('hidden.bs.collapse', function(e) {
+                    e.stopPropagation(); // Prevent the event from bubbling up
                     $(this).prev('.nested-form-header').find('.toggle-btn').addClass('collapsed');
                 });
 
@@ -261,7 +263,6 @@
                     }
                 });
             }
-
 
             bindRepeaterEvents($(document));
         });
