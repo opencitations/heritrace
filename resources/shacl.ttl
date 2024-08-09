@@ -120,10 +120,10 @@ schema:AgentRoleShape
     ] 
 .
 
-# BibliographicResource
-schema:BibliographicResourceShape
+# JournalArticle
+schema:JournalArticleShape
 	a sh:NodeShape ;
-  sh:targetClass fabio:Expression ;
+  sh:targetClass fabio:JournalArticle ;
   sh:property
   [
     sh:path datacite:hasIdentifier ;
@@ -139,39 +139,13 @@ schema:BibliographicResourceShape
   sh:property
 	[
     sh:path rdf:type ;
-    sh:in (fabio:ArchivalDocument
-      fabio:Book
-      fabio:BookChapter
-      doco:Part
-      fabio:ExpressionCollection
-      fabio:BookSeries
-      fabio:BookSet
-      fabio:DataFile
-      fabio:Thesis
-      fabio:JournalArticle
-      fabio:JournalIssue
-      fabio:JournalVolume
-      fabio:Journal
-      fabio:ProceedingsPaper
-      fabio:AcademicProceedings
-      fabio:ReferenceBook
-      fabio:ReferenceEntry
-      fabio:ReportDocument
-      fabio:Series
-      fabio:SpecificationDocument) ;
-    sh:minCount 0 ;
+    sh:hasValue fabio:JournalArticle ;
+    sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property
   [
     sh:path dcterms:title ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property
-  [
-    sh:path fabio:hasSubtitle ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -203,8 +177,81 @@ schema:BibliographicResourceShape
   ] ;
   sh:property
   [
-    sh:path fabio:hasSequenceIdentifier ;
+    sh:path pro:isDocumentContextFor ;
+    sh:class pro:RoleInTime ;
+  ] ;
+.
+
+# BibliographicResource
+schema:BibliographicResourceShape
+	a sh:NodeShape ;
+  sh:targetClass fabio:Expression ;
+  sh:property
+  [
+    sh:path datacite:hasIdentifier ;
+    sh:class datacite:Identifier ;
+  ] ;
+  sh:property
+  [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+	[
+    sh:path rdf:type ;
+    sh:in (fabio:ArchivalDocument
+      fabio:Book
+      fabio:BookChapter
+      doco:Part
+      fabio:ExpressionCollection
+      fabio:BookSeries
+      fabio:BookSet
+      fabio:DataFile
+      fabio:Thesis
+      fabio:JournalIssue
+      fabio:JournalVolume
+      fabio:Journal
+      fabio:ProceedingsPaper
+      fabio:AcademicProceedings
+      fabio:ReferenceBook
+      fabio:ReferenceEntry
+      fabio:ReportDocument
+      fabio:Series
+      fabio:SpecificationDocument) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path dcterms:title ;
     sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path frbr:partOf ;
+    sh:class fabio:Expression ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property
+  [
+    sh:path frbr:embodiment ;
+    sh:class fabio:Manifestation ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
@@ -213,11 +260,6 @@ schema:BibliographicResourceShape
     sh:path pro:isDocumentContextFor ;
     sh:class pro:RoleInTime ;
   ] ;
-  sh:property
-  [
-    sh:path [sh:inversePath frbr:partOf] ;
-    sh:class fabio:Expression ;
-  ] 
 .
 
 # ResourceEmbodiment
