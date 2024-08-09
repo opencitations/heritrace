@@ -130,7 +130,7 @@
         {% endfor %}
 
         <div class="mb-3">
-            <input type="submit" value="Create" class="btn btn-primary">
+            <input type="submit" value="{{ _('Create') }}" class="btn btn-primary">
         </div>
 
     </form>
@@ -173,8 +173,13 @@
 
             $('#entity_type').change(function() {
                 let selectedType = $(this).val().replace(" ", "_");
-                $('.property-group').hide();
-                $(`#${selectedType}_group`).show();
+                
+                // Hide and disable all groups
+                $('.property-group').hide().find(':input').prop('disabled', true);
+                
+                // Show and enable the selected group
+                let selectedGroup = $(`#${selectedType}_group`);
+                selectedGroup.show().find(':input').prop('disabled', false);
             });
 
             $(document).on('click', '.toggle-btn', function(e) {

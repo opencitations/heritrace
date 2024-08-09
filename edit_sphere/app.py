@@ -89,6 +89,12 @@ def create_entity():
     entity_types = list(form_fields.keys())
     if request.method == 'POST':
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
+        entity_type = request.form.get('entity_type')
+        form_fields_dict = json.loads(json.dumps(form_fields))
+        print(entity_type, entity_type in form_fields)
+        if entity_type not in form_fields:
+            flash(gettext('Invalid entity type'), 'error')
+            return redirect(url_for('create_entity'))
         # for entity_type, props in form_fields.items():
         #     for prop, details in props.items():
         #         if request.form.get(prop):
