@@ -114,7 +114,7 @@
             <select class="form-select" id="entity_type" name="entity_type">
                 <option value="" disabled selected>{{_('Select an entity type')}}</option>
                 {% for entity_type in entity_types %}
-                    <option value="{{ entity_type | human_readable_predicate(entity_types, False) | replace(' ', '_') }}">{{ entity_type | human_readable_predicate(entity_types, False) }}</option>
+                    <option value="{{ entity_type }}" data-uri="{{ entity_type }}">{{ entity_type | human_readable_predicate(entity_types, False) }}</option>
                 {% endfor %}
             </select>
             <label for="entity_type" class="form-label">{{_('Select an entity type')}}</label>
@@ -122,7 +122,7 @@
 
         {% for entity_type, properties in form_fields.items() %}
             {% set group_id = (entity_type | human_readable_predicate(entity_types, False) + "_group") | replace(" ", "_") %}
-            <div class="property-group mb-3" id="{{ group_id }}" style="display:none">
+            <div class="property-group mb-3" id="{{ group_id }}" data-uri="{{ entity_type }}" style="display:none">
                 {% for prop, details in properties.items() %}
                     {{ render_form_field(entity_type, prop, details, entity_types, '', form_fields) }}
                 {% endfor %}
@@ -172,13 +172,13 @@
             });
 
             $('#entity_type').change(function() {
-                let selectedType = $(this).val().replace(" ", "_");
+                let selectedUri = $(this).find(':selected').data('uri');
                 
                 // Hide and disable all groups
                 $('.property-group').hide().find(':input').prop('disabled', true);
                 
                 // Show and enable the selected group
-                let selectedGroup = $(`#${selectedType}_group`);
+                let selectedGroup = $(`.property-group[data-uri="${selectedUri}"]`);
                 selectedGroup.show().find(':input').prop('disabled', false);
             });
 
