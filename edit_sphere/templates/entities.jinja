@@ -5,7 +5,7 @@
     <ul class="list-group">
         {% for subject in subjects %}
         <li class="list-group-item">
-            <a href="{{ url_for('show_triples', subject=subject['subject']['value']|urlencode) }}">{{
+            <a href="{{ url_for('about', subject=subject['subject']['value']|urlencode) }}">{{
                 subject['subject']['value'] }}</a>
         </li>
         {% endfor %}

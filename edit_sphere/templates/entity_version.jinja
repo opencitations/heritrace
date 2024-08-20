@@ -28,7 +28,7 @@
 
     <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('show_triples', subject=subject) }}">{{_('About %(subject)s', subject=subject)}}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('about', subject=subject) }}">{{_('About %(subject)s', subject=subject)}}</a></li>
         <li class="breadcrumb-item"><a href="{{ url_for('entity_history', entity_uri=subject) }}">{{_('History of %(subject)s', subject=subject)}}</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{_('Version %(version_number)s of %(subject)s', version_number=version_number, subject=subject)}}</li>
     </ol>

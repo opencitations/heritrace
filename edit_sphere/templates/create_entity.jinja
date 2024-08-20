@@ -109,26 +109,46 @@
     <h2 class="mb-4">{{ _('Add New Record') }}</h2>
 
     <form action="{{ url_for('create_entity') }}" method="post" id="entityForm">
-
-        <div class="form-floating mb-3">
-            <select class="form-select" id="entity_type" name="entity_type">
-                <option value="" disabled selected>{{_('Select an entity type')}}</option>
-                {% for entity_type in entity_types %}
-                    <option value="{{ entity_type }}" data-uri="{{ entity_type }}">{{ entity_type | human_readable_predicate(entity_types, False) }}</option>
-                {% endfor %}
-            </select>
-            <label for="entity_type" class="form-label">{{_('Select an entity type')}}</label>
-        </div>
-
-        {% for entity_type, properties in form_fields.items() %}
-            {% set group_id = (entity_type | human_readable_predicate(entity_types, False) + "_group") | replace(" ", "_") %}
-            <div class="property-group mb-3" id="{{ group_id }}" data-uri="{{ entity_type }}" style="display:none">
-                {% for prop, details in properties.items() %}
-                    {{ render_form_field(entity_type, prop, details, entity_types, '', form_fields) }}
-                {% endfor %}
+        {% if form_fields %}
+            <div class="form-floating mb-3">
+                <select class="form-select" id="entity_type" name="entity_type">
+                    <option value="" disabled selected>{{_('Select an entity type')}}</option>
+                    {% for entity_type in entity_types %}
+                        <option value="{{ entity_type }}" data-uri="{{ entity_type }}">{{ entity_type | human_readable_predicate(entity_types, False) }}</option>
+                    {% endfor %}
+                </select>
+                <label for="entity_type" class="form-label">{{_('Select an entity type')}}</label>
             </div>
-        {% endfor %}
 
+            {% for entity_type, properties in form_fields.items() %}
+                {% set group_id = (entity_type | human_readable_predicate(entity_types, False) + "_group") | replace(" ", "_") %}
+                <div class="property-group mb-3" id="{{ group_id }}" data-uri="{{ entity_type }}" style="display:none">
+                    {% for prop, details in properties.items() %}
+                        {{ render_form_field(entity_type, prop, details, entity_types, '', form_fields) }}
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <div id="custom-entity-form">
+                <div class="mb-3">
+                    <label for="custom_type" class="form-label">{{_('Entity Type URI')}}</label>
+                    <input type="url" class="form-control" id="custom_type" name="custom_type" required>
+                </div>
+                <div id="custom-properties">
+                    <div class="mb-3 custom-property" data-property-id="1">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="custom_property_1" class="form-label mb-0">{{_('Property')}} 1</label>
+                            <button type="button" class="btn btn-danger btn-sm remove-property" data-property-id="1">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <input type="text" class="form-control mb-2" id="custom_property_1" name="custom_property_1" placeholder="Property URI">
+                        <input type="text" class="form-control" id="custom_value_1" name="custom_value_1" placeholder="Value">
+                    </div>
+                </div>
+                <button type="button" id="add-property" class="btn btn-secondary mb-3">{{_('Add Property')}}</button>
+            </div>
+        {% endif %}
         <div class="mb-3">
             <input type="submit" value="{{ _('Create') }}" class="btn btn-primary">
         </div>
@@ -136,32 +156,32 @@
     </form>
 
     <script>
-        function generateUniqueId(prefix) {
-            return prefix + '_' + Math.random().toString(36).substr(2, 9);
-        }
-
-        function updateRemoveButtons(list) {
-            list.find('[data-repeater-item]').each(function(index) {
-                if (index === 0) {
-                    $(this).find('.repeater-delete-btn').hide();
-                } else {
-                    $(this).find('.repeater-delete-btn').show();
-                }
-            });
-        }
-
-        function updateAddButton(list) {
-            var maxItems = parseInt(list.data('max-items')) || Infinity;
-            var counter = list.find('[data-repeater-item]').length;
-            var addButton = list.find('[data-repeater-create]').first();
-            if (counter >= maxItems) {
-                addButton.hide();
-            } else {
-                addButton.show();
-            }
-        }
-
         $(document).ready(function() {
+            function generateUniqueId(prefix) {
+                return prefix + '_' + Math.random().toString(36).substr(2, 9);
+            }
+
+            function updateRemoveButtons(list) {
+                list.find('[data-repeater-item]').each(function(index) {
+                    if (index === 0) {
+                        $(this).find('.repeater-delete-btn').hide();
+                    } else {
+                        $(this).find('.repeater-delete-btn').show();
+                    }
+                });
+            }
+
+            function updateAddButton(list) {
+                var maxItems = parseInt(list.data('max-items')) || Infinity;
+                var counter = list.find('[data-repeater-item]').length;
+                var addButton = list.find('[data-repeater-create]').first();
+                if (counter >= maxItems) {
+                    addButton.hide();
+                } else {
+                    addButton.show();
+                }
+            }
+
             // Store initial copies of repeater items
             var initialCopies = {};
 
@@ -171,6 +191,7 @@
                 initialCopies[list.data('repeater-list')] = firstItem.clone(true, true);
             });
 
+            // Handle entity type selection
             $('#entity_type').change(function() {
                 let selectedUri = $(this).find(':selected').data('uri');
                 
@@ -182,8 +203,9 @@
                 selectedGroup.show().find(':input').prop('disabled', false);
             });
 
+            // Toggle nested forms
             $(document).on('click', '.toggle-btn', function(e) {
-                e.stopPropagation(); // Prevent the event from bubbling up
+                e.stopPropagation();
                 let target = $(this).attr('data-bs-target');
                 $(target).collapse('toggle');
             });
@@ -269,7 +291,51 @@
                 });
             }
 
+            // Initialize repeater events
             bindRepeaterEvents($(document));
+
+            // Handle custom entity form
+            let propertyCount = 1;
+            
+            $('#add-property').click(function() {
+                propertyCount++;
+                let newProperty = `
+                    <div class="mb-3 custom-property" data-property-id="${propertyCount}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="custom_property_${propertyCount}" class="form-label mb-0">{{_('Property')}} ${propertyCount}</label>
+                            <button type="button" class="btn btn-danger btn-sm remove-property" data-property-id="${propertyCount}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        <input type="text" class="form-control mb-2" id="custom_property_${propertyCount}" name="custom_property_${propertyCount}" placeholder="Property URI">
+                        <input type="text" class="form-control" id="custom_value_${propertyCount}" name="custom_value_${propertyCount}" placeholder="Value">
+                    </div>
+                `;
+                $('#custom-properties').append(newProperty);
+            });
+
+            // Handle property removal
+            $('#custom-properties').on('click', '.remove-property', function() {
+                let propertyId = $(this).data('property-id');
+                $(`div[data-property-id="${propertyId}"]`).remove();
+                updatePropertyLabels();
+            });
+
+            function updatePropertyLabels() {
+                $('.custom-property').each(function(index) {
+                    let newIndex = index + 1;
+                    $(this).attr('data-property-id', newIndex);
+                    $(this).find('.form-label').text(`{{_('Property')}} ${newIndex}`);
+                    $(this).find('input').each(function() {
+                        let oldName = $(this).attr('name');
+                        let newName = oldName.replace(/\d+/, newIndex);
+                        $(this).attr('name', newName);
+                        $(this).attr('id', newName);
+                    });
+                    $(this).find('.remove-property').attr('data-property-id', newIndex);
+                });
+                propertyCount = $('.custom-property').length;
+            }
         });
     </script>
 </div>

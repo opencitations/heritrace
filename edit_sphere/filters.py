@@ -42,7 +42,7 @@ class Filter:
                 words.append(word)
                 return " ".join(words).lower()
         elif validators.url(url) and is_link:
-            return f"<a href='{url_for('show_triples', subject=quote(url))}' alt='{gettext('Link to the entity %(entity)s', entity=url)}'>{url}</a>"
+            return f"<a href='{url_for('about', subject=quote(url))}' alt='{gettext('Link to the entity %(entity)s', entity=url)}'>{url}</a>"
         else:
             return url
     

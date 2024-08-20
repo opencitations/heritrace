@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  1.0\n"
 "Report-Msgid-Bugs-To: arcangelo.massari@unibo.it\n"
-"POT-Creation-Date: 2023-11-01 11:41+0100\n"
+"POT-Creation-Date: 2024-08-20 18:41+0200\n"
 "PO-Revision-Date: 2023-09-09 15:01+0200\n"
 "Last-Translator: Arcangelo Massari <arcangelo.massari@unibo.it>\n"
 "Language: en\n"
@@ -18,69 +18,69 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.12.1\n"
 
-#: edit_sphere/app.py:139
+#: edit_sphere/app.py:97
+msgid "Invalid entity type"
+msgstr ""
+
+#: edit_sphere/app.py:120
+msgid "Entity created successfully"
+msgstr ""
+
+#: edit_sphere/app.py:162
 #, python-format
 msgid "This resource cannot have any other %(predicate)s properties"
 msgstr ""
 
-#: edit_sphere/app.py:177
+#: edit_sphere/app.py:200
 msgid "Changes applied successfully"
 msgstr ""
 
-#: edit_sphere/app.py:182
+#: edit_sphere/app.py:206
 msgid "An error occurred while applying changes"
 msgstr ""
 
-#: edit_sphere/app.py:198
+#: edit_sphere/app.py:222
 msgid "This property cannot be deleted"
 msgstr ""
 
-#: edit_sphere/app.py:272
-msgid "Link to the responsible agent description"
-msgstr ""
-
-#: edit_sphere/app.py:291
+#: edit_sphere/app.py:315
 msgid "Snapshot"
 msgstr ""
 
-#: edit_sphere/app.py:293
+#: edit_sphere/app.py:317
 msgid "Responsible agent"
 msgstr ""
 
-#: edit_sphere/app.py:294 edit_sphere/templates/entity_version.jinja:96
+#: edit_sphere/app.py:318 edit_sphere/templates/entity_version.jinja:96
 msgid "Primary source"
 msgstr ""
 
-#: edit_sphere/app.py:295 edit_sphere/templates/entity_version.jinja:98
+#: edit_sphere/app.py:319 edit_sphere/templates/entity_version.jinja:98
 msgid "Description"
 msgstr ""
 
-#: edit_sphere/app.py:324
-msgid "Materialize snapshot"
-msgstr ""
-
-#: edit_sphere/app.py:324
+#: edit_sphere/app.py:348
 msgid "View version"
 msgstr ""
 
-#: edit_sphere/app.py:331
+#: edit_sphere/app.py:355
 msgid "Version history for"
 msgstr ""
 
-#: edit_sphere/app.py:457 edit_sphere/app.py:461
+#: edit_sphere/app.py:481 edit_sphere/app.py:485
 msgid "Deletions"
 msgstr ""
 
-#: edit_sphere/app.py:457 edit_sphere/app.py:463
+#: edit_sphere/app.py:481 edit_sphere/app.py:487
 msgid "Additions"
 msgstr ""
 
-#: edit_sphere/app.py:502
+#: edit_sphere/app.py:534
 #, python-format
 msgid "The property %(predicate)s is not allowed for resources of type %(s_type)s"
 msgstr ""
 
-#: edit_sphere/app.py:510
+#: edit_sphere/app.py:542
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
@@ -88,37 +88,57 @@ msgid ""
 "%(o_values)s"
 msgstr ""
 
-#: edit_sphere/app.py:513 edit_sphere/app.py:516 edit_sphere/app.py:521
+#: edit_sphere/app.py:545 edit_sphere/app.py:548 edit_sphere/app.py:553
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
 "<code>%(property)s</code> property requires values of type %(o_types)s"
 msgstr ""
 
-#: edit_sphere/filters.py:43
-#, python-format
-msgid "Link to the entity %(entity)s"
-msgstr ""
-
-#: edit_sphere/filters.py:63
+#: edit_sphere/filters.py:65
 msgid "Unknown"
 msgstr ""
 
-#: edit_sphere/filters.py:66 edit_sphere/filters.py:69
-msgid "Link to the primary source description"
-msgstr ""
-
-#: edit_sphere/filters.py:66 edit_sphere/templates/entity_version.jinja:37
+#: edit_sphere/filters.py:68 edit_sphere/templates/entity_version.jinja:37
 msgid "Version"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:11
-#: edit_sphere/templates/create_entity.jinja:16
+#: edit_sphere/templates/create_entity.jinja:58
+#: edit_sphere/templates/sub_form_template.jinja:30
+#, python-format
+msgid "Add another %(element_type)s"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:109
+#: edit_sphere/templates/navigation.jinja:16
+msgid "Add New Record"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:115
+#: edit_sphere/templates/create_entity.jinja:120
 msgid "Select an entity type"
 msgstr ""
 
+#: edit_sphere/templates/create_entity.jinja:134
+msgid "Entity Type URI"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:140
+#: edit_sphere/templates/create_entity.jinja:305
+#: edit_sphere/templates/create_entity.jinja:328
+msgid "Property"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:149
+msgid "Add Property"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:153
+msgid "Create"
+msgstr ""
+
 #: edit_sphere/templates/endpoint.jinja:5
-#: edit_sphere/templates/navigation.jinja:16
+#: edit_sphere/templates/navigation.jinja:19
 msgid "SPARQL Endpoint"
 msgstr ""
 
@@ -220,8 +240,8 @@ msgstr ""
 msgid "Go to the catalogue"
 msgstr ""
 
-#: edit_sphere/templates/navigation.jinja:20
-#: edit_sphere/templates/navigation.jinja:21
+#: edit_sphere/templates/navigation.jinja:23
+#: edit_sphere/templates/navigation.jinja:24
 msgid "Search"
 msgstr ""
 
@@ -378,5 +398,17 @@ msgstr ""
 #~ msgstr ""
 
 #~ msgid "The data was deleted correctly"
+#~ msgstr ""
+
+#~ msgid "Link to the responsible agent description"
+#~ msgstr ""
+
+#~ msgid "Materialize snapshot"
+#~ msgstr ""
+
+#~ msgid "Link to the entity %(entity)s"
+#~ msgstr ""
+
+#~ msgid "Link to the primary source description"
 #~ msgstr ""
 

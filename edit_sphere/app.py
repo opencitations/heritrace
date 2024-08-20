@@ -8,6 +8,7 @@ import click
 import requests
 import validators
 import yaml
+import traceback
 from config import Config
 from edit_sphere.editor import Editor
 from edit_sphere.filters import *
@@ -87,25 +88,41 @@ def catalogue():
 def create_entity():
     form_fields = get_form_fields_from_shacl()
     entity_types = list(form_fields.keys())
+
     if request.method == 'POST':
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
-        entity_type = request.form.get('entity_type')
-        form_fields_dict = json.loads(json.dumps(form_fields))
-        print(entity_type, entity_type in form_fields)
-        if entity_type not in form_fields:
-            flash(gettext('Invalid entity type'), 'error')
-            return redirect(url_for('create_entity'))
-        # for entity_type, props in form_fields.items():
-        #     for prop, details in props.items():
-        #         if request.form.get(prop):
-        #             editor.create(URIRef(entity_type), URIRef(prop), Literal(request.form.get(prop)))
-        # editor.preexisting_finished()
-        # editor.save()
-        return redirect(url_for('success_page'))
+        if form_fields:
+            entity_type = request.form.get('entity_type')
+            if entity_type not in form_fields:
+                flash(gettext('Invalid entity type'), 'error')
+                return redirect(url_for('create_entity'))
+            # for entity_type, props in form_fields.items():
+            #     for prop, details in props.items():
+            #         if request.form.get(prop):
+            #             editor.create(URIRef(entity_type), URIRef(prop), Literal(request.form.get(prop)))
+            # editor.preexisting_finished()
+        else:
+            # Custom entity creation
+            entity_type = request.form.get('custom_type')
+            new_entity_uri = URIRef(entity_type)
+            editor.import_entity(new_entity_uri)
+            editor.preexisting_finished()
+            editor.create(new_entity_uri, RDF.type, URIRef(entity_type))
+            
+            for key, value in request.form.items():
+                if key.startswith('custom_property_') and value:
+                    property_number = key.split('_')[-1]
+                    property_value = request.form.get(f'custom_value_{property_number}')
+                    if property_value:
+                        editor.create(new_entity_uri, URIRef(value), Literal(property_value))
+
+        editor.save()
+        flash(gettext('Entity created successfully'), 'success')
+        return redirect(url_for('about', subject=str(new_entity_uri)))
     return render_template('create_entity.jinja', entity_types=entity_types, form_fields=form_fields)
 
-@app.route('/triples/<path:subject>')
-def show_triples(subject):
+@app.route('/about/<path:subject>')
+def about(subject):
     decoded_subject = urllib.parse.unquote(subject)
     agnostic_entity = AgnosticEntity(res=decoded_subject, config_path=change_tracking_config)
     history, _ = agnostic_entity.get_history(include_prov_metadata=True)
@@ -143,10 +160,10 @@ def add_triple():
         can_be_added, _, _, _, _, s_types = get_valid_predicates(list(data_graph.triples((None, None, None))))
         if predicate not in can_be_added and URIRef(predicate) in data_graph.predicates():
             flash(gettext('This resource cannot have any other %(predicate)s properties', predicate=filter.human_readable_predicate(predicate, s_types)))
-            return redirect(url_for('show_triples', subject=subject))
+            return redirect(url_for('about', subject=subject))
         if object_value is None:
             flash(report_text)
-            return redirect(url_for('show_triples', subject=subject))
+            return redirect(url_for('about', subject=subject))
     else:
         object_value = URIRef(object_value) if validators.url(object_value) else Literal(object_value, datatype=XSD.string)
     editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
@@ -154,7 +171,7 @@ def add_triple():
     editor.preexisting_finished()
     editor.create(URIRef(subject), URIRef(predicate), object_value)
     editor.save()
-    return redirect(url_for('show_triples', subject=subject))
+    return redirect(url_for('about', subject=subject))
 
 @app.route('/apply_changes', methods=['POST'])
 def apply_changes():
@@ -184,7 +201,8 @@ def apply_changes():
     except ValueError as ve:
         return jsonify(status="error", message=str(ve)), 400 
     except Exception as e:
-        app.logger.error(f"Error while applying changes: {str(e)}")
+        error_message = f"Error while applying changes: {str(e)}\n{traceback.format_exc()}"
+        app.logger.error(error_message)
         return jsonify(status="error", message=gettext("An error occurred while applying changes")), 500
 
 def update_logic(editor: Editor, subject, predicate, old_value, new_value):
@@ -246,7 +264,7 @@ def order_logic(editor: Editor, subject, predicate, new_order, ordered_by):
 @app.route('/search')
 def search():
     subject = request.args.get('q')
-    return redirect(url_for('show_triples', subject=subject))
+    return redirect(url_for('about', subject=subject))
 
 @app.route('/set-language/<lang_code>')
 def set_language(lang_code=None):
@@ -381,13 +399,8 @@ def entity_version(entity_uri, timestamp):
     triples = list(version.triples((None, None, None)))
     relevant_properties = set()
     _, _, _, _, _, subject_classes, valid_predicates = get_valid_predicates(triples)
-    if display_rules:
-        grouped_triples, relevant_properties = get_grouped_triples(entity_uri, triples, subject_classes, valid_predicates)
-    else:
-        grouped_triples = dict()
-        for triple in triples:
-            grouped_triples.setdefault((triple[1], filter.human_readable_predicate(triple[1], subject_classes, True), False), []).append(triple)
-        relevant_properties = set(triple[1] for triple in triples)
+    grouped_triples, relevant_properties = get_grouped_triples(entity_uri, triples, subject_classes, valid_predicates)
+
     if relevant_properties:
         triples = [triple for triple in triples if str(triple[1]) in relevant_properties]
 
@@ -451,7 +464,7 @@ def restore_version(entity_uri, timestamp):
     """
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
-    return redirect(url_for('show_triples', subject=entity_uri))
+    return redirect(url_for('about', subject=entity_uri))
     
 @app.errorhandler(404)
 def page_not_found(e):
@@ -472,9 +485,17 @@ def parse_sparql_update(query):
 
 def validate_new_triple(subject, predicate, new_value, old_value = None):
     data_graph = fetch_data_graph_for_subject(subject)
-    s_types = [triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))]
     if old_value is not None:
         old_value = [triple[2] for triple in data_graph.triples((URIRef(subject), URIRef(predicate), None)) if str(triple[2]) == str(old_value)][0]
+
+    if shacl is None:
+        # Se non c'è SHACL, accettiamo qualsiasi valore
+        if validators.url(new_value):
+            return URIRef(new_value), old_value, ''
+        else:
+            return Literal(new_value), old_value, ''
+    
+    s_types = [triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))]
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
         SELECT DISTINCT ?property ?datatype ?a_class ?classIn (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
@@ -733,10 +754,11 @@ def get_valid_predicates(triples):
     predicate_counts = {str(predicate): existing_predicates.count(predicate) for predicate in set(existing_predicates)}
     default_datatypes = {str(predicate): XSD.string for predicate in existing_predicates}
     s_types = [triple[2] for triple in triples if triple[1] == RDF.type]
+    valid_predicates = [{str(predicate): {"min": None, "max": None, "hasValue": None, "optionalValues": []}} for predicate in set(existing_predicates)]
     if not s_types:
-        return existing_predicates, existing_predicates, default_datatypes, dict(), dict(), [], existing_predicates
+        return existing_predicates, existing_predicates, default_datatypes, dict(), dict(), [], [str(predicate) for predicate in existing_predicates]
     if not shacl:
-        return existing_predicates, existing_predicates, default_datatypes, dict(), dict(), s_types, existing_predicates
+        return existing_predicates, existing_predicates, default_datatypes, dict(), dict(), s_types, [str(predicate) for predicate in existing_predicates]
     query = prepareQuery(f"""
         SELECT ?predicate ?datatype ?maxCount ?minCount ?hasValue (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
             ?shape sh:targetClass ?type ;
@@ -845,37 +867,38 @@ def get_form_fields_from_shacl():
         }
 
     # Aggiungi informazioni dalle regole di visualizzazione
-    for rule in display_rules:
-        entity_class = rule.get('class')
-        if entity_class and entity_class in form_fields:
-            for prop in rule.get('displayProperties', []):
-                if prop['property'] in form_fields[entity_class]:
-                    if 'intermediateRelation' in prop:
-                        intermediate_relation = prop['intermediateRelation']
-                        target_entity_type = intermediate_relation.get('targetEntityType')
-                        form_fields[entity_class][prop['property']]['intermediateRelation'] = {
-                            "class": intermediate_relation['class'],
-                            "targetEntityType": target_entity_type,
-                            "properties": form_fields[target_entity_type] if target_entity_type in form_fields else {}
-                        }
-                    if 'values' in prop:
-                        # Crea campi separati per ogni ruolo
-                        for value in prop['values']:
-                            display_name = value['displayName']
-                            new_field_name = f"{prop['property']}_{display_name}"
-                            form_fields[entity_class][new_field_name] = {
-                                "datatype": form_fields[entity_class][prop['property']].get("datatype"),
-                                "min": form_fields[entity_class][prop['property']].get("min"),
-                                "max": form_fields[entity_class][prop['property']].get("max"),
-                                "hasValue": form_fields[entity_class][prop['property']].get("hasValue"),
-                                "objectClass": form_fields[entity_class][prop['property']].get("objectClass"),
-                                "intermediateRelation": form_fields[entity_class][prop['property']].get("intermediateRelation"),
-                                "displayName": display_name,
-                                "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", [])  # Mantieni optionalValues
+    if display_rules:
+        for rule in display_rules:
+            entity_class = rule.get('class')
+            if entity_class and entity_class in form_fields:
+                for prop in rule.get('displayProperties', []):
+                    if prop['property'] in form_fields[entity_class]:
+                        if 'intermediateRelation' in prop:
+                            intermediate_relation = prop['intermediateRelation']
+                            target_entity_type = intermediate_relation.get('targetEntityType')
+                            form_fields[entity_class][prop['property']]['intermediateRelation'] = {
+                                "class": intermediate_relation['class'],
+                                "targetEntityType": target_entity_type,
+                                "properties": form_fields[target_entity_type] if target_entity_type in form_fields else {}
                             }
-                        # Rimuovi il campo originale solo se abbiamo creato nuovi campi
-                        if len(prop['values']) > 0:
-                            del form_fields[entity_class][prop['property']]
+                        if 'values' in prop:
+                            # Crea campi separati per ogni ruolo
+                            for value in prop['values']:
+                                display_name = value['displayName']
+                                new_field_name = f"{prop['property']}_{display_name}"
+                                form_fields[entity_class][new_field_name] = {
+                                    "datatype": form_fields[entity_class][prop['property']].get("datatype"),
+                                    "min": form_fields[entity_class][prop['property']].get("min"),
+                                    "max": form_fields[entity_class][prop['property']].get("max"),
+                                    "hasValue": form_fields[entity_class][prop['property']].get("hasValue"),
+                                    "objectClass": form_fields[entity_class][prop['property']].get("objectClass"),
+                                    "intermediateRelation": form_fields[entity_class][prop['property']].get("intermediateRelation"),
+                                    "displayName": display_name,
+                                    "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", [])  # Mantieni optionalValues
+                                }
+                            # Rimuovi il campo originale solo se abbiamo creato nuovi campi
+                            if len(prop['values']) > 0:
+                                del form_fields[entity_class][prop['property']]
 
     ordered_form_fields = OrderedDict()
     if display_rules:

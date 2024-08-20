@@ -3,9 +3,9 @@
         <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center p-3 w-75">
             {% if externalEntity %}
                 {% if isDraggable %}
-                    <span class="drag-handle"><span style="display: none;">☰</span><span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('show_triples', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span></span>
+                    <span class="drag-handle"><span style="display: none;">☰</span><span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span></span>
                 {% else %}
-                    <span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('show_triples', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span>
+                    <span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span>
                 {% endif %}
             {% else %}
                 {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
@@ -27,7 +27,7 @@
                     <div title="{{ _('This property is mandatory and cannot be edited') }}" class="info-cursor">
                 {% endif %}
                 {% if externalEntity %}
-                    <a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" class="btn btn-outline-primary mx-2 mt-3" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('show_triples', subject=externalEntity)}}">
+                    <a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" class="btn btn-outline-primary mx-2 mt-3" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">
                         <i class="bi bi-arrow-right-square"></i>
                     </a>
                 {% endif %}
@@ -326,7 +326,7 @@
                             confirmButtonColor: '#3085d6'
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                window.location.href = '{{url_for('show_triples', subject=subject)}}';
+                                window.location.href = '{{url_for('about', subject=subject)}}';
                             }
                         });
                     } else {
