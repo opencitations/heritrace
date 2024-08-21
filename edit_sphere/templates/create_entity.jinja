@@ -108,6 +108,19 @@
 <div class="container mt-5">
     <h2 class="mb-4">{{ _('Add New Record') }}</h2>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="alert-messages mt-4">
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
+
     <form action="{{ url_for('create_entity') }}" method="post" id="entityForm">
         {% if form_fields %}
             <div class="form-floating mb-3">
@@ -178,6 +191,44 @@
 
     <script>
         $(document).ready(function() {
+
+        // Funzione per validare il valore in tempo reale con AJAX
+        function validateValue(propertyId, value) {
+            $.ajax({
+                url: '{{ url_for("validate_literal") }}',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ value: value }),
+                success: function(response) {
+                    // Rimuovi tutte le opzioni disabilitate prima di aggiornare
+                    var select = $(`#custom_datatype_${propertyId}`);
+                    var validOptions = [];
+
+                    // Disabilita tutti i datatype non validi e raccogli i validi
+                    select.find('option').each(function() {
+                        var datatypeUri = $(this).val();
+                        if (response.valid_datatypes.includes(datatypeUri)) {
+                            $(this).prop('disabled', false);
+                            validOptions.push($(this).detach()); // Salva e rimuovi temporaneamente l'opzione valida
+                        } else {
+                            $(this).prop('disabled', true);
+                        }
+                    });
+
+                    // Ordina le opzioni: prima quelle valide
+                    if (validOptions.length > 0) {
+                        // Sposta le opzioni valide in cima al select
+                        $.each(validOptions.reverse(), function(index, option) {
+                            select.prepend(option); // Re-inserisci in cima al select
+                        });
+                    }
+                },
+                error: function(response) {
+                    alert(response.responseJSON.error);  // Mostra l'errore
+                }
+            });
+        }
+
             function generateUniqueId(prefix) {
                 return prefix + '_' + Math.random().toString(36).substr(2, 9);
             }
@@ -329,7 +380,11 @@
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
-                        <input type="text" class="form-control mb-2" id="custom_property_${propertyCount}" name="custom_property_${propertyCount}" placeholder="Property URI">
+                        <!-- Input per l'URI della proprietà -->
+                        <input type="text" class="form-control mb-2" id="custom_property_${propertyCount}" name="custom_property_${propertyCount}" placeholder="{{ _('Property URI') }}">
+
+                        <!-- Input per il valore -->
+                        <input type="text" class="form-control mb-2 custom-value-input" id="custom_value_${propertyCount}" name="custom_value_${propertyCount}" placeholder="{{ _('Value') }}">
 
                         <!-- Selettore per URI o Literal -->
                         <div class="mb-2">
@@ -339,9 +394,6 @@
                                 <option value="uri">{{ _('URI') }}</option>
                             </select>
                         </div>
-
-                        <!-- Input per il valore -->
-                        <input type="text" class="form-control custom-value-input" id="custom_value_${propertyCount}" name="custom_value_${propertyCount}" placeholder="{{ _('Value') }}">
 
                         <!-- Sezione per datatype, mostrata solo se l'utente sceglie Literal -->
                         <div class="mt-2 custom-datatype-section" id="custom_datatype_section_${propertyCount}">
@@ -391,7 +443,7 @@
                 propertyCount = $('.custom-property').length;
             }
 
-            // Mostra/Nascondi sezione datatype
+            // Gestione della visualizzazione dinamica del datatype
             $(document).on('change', '.custom-value-type', function() {
                 var propertyId = $(this).attr('id').split('_').pop();
                 var selectedValueType = $(this).val();
@@ -401,6 +453,22 @@
                 } else {
                     $(`#custom_datatype_section_${propertyId}`).hide();
                 }
+            });
+            
+            $(document).on('focus', '.custom-datatype-section select', function() {
+                var propertyId = $(this).attr('id').split('_').pop();
+                var value = $(`#custom_value_${propertyId}`).val();
+
+                if (value) {
+                    validateValue(propertyId, value);
+                }
+            });
+
+            // Gestione della visualizzazione dinamica del datatype
+            $(document).on('change', '.custom-value-input', function() {
+                var propertyId = $(this).attr('id').split('_').pop();
+                // Reset del datatype su xsd:string ogni volta che il valore cambia
+                $(`#custom_datatype_${propertyId}`).val('http://www.w3.org/2001/XMLSchema#string');                
             });
         });
     </script>

@@ -154,6 +154,12 @@ def create_entity():
                         editor.create(custom_entity_uri, URIRef(value), URIRef(property_value))
                     elif value_type == 'literal':
                         datatype = request.form.get(f'custom_datatype_{property_number}', 'xsd:string')
+                        literal_value = convert_to_matching_literal(property_value, [URIRef(datatype)])
+                        if literal_value is None:
+                            human_readable_datatype = list(datatype_options.keys())[list(datatype_options.values()).index(URIRef(datatype))]
+                            flash(gettext("Invalid datatype for the provided value: '%(value)s' is not valid for datatype '%(datatype)s'" %
+                                        {'value': property_value, 'datatype': human_readable_datatype}), 'danger')
+                            return redirect(url_for('create_entity'))
                         editor.create(custom_entity_uri, URIRef(value), Literal(property_value, datatype=URIRef(datatype)))
 
         editor.save()
@@ -188,6 +194,23 @@ def about(subject):
     if can_be_added:
         create_form.predicate.choices = [(p, filter.human_readable_predicate(p, subject_classes)) for p in can_be_added]
     return render_template('triples.jinja', subject=decoded_subject, history=history, can_be_added=can_be_added, can_be_deleted=can_be_deleted, datatypes=datatypes, update_form=update_form, create_form=create_form, mandatory_values=mandatory_values, optional_values=optional_values, shacl=True if shacl else False, grouped_triples=grouped_triples, subject_classes=[str(s_class) for s_class in subject_classes], display_rules=display_rules)
+
+# Funzione per la validazione dinamica dei valori con suggerimento di datatypes
+@app.route('/validate-literal', methods=['POST'])
+def validate_literal():
+    value = request.json.get('value')
+    if not value:
+        return jsonify({"error": gettext("Value is required.")}), 400
+
+    matching_datatypes = []
+    for datatype, validation_func, _ in DATATYPE_MAPPING:
+        if validation_func(value):
+            matching_datatypes.append(str(datatype))
+
+    if not matching_datatypes:
+        return jsonify({"error": gettext("No matching datatypes found.")}), 400
+    
+    return jsonify({"valid_datatypes": matching_datatypes}), 200
 
 @app.route('/add_triple', methods=['POST'])
 def add_triple():

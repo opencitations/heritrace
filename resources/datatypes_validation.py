@@ -7,12 +7,15 @@ from urllib.parse import urlparse
 def validate_string(value):
     try:
         value = str(value)
+        return isinstance(value, str)
     except ValueError:
         return False
-    return isinstance(value, str)
 
 def validate_normalizedString(value):
-    return '\n' not in value and '\r' not in value and '\t' not in value
+    try:
+        return '\n' not in value and '\r' not in value and '\t' not in value
+    except Exception:
+        return False
 
 def validate_integer(value):
     try:
@@ -116,47 +119,64 @@ def validate_decimal(value):
         return False
 
 def validate_duration(value):
-    duration_pattern = re.compile(r'^P(?=\d|T\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$')
-    return bool(duration_pattern.match(value))
+    try:
+        duration_pattern = re.compile(r'^P(?=\d|T\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+?)?)S)?)?$')
+        return bool(duration_pattern.match(value))
+    except Exception:
+        return False
 
 def validate_dayTimeDuration(value):
-    dayTimeDuration_pattern = re.compile(r'^P(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$')
-    return bool(dayTimeDuration_pattern.match(value))
+    try:
+        dayTimeDuration_pattern = re.compile(r'^P(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$')
+        return bool(dayTimeDuration_pattern.match(value))
+    except Exception:
+        return False
 
 def validate_yearMonthDuration(value):
-    yearMonthDuration_pattern = re.compile(r'^P(?:\d+Y)?(?:\d+M)?$')
-    return bool(yearMonthDuration_pattern.match(value))
-
-import re
+    try:
+        yearMonthDuration_pattern = re.compile(r'^P(?:\d+Y)?(?:\d+M)?$')
+        return bool(yearMonthDuration_pattern.match(value))
+    except Exception:
+        return False
 
 def validate_gYearMonth(value):
-    pattern = re.compile(r'^(\d{4})-(\d{2})$')
-    match = pattern.match(value)
-    if match:
-        year, month = map(int, match.groups())
-        if 1582 <= year <= 9999 and 1 <= month <= 12:
-            return True
-    return False
+    try:
+        pattern = re.compile(r'^(\d{4})-(\d{2})$')
+        match = pattern.match(value)
+        if match:
+            year, month = map(int, match.groups())
+            return 1582 <= year <= 9999 and 1 <= month <= 12
+        return False
+    except Exception:
+        return False
 
 def validate_gYear(value):
-    pattern = re.compile(r'^\d{4}$')
-    if pattern.match(value):
-        year = int(value)
-        if 1582 <= year <= 9999:
-            return True
-    return False
+    try:
+        pattern = re.compile(r'^\d{4}$')
+        if pattern.match(value):
+            year = int(value)
+            return 1582 <= year <= 9999
+        return False
+    except Exception:
+        return False
 
 def validate_dateTime(value):
-    pattern = re.compile(
-        r'^-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$'
-    )
-    return bool(pattern.match(value))
+    try:
+        pattern = re.compile(
+            r'^-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$'
+        )
+        return bool(pattern.match(value))
+    except Exception:
+        return False
 
 def validate_dateTimeStamp(value):
-    pattern = re.compile(
-        r'^-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$'
-    )
-    return bool(pattern.match(value))
+    try:
+        pattern = re.compile(
+            r'^-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$'
+        )
+        return bool(pattern.match(value))
+    except Exception:
+        return False
 
 def validate_date(value):
     try:
@@ -166,23 +186,41 @@ def validate_date(value):
         return False
 
 def validate_time(value):
-    return bool(re.match(r'^([01]\d|2[0-3]):?([0-5]\d):?([0-5]\d)$', value))
+    try:
+        return bool(re.match(r'^([01]\d|2[0-3]):?([0-5]\d):?([0-5]\d)$', value))
+    except Exception:
+        return False
 
 def validate_hour(value):
-    return 0 <= int(value) <= 23
+    try:
+        return 0 <= int(value) <= 23
+    except ValueError:
+        return False
 
 def validate_minute(value):
-    return 0 <= int(value) <= 59
+    try:
+        return 0 <= int(value) <= 59
+    except ValueError:
+        return False
 
 def validate_second(value):
-    return 0 <= float(value) < 60
+    try:
+        return 0 <= float(value) < 60
+    except ValueError:
+        return False
 
 def validate_timezoneOffset(value):
-    timezoneOffset_pattern = re.compile(r'^[+-]\d{2}:\d{2}$')
-    return bool(timezoneOffset_pattern.match(value))
+    try:
+        timezoneOffset_pattern = re.compile(r'^[+-]\d{2}:\d{2}$')
+        return bool(timezoneOffset_pattern.match(value))
+    except Exception:
+        return False
 
 def validate_boolean(value):
-    return value.lower() in ['true', 'false']
+    try:
+        return value.lower() in ['true', 'false']
+    except Exception:
+        return False
 
 def validate_hexBinary(value):
     try:
@@ -190,7 +228,7 @@ def validate_hexBinary(value):
         return True
     except ValueError:
         return False
-    
+
 def validate_base64Binary(value):
     try:
         base64.b64decode(value)
@@ -204,32 +242,50 @@ def validate_url(value):
         return all([result.scheme, result.netloc])
     except ValueError:
         return False
-    
+
 def validate_QName(value):
-    QName_pattern = re.compile(r'^(?:[a-zA-Z_][\w.-]*:)?[a-zA-Z_][\w.-]*$')
-    return bool(QName_pattern.match(value))
+    try:
+        QName_pattern = re.compile(r'^(?:[a-zA-Z_][\w.-]*:)?[a-zA-Z_][\w.-]*$')
+        return bool(QName_pattern.match(value))
+    except Exception:
+        return False
 
 def validate_ENTITIES(value):
-    entities = value.split()
-    return all(re.match(r'^[a-zA-Z_][\w.-]*$', entity) for entity in entities)
+    try:
+        entities = value.split()
+        return all(re.match(r'^[a-zA-Z_][\w.-]*$', entity) for entity in entities)
+    except Exception:
+        return False
 
 validate_ENTITY = validate_ENTITIES
 
 def validate_ID(value):
-    return re.match(r'^[a-zA-Z_][\w.-]*$', value) is not None
+    try:
+        return re.match(r'^[a-zA-Z_][\w.-]*$', value) is not None
+    except Exception:
+        return False
 
 validate_IDREF = validate_ID
 validate_IDREFS = validate_ENTITIES
 validate_NCName = validate_ID
 
 def validate_NMTOKEN(value):
-    return re.match(r'^[\w.-]+$', value) is not None
+    try:
+        return re.match(r'^[\w.-]+$', value) is not None
+    except Exception:
+        return False
 
 def validate_NMTOKENS(value):
-    tokens = value.split()
-    return all(re.match(r'^[\w.-]+$', token) for token in tokens)
+    try:
+        tokens = value.split()
+        return all(re.match(r'^[\w.-]+$', token) for token in tokens)
+    except Exception:
+        return False
 
 validate_NOTATION = validate_QName
 
 def validate_Name(value):
-    return re.match(r'^[a-zA-Z_:][\w.-]*$', value) is not None
+    try:
+        return re.match(r'^[a-zA-Z_:][\w.-]*$', value) is not None
+    except Exception:
+        return False
