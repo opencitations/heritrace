@@ -3,6 +3,7 @@ import os
 import urllib
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 
 import click
 import requests
@@ -142,6 +143,10 @@ def create_entity():
         else:
             # Custom entity creation
             custom_entity_uri = URIRef(request.form.get('custom_entity_uri'))
+            if not is_valid_uri(custom_entity_uri):
+                flash(gettext('Invalid entity URI: "%(uri)s" is not a valid URL' % {'uri': custom_entity_uri}), 'danger')
+                return redirect(url_for('create_entity'))
+
             editor.import_entity(custom_entity_uri)
             editor.preexisting_finished()
             
@@ -149,6 +154,9 @@ def create_entity():
                 if key.startswith('custom_property_') and value:
                     property_number = key.split('_')[-1]
                     property_value = request.form.get(f'custom_value_{property_number}')
+                    if not is_valid_uri(value):
+                        flash(gettext('Invalid property URI: "%(uri)s" is not a valid URL' % {'uri': value}), 'danger')
+                        return redirect(url_for('create_entity'))
                     value_type = request.form.get(f'custom_value_type_{property_number}')
                     if value_type == 'uri':
                         editor.create(custom_entity_uri, URIRef(value), URIRef(property_value))
@@ -757,6 +765,10 @@ def fetch_data_graph_for_subject(subject_uri):
     sparql.setReturnFormat(XML)
     result = sparql.queryAndConvert()
     return result
+
+def is_valid_uri(uri):
+    parsed_uri = urlparse(uri)
+    return all([parsed_uri.scheme, parsed_uri.netloc])
 
 def fetch_data_graph_for_subject_recursively(subject_uri):
     """

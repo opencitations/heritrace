@@ -146,6 +146,7 @@
                 <div class="mb-3">
                     <label for="custom_entity_uri" class="form-label">{{_('Entity URI')}}</label>
                     <input type="url" class="form-control" id="custom_entity_uri" name="custom_entity_uri" required>
+                    <div class="invalid-feedback mb-2">{{_('Please enter a valid URL for the entity URI')}}</div>
                 </div>
                 <div id="custom-properties">
                     <div class="mb-3 custom-property" data-property-id="1">
@@ -155,8 +156,12 @@
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
-                        <input type="text" class="form-control mb-2" id="custom_property_1" name="custom_property_1" placeholder="{{ _('Property URI') }}">
-                        
+                        <input type="url" class="form-control mb-2" id="custom_property_1" name="custom_property_1" placeholder="{{ _('Property URI') }}" required>
+                        <div class="invalid-feedback mb-2">{{_('Please enter a valid URL for the property URI')}}</div>
+
+                        <!-- Input per il valore (gestito dinamicamente in JS) -->
+                        <input type="text" class="form-control custom-value-input mb-2" id="custom_value_1" name="custom_value_1" placeholder="{{ _('Value') }}">
+
                         <!-- Selettore per URI o Literal -->
                         <div class="mb-2">
                             <label for="custom_value_type_1" class="form-label">{{ _('Value Type') }}</label>
@@ -165,9 +170,6 @@
                                 <option value="uri">{{ _('URI') }}</option>
                             </select>
                         </div>
-
-                        <!-- Input per il valore (gestito dinamicamente in JS) -->
-                        <input type="text" class="form-control custom-value-input" id="custom_value_1" name="custom_value_1" placeholder="{{ _('Value') }}">
 
                         <!-- Dropdown per selezionare il datatype (mostrato solo per Literal) -->
                         <div class="mt-2 custom-datatype-section" id="custom_datatype_section_1">
@@ -191,6 +193,14 @@
 
     <script>
         $(document).ready(function() {
+
+        function validateUrlInput(inputElement) {
+            if (inputElement[0].checkValidity() === false) {
+                inputElement.addClass('is-invalid');
+            } else {
+                inputElement.removeClass('is-invalid');
+            }
+        }
 
         // Funzione per validare il valore in tempo reale con AJAX
         function validateValue(propertyId, value) {
@@ -381,7 +391,8 @@
                             </button>
                         </div>
                         <!-- Input per l'URI della proprietà -->
-                        <input type="text" class="form-control mb-2" id="custom_property_${propertyCount}" name="custom_property_${propertyCount}" placeholder="{{ _('Property URI') }}">
+                        <input type="url" class="form-control mb-2" id="custom_property_${propertyCount}" name="custom_property_${propertyCount}" placeholder="{{ _('Property URI') }}">
+                        <div class="invalid-feedback mb-2">{{_('Please enter a valid URL for the property URI')}}</div>
 
                         <!-- Input per il valore -->
                         <input type="text" class="form-control mb-2 custom-value-input" id="custom_value_${propertyCount}" name="custom_value_${propertyCount}" placeholder="{{ _('Value') }}">
@@ -462,6 +473,16 @@
                 if (value) {
                     validateValue(propertyId, value);
                 }
+            });
+
+            // Valida l'URI dell'entità
+            $('#custom_entity_uri').on('input change', function() {
+                validateUrlInput($(this));
+            });
+
+            // Validazione per i campi Property URI
+            $(document).on('input change', '.custom-property input[type="url"]', function() {
+                validateUrlInput($(this));
             });
 
             // Gestione della visualizzazione dinamica del datatype

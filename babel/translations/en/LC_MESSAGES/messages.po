@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  1.0\n"
 "Report-Msgid-Bugs-To: arcangelo.massari@unibo.it\n"
-"POT-Creation-Date: 2024-08-21 16:26+0200\n"
+"POT-Creation-Date: 2024-08-21 17:54+0200\n"
 "PO-Revision-Date: 2023-09-09 15:01+0200\n"
 "Last-Translator: Arcangelo Massari <arcangelo.massari@unibo.it>\n"
 "Language: en\n"
@@ -18,189 +18,214 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.12.1\n"
 
-#: edit_sphere/app.py:98
+#: edit_sphere/app.py:99
 msgid "Text (string)"
 msgstr ""
 
-#: edit_sphere/app.py:99
+#: edit_sphere/app.py:100
 msgid "Whole number (integer)"
 msgstr ""
 
-#: edit_sphere/app.py:100
+#: edit_sphere/app.py:101
 msgid "True or False (boolean)"
 msgstr ""
 
-#: edit_sphere/app.py:101
+#: edit_sphere/app.py:102
 msgid "Date (YYYY-MM-DD)"
 msgstr ""
 
-#: edit_sphere/app.py:102
+#: edit_sphere/app.py:103
 msgid "Date and Time (YYYY-MM-DDThh:mm:ss)"
 msgstr ""
 
-#: edit_sphere/app.py:103
+#: edit_sphere/app.py:104
 msgid "Decimal number"
 msgstr ""
 
-#: edit_sphere/app.py:104
+#: edit_sphere/app.py:105
 msgid "Floating point number"
 msgstr ""
 
-#: edit_sphere/app.py:105
+#: edit_sphere/app.py:106
 msgid "Double precision floating point number"
 msgstr ""
 
-#: edit_sphere/app.py:106
+#: edit_sphere/app.py:107
 msgid "Time (hh:mm:ss)"
 msgstr ""
 
-#: edit_sphere/app.py:107
+#: edit_sphere/app.py:108
 msgid "Year (YYYY)"
 msgstr ""
 
-#: edit_sphere/app.py:108
+#: edit_sphere/app.py:109
 msgid "Month (MM)"
 msgstr ""
 
-#: edit_sphere/app.py:109
+#: edit_sphere/app.py:110
 msgid "Day of the month (DD)"
 msgstr ""
 
-#: edit_sphere/app.py:110
+#: edit_sphere/app.py:111
 msgid "Duration (e.g., P1Y2M3DT4H5M6S)"
 msgstr ""
 
-#: edit_sphere/app.py:111
+#: edit_sphere/app.py:112
 msgid "Hexadecimal binary"
 msgstr ""
 
-#: edit_sphere/app.py:112
+#: edit_sphere/app.py:113
 msgid "Base64 encoded binary"
 msgstr ""
 
-#: edit_sphere/app.py:113
+#: edit_sphere/app.py:114
 msgid "Web address (URL)"
 msgstr ""
 
-#: edit_sphere/app.py:114
+#: edit_sphere/app.py:115
 msgid "Language code (e.g., en, it)"
 msgstr ""
 
-#: edit_sphere/app.py:115
+#: edit_sphere/app.py:116
 msgid "Normalized text (no line breaks)"
 msgstr ""
 
-#: edit_sphere/app.py:116
+#: edit_sphere/app.py:117
 msgid "Tokenized text (single word)"
 msgstr ""
 
-#: edit_sphere/app.py:117
+#: edit_sphere/app.py:118
 msgid "Non-positive integer (0 or negative)"
 msgstr ""
 
-#: edit_sphere/app.py:118
+#: edit_sphere/app.py:119
 msgid "Negative integer"
 msgstr ""
 
-#: edit_sphere/app.py:119
+#: edit_sphere/app.py:120
 msgid "Long integer"
 msgstr ""
 
-#: edit_sphere/app.py:120
+#: edit_sphere/app.py:121
 msgid "Short integer"
 msgstr ""
 
-#: edit_sphere/app.py:121
+#: edit_sphere/app.py:122
 msgid "Byte-sized integer"
 msgstr ""
 
-#: edit_sphere/app.py:122
+#: edit_sphere/app.py:123
 msgid "Non-negative integer (0 or positive)"
 msgstr ""
 
-#: edit_sphere/app.py:123
+#: edit_sphere/app.py:124
 msgid "Positive integer (greater than 0)"
 msgstr ""
 
-#: edit_sphere/app.py:124
+#: edit_sphere/app.py:125
 msgid "Unsigned long integer"
 msgstr ""
 
-#: edit_sphere/app.py:125
+#: edit_sphere/app.py:126
 msgid "Unsigned integer"
 msgstr ""
 
-#: edit_sphere/app.py:126
+#: edit_sphere/app.py:127
 msgid "Unsigned short integer"
 msgstr ""
 
-#: edit_sphere/app.py:127
+#: edit_sphere/app.py:128
 msgid "Unsigned byte"
 msgstr ""
 
-#: edit_sphere/app.py:135
+#: edit_sphere/app.py:136
 msgid "Invalid entity type"
 msgstr ""
 
-#: edit_sphere/app.py:160
+#: edit_sphere/app.py:147
+#, python-format
+msgid "Invalid entity URI: \"%(uri)s\" is not a valid URLuri"
+msgstr ""
+
+#: edit_sphere/app.py:158
+#, python-format
+msgid "Invalid property URI: \"%(uri)s\" is not a valid URLuri"
+msgstr ""
+
+#: edit_sphere/app.py:168
+#, python-format
+msgid ""
+"Invalid datatype for the provided value: '%(value)s' is not valid for "
+"datatype '%(datatype)s'value"
+msgstr ""
+
+#: edit_sphere/app.py:174
 msgid "Entity created successfully"
 msgstr ""
 
-#: edit_sphere/app.py:202
+#: edit_sphere/app.py:211
+msgid "Value is required."
+msgstr ""
+
+#: edit_sphere/app.py:219
+msgid "No matching datatypes found."
+msgstr ""
+
+#: edit_sphere/app.py:233
 #, python-format
 msgid "This resource cannot have any other %(predicate)s properties"
 msgstr ""
 
-#: edit_sphere/app.py:240
+#: edit_sphere/app.py:271
 msgid "Changes applied successfully"
 msgstr ""
 
-#: edit_sphere/app.py:246
+#: edit_sphere/app.py:277
 msgid "An error occurred while applying changes"
 msgstr ""
 
-#: edit_sphere/app.py:262
+#: edit_sphere/app.py:293
 msgid "This property cannot be deleted"
 msgstr ""
 
-#: edit_sphere/app.py:355
+#: edit_sphere/app.py:386
 msgid "Snapshot"
 msgstr ""
 
-#: edit_sphere/app.py:357
+#: edit_sphere/app.py:388
 msgid "Responsible agent"
 msgstr ""
 
-#: edit_sphere/app.py:358 edit_sphere/templates/entity_version.jinja:96
+#: edit_sphere/app.py:389 edit_sphere/templates/entity_version.jinja:96
 msgid "Primary source"
 msgstr ""
 
-#: edit_sphere/app.py:359 edit_sphere/templates/entity_version.jinja:98
+#: edit_sphere/app.py:390 edit_sphere/templates/entity_version.jinja:98
 msgid "Description"
 msgstr ""
 
-#: edit_sphere/app.py:388
+#: edit_sphere/app.py:419
 msgid "View version"
 msgstr ""
 
-#: edit_sphere/app.py:395
+#: edit_sphere/app.py:426
 msgid "Version history for"
 msgstr ""
 
-#: edit_sphere/app.py:516 edit_sphere/app.py:520
+#: edit_sphere/app.py:547 edit_sphere/app.py:551
 msgid "Deletions"
 msgstr ""
 
-#: edit_sphere/app.py:516 edit_sphere/app.py:522
+#: edit_sphere/app.py:547 edit_sphere/app.py:553
 msgid "Additions"
 msgstr ""
 
-#: edit_sphere/app.py:569
+#: edit_sphere/app.py:600
 #, python-format
 msgid "The property %(predicate)s is not allowed for resources of type %(s_type)s"
 msgstr ""
 
-#: edit_sphere/app.py:577
+#: edit_sphere/app.py:608
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
@@ -208,7 +233,7 @@ msgid ""
 "%(o_values)s"
 msgstr ""
 
-#: edit_sphere/app.py:580 edit_sphere/app.py:583 edit_sphere/app.py:588
+#: edit_sphere/app.py:611 edit_sphere/app.py:614 edit_sphere/app.py:619
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
@@ -234,56 +259,66 @@ msgstr ""
 msgid "Add New Record"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:115
-#: edit_sphere/templates/create_entity.jinja:120
+#: edit_sphere/templates/create_entity.jinja:128
+#: edit_sphere/templates/create_entity.jinja:133
 msgid "Select an entity type"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:134
+#: edit_sphere/templates/create_entity.jinja:147
 msgid "Entity URI"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:140
-#: edit_sphere/templates/create_entity.jinja:327
-#: edit_sphere/templates/create_entity.jinja:373
+#: edit_sphere/templates/create_entity.jinja:149
+msgid "Please enter a valid URL for the entity URI"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:154
+#: edit_sphere/templates/create_entity.jinja:388
+#: edit_sphere/templates/create_entity.jinja:436
 msgid "Property"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:145
+#: edit_sphere/templates/create_entity.jinja:159
+#: edit_sphere/templates/create_entity.jinja:394
 msgid "Property URI"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:149
-#: edit_sphere/templates/create_entity.jinja:336
+#: edit_sphere/templates/create_entity.jinja:160
+#: edit_sphere/templates/create_entity.jinja:395
+msgid "Please enter a valid URL for the property URI"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:164
+#: edit_sphere/templates/create_entity.jinja:402
 msgid "Value Type"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:151
-#: edit_sphere/templates/create_entity.jinja:338
+#: edit_sphere/templates/create_entity.jinja:166
+#: edit_sphere/templates/create_entity.jinja:404
 msgid "Literal"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:152
-#: edit_sphere/templates/create_entity.jinja:339
+#: edit_sphere/templates/create_entity.jinja:167
+#: edit_sphere/templates/create_entity.jinja:405
 msgid "URI"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:157
-#: edit_sphere/templates/create_entity.jinja:344
+#: edit_sphere/templates/create_entity.jinja:172
+#: edit_sphere/templates/create_entity.jinja:398
 #: edit_sphere/templates/triples.jinja:65
 msgid "Value"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:161
-#: edit_sphere/templates/create_entity.jinja:348
+#: edit_sphere/templates/create_entity.jinja:176
+#: edit_sphere/templates/create_entity.jinja:411
 msgid "Select Datatype"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:170
+#: edit_sphere/templates/create_entity.jinja:185
 msgid "Add Property"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:174
+#: edit_sphere/templates/create_entity.jinja:189
 msgid "Create"
 msgstr ""
 
