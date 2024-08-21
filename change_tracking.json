@@ -3,13 +3,15 @@
         "triplestore_urls": [
             "http://localhost:9999/blazegraph/sparql"
         ],
-        "file_paths": []
+        "file_paths": [],
+        "is_quadstore": false
     },
     "provenance": {
         "triplestore_urls": [
             "http://localhost:19999/blazegraph/sparql"
         ],
-        "file_paths": []
+        "file_paths": [],
+        "is_quadstore": false
     },
     "blazegraph_full_text_search": "yes",
     "fuseki_full_text_search": "no",

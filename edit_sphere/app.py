@@ -20,6 +20,7 @@ from rdflib import RDF, XSD, Graph, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.algebra import translateQuery, translateUpdate
 from rdflib.plugins.sparql.parser import parseQuery, parseUpdate
+from rdflib.namespace import XSD
 from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON, RDFXML, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import (
@@ -49,6 +50,9 @@ provenance_endpoint = app.config["PROVENANCE_ENDPOINT"]
 sparql = SPARQLWrapper(dataset_endpoint)
 provenance_sparql = SPARQLWrapper(provenance_endpoint)
 change_tracking_config = app.config["CHANGE_TRACKING_CONFIG"]
+if change_tracking_config:
+    with open(change_tracking_config, 'r', encoding='utf8') as f:
+        change_tracking_config = json.load(f)
 
 shacl_path = app.config["SHACL_PATH"]
 shacl = None
@@ -89,6 +93,40 @@ def create_entity():
     form_fields = get_form_fields_from_shacl()
     entity_types = list(form_fields.keys())
 
+    # Lista dei datatype con descrizioni human-readable e supporto alla traduzione
+    datatype_options = {
+        gettext("Text (string)"): XSD.string,
+        gettext("Whole number (integer)"): XSD.integer,
+        gettext("True or False (boolean)"): XSD.boolean,
+        gettext("Date (YYYY-MM-DD)"): XSD.date,
+        gettext("Date and Time (YYYY-MM-DDThh:mm:ss)"): XSD.dateTime,
+        gettext("Decimal number"): XSD.decimal,
+        gettext("Floating point number"): XSD.float,
+        gettext("Double precision floating point number"): XSD.double,
+        gettext("Time (hh:mm:ss)"): XSD.time,
+        gettext("Year (YYYY)"): XSD.gYear,
+        gettext("Month (MM)"): XSD.gMonth,
+        gettext("Day of the month (DD)"): XSD.gDay,
+        gettext("Duration (e.g., P1Y2M3DT4H5M6S)"): XSD.duration,
+        gettext("Hexadecimal binary"): XSD.hexBinary,
+        gettext("Base64 encoded binary"): XSD.base64Binary,
+        gettext("Web address (URL)"): XSD.anyURI,
+        gettext("Language code (e.g., en, it)"): XSD.language,
+        gettext("Normalized text (no line breaks)"): XSD.normalizedString,
+        gettext("Tokenized text (single word)"): XSD.token,
+        gettext("Non-positive integer (0 or negative)"): XSD.nonPositiveInteger,
+        gettext("Negative integer"): XSD.negativeInteger,
+        gettext("Long integer"): XSD.long,
+        gettext("Short integer"): XSD.short,
+        gettext("Byte-sized integer"): XSD.byte,
+        gettext("Non-negative integer (0 or positive)"): XSD.nonNegativeInteger,
+        gettext("Positive integer (greater than 0)"): XSD.positiveInteger,
+        gettext("Unsigned long integer"): XSD.unsignedLong,
+        gettext("Unsigned integer"): XSD.unsignedInt,
+        gettext("Unsigned short integer"): XSD.unsignedShort,
+        gettext("Unsigned byte"): XSD.unsignedByte,
+    }
+
     if request.method == 'POST':
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
         if form_fields:
@@ -103,28 +141,30 @@ def create_entity():
             # editor.preexisting_finished()
         else:
             # Custom entity creation
-            entity_type = request.form.get('custom_type')
-            new_entity_uri = URIRef(entity_type)
-            editor.import_entity(new_entity_uri)
+            custom_entity_uri = URIRef(request.form.get('custom_entity_uri'))
+            editor.import_entity(custom_entity_uri)
             editor.preexisting_finished()
-            editor.create(new_entity_uri, RDF.type, URIRef(entity_type))
             
             for key, value in request.form.items():
                 if key.startswith('custom_property_') and value:
                     property_number = key.split('_')[-1]
                     property_value = request.form.get(f'custom_value_{property_number}')
-                    if property_value:
-                        editor.create(new_entity_uri, URIRef(value), Literal(property_value))
+                    value_type = request.form.get(f'custom_value_type_{property_number}')
+                    if value_type == 'uri':
+                        editor.create(custom_entity_uri, URIRef(value), URIRef(property_value))
+                    elif value_type == 'literal':
+                        datatype = request.form.get(f'custom_datatype_{property_number}', 'xsd:string')
+                        editor.create(custom_entity_uri, URIRef(value), Literal(property_value, datatype=URIRef(datatype)))
 
         editor.save()
         flash(gettext('Entity created successfully'), 'success')
-        return redirect(url_for('about', subject=str(new_entity_uri)))
-    return render_template('create_entity.jinja', entity_types=entity_types, form_fields=form_fields)
+        return redirect(url_for('about', subject=str(custom_entity_uri)))
+    return render_template('create_entity.jinja', entity_types=entity_types, form_fields=form_fields, datatype_options=datatype_options)
 
 @app.route('/about/<path:subject>')
 def about(subject):
     decoded_subject = urllib.parse.unquote(subject)
-    agnostic_entity = AgnosticEntity(res=decoded_subject, config_path=change_tracking_config)
+    agnostic_entity = AgnosticEntity(res=decoded_subject, config=change_tracking_config)
     history, _ = agnostic_entity.get_history(include_prov_metadata=True)
     g = Graph()
     query = f"SELECT ?predicate ?object WHERE {{ <{decoded_subject}> ?predicate ?object. }}"
@@ -284,7 +324,7 @@ def sparql_proxy():
 
 @app.route('/entity-history/<path:entity_uri>')
 def entity_history(entity_uri):
-    agnostic_entity = AgnosticEntity(res=entity_uri, config_path=change_tracking_config)
+    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
     subject_classes = [subject_class[2] for subject_class in list(history[entity_uri].values())[0].triples((URIRef(entity_uri), RDF.type, None))]
     # Trasforma i dati in formato TimelineJS useless
@@ -379,7 +419,7 @@ def entity_version(entity_uri, timestamp):
             abort(404)
         timestamp = generation_time
         timestamp_dt = datetime.fromisoformat(generation_time)
-    agnostic_entity = AgnosticEntity(res=entity_uri, config_path=change_tracking_config)
+    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config)
     history, metadata, other_snapshots_metadata = agnostic_entity.get_state_at_time(time=(None, timestamp), include_prov_metadata=True)
     all_snapshots = list(metadata.items()) + list(other_snapshots_metadata.items())
     sorted_all_snapshots = sorted(all_snapshots, key=lambda x: x[1]['generatedAtTime'])
@@ -443,7 +483,7 @@ def restore_version(entity_uri, timestamp):
             }}
         }}
     """
-    results = list(Sparql(query_snapshots, config_path=change_tracking_config).run_select_query())
+    results = list(Sparql(query_snapshots, config=change_tracking_config).run_select_query())
     results.sort(key=lambda x:convert_to_datetime(x[0]), reverse=True)
     relevant_results = _filter_timestamps_by_interval((timestamp, timestamp), results, time_index=0)
     sum_update_queries = ""

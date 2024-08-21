@@ -131,8 +131,8 @@
         {% else %}
             <div id="custom-entity-form">
                 <div class="mb-3">
-                    <label for="custom_type" class="form-label">{{_('Entity Type URI')}}</label>
-                    <input type="url" class="form-control" id="custom_type" name="custom_type" required>
+                    <label for="custom_entity_uri" class="form-label">{{_('Entity URI')}}</label>
+                    <input type="url" class="form-control" id="custom_entity_uri" name="custom_entity_uri" required>
                 </div>
                 <div id="custom-properties">
                     <div class="mb-3 custom-property" data-property-id="1">
@@ -142,8 +142,29 @@
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
-                        <input type="text" class="form-control mb-2" id="custom_property_1" name="custom_property_1" placeholder="Property URI">
-                        <input type="text" class="form-control" id="custom_value_1" name="custom_value_1" placeholder="Value">
+                        <input type="text" class="form-control mb-2" id="custom_property_1" name="custom_property_1" placeholder="{{ _('Property URI') }}">
+                        
+                        <!-- Selettore per URI o Literal -->
+                        <div class="mb-2">
+                            <label for="custom_value_type_1" class="form-label">{{ _('Value Type') }}</label>
+                            <select class="form-select custom-value-type" id="custom_value_type_1" name="custom_value_type_1">
+                                <option value="literal">{{ _('Literal') }}</option>
+                                <option value="uri">{{ _('URI') }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Input per il valore (gestito dinamicamente in JS) -->
+                        <input type="text" class="form-control custom-value-input" id="custom_value_1" name="custom_value_1" placeholder="{{ _('Value') }}">
+
+                        <!-- Dropdown per selezionare il datatype (mostrato solo per Literal) -->
+                        <div class="mt-2 custom-datatype-section" id="custom_datatype_section_1">
+                            <label for="custom_datatype_1" class="form-label">{{ _('Select Datatype') }}</label>
+                            <select class="form-select" id="custom_datatype_1" name="custom_datatype_1">
+                                {% for label, uri in datatype_options.items() %}
+                                    <option value="{{ uri }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <button type="button" id="add-property" class="btn btn-secondary mb-3">{{_('Add Property')}}</button>
@@ -296,7 +317,8 @@
 
             // Handle custom entity form
             let propertyCount = 1;
-            
+
+            // Aggiungi nuova proprietà
             $('#add-property').click(function() {
                 propertyCount++;
                 let newProperty = `
@@ -308,13 +330,34 @@
                             </button>
                         </div>
                         <input type="text" class="form-control mb-2" id="custom_property_${propertyCount}" name="custom_property_${propertyCount}" placeholder="Property URI">
-                        <input type="text" class="form-control" id="custom_value_${propertyCount}" name="custom_value_${propertyCount}" placeholder="Value">
+
+                        <!-- Selettore per URI o Literal -->
+                        <div class="mb-2">
+                            <label for="custom_value_type_${propertyCount}" class="form-label">{{ _('Value Type') }}</label>
+                            <select class="form-select custom-value-type" id="custom_value_type_${propertyCount}" name="custom_value_type_${propertyCount}">
+                                <option value="literal">{{ _('Literal') }}</option>
+                                <option value="uri">{{ _('URI') }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Input per il valore -->
+                        <input type="text" class="form-control custom-value-input" id="custom_value_${propertyCount}" name="custom_value_${propertyCount}" placeholder="{{ _('Value') }}">
+
+                        <!-- Sezione per datatype, mostrata solo se l'utente sceglie Literal -->
+                        <div class="mt-2 custom-datatype-section" id="custom_datatype_section_${propertyCount}">
+                            <label for="custom_datatype_${propertyCount}" class="form-label">{{ _('Select Datatype') }}</label>
+                            <select class="form-select" id="custom_datatype_${propertyCount}" name="custom_datatype_${propertyCount}">
+                                {% for label, uri in datatype_options.items() %}
+                                    <option value="{{ uri }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                 `;
                 $('#custom-properties').append(newProperty);
             });
 
-            // Handle property removal
+            // Gestione della rimozione delle proprietà
             $('#custom-properties').on('click', '.remove-property', function() {
                 let propertyId = $(this).data('property-id');
                 $(`div[data-property-id="${propertyId}"]`).remove();
@@ -325,17 +368,40 @@
                 $('.custom-property').each(function(index) {
                     let newIndex = index + 1;
                     $(this).attr('data-property-id', newIndex);
-                    $(this).find('.form-label').text(`{{_('Property')}} ${newIndex}`);
-                    $(this).find('input').each(function() {
+
+                    // Aggiorna l'etichetta della proprietà
+                    $(this).find('.form-label').first().text(`{{_('Property')}} ${newIndex}`);
+
+                    // Aggiorna gli attributi di input e select per Property URI, Value e Datatype
+                    $(this).find('input, select').each(function() {
                         let oldName = $(this).attr('name');
+                        let oldId = $(this).attr('id');
                         let newName = oldName.replace(/\d+/, newIndex);
+                        let newId = oldId.replace(/\d+/, newIndex);
+                        
                         $(this).attr('name', newName);
-                        $(this).attr('id', newName);
+                        $(this).attr('id', newId);
                     });
+
+                    // Aggiorna l'attributo `data-property-id` del pulsante di rimozione
                     $(this).find('.remove-property').attr('data-property-id', newIndex);
                 });
+
+                // Ricalcola il numero di proprietà attuali
                 propertyCount = $('.custom-property').length;
             }
+
+            // Mostra/Nascondi sezione datatype
+            $(document).on('change', '.custom-value-type', function() {
+                var propertyId = $(this).attr('id').split('_').pop();
+                var selectedValueType = $(this).val();
+                
+                if (selectedValueType === 'literal') {
+                    $(`#custom_datatype_section_${propertyId}`).show();
+                } else {
+                    $(`#custom_datatype_section_${propertyId}`).hide();
+                }
+            });
         });
     </script>
 </div>
