@@ -88,12 +88,15 @@
 <div class="container">
     <h2 class="mb-4 word-wrap">{{_('About')}} {{ subject | human_readable_predicate(subject_classes, False) }}</h2>
 
-    {% with messages = get_flashed_messages() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="row col-sm-12 col-md-6 text-center mb-4 mx-auto">
-                <div class="alert alert-warning">
-                    {{ messages[0] }}
+            <div class="alert-messages mt-4">
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
+            {% endfor %}
             </div>
         {% endif %}
     {% endwith %}

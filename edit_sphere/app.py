@@ -143,13 +143,35 @@ def create_entity():
         else:
             # Custom entity creation
             custom_entity_uri = URIRef(request.form.get('custom_entity_uri'))
+            # Controlla se l'entità esiste già
+            sparql.setQuery(f"ASK WHERE {{ <{custom_entity_uri}> ?p ?o }}")
+            sparql.setReturnFormat(JSON)
+            entity_exists = sparql.query().convert().get('boolean')
+
+            if entity_exists:
+                flash(gettext('The entity already exists'), 'info')
+                return redirect(url_for('about', subject=str(custom_entity_uri)))
+
             if not is_valid_uri(custom_entity_uri):
                 flash(gettext('Invalid entity URI: "%(uri)s" is not a valid URL' % {'uri': custom_entity_uri}), 'danger')
                 return redirect(url_for('create_entity'))
 
+            # Controlla se ci sono proprietà valide con URI e valore
+            valid_properties = []
+            for key, value in request.form.items():
+                if key.startswith('custom_property_'):
+                    property_number = key.split('_')[-1]
+                    property_value = request.form.get(f'custom_value_{property_number}')
+                    if value and property_value:
+                        valid_properties.append((value, property_value))
+
+            if not valid_properties:
+                flash(gettext('You must provide at least one valid property with URI and value'), 'danger')
+                return redirect(url_for('create_entity'))
+
             editor.import_entity(custom_entity_uri)
             editor.preexisting_finished()
-            
+
             for key, value in request.form.items():
                 if key.startswith('custom_property_') and value:
                     property_number = key.split('_')[-1]
@@ -159,6 +181,9 @@ def create_entity():
                         return redirect(url_for('create_entity'))
                     value_type = request.form.get(f'custom_value_type_{property_number}')
                     if value_type == 'uri':
+                        if not is_valid_uri(property_value):
+                            flash(gettext('Invalid property value URI: "%(uri)s" is not a valid URL' % {'uri': property_value}), 'danger')
+                            return redirect(url_for('create_entity'))
                         editor.create(custom_entity_uri, URIRef(value), URIRef(property_value))
                     elif value_type == 'literal':
                         datatype = request.form.get(f'custom_datatype_{property_number}', 'xsd:string')

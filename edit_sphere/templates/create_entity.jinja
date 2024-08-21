@@ -264,6 +264,24 @@
                 }
             }
 
+            function toggleRemoveButtons() {
+                let propertyCount = $('.custom-property').length;
+                if (propertyCount === 1) {
+                    $('.custom-property .remove-property').hide();
+                } else {
+                    $('.custom-property .remove-property').show();
+                }
+            }
+
+            function validateUrl(url) {
+                var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
+                    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|(\\d{1,3}\\.){3}\\d{1,3})' + // domain name and extension
+                    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
+                    '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
+                    '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
+                return !!pattern.test(url);
+            }
+
             // Store initial copies of repeater items
             var initialCopies = {};
 
@@ -418,6 +436,7 @@
                     </div>
                 `;
                 $('#custom-properties').append(newProperty);
+                toggleRemoveButtons();
             });
 
             // Gestione della rimozione delle proprietà
@@ -425,6 +444,7 @@
                 let propertyId = $(this).data('property-id');
                 $(`div[data-property-id="${propertyId}"]`).remove();
                 updatePropertyLabels();
+                toggleRemoveButtons();
             });
 
             function updatePropertyLabels() {
@@ -458,6 +478,7 @@
             $(document).on('change', '.custom-value-type', function() {
                 var propertyId = $(this).attr('id').split('_').pop();
                 var selectedValueType = $(this).val();
+                var valueInput = $(`#custom_value_${propertyId}`);
                 
                 if (selectedValueType === 'literal') {
                     $(`#custom_datatype_section_${propertyId}`).show();
@@ -485,11 +506,65 @@
                 validateUrlInput($(this));
             });
 
+            $(document).on('change', '.custom-value-type', function() {
+                var propertyId = $(this).attr('id').split('_').pop();
+                var selectedValueType = $(this).val();
+                
+                // Trova l'input associato a questo valore
+                var valueInput = $(`#custom_value_${propertyId}`);
+                
+                if (selectedValueType === 'uri') {
+                    // Aggiungi il messaggio di errore se non esiste già
+                    if (valueInput.next('.invalid-feedback').length === 0) {
+                        valueInput.after('<div class="invalid-feedback mb-2">{{ _("Please enter a valid URL") }}</div>');
+                    }
+                    // Cambia il tipo dell'input in 'url' e aggiungi validazione URL
+                    valueInput.attr('type', 'url');
+                    valueInput.on('input change', function() {
+                        validateUrlInput($(this));
+                    });
+                } else {
+                    // Cambia il tipo dell'input in 'text' se è un literal
+                    valueInput.attr('type', 'text');
+                    // Rimuovi la validazione URL se non è più un URI
+                    valueInput.off('input change', validateUrlInput);
+                    valueInput.removeClass('is-invalid');  // Rimuovi eventuali stati di errore
+                    valueInput.next('.invalid-feedback').remove();  // Rimuovi il messaggio di errore
+                }
+            });
+
             // Gestione della visualizzazione dinamica del datatype
             $(document).on('change', '.custom-value-input', function() {
                 var propertyId = $(this).attr('id').split('_').pop();
                 // Reset del datatype su xsd:string ogni volta che il valore cambia
                 $(`#custom_datatype_${propertyId}`).val('http://www.w3.org/2001/XMLSchema#string');                
+            });
+
+            toggleRemoveButtons();
+
+            $('#entityForm').on('submit', function(event) {
+                let isValid = false;
+
+                $('.custom-property').each(function() {
+                    let propertyUri = $(this).find('input[type="url"]').val();
+                    let propertyValue = $(this).find('.custom-value-input').val();
+
+                    if (propertyUri && propertyValue) {
+                        isValid = true;  // Se c'è almeno una proprietà con URI e valore compilati, consideriamo valido
+                        return false;  // Esci dal loop
+                    }
+                });
+
+                if (!isValid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '{{ _("Invalid Submission") }}',
+                        text: '{{ _("Please provide at least one valid property with URI and value") }}',
+                        confirmButtonText: '{{ _("OK") }}'
+                    });
+
+                    event.preventDefault();  // Blocca l'invio del form se non valido
+                }
             });
         });
     </script>
