@@ -23,7 +23,7 @@ from rdflib.plugins.sparql.algebra import translateQuery, translateUpdate
 from rdflib.plugins.sparql.parser import parseQuery, parseUpdate
 from rdflib.namespace import XSD
 from resources.datatypes import DATATYPE_MAPPING
-from SPARQLWrapper import JSON, RDFXML, XML, SPARQLWrapper
+from SPARQLWrapper import JSON, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import (
     AgnosticEntity, _filter_timestamps_by_interval)
 from time_agnostic_library.prov_entity import ProvEntity
@@ -130,32 +130,20 @@ def create_entity():
 
     if request.method == 'POST':
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
+        entity_type = request.form.get('entity_type')
+        entity_uri = URIRef(Config.URI_GENERATOR.generate_uri(entity_type))
+        editor.import_entity(entity_uri)
+        editor.preexisting_finished()
         if form_fields:
-            entity_type = request.form.get('entity_type')
             if entity_type not in form_fields:
                 flash(gettext('Invalid entity type'), 'error')
                 return redirect(url_for('create_entity'))
-            # for entity_type, props in form_fields.items():
-            #     for prop, details in props.items():
-            #         if request.form.get(prop):
-            #             editor.create(URIRef(entity_type), URIRef(prop), Literal(request.form.get(prop)))
-            # editor.preexisting_finished()
+            editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type))
+            for prop, details in form_fields[entity_type].items():
+                real_prop = '_'.join(prop.split('_')[:-1])
+                value = request.form.get(real_prop)
+                ...
         else:
-            # Custom entity creation
-            custom_entity_uri = URIRef(request.form.get('custom_entity_uri'))
-            # Controlla se l'entità esiste già
-            sparql.setQuery(f"ASK WHERE {{ <{custom_entity_uri}> ?p ?o }}")
-            sparql.setReturnFormat(JSON)
-            entity_exists = sparql.query().convert().get('boolean')
-
-            if entity_exists:
-                flash(gettext('The entity already exists'), 'info')
-                return redirect(url_for('about', subject=str(custom_entity_uri)))
-
-            if not is_valid_uri(custom_entity_uri):
-                flash(gettext('Invalid entity URI: "%(uri)s" is not a valid URL' % {'uri': custom_entity_uri}), 'danger')
-                return redirect(url_for('create_entity'))
-
             # Controlla se ci sono proprietà valide con URI e valore
             valid_properties = []
             for key, value in request.form.items():
@@ -169,9 +157,6 @@ def create_entity():
                 flash(gettext('You must provide at least one valid property with URI and value'), 'danger')
                 return redirect(url_for('create_entity'))
 
-            editor.import_entity(custom_entity_uri)
-            editor.preexisting_finished()
-
             for key, value in request.form.items():
                 if key.startswith('custom_property_') and value:
                     property_number = key.split('_')[-1]
@@ -184,7 +169,7 @@ def create_entity():
                         if not is_valid_uri(property_value):
                             flash(gettext('Invalid property value URI: "%(uri)s" is not a valid URL' % {'uri': property_value}), 'danger')
                             return redirect(url_for('create_entity'))
-                        editor.create(custom_entity_uri, URIRef(value), URIRef(property_value))
+                        editor.create(entity_uri, URIRef(value), URIRef(property_value))
                     elif value_type == 'literal':
                         datatype = request.form.get(f'custom_datatype_{property_number}', 'xsd:string')
                         literal_value = convert_to_matching_literal(property_value, [URIRef(datatype)])
@@ -193,11 +178,15 @@ def create_entity():
                             flash(gettext("Invalid datatype for the provided value: '%(value)s' is not valid for datatype '%(datatype)s'" %
                                         {'value': property_value, 'datatype': human_readable_datatype}), 'danger')
                             return redirect(url_for('create_entity'))
-                        editor.create(custom_entity_uri, URIRef(value), Literal(property_value, datatype=URIRef(datatype)))
-
-        editor.save()
-        flash(gettext('Entity created successfully'), 'success')
-        return redirect(url_for('about', subject=str(custom_entity_uri)))
+                        editor.create(entity_uri, URIRef(value), Literal(property_value, datatype=URIRef(datatype)))
+        try:
+            editor.save()
+            flash(gettext('Entity created successfully'), 'success')
+            return redirect(url_for('about', subject=str(entity_uri)))
+        except Exception as e:
+            flash(gettext('An error occurred while creating the entity: %(error)s', error=str(e)), 'danger')
+            return redirect(url_for('create_entity'))
+    
     return render_template('create_entity.jinja', entity_types=entity_types, form_fields=form_fields, datatype_options=datatype_options)
 
 @app.route('/about/<path:subject>')

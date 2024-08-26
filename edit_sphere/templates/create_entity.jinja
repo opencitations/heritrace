@@ -143,11 +143,6 @@
             {% endfor %}
         {% else %}
             <div id="custom-entity-form">
-                <div class="mb-3">
-                    <label for="custom_entity_uri" class="form-label">{{_('Entity URI')}}</label>
-                    <input type="url" class="form-control" id="custom_entity_uri" name="custom_entity_uri" required>
-                    <div class="invalid-feedback mb-2">{{_('Please enter a valid URL for the entity URI')}}</div>
-                </div>
                 <div id="custom-properties">
                     <div class="mb-3 custom-property" data-property-id="1">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -543,27 +538,29 @@
             toggleRemoveButtons();
 
             $('#entityForm').on('submit', function(event) {
-                let isValid = false;
+                if (!form_fields) {
+                    let isValid = false;
 
-                $('.custom-property').each(function() {
-                    let propertyUri = $(this).find('input[type="url"]').val();
-                    let propertyValue = $(this).find('.custom-value-input').val();
+                    $('.custom-property').each(function() {
+                        let propertyUri = $(this).find('input[type="url"]').val();
+                        let propertyValue = $(this).find('.custom-value-input').val();
 
-                    if (propertyUri && propertyValue) {
-                        isValid = true;  // Se c'è almeno una proprietà con URI e valore compilati, consideriamo valido
-                        return false;  // Esci dal loop
-                    }
-                });
-
-                if (!isValid) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: '{{ _("Invalid Submission") }}',
-                        text: '{{ _("Please provide at least one valid property with URI and value") }}',
-                        confirmButtonText: '{{ _("OK") }}'
+                        if (propertyUri && propertyValue) {
+                            isValid = true;  // Se c'è almeno una proprietà con URI e valore compilati, consideriamo valido
+                            return false;  // Esci dal loop
+                        }
                     });
 
-                    event.preventDefault();  // Blocca l'invio del form se non valido
+                    if (!isValid) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ _("Invalid Submission") }}',
+                            text: '{{ _("Please provide at least one valid property with URI and value") }}',
+                            confirmButtonText: '{{ _("OK") }}'
+                        });
+
+                        event.preventDefault();  // Blocca l'invio del form se non valido
+                    }
                 }
             });
         });
