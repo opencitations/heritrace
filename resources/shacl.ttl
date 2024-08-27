@@ -98,7 +98,7 @@ schema:AgentRoleShape
     sh:property
     [
       sh:path pro:withRole ;
-      sh:classIn (pro:publisher
+      sh:in (pro:publisher
                   pro:author
                   pro:editor) ;
       sh:minCount 0 ;

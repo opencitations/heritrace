@@ -138,11 +138,13 @@ def create_entity():
             if entity_type not in form_fields:
                 flash(gettext('Invalid entity type'), 'error')
                 return redirect(url_for('create_entity'))
-            editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type))
-            for prop, details in form_fields[entity_type].items():
-                real_prop = '_'.join(prop.split('_')[:-1])
-                value = request.form.get(real_prop)
-                ...
+            
+            entities = create_entities_recursively(entity_type, entity_types, form_fields[entity_type], request.form)
+
+            # for prop, details in form_fields[entity_type].items():
+            #     real_prop = '_'.join(prop.split('_')[:-1])
+            #     value = request.form.get(real_prop)
+            #     ...
         else:
             # Controlla se ci sono proprietà valide con URI e valore
             valid_properties = []
@@ -186,8 +188,50 @@ def create_entity():
         except Exception as e:
             flash(gettext('An error occurred while creating the entity: %(error)s', error=str(e)), 'danger')
             return redirect(url_for('create_entity'))
+    print(json.dumps(form_fields, indent=4))
+    return render_template('create_entity.jinja', shacl=bool(shacl), entity_types=entity_types, form_fields=form_fields, datatype_options=datatype_options)
+
+def create_entities_recursively(entity_type, entity_types, fields, form_data, prefix=''):
+    entities = defaultdict(dict)
+    main_entity_uri = URIRef(Config.URI_GENERATOR.generate_uri(entity_type))
+    for prop, details in fields.items():
+        real_prop = '_'.join(prop.split('_')[:-1])
+        field_base = f"{prefix}{filter.human_readable_predicate(entity_type, entity_types, False).replace(' ', '_')}_{filter.human_readable_predicate(prop, entity_types, False).replace(' ', '_')}_"
+        matching_fields = [key for key in form_data if key.startswith(field_base)]
+        for field in matching_fields:
+            value = form_data[field]
+            if details.get('optionalValues'):
+                entities[main_entity_uri].setdefault(real_prop, []).append(URIRef(value))
+            else:
+                entities[main_entity_uri].setdefault(real_prop, []).append(value)
+        if details.get('intermediateRelation'):
+            intermediate_type = details['intermediateRelation']['class']
+            intermediate_uri = URIRef(Config.URI_GENERATOR.generate_uri(intermediate_type))
+            entities[main_entity_uri].setdefault(prop, []).append(intermediate_uri)
+            
+        #     nested_entities = create_entities_recursively(
+        #         details['intermediateRelation']['targetEntityType'],
+        #         details['intermediateRelation']['properties'],
+        #         form_data,
+        #         f"{prefix}{field_base}_"
+        #     )
+        #     entities.update(nested_entities)
+            
+        #     # Collega l'entità intermedia all'entità target
+        #     target_uri = list(nested_entities.keys())[0]
+        #     entities[intermediate_uri][details['intermediateRelation']['targetEntityType']] = [target_uri]
+        
+        # elif details.get('objectClass') and details['objectClass'] in form_fields:
+        #     nested_entities = create_entities_recursively(
+        #         details['objectClass'],
+        #         form_fields[details['objectClass']],
+        #         form_data,
+        #         f"{prefix}{field_base}_"
+        #     )
+        #     entities.update(nested_entities)
+        #     entities[main_entity_uri].setdefault(prop, []).extend(nested_entities.keys())
     
-    return render_template('create_entity.jinja', entity_types=entity_types, form_fields=form_fields, datatype_options=datatype_options)
+    # return entities
 
 @app.route('/about/<path:subject>')
 def about(subject):
@@ -947,6 +991,8 @@ def get_form_fields_from_shacl():
         if str(row.predicate) == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" and not row.optionalValues:
             continue
         form_fields[str(row.type)][str(row.predicate)] = {
+            "entityType": str(row.type),
+            "uri": str(row.predicate),
             "datatype": row.datatype,
             "min": None if row.minCount is None else int(row.minCount),
             "max": None if row.maxCount is None else int(row.maxCount),
@@ -976,6 +1022,8 @@ def get_form_fields_from_shacl():
                                 display_name = value['displayName']
                                 new_field_name = f"{prop['property']}_{display_name}"
                                 form_fields[entity_class][new_field_name] = {
+                                    "entityType": entity_class,
+                                    "uri": prop['property'],
                                     "datatype": form_fields[entity_class][prop['property']].get("datatype"),
                                     "min": form_fields[entity_class][prop['property']].get("min"),
                                     "max": form_fields[entity_class][prop['property']].get("max"),

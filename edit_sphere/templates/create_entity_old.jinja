@@ -2,7 +2,7 @@
     {% if depth <= max_depth %}
         {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + counter | string) %}
 
-        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}">
+        <div data-repeater-list="{{ unique_id_base }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}">
             <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;">
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
@@ -12,7 +12,7 @@
                                 <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
                             </button>
                         </div>
-                        <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.intermediateRelation.targetEntityType }}">
+                        <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse">
                             {% for inter_prop, inter_details in details.intermediateRelation.properties.items() %}
                                 {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, unique_id_base + '_', form_fields, counter, depth + 1, max_depth) }}
                             {% endfor %}
@@ -26,7 +26,7 @@
                                 <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
                             </button>
                         </div>
-                        <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
+                        <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse">
                             {% for nested_prop, nested_details in form_fields[details.objectClass].items() %}
                                 {{ render_form_field(details.objectClass, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, counter, depth + 1, max_depth) }}
                             {% endfor %}
@@ -34,7 +34,7 @@
                     </div>
                 {% elif details.optionalValues and details.optionalValues|length %}
                     <div class="form-floating flex-grow-1">
-                        <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
+                        <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}">
                             {% for val in details.optionalValues %}
                                 <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
                             {% endfor %}
@@ -43,7 +43,7 @@
                     </div>
                 {% else %}
                     <div class="form-floating flex-grow-1">
-                        <input type="text" class="form-control" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}" placeholder="{{ prop | human_readable_predicate(entity_types, False) }}" {{ 'required' if depth == 0 and details.min and details.min > 0 }}>
+                        <input type="text" class="form-control" id="{{ unique_id_base }}" name="{{ unique_id_base }}" placeholder="{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}" {{ 'required' if details.min and details.min > 0 }}>
                         <label for="{{ unique_id_base }}">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</label>
                     </div>
                 {% endif %}
@@ -122,8 +122,7 @@
     {% endwith %}
 
     <form action="{{ url_for('create_entity') }}" method="post" id="entityForm">
-        <input type="hidden" name="structured_data" id="structured_data">
-        {% if shacl %}
+        {% if form_fields %}
             <div class="form-floating mb-3">
                 <select class="form-select" id="entity_type" name="entity_type">
                     <option value="" disabled selected>{{_('Select an entity type')}}</option>
@@ -538,35 +537,8 @@
 
             toggleRemoveButtons();
 
-            // Funzione ricorsiva per raccogliere i dati dai campi del form
-            function collectFormData(container, data) {
-                container.find('input:visible, select:visible').each(function() {
-                    let predicateUri = $(this).data('predicate-uri');
-                    let objectClass = $(this).closest('[data-object-class]').data('object-class');  // Individua l'entità collegata
-
-                    if (predicateUri) {
-                        // Se l'input appartiene a un'entità collegata, lo inseriamo nel sottodizionario
-                        if (objectClass) {
-                            if (!data[objectClass]) {
-                                data[objectClass] = { "properties": {} };  // Inizializza l'entità collegata se non esiste
-                            }
-                            data[objectClass]["properties"][predicateUri] = $(this).val();
-                        } else {
-                            // Altrimenti, inseriamo direttamente la coppia chiave-valore nel livello principale
-                            data[predicateUri] = $(this).val();
-                        }
-                    }
-                });
-
-                // Gestione ricorsiva delle entità annidate
-                container.find('.nested-form-container:visible').each(function() {
-                    collectFormData($(this), data);  // Richiamo ricorsivo per eventuali sotto-form
-                });
-            }
-
             $('#entityForm').on('submit', function(event) {
-                event.preventDefault();
-                if ('{{shacl}}' != 'True') {
+                if (!form_fields) {
                     let isValid = false;
 
                     $('.custom-property').each(function() {
@@ -590,15 +562,6 @@
                         event.preventDefault();  // Blocca l'invio del form se non valido
                     }
                 }
-
-                let structuredData = {
-                    entity_type: $('#entity_type').val(),
-                    properties: {}
-                };
-
-                collectFormData($('#entityForm'), structuredData.properties);
-                $('#structured_data').val(JSON.stringify(structuredData, null, 2));
-                console.log(JSON.stringify(structuredData, null, 2));
             });
         });
     </script>

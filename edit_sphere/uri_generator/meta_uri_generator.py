@@ -8,7 +8,7 @@ class MetaURIGenerator(URIGenerator):
         self.counter_handler = counter_handler
 
     def generate_uri(self, entity_type: str) -> str:
-        count = self.counter_handler.get_count(entity_type)
+        count = self.counter_handler.read_counter(entity_type)
         entity_type_abbr = {
             'http://purl.org/spar/fabio/Expression': 'br',
             'http://purl.org/spar/pro/RoleInTime': 'ar',
@@ -16,4 +16,4 @@ class MetaURIGenerator(URIGenerator):
             'http://xmlns.com/foaf/0.1/Agent': 'ra',
             'http://purl.org/spar/datacite/Identifier': 'id'
         }
-        return URIRef(f"{self.base_iri}/{entity_type_abbr}/{self.supplier_prefix}{count}")
+        return URIRef(f"{self.base_iri}/{entity_type_abbr[entity_type]}/{self.supplier_prefix}{count}")
