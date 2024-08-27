@@ -3,7 +3,7 @@
         {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + counter | string) %}
 
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}">
-            <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;">
+            <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}">
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
@@ -539,30 +539,52 @@
             toggleRemoveButtons();
 
             // Funzione ricorsiva per raccogliere i dati dai campi del form
-            function collectFormData(container, data) {
-                container.find('input:visible, select:visible').each(function() {
-                    let predicateUri = $(this).data('predicate-uri');
-                    let objectClass = $(this).closest('[data-object-class]').data('object-class');  // Individua l'entità collegata
+            function collectFormData(container, data, depth = 0) {
+                container.find('[data-repeater-item]:visible').each(function() {
+                    let repeaterItem = $(this);
+                    let predicateUri = repeaterItem.data('predicate-uri');
+                    let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
+                    let itemDepth = parseInt(repeaterItem.data('depth'));
 
-                    if (predicateUri) {
-                        // Se l'input appartiene a un'entità collegata, lo inseriamo nel sottodizionario
-                        if (objectClass) {
-                            if (!data[objectClass]) {
-                                data[objectClass] = { "properties": {} };  // Inizializza l'entità collegata se non esiste
-                            }
-                            data[objectClass]["properties"][predicateUri] = $(this).val();
-                        } else {
-                            // Altrimenti, inseriamo direttamente la coppia chiave-valore nel livello principale
-                            data[predicateUri] = $(this).val();
+                    if (predicateUri && objectClass && itemDepth === depth) {
+                        // This is a nested entity at the correct depth
+                        let nestedEntity = {
+                            "entity_type": objectClass,
+                            "properties": {}
+                        };
+
+                        collectFormData(repeaterItem, nestedEntity.properties, depth + 1);
+
+                        // Only add the nested entity if it has properties
+                        if (Object.keys(nestedEntity.properties).length > 0) {
+                            data[predicateUri] = nestedEntity;
                         }
+                    } else if (itemDepth === depth) {
+                        // This is a property at the current depth
+                        repeaterItem.find('input:visible, select:visible').each(function() {
+                            let propertyUri = $(this).data('predicate-uri');
+                            if (propertyUri) {
+                                let value = $(this).val();
+                                if (value !== "") {  // Only add non-empty values
+                                    data[propertyUri] = value;
+                                }
+                            }
+                        });
                     }
                 });
 
-                // Gestione ricorsiva delle entità annidate
-                container.find('.nested-form-container:visible').each(function() {
-                    collectFormData($(this), data);  // Richiamo ricorsivo per eventuali sotto-form
+                // Handle any remaining inputs that are direct children of the container
+                container.children('input:visible, select:visible').each(function() {
+                    let propertyUri = $(this).data('predicate-uri');
+                    let inputDepth = parseInt($(this).data('depth'));
+                    if (propertyUri && inputDepth === depth) {
+                        let value = $(this).val();
+                        if (value !== "") {  // Only add non-empty values
+                            data[propertyUri] = value;
+                        }
+                    }
                 });
-            }
+            }   
 
             $('#entityForm').on('submit', function(event) {
                 event.preventDefault();
