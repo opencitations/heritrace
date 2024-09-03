@@ -190,50 +190,50 @@
     <script>
         $(document).ready(function() {
 
-        function validateUrlInput(inputElement) {
-            if (inputElement[0].checkValidity() === false) {
-                inputElement.addClass('is-invalid');
-            } else {
-                inputElement.removeClass('is-invalid');
-            }
-        }
-
-        // Funzione per validare il valore in tempo reale con AJAX
-        function validateValue(propertyId, value) {
-            $.ajax({
-                url: '{{ url_for("validate_literal") }}',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ value: value }),
-                success: function(response) {
-                    // Rimuovi tutte le opzioni disabilitate prima di aggiornare
-                    var select = $(`#custom_datatype_${propertyId}`);
-                    var validOptions = [];
-
-                    // Disabilita tutti i datatype non validi e raccogli i validi
-                    select.find('option').each(function() {
-                        var datatypeUri = $(this).val();
-                        if (response.valid_datatypes.includes(datatypeUri)) {
-                            $(this).prop('disabled', false);
-                            validOptions.push($(this).detach()); // Salva e rimuovi temporaneamente l'opzione valida
-                        } else {
-                            $(this).prop('disabled', true);
-                        }
-                    });
-
-                    // Ordina le opzioni: prima quelle valide
-                    if (validOptions.length > 0) {
-                        // Sposta le opzioni valide in cima al select
-                        $.each(validOptions.reverse(), function(index, option) {
-                            select.prepend(option); // Re-inserisci in cima al select
-                        });
-                    }
-                },
-                error: function(response) {
-                    alert(response.responseJSON.error);  // Mostra l'errore
+            function validateUrlInput(inputElement) {
+                if (inputElement[0].checkValidity() === false) {
+                    inputElement.addClass('is-invalid');
+                } else {
+                    inputElement.removeClass('is-invalid');
                 }
-            });
-        }
+            }
+
+            // Funzione per validare il valore in tempo reale con AJAX
+            function validateValue(propertyId, value) {
+                $.ajax({
+                    url: '{{ url_for("validate_literal") }}',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ value: value }),
+                    success: function(response) {
+                        // Rimuovi tutte le opzioni disabilitate prima di aggiornare
+                        var select = $(`#custom_datatype_${propertyId}`);
+                        var validOptions = [];
+
+                        // Disabilita tutti i datatype non validi e raccogli i validi
+                        select.find('option').each(function() {
+                            var datatypeUri = $(this).val();
+                            if (response.valid_datatypes.includes(datatypeUri)) {
+                                $(this).prop('disabled', false);
+                                validOptions.push($(this).detach()); // Salva e rimuovi temporaneamente l'opzione valida
+                            } else {
+                                $(this).prop('disabled', true);
+                            }
+                        });
+
+                        // Ordina le opzioni: prima quelle valide
+                        if (validOptions.length > 0) {
+                            // Sposta le opzioni valide in cima al select
+                            $.each(validOptions.reverse(), function(index, option) {
+                                select.prepend(option); // Re-inserisci in cima al select
+                            });
+                        }
+                    },
+                    error: function(response) {
+                        alert(response.responseJSON.error);  // Mostra l'errore
+                    }
+                });
+            }
 
             function generateUniqueId(prefix) {
                 return prefix + '_' + Math.random().toString(36).substr(2, 9);
@@ -278,6 +278,19 @@
                 return !!pattern.test(url);
             }
 
+            // Function to initialize the form based on the selected entity type
+            function initializeForm() {
+                let selectedUri = $('#entity_type').val();
+                $('#entity_type option').prop('selected', function() {
+                    return this.value === selectedUri;
+                });
+                $('.property-group').hide().find(':input').prop('disabled', true);
+                if (selectedUri) {
+                    let selectedGroup = $(`.property-group[data-uri="${selectedUri}"]`);
+                    selectedGroup.show().find(':input').prop('disabled', false);
+                }
+            }
+
             // Store initial copies of repeater items
             var initialCopies = {};
 
@@ -287,16 +300,15 @@
                 initialCopies[list.data('repeater-list')] = firstItem.clone(true, true);
             });
 
+            $(window).on('pageshow', function(event) {
+                initializeForm();
+            });
+
+            initializeForm();       
+
             // Handle entity type selection
             $('#entity_type').change(function() {
-                let selectedUri = $(this).find(':selected').data('uri');
-                
-                // Hide and disable all groups
-                $('.property-group').hide().find(':input').prop('disabled', true);
-                
-                // Show and enable the selected group
-                let selectedGroup = $(`.property-group[data-uri="${selectedUri}"]`);
-                selectedGroup.show().find(':input').prop('disabled', false);
+                initializeForm();            
             });
 
             // Toggle nested forms
@@ -619,8 +631,8 @@
                 };
 
                 collectFormData($('#entityForm'), structuredData.properties);
-                $('#structured_data').val(JSON.stringify(structuredData, null, 2));
-                console.log(JSON.stringify(structuredData, null, 2));
+                $('#structured_data').val(JSON.stringify(structuredData));
+                this.submit();
             });
         });
     </script>

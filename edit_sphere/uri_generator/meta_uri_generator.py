@@ -1,8 +1,9 @@
 from rdflib import URIRef
 from edit_sphere.uri_generator.uri_generator import URIGenerator
+from rdflib_ocdm.counter_handler.sqlite_counter_handler import SqliteCounterHandler
 
 class MetaURIGenerator(URIGenerator):
-    def __init__(self, base_iri: str, supplier_prefix: str, counter_handler: str):
+    def __init__(self, base_iri: str, supplier_prefix: str, counter_handler: SqliteCounterHandler):
         self.base_iri = base_iri
         self.supplier_prefix = supplier_prefix
         self.counter_handler = counter_handler

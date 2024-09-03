@@ -14,6 +14,7 @@ from config import Config
 from edit_sphere.editor import Editor
 from edit_sphere.filters import *
 from edit_sphere.forms import *
+from edit_sphere.uri_generator.uri_generator import *
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
@@ -29,6 +30,8 @@ from time_agnostic_library.agnostic_entity import (
 from time_agnostic_library.prov_entity import ProvEntity
 from time_agnostic_library.sparql import Sparql
 from time_agnostic_library.support import convert_to_datetime
+from datetime import datetime, timedelta
+
 
 app = Flask(__name__)
 
@@ -68,6 +71,68 @@ app.jinja_env.filters['human_readable_predicate'] = filter.human_readable_predic
 app.jinja_env.filters['human_readable_primary_source'] = filter.human_readable_primary_source
 app.jinja_env.filters['format_datetime'] = filter.human_readable_datetime
 app.jinja_env.filters['split_ns'] = filter.split_ns
+
+CACHE_FILE = app.config['CACHE_FILE']
+CACHE_VALIDITY_DAYS = app.config['CACHE_VALIDITY_DAYS']
+
+def need_initialization():
+    uri_generator: URIGenerator = app.config['URI_GENERATOR']
+
+    if not hasattr(uri_generator, "counter_handler"):
+        return False
+
+    if not os.path.exists(CACHE_FILE):
+        return True
+    
+    with open(CACHE_FILE, 'r', encoding='utf8') as f:
+        cache = json.load(f)
+    
+    last_init = datetime.fromisoformat(cache['last_initialization'])
+    return datetime.now() - last_init > timedelta(days=CACHE_VALIDITY_DAYS)
+
+def update_cache():
+    cache = {
+        'last_initialization': datetime.now().isoformat(),
+        'version': '1.0'
+    }
+    with open(CACHE_FILE, 'w', encoding='utf8') as f:
+        json.dump(cache, f, ensure_ascii=False, indent=4)
+
+def initialize_counter_handler():
+    if not need_initialization():
+        return
+    
+    uri_generator: URIGenerator = app.config['URI_GENERATOR']
+    counter_handler = uri_generator.counter_handler
+
+    # Query SPARQL per ottenere tutti i tipi di entità e il loro conteggio
+    query = """
+        SELECT ?type (COUNT(DISTINCT ?s) as ?count)
+        WHERE {
+            ?s a ?type .
+        }
+        GROUP BY ?type
+    """
+    
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+
+    # Dizionario per tenere traccia del conteggio massimo per ogni tipo di entità
+    max_counts = defaultdict(int)
+
+    for result in results["results"]["bindings"]:
+        entity_type = result["type"]["value"]
+        count = int(result["count"]["value"])   
+        max_counts[entity_type] = max(max_counts[entity_type], count)
+
+    # Aggiorna il counter_handler per ogni tipo di entità
+    for entity_type, count in max_counts.items():
+        current_count = counter_handler.read_counter(entity_type)
+        if current_count <= count:
+            counter_handler.set_counter(count + 1, entity_type)
+
+initialize_counter_handler()
 
 @app.route('/')
 def index():
@@ -129,109 +194,109 @@ def create_entity():
     }
 
     if request.method == 'POST':
+        structured_data = json.loads(request.form.get('structured_data', '{}'))
+        entity_type = structured_data.get('entity_type')
+        properties = structured_data.get('properties', {})
+
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
-        entity_type = request.form.get('entity_type')
         entity_uri = URIRef(Config.URI_GENERATOR.generate_uri(entity_type))
         editor.import_entity(entity_uri)
         editor.preexisting_finished()
-        if form_fields:
-            if entity_type not in form_fields:
-                flash(gettext('Invalid entity type'), 'error')
-                return redirect(url_for('create_entity'))
-            
-            entities = create_entities_recursively(entity_type, entity_types, form_fields[entity_type], request.form)
 
-            # for prop, details in form_fields[entity_type].items():
-            #     real_prop = '_'.join(prop.split('_')[:-1])
-            #     value = request.form.get(real_prop)
-            #     ...
-        else:
-            # Controlla se ci sono proprietà valide con URI e valore
-            valid_properties = []
-            for key, value in request.form.items():
-                if key.startswith('custom_property_'):
-                    property_number = key.split('_')[-1]
-                    property_value = request.form.get(f'custom_value_{property_number}')
-                    if value and property_value:
-                        valid_properties.append((value, property_value))
+        editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type))
 
-            if not valid_properties:
-                flash(gettext('You must provide at least one valid property with URI and value'), 'danger')
-                return redirect(url_for('create_entity'))
+        for predicate, value in properties.items():
+            if isinstance(value, dict) and 'entity_type' in value:
+                # Handle nested entities
+                nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
+                editor.create(entity_uri, URIRef(predicate), nested_uri)
+                create_nested_entity(editor, nested_uri, value)
+            else:
+                # Handle simple properties
+                object_value = URIRef(value) if validators.url(value) else Literal(value)
+                editor.create(entity_uri, URIRef(predicate), object_value)
 
-            for key, value in request.form.items():
-                if key.startswith('custom_property_') and value:
-                    property_number = key.split('_')[-1]
-                    property_value = request.form.get(f'custom_value_{property_number}')
-                    if not is_valid_uri(value):
-                        flash(gettext('Invalid property URI: "%(uri)s" is not a valid URL' % {'uri': value}), 'danger')
-                        return redirect(url_for('create_entity'))
-                    value_type = request.form.get(f'custom_value_type_{property_number}')
-                    if value_type == 'uri':
-                        if not is_valid_uri(property_value):
-                            flash(gettext('Invalid property value URI: "%(uri)s" is not a valid URL' % {'uri': property_value}), 'danger')
-                            return redirect(url_for('create_entity'))
-                        editor.create(entity_uri, URIRef(value), URIRef(property_value))
-                    elif value_type == 'literal':
-                        datatype = request.form.get(f'custom_datatype_{property_number}', 'xsd:string')
-                        literal_value = convert_to_matching_literal(property_value, [URIRef(datatype)])
-                        if literal_value is None:
-                            human_readable_datatype = list(datatype_options.keys())[list(datatype_options.values()).index(URIRef(datatype))]
-                            flash(gettext("Invalid datatype for the provided value: '%(value)s' is not valid for datatype '%(datatype)s'" %
-                                        {'value': property_value, 'datatype': human_readable_datatype}), 'danger')
-                            return redirect(url_for('create_entity'))
-                        editor.create(entity_uri, URIRef(value), Literal(property_value, datatype=URIRef(datatype)))
         try:
             editor.save()
+            if hasattr(Config.URI_GENERATOR, 'counter_handler'):
+                Config.URI_GENERATOR.counter_handler.increment_counter(entity_type)
             flash(gettext('Entity created successfully'), 'success')
             return redirect(url_for('about', subject=str(entity_uri)))
         except Exception as e:
             flash(gettext('An error occurred while creating the entity: %(error)s', error=str(e)), 'danger')
             return redirect(url_for('create_entity'))
-    print(json.dumps(form_fields, indent=4))
+
+        # if form_fields:
+        #     if entity_type not in form_fields:
+        #         flash(gettext('Invalid entity type'), 'error')
+        #         return redirect(url_for('create_entity'))
+            
+        #     entities = create_entities_recursively(entity_type, entity_types, form_fields[entity_type], request.form)
+
+        #     # for prop, details in form_fields[entity_type].items():
+        #     #     real_prop = '_'.join(prop.split('_')[:-1])
+        #     #     value = request.form.get(real_prop)
+        #     #     ...
+        # else:
+        #     # Controlla se ci sono proprietà valide con URI e valore
+        #     valid_properties = []
+        #     for key, value in request.form.items():
+        #         if key.startswith('custom_property_'):
+        #             property_number = key.split('_')[-1]
+        #             property_value = request.form.get(f'custom_value_{property_number}')
+        #             if value and property_value:
+        #                 valid_properties.append((value, property_value))
+
+        #     if not valid_properties:
+        #         flash(gettext('You must provide at least one valid property with URI and value'), 'danger')
+        #         return redirect(url_for('create_entity'))
+
+        #     for key, value in request.form.items():
+        #         if key.startswith('custom_property_') and value:
+        #             property_number = key.split('_')[-1]
+        #             property_value = request.form.get(f'custom_value_{property_number}')
+        #             if not is_valid_uri(value):
+        #                 flash(gettext('Invalid property URI: "%(uri)s" is not a valid URL' % {'uri': value}), 'danger')
+        #                 return redirect(url_for('create_entity'))
+        #             value_type = request.form.get(f'custom_value_type_{property_number}')
+        #             if value_type == 'uri':
+        #                 if not is_valid_uri(property_value):
+        #                     flash(gettext('Invalid property value URI: "%(uri)s" is not a valid URL' % {'uri': property_value}), 'danger')
+        #                     return redirect(url_for('create_entity'))
+        #                 editor.create(entity_uri, URIRef(value), URIRef(property_value))
+        #             elif value_type == 'literal':
+        #                 datatype = request.form.get(f'custom_datatype_{property_number}', 'xsd:string')
+        #                 literal_value = convert_to_matching_literal(property_value, [URIRef(datatype)])
+        #                 if literal_value is None:
+        #                     human_readable_datatype = list(datatype_options.keys())[list(datatype_options.values()).index(URIRef(datatype))]
+        #                     flash(gettext("Invalid datatype for the provided value: '%(value)s' is not valid for datatype '%(datatype)s'" %
+        #                                 {'value': property_value, 'datatype': human_readable_datatype}), 'danger')
+        #                     return redirect(url_for('create_entity'))
+        #                 editor.create(entity_uri, URIRef(value), Literal(property_value, datatype=URIRef(datatype)))
+        # try:
+        #     editor.save()
+        #     flash(gettext('Entity created successfully'), 'success')
+        #     return redirect(url_for('about', subject=str(entity_uri)))
+        # except Exception as e:
+        #     flash(gettext('An error occurred while creating the entity: %(error)s', error=str(e)), 'danger')
+        #     return redirect(url_for('create_entity'))
     return render_template('create_entity.jinja', shacl=bool(shacl), entity_types=entity_types, form_fields=form_fields, datatype_options=datatype_options)
 
-def create_entities_recursively(entity_type, entity_types, fields, form_data, prefix=''):
-    entities = defaultdict(dict)
-    main_entity_uri = URIRef(Config.URI_GENERATOR.generate_uri(entity_type))
-    for prop, details in fields.items():
-        real_prop = '_'.join(prop.split('_')[:-1])
-        field_base = f"{prefix}{filter.human_readable_predicate(entity_type, entity_types, False).replace(' ', '_')}_{filter.human_readable_predicate(prop, entity_types, False).replace(' ', '_')}_"
-        matching_fields = [key for key in form_data if key.startswith(field_base)]
-        for field in matching_fields:
-            value = form_data[field]
-            if details.get('optionalValues'):
-                entities[main_entity_uri].setdefault(real_prop, []).append(URIRef(value))
-            else:
-                entities[main_entity_uri].setdefault(real_prop, []).append(value)
-        if details.get('intermediateRelation'):
-            intermediate_type = details['intermediateRelation']['class']
-            intermediate_uri = URIRef(Config.URI_GENERATOR.generate_uri(intermediate_type))
-            entities[main_entity_uri].setdefault(prop, []).append(intermediate_uri)
-            
-        #     nested_entities = create_entities_recursively(
-        #         details['intermediateRelation']['targetEntityType'],
-        #         details['intermediateRelation']['properties'],
-        #         form_data,
-        #         f"{prefix}{field_base}_"
-        #     )
-        #     entities.update(nested_entities)
-            
-        #     # Collega l'entità intermedia all'entità target
-        #     target_uri = list(nested_entities.keys())[0]
-        #     entities[intermediate_uri][details['intermediateRelation']['targetEntityType']] = [target_uri]
-        
-        # elif details.get('objectClass') and details['objectClass'] in form_fields:
-        #     nested_entities = create_entities_recursively(
-        #         details['objectClass'],
-        #         form_fields[details['objectClass']],
-        #         form_data,
-        #         f"{prefix}{field_base}_"
-        #     )
-        #     entities.update(nested_entities)
-        #     entities[main_entity_uri].setdefault(prop, []).extend(nested_entities.keys())
-    
-    # return entities
+def create_nested_entity(editor: Editor, entity_uri, entity_data):
+    # Add rdf:type
+    editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_data['entity_type']))
+
+    # Add other properties
+    for predicate, value in entity_data.get('properties', {}).items():
+        if isinstance(value, dict) and 'entity_type' in value:
+            # Handle nested entities
+            nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
+            editor.create(entity_uri, URIRef(predicate), nested_uri)
+            create_nested_entity(editor, nested_uri, value)
+        else:
+            # Handle simple properties
+            object_value = URIRef(value) if validators.url(value) else Literal(value)
+            editor.create(entity_uri, URIRef(predicate), object_value)
 
 @app.route('/about/<path:subject>')
 def about(subject):
