@@ -159,7 +159,6 @@ def create_entity():
     form_fields = get_form_fields_from_shacl()
     entity_types = list(form_fields.keys())
 
-    # Lista dei datatype con descrizioni human-readable e supporto alla traduzione
     datatype_options = {
         gettext("Text (string)"): XSD.string,
         gettext("Whole number (integer)"): XSD.integer,
@@ -195,26 +194,43 @@ def create_entity():
 
     if request.method == 'POST':
         structured_data = json.loads(request.form.get('structured_data', '{}'))
-        entity_type = structured_data.get('entity_type')
-        properties = structured_data.get('properties', {})
-
+        
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
-        entity_uri = URIRef(Config.URI_GENERATOR.generate_uri(entity_type))
-        editor.import_entity(entity_uri)
-        editor.preexisting_finished()
+        
+        if shacl:
+            entity_type = structured_data.get('entity_type')
+            properties = structured_data.get('properties', {})
+            
+            entity_uri = URIRef(Config.URI_GENERATOR.generate_uri(entity_type))
+            editor.import_entity(entity_uri)
+            editor.preexisting_finished()
 
-        editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type))
+            editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type))
 
-        for predicate, value in properties.items():
-            if isinstance(value, dict) and 'entity_type' in value:
-                # Handle nested entities
-                nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
-                editor.create(entity_uri, URIRef(predicate), nested_uri)
-                create_nested_entity(editor, nested_uri, value)
-            else:
-                # Handle simple properties
-                object_value = URIRef(value) if validators.url(value) else Literal(value)
-                editor.create(entity_uri, URIRef(predicate), object_value)
+            for predicate, value in properties.items():
+                if isinstance(value, dict) and 'entity_type' in value:
+                    # Handle nested entities
+                    nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
+                    editor.create(entity_uri, URIRef(predicate), nested_uri)
+                    create_nested_entity(editor, nested_uri, value)
+                else:
+                    # Handle simple properties
+                    object_value = URIRef(value) if validators.url(value) else Literal(value)
+                    editor.create(entity_uri, URIRef(predicate), object_value)
+        else:
+            properties = structured_data.get('properties', {})
+            
+            # Genera un URI per l'entità
+            entity_uri = URIRef(Config.URI_GENERATOR.generate_uri())
+            editor.import_entity(entity_uri)
+            editor.preexisting_finished()
+
+            for predicate, value_dict in properties.items():
+                if value_dict['type'] == 'uri':
+                    editor.create(entity_uri, URIRef(predicate), URIRef(value_dict['value']))
+                elif value_dict['type'] == 'literal':
+                    datatype = URIRef(value_dict['datatype']) if 'datatype' in value_dict else XSD.string
+                    editor.create(entity_uri, URIRef(predicate), Literal(value_dict['value'], datatype=datatype))
 
         try:
             editor.save()
@@ -226,60 +242,6 @@ def create_entity():
             flash(gettext('An error occurred while creating the entity: %(error)s', error=str(e)), 'danger')
             return redirect(url_for('create_entity'))
 
-        # if form_fields:
-        #     if entity_type not in form_fields:
-        #         flash(gettext('Invalid entity type'), 'error')
-        #         return redirect(url_for('create_entity'))
-            
-        #     entities = create_entities_recursively(entity_type, entity_types, form_fields[entity_type], request.form)
-
-        #     # for prop, details in form_fields[entity_type].items():
-        #     #     real_prop = '_'.join(prop.split('_')[:-1])
-        #     #     value = request.form.get(real_prop)
-        #     #     ...
-        # else:
-        #     # Controlla se ci sono proprietà valide con URI e valore
-        #     valid_properties = []
-        #     for key, value in request.form.items():
-        #         if key.startswith('custom_property_'):
-        #             property_number = key.split('_')[-1]
-        #             property_value = request.form.get(f'custom_value_{property_number}')
-        #             if value and property_value:
-        #                 valid_properties.append((value, property_value))
-
-        #     if not valid_properties:
-        #         flash(gettext('You must provide at least one valid property with URI and value'), 'danger')
-        #         return redirect(url_for('create_entity'))
-
-        #     for key, value in request.form.items():
-        #         if key.startswith('custom_property_') and value:
-        #             property_number = key.split('_')[-1]
-        #             property_value = request.form.get(f'custom_value_{property_number}')
-        #             if not is_valid_uri(value):
-        #                 flash(gettext('Invalid property URI: "%(uri)s" is not a valid URL' % {'uri': value}), 'danger')
-        #                 return redirect(url_for('create_entity'))
-        #             value_type = request.form.get(f'custom_value_type_{property_number}')
-        #             if value_type == 'uri':
-        #                 if not is_valid_uri(property_value):
-        #                     flash(gettext('Invalid property value URI: "%(uri)s" is not a valid URL' % {'uri': property_value}), 'danger')
-        #                     return redirect(url_for('create_entity'))
-        #                 editor.create(entity_uri, URIRef(value), URIRef(property_value))
-        #             elif value_type == 'literal':
-        #                 datatype = request.form.get(f'custom_datatype_{property_number}', 'xsd:string')
-        #                 literal_value = convert_to_matching_literal(property_value, [URIRef(datatype)])
-        #                 if literal_value is None:
-        #                     human_readable_datatype = list(datatype_options.keys())[list(datatype_options.values()).index(URIRef(datatype))]
-        #                     flash(gettext("Invalid datatype for the provided value: '%(value)s' is not valid for datatype '%(datatype)s'" %
-        #                                 {'value': property_value, 'datatype': human_readable_datatype}), 'danger')
-        #                     return redirect(url_for('create_entity'))
-        #                 editor.create(entity_uri, URIRef(value), Literal(property_value, datatype=URIRef(datatype)))
-        # try:
-        #     editor.save()
-        #     flash(gettext('Entity created successfully'), 'success')
-        #     return redirect(url_for('about', subject=str(entity_uri)))
-        # except Exception as e:
-        #     flash(gettext('An error occurred while creating the entity: %(error)s', error=str(e)), 'danger')
-        #     return redirect(url_for('create_entity'))
     return render_template('create_entity.jinja', shacl=bool(shacl), entity_types=entity_types, form_fields=form_fields, datatype_options=datatype_options)
 
 def create_nested_entity(editor: Editor, entity_uri, entity_data):

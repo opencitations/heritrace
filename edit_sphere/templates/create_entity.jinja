@@ -552,86 +552,109 @@
 
             // Funzione ricorsiva per raccogliere i dati dai campi del form
             function collectFormData(container, data, depth = 0) {
-                container.find('[data-repeater-item]:visible').each(function() {
-                    let repeaterItem = $(this);
-                    let predicateUri = repeaterItem.data('predicate-uri');
-                    let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
-                    let itemDepth = parseInt(repeaterItem.data('depth'));
+                if ('{{shacl}}' === 'True') {
+                    container.find('[data-repeater-item]:visible').each(function() {
+                        let repeaterItem = $(this);
+                        let predicateUri = repeaterItem.data('predicate-uri');
+                        let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
+                        let itemDepth = parseInt(repeaterItem.data('depth'));
 
-                    if (predicateUri && objectClass && itemDepth === depth) {
-                        // This is a nested entity at the correct depth
-                        let nestedEntity = {
-                            "entity_type": objectClass,
-                            "properties": {}
-                        };
+                        if (predicateUri && objectClass && itemDepth === depth) {
+                            // This is a nested entity at the correct depth
+                            let nestedEntity = {
+                                "entity_type": objectClass,
+                                "properties": {}
+                            };
 
-                        collectFormData(repeaterItem, nestedEntity.properties, depth + 1);
+                            collectFormData(repeaterItem, nestedEntity.properties, depth + 1);
 
-                        // Only add the nested entity if it has properties
-                        if (Object.keys(nestedEntity.properties).length > 0) {
-                            data[predicateUri] = nestedEntity;
-                        }
-                    } else if (itemDepth === depth) {
-                        // This is a property at the current depth
-                        repeaterItem.find('input:visible, select:visible').each(function() {
-                            let propertyUri = $(this).data('predicate-uri');
-                            if (propertyUri) {
-                                let value = $(this).val();
-                                if (value !== "") {  // Only add non-empty values
-                                    data[propertyUri] = value;
-                                }
+                            // Only add the nested entity if it has properties
+                            if (Object.keys(nestedEntity.properties).length > 0) {
+                                data[predicateUri] = nestedEntity;
                             }
-                        });
-                    }
-                });
-
-                // Handle any remaining inputs that are direct children of the container
-                container.children('input:visible, select:visible').each(function() {
-                    let propertyUri = $(this).data('predicate-uri');
-                    let inputDepth = parseInt($(this).data('depth'));
-                    if (propertyUri && inputDepth === depth) {
-                        let value = $(this).val();
-                        if (value !== "") {  // Only add non-empty values
-                            data[propertyUri] = value;
+                        } else if (itemDepth === depth) {
+                            // This is a property at the current depth
+                            repeaterItem.find('input:visible, select:visible').each(function() {
+                                let propertyUri = $(this).data('predicate-uri');
+                                if (propertyUri) {
+                                    let value = $(this).val();
+                                    if (value !== "") {  // Only add non-empty values
+                                        data[propertyUri] = value;
+                                    }
+                                }
+                            });
                         }
-                    }
-                });
+                    });
+
+                    // Handle any remaining inputs that are direct children of the container
+                    container.children('input:visible, select:visible').each(function() {
+                        let propertyUri = $(this).data('predicate-uri');
+                        let inputDepth = parseInt($(this).data('depth'));
+                        if (propertyUri && inputDepth === depth) {
+                            let value = $(this).val();
+                            if (value !== "") {  // Only add non-empty values
+                                data[propertyUri] = value;
+                            }
+                        }
+                    });
+                } else {
+                    $('.custom-property').each(function() {
+                        let propertyUri = $(this).find('input[type="url"]').val();
+                        let propertyValue = $(this).find('.custom-value-input').val();
+                        let valueType = $(this).find('.custom-value-type').val();
+                        let datatype = $(this).find('select[id^="custom_datatype_"]').val();
+
+                        if (propertyUri && propertyValue) {
+                            if (valueType === 'uri') {
+                                data[propertyUri] = {
+                                    value: propertyValue,
+                                    type: 'uri'
+                                };
+                            } else {
+                                data[propertyUri] = {
+                                    value: propertyValue,
+                                    type: 'literal',
+                                    datatype: datatype
+                                };
+                            }
+                        }
+                    });
+                }
             }   
 
             $('#entityForm').on('submit', function(event) {
                 event.preventDefault();
-                if ('{{shacl}}' != 'True') {
-                    let isValid = false;
 
-                    $('.custom-property').each(function() {
-                        let propertyUri = $(this).find('input[type="url"]').val();
-                        let propertyValue = $(this).find('.custom-value-input').val();
+                let structuredData = {};
 
-                        if (propertyUri && propertyValue) {
-                            isValid = true;  // Se c'è almeno una proprietà con URI e valore compilati, consideriamo valido
-                            return false;  // Esci dal loop
-                        }
-                    });
-
-                    if (!isValid) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: '{{ _("Invalid Submission") }}',
-                            text: '{{ _("Please provide at least one valid property with URI and value") }}',
-                            confirmButtonText: '{{ _("OK") }}'
-                        });
-
-                        event.preventDefault();  // Blocca l'invio del form se non valido
-                    }
+                if ('{{shacl}}' === 'True') {
+                    structuredData = {
+                        entity_type: $('#entity_type').val(),
+                        properties: {}
+                    };
+                    collectFormData($('#entityForm'), structuredData.properties);
+                } else {
+                    structuredData = {
+                        properties: {}
+                    };
+                    collectFormData(null, structuredData.properties);
                 }
 
-                let structuredData = {
-                    entity_type: $('#entity_type').val(),
-                    properties: {}
-                };
-
-                collectFormData($('#entityForm'), structuredData.properties);
                 $('#structured_data').val(JSON.stringify(structuredData));
+
+                // Validazione
+                let isValid = Object.keys(structuredData.properties).length > 0;
+
+                if (!isValid) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '{{ _("Invalid Submission") }}',
+                        text: '{{ _("Please provide at least one valid property with URI and value") }}',
+                        confirmButtonText: '{{ _("OK") }}'
+                    });
+                    return;  // Blocca l'invio del form se non valido
+                }
+
                 this.submit();
             });
         });
