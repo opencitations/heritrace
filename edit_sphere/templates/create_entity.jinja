@@ -200,37 +200,45 @@
 
             // Funzione per validare il valore in tempo reale con AJAX
             function validateValue(propertyId, value) {
+                if (!value.trim()) {
+                    // Se il valore è vuoto, mostra tutte le opzioni e esci dalla funzione
+                    $(`#custom_datatype_${propertyId} option`).show();
+                    return;
+                }
+
                 $.ajax({
                     url: '{{ url_for("validate_literal") }}',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ value: value }),
                     success: function(response) {
-                        // Rimuovi tutte le opzioni disabilitate prima di aggiornare
                         var select = $(`#custom_datatype_${propertyId}`);
-                        var validOptions = [];
-
-                        // Disabilita tutti i datatype non validi e raccogli i validi
-                        select.find('option').each(function() {
-                            var datatypeUri = $(this).val();
-                            if (response.valid_datatypes.includes(datatypeUri)) {
-                                $(this).prop('disabled', false);
-                                validOptions.push($(this).detach()); // Salva e rimuovi temporaneamente l'opzione valida
-                            } else {
-                                $(this).prop('disabled', true);
-                            }
+                        
+                        // Nascondi tutte le opzioni prima
+                        select.find('option').hide();
+                        
+                        // Mostra solo le opzioni valide
+                        response.valid_datatypes.forEach(function(datatypeUri) {
+                            select.find(`option[value="${datatypeUri}"]`).show();
                         });
-
-                        // Ordina le opzioni: prima quelle valide
-                        if (validOptions.length > 0) {
-                            // Sposta le opzioni valide in cima al select
-                            $.each(validOptions.reverse(), function(index, option) {
-                                select.prepend(option); // Re-inserisci in cima al select
-                            });
+                        
+                        // Se l'opzione attualmente selezionata non è valida, seleziona la prima opzione valida
+                        if (!response.valid_datatypes.includes(select.val())) {
+                            select.val(response.valid_datatypes[0]);
+                        }
+                        
+                        // Se non ci sono opzioni valide, mostra un messaggio
+                        if (response.valid_datatypes.length === 0) {
+                            select.append($('<option>', {
+                                value: '',
+                                text: '{{ _("No valid datatypes for this value") }}',
+                                disabled: true,
+                                selected: true
+                            }));
                         }
                     },
                     error: function(response) {
-                        alert(response.responseJSON.error);  // Mostra l'errore
+                        console.error(response.responseJSON.error);
                     }
                 });
             }
@@ -482,16 +490,32 @@
                 propertyCount = $('.custom-property').length;
             }
 
+            $(document).on('input', '.custom-value-input', function() {
+                var propertyId = $(this).attr('id').split('_').pop();
+                var value = $(this).val();
+                var valueType = $(`#custom_value_type_${propertyId}`).val();
+
+                // Resetta il datatype su xsd:string ogni volta che il valore cambia
+                $(`#custom_datatype_${propertyId}`).val('http://www.w3.org/2001/XMLSchema#string');
+
+                // Chiama validateValue solo se il tipo di valore è 'literal'
+                if (valueType === 'literal') {
+                    validateValue(propertyId, value);
+                }
+            });
+
             // Gestione della visualizzazione dinamica del datatype
             $(document).on('change', '.custom-value-type', function() {
                 var propertyId = $(this).attr('id').split('_').pop();
                 var selectedValueType = $(this).val();
                 var valueInput = $(`#custom_value_${propertyId}`);
+                var datatypeSection = $(`#custom_datatype_section_${propertyId}`);
                 
                 if (selectedValueType === 'literal') {
-                    $(`#custom_datatype_section_${propertyId}`).show();
+                    datatypeSection.show();
+                    validateValue(propertyId, valueInput.val());
                 } else {
-                    $(`#custom_datatype_section_${propertyId}`).hide();
+                    datatypeSection.hide();
                 }
             });
             
