@@ -2,7 +2,8 @@
     {% if depth <= max_depth %}
         {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + counter | string) %}
 
-        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}">
+        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}"
+             {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}>
             <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}"
                 {% if details.intermediateRelation %}
                     data-intermediate-relation="{{ details.intermediateRelation.class }}"
@@ -11,6 +12,9 @@
                 {% if details.additionalProperties %}
                     data-additional-properties='{{ details.additionalProperties | tojson }}'
                 {% endif %}>
+                {% if details.orderedBy %}
+                    <span class="drag-handle" style="cursor: move;">☰</span>
+                {% endif %}
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
@@ -313,6 +317,14 @@
                 var list = $(this);
                 var firstItem = list.find('[data-repeater-item]').first();
                 initialCopies[list.data('repeater-list')] = firstItem.clone(true, true);
+
+                 // Initialize Sortable for each repeater list
+                if (list.data('ordered-by')) {
+                    new Sortable(list[0], {
+                        handle: '.drag-handle',
+                        animation: 150
+                    });
+                }
             });
 
             $(window).on('pageshow', function(event) {
@@ -687,7 +699,7 @@
                     });
                 }
             }
-            
+
             $('#entityForm').on('submit', function(event) {
                 event.preventDefault();
 

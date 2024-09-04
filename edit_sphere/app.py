@@ -210,16 +210,36 @@ def create_entity():
             for predicate, values in properties.items():
                 if not isinstance(values, list):
                     values = [values]
-                for value in values:
-                    if isinstance(value, dict) and 'entity_type' in value:
-                        # Handle nested entities
-                        nested_uri = generate_unique_uri(value['entity_type'])
-                        editor.create(entity_uri, URIRef(predicate), nested_uri)
-                        create_nested_entity(editor, nested_uri, value)
-                    else:
-                        # Handle simple properties
-                        object_value = URIRef(value) if validators.url(value) else Literal(value)
-                        editor.create(entity_uri, URIRef(predicate), object_value)
+                
+                # Check if this predicate needs to be ordered
+                ordered_by = None
+                for field_name, field_details in form_fields[entity_type].items():
+                    if field_details['uri'] == predicate:
+                        ordered_by = field_details.get('orderedBy')
+                        break
+
+                if ordered_by:
+                    # Handle ordered properties
+                    previous_entity = None
+                    for i, value in enumerate(values):
+                        if isinstance(value, dict) and 'entity_type' in value:
+                            nested_uri = generate_unique_uri(value['entity_type'])
+                            editor.create(entity_uri, URIRef(predicate), nested_uri)
+                            create_nested_entity(editor, nested_uri, value)
+                            
+                            if previous_entity:
+                                editor.create(previous_entity, URIRef(ordered_by), nested_uri)
+                            previous_entity = nested_uri
+                else:
+                    # Handle non-ordered properties
+                    for value in values:
+                        if isinstance(value, dict) and 'entity_type' in value:
+                            nested_uri = generate_unique_uri(value['entity_type'])
+                            editor.create(entity_uri, URIRef(predicate), nested_uri)
+                            create_nested_entity(editor, nested_uri, value)
+                        else:
+                            object_value = URIRef(value) if validators.url(value) else Literal(value)
+                            editor.create(entity_uri, URIRef(predicate), object_value)
         else:
             properties = structured_data.get('properties', {})
             
@@ -1056,6 +1076,9 @@ def get_form_fields_from_shacl():
             if entity_class and entity_class in form_fields:
                 for prop in rule.get('displayProperties', []):
                     if prop['property'] in form_fields[entity_class]:
+                        if 'orderedBy' in prop:
+                            form_fields[entity_class][prop['property']]['orderedBy'] = prop['orderedBy']
+                        
                         if 'intermediateRelation' in prop:
                             intermediate_relation = prop['intermediateRelation']
                             target_entity_type = intermediate_relation.get('targetEntityType')
@@ -1101,7 +1124,8 @@ def get_form_fields_from_shacl():
                                     "hasValue": form_fields[entity_class][prop['property']].get("hasValue"),
                                     "objectClass": form_fields[entity_class][prop['property']].get("objectClass"),
                                     "displayName": display_name,
-                                    "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", [])
+                                    "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", []),
+                                    "orderedBy": prop.get('orderedBy')
                                 }
 
                                 if 'intermediateRelation' in prop:
