@@ -12,13 +12,15 @@
                 {% if details.additionalProperties %}
                     data-additional-properties='{{ details.additionalProperties | tojson }}'
                 {% endif %}>
-                {% if details.orderedBy %}
-                    <span class="drag-handle" style="cursor: move;">☰</span>
-                {% endif %}
+                <div class="d-flex align-items-center w-100 mb-2">
+                    {% if details.orderedBy %}
+                        <span class="drag-handle me-2" style="cursor: move;">☰</span>
+                    {% endif %}
+                    <h6 class="mb-0 flex-grow-1">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</h6>
+                </div>
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
-                            <h6>{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</h6>
                             <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
                                 <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
                             </button>
@@ -32,7 +34,6 @@
                 {% elif details.objectClass and details.objectClass in entity_types %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
-                            <h6>{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</h6>
                             <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
                                 <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
                             </button>
@@ -113,6 +114,14 @@
 
     .nested-form-header .toggle-btn:not(.collapsed) {
         transform: rotate(90deg);
+    }
+
+    [data-repeater-list], #entity_type {
+        margin-bottom: 3rem;
+    }
+
+    [data-repeater-create] {
+        margin-top: -1rem; /* Sposta il pulsante "Add another" più vicino all'elemento sopra */
     }
 </style>
 
