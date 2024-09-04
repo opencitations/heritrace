@@ -1,37 +1,36 @@
 import json
 import os
+import traceback
 import urllib
 from collections import OrderedDict, defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 import click
 import requests
 import validators
 import yaml
-import traceback
-from config import Config
-from edit_sphere.editor import Editor
-from edit_sphere.filters import *
-from edit_sphere.forms import *
-from edit_sphere.uri_generator.uri_generator import *
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
 from rdflib import RDF, XSD, Graph, Literal, URIRef
+from rdflib.namespace import XSD
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.algebra import translateQuery, translateUpdate
 from rdflib.plugins.sparql.parser import parseQuery, parseUpdate
-from rdflib.namespace import XSD
-from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import (
     AgnosticEntity, _filter_timestamps_by_interval)
 from time_agnostic_library.prov_entity import ProvEntity
 from time_agnostic_library.sparql import Sparql
 from time_agnostic_library.support import convert_to_datetime
-from datetime import datetime, timedelta
 
+from config import Config
+from edit_sphere.editor import Editor
+from edit_sphere.filters import *
+from edit_sphere.forms import *
+from edit_sphere.uri_generator.uri_generator import *
+from resources.datatypes import DATATYPE_MAPPING
 
 app = Flask(__name__)
 
@@ -194,7 +193,7 @@ def create_entity():
 
     if request.method == 'POST':
         structured_data = json.loads(request.form.get('structured_data', '{}'))
-        
+        print(structured_data)
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
         
         if shacl:
@@ -211,6 +210,7 @@ def create_entity():
                 if isinstance(value, dict) and 'entity_type' in value:
                     # Handle nested entities
                     nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
+                    print('AAAAAAAA', nested_uri)
                     editor.create(entity_uri, URIRef(predicate), nested_uri)
                     create_nested_entity(editor, nested_uri, value)
                 else:
@@ -251,10 +251,17 @@ def create_nested_entity(editor: Editor, entity_uri, entity_data):
     # Add other properties
     for predicate, value in entity_data.get('properties', {}).items():
         if isinstance(value, dict) and 'entity_type' in value:
-            # Handle nested entities
-            nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
-            editor.create(entity_uri, URIRef(predicate), nested_uri)
-            create_nested_entity(editor, nested_uri, value)
+            if 'intermediateRelation' in value:
+                intermediate_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['intermediateRelation']['class']))
+                target_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
+                editor.create(entity_uri, URIRef(predicate), intermediate_uri)
+                editor.create(intermediate_uri, URIRef(value['intermediateRelation']['property']), target_uri)
+                create_nested_entity(editor, target_uri, value)
+            else:
+                # Handle nested entities
+                nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
+                editor.create(entity_uri, URIRef(predicate), nested_uri)
+                create_nested_entity(editor, nested_uri, value)
         else:
             # Handle simple properties
             object_value = URIRef(value) if validators.url(value) else Literal(value)
@@ -990,7 +997,8 @@ def get_form_fields_from_shacl():
     
     query = prepareQuery(f"""
         SELECT ?type ?predicate ?datatype ?maxCount ?minCount ?hasValue ?objectClass
-               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
+               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
+        WHERE {{
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
             ?property sh:path ?predicate .
@@ -1038,13 +1046,34 @@ def get_form_fields_from_shacl():
                         if 'intermediateRelation' in prop:
                             intermediate_relation = prop['intermediateRelation']
                             target_entity_type = intermediate_relation.get('targetEntityType')
+                            intermediate_class = intermediate_relation.get('class')
+                            
+                            # Query SPARQL per trovare la proprietà intermedia
+                            connecting_property_query = prepareQuery("""
+                                SELECT ?property
+                                WHERE {
+                                    ?shape sh:targetClass ?intermediateClass ;
+                                           sh:property ?propertyShape .
+                                    ?propertyShape sh:path ?property ;
+                                                   sh:class ?targetClass .
+                                }
+                            """, initNs={"sh": "http://www.w3.org/ns/shacl#"})
+                            
+                            connecting_property_results = shacl.query(connecting_property_query, initBindings={
+                                'intermediateClass': URIRef(intermediate_class),
+                                'targetClass': URIRef(target_entity_type)
+                            })
+                            
+                            connecting_property = next((str(row.property) for row in connecting_property_results), None)
+                            
                             form_fields[entity_class][prop['property']]['intermediateRelation'] = {
-                                "class": intermediate_relation['class'],
+                                "class": intermediate_class,
                                 "targetEntityType": target_entity_type,
+                                "connectingProperty": connecting_property,
                                 "properties": form_fields[target_entity_type] if target_entity_type in form_fields else {}
                             }
                         if 'values' in prop:
-                            # Crea campi separati per ogni ruolo
+                            # Crea campi separati per ogni valore
                             for value in prop['values']:
                                 display_name = value['displayName']
                                 new_field_name = f"{prop['property']}_{display_name}"
@@ -1058,12 +1087,12 @@ def get_form_fields_from_shacl():
                                     "objectClass": form_fields[entity_class][prop['property']].get("objectClass"),
                                     "intermediateRelation": form_fields[entity_class][prop['property']].get("intermediateRelation"),
                                     "displayName": display_name,
-                                    "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", [])  # Mantieni optionalValues
+                                    "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", [])
                                 }
                             # Rimuovi il campo originale solo se abbiamo creato nuovi campi
                             if len(prop['values']) > 0:
                                 del form_fields[entity_class][prop['property']]
-
+    
     ordered_form_fields = OrderedDict()
     if display_rules:
         for rule in display_rules:

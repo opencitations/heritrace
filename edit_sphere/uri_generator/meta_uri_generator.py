@@ -1,6 +1,9 @@
 from rdflib import URIRef
+from rdflib_ocdm.counter_handler.sqlite_counter_handler import \
+    SqliteCounterHandler
+
 from edit_sphere.uri_generator.uri_generator import URIGenerator
-from rdflib_ocdm.counter_handler.sqlite_counter_handler import SqliteCounterHandler
+
 
 class MetaURIGenerator(URIGenerator):
     def __init__(self, base_iri: str, supplier_prefix: str, counter_handler: SqliteCounterHandler):
@@ -12,6 +15,7 @@ class MetaURIGenerator(URIGenerator):
         count = self.counter_handler.read_counter(entity_type)
         entity_type_abbr = {
             'http://purl.org/spar/fabio/Expression': 'br',
+            'http://purl.org/spar/fabio/JournalArticle': 'br',
             'http://purl.org/spar/pro/RoleInTime': 'ar',
             'http://purl.org/spar/fabio/Manifestation': 're',
             'http://xmlns.com/foaf/0.1/Agent': 'ra',

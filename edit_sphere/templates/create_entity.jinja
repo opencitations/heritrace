@@ -3,7 +3,11 @@
         {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + counter | string) %}
 
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}">
-            <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}">
+            <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}"
+                {% if details.intermediateRelation %}
+                    data-intermediate-relation="{{ details.intermediateRelation.class }}"
+                    data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"
+                {% endif %}>
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
@@ -584,17 +588,34 @@
                         let itemDepth = parseInt(repeaterItem.data('depth'));
 
                         if (predicateUri && objectClass && itemDepth === depth) {
-                            // This is a nested entity at the correct depth
-                            let nestedEntity = {
-                                "entity_type": objectClass,
-                                "properties": {}
-                            };
+                            if (repeaterItem.data('intermediate-relation')) {
+                                let intermediateClass = repeaterItem.data('intermediate-relation');
+                                let connectingProperty = repeaterItem.data('connecting-property');
+                                let intermediateEntity = {
+                                    "entity_type": intermediateClass,
+                                    "properties": {}
+                                };
 
-                            collectFormData(repeaterItem, nestedEntity.properties, depth + 1);
+                                intermediateEntity.properties[connectingProperty] = {
+                                    "entity_type": objectClass,
+                                    "properties": {}
+                                };
 
-                            // Only add the nested entity if it has properties
-                            if (Object.keys(nestedEntity.properties).length > 0) {
-                                data[predicateUri] = nestedEntity;
+                                collectFormData(repeaterItem, intermediateEntity.properties[connectingProperty].properties, depth + 1);
+                                data[predicateUri] = intermediateEntity;
+                            } else {
+                                // This is a nested entity at the correct depth
+                                let nestedEntity = {
+                                    "entity_type": objectClass,
+                                    "properties": {}
+                                };
+
+                                collectFormData(repeaterItem, nestedEntity.properties, depth + 1);
+
+                                // Only add the nested entity if it has properties
+                                if (Object.keys(nestedEntity.properties).length > 0) {
+                                    data[predicateUri] = nestedEntity;
+                                }
                             }
                         } else if (itemDepth === depth) {
                             // This is a property at the current depth
