@@ -17,6 +17,7 @@
             SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
             WHERE {
                 [[subject]] datacite:hasIdentifier ?identifier.
+                BIND([[value]] AS ?identifier)
                 ?identifier datacite:usesIdentifierScheme ?scheme;
                             literal:hasLiteralValue ?literal.
             }
@@ -188,6 +189,7 @@
             SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
             WHERE {
                 [[subject]] datacite:hasIdentifier ?identifier.
+                BIND([[value]] AS ?identifier)
                 ?identifier datacite:usesIdentifierScheme ?scheme;
                             literal:hasLiteralValue ?literal.
             }
@@ -395,6 +397,7 @@
             SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
             WHERE {
                 [[subject]] datacite:hasIdentifier ?identifier.
+                BIND([[value]] AS ?identifier)
                 ?identifier datacite:usesIdentifierScheme ?scheme;
                             literal:hasLiteralValue ?literal.
             }
