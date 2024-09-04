@@ -201,42 +201,45 @@ def create_entity():
             entity_type = structured_data.get('entity_type')
             properties = structured_data.get('properties', {})
             
-            entity_uri = URIRef(Config.URI_GENERATOR.generate_uri(entity_type))
+            entity_uri = generate_unique_uri(entity_type)
             editor.import_entity(entity_uri)
             editor.preexisting_finished()
 
             editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type))
 
-            for predicate, value in properties.items():
-                if isinstance(value, dict) and 'entity_type' in value:
-                    # Handle nested entities
-                    nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
-                    print('AAAAAAAA', nested_uri)
-                    editor.create(entity_uri, URIRef(predicate), nested_uri)
-                    create_nested_entity(editor, nested_uri, value)
-                else:
-                    # Handle simple properties
-                    object_value = URIRef(value) if validators.url(value) else Literal(value)
-                    editor.create(entity_uri, URIRef(predicate), object_value)
+            for predicate, values in properties.items():
+                if not isinstance(values, list):
+                    values = [values]
+                for value in values:
+                    if isinstance(value, dict) and 'entity_type' in value:
+                        # Handle nested entities
+                        nested_uri = generate_unique_uri(value['entity_type'])
+                        editor.create(entity_uri, URIRef(predicate), nested_uri)
+                        create_nested_entity(editor, nested_uri, value)
+                    else:
+                        # Handle simple properties
+                        object_value = URIRef(value) if validators.url(value) else Literal(value)
+                        editor.create(entity_uri, URIRef(predicate), object_value)
         else:
             properties = structured_data.get('properties', {})
             
             # Genera un URI per l'entità
-            entity_uri = URIRef(Config.URI_GENERATOR.generate_uri())
+            entity_uri = generate_unique_uri()
             editor.import_entity(entity_uri)
             editor.preexisting_finished()
 
-            for predicate, value_dict in properties.items():
-                if value_dict['type'] == 'uri':
-                    editor.create(entity_uri, URIRef(predicate), URIRef(value_dict['value']))
-                elif value_dict['type'] == 'literal':
-                    datatype = URIRef(value_dict['datatype']) if 'datatype' in value_dict else XSD.string
-                    editor.create(entity_uri, URIRef(predicate), Literal(value_dict['value'], datatype=datatype))
+            for predicate, values in properties.items():
+                if not isinstance(values, list):
+                    values = [values]
+                for value_dict in values:
+                    if value_dict['type'] == 'uri':
+                        editor.create(entity_uri, URIRef(predicate), URIRef(value_dict['value']))
+                    elif value_dict['type'] == 'literal':
+                        datatype = URIRef(value_dict['datatype']) if 'datatype' in value_dict else XSD.string
+                        editor.create(entity_uri, URIRef(predicate), Literal(value_dict['value'], datatype=datatype))
 
         try:
             editor.save()
-            if hasattr(Config.URI_GENERATOR, 'counter_handler'):
-                Config.URI_GENERATOR.counter_handler.increment_counter(entity_type)
             flash(gettext('Entity created successfully'), 'success')
             return redirect(url_for('about', subject=str(entity_uri)))
         except Exception as e:
@@ -250,23 +253,32 @@ def create_nested_entity(editor: Editor, entity_uri, entity_data):
     editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_data['entity_type']))
 
     # Add other properties
-    for predicate, value in entity_data.get('properties', {}).items():
-        if isinstance(value, dict) and 'entity_type' in value:
-            if 'intermediateRelation' in value:
-                intermediate_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['intermediateRelation']['class']))
-                target_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
-                editor.create(entity_uri, URIRef(predicate), intermediate_uri)
-                editor.create(intermediate_uri, URIRef(value['intermediateRelation']['property']), target_uri)
-                create_nested_entity(editor, target_uri, value)
+    for predicate, values in entity_data.get('properties', {}).items():
+        if not isinstance(values, list):
+            values = [values]
+        for value in values:
+            if isinstance(value, dict) and 'entity_type' in value:
+                if 'intermediateRelation' in value:
+                    intermediate_uri = generate_unique_uri(value['intermediateRelation']['class'])
+                    target_uri = generate_unique_uri(value['entity_type'])
+                    editor.create(entity_uri, URIRef(predicate), intermediate_uri)
+                    editor.create(intermediate_uri, URIRef(value['intermediateRelation']['property']), target_uri)
+                    create_nested_entity(editor, target_uri, value)
+                else:
+                    # Handle nested entities
+                    nested_uri = generate_unique_uri(value['entity_type'])
+                    editor.create(entity_uri, URIRef(predicate), nested_uri)
+                    create_nested_entity(editor, nested_uri, value)
             else:
-                # Handle nested entities
-                nested_uri = URIRef(Config.URI_GENERATOR.generate_uri(value['entity_type']))
-                editor.create(entity_uri, URIRef(predicate), nested_uri)
-                create_nested_entity(editor, nested_uri, value)
-        else:
-            # Handle simple properties
-            object_value = URIRef(value) if validators.url(value) else Literal(value)
-            editor.create(entity_uri, URIRef(predicate), object_value)
+                # Handle simple properties
+                object_value = URIRef(value) if validators.url(value) else Literal(value)
+                editor.create(entity_uri, URIRef(predicate), object_value)
+
+def generate_unique_uri(entity_type=None):
+    uri = Config.URI_GENERATOR.generate_uri(entity_type)
+    if hasattr(Config.URI_GENERATOR, 'counter_handler'):
+        Config.URI_GENERATOR.counter_handler.increment_counter(entity_type)
+    return URIRef(uri)
 
 @app.route('/about/<path:subject>')
 def about(subject):

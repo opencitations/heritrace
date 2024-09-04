@@ -584,71 +584,79 @@
             // Funzione ricorsiva per raccogliere i dati dai campi del form
             function collectFormData(container, data, depth = 0) {
                 if ('{{shacl}}' === 'True') {
-                    container.find('[data-repeater-item]:visible').each(function() {
-                        let repeaterItem = $(this);
-                        let predicateUri = repeaterItem.data('predicate-uri');
-                        let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
-                        let itemDepth = parseInt(repeaterItem.data('depth'));
+                    container.find('[data-repeater-list]').each(function() {
+                        let repeaterList = $(this);
+                        let predicateUri = repeaterList.find('[data-repeater-item]:first').data('predicate-uri');
+                        
+                        repeaterList.find('[data-repeater-item]:visible').each(function(index) {
+                            let repeaterItem = $(this);
+                            let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
+                            let itemDepth = parseInt(repeaterItem.data('depth'));
 
-                        if (predicateUri && objectClass && itemDepth === depth) {
-                            if (repeaterItem.data('intermediate-relation')) {
-                                let intermediateClass = repeaterItem.data('intermediate-relation');
-                                let connectingProperty = repeaterItem.data('connecting-property');
-                                let intermediateEntity = {
-                                    "entity_type": intermediateClass,
-                                    "properties": {}
-                                };
-
-                                // Add the connecting property
-                                intermediateEntity.properties[connectingProperty] = {
-                                    "entity_type": objectClass,
-                                    "properties": {}
-                                };
-
-                                // Add additional properties
-                                let additionalProperties = repeaterItem.data('additional-properties');
-                                if (additionalProperties) {
-                                    Object.assign(intermediateEntity.properties, additionalProperties);
+                            if (predicateUri && objectClass && itemDepth === depth) {
+                                if (!Array.isArray(data[predicateUri])) {
+                                    data[predicateUri] = [];
                                 }
 
-                                collectFormData(repeaterItem, intermediateEntity.properties[connectingProperty].properties, depth + 1);
-                                data[predicateUri] = intermediateEntity;
-                            } else {
-                                // This is a nested entity at the correct depth
-                                let nestedEntity = {
-                                    "entity_type": objectClass,
-                                    "properties": {}
-                                };
+                                if (repeaterItem.data('intermediate-relation')) {
+                                    let intermediateClass = repeaterItem.data('intermediate-relation');
+                                    let connectingProperty = repeaterItem.data('connecting-property');
+                                    let intermediateEntity = {
+                                        "entity_type": intermediateClass,
+                                        "properties": {}
+                                    };
 
-                                collectFormData(repeaterItem, nestedEntity.properties, depth + 1);
+                                    intermediateEntity.properties[connectingProperty] = {
+                                        "entity_type": objectClass,
+                                        "properties": {}
+                                    };
 
-                                // Only add the nested entity if it has properties
-                                if (Object.keys(nestedEntity.properties).length > 0) {
-                                    data[predicateUri] = nestedEntity;
-                                }
-                            }
-                        } else if (itemDepth === depth) {
-                            // This is a property at the current depth
-                            repeaterItem.find('input:visible, select:visible').each(function() {
-                                let propertyUri = $(this).data('predicate-uri');
-                                if (propertyUri) {
-                                    let value = $(this).val();
-                                    if (value !== "") {  // Only add non-empty values
-                                        data[propertyUri] = value;
+                                    let additionalProperties = repeaterItem.data('additional-properties');
+                                    if (additionalProperties) {
+                                        Object.assign(intermediateEntity.properties, additionalProperties);
+                                    }
+
+                                    collectFormData(repeaterItem, intermediateEntity.properties[connectingProperty].properties, depth + 1);
+                                    data[predicateUri].push(intermediateEntity);
+                                } else {
+                                    let nestedEntity = {
+                                        "entity_type": objectClass,
+                                        "properties": {}
+                                    };
+
+                                    collectFormData(repeaterItem, nestedEntity.properties, depth + 1);
+
+                                    if (Object.keys(nestedEntity.properties).length > 0) {
+                                        data[predicateUri].push(nestedEntity);
                                     }
                                 }
-                            });
-                        }
+                            } else if (itemDepth === depth) {
+                                repeaterItem.find('input:visible, select:visible').each(function() {
+                                    let propertyUri = $(this).data('predicate-uri');
+                                    if (propertyUri) {
+                                        let value = $(this).val();
+                                        if (value !== "") {
+                                            if (!data[propertyUri]) {
+                                                data[propertyUri] = [];
+                                            }
+                                            data[propertyUri].push(value);
+                                        }
+                                    }
+                                });
+                            }
+                        });
                     });
 
-                    // Handle any remaining inputs that are direct children of the container
                     container.children('input:visible, select:visible').each(function() {
                         let propertyUri = $(this).data('predicate-uri');
                         let inputDepth = parseInt($(this).data('depth'));
                         if (propertyUri && inputDepth === depth) {
                             let value = $(this).val();
-                            if (value !== "") {  // Only add non-empty values
-                                data[propertyUri] = value;
+                            if (value !== "") {
+                                if (!data[propertyUri]) {
+                                    data[propertyUri] = [];
+                                }
+                                data[propertyUri].push(value);
                             }
                         }
                     });
@@ -660,23 +668,26 @@
                         let datatype = $(this).find('select[id^="custom_datatype_"]').val();
 
                         if (propertyUri && propertyValue) {
+                            if (!data[propertyUri]) {
+                                data[propertyUri] = [];
+                            }
                             if (valueType === 'uri') {
-                                data[propertyUri] = {
+                                data[propertyUri].push({
                                     value: propertyValue,
                                     type: 'uri'
-                                };
+                                });
                             } else {
-                                data[propertyUri] = {
+                                data[propertyUri].push({
                                     value: propertyValue,
                                     type: 'literal',
                                     datatype: datatype
-                                };
+                                });
                             }
                         }
                     });
                 }
-            }   
-
+            }
+            
             $('#entityForm').on('submit', function(event) {
                 event.preventDefault();
 
