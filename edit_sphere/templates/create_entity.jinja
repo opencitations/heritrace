@@ -7,6 +7,9 @@
                 {% if details.intermediateRelation %}
                     data-intermediate-relation="{{ details.intermediateRelation.class }}"
                     data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"
+                {% endif %}
+                {% if details.additionalProperties %}
+                    data-additional-properties='{{ details.additionalProperties | tojson }}'
                 {% endif %}>
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
@@ -596,10 +599,17 @@
                                     "properties": {}
                                 };
 
+                                // Add the connecting property
                                 intermediateEntity.properties[connectingProperty] = {
                                     "entity_type": objectClass,
                                     "properties": {}
                                 };
+
+                                // Add additional properties
+                                let additionalProperties = repeaterItem.data('additional-properties');
+                                if (additionalProperties) {
+                                    Object.assign(intermediateEntity.properties, additionalProperties);
+                                }
 
                                 collectFormData(repeaterItem, intermediateEntity.properties[connectingProperty].properties, depth + 1);
                                 data[predicateUri] = intermediateEntity;

@@ -33,6 +33,9 @@
         targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
       values:
       - displayName: "Author"
+        properties:
+          - property: "http://purl.org/spar/pro/withRole"
+            value: "http://purl.org/spar/pro/author"
         shouldBeDisplayed: true
         fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>
@@ -54,6 +57,9 @@
                 )
             }
       - displayName: "Publisher"
+        properties:
+          - property: "http://purl.org/spar/pro/withRole"
+            value: "http://purl.org/spar/pro/publisher"
         shouldBeDisplayed: true
         fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>
@@ -75,6 +81,9 @@
                 )
             }
       - displayName: "Editor"
+        properties:
+          - property: "http://purl.org/spar/pro/withRole"
+            value: "http://purl.org/spar/pro/editor"
         shouldBeDisplayed: true
         fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>

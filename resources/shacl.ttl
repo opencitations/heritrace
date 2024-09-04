@@ -92,7 +92,7 @@ schema:AgentRoleShape
     [
       sh:path pro:isHeldBy ;
       sh:class foaf:Agent ;
-      sh:minCount 0 ;
+      sh:minCount 1 ;
       sh:maxCount 1 ;
     ] ;
     sh:property

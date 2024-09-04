@@ -156,6 +156,7 @@ def catalogue():
 @app.route('/create-entity', methods=['GET', 'POST'])
 def create_entity():
     form_fields = get_form_fields_from_shacl()
+
     entity_types = list(form_fields.keys())
 
     datatype_options = {
@@ -193,7 +194,7 @@ def create_entity():
 
     if request.method == 'POST':
         structured_data = json.loads(request.form.get('structured_data', '{}'))
-        print(structured_data)
+
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
         
         if shacl:
@@ -1066,18 +1067,20 @@ def get_form_fields_from_shacl():
                             
                             connecting_property = next((str(row.property) for row in connecting_property_results), None)
                             
-                            form_fields[entity_class][prop['property']]['intermediateRelation'] = {
+                            base_intermediate_relation = {
                                 "class": intermediate_class,
                                 "targetEntityType": target_entity_type,
                                 "connectingProperty": connecting_property,
-                                "properties": form_fields[target_entity_type] if target_entity_type in form_fields else {}
+                                "properties": form_fields[target_entity_type] if target_entity_type in form_fields else {},
                             }
+
                         if 'values' in prop:
                             # Crea campi separati per ogni valore
                             for value in prop['values']:
                                 display_name = value['displayName']
                                 new_field_name = f"{prop['property']}_{display_name}"
-                                form_fields[entity_class][new_field_name] = {
+                                
+                                new_field = {
                                     "entityType": entity_class,
                                     "uri": prop['property'],
                                     "datatype": form_fields[entity_class][prop['property']].get("datatype"),
@@ -1085,10 +1088,22 @@ def get_form_fields_from_shacl():
                                     "max": form_fields[entity_class][prop['property']].get("max"),
                                     "hasValue": form_fields[entity_class][prop['property']].get("hasValue"),
                                     "objectClass": form_fields[entity_class][prop['property']].get("objectClass"),
-                                    "intermediateRelation": form_fields[entity_class][prop['property']].get("intermediateRelation"),
                                     "displayName": display_name,
                                     "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", [])
                                 }
+
+                                if 'intermediateRelation' in prop:
+                                    new_field['intermediateRelation'] = base_intermediate_relation.copy()
+
+                                # Aggiungi tutte le proprietà specificate nello YAML
+                                if 'properties' in value:
+                                    additional_properties = {}
+                                    for additional_prop in value['properties']:
+                                        additional_properties[additional_prop['property']] = additional_prop['value']
+                                    new_field['additionalProperties'] = additional_properties
+
+                                form_fields[entity_class][new_field_name] = new_field
+
                             # Rimuovi il campo originale solo se abbiamo creato nuovi campi
                             if len(prop['values']) > 0:
                                 del form_fields[entity_class][prop['property']]
@@ -1103,8 +1118,13 @@ def get_form_fields_from_shacl():
                 for prop in ordered_properties:
                     if prop in form_fields[entity_class]:
                         ordered_form_fields[entity_class][prop] = form_fields[entity_class][prop]
+                    else:
+                        # Cerca i campi che iniziano con la proprietà (per i campi separati)
+                        for field_name, field_value in form_fields[entity_class].items():
+                            if field_name.startswith(prop):
+                                ordered_form_fields[entity_class][field_name] = field_value
                 for prop in form_fields[entity_class]:
-                    if prop not in ordered_properties:
+                    if prop not in ordered_properties and not any(prop.startswith(op) for op in ordered_properties):
                         ordered_form_fields[entity_class][prop] = form_fields[entity_class][prop]
     else:
         ordered_form_fields = form_fields
