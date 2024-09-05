@@ -17,7 +17,7 @@
                         <span class="drag-handle me-2" style="cursor: move;">☰</span>
                     {% endif %}
                     {% set label_text = details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
-                    <h6 class="mb-0 flex-grow-1 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</h6>
+                    <h6 class="mb-0 flex-grow-1 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">{{ label_text }}</h6>
                 </div>
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
@@ -56,21 +56,17 @@
                     </div>
                 {% else %}
                     <div class="form-floating flex-grow-1">
-                        <input type="text" class="form-control" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}" placeholder="{{ prop | human_readable_predicate(entity_types, False) }}" {{ 'required' if depth == 0 and details.min and details.min > 0 }}>
-                        <label for="{{ unique_id_base }}">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</label>
+                        <input type="text" class="form-control" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}" placeholder="{{ label_text }}" {{ 'required' if details.min and details.min > 0 }}>
+                        <label for="{{ unique_id_base }}">{{ label_text }}</label>
                     </div>
                 {% endif %}
-                {% if not details.max or details.max > 1 %}
-                    <button data-repeater-delete type="button" class="repeater-delete-btn">
-                        <i class="bi bi-x"></i>
-                    </button>
-                {% endif %}
+                <button data-repeater-delete type="button" class="repeater-delete-btn">
+                    <i class="bi bi-x"></i>
+                </button>
             </div>
-            {% if not details.max or details.max > 1 %}
-                <div class="mb-3 text-start" data-repeater-create>
-                    <button type="button" class="btn btn-link text-secondary">{{ _("Add another %(element_type)s", element_type=details.displayName or (prop | human_readable_predicate(entity_types, False))) }}</button>
-                </div>
-            {% endif %}
+            <div class="mb-3 text-start" data-repeater-create>
+                <button type="button" class="btn btn-link text-secondary">{{ _("Add %(element_type)s", element_type=details.displayName or (prop | human_readable_predicate(entity_types, False))) }}</button>
+            </div>
         </div>
     {% endif %}
 {% endmacro %}
@@ -268,26 +264,46 @@
                 return prefix + '_' + Math.random().toString(36).substr(2, 9);
             }
 
-            function updateRemoveButtons(list) {
-                const minItems = parseInt(list.data('min-items')) || 0;
-                list.find('[data-repeater-item]').each(function(index) {
-                    const deleteBtn = $(this).find('.repeater-delete-btn');
-                    if (minItems === 0 || index >= minItems) {
-                        deleteBtn.show();
-                    } else {
-                        deleteBtn.hide();
-                    }
-                });
-            }
-
-            function updateAddButton(list) {
+            function updateButtons(list, recursive = true) {
                 const maxItems = parseInt(list.data('max-items')) || Infinity;
-                const counter = list.find('[data-repeater-item]').length;
-                const addButton = list.find('[data-repeater-create]').first();
-                if (counter >= maxItems) {
+                const minItems = parseInt(list.data('min-items')) || 0;
+                const items = list.children('[data-repeater-item]');
+                const addButton = list.children('[data-repeater-create]');
+
+                // Gestione del pulsante di aggiunta
+                if (items.length >= maxItems) {
                     addButton.hide();
                 } else {
                     addButton.show();
+                }
+
+                // Gestione dei pulsanti di cancellazione
+                items.each(function(index) {
+                    const deleteBtn = $(this).find('> .repeater-delete-btn');
+                    if (index < minItems) {
+                        deleteBtn.hide();
+                    } else {
+                        deleteBtn.show();
+                    }
+                });
+
+                // Gestione speciale per elementi opzionali singoli (max=1, min=0)
+                if (maxItems === 1 && minItems === 0) {
+                    if (items.length === 0) {
+                        addButton.show();
+                    } else {
+                        addButton.hide();
+                        items.find('> .repeater-delete-btn').show();
+                    }
+                }
+
+                // Gestione ricorsiva per elementi annidati
+                if (recursive) {
+                    items.each(function() {
+                        $(this).find('[data-repeater-list]').each(function() {
+                            updateButtons($(this), false);
+                        });
+                    });
                 }
             }
 
@@ -315,10 +331,23 @@
                 $('#entity_type option').prop('selected', function() {
                     return this.value === selectedUri;
                 });
-                $('.property-group').hide().find(':input').prop('disabled', true);
+                // Nascondi tutti i gruppi di proprietà
+                $('.property-group').hide();
+
                 if (selectedUri) {
+                    // Mostra il gruppo selezionato
                     let selectedGroup = $(`.property-group[data-uri="${selectedUri}"]`);
-                    selectedGroup.show().find(':input').prop('disabled', false);
+                    selectedGroup.show();
+                    
+                    // Abilita gli input solo nel gruppo selezionato
+                    $('.property-group').each(function() {
+                        let group = $(this);
+                        let isSelected = group.data('uri') === selectedUri;
+                        group.find(':input').prop('disabled', !isSelected);
+                    });
+                } else {
+                    // Se nessun tipo è selezionato, disabilita tutti gli input
+                    $('.property-group :input').prop('disabled', true);
                 }
             }
 
@@ -385,9 +414,6 @@
                 if (list.data('ordered-by')) {
                     updateSortable(list);
                 }
-
-                updateRemoveButtons($(this));
-                updateAddButton($(this));
             });
 
             $(window).on('pageshow', function(event) {
@@ -427,7 +453,7 @@
                                 elem.attr('id', newId);
                                 elem.attr('name', newId);
                             }
-                            
+
                             // Reset value
                             if (elem.is('select')) {
                                 elem.find('option:first').prop('selected', true);
@@ -446,7 +472,7 @@
                             $toggleBtn.attr('data-bs-target', '#' + newId);
                             $toggleBtn.attr('aria-controls', newId);
                             $collapseDiv.attr('id', newId);
-                            
+
                             // Re-initialize Bootstrap collapse
                             $collapseDiv.collapse({toggle: false});
                         });
@@ -454,38 +480,38 @@
                         // Append the new item within its level
                         newItem.appendTo(list);
                         list.children('[data-repeater-create]').appendTo(list);
-                        updateRemoveButtons(list);
-                        updateAddButton(list);
 
-                        // Re-bind events for newly added items
+                        updateButtons(list, true);
+
+                        if (list.data('ordered-by')) {
+                            updateSortable(list);
+                        }
+                        updateOrderedElementsNumbering();
+
                         bindRepeaterEvents(newItem);
+
+                        initializeForm();
                     }
-                    // Dopo aver aggiunto un nuovo elemento, aggiorna Sortable
-                    updateSortable(list);
-                    // Dopo aver aggiunto un nuovo elemento, aggiorna la numerazione
-                    updateOrderedElementsNumbering();
                 });
 
                 context.find('[data-repeater-delete]').off('click').on('click', function() {
                     var list = $(this).closest('[data-repeater-list]');
                     $(this).closest('[data-repeater-item]').remove();
-                    updateRemoveButtons(list);
-                    updateAddButton(list);
+                    updateButtons(list);
                     // Dopo aver rimosso un elemento, aggiorna la numerazione
                     updateOrderedElementsNumbering();
                 });
 
                 context.find('.collapse').on('shown.bs.collapse', function(e) {
-                    e.stopPropagation(); // Prevent the event from bubbling up
+                    e.stopPropagation();
                     $(this).prev('.nested-form-header').find('.toggle-btn').removeClass('collapsed');
                 });
 
                 context.find('.collapse').on('hidden.bs.collapse', function(e) {
-                    e.stopPropagation(); // Prevent the event from bubbling up
+                    e.stopPropagation();
                     $(this).prev('.nested-form-header').find('.toggle-btn').addClass('collapsed');
                 });
 
-                // Initial state check
                 context.find('.collapse').each(function() {
                     if ($(this).hasClass('show')) {
                         $(this).prev('.nested-form-header').find('.toggle-btn').removeClass('collapsed');
@@ -495,7 +521,18 @@
                 });
             }
 
-            // Initialize repeater events
+            $('[data-repeater-list]').each(function() {
+                var list = $(this);
+                var firstItem = list.find('[data-repeater-item]').first();
+                initialCopies[list.data('repeater-list')] = firstItem.clone(true, true);
+
+                if (list.data('ordered-by')) {
+                    updateSortable(list);
+                }
+
+                updateButtons(list);
+            });
+
             bindRepeaterEvents($(document));
 
             updateOrderedElementsNumbering();
