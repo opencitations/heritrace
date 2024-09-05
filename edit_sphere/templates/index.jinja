@@ -3,345 +3,326 @@
 {% block content %}
 
 <style>
-    canvas {
-        z-index: -100;
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-        cursor: -webkit-grab;
-        cursor: -moz-grab;
-    }
+html, body {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    display: flex;
+    height: 100%;
+    width: 100%;
+    background-color: #000;
+}
 
-    canvas:active {
-        cursor: -webkit-grabbing;
-        cursor: -moz-grabbing;
-    }
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
 
-    canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        right: 0;
-    }
+.overlay-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+    z-index: 10;
+}
 
-    .collection {
-        position: fixed;
-        top: 0;
-        width: 100%;
-        z-index: 10000;
-    }
+.overlay-content h1 {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
 
-    .collection a {
-        display: block;
-        padding: 5px;
-        background: rgba(0, 0, 0, 0.6);
-        color: #fff;
-        text-decoration: none;
-        font: 700 12px Consolas, system, monospace;
-        transition: all 250ms linear;
-    }
+.overlay-content p {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
 
-    .collection a:hover {
-        background: #fff;
-        color: #000;
-    }
+.btn-primary {
+    background-color: rgba(0, 123, 255, 0.7);
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
 
-    .collection .prev {
-        text-align: left;
-        float: left;
-    }
-
-    .collection .next {
-        text-align: right;
-        float: right;
-    }
-
-    .centered-content {
-        flex: 0 0 auto;
-        /* Evita che il contenitore cresca in base al suo contenuto */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        /* Centra i contenuti verticalmente */
-        height: 50vh;
-        /* Metà dell'altezza della viewport */
-    }
-
-    body {
-        background-color: #212529f4 !important;
-    }
-
-    .jumbotron {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        color: #ffffff;
-    }
-
-    .container {
-        max-height: 50vh;
-        /* Imposta l'altezza massima al 100% dell'altezza del viewport */
-        justify-content: center;
-        /* Centra il contenuto verticalmente */
-    }
-
+.btn-primary:hover {
+    background-color: rgba(0, 123, 255, 1);
+    transform: scale(1.05);
+}
 </style>
-<div class="container">
-    <div class="jumbotron">
-        <div class="centered-content">
-            <h1 class="display-4 text-center">HERITRACE</h1>
-            <p class="lead text-center">{{_('An environment for data curation')}}</p>
-            <a class="btn btn-primary btn-lg text-center mt-4" href="{{url_for('catalogue')}}" role="button">{{_('Go to
-                the catalogue')}}</a>
-        </div>
-    </div>
+
+<canvas id="glscreen"></canvas>
+
+<div class="overlay-content">
+    <h1 class="display-4">HERITRACE</h1>
+    <p class="lead">{{_('An environment for data curation')}}</p>
+    <a class="btn btn-primary btn-lg" href="{{url_for('catalogue')}}" role="button">{{_('Go to the catalogue')}}</a>
 </div>
+
+<script id="2d-fragment-shader" type="x-shader/x-fragment">// <![CDATA[
+
+// Look below at line 23 for realism.
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+#define PI 3.14159265359
+
+uniform sampler2D u_image;
+varying vec2 v_texCoord;
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_mass;
+uniform float u_time;
+uniform float u_clickedTime;
+
+vec2 rotate(vec2 mt, vec2 st, float angle){
+	float cos = cos((angle + u_clickedTime) * PI); // try replacing * 1.0 with * PI
+	float sin = sin(angle * 0.0); // try removing the * 0.0
+	
+	// Uncomment these two lines for realism
+	//float cos = cos(angle) * (u_time * 0.3);
+	//float sin = sin(angle) * (u_time * 0.3);
+	
+	float nx = (cos * (st.x - mt.x)) + (sin * (st.y - mt.y)) + mt.x;
+	float ny = (cos * (st.y - mt.y)) - (sin * (st.x - mt.x)) + mt.y;
+	return vec2(nx, ny);
+}
+
+void main() {
+     vec2 st = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y)/u_resolution;
+	vec2 mt = vec2(u_mouse.x, u_resolution.y - u_mouse.y)/u_resolution;
+
+	float dx = st.x - mt.x;
+	float dy = st.y - mt.y;
+
+	float dist = sqrt(dx * dx + dy * dy);
+	float pull = u_mass / (dist * dist);
+	
+     vec3 color = vec3(0.0);
+	
+	vec2 r = rotate(mt,st,pull);
+	vec4 imgcolor = texture2D(u_image, r);
+	color = vec3(
+		(imgcolor.x - (pull * 0.25)),
+		(imgcolor.y - (pull * 0.25)), 
+		(imgcolor.z - (pull * 0.25))
+	);
+	
+
+     gl_FragColor = vec4(color,1.);
+}
+// ]]></script>
+<script id="2d-vertex-shader" type="x-shader/x-vertex">// <![CDATA[
+	attribute vec2 a_position;
+	attribute vec2 a_texCoord;
+	
+	varying vec2 v_texCoord;
+	void main() {
+		gl_Position = vec4(a_position, 0, 1);
+		v_texCoord = a_texCoord;
+	}
+	// ]]></script>
+<canvas id="glscreen"></canvas>
 <script>
-    var controls;
-    var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    var innerColor = 0xff0000,
-        outerColor = 0xff9900;
-    var innerSize = 50,
-        outerSize = 55;
+    var bgUrl = 'https://images.unsplash.com/photo-1502134249126-9f3755a50d78?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
 
-    var renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setClearColor(0x000000, 0); // background
+    var blackholeMass = 5500;
+    var curblackholeMass = 0;
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    var canvas, gl; // canvas and webgl context
 
-    // controls = new THREE.TrackballControls( camera );
-    // controls.noPan = true;
-    // controls.minDistance = 120;
-    // controls.maxDistance = 650;
+    var shaderScript;
+    var shaderSource;
+    var vertexShader; // Vertex shader. Not much happens in that shader, it just creates the vertex's to be drawn on
+    var fragmentShader; // this shader is where the magic happens. Fragment = pixel. Vertex = kind of like "faces" on a 3d model.
+    var buffer;
 
-    camera.position.z = -400;
-    // Mesh
-    var group = new THREE.Group();
-    scene.add(group);
+    /* Variables holding the location of uniform variables in the WebGL. We use this to send info to the WebGL script. */
+    var locationOfTime;
+    var locationOfResolution;
+    var locationOfMouse;
+    var locationOfMass;
+    var locationOfclickedTime;
 
-    // Lights
-    var light = new THREE.AmbientLight(0x404040); // soft white light
-    scene.add(light);
+    var originY = window.innerHeight,
+        originX = window.innerWidth;
 
-    var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(0, 128, 128);
-    scene.add(directionalLight);
+    var mouse, targetMouse;
 
-    // Sphere Wireframe Inner
-    var sphereWireframeInner = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(innerSize, 2),
-        new THREE.MeshLambertMaterial({
-            color: innerColor,
-            ambient: innerColor,
-            wireframe: true,
-            transparent: true,
-            //alphaMap: THREE.ImageUtils.loadTexture( 'javascripts/alphamap.jpg' ),
-            shininess: 0
-        })
-    );
-    scene.add(sphereWireframeInner);
+    var startTime = new Date().getTime(); // Get start time for animating
+    var currentTime = 0;
 
-    // Sphere Wireframe Outer
-    var sphereWireframeOuter = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(outerSize, 3),
-        new THREE.MeshLambertMaterial({
-            color: outerColor,
-            ambient: outerColor,
-            wireframe: true,
-            transparent: true,
-            //alphaMap: THREE.ImageUtils.loadTexture( 'javascripts/alphamap.jpg' ),
-            shininess: 0
-        })
-    );
-    scene.add(sphereWireframeOuter);
+    var clicked = false,
+        clickedTime = 0;
 
+    $(document).mousedown(function(){
+        clicked = true;
+    });
+    $(document).mouseup(function(){
+        clicked = false;
+    });
 
-    // Sphere Glass Inner
-    var sphereGlassInner = new THREE.Mesh(
-        new THREE.SphereGeometry(innerSize, 32, 32),
-        new THREE.MeshPhongMaterial({
-            color: innerColor,
-            ambient: innerColor,
-            transparent: true,
-            shininess: 25,
-            //alphaMap: THREE.ImageUtils.loadTexture( 'javascripts/twirlalphamap.jpg' ),
-            opacity: 0.3,
-        })
-    );
-    scene.add(sphereGlassInner);
+    function init(image) {
+        // standard canvas setup here, except get webgl context
+        canvas = document.getElementById('glscreen');
+        gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        canvas.width  = window.innerWidth >= window.innerHeight ? window.innerWidth : window.innerHeight;
+        canvas.height = window.innerWidth >= window.innerHeight ? window.innerWidth : window.innerHeight;
 
-    // Sphere Glass Outer
-    var sphereGlassOuter = new THREE.Mesh(
-        new THREE.SphereGeometry(outerSize, 32, 32),
-        new THREE.MeshPhongMaterial({
-            color: outerColor,
-            ambient: outerColor,
-            transparent: true,
-            shininess: 25,
-            //alphaMap: THREE.ImageUtils.loadTexture( 'javascripts/twirlalphamap.jpg' ),
-            opacity: 0.3,
-        })
-    );
-    //scene.add(sphereGlassOuter);
+        mouse = {x: originX/2, y: -(originY/2) + canvas.height, moved: false};
+        targetMouse = {x: mouse.x, y: mouse.y}; // Initialize targetMouse
+        $(document).mousemove(function(e) {
+            targetMouse.x = e.pageX; // Update target mouse position
+            targetMouse.y = -e.pageY + canvas.height;
+            mouse.moved = true;
+        });
 
-    // Particles Outer
-    var geometry = new THREE.Geometry();
-    for (i = 0; i < 35000; i++) {
+        // give WebGL it's viewport
+        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
-        var x = -1 + Math.random() * 2;
-        var y = -1 + Math.random() * 2;
-        var z = -1 + Math.random() * 2;
-        var d = 1 / Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2));
-        x *= d;
-        y *= d;
-        z *= d;
+        // kind of back-end stuff
+        buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(
+            gl.ARRAY_BUFFER, 
+            new Float32Array([
+                -1.0, -1.0, 
+                1.0, -1.0, 
+                -1.0,  1.0, 
+                -1.0,  1.0, 
+                1.0, -1.0, 
+                1.0,  1.0]), 
+            gl.STATIC_DRAW
+        ); // ^^ That up there sets up the vertex's used to draw onto. I think at least, I haven't payed much attention to vertex's yet, for all I know I'm wrong.
 
-        var vertex = new THREE.Vector3(
-            x * outerSize,
-            y * outerSize,
-            z * outerSize
-        );
+        shaderScript = document.getElementById("2d-vertex-shader");
+        shaderSource = shaderScript.text;
+        vertexShader = gl.createShader(gl.VERTEX_SHADER); //create the vertex shader from script
+        gl.shaderSource(vertexShader, shaderSource);
+        gl.compileShader(vertexShader);
 
-        geometry.vertices.push(vertex);
+        shaderScript   = document.getElementById("2d-fragment-shader");
+        shaderSource   = shaderScript.text;
+        fragmentShader = gl.createShader(gl.FRAGMENT_SHADER); //create the fragment from script
+        gl.shaderSource(fragmentShader, shaderSource);
+        gl.compileShader(fragmentShader);
 
+        program = gl.createProgram(); // create the WebGL program.  This variable will be used to inject our javascript variables into the program.
+        gl.attachShader(program, vertexShader); // add the shaders to the program
+        gl.attachShader(program, fragmentShader); // ^^
+        gl.linkProgram(program);    // Tell our WebGL application to use the program
+        gl.useProgram(program); // ^^ yep, but now literally use it.
+
+        locationOfResolution = gl.getUniformLocation(program, "u_resolution");
+        locationOfMouse = gl.getUniformLocation(program, "u_mouse");
+        locationOfMass = gl.getUniformLocation(program, "u_mass");
+        locationOfTime = gl.getUniformLocation(program, "u_time");
+        locationOfclickedTime = gl.getUniformLocation(program, "u_clickedTime");
+
+        gl.uniform2f(locationOfResolution, canvas.width, canvas.height);
+        gl.uniform2f(locationOfMouse, mouse.x, mouse.y);
+        gl.uniform1f(locationOfMass, curblackholeMass*0.00001);
+        gl.uniform1f(locationOfTime, currentTime);
+        gl.uniform1f(locationOfclickedTime, clickedTime);
+
+        var texCoordLocation = gl.getAttribLocation(program, "a_texCoord");
+
+        // provide texture coordinates for the rectangle.
+        var texCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            -1.0, -1.0, 
+            1.0, -1.0, 
+            -1.0,  1.0, 
+            -1.0,  1.0, 
+            1.0, -1.0, 
+            1.0,  1.0]), 
+            gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(texCoordLocation);
+        gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+        // Create a texture.
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        // Set the parameters so we can render any size image.
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+        // Upload the image into the texture.
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+        render();
     }
 
+    function render() {
+        var now = new Date().getTime();
+        currentTime = (now - startTime) / 1000; // update the current time for animations
 
-    var particlesOuter = new THREE.PointCloud(geometry, new THREE.PointCloudMaterial({
-        size: 0.1,
-        color: outerColor,
-        //map: THREE.ImageUtils.loadTexture( 'javascripts/particletextureshaded.png' ),
-        transparent: true,
-    })
-    );
-    scene.add(particlesOuter);
+        if(curblackholeMass < blackholeMass - 50){
+            curblackholeMass += (blackholeMass-curblackholeMass) * 0.03;
+        }
 
-    // Particles Inner
-    var geometry = new THREE.Geometry();
-    for (i = 0; i < 35000; i++) {
+        if(clicked){
+            clickedTime += 0.03;
+        } else if(clickedTime > 0 && clicked == false) {
+            clickedTime += -(clickedTime*0.015);
+        }
 
-        var x = -1 + Math.random() * 2;
-        var y = -1 + Math.random() * 2;
-        var z = -1 + Math.random() * 2;
-        var d = 1 / Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2) + Math.pow(z, 2));
-        x *= d;
-        y *= d;
-        z *= d;
+        if(mouse.moved == false){
+            mouse.y = (-(originY/2) + Math.sin(currentTime * 0.7) * ((originY * 0.25))) + canvas.height;
+            mouse.x = (originX/2) + Math.sin(currentTime * 0.6) * -(originX * 0.35);
+        } else {
+            // Apply easing to the mouse movement
+            mouse.x += (targetMouse.x - mouse.x) * 0.05;
+            mouse.y += (targetMouse.y - mouse.y) * 0.05;
+        }
 
-        var vertex = new THREE.Vector3(
-            x * outerSize,
-            y * outerSize,
-            z * outerSize
-        );
+        gl.uniform1f(locationOfMass, curblackholeMass*0.00001);
+        gl.uniform2f(locationOfMouse, mouse.x, mouse.y);
+        gl.uniform1f(locationOfTime, currentTime); // update the time uniform in our shader
+        gl.uniform1f(locationOfclickedTime, clickedTime);
 
-        geometry.vertices.push(vertex);
+        window.requestAnimationFrame(render, canvas); // request the next frame
 
+        positionLocation = gl.getAttribLocation(program, "a_position"); // do stuff for those vertex's
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
 
+    window.addEventListener('load', function(event){
+        var image = new Image();
+        image.crossOrigin = "Anonymous";
+        image.src = bgUrl;
+        image.onload = function() {
+            init(image);
+        }
+    });
 
-    var particlesInner = new THREE.PointCloud(geometry, new THREE.PointCloudMaterial({
-        size: 0.1,
-        color: innerColor,
-        //map: THREE.ImageUtils.loadTexture( 'javascripts/particletextureshaded.png' ),
-        transparent: true,
-    })
-    );
-    scene.add(particlesInner);
+    window.addEventListener('resize', function(event){
+        // just re-doing some stuff in the init here, to enable resizing.
+        canvas.width  = window.innerWidth >= window.innerHeight ? window.innerWidth : window.innerHeight;
+        canvas.height = window.innerWidth >= window.innerHeight ? window.innerWidth : window.innerHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        locationOfResolution = gl.getUniformLocation(program, "u_resolution");
+    });
 
-    // Starfield
-    var geometry = new THREE.Geometry();
-    for (i = 0; i < 5000; i++) {
-        var vertex = new THREE.Vector3();
-        vertex.x = Math.random() * 2000 - 1000;
-        vertex.y = Math.random() * 2000 - 1000;
-        vertex.z = Math.random() * 2000 - 1000;
-        geometry.vertices.push(vertex);
-    }
-    var starField = new THREE.PointCloud(geometry, new THREE.PointCloudMaterial({
-        size: 2,
-        color: 0xffff99
-    })
-    );
-    scene.add(starField);
-
-
-    camera.position.z = -110;
-    //camera.position.x = mouseX * 0.05;
-    //camera.position.y = -mouseY * 0.05;
-    //camera.lookAt(scene.position);
-
-    var time = new THREE.Clock();
-
-    var render = function () {
-        //camera.position.x = mouseX * 0.05;
-        //camera.position.y = -mouseY * 0.05;
-        camera.lookAt(scene.position);
-
-        sphereWireframeInner.rotation.x += 0.002;
-        sphereWireframeInner.rotation.z += 0.002;
-
-        sphereWireframeOuter.rotation.x += 0.001;
-        sphereWireframeOuter.rotation.z += 0.001;
-
-        sphereGlassInner.rotation.y += 0.005;
-        sphereGlassInner.rotation.z += 0.005;
-
-        sphereGlassOuter.rotation.y += 0.01;
-        sphereGlassOuter.rotation.z += 0.01;
-
-        particlesOuter.rotation.y += 0.0005;
-        particlesInner.rotation.y -= 0.002;
-
-        starField.rotation.y -= 0.002;
-
-        var innerShift = Math.abs(Math.cos(((time.getElapsedTime() + 2.5) / 20)));
-        var outerShift = Math.abs(Math.cos(((time.getElapsedTime() + 5) / 10)));
-
-        starField.material.color.setHSL(Math.abs(Math.cos((time.getElapsedTime() / 10))), 1, 0.5);
-
-        sphereWireframeOuter.material.color.setHSL(0, 1, outerShift);
-        sphereGlassOuter.material.color.setHSL(0, 1, outerShift);
-        particlesOuter.material.color.setHSL(0, 1, outerShift);
-
-        sphereWireframeInner.material.color.setHSL(0.08, 1, innerShift);
-        particlesInner.material.color.setHSL(0.08, 1, innerShift);
-        sphereGlassInner.material.color.setHSL(0.08, 1, innerShift);
-
-        sphereWireframeInner.material.opacity = Math.abs(Math.cos((time.getElapsedTime() + 0.5) / 0.9) * 0.5);
-        sphereWireframeOuter.material.opacity = Math.abs(Math.cos(time.getElapsedTime() / 0.9) * 0.5);
-
-
-        directionalLight.position.x = Math.cos(time.getElapsedTime() / 0.5) * 128;
-        directionalLight.position.y = Math.cos(time.getElapsedTime() / 0.5) * 128;
-        directionalLight.position.z = Math.sin(time.getElapsedTime() / 0.5) * 128;
-
-        // controls.update();
-
-        renderer.render(scene, camera);
-        requestAnimationFrame(render);
-    };
-
-    render();
-
-
-    // Mouse and resize events
-    document.addEventListener('mousemove', onDocumentMouseMove, false);
-    window.addEventListener('resize', onWindowResize, false);
-
-    function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function onDocumentMouseMove(event) {
-        mouseX = event.clientX - window.innerWidth / 2;
-        mouseY = event.clientY - window.innerHeight / 2;
-    }
 </script>
 {% endblock %}
