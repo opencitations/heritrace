@@ -1,8 +1,8 @@
-{% macro render_form_field(entity_type, prop, details, entity_types, prefix, form_fields, counter=1, depth=0, max_depth=5) %}
+{% macro render_form_field(entity_type, prop, details, entity_types, prefix, form_fields, depth=0, max_depth=5) %}
     {% if depth <= max_depth %}
-        {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + counter | string) %}
+        {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) %}
 
-        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-counter="{{ counter }}" data-max-items="{{ details.max }}"
+        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-max-items="{{ details.max }}"
              {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}>
             <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}"
                 {% if details.intermediateRelation %}
@@ -16,7 +16,8 @@
                     {% if details.orderedBy %}
                         <span class="drag-handle me-2" style="cursor: move;">☰</span>
                     {% endif %}
-                    <h6 class="mb-0 flex-grow-1">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</h6>
+                    {% set label_text = details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
+                    <h6 class="mb-0 flex-grow-1 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</h6>
                 </div>
                 {% if details.intermediateRelation %}
                     <div class="d-flex flex-column">
@@ -27,7 +28,7 @@
                         </div>
                         <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.intermediateRelation.targetEntityType }}">
                             {% for inter_prop, inter_details in details.intermediateRelation.properties.items() %}
-                                {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, unique_id_base + '_', form_fields, counter, depth + 1, max_depth) }}
+                                {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, unique_id_base + '_', form_fields, depth + 1, max_depth) }}
                             {% endfor %}
                         </div>
                     </div>
@@ -40,7 +41,7 @@
                         </div>
                         <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
                             {% for nested_prop, nested_details in form_fields[details.objectClass].items() %}
-                                {{ render_form_field(details.objectClass, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, counter, depth + 1, max_depth) }}
+                                {{ render_form_field(details.objectClass, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, depth + 1, max_depth) }}
                             {% endfor %}
                         </div>
                     </div>
@@ -319,6 +320,57 @@
                 }
             }
 
+            // Funzione per inizializzare Sortable su un elemento
+            function initSortable(element) {
+                new Sortable(element, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    filter: '.non-sortable', // Esclude elementi con questa classe
+                    onMove: function(evt) {
+                        return !evt.related.classList.contains('non-sortable');
+                    },
+                    onEnd: function() {
+                        updateOrderedElementsNumbering();
+                    }
+                });
+            }
+
+            // Funzione per aggiornare la struttura Sortable dopo l'aggiunta di nuovi elementi
+            function updateSortable(list) {
+                // Rimuovi la classe 'non-sortable' da tutti gli elementi
+                list.find('[data-repeater-item]').removeClass('non-sortable');
+                
+                // Aggiungi la classe 'non-sortable' all'ultimo elemento (il pulsante "Add another...")
+                list.children().last().addClass('non-sortable');
+                
+                // Reinizializza Sortable
+                initSortable(list[0]);
+            }
+
+            // Funzione per aggiornare la numerazione degli elementi ordinabili
+            function updateOrderedElementsNumbering() {
+                $('[data-ordered-by]').each(function() {
+                    var labelGroups = {};
+
+                    // Raggruppa gli elementi per etichetta originale
+                    $(this).find('[data-repeater-item]').each(function() {
+                        var label = $(this).find('.form-label').first();
+                        var originalText = label.data('original-text');
+                        if (!labelGroups[originalText]) {
+                            labelGroups[originalText] = [];
+                        }
+                        labelGroups[originalText].push(label);
+                    });
+
+                    // Aggiorna la numerazione per ogni gruppo
+                    Object.keys(labelGroups).forEach(function(originalText) {
+                        labelGroups[originalText].forEach(function(label, index) {
+                            label.text(originalText + ' ' + (index + 1));
+                        });
+                    });
+                });
+            }
+
             // Store initial copies of repeater items
             var initialCopies = {};
 
@@ -329,10 +381,7 @@
 
                  // Initialize Sortable for each repeater list
                 if (list.data('ordered-by')) {
-                    new Sortable(list[0], {
-                        handle: '.drag-handle',
-                        animation: 150
-                    });
+                    updateSortable(list);
                 }
             });
 
@@ -406,6 +455,10 @@
                         // Re-bind events for newly added items
                         bindRepeaterEvents(newItem);
                     }
+                    // Dopo aver aggiunto un nuovo elemento, aggiorna Sortable
+                    updateSortable(list);
+                    // Dopo aver aggiunto un nuovo elemento, aggiorna la numerazione
+                    updateOrderedElementsNumbering();
                 });
 
                 context.find('[data-repeater-delete]').off('click').on('click', function() {
@@ -413,6 +466,8 @@
                     $(this).closest('[data-repeater-item]').remove();
                     updateRemoveButtons(list);
                     updateAddButton(list);
+                    // Dopo aver rimosso un elemento, aggiorna la numerazione
+                    updateOrderedElementsNumbering();
                 });
 
                 context.find('.collapse').on('shown.bs.collapse', function(e) {
@@ -437,6 +492,8 @@
 
             // Initialize repeater events
             bindRepeaterEvents($(document));
+
+            updateOrderedElementsNumbering();
 
             // Handle custom entity form
             let propertyCount = 1;
