@@ -179,6 +179,7 @@ schema:JournalArticleShape
   [
     sh:path pro:isDocumentContextFor ;
     sh:class pro:RoleInTime ;
+    sh:minCount 0 ;
   ] ;
 .
 

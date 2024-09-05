@@ -985,8 +985,8 @@ def get_valid_predicates(triples):
     results = shacl.query(query)
     valid_predicates = [{
         str(row.predicate): {
-            "min": (None if row.minCount is None else str(row.minCount)), 
-            "max": (None if row.maxCount is None else str(row.maxCount)),
+            "min": 0 if row.minCount is None else int(row.minCount), 
+            "max": None if row.maxCount is None else str(row.maxCount),
             "hasValue": row.hasValue,
             "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
         }
@@ -1062,7 +1062,7 @@ def get_form_fields_from_shacl():
             "entityType": str(row.type),
             "uri": str(row.predicate),
             "datatype": row.datatype,
-            "min": None if row.minCount is None else int(row.minCount),
+            "min": 0 if row.minCount is None else int(row.minCount),
             "max": None if row.maxCount is None else int(row.maxCount),
             "hasValue": row.hasValue,
             "objectClass": str(row.objectClass) if row.objectClass else None,

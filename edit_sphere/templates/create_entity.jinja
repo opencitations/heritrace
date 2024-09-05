@@ -2,7 +2,7 @@
     {% if depth <= max_depth %}
         {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) %}
 
-        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-max-items="{{ details.max }}"
+        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
              {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}>
             <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}"
                 {% if details.intermediateRelation %}
@@ -269,19 +269,21 @@
             }
 
             function updateRemoveButtons(list) {
+                const minItems = parseInt(list.data('min-items')) || 0;
                 list.find('[data-repeater-item]').each(function(index) {
-                    if (index === 0) {
-                        $(this).find('.repeater-delete-btn').hide();
+                    const deleteBtn = $(this).find('.repeater-delete-btn');
+                    if (minItems === 0 || index >= minItems) {
+                        deleteBtn.show();
                     } else {
-                        $(this).find('.repeater-delete-btn').show();
+                        deleteBtn.hide();
                     }
                 });
             }
 
             function updateAddButton(list) {
-                var maxItems = parseInt(list.data('max-items')) || Infinity;
-                var counter = list.find('[data-repeater-item]').length;
-                var addButton = list.find('[data-repeater-create]').first();
+                const maxItems = parseInt(list.data('max-items')) || Infinity;
+                const counter = list.find('[data-repeater-item]').length;
+                const addButton = list.find('[data-repeater-create]').first();
                 if (counter >= maxItems) {
                     addButton.hide();
                 } else {
@@ -383,6 +385,9 @@
                 if (list.data('ordered-by')) {
                     updateSortable(list);
                 }
+
+                updateRemoveButtons($(this));
+                updateAddButton($(this));
             });
 
             $(window).on('pageshow', function(event) {
