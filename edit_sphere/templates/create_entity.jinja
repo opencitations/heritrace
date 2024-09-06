@@ -87,14 +87,17 @@
 
     .repeater-delete-btn {
         position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
+        top: 0;
+        right: 0;
         background-color: transparent;
         border: 1px solid #dc3545;
         color: #dc3545;
         font-size: 1.2rem;
         cursor: pointer;
         transition: background-color 0.2s, color 0.2s, border 0.2s;
+        border-radius: 0.25rem;
+        border-top-left-radius: 0.25rem !important;
+        border-bottom-left-radius: 0.25rem !important;
     }
 
     .repeater-delete-btn:hover {
@@ -132,7 +135,7 @@
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
         line-height: 1.5;
-        border-radius: 0.2rem;
+        border-radius: 0.25rem;
         transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
     }
     .add-button:hover {
