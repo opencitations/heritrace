@@ -1197,7 +1197,7 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
     processed_shapes.add(shape_uri)
     
     nested_query = prepareQuery("""
-        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?entityType ?objectClass
+        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
                (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
         WHERE {
             ?shape sh:targetClass ?type ;
@@ -1217,30 +1217,54 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
             }
             FILTER (isURI(?predicate))
         }
-        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?entityType ?objectClass
+        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
     
     nested_results = shacl.query(nested_query, initBindings={'shape': URIRef(shape_uri)})
-    nested_fields = {}
-    
+    nested_fields = OrderedDict()
+    entity_type = None
+
     for row in nested_results:
         if str(row.predicate) == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" and not row.optionalValues:
             continue
 
+        if row.type:
+            entity_type = str(row.type)
+
         nested_fields[str(row.predicate)] = {
-            "entityType": str(row.type),
+            "entityType": entity_type,
             "uri": str(row.predicate),
             "nodeShape": str(row.nodeShape) if row.nodeShape else None,
             "datatype": row.datatype,
             "min": 0 if row.minCount is None else int(row.minCount),
             "max": None if row.maxCount is None else int(row.maxCount),
             "hasValue": row.hasValue,
-            "objectClass": str(row.objectClass) if row.objectClass else None,
+            "objectClass": None if row.objectClass is None else row.objectClass,
             "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
         }
         if row.nodeShape:
             nested_fields[str(row.predicate)]["nestedShape"] = process_nested_shapes(str(row.nodeShape), depth + 1, processed_shapes)
-    
+
+    # Ottieni l'ordine delle proprietà dal display_rules
+    property_order = []
+    if display_rules:
+        for rule in display_rules:
+            if rule['class'] == entity_type:
+                property_order = [prop['property'] for prop in rule.get('displayProperties', [])]
+                break
+
+    # Ordina le proprietà in base all'ordine definito in display_rules
+    if property_order:
+        ordered_nested_fields = OrderedDict()
+        for prop in property_order:
+            if prop in nested_fields:
+                ordered_nested_fields[prop] = nested_fields[prop]
+        # Aggiungi eventuali proprietà rimanenti che non erano nell'ordine specificato
+        for prop, value in nested_fields.items():
+            if prop not in ordered_nested_fields:
+                ordered_nested_fields[prop] = value
+        nested_fields = ordered_nested_fields
+
     processed_shapes.remove(shape_uri)
     return nested_fields
 
