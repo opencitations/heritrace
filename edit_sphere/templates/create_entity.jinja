@@ -65,7 +65,10 @@
                 </button>
             </div>
             <div class="mb-3 text-start" data-repeater-create>
-                <button type="button" class="btn btn-link text-secondary">{{ _("Add %(element_type)s", element_type=details.displayName or (prop | human_readable_predicate(entity_types, False))) }}</button>
+                <button type="button" class="add-button">
+                    <i class="bi bi-plus-circle"></i>
+                    {{ _("Add %(element_type)s", element_type=details.displayName or (prop | human_readable_predicate(entity_types, False))) }}
+                </button>
             </div>
         </div>
     {% endif %}
@@ -119,6 +122,25 @@
 
     [data-repeater-create] {
         margin-top: -1rem; /* Sposta il pulsante "Add another" più vicino all'elemento sopra */
+    }
+
+    .add-button {
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        border-radius: 0.2rem;
+        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+    }
+    .add-button:hover {
+        color: #fff;
+        background-color: #6c757d;
+    }
+    .add-button i {
+        margin-right: 0.25rem;
     }
 </style>
 
