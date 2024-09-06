@@ -32,7 +32,7 @@
                             {% endfor %}
                         </div>
                     </div>
-                {% elif details.objectClass and details.objectClass in entity_types %}
+                {% elif details.nestedShape %}
                     <div class="d-flex flex-column">
                         <div class="nested-form-header mb-4">
                             <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
@@ -40,8 +40,10 @@
                             </button>
                         </div>
                         <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
-                            {% for nested_prop, nested_details in form_fields[details.objectClass].items() %}
-                                {{ render_form_field(details.objectClass, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, depth + 1, max_depth) }}
+                            {% for nested_prop, nested_details in details.nestedShape.items() %}
+                                {% if nested_prop != '_reference' %}
+                                    {{ render_form_field(details.entityType, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, depth + 1, max_depth) }}
+                                {% endif %}
                             {% endfor %}
                         </div>
                     </div>

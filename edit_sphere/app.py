@@ -1028,39 +1028,46 @@ def get_form_fields_from_shacl():
     if not shacl:
         return dict()
     
-    query = prepareQuery(f"""
-        SELECT ?type ?predicate ?datatype ?maxCount ?minCount ?hasValue ?objectClass
+    query = prepareQuery("""
+        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
                (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
-        WHERE {{
+        WHERE {
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
             ?property sh:path ?predicate .
-            OPTIONAL {{?property sh:datatype ?datatype .}}
-            OPTIONAL {{?property sh:maxCount ?maxCount .}}
-            OPTIONAL {{?property sh:minCount ?minCount .}}
-            OPTIONAL {{?property sh:hasValue ?hasValue .}}
-            OPTIONAL {{?property sh:class ?objectClass .}}
-            OPTIONAL {{
+            OPTIONAL {
+                ?property sh:node ?nodeShape .
+                OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
+            }
+            OPTIONAL {?property sh:datatype ?datatype .}
+            OPTIONAL {?property sh:maxCount ?maxCount .}
+            OPTIONAL {?property sh:minCount ?minCount .}
+            OPTIONAL {?property sh:hasValue ?hasValue .}
+            OPTIONAL {
                 ?property sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
-            }}
-            OPTIONAL {{
+            }
+            OPTIONAL {
                 ?property sh:or ?orList .
                 ?orList rdf:rest*/rdf:first ?orConstraint .
                 ?orConstraint sh:datatype ?datatype .
-            }}
+            }
             FILTER (isURI(?predicate))
-        }}
-        GROUP BY ?type ?predicate ?datatype ?maxCount ?minCount ?hasValue ?objectClass
+        }
+        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
+    
     results = shacl.query(query)
     form_fields = defaultdict(dict)
+
     for row in results:
         if str(row.predicate) == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" and not row.optionalValues:
             continue
+        
         form_fields[str(row.type)][str(row.predicate)] = {
             "entityType": str(row.type),
             "uri": str(row.predicate),
+            "nodeShape": str(row.nodeShape) if row.nodeShape else None,
             "datatype": row.datatype,
             "min": 0 if row.minCount is None else int(row.minCount),
             "max": None if row.maxCount is None else int(row.maxCount),
@@ -1068,6 +1075,16 @@ def get_form_fields_from_shacl():
             "objectClass": str(row.objectClass) if row.objectClass else None,
             "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
         }
+
+    # Processa le shape annidate per ogni campo
+    processed_shapes = set()
+    for entity_type in form_fields:
+        for predicate in form_fields[entity_type]:
+            if form_fields[entity_type][predicate]["nodeShape"]:
+                form_fields[entity_type][predicate]["nestedShape"] = process_nested_shapes(
+                    form_fields[entity_type][predicate]["nodeShape"], 
+                    processed_shapes=processed_shapes
+                )
 
     # Aggiungi informazioni dalle regole di visualizzazione
     if display_rules:
@@ -1091,7 +1108,8 @@ def get_form_fields_from_shacl():
                                     ?shape sh:targetClass ?intermediateClass ;
                                            sh:property ?propertyShape .
                                     ?propertyShape sh:path ?property ;
-                                                   sh:class ?targetClass .
+                                                   sh:node ?targetNode .
+                                    ?targetNode sh:targetClass ?targetClass.
                                 }
                             """, initNs={"sh": "http://www.w3.org/ns/shacl#"})
                             
@@ -1102,7 +1120,7 @@ def get_form_fields_from_shacl():
                             
                             connecting_property = next((str(row.property) for row in connecting_property_results), None)
                             
-                            base_intermediate_relation = {
+                            form_fields[entity_class][prop['property']]['intermediateRelation'] = {
                                 "class": intermediate_class,
                                 "targetEntityType": target_entity_type,
                                 "connectingProperty": connecting_property,
@@ -1117,19 +1135,21 @@ def get_form_fields_from_shacl():
                                 
                                 new_field = {
                                     "entityType": entity_class,
+                                    "objectClass": form_fields[entity_class][prop['property']].get("objectClass"),
                                     "uri": prop['property'],
                                     "datatype": form_fields[entity_class][prop['property']].get("datatype"),
                                     "min": form_fields[entity_class][prop['property']].get("min"),
                                     "max": form_fields[entity_class][prop['property']].get("max"),
                                     "hasValue": form_fields[entity_class][prop['property']].get("hasValue"),
-                                    "objectClass": form_fields[entity_class][prop['property']].get("objectClass"),
+                                    "nodeShape": form_fields[entity_class][prop['property']].get("nodeShape"),
+                                    "nestedShape": form_fields[entity_class][prop['property']].get("nestedShape"),
                                     "displayName": display_name,
                                     "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", []),
                                     "orderedBy": prop.get('orderedBy')
                                 }
 
-                                if 'intermediateRelation' in prop:
-                                    new_field['intermediateRelation'] = base_intermediate_relation.copy()
+                                if 'intermediateRelation' in form_fields[entity_class][prop['property']]:
+                                    new_field['intermediateRelation'] = form_fields[entity_class][prop['property']]['intermediateRelation']
 
                                 # Aggiungi tutte le proprietà specificate nello YAML
                                 if 'properties' in value:
@@ -1166,6 +1186,63 @@ def get_form_fields_from_shacl():
         ordered_form_fields = form_fields
 
     return ordered_form_fields
+
+def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
+    if processed_shapes is None:
+        processed_shapes = set()
+
+    if depth > 5 or shape_uri in processed_shapes:
+        return {"_reference": shape_uri}
+    
+    processed_shapes.add(shape_uri)
+    
+    nested_query = prepareQuery("""
+        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?entityType ?objectClass
+               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
+        WHERE {
+            ?shape sh:targetClass ?type ;
+                   sh:property ?property .
+            ?property sh:path ?predicate .
+            OPTIONAL {
+                ?property sh:node ?nodeShape .
+                OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
+            }
+            OPTIONAL {?property sh:datatype ?datatype .}
+            OPTIONAL {?property sh:maxCount ?maxCount .}
+            OPTIONAL {?property sh:minCount ?minCount .}
+            OPTIONAL {?property sh:hasValue ?hasValue .}
+            OPTIONAL {
+                ?property sh:in ?list .
+                ?list rdf:rest*/rdf:first ?optionalValue .
+            }
+            FILTER (isURI(?predicate))
+        }
+        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?entityType ?objectClass
+    """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
+    
+    nested_results = shacl.query(nested_query, initBindings={'shape': URIRef(shape_uri)})
+    nested_fields = {}
+    
+    for row in nested_results:
+        if str(row.predicate) == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" and not row.optionalValues:
+            continue
+
+        nested_fields[str(row.predicate)] = {
+            "entityType": str(row.type),
+            "uri": str(row.predicate),
+            "nodeShape": str(row.nodeShape) if row.nodeShape else None,
+            "datatype": row.datatype,
+            "min": 0 if row.minCount is None else int(row.minCount),
+            "max": None if row.maxCount is None else int(row.maxCount),
+            "hasValue": row.hasValue,
+            "objectClass": str(row.objectClass) if row.objectClass else None,
+            "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
+        }
+        if row.nodeShape:
+            nested_fields[str(row.predicate)]["nestedShape"] = process_nested_shapes(str(row.nodeShape), depth + 1, processed_shapes)
+    
+    processed_shapes.remove(shape_uri)
+    return nested_fields
 
 def execute_sparql_query(query: str, subject: str, value: str) -> Tuple[str, str]:
     query = query.replace('[[subject]]', f'<{subject}>')
