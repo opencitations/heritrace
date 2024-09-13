@@ -1,5 +1,8 @@
+import atexit
 import json
 import os
+import signal
+import sys
 import time
 import traceback
 import urllib
@@ -72,7 +75,36 @@ app.jinja_env.filters['split_ns'] = filter.split_ns
 CACHE_FILE = app.config['CACHE_FILE']
 CACHE_VALIDITY_DAYS = app.config['CACHE_VALIDITY_DAYS']
 
+containers = []
+initialization_done = False
+
+def stop_containers():
+    client = docker.from_env()
+    for container_name in containers:
+        try:
+            container = client.containers.get(container_name)
+            if container.status == 'running':
+                print(f"Stopping container: {container_name}")
+                container.stop()
+            else:
+                print(f"Container {container_name} is not running")
+        except docker.errors.NotFound:
+            print(f"Container not found: {container_name}")
+        except Exception as e:
+            print(f"Error stopping container {container_name}: {str(e)}")
+
+def signal_handler(sig, frame):
+    print("Shutting down...")
+    stop_containers()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+atexit.register(stop_containers)
+
 def setup_database(db_type, db_triplestore, db_url, docker_image, docker_port, docker_isql_port, volume_path):
+    global containers
     if db_type == 'docker':
         client = docker.from_env()
         container_name = f"{db_triplestore}_container_{docker_port}"
@@ -83,13 +115,11 @@ def setup_database(db_type, db_triplestore, db_url, docker_image, docker_port, d
         try:
             # Check for an existing container with the same name
             container = client.containers.get(container_name)
-            print(f"Existing container found: {container_name}")
-            
             if container.status != "running":
                 print(f"Starting existing container: {container_name}")
                 container.start()
                 # Wait for the container to be ready only if it was just started
-                time.sleep(10)
+                time.sleep(5)
             else:
                 print(f"Container {container_name} is already running")
                 
@@ -130,36 +160,16 @@ def setup_database(db_type, db_triplestore, db_url, docker_image, docker_port, d
             # Wait for the new container to be ready
             time.sleep(5)
         
+        # Add the container name to the global list only if it's not already there
+        if container_name not in containers:
+            containers.append(container_name)
+        
         if db_triplestore == 'virtuoso':
             return f"http://localhost:{docker_port}/sparql"
         elif db_triplestore == 'blazegraph':
             return f"http://localhost:{docker_port}/bigdata/sparql"
     else:
         return db_url
-
-# Setup database connections
-dataset_endpoint = setup_database(
-    Config.DATASET_DB_TYPE,
-    Config.DATASET_DB_TRIPLESTORE,
-    Config.DATASET_DB_URL,
-    Config.DATASET_DB_DOCKER_IMAGE,
-    Config.DATASET_DB_DOCKER_PORT,
-    Config.DATASET_DB_DOCKER_ISQL_PORT,
-    Config.DATASET_DB_VOLUME_PATH
-)
-
-provenance_endpoint = setup_database(
-    Config.PROVENANCE_DB_TYPE,
-    Config.PROVENANCE_DB_TRIPLESTORE,
-    Config.PROVENANCE_DB_URL,
-    Config.PROVENANCE_DB_DOCKER_IMAGE,
-    Config.PROVENANCE_DB_DOCKER_PORT,
-    Config.PROVENANCE_DB_DOCKER_ISQL_PORT,
-    Config.PROVENANCE_DB_VOLUME_PATH
-)
-
-sparql = SPARQLWrapper(dataset_endpoint)
-provenance_sparql = SPARQLWrapper(provenance_endpoint)
 
 def need_initialization():
     uri_generator: URIGenerator = app.config['URI_GENERATOR']
@@ -218,7 +228,38 @@ def initialize_counter_handler():
         if current_count <= count:
             counter_handler.set_counter(count + 1, entity_type)
 
-initialize_counter_handler()
+def initialize_app():
+    global initialization_done
+    if not initialization_done:
+        # Setup database connections
+        global dataset_endpoint, provenance_endpoint, sparql, provenance_sparql
+        dataset_endpoint = setup_database(
+            Config.DATASET_DB_TYPE,
+            Config.DATASET_DB_TRIPLESTORE,
+            Config.DATASET_DB_URL,
+            Config.DATASET_DB_DOCKER_IMAGE,
+            Config.DATASET_DB_DOCKER_PORT,
+            Config.DATASET_DB_DOCKER_ISQL_PORT,
+            Config.DATASET_DB_VOLUME_PATH
+        )
+
+        provenance_endpoint = setup_database(
+            Config.PROVENANCE_DB_TYPE,
+            Config.PROVENANCE_DB_TRIPLESTORE,
+            Config.PROVENANCE_DB_URL,
+            Config.PROVENANCE_DB_DOCKER_IMAGE,
+            Config.PROVENANCE_DB_DOCKER_PORT,
+            Config.PROVENANCE_DB_DOCKER_ISQL_PORT,
+            Config.PROVENANCE_DB_VOLUME_PATH
+        )
+
+        sparql = SPARQLWrapper(dataset_endpoint)
+        provenance_sparql = SPARQLWrapper(provenance_endpoint)
+
+        initialize_counter_handler()
+        initialization_done = True
+
+initialize_app()
 
 @app.route('/')
 def index():
