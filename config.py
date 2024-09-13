@@ -20,8 +20,24 @@ class Config(object):
     SECRET_KEY = 'adoiugwoad7y78agdlauwvdliu'
     CACHE_FILE = 'cache.json'
     CACHE_VALIDITY_DAYS = 7
-    DATASET_ENDPOINT = 'http://localhost:9999/blazegraph/sparql'
-    PROVENANCE_ENDPOINT = 'http://localhost:19999/blazegraph/sparql'
+
+    # Database configuration
+    DATASET_DB_TYPE = 'docker'  # 'endpoint' or 'docker'
+    DATASET_DB_TRIPLESTORE = 'virtuoso' # virtuoso or blazegraph
+    DATASET_DB_URL = 'http://127.0.0.1:8892/sparql'
+    DATASET_DB_DOCKER_IMAGE = 'openlink/virtuoso-opensource-7@sha256:c08d54120b8085234f8244951232553428e235543412e41d75705736a3026f1b'
+    DATASET_DB_DOCKER_PORT = 8892
+    DATASET_DB_DOCKER_ISQL_PORT = 1112
+    DATASET_DB_VOLUME_PATH = os.path.join(BASE_DIR, 'db_volumes', 'data')
+
+    PROVENANCE_DB_TYPE = 'docker'  # 'endpoint' or 'docker'
+    PROVENANCE_DB_TRIPLESTORE = 'virtuoso' # virtuoso or blazegraph
+    PROVENANCE_DB_URL = 'http://127.0.0.1:8893/sparql'
+    PROVENANCE_DB_DOCKER_IMAGE = 'openlink/virtuoso-opensource-7@sha256:c08d54120b8085234f8244951232553428e235543412e41d75705736a3026f1b'
+    PROVENANCE_DB_DOCKER_PORT = 8893
+    PROVENANCE_DB_DOCKER_ISQL_PORT = 1113
+    PROVENANCE_DB_VOLUME_PATH = os.path.join(BASE_DIR, 'db_volumes', 'prov')
+
     DATASET_GENERATION_TIME = '2024-03-30T10:23:11+02:00'
     URI_GENERATOR = meta_uri_generator
     COUNTER_HANDLER = counter_handler

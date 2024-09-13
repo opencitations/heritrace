@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import traceback
 import urllib
 from collections import OrderedDict, defaultdict
@@ -7,9 +8,11 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 import click
+import docker
 import requests
 import validators
 import yaml
+from config import Config
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
@@ -18,6 +21,7 @@ from rdflib.namespace import XSD
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.algebra import translateQuery, translateUpdate
 from rdflib.plugins.sparql.parser import parseQuery, parseUpdate
+from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import (
     AgnosticEntity, _filter_timestamps_by_interval)
@@ -25,12 +29,10 @@ from time_agnostic_library.prov_entity import ProvEntity
 from time_agnostic_library.sparql import Sparql
 from time_agnostic_library.support import convert_to_datetime
 
-from config import Config
 from edit_sphere.editor import Editor
 from edit_sphere.filters import *
 from edit_sphere.forms import *
 from edit_sphere.uri_generator.uri_generator import *
-from resources.datatypes import DATATYPE_MAPPING
 
 app = Flask(__name__)
 
@@ -48,10 +50,6 @@ if display_rules_path:
     with open(display_rules_path, 'r') as f:
         display_rules = yaml.safe_load(f)
 
-dataset_endpoint = app.config["DATASET_ENDPOINT"]
-provenance_endpoint = app.config["PROVENANCE_ENDPOINT"]
-sparql = SPARQLWrapper(dataset_endpoint)
-provenance_sparql = SPARQLWrapper(provenance_endpoint)
 change_tracking_config = app.config["CHANGE_TRACKING_CONFIG"]
 if change_tracking_config:
     with open(change_tracking_config, 'r', encoding='utf8') as f:
@@ -73,6 +71,95 @@ app.jinja_env.filters['split_ns'] = filter.split_ns
 
 CACHE_FILE = app.config['CACHE_FILE']
 CACHE_VALIDITY_DAYS = app.config['CACHE_VALIDITY_DAYS']
+
+def setup_database(db_type, db_triplestore, db_url, docker_image, docker_port, docker_isql_port, volume_path):
+    if db_type == 'docker':
+        client = docker.from_env()
+        container_name = f"{db_triplestore}_container_{docker_port}"
+        
+        # Ensure the volume directory exists
+        os.makedirs(volume_path, exist_ok=True)
+        
+        try:
+            # Check for an existing container with the same name
+            container = client.containers.get(container_name)
+            print(f"Existing container found: {container_name}")
+            
+            if container.status != "running":
+                print(f"Starting existing container: {container_name}")
+                container.start()
+                # Wait for the container to be ready only if it was just started
+                time.sleep(10)
+            else:
+                print(f"Container {container_name} is already running")
+                
+        except docker.errors.NotFound:
+            print(f"Creating a new container: {container_name}")
+            # If the container doesn't exist, create a new one
+            if db_triplestore == 'virtuoso':
+                ports = {
+                    f'{docker_port}/tcp': docker_port,
+                    f'{docker_isql_port}/tcp': docker_isql_port,
+                }
+                environment = {
+                    'DBA_PASSWORD': 'dba',  # Set a secure password in production
+                    'SPARQL_UPDATE': 'true',
+                }
+                volumes = {
+                    volume_path: {'bind': '/database', 'mode': 'rw'}
+                }
+            elif db_triplestore == 'blazegraph':
+                ports = {
+                    f'{docker_port}/tcp': docker_port,
+                }
+                environment = {}  # Blazegraph doesn't need special environment variables
+                volumes = {
+                    volume_path: {'bind': '/data', 'mode': 'rw'}
+                }
+            else:
+                raise ValueError(f"Unsupported triplestore: {db_triplestore}")
+
+            container = client.containers.run(
+                docker_image,
+                name=container_name,
+                detach=True,
+                ports=ports,
+                environment=environment,
+                volumes=volumes
+            )
+            # Wait for the new container to be ready
+            time.sleep(5)
+        
+        if db_triplestore == 'virtuoso':
+            return f"http://localhost:{docker_port}/sparql"
+        elif db_triplestore == 'blazegraph':
+            return f"http://localhost:{docker_port}/bigdata/sparql"
+    else:
+        return db_url
+
+# Setup database connections
+dataset_endpoint = setup_database(
+    Config.DATASET_DB_TYPE,
+    Config.DATASET_DB_TRIPLESTORE,
+    Config.DATASET_DB_URL,
+    Config.DATASET_DB_DOCKER_IMAGE,
+    Config.DATASET_DB_DOCKER_PORT,
+    Config.DATASET_DB_DOCKER_ISQL_PORT,
+    Config.DATASET_DB_VOLUME_PATH
+)
+
+provenance_endpoint = setup_database(
+    Config.PROVENANCE_DB_TYPE,
+    Config.PROVENANCE_DB_TRIPLESTORE,
+    Config.PROVENANCE_DB_URL,
+    Config.PROVENANCE_DB_DOCKER_IMAGE,
+    Config.PROVENANCE_DB_DOCKER_PORT,
+    Config.PROVENANCE_DB_DOCKER_ISQL_PORT,
+    Config.PROVENANCE_DB_VOLUME_PATH
+)
+
+sparql = SPARQLWrapper(dataset_endpoint)
+provenance_sparql = SPARQLWrapper(provenance_endpoint)
 
 def need_initialization():
     uri_generator: URIGenerator = app.config['URI_GENERATOR']
