@@ -261,6 +261,9 @@ def initialize_app():
 
 initialize_app()
 
+def is_virtuoso():
+    return Config.DATASET_DB_TRIPLESTORE.lower() == 'virtuoso'
+
 @app.route('/')
 def index():
     return render_template('index.jinja')
@@ -271,11 +274,29 @@ def catalogue():
     per_page = int(request.args.get('per_page', 100))
     offset = (page - 1) * per_page
 
-    query = f"""
-    SELECT DISTINCT ?subject WHERE {{
-        ?subject ?predicate ?object.
-    }} LIMIT {per_page} OFFSET {offset}
-    """
+    if is_virtuoso():
+        query = f"""
+        SELECT DISTINCT ?subject WHERE {{
+            GRAPH ?g {{
+                ?subject ?predicate ?object.
+            }}
+            FILTER(?g NOT IN (
+                <http://localhost:8890/DAV/>,
+                <http://www.openlinksw.com/schemas/virtrdf#>,
+                <http://www.w3.org/2002/07/owl#>,
+                <http://www.w3.org/ns/ldp#>,
+                <urn:activitystreams-owl:map>,
+                <urn:core:services:sparql>
+            ))
+        }} LIMIT {per_page} OFFSET {offset}
+        """
+    else:
+        query = f"""
+        SELECT DISTINCT ?subject WHERE {{
+            ?subject ?predicate ?object.
+        }} LIMIT {per_page} OFFSET {offset}
+        """
+
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
     subjects = sparql.query().convert().get("results", {}).get("bindings", [])
@@ -434,7 +455,30 @@ def about(subject):
     agnostic_entity = AgnosticEntity(res=decoded_subject, config=change_tracking_config)
     history, _ = agnostic_entity.get_history(include_prov_metadata=True)
     g = Graph()
-    query = f"SELECT ?predicate ?object WHERE {{ <{decoded_subject}> ?predicate ?object. }}"
+
+    if is_virtuoso():
+        query = f"""
+        SELECT ?predicate ?object WHERE {{
+            GRAPH ?g {{
+                <{decoded_subject}> ?predicate ?object.
+            }}
+            FILTER(?g NOT IN (
+                <http://localhost:8890/DAV>,
+                <http://www.openlinksw.com/schemas/virtrdf#>,
+                <http://www.w3.org/2002/07/owl#>,
+                <http://www.w3.org/ns/ldp#>,
+                <urn:activitystreams-owl:map>,
+                <urn:core:services:sparql>
+            ))
+        }}
+        """
+    else:
+        query = f"""
+        SELECT ?predicate ?object WHERE {{
+            <{decoded_subject}> ?predicate ?object.
+        }}
+        """
+
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
     triples = sparql.query().convert().get("results", {}).get("bindings", [])

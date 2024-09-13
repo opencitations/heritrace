@@ -295,3 +295,381 @@
 14:20:09 Checkpoint finished, log reused
 14:20:11 HTTP/WebDAV server online at 8892
 14:20:11 Server online at 1112 (pid 1)
+14:32:23 Server received signal 2
+14:32:23 Initiating normal shutdown
+14:32:24 Checkpoint started
+14:32:24 Checkpoint finished, log reused
+14:32:24 Server shutdown complete
+
+		Fri Sep 13 2024
+14:32:25 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:32:25   FAILED  plugin 1: Unable to locate file }
+14:32:25 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:32:25   FAILED  plugin 2: Unable to locate file }
+14:32:25 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:32:25   FAILED  plugin 3: Unable to locate file }
+14:32:25 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:32:25   FAILED  plugin 4: Unable to locate file }
+14:32:25 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:32:25   FAILED  plugin 6: Unable to locate file }
+14:32:25 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:32:25   plain version 1.2.3240 from OpenLink Software
+14:32:25   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:32:25   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:32:25 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:32:25   ShapefileIO version 0.1virt71 from OpenLink Software
+14:32:25   Shapefile support based on Frank Warmerdam's Shapelib
+14:32:25   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:32:25 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:32:25   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:32:25   Support functions for GraphQL/SPARQL Bridge
+14:32:25   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:32:25 OpenLink Virtuoso Universal Server
+14:32:25 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:32:25 uses OpenSSL 1.1.1f  31 Mar 2020
+14:32:25 uses parts of PCRE, Html Tidy
+14:32:25 Database version 3126
+14:32:25 SQL Optimizer enabled (max 1000 layouts)
+14:32:26 Compiler unit is timed at 0.000090 msec
+14:32:27 Roll forward started
+14:32:27 Roll forward complete
+14:32:27 Checkpoint started
+14:32:27 Checkpoint finished, log reused
+14:32:27 HTTP/WebDAV server online at 8892
+14:32:27 Server online at 1112 (pid 1)
+14:32:47 Server received signal 2
+14:32:47 Initiating normal shutdown
+14:32:47 Checkpoint started
+14:32:47 Checkpoint finished, log reused
+14:32:47 Server shutdown complete
+
+		Fri Sep 13 2024
+14:32:48 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:32:48   FAILED  plugin 1: Unable to locate file }
+14:32:48 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:32:48   FAILED  plugin 2: Unable to locate file }
+14:32:48 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:32:48   FAILED  plugin 3: Unable to locate file }
+14:32:48 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:32:48   FAILED  plugin 4: Unable to locate file }
+14:32:48 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:32:48   FAILED  plugin 6: Unable to locate file }
+14:32:48 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:32:48   plain version 1.2.3240 from OpenLink Software
+14:32:48   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:32:48   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:32:48 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:32:48   ShapefileIO version 0.1virt71 from OpenLink Software
+14:32:48   Shapefile support based on Frank Warmerdam's Shapelib
+14:32:48   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:32:48 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:32:48   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:32:48   Support functions for GraphQL/SPARQL Bridge
+14:32:48   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:32:48 OpenLink Virtuoso Universal Server
+14:32:48 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:32:48 uses OpenSSL 1.1.1f  31 Mar 2020
+14:32:48 uses parts of PCRE, Html Tidy
+14:32:48 Database version 3126
+14:32:48 SQL Optimizer enabled (max 1000 layouts)
+14:32:50 Compiler unit is timed at 0.000093 msec
+14:32:50 Roll forward started
+14:32:50 Roll forward complete
+14:32:50 Checkpoint started
+14:32:50 Checkpoint finished, log reused
+14:32:50 HTTP/WebDAV server online at 8892
+14:32:50 Server online at 1112 (pid 1)
+14:33:15 Server received signal 2
+14:33:15 Initiating normal shutdown
+14:33:15 Checkpoint started
+14:33:15 Checkpoint finished, log reused
+14:33:15 Server shutdown complete
+
+		Fri Sep 13 2024
+14:33:18 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:33:18   FAILED  plugin 1: Unable to locate file }
+14:33:18 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:33:18   FAILED  plugin 2: Unable to locate file }
+14:33:18 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:33:18   FAILED  plugin 3: Unable to locate file }
+14:33:18 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:33:18   FAILED  plugin 4: Unable to locate file }
+14:33:18 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:33:18   FAILED  plugin 6: Unable to locate file }
+14:33:18 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:33:18   plain version 1.2.3240 from OpenLink Software
+14:33:18   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:33:18   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:33:18 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:33:18   ShapefileIO version 0.1virt71 from OpenLink Software
+14:33:18   Shapefile support based on Frank Warmerdam's Shapelib
+14:33:18   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:33:18 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:33:18   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:33:18   Support functions for GraphQL/SPARQL Bridge
+14:33:18   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:33:18 OpenLink Virtuoso Universal Server
+14:33:18 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:33:18 uses OpenSSL 1.1.1f  31 Mar 2020
+14:33:18 uses parts of PCRE, Html Tidy
+14:33:18 Database version 3126
+14:33:18 SQL Optimizer enabled (max 1000 layouts)
+14:33:19 Compiler unit is timed at 0.000088 msec
+14:33:19 Roll forward started
+14:33:19 Roll forward complete
+14:33:19 Checkpoint started
+14:33:19 Checkpoint finished, log reused
+14:33:19 HTTP/WebDAV server online at 8892
+14:33:19 Server online at 1112 (pid 1)
+14:33:55 Server received signal 2
+14:33:55 Initiating normal shutdown
+14:33:55 Checkpoint started
+14:33:55 Checkpoint finished, log reused
+14:33:55 Server shutdown complete
+
+		Fri Sep 13 2024
+14:33:57 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:33:57   FAILED  plugin 1: Unable to locate file }
+14:33:57 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:33:57   FAILED  plugin 2: Unable to locate file }
+14:33:57 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:33:57   FAILED  plugin 3: Unable to locate file }
+14:33:57 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:33:57   FAILED  plugin 4: Unable to locate file }
+14:33:57 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:33:57   FAILED  plugin 6: Unable to locate file }
+14:33:57 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:33:57   plain version 1.2.3240 from OpenLink Software
+14:33:57   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:33:57   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:33:57 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:33:57   ShapefileIO version 0.1virt71 from OpenLink Software
+14:33:57   Shapefile support based on Frank Warmerdam's Shapelib
+14:33:57   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:33:57 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:33:57   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:33:57   Support functions for GraphQL/SPARQL Bridge
+14:33:57   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:33:57 OpenLink Virtuoso Universal Server
+14:33:57 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:33:57 uses OpenSSL 1.1.1f  31 Mar 2020
+14:33:57 uses parts of PCRE, Html Tidy
+14:33:57 Database version 3126
+14:33:57 SQL Optimizer enabled (max 1000 layouts)
+14:33:58 Compiler unit is timed at 0.000087 msec
+14:33:58 Roll forward started
+14:33:58 Roll forward complete
+14:33:58 Checkpoint started
+14:33:58 Checkpoint finished, log reused
+14:33:58 HTTP/WebDAV server online at 8892
+14:33:58 Server online at 1112 (pid 1)
+14:44:34 Server received signal 2
+14:44:34 Initiating normal shutdown
+14:44:34 Checkpoint started
+14:44:34 Checkpoint finished, log reused
+14:44:34 Server shutdown complete
+
+		Fri Sep 13 2024
+14:44:37 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:44:37   FAILED  plugin 1: Unable to locate file }
+14:44:37 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:44:37   FAILED  plugin 2: Unable to locate file }
+14:44:37 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:44:37   FAILED  plugin 3: Unable to locate file }
+14:44:37 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:44:37   FAILED  plugin 4: Unable to locate file }
+14:44:37 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:44:37   FAILED  plugin 6: Unable to locate file }
+14:44:37 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:44:37   plain version 1.2.3240 from OpenLink Software
+14:44:37   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:44:37   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:44:37 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:44:37   ShapefileIO version 0.1virt71 from OpenLink Software
+14:44:37   Shapefile support based on Frank Warmerdam's Shapelib
+14:44:37   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:44:37 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:44:37   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:44:37   Support functions for GraphQL/SPARQL Bridge
+14:44:37   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:44:37 OpenLink Virtuoso Universal Server
+14:44:37 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:44:37 uses OpenSSL 1.1.1f  31 Mar 2020
+14:44:37 uses parts of PCRE, Html Tidy
+14:44:37 Database version 3126
+14:44:37 SQL Optimizer enabled (max 1000 layouts)
+14:44:38 Compiler unit is timed at 0.000088 msec
+14:44:38 Roll forward started
+14:44:38 Roll forward complete
+14:44:39 Checkpoint started
+14:44:39 Checkpoint finished, log reused
+14:44:39 HTTP/WebDAV server online at 8892
+14:44:39 Server online at 1112 (pid 1)
+14:50:03 Server received signal 2
+14:50:03 Initiating normal shutdown
+14:50:03 Checkpoint started
+14:50:03 Checkpoint finished, log reused
+14:50:03 Server shutdown complete
+
+		Fri Sep 13 2024
+14:50:05 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:50:05   FAILED  plugin 1: Unable to locate file }
+14:50:05 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:50:05   FAILED  plugin 2: Unable to locate file }
+14:50:05 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:50:05   FAILED  plugin 3: Unable to locate file }
+14:50:05 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:50:05   FAILED  plugin 4: Unable to locate file }
+14:50:05 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:50:05   FAILED  plugin 6: Unable to locate file }
+14:50:05 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:50:05   plain version 1.2.3240 from OpenLink Software
+14:50:05   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:50:05   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:50:05 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:50:05   ShapefileIO version 0.1virt71 from OpenLink Software
+14:50:05   Shapefile support based on Frank Warmerdam's Shapelib
+14:50:05   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:50:05 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:50:05   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:50:05   Support functions for GraphQL/SPARQL Bridge
+14:50:05   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:50:05 OpenLink Virtuoso Universal Server
+14:50:05 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:50:05 uses OpenSSL 1.1.1f  31 Mar 2020
+14:50:05 uses parts of PCRE, Html Tidy
+14:50:05 Database version 3126
+14:50:05 SQL Optimizer enabled (max 1000 layouts)
+14:50:06 Compiler unit is timed at 0.000092 msec
+14:50:06 Roll forward started
+14:50:06 Roll forward complete
+14:50:06 Checkpoint started
+14:50:06 Checkpoint finished, log reused
+14:50:06 HTTP/WebDAV server online at 8892
+14:50:06 Server online at 1112 (pid 1)
+14:56:27 Server received signal 2
+14:56:27 Initiating normal shutdown
+14:56:27 Checkpoint started
+14:56:27 Checkpoint finished, log reused
+14:56:27 Server shutdown complete
+
+		Fri Sep 13 2024
+14:56:29 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:56:29   FAILED  plugin 1: Unable to locate file }
+14:56:29 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:56:29   FAILED  plugin 2: Unable to locate file }
+14:56:29 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:56:29   FAILED  plugin 3: Unable to locate file }
+14:56:29 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:56:29   FAILED  plugin 4: Unable to locate file }
+14:56:29 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:56:29   FAILED  plugin 6: Unable to locate file }
+14:56:29 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:56:29   plain version 1.2.3240 from OpenLink Software
+14:56:29   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:56:29   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:56:29 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:56:29   ShapefileIO version 0.1virt71 from OpenLink Software
+14:56:29   Shapefile support based on Frank Warmerdam's Shapelib
+14:56:29   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:56:29 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:56:29   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:56:29   Support functions for GraphQL/SPARQL Bridge
+14:56:29   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:56:29 OpenLink Virtuoso Universal Server
+14:56:29 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:56:29 uses OpenSSL 1.1.1f  31 Mar 2020
+14:56:29 uses parts of PCRE, Html Tidy
+14:56:29 Database version 3126
+14:56:29 SQL Optimizer enabled (max 1000 layouts)
+14:56:30 Compiler unit is timed at 0.000089 msec
+14:56:30 Roll forward started
+14:56:30 Roll forward complete
+14:56:31 Checkpoint started
+14:56:31 Checkpoint finished, log reused
+14:56:31 HTTP/WebDAV server online at 8892
+14:56:31 Server online at 1112 (pid 1)
+14:57:34 Server received signal 2
+14:57:34 Initiating normal shutdown
+14:57:34 Checkpoint started
+14:57:34 Checkpoint finished, log reused
+14:57:34 Server shutdown complete
+
+		Fri Sep 13 2024
+14:57:35 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:57:35   FAILED  plugin 1: Unable to locate file }
+14:57:35 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:57:35   FAILED  plugin 2: Unable to locate file }
+14:57:35 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:57:35   FAILED  plugin 3: Unable to locate file }
+14:57:35 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:57:35   FAILED  plugin 4: Unable to locate file }
+14:57:35 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:57:35   FAILED  plugin 6: Unable to locate file }
+14:57:35 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:57:35   plain version 1.2.3240 from OpenLink Software
+14:57:35   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:57:35   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:57:35 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:57:35   ShapefileIO version 0.1virt71 from OpenLink Software
+14:57:35   Shapefile support based on Frank Warmerdam's Shapelib
+14:57:35   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:57:35 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:57:35   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:57:35   Support functions for GraphQL/SPARQL Bridge
+14:57:35   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:57:35 OpenLink Virtuoso Universal Server
+14:57:35 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:57:35 uses OpenSSL 1.1.1f  31 Mar 2020
+14:57:35 uses parts of PCRE, Html Tidy
+14:57:35 Database version 3126
+14:57:35 SQL Optimizer enabled (max 1000 layouts)
+14:57:36 Compiler unit is timed at 0.000089 msec
+14:57:37 Roll forward started
+14:57:37 Roll forward complete
+14:57:37 Checkpoint started
+14:57:37 Checkpoint finished, log reused
+14:57:37 HTTP/WebDAV server online at 8892
+14:57:37 Server online at 1112 (pid 1)
+14:57:53 Server received signal 2
+14:57:53 Initiating normal shutdown
+14:57:53 Checkpoint started
+14:57:53 Checkpoint finished, log reused
+14:57:53 Server shutdown complete
+
+		Fri Sep 13 2024
+14:57:55 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+14:57:55   FAILED  plugin 1: Unable to locate file }
+14:57:55 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+14:57:55   FAILED  plugin 2: Unable to locate file }
+14:57:55 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+14:57:55   FAILED  plugin 3: Unable to locate file }
+14:57:55 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+14:57:55   FAILED  plugin 4: Unable to locate file }
+14:57:55 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+14:57:55   FAILED  plugin 6: Unable to locate file }
+14:57:55 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+14:57:55   plain version 1.2.3240 from OpenLink Software
+14:57:55   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+14:57:55   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+14:57:55 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+14:57:55   ShapefileIO version 0.1virt71 from OpenLink Software
+14:57:55   Shapefile support based on Frank Warmerdam's Shapelib
+14:57:55   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+14:57:55 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+14:57:55   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+14:57:55   Support functions for GraphQL/SPARQL Bridge
+14:57:55   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+14:57:55 OpenLink Virtuoso Universal Server
+14:57:55 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+14:57:55 uses OpenSSL 1.1.1f  31 Mar 2020
+14:57:55 uses parts of PCRE, Html Tidy
+14:57:55 Database version 3126
+14:57:55 SQL Optimizer enabled (max 1000 layouts)
+14:57:57 Compiler unit is timed at 0.000092 msec
+14:57:57 Roll forward started
+14:57:57 Roll forward complete
+14:57:57 Checkpoint started
+14:57:57 Checkpoint finished, log reused
+14:57:57 HTTP/WebDAV server online at 8892
+14:57:57 Server online at 1112 (pid 1)
