@@ -17,15 +17,22 @@ class Filter:
     def human_readable_predicate(self, url: str, entity_classes: list, is_link: bool = True):
         subject_classes = [str(subject_class) for subject_class in entity_classes]
         if self.display_rules:
-            for diplay_rule in self.display_rules:
+            for display_rule in self.display_rules:
                 for subject_class in subject_classes:
-                    if subject_class in diplay_rule['class']:
+                    if subject_class == display_rule['class']:
                         if url == subject_class:
-                            return diplay_rule['displayName']
-                        for display_property in diplay_rule['displayProperties']:
+                            return display_rule['displayName']
+                        for display_property in display_rule['displayProperties']:
                             if display_property['property'] == str(url):
-                                for value in display_property['values']:
-                                    return value['displayName']
+                                if 'displayRules' in display_property:
+                                    # Se ci sono displayRules, restituisci il primo displayName trovato
+                                    return display_property['displayRules'][0]['displayName']
+                                elif 'displayName' in display_property:
+                                    # Se non ci sono displayRules ma c'è un displayName, restituiscilo
+                                    return display_property['displayName']
+
+        # Se non è stato trovato un displayName nelle regole di visualizzazione,
+        # procedi con la logica originale
         first_part, last_part = self.split_ns(url)
         if first_part in self.context:
             if last_part.islower():
@@ -45,7 +52,7 @@ class Filter:
             return f"<a href='{url_for('about', subject=quote(url))}' alt='{gettext('Link to the entity %(entity)s', entity=url)}'>{url}</a>"
         else:
             return url
-    
+
     def human_readable_datetime(self, dt_str):
         dt = dateutil.parser.parse(dt_str)
         return format_datetime(dt, format='long')

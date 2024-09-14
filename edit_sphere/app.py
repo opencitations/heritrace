@@ -19,7 +19,7 @@ from config import Config
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
-from rdflib import RDF, XSD, Graph, Literal, URIRef
+from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.namespace import XSD
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.algebra import translateQuery, translateUpdate
@@ -93,15 +93,15 @@ def stop_containers():
         except Exception as e:
             print(f"Error stopping container {container_name}: {str(e)}")
 
-def signal_handler(sig, frame):
-    print("Shutting down...")
-    stop_containers()
-    sys.exit(0)
+# def signal_handler(sig, frame):
+#     print("Shutting down...")
+#     stop_containers()
+#     sys.exit(0)
 
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
+# signal.signal(signal.SIGINT, signal_handler)
+# signal.signal(signal.SIGTERM, signal_handler)
 
-atexit.register(stop_containers)
+# atexit.register(stop_containers)
 
 def setup_database(db_type, db_triplestore, db_url, docker_image, docker_port, docker_isql_port, volume_path):
     global containers
@@ -264,6 +264,12 @@ initialize_app()
 def is_virtuoso():
     return Config.DATASET_DB_TRIPLESTORE.lower() == 'virtuoso'
 
+def is_dataset_quadstore():
+    return Config.DATASET_IS_QUADSTORE
+
+def is_provenance_quadstore():
+    return Config.PROVENANCE_IS_QUADSTORE
+
 @app.route('/')
 def index():
     return render_template('index.jinja')
@@ -354,7 +360,10 @@ def create_entity():
             editor.import_entity(entity_uri)
             editor.preexisting_finished()
 
-            editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type))
+            # Generate a default graph URI if using a quadstore
+            default_graph_uri = URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
+
+            editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type), default_graph_uri)
 
             for predicate, values in properties.items():
                 if not isinstance(values, list):
@@ -373,39 +382,42 @@ def create_entity():
                     for i, value in enumerate(values):
                         if isinstance(value, dict) and 'entity_type' in value:
                             nested_uri = generate_unique_uri(value['entity_type'])
-                            editor.create(entity_uri, URIRef(predicate), nested_uri)
-                            create_nested_entity(editor, nested_uri, value)
+                            editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
+                            create_nested_entity(editor, nested_uri, value, default_graph_uri)
                             
                             if previous_entity:
-                                editor.create(previous_entity, URIRef(ordered_by), nested_uri)
+                                editor.create(previous_entity, URIRef(ordered_by), nested_uri, default_graph_uri)
                             previous_entity = nested_uri
                 else:
                     # Handle non-ordered properties
                     for value in values:
                         if isinstance(value, dict) and 'entity_type' in value:
                             nested_uri = generate_unique_uri(value['entity_type'])
-                            editor.create(entity_uri, URIRef(predicate), nested_uri)
-                            create_nested_entity(editor, nested_uri, value)
+                            editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
+                            create_nested_entity(editor, nested_uri, value, default_graph_uri)
                         else:
                             object_value = URIRef(value) if validators.url(value) else Literal(value)
-                            editor.create(entity_uri, URIRef(predicate), object_value)
+                            editor.create(entity_uri, URIRef(predicate), object_value, default_graph_uri)
         else:
             properties = structured_data.get('properties', {})
             
-            # Genera un URI per l'entità
+            # Generate a URI for the entity
             entity_uri = generate_unique_uri()
             editor.import_entity(entity_uri)
             editor.preexisting_finished()
+
+            # Generate a default graph URI if using a quadstore
+            default_graph_uri = URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
 
             for predicate, values in properties.items():
                 if not isinstance(values, list):
                     values = [values]
                 for value_dict in values:
                     if value_dict['type'] == 'uri':
-                        editor.create(entity_uri, URIRef(predicate), URIRef(value_dict['value']))
+                        editor.create(entity_uri, URIRef(predicate), URIRef(value_dict['value']), default_graph_uri)
                     elif value_dict['type'] == 'literal':
                         datatype = URIRef(value_dict['datatype']) if 'datatype' in value_dict else XSD.string
-                        editor.create(entity_uri, URIRef(predicate), Literal(value_dict['value'], datatype=datatype))
+                        editor.create(entity_uri, URIRef(predicate), Literal(value_dict['value'], datatype=datatype), default_graph_uri)
 
         try:
             editor.save()
@@ -417,9 +429,9 @@ def create_entity():
 
     return render_template('create_entity.jinja', shacl=bool(shacl), entity_types=entity_types, form_fields=form_fields, datatype_options=datatype_options)
 
-def create_nested_entity(editor: Editor, entity_uri, entity_data):
+def create_nested_entity(editor: Editor, entity_uri, entity_data, graph_uri=None):
     # Add rdf:type
-    editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_data['entity_type']))
+    editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_data['entity_type']), graph_uri)
 
     # Add other properties
     for predicate, values in entity_data.get('properties', {}).items():
@@ -430,18 +442,18 @@ def create_nested_entity(editor: Editor, entity_uri, entity_data):
                 if 'intermediateRelation' in value:
                     intermediate_uri = generate_unique_uri(value['intermediateRelation']['class'])
                     target_uri = generate_unique_uri(value['entity_type'])
-                    editor.create(entity_uri, URIRef(predicate), intermediate_uri)
-                    editor.create(intermediate_uri, URIRef(value['intermediateRelation']['property']), target_uri)
-                    create_nested_entity(editor, target_uri, value)
+                    editor.create(entity_uri, URIRef(predicate), intermediate_uri, graph_uri)
+                    editor.create(intermediate_uri, URIRef(value['intermediateRelation']['property']), target_uri, graph_uri)
+                    create_nested_entity(editor, target_uri, value, graph_uri)
                 else:
                     # Handle nested entities
                     nested_uri = generate_unique_uri(value['entity_type'])
-                    editor.create(entity_uri, URIRef(predicate), nested_uri)
-                    create_nested_entity(editor, nested_uri, value)
+                    editor.create(entity_uri, URIRef(predicate), nested_uri, graph_uri)
+                    create_nested_entity(editor, nested_uri, value, graph_uri)
             else:
                 # Handle simple properties
                 object_value = URIRef(value) if validators.url(value) else Literal(value)
-                editor.create(entity_uri, URIRef(predicate), object_value)
+                editor.create(entity_uri, URIRef(predicate), object_value, graph_uri)
 
 def generate_unique_uri(entity_type=None):
     uri = Config.URI_GENERATOR.generate_uri(entity_type)
@@ -549,21 +561,29 @@ def apply_changes():
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
         editor.import_entity(URIRef(subject))
         editor.preexisting_finished()
+
+        graph_uri = None
+        if editor.dataset_is_quadstore:
+            for quad in editor.g_set.quads((URIRef(subject), None, None)):
+                graph_uri = quad[3]
+                break
+
         for change in changes:
             action = change["action"]
             predicate = change["predicate"]
             object_value = change["object"]
             if action == "create":
+                # Handle create action if needed
                 pass
             elif action == "delete":
-                delete_logic(editor, subject, predicate, object_value)
+                delete_logic(editor, subject, predicate, object_value, graph_uri)
             elif action == "update":
                 new_object_value = change["newObject"]
-                update_logic(editor, subject, predicate, object_value, new_object_value)
+                update_logic(editor, subject, predicate, object_value, new_object_value, graph_uri)
             elif action == "order":
                 new_order = change["object"]
                 ordered_by = change["newObject"]
-                order_logic(editor, subject, predicate, new_order, ordered_by)
+                order_logic(editor, subject, predicate, new_order, ordered_by, graph_uri)
         editor.save()
         return jsonify(status="success", message=gettext("Changes applied successfully")), 201
     except ValueError as ve:
@@ -573,24 +593,24 @@ def apply_changes():
         app.logger.error(error_message)
         return jsonify(status="error", message=gettext("An error occurred while applying changes")), 500
 
-def update_logic(editor: Editor, subject, predicate, old_value, new_value):
+def update_logic(editor: Editor, subject, predicate, old_value, new_value, graph_uri=None):
     new_value, old_value, report_text = validate_new_triple(subject, predicate, new_value, old_value)
     if shacl:
         if new_value is None:
             raise ValueError(report_text)
     else:
         new_value = Literal(new_value, datatype=old_value.datatype) if old_value.datatype and isinstance(old_value, Literal) else Literal(new_value, datatype=XSD.string) if isinstance(old_value, Literal) else URIRef(new_value)
-    editor.update(URIRef(subject), URIRef(predicate), old_value, new_value)    
+    editor.update(URIRef(subject), URIRef(predicate), old_value, new_value, graph_uri)
 
-def delete_logic(editor: Editor, subject, predicate, object_value):
+def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=None):
     if shacl:
         data_graph = fetch_data_graph_for_subject(subject)
         _, can_be_deleted, _, _, _, _ = get_valid_predicates(list(data_graph.triples((URIRef(subject), None, None))))
         if predicate not in can_be_deleted:
-            raise(ValueError, gettext('This property cannot be deleted'))
-    editor.delete(subject, predicate, object_value)
+            raise ValueError(gettext('This property cannot be deleted'))
+    editor.delete(subject, predicate, object_value, graph_uri)
 
-def order_logic(editor: Editor, subject, predicate, new_order, ordered_by):
+def order_logic(editor: Editor, subject, predicate, new_order, ordered_by, graph_uri=None):
     def order_by_next(data):
         # Costruisci una mappa dove la chiave è l'entity e il valore è il next
         next_map = {entity: next_val for entity, next_val in data}
@@ -623,11 +643,12 @@ def order_logic(editor: Editor, subject, predicate, new_order, ordered_by):
     editor.preexisting_finished()
     for entity, next_val in old_next_map.items():
         if next_val is not None:
-            editor.delete(URIRef(entity), URIRef(ordered_by), next_val)
+            editor.delete(URIRef(entity), URIRef(ordered_by), next_val, graph_uri)
+    
     for idx, entity in enumerate(new_order):
         if idx < len(new_order) - 1:
             next_entity = new_order[idx + 1]
-            editor.create(URIRef(entity), URIRef(ordered_by), URIRef(next_entity))
+            editor.create(URIRef(entity), URIRef(ordered_by), URIRef(next_entity), graph_uri)
 
 @app.route('/search')
 def search():
@@ -767,6 +788,7 @@ def entity_version(entity_uri, timestamp):
     triples = list(version.triples((None, None, None)))
     relevant_properties = set()
     _, _, _, _, _, subject_classes, valid_predicates = get_valid_predicates(triples)
+
     grouped_triples, relevant_properties = get_grouped_triples(entity_uri, triples, subject_classes, valid_predicates)
 
     if relevant_properties:
@@ -843,11 +865,28 @@ def parse_sparql_update(query):
     translated = translateUpdate(parsed).algebra
     modifications = {gettext('Deletions'): [], gettext('Additions'): []}
 
+    def extract_quads(quads):
+        result = []
+        if isinstance(quads, defaultdict):
+            for graph, triples in quads.items():
+                for triple in triples:
+                    result.append((triple[0], triple[1], triple[2]))
+        else:
+            # Fallback for triples
+            result.extend(quads)
+        return result
+
     for operation in translated:
         if operation.name == "DeleteData":
-            modifications[gettext('Deletions')].extend(operation.triples)
+            if hasattr(operation, 'quads'):
+                modifications[gettext('Deletions')].extend(extract_quads(operation.quads))
+            else:
+                modifications[gettext('Deletions')].extend(operation.triples)
         elif operation.name == "InsertData":
-            modifications[gettext('Additions')].extend(operation.triples)
+            if hasattr(operation, 'quads'):
+                modifications[gettext('Additions')].extend(extract_quads(operation.quads))
+            else:
+                modifications[gettext('Additions')].extend(operation.triples)
 
     return modifications
 
@@ -895,7 +934,7 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     property_exists = [row.property for row in results]
     if not property_exists:
         return None, old_value, gettext('The property %(predicate)s is not allowed for resources of type %(s_type)s', predicate=filter.human_readable_predicate(predicate, s_types), s_type=filter.human_readable_predicate(s_types[0], s_types))
-    datatypes = [row.datatype for row in results]
+    datatypes = [row.datatype for row in results if row.datatype is not None]
     classes = [row.a_class for row in results if row.a_class]
     classes.extend([row.classIn for row in results if row.classIn])
     optional_values_str = [row.optionalValues for row in results if row.optionalValues]
@@ -915,10 +954,100 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
         if valid_value is None:
             return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=filter.human_readable_predicate(new_value, s_types), property=filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{filter.human_readable_predicate(datatype, s_types)}</code>' for datatype in datatypes]))
         return valid_value, old_value, ''
-    valid_value = Literal(new_value, datatype=old_value.datatype) if old_value.datatype and isinstance(old_value, Literal) else Literal(new_value) if isinstance(old_value, Literal) else URIRef(new_value)
+    # Se non ci sono datatypes o classes specificati, determiniamo il tipo in base a old_value e new_value
+    if isinstance(old_value, Literal):
+        if old_value.datatype:
+            valid_value = Literal(new_value, datatype=old_value.datatype)
+        else:
+            valid_value = Literal(new_value)
+    elif isinstance(old_value, URIRef) or validators.url(new_value):
+        valid_value = URIRef(new_value)
+    else:
+        valid_value = Literal(new_value)
     return valid_value, old_value, ''
 
 def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info):
+    grouped_triples = OrderedDict()
+    relevant_properties = set()
+    fetched_values_map = dict()  # Mappa dei valori originali ai valori restituiti dalla query
+    primary_properties = valid_predicates_info
+    for prop_uri in primary_properties:
+        if display_rules:
+            matched_rules = [rule for rule in display_rules if URIRef(rule['class']) in subject_classes and any(p['property'] == prop_uri for p in rule['displayProperties'])]
+            if matched_rules:
+                rule = matched_rules[0]
+                for prop in rule['displayProperties']:
+                    if prop['property'] == prop_uri:
+                        if 'displayRules' in prop:
+                            for display_rule in prop['displayRules']:
+                                display_name = display_rule.get('displayName', prop_uri)
+                                relevant_properties.add(prop_uri)
+                                process_display_rule(display_name, prop_uri, display_rule, subject, triples, grouped_triples, fetched_values_map)
+                        else:
+                            display_name = prop.get('displayName', prop_uri)
+                            relevant_properties.add(prop_uri)
+                            process_display_rule(display_name, prop_uri, prop, subject, triples, grouped_triples, fetched_values_map)
+
+                        if prop.get('orderedBy'):
+                            grouped_triples[display_name]['is_draggable'] = True
+                            order_property = prop['orderedBy']
+                            process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map)
+            else:
+                process_default_property(prop_uri, triples, grouped_triples)
+        else:
+            process_default_property(prop_uri, triples, grouped_triples)
+
+    if display_rules:
+        ordered_display_names = []
+        for rule in display_rules:
+            if URIRef(rule['class']) in subject_classes:
+                for prop in rule['displayProperties']:
+                    if 'displayRules' in prop:
+                        for display_rule in prop['displayRules']:
+                            display_name = display_rule.get('displayName', prop['property'])
+                            if display_name in grouped_triples:
+                                ordered_display_names.append(display_name)
+                    else:
+                        display_name = prop.get('displayName', prop['property'])
+                        if display_name in grouped_triples:
+                            ordered_display_names.append(display_name)
+        for display_name in grouped_triples.keys():
+            if display_name not in ordered_display_names:
+                ordered_display_names.append(display_name)
+    else:
+        ordered_display_names = list(grouped_triples.keys())
+    grouped_triples = OrderedDict((k, grouped_triples[k]) for k in ordered_display_names)
+    return grouped_triples, relevant_properties
+
+def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped_triples, fetched_values_map):
+    if display_name not in grouped_triples:
+        grouped_triples[display_name] = {
+            'property': prop_uri,
+            'triples': []
+        }
+    for triple in triples:
+        if str(triple[1]) == prop_uri:
+            if rule.get('fetchValueFromQuery'):
+                result, external_entity = execute_sparql_query(rule['fetchValueFromQuery'], subject, triple[2])
+                if result:
+                    fetched_values_map[result] = str(triple[2])
+                    new_triple = (str(triple[0]), str(triple[1]), str(result))
+                    existing_values = [t['triple'][2] for t in grouped_triples[display_name]['triples']]
+                    if new_triple[2] not in existing_values:
+                        new_triple_data = {
+                            'triple': new_triple,
+                            'external_entity': external_entity,
+                            'object': str(triple[2])
+                        }
+                        grouped_triples[display_name]['triples'].append(new_triple_data)
+            else:
+                new_triple_data = {
+                    'triple': (str(triple[0]), str(triple[1]), str(triple[2])),
+                    'object': str(triple[2])
+                }
+                grouped_triples[display_name]['triples'].append(new_triple_data)
+
+def process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map):
     def get_ordered_sequence(order_results):
         order_map = {}
         for res in order_results:
@@ -934,135 +1063,96 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
                 current_element = order_map[current_element]
             all_sequences.append(sequence)
         return all_sequences
+        
+    order_query = f"""
+        SELECT ?orderedEntity (COALESCE(?next, "NONE") AS ?nextValue)
+        WHERE {{
+            <{subject}> <{prop['property']}> ?orderedEntity.
+            OPTIONAL {{
+                ?orderedEntity <{order_property}> ?next.
+            }}
+        }}
+    """
+    sparql.setQuery(order_query)
+    sparql.setReturnFormat(JSON)
+    order_results = sparql.query().convert().get("results", {}).get("bindings", [])
+    order_sequences = get_ordered_sequence(order_results)
+    for sequence in order_sequences:
+        grouped_triples[display_name]['triples'].sort(
+            key=lambda x: sequence.index(fetched_values_map.get(x['triple'][2], x['triple'][2])) if fetched_values_map.get(x['triple'][2], x['triple'][2]) in sequence else float('inf'))
 
-    grouped_triples = OrderedDict()
-    relevant_properties = set()
-    fetched_values_map = dict()  # Mappa dei valori originali ai valori restituiti dalla query
-    primary_properties = valid_predicates_info
-    for prop_uri in primary_properties:
-        if display_rules:
-            matched_rules = [rule for rule in display_rules if URIRef(rule['class']) in subject_classes and any(p['property'] == prop_uri for p in rule['displayProperties'])]
-            if matched_rules:
-                rule = matched_rules[0]
-                for prop in rule['displayProperties']:
-                    if prop['property'] == prop_uri:
-                        for value in prop['values']:
-                            display_name = value['displayName']
-                            relevant_properties.add(prop_uri)
-                            for triple in triples:
-                                if str(triple[1]) == prop_uri:
-                                    if display_name not in grouped_triples:
-                                        grouped_triples[display_name] = {
-                                            'property': prop_uri,
-                                            'triples': []
-                                        }
-                                    if value.get('fetchValueFromQuery', False):
-                                        result, external_entity = execute_sparql_query(value['fetchValueFromQuery'], subject, triple[2])
-                                        if result:
-                                            fetched_values_map[result] = str(triple[2])
-                                            new_triple = (str(triple[0]), str(triple[1]), str(result))
-                                            existing_values = [t['triple'][2] for t in grouped_triples[display_name]['triples']]
-                                            if new_triple[2] not in existing_values:
-                                                new_triple_data = {
-                                                    'triple': new_triple,
-                                                    'external_entity': external_entity,
-                                                    'object': str(triple[2])
-                                                }
-                                                grouped_triples[display_name]['triples'].append(new_triple_data)
-                                    else:
-                                        new_triple_data = {
-                                            'triple': (str(triple[0]), str(triple[1]), str(triple[2])),
-                                            'object': str(triple[2])
-                                        }
-                                        grouped_triples[display_name]['triples'].append(new_triple_data)
-                                    if prop.get('orderedBy'):
-                                        grouped_triples[display_name]['is_draggable'] = True
-                                        order_property = prop['orderedBy']
-                                        order_query = f"""
-                                            SELECT ?orderedEntity (COALESCE(?next, "NONE") AS ?nextValue)
-                                            WHERE {{
-                                                <{subject}> <{prop['property']}> ?orderedEntity.
-                                                OPTIONAL {{
-                                                    ?orderedEntity <{order_property}> ?next.
-                                                }}
-                                            }}
-                                        """
-                                        sparql.setQuery(order_query)
-                                        sparql.setReturnFormat(JSON)
-                                        order_results = sparql.query().convert().get("results", {}).get("bindings", [])
-                                        order_sequences = get_ordered_sequence(order_results)
-                                        for sequence in order_sequences:
-                                            grouped_triples[display_name]['triples'].sort(
-                                                key=lambda x: sequence.index(fetched_values_map.get(x['triple'][2], x['triple'][2])) if fetched_values_map.get(x['triple'][2], x['triple'][2]) in sequence else float('inf'))
-            else:
-                display_name = prop_uri
-                grouped_triples[display_name] = {
-                    'property': prop_uri,
-                    'triples': []
-                }
-                triples_for_prop = [triple for triple in triples if str(triple[1]) == prop_uri]
-                for triple in triples_for_prop:
-                    new_triple_data = {
-                        'triple': (str(triple[0]), str(triple[1]), str(triple[2])),
-                        'object': str(triple[2])
-                    }
-                    grouped_triples[display_name]['triples'].append(new_triple_data)
-        else:
-            display_name = prop_uri
-            grouped_triples[display_name] = {
-                'property': prop_uri,
-                'triples': []
-            }
-            triples_for_prop = [triple for triple in triples if str(triple[1]) == str(prop_uri)]
-            for triple in triples_for_prop:
-                new_triple_data = {
-                    'triple': (str(triple[0]), str(triple[1]), str(triple[2])),
-                    'object': str(triple[2])
-                }
-                grouped_triples[display_name]['triples'].append(new_triple_data)
-
-    if display_rules:
-        ordered_display_names = []
-        for rule in display_rules:
-            if URIRef(rule['class']) in subject_classes:
-                for prop in rule['displayProperties']:
-                    for value in prop['values']:
-                        if value['displayName'] in grouped_triples:
-                            ordered_display_names.append(value['displayName'])
-        for display_name in grouped_triples.keys():
-            if display_name not in ordered_display_names:
-                ordered_display_names.append(display_name)
-    else:
-        ordered_display_names = list(grouped_triples.keys())
-    grouped_triples = OrderedDict((k, grouped_triples[k]) for k in ordered_display_names)
-    return grouped_triples, relevant_properties
-
-def property_order_index(prop, subject_classes):
-    """Return the index of a property based on its order in the configuration file."""
-    for rule in display_rules:
-        if rule['class'] in subject_classes:
-            for index, prop_config in enumerate(rule['displayProperties']):
-                if prop_config['property'] == prop:
-                    return index
-    return float('inf')
+def process_default_property(prop_uri, triples, grouped_triples):
+    display_name = prop_uri
+    grouped_triples[display_name] = {
+        'property': prop_uri,
+        'triples': []
+    }
+    triples_for_prop = [triple for triple in triples if str(triple[1]) == prop_uri]
+    for triple in triples_for_prop:
+        new_triple_data = {
+            'triple': (str(triple[0]), str(triple[1]), str(triple[2])),
+            'object': str(triple[2])
+        }
+        grouped_triples[display_name]['triples'].append(new_triple_data)
 
 def fetch_data_graph_for_subject(subject_uri):
-    """
-    Fetch all triples associated with subject.
-    """
-    query_str = f'''
+    if is_dataset_quadstore():
+        query = f"""
+        SELECT ?g ?p ?o (LANG(?o) AS ?lang)
+        WHERE {{
+            GRAPH ?g {{
+                <{subject_uri}> ?p ?o .
+            }}
+        }}
+        """
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        try:
+            results = sparql.query().convert()
+            g = ConjunctiveGraph()
+            for result in results["results"]["bindings"]:
+                s = URIRef(subject_uri)
+                p = URIRef(result["p"]["value"])
+                obj_data = result["o"]
+                
+                if obj_data["type"] == "uri":
+                    o = URIRef(obj_data["value"])
+                else:
+                    value = obj_data["value"]
+                    lang = result.get("lang", {}).get("value")
+                    datatype = obj_data.get("datatype")
+                    
+                    if lang:
+                        o = Literal(value, lang=lang)
+                    elif datatype:
+                        o = Literal(value, datatype=URIRef(datatype))
+                    else:
+                        o = Literal(value)
+                
+                g_context = URIRef(result["g"]["value"])
+                g.add((s, p, o, g_context))
+            return g
+        except Exception as e:
+            app.logger.error(f"Error fetching data for {subject_uri}: {str(e)}")
+            return None
+    else:
+        query = f"""
         CONSTRUCT {{
             <{subject_uri}> ?p ?o .
         }}
         WHERE {{
             <{subject_uri}> ?p ?o .
         }}
-    '''
-    sparql.setQuery(query_str)
-    sparql.setReturnFormat(XML)
-    result = sparql.queryAndConvert()
-    return result
-
+        """
+        sparql.setQuery(query)
+        sparql.setReturnFormat(XML)
+        try:
+            result = sparql.query().convert()
+            return result
+        except Exception as e:
+            app.logger.error(f"Error fetching data for {subject_uri}: {str(e)}")
+            return None
+            
 def is_valid_uri(uri):
     parsed_uri = urlparse(uri)
     return all([parsed_uri.scheme, parsed_uri.netloc])
@@ -1265,6 +1355,8 @@ def get_form_fields_from_shacl():
             if entity_class and entity_class in form_fields:
                 for prop in rule.get('displayProperties', []):
                     if prop['property'] in form_fields[entity_class]:
+                        form_fields[entity_class][prop['property']]['displayName'] = prop.get('displayName')
+                        form_fields[entity_class][prop['property']]['shouldBeDisplayed'] = prop.get('shouldBeDisplayed', True)
                         if 'orderedBy' in prop:
                             form_fields[entity_class][prop['property']]['orderedBy'] = prop['orderedBy']
                         
@@ -1299,9 +1391,9 @@ def get_form_fields_from_shacl():
                                 "properties": form_fields[target_entity_type] if target_entity_type in form_fields else {},
                             }
 
-                        if 'values' in prop:
+                        if 'displayRules' in prop:
                             # Crea campi separati per ogni valore
-                            for value in prop['values']:
+                            for value in prop['displayRules']:
                                 display_name = value['displayName']
                                 new_field_name = f"{prop['property']}_{display_name}"
                                 
@@ -1317,23 +1409,42 @@ def get_form_fields_from_shacl():
                                     "nestedShape": form_fields[entity_class][prop['property']].get("nestedShape"),
                                     "displayName": display_name,
                                     "optionalValues": form_fields[entity_class][prop['property']].get("optionalValues", []),
-                                    "orderedBy": prop.get('orderedBy')
+                                    "orderedBy": form_fields[entity_class][prop['property']].get('orderedBy')
                                 }
 
                                 if 'intermediateRelation' in form_fields[entity_class][prop['property']]:
                                     new_field['intermediateRelation'] = form_fields[entity_class][prop['property']]['intermediateRelation']
 
-                                # Aggiungi tutte le proprietà specificate nello YAML
-                                if 'properties' in value:
+                                # Aggiungi le proprietà addizionali dalla shape SHACL
+                                if 'shape' in value:
+                                    shape_uri = value['shape']
+                                    additional_properties_query = prepareQuery("""
+                                        SELECT ?predicate ?hasValue
+                                        WHERE {
+                                            ?shape a sh:NodeShape ;
+                                                   sh:property ?property .
+                                            ?property sh:path ?predicate ;
+                                                     sh:hasValue ?hasValue .
+                                        }
+                                    """, initNs={"sh": "http://www.w3.org/ns/shacl#"})
+                                    
+                                    additional_properties_results = shacl.query(additional_properties_query, initBindings={
+                                        'shape': URIRef(shape_uri)
+                                    })
+                                    
                                     additional_properties = {}
-                                    for additional_prop in value['properties']:
-                                        additional_properties[additional_prop['property']] = additional_prop['value']
-                                    new_field['additionalProperties'] = additional_properties
+                                    for row in additional_properties_results:
+                                        predicate = str(row.predicate)
+                                        has_value = str(row.hasValue)
+                                        additional_properties[predicate] = has_value
+                                    
+                                    if additional_properties:
+                                        new_field['additionalProperties'] = additional_properties
 
                                 form_fields[entity_class][new_field_name] = new_field
 
                             # Rimuovi il campo originale solo se abbiamo creato nuovi campi
-                            if len(prop['values']) > 0:
+                            if len(prop['displayRules']) > 0:
                                 del form_fields[entity_class][prop['property']]
     
     ordered_form_fields = OrderedDict()
@@ -1346,13 +1457,8 @@ def get_form_fields_from_shacl():
                 for prop in ordered_properties:
                     if prop in form_fields[entity_class]:
                         ordered_form_fields[entity_class][prop] = form_fields[entity_class][prop]
-                    else:
-                        # Cerca i campi che iniziano con la proprietà (per i campi separati)
-                        for field_name, field_value in form_fields[entity_class].items():
-                            if field_name.startswith(prop):
-                                ordered_form_fields[entity_class][field_name] = field_value
                 for prop in form_fields[entity_class]:
-                    if prop not in ordered_properties and not any(prop.startswith(op) for op in ordered_properties):
+                    if prop not in ordered_properties:
                         ordered_form_fields[entity_class][prop] = form_fields[entity_class][prop]
     else:
         ordered_form_fields = form_fields

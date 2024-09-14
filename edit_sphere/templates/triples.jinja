@@ -43,7 +43,7 @@
                             data-predicate="{{ triple[1] }}" 
                             data-object="{{ externalEntity if externalEntity else triple[2] }}"
                             {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]])) %}disabled{% endif %}>
-                        <i class="bi bi-trash"></i> <!-- Icona di cancellazione -->
+                        <i class="bi bi-trash"></i>
                     </button>
                 {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]])) %}
                     </div>
@@ -123,6 +123,7 @@
                 {% endif %}
             </div>
             {{ add_form() }}
+
             {% for display_name, data in grouped_triples.items() %}
                 <div class="predicate-group mb-4">
                     {% if data['triples'] %}
@@ -186,7 +187,7 @@
                 return
             }
             const selectedPredicate = $('.predicate-select').val();
-            if (optional_values[selectedPredicate].length > 0) {
+            if (optional_values[selectedPredicate] && optional_values[selectedPredicate].length > 0) {
                 $('.object-input-text').hide().prop('disabled', true);
                 $('.object-input').show().prop('disabled', false).find('option').hide().filter(`[data-predicate="${selectedPredicate}"]`).show();
             } else {

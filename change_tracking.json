@@ -4,18 +4,18 @@
             "http://localhost:8892/sparql"
         ],
         "file_paths": [],
-        "is_quadstore": false
+        "is_quadstore": true
     },
     "provenance": {
         "triplestore_urls": [
             "http://localhost:8893/sparql"
         ],
         "file_paths": [],
-        "is_quadstore": false
+        "is_quadstore": true
     },
-    "blazegraph_full_text_search": "yes",
+    "blazegraph_full_text_search": "no",
     "fuseki_full_text_search": "no",
-    "virtuoso_full_text_search": "no",
+    "virtuoso_full_text_search": "yes",
     "graphdb_connector_name": "",
     "cache_triplestore_url": {
         "endpoint": "",

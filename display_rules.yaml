@@ -2,16 +2,12 @@
   displayName: "Journal Article"
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-      values:
-      - displayName: "Type"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Type"
+      shouldBeDisplayed: true
     - property: "http://purl.org/spar/datacite/hasIdentifier"
-      values:
-      - displayName: "Identifier"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+      displayName: "Identifier"
+      shouldBeDisplayed: true
+      fetchValueFromQuery: |
             PREFIX datacite: <http://purl.org/spar/datacite/>
             PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
             SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
@@ -21,24 +17,18 @@
                 ?identifier datacite:usesIdentifierScheme ?scheme;
                             literal:hasLiteralValue ?literal.
             }
-      orderedBy: null
     - property: "http://purl.org/dc/terms/title"
-      values:
-      - displayName: "Title"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Title"
+      shouldBeDisplayed: true
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
+      orderedBy: "https://w3id.org/oc/ontology/hasNext"
       intermediateRelation:
         class: "http://purl.org/spar/pro/RoleInTime"
         targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
-      values:
-      - displayName: "Author"
-        properties:
-          - property: "http://purl.org/spar/pro/withRole"
-            value: "http://purl.org/spar/pro/author"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+      displayRules:
+        - shape: "http://schema.org/AuthorShape"
+          displayName: "Author"
+          fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>
             PREFIX foaf: <http://xmlns.com/foaf/0.1/>
             SELECT DISTINCT ?formattedName ?ra WHERE {
@@ -57,36 +47,9 @@
                     ) AS ?formattedName
                 )
             }
-      - displayName: "Publisher"
-        properties:
-          - property: "http://purl.org/spar/pro/withRole"
-            value: "http://purl.org/spar/pro/publisher"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-            PREFIX pro: <http://purl.org/spar/pro/>
-            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            SELECT DISTINCT ?formattedName ?ra WHERE {
-                [[value]] pro:isHeldBy ?ra;
-                    pro:withRole pro:publisher.
-                OPTIONAL { ?ra foaf:name ?name. }
-                OPTIONAL { ?ra foaf:familyName ?familyName. }
-                OPTIONAL { ?ra foaf:givenName ?givenName. }
-                BIND(
-                    IF(BOUND(?name), ?name,
-                        IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                            IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                                IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                            )
-                        )
-                    ) AS ?formattedName
-                )
-            }
-      - displayName: "Editor"
-        properties:
-          - property: "http://purl.org/spar/pro/withRole"
-            value: "http://purl.org/spar/pro/editor"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+        - shape: "http://schema.org/EditorShape"
+          displayName: "Editor"
+          fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>
             PREFIX foaf: <http://xmlns.com/foaf/0.1/>
             SELECT DISTINCT ?formattedName ?ra WHERE {
@@ -105,18 +68,34 @@
                     ) AS ?formattedName
                 )
             }
-      orderedBy: "https://w3id.org/oc/ontology/hasNext"
+        - shape: "http://schema.org/PublisherShape"
+          displayName: "Publisher"
+          fetchValueFromQuery: |
+            PREFIX pro: <http://purl.org/spar/pro/>
+            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+            SELECT DISTINCT ?formattedName ?ra WHERE {
+                [[value]] pro:isHeldBy ?ra;
+                    pro:withRole pro:publisher.
+                OPTIONAL { ?ra foaf:name ?name. }
+                OPTIONAL { ?ra foaf:familyName ?familyName. }
+                OPTIONAL { ?ra foaf:givenName ?givenName. }
+                BIND(
+                    IF(BOUND(?name), ?name,
+                        IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                            IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                                IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                            )
+                        )
+                    ) AS ?formattedName
+                )
+            }
     - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
-      values:
-      - displayName: "Publication Date"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Publication Date"
+      shouldBeDisplayed: true
     - property: "http://purl.org/vocab/frbr/core#embodiment"
-      values:
-      - displayName: "Page"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+      displayName: "Page"
+      shouldBeDisplayed: true
+      fetchValueFromQuery: |
           PREFIX frbr: <http://purl.org/vocab/frbr/core#>
           PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
           SELECT 
@@ -130,12 +109,11 @@
               OPTIONAL { ?re prism:startingPage ?startingPage. }
               OPTIONAL { ?re prism:endingPage ?endingPage. }
           }
-      orderedBy: null
     - property: "http://purl.org/vocab/frbr/core#partOf"
-      values:
-      - displayName: "Issue"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+      displayRules:
+        - shape: "http://schema.org/IssueShape"
+          displayName: "Issue"
+          fetchValueFromQuery: |
             PREFIX fabio: <http://purl.org/spar/fabio/>
             PREFIX frbr: <http://purl.org/vocab/frbr/core#>
             SELECT ?issueNumber ?issue
@@ -144,9 +122,9 @@
                 ?issue a fabio:JournalIssue;
                     fabio:hasSequenceIdentifier ?issueNumber.
             }
-      - displayName: "Volume"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+        - shape: "http://schema.org/VolumeShape"
+          displayName: "Volume"
+          fetchValueFromQuery: |
             PREFIX fabio: <http://purl.org/spar/fabio/>
             PREFIX frbr: <http://purl.org/vocab/frbr/core#>
             PREFIX foaf: <http://xmlns.com/foaf/0.1/>
@@ -156,9 +134,9 @@
                 ?volume a fabio:JournalVolume;
                     fabio:hasSequenceIdentifier ?volumeNumber.
             }
-      - displayName: "Journal"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+        - shape: "http://schema.org/JournalShape"
+          displayName: "Journal"
+          fetchValueFromQuery: |
             PREFIX fabio: <http://purl.org/spar/fabio/>
             PREFIX frbr: <http://purl.org/vocab/frbr/core#>
             PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -168,22 +146,17 @@
                 ?journal a fabio:Journal;
                     dcterms:title ?journalName.
             }
-      orderedBy: null
 
-- class: "http://purl.org/spar/fabio/Expression"
-  displayName: "Another Bibliographic Resource"
+- class: "http://purl.org/spar/fabio/Journal"
+  displayName: "Journal"
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-      values:
-      - displayName: "Type"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Type"
+      shouldBeDisplayed: true
     - property: "http://purl.org/spar/datacite/hasIdentifier"
-      values:
-      - displayName: "Identifier"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+      displayName: "Identifier"
+      shouldBeDisplayed: true
+      fetchValueFromQuery: |
             PREFIX datacite: <http://purl.org/spar/datacite/>
             PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
             SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
@@ -193,21 +166,100 @@
                 ?identifier datacite:usesIdentifierScheme ?scheme;
                             literal:hasLiteralValue ?literal.
             }
-      orderedBy: null
     - property: "http://purl.org/dc/terms/title"
-      values:
-      - displayName: "Title"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Title"
+      shouldBeDisplayed: true
+
+- class: "http://purl.org/spar/fabio/JournalVolume"
+  displayName: "Volume"
+  displayProperties:
+    - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+      displayName: "Type"
+      shouldBeDisplayed: true
+    - property: "http://purl.org/spar/fabio/hasSequenceIdentifier"
+      displayName: "Number"
+      shouldBeDisplayed: true
+    - property: "http://purl.org/vocab/frbr/core#partOf"
+      displayRules:
+        - shape: "http://schema.org/JournalShape"
+          displayName: "Journal"
+          fetchValueFromQuery: |
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+            PREFIX dcterms: <http://purl.org/dc/terms/>
+            SELECT ?journalName ?journal
+            WHERE {
+                [[subject]] frbr:partOf ?journal.
+                ?journal a fabio:Journal;
+                    dcterms:title ?journalName.
+            }
+
+- class: "http://purl.org/spar/fabio/JournalIssue"
+  displayName: "Issue"
+  displayProperties:
+    - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+      displayName: "Type"
+      shouldBeDisplayed: true
+    - property: "http://purl.org/spar/fabio/hasSequenceIdentifier"
+      displayName: "Number"
+      shouldBeDisplayed: true
+    - property: "http://purl.org/vocab/frbr/core#partOf"
+      displayRules:
+        - shape: "http://schema.org/VolumeShape"
+          displayName: "Volume"
+          fetchValueFromQuery: |
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+            SELECT ?volumeNumber ?volume
+            WHERE {
+                [[subject]] frbr:partOf ?volume.
+                ?volume a fabio:JournalVolume;
+                    fabio:hasSequenceIdentifier ?volumeNumber.
+            }
+        - shape: "http://schema.org/JournalShape"
+          displayName: "Journal"
+          fetchValueFromQuery: |
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+            PREFIX dcterms: <http://purl.org/dc/terms/>
+            SELECT ?journalName ?journal
+            WHERE {
+                [[subject]] frbr:partOf+ ?journal.
+                ?journal a fabio:Journal;
+                    dcterms:title ?journalName.
+            }
+
+- class: "http://purl.org/spar/fabio/Book"
+  displayName: "Book"
+  displayProperties:
+    - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+      displayName: "Type"
+      shouldBeDisplayed: true
+    - property: "http://purl.org/spar/datacite/hasIdentifier"
+      displayName: "Identifier"
+      shouldBeDisplayed: true
+      fetchValueFromQuery: |
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+            SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
+            WHERE {
+                [[subject]] datacite:hasIdentifier ?identifier.
+                BIND([[value]] AS ?identifier)
+                ?identifier datacite:usesIdentifierScheme ?scheme;
+                            literal:hasLiteralValue ?literal.
+            }
+    - property: "http://purl.org/dc/terms/title"
+      displayName: "Title"
+      shouldBeDisplayed: true
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
       intermediateRelation:
         class: "http://purl.org/spar/pro/RoleInTime"
         targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
-      values:
-      - displayName: "Author"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+      displayRules:
+        - shape: "http://schema.org/AuthorShape"
+          displayName: "Author"
+          fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>
             PREFIX foaf: <http://xmlns.com/foaf/0.1/>
             SELECT DISTINCT ?formattedName ?ra WHERE {
@@ -226,30 +278,9 @@
                     ) AS ?formattedName
                 )
             }
-      - displayName: "Publisher"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-            PREFIX pro: <http://purl.org/spar/pro/>
-            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            SELECT DISTINCT ?formattedName ?ra WHERE {
-                [[value]] pro:isHeldBy ?ra;
-                    pro:withRole pro:publisher.
-                OPTIONAL { ?ra foaf:name ?name. }
-                OPTIONAL { ?ra foaf:familyName ?familyName. }
-                OPTIONAL { ?ra foaf:givenName ?givenName. }
-                BIND(
-                    IF(BOUND(?name), ?name,
-                        IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                            IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                                IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                            )
-                        )
-                    ) AS ?formattedName
-                )
-            }
-      - displayName: "Editor"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+        - shape: "http://schema.org/EditorShape"
+          displayName: "Editor"
+          fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>
             PREFIX foaf: <http://xmlns.com/foaf/0.1/>
             SELECT DISTINCT ?formattedName ?ra WHERE {
@@ -268,18 +299,35 @@
                     ) AS ?formattedName
                 )
             }
+        - shape: "http://schema.org/PublisherShape"
+          displayName: "Publisher"
+          fetchValueFromQuery: |
+            PREFIX pro: <http://purl.org/spar/pro/>
+            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+            SELECT DISTINCT ?formattedName ?ra WHERE {
+                [[value]] pro:isHeldBy ?ra;
+                    pro:withRole pro:publisher.
+                OPTIONAL { ?ra foaf:name ?name. }
+                OPTIONAL { ?ra foaf:familyName ?familyName. }
+                OPTIONAL { ?ra foaf:givenName ?givenName. }
+                BIND(
+                    IF(BOUND(?name), ?name,
+                        IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                            IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                                IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                            )
+                        )
+                    ) AS ?formattedName
+                )
+            }
       orderedBy: "https://w3id.org/oc/ontology/hasNext"
     - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
-      values:
-      - displayName: "Publication Date"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Publication Date"
+      shouldBeDisplayed: true
     - property: "http://purl.org/vocab/frbr/core#embodiment"
-      values:
-      - displayName: "Page"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+      displayName: "Page"
+      shouldBeDisplayed: true
+      fetchValueFromQuery: |
           PREFIX frbr: <http://purl.org/vocab/frbr/core#>
           PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
           SELECT 
@@ -293,105 +341,49 @@
               OPTIONAL { ?re prism:startingPage ?startingPage. }
               OPTIONAL { ?re prism:endingPage ?endingPage. }
           }
-      orderedBy: null
     - property: "http://purl.org/vocab/frbr/core#partOf"
-      values:
-      - displayName: "Container"
-        shouldBeDisplayed: true
-      orderedBy: null
+      displayName: "Container"
+      shouldBeDisplayed: true
 
 - class: "http://purl.org/spar/datacite/Identifier"
   displayName: "Identifier"
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-      values:
-      - displayName: "Type"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Type"
+      shouldBeDisplayed: true
     - property: "http://purl.org/spar/datacite/usesIdentifierScheme"
-      values:
-      - displayName: "Identifier Scheme"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Identifier Scheme"
+      shouldBeDisplayed: true
     - property: "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
-      values:
-      - displayName: "Literal Value"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
-
-- class: "http://purl.org/spar/pro/RoleInTime"
-  displayName: "Agent Role"
-  displayProperties:
-    - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-      values:
-      - displayName: "Type"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
-    - property: "http://purl.org/spar/pro/withRole"
-      values:
-      - displayName: "Role"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
-    - property: "http://purl.org/spar/pro/isHeldBy"
-      values:
-      - displayName: "Held By"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
-    - property: "https://w3id.org/oc/ontology/hasNext"
-      values:
-      - displayName: "Next Role"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Literal Value"
+      shouldBeDisplayed: true
 
 - class: "http://purl.org/spar/fabio/Manifestation"
   displayName: "Page"
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-      values:
-      - displayName: "Type"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Type"
+      shouldBeDisplayed: true
     - property: "http://purl.org/dc/terms/format"
-      values:
-      - displayName: "Format"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Format"
+      shouldBeDisplayed: true
     - property: "http://prismstandard.org/namespaces/basic/2.0/startingPage"
-      values:
-      - displayName: "Starting Page"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Starting Page"
+      shouldBeDisplayed: true
     - property: "http://prismstandard.org/namespaces/basic/2.0/endingPage"
-      values:
-      - displayName: "Ending Page"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Ending Page"
+      shouldBeDisplayed: true
 
 - class: "http://xmlns.com/foaf/0.1/Agent"
   displayName: "Responsible Agent"
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-      values:
-      - displayName: "Type"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Type"
+      shouldBeDisplayed: true
     - property: "http://purl.org/spar/datacite/hasIdentifier"
-      values:
-      - displayName: "Identifier"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+      displayName: "Identifier"
+      shouldBeDisplayed: true
+      fetchValueFromQuery: |
             PREFIX datacite: <http://purl.org/spar/datacite/>
             PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
             SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
@@ -401,22 +393,12 @@
                 ?identifier datacite:usesIdentifierScheme ?scheme;
                             literal:hasLiteralValue ?literal.
             }
-      orderedBy: null
     - property: "http://xmlns.com/foaf/0.1/name"
-      values:
-      - displayName: "Name"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Name"
+      shouldBeDisplayed: true
     - property: "http://xmlns.com/foaf/0.1/givenName"
-      values:
-      - displayName: "Given Name"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Given Name"
+      shouldBeDisplayed: true
     - property: "http://xmlns.com/foaf/0.1/familyName"
-      values:
-      - displayName: "Family Name"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+      displayName: "Family Name"
+      shouldBeDisplayed: true

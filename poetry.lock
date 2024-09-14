@@ -808,13 +808,13 @@ networkx = ["networkx (>=2.0.0,<3.0.0)"]
 
 [[package]]
 name = "rdflib-ocdm"
-version = "0.3.8"
+version = "0.3.9"
 description = ""
 optional = false
-python-versions = "<4.0.0,>=3.7.4"
+python-versions = "<4.0.0,>=3.8"
 files = [
-    {file = "rdflib_ocdm-0.3.8-py3-none-any.whl", hash = "sha256:95578a00539e6fbdc550283df2a18c5650040bb46743d01b0d92cb5e26c5f528"},
-    {file = "rdflib_ocdm-0.3.8.tar.gz", hash = "sha256:8787c38cd966c51c983056977935516c8a5672f1b6820a6ea7a7862ed04e6f5f"},
+    {file = "rdflib_ocdm-0.3.9-py3-none-any.whl", hash = "sha256:bc1eef832dddf5a32b874fcc3e7fcf5ca81db8daf743704c8fa2b152175829da"},
+    {file = "rdflib_ocdm-0.3.9.tar.gz", hash = "sha256:e2390d8ef7bc1f44858c00829842df3fd75549bc41cf5d6d7993377689a22306"},
 ]
 
 [package.dependencies]
@@ -822,6 +822,7 @@ oc-ocdm = ">=7.1.7,<8.0.0"
 rdflib = ">=6.2.0,<7.0.0"
 redis = ">=4.5.5,<5.0.0"
 sparqlwrapper = ">=2.0.0,<3.0.0"
+time-agnostic-library = ">=4.4.1,<5.0.0"
 
 [[package]]
 name = "redis"
@@ -911,13 +912,13 @@ pandas = ["pandas (>=1.3.5)"]
 
 [[package]]
 name = "time-agnostic-library"
-version = "4.4.1"
+version = "4.4.2"
 description = "time-agnostic-library is a Python ≥3.7 library that allows performing time-travel queries on RDF datasets compliant with the OCDM v2.0.1 provenance specification."
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "time_agnostic_library-4.4.1-py3-none-any.whl", hash = "sha256:fa9065b4af51c559e63b5bdcb4aa6a6017f1420d6e2ed1cf9767d7554d38c087"},
-    {file = "time_agnostic_library-4.4.1.tar.gz", hash = "sha256:5df0cc2faf3bb1e3e5c1bdee65bcfce1467de00d3aaec188ad9511b4f114f47a"},
+    {file = "time_agnostic_library-4.4.2-py3-none-any.whl", hash = "sha256:e28e80e4916117bc33e91ef72a5894fdaeea546d824388b7167ecdd9433c9c5e"},
+    {file = "time_agnostic_library-4.4.2.tar.gz", hash = "sha256:06bbc6936d2c21f34729af55665187e1ec475a272560ddfa39934d8acef22361"},
 ]
 
 [package.dependencies]
@@ -1054,4 +1055,4 @@ email = ["email-validator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "39d7e1284626db6dfd3ffe7b4c663befa2b9db902c87b4fd187c545b00eddc01"
+content-hash = "0dbef1426d34b86ce125d26317fa9eb29eacde2c218c667c83fb36d29928451d"

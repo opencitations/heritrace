@@ -38,6 +38,9 @@ class Config(object):
     PROVENANCE_DB_DOCKER_ISQL_PORT = 1113
     PROVENANCE_DB_VOLUME_PATH = os.path.join(BASE_DIR, 'db_volumes', 'prov')
 
+    DATASET_IS_QUADSTORE = True  # Set to True if using a quadstore for dataset, False for triplestore
+    PROVENANCE_IS_QUADSTORE = True  # Set to True if using a quadstore for provenance, False for triplestore
+
     DATASET_GENERATION_TIME = '2024-03-30T10:23:11+02:00'
     URI_GENERATOR = meta_uri_generator
     COUNTER_HANDLER = counter_handler
