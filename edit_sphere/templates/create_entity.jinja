@@ -1,13 +1,13 @@
 {% set namespace = namespace(counter=0) %}
 
-{% macro render_form_field(entity_type, prop, details, entity_types, form_fields, depth=0, max_depth=5) %}
+{% macro render_form_field(entity_type, prop, details, entity_types, form_fields, depth=0, max_depth=5, label=None) %}
     {% if depth <= max_depth %}
         {% set namespace.counter = namespace.counter + 1 %}
         {% set unique_id_base = (entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) + "_" + namespace.counter | string  %}
 
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
              {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}>
-            <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}"
+            <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
                 {% if details.intermediateRelation %}
                     data-intermediate-relation="{{ details.intermediateRelation.class }}"
                     data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"
@@ -19,7 +19,7 @@
                     {% if details.orderedBy %}
                         <span class="drag-handle me-2" style="cursor: move;">☰</span>
                     {% endif %}
-                    {% set label_text = details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
+                    {% set label_text = label or details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
                     <h6 class="mb-0 flex-grow-1 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">{{ label_text }}</h6>
                 </div>
                 {% if details.intermediateRelation %}
@@ -49,7 +49,8 @@
                                 {% if nested_details.get('_reference') %}
                                     <!-- Handle reference case if needed -->
                                 {% else %}
-                                    {{ render_form_field(details.entityType, nested_details.uri, nested_details, entity_types, form_fields, depth + 1, max_depth) }}
+                                    {% set nested_display_name = nested_details.displayName or nested_details.objectClass | human_readable_predicate(entity_types, False) %}
+                                    {{ render_form_field(nested_details.entityType, nested_details.uri, nested_details, entity_types, form_fields, depth + 1, max_depth, nested_display_name) }}
                                 {% endif %}
                             {% endfor %}
                         </div>
@@ -762,10 +763,22 @@
                                         "properties": {}
                                     };
 
+                                    // Aggiungi l'informazione sulla shape se disponibile
+                                    let intermediateShape = repeaterItem.data('shape');
+                                    if (intermediateShape) {
+                                        intermediateEntity['shape'] = intermediateShape;
+                                    }
+
                                     intermediateEntity.properties[connectingProperty] = {
                                         "entity_type": objectClass,
                                         "properties": {}
                                     };
+
+                                    // Aggiungi l'informazione sulla shape all'entità annidata se disponibile
+                                    let nestedShape = repeaterItem.find('[data-object-class]:visible').first().data('shape');
+                                    if (nestedShape) {
+                                        intermediateEntity.properties[connectingProperty]['shape'] = nestedShape;
+                                    }
 
                                     let additionalProperties = repeaterItem.data('additional-properties');
                                     if (additionalProperties) {
@@ -779,6 +792,12 @@
                                         "entity_type": objectClass,
                                         "properties": {}
                                     };
+
+                                    // Aggiungi l'informazione sulla shape se disponibile
+                                    let nestedShape = repeaterItem.data('shape');
+                                    if (nestedShape) {
+                                        nestedEntity['shape'] = nestedShape;
+                                    }
 
                                     collectFormData(repeaterItem, nestedEntity.properties, depth + 1);
 

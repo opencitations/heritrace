@@ -374,19 +374,30 @@ def create_entity():
                         break
 
                 if ordered_by:
-                    # Handle ordered properties
-                    previous_entity = None
-                    for i, value in enumerate(values):
-                        if isinstance(value, dict) and 'entity_type' in value:
+                    # Gestisci le proprietà ordinate per shape
+                    values_by_shape = {}
+                    for value in values:
+                        # Ottieni la shape dell'entità
+                        shape = value.get('shape')
+                        if not shape:
+                            shape = 'default_shape'
+                        if shape not in values_by_shape:
+                            values_by_shape[shape] = []
+                        values_by_shape[shape].append(value)
+
+                    # Ora processa ogni gruppo di valori per shape separatamente
+                    for shape, shape_values in values_by_shape.items():
+                        previous_entity = None
+                        for value in shape_values:
                             nested_uri = generate_unique_uri(value['entity_type'])
                             editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
                             create_nested_entity(editor, nested_uri, value, default_graph_uri)
-                            
+
                             if previous_entity:
                                 editor.create(previous_entity, URIRef(ordered_by), nested_uri, default_graph_uri)
                             previous_entity = nested_uri
                 else:
-                    # Handle non-ordered properties
+                    # Gestisci le proprietà non ordinate
                     for value in values:
                         if isinstance(value, dict) and 'entity_type' in value:
                             nested_uri = generate_unique_uri(value['entity_type'])
@@ -1516,11 +1527,34 @@ def apply_display_rules(form_fields):
                 if prop_uri in form_fields[entity_class]:
                     for field_info in form_fields[entity_class][prop_uri]:
                         add_display_information(field_info, prop)
+                        # Chiamata ricorsiva per le nestedShape
+                        if 'nestedShape' in field_info:
+                            apply_display_rules_to_nested_shapes(field_info['nestedShape'], prop)
                         if 'intermediateRelation' in prop:
                             handle_intermediate_relation(form_fields, field_info, prop)
                     if 'displayRules' in prop:
                         handle_sub_display_rules(form_fields, entity_class, form_fields[entity_class][prop_uri], prop)
     return form_fields
+
+def apply_display_rules_to_nested_shapes(nested_fields, parent_prop):
+    for field_info in nested_fields:
+        # Trova la regola di visualizzazione corrispondente
+        matching_rule = None
+        for rule in display_rules:
+            if rule.get('class') == field_info.get('entityType'):
+                for prop in rule.get('displayProperties', []):
+                    if prop['property'] == field_info['uri']:
+                        matching_rule = prop
+                        break
+        if matching_rule:
+            add_display_information(field_info, matching_rule)
+        else:
+            # Usa il displayName del parent se non c'è una regola specifica
+            if 'displayName' in parent_prop and 'displayName' not in field_info:
+                field_info['displayName'] = parent_prop['displayName']
+        # Chiamata ricorsiva se ci sono altre nestedShape
+        if 'nestedShape' in field_info:
+            apply_display_rules_to_nested_shapes(field_info['nestedShape'], field_info)
 
 def add_display_information(field_info, prop):
     """
@@ -1530,8 +1564,10 @@ def add_display_information(field_info, prop):
         field_info (dict): Le informazioni del campo da aggiornare.
         prop (dict): Le informazioni della proprietà dalle display_rules.
     """
-    field_info['displayName'] = prop.get('displayName')
-    field_info['shouldBeDisplayed'] = prop.get('shouldBeDisplayed', True)
+    if 'displayName' in prop:
+        field_info['displayName'] = prop['displayName']
+    if 'shouldBeDisplayed' in prop:
+        field_info['shouldBeDisplayed'] = prop.get('shouldBeDisplayed', True)
     if 'orderedBy' in prop:
         field_info['orderedBy'] = prop['orderedBy']
 
@@ -1608,8 +1644,12 @@ def handle_sub_display_rules(form_fields, entity_class, field_info_list, prop):
             if 'intermediateRelation' in original_field:
                 new_field['intermediateRelation'] = original_field['intermediateRelation']
 
-            if 'fetchValueFromQuery' in matching_rule:
-                new_field['fetchValueFromQuery'] = matching_rule['fetchValueFromQuery']
+            # Aggiungi proprietà aggiuntive dalla shape SHACL
+            if 'shape' in matching_rule:
+                shape_uri = matching_rule['shape']
+                additional_properties = extract_additional_properties(shape_uri)
+                if additional_properties:
+                    new_field['additionalProperties'] = additional_properties
 
             new_field_info_list.append(new_field)
         else:
