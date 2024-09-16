@@ -975,8 +975,9 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
 def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info):
     grouped_triples = OrderedDict()
     relevant_properties = set()
-    fetched_values_map = dict()  # Mappa dei valori originali ai valori restituiti dalla query
+    fetched_values_map = dict()  # Map of original values to values returned by the query
     primary_properties = valid_predicates_info
+
     for prop_uri in primary_properties:
         if display_rules:
             matched_rules = [rule for rule in display_rules if URIRef(rule['class']) in subject_classes and any(p['property'] == prop_uri for p in rule['displayProperties'])]
@@ -984,25 +985,34 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
                 rule = matched_rules[0]
                 for prop in rule['displayProperties']:
                     if prop['property'] == prop_uri:
+                        is_ordered = 'orderedBy' in prop
+                        order_property = prop.get('orderedBy')
+                        
                         if 'displayRules' in prop:
                             for display_rule in prop['displayRules']:
                                 display_name = display_rule.get('displayName', prop_uri)
                                 relevant_properties.add(prop_uri)
                                 process_display_rule(display_name, prop_uri, display_rule, subject, triples, grouped_triples, fetched_values_map)
+                                
+                                if is_ordered:
+                                    grouped_triples[display_name]['is_draggable'] = True
+                                    grouped_triples[display_name]['ordered_by'] = order_property
+                                    process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map)
                         else:
                             display_name = prop.get('displayName', prop_uri)
                             relevant_properties.add(prop_uri)
                             process_display_rule(display_name, prop_uri, prop, subject, triples, grouped_triples, fetched_values_map)
-
-                        if prop.get('orderedBy'):
-                            grouped_triples[display_name]['is_draggable'] = True
-                            order_property = prop['orderedBy']
-                            process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map)
+                            
+                            if is_ordered:
+                                grouped_triples[display_name]['is_draggable'] = True
+                                grouped_triples[display_name]['ordered_by'] = order_property
+                                process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map)
             else:
                 process_default_property(prop_uri, triples, grouped_triples)
         else:
             process_default_property(prop_uri, triples, grouped_triples)
 
+    # Ordering logic remains the same
     if display_rules:
         ordered_display_names = []
         for rule in display_rules:
@@ -1022,9 +1032,11 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
                 ordered_display_names.append(display_name)
     else:
         ordered_display_names = list(grouped_triples.keys())
-    grouped_triples = OrderedDict((k, grouped_triples[k]) for k in ordered_display_names)
-    return grouped_triples, relevant_properties
 
+    grouped_triples = OrderedDict((k, grouped_triples[k]) for k in ordered_display_names)
+    print(json.dumps(grouped_triples, indent=4))
+    return grouped_triples, relevant_properties
+        
 def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped_triples, fetched_values_map):
     if display_name not in grouped_triples:
         grouped_triples[display_name] = {
