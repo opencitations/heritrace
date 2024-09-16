@@ -1,14 +1,13 @@
 import os
 
 from rdflib import URIRef
-from rdflib_ocdm.counter_handler.sqlite_counter_handler import \
-    SqliteCounterHandler
+from edit_sphere.meta_counter_handler import MetaCounterHandler
 
 from edit_sphere.uri_generator import DefaultURIGenerator, MetaURIGenerator
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-counter_handler = SqliteCounterHandler(os.path.join(BASE_DIR, 'meta_counter_handler.db'))
+counter_handler = MetaCounterHandler(os.path.join(BASE_DIR, 'meta_counter_handler.db'))
 
 default_uri_generator = DefaultURIGenerator("https://example.com")
 meta_uri_generator = MetaURIGenerator("https://w3id.org/oc/meta", "060", counter_handler)

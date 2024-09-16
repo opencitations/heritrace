@@ -1,6 +1,9 @@
-{% macro render_form_field(entity_type, prop, details, entity_types, prefix, form_fields, depth=0, max_depth=5) %}
+{% set namespace = namespace(counter=0) %}
+
+{% macro render_form_field(entity_type, prop, details, entity_types, form_fields, depth=0, max_depth=5) %}
     {% if depth <= max_depth %}
-        {% set unique_id_base = (prefix + entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) %}
+        {% set namespace.counter = namespace.counter + 1 %}
+        {% set unique_id_base = (entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) + "_" + namespace.counter | string  %}
 
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
              {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}>
@@ -27,8 +30,10 @@
                             </button>
                         </div>
                         <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.intermediateRelation.targetEntityType }}">
-                            {% for inter_prop, inter_details in details.intermediateRelation.properties.items() %}
-                                {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, unique_id_base + '_', form_fields, depth + 1, max_depth) }}
+                            {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}
+                                {% for inter_details in inter_details_list %}
+                                    {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, form_fields, depth + 1, max_depth) }}
+                                {% endfor %}
                             {% endfor %}
                         </div>
                     </div>
@@ -40,9 +45,11 @@
                             </button>
                         </div>
                         <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
-                            {% for nested_prop, nested_details in details.nestedShape.items() %}
-                                {% if nested_prop != '_reference' %}
-                                    {{ render_form_field(details.entityType, nested_prop, nested_details, entity_types, unique_id_base + '_', form_fields, depth + 1, max_depth) }}
+                            {% for nested_details in details.nestedShape %}
+                                {% if nested_details.get('_reference') %}
+                                    <!-- Handle reference case if needed -->
+                                {% else %}
+                                    {{ render_form_field(details.entityType, nested_details.uri, nested_details, entity_types, form_fields, depth + 1, max_depth) }}
                                 {% endif %}
                             {% endfor %}
                         </div>
@@ -181,8 +188,10 @@
             {% for entity_type, properties in form_fields.items() %}
                 {% set group_id = (entity_type | human_readable_predicate(entity_types, False) + "_group") | replace(" ", "_") %}
                 <div class="property-group mb-3" id="{{ group_id }}" data-uri="{{ entity_type }}" style="display:none">
-                    {% for prop, details in properties.items() %}
-                        {{ render_form_field(entity_type, prop, details, entity_types, '', form_fields) }}
+                    {% for prop, details_list in properties.items() %}
+                        {% for details in details_list %}
+                            {{ render_form_field(entity_type, prop, details, entity_types, form_fields) }}
+                        {% endfor %}
                     {% endfor %}
                 </div>
             {% endfor %}

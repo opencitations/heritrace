@@ -17,6 +17,19 @@ class MetaCounterHandler:
         self.short_names = ["ar", "br", "id", "ra", "re"]
         self.supplier_prefix = "060"
 
+        self.entity_type_abbr = {
+            'http://purl.org/spar/fabio/Expression': 'br',
+            'http://purl.org/spar/fabio/JournalArticle': 'br',
+            'http://purl.org/spar/fabio/Book': 'br',
+            'http://purl.org/spar/fabio/JournalIssue': 'br',
+            'http://purl.org/spar/fabio/JournalVolume': 'br',
+            'http://purl.org/spar/fabio/Journal': 'br',
+            'http://purl.org/spar/pro/RoleInTime': 'ar',
+            'http://purl.org/spar/fabio/Manifestation': 're',
+            'http://xmlns.com/foaf/0.1/Agent': 'ra',
+            'http://purl.org/spar/datacite/Identifier': 'id'
+        }
+
         # Create table
         self.cur.execute("""CREATE TABLE IF NOT EXISTS counters(
             entity TEXT PRIMARY KEY, 
@@ -37,10 +50,11 @@ class MetaCounterHandler:
         if new_value < 0:
             raise ValueError("new_value must be a non negative integer!")
         
-        entity_name = urllib.parse.quote(str(entity_name))
-        self.cur.execute("INSERT OR REPLACE INTO counters (entity, count) VALUES (?, ?)", 
-                         (entity_name, new_value))
-        self.con.commit()
+        if str(entity_name) in self.entity_type_abbr:
+            entity_name = self.entity_type_abbr[str(entity_name)]
+            self.cur.execute("INSERT OR REPLACE INTO counters (entity, count) VALUES (?, ?)", 
+                            (entity_name, new_value))
+            self.con.commit()
 
     def read_counter(self, entity_name: str) -> int:
         """
@@ -50,14 +64,15 @@ class MetaCounterHandler:
         :type entity_name: str
         :return: The requested counter value.
         """
-        entity_name = urllib.parse.quote(str(entity_name))
-        self.cur.execute("SELECT count FROM counters WHERE entity=?", (entity_name,))
-        result = self.cur.fetchone()
-        
-        if result:
-            return result[0]
-        else:
-            return 0
+        if str(entity_name) in self.entity_type_abbr:
+            entity_name = self.entity_type_abbr[str(entity_name)]
+            self.cur.execute("SELECT count FROM counters WHERE entity=?", (entity_name,))
+            result = self.cur.fetchone()
+            
+            if result:
+                return result[0]
+            else:
+                return 0
 
     def increment_counter(self, entity_name: str) -> int:
         """
@@ -67,15 +82,16 @@ class MetaCounterHandler:
         :type entity_name: str
         :return: The newly-updated (already incremented) counter value.
         """
-        entity_name = urllib.parse.quote(str(entity_name))
-        
-        self.cur.execute("""INSERT INTO counters (entity, count) VALUES (?, 1)
-                            ON CONFLICT(entity) DO UPDATE SET count = count + 1
-                            RETURNING count""", (entity_name,))
-        result = self.cur.fetchone()
-        self.con.commit()
-        
-        return result[0]
+        if str(entity_name) in self.entity_type_abbr:
+            entity_name = self.entity_type_abbr[str(entity_name)]
+
+            self.cur.execute("""INSERT INTO counters (entity, count) VALUES (?, 1)
+                                ON CONFLICT(entity) DO UPDATE SET count = count + 1
+                                RETURNING count""", (entity_name,))
+            result = self.cur.fetchone()
+            self.con.commit()
+            
+            return result[0]
 
     def close(self):
         """

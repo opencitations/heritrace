@@ -16,6 +16,10 @@ class MetaURIGenerator(URIGenerator):
         entity_type_abbr = {
             'http://purl.org/spar/fabio/Expression': 'br',
             'http://purl.org/spar/fabio/JournalArticle': 'br',
+            'http://purl.org/spar/fabio/Book': 'br',
+            'http://purl.org/spar/fabio/JournalIssue': 'br',
+            'http://purl.org/spar/fabio/JournalVolume': 'br',
+            'http://purl.org/spar/fabio/Journal': 'br',
             'http://purl.org/spar/pro/RoleInTime': 'ar',
             'http://purl.org/spar/fabio/Manifestation': 're',
             'http://xmlns.com/foaf/0.1/Agent': 'ra',
