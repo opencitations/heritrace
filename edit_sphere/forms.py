@@ -1,8 +1,6 @@
 from wtforms import Form, HiddenField, SelectField, StringField
 from wtforms.validators import DataRequired
 
-from resources.datatypes import DATATYPE_MAPPING
-
 
 class UpdateTripleForm(Form):
     subject = HiddenField('Subject')

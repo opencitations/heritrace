@@ -75,6 +75,15 @@ app.jinja_env.filters['split_ns'] = filter.split_ns
 CACHE_FILE = app.config['CACHE_FILE']
 CACHE_VALIDITY_DAYS = app.config['CACHE_VALIDITY_DAYS']
 
+VIRTUOSO_EXCLUDED_GRAPHS = [
+    "http://localhost:8890/DAV/",
+    "http://www.openlinksw.com/schemas/virtrdf#",
+    "http://www.w3.org/2002/07/owl#",
+    "http://www.w3.org/ns/ldp#",
+    "urn:activitystreams-owl:map",
+    "urn:core:services:sparql"
+]
+
 containers = []
 initialization_done = False
 
@@ -194,6 +203,15 @@ def update_cache():
     with open(CACHE_FILE, 'w', encoding='utf8') as f:
         json.dump(cache, f, ensure_ascii=False, indent=4)
 
+def is_virtuoso():
+    return Config.DATASET_DB_TRIPLESTORE.lower() == 'virtuoso'
+
+def is_dataset_quadstore():
+    return Config.DATASET_IS_QUADSTORE
+
+def is_provenance_quadstore():
+    return Config.PROVENANCE_IS_QUADSTORE
+
 def initialize_counter_handler():
     if not need_initialization():
         return
@@ -202,13 +220,25 @@ def initialize_counter_handler():
     counter_handler = uri_generator.counter_handler
 
     # Query SPARQL per ottenere tutti i tipi di entità e il loro conteggio
-    query = """
-        SELECT ?type (COUNT(DISTINCT ?s) as ?count)
-        WHERE {
-            ?s a ?type .
-        }
-        GROUP BY ?type
-    """
+    if is_virtuoso():
+        query = f"""
+            SELECT ?type (COUNT(DISTINCT ?s) as ?count)
+            WHERE {{
+                GRAPH ?g {{
+                    ?s a ?type .
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            }}
+            GROUP BY ?type
+        """
+    else:
+        query = """
+            SELECT ?type (COUNT(DISTINCT ?s) as ?count)
+            WHERE {
+                ?s a ?type .
+            }
+            GROUP BY ?type
+        """
     
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
@@ -260,15 +290,6 @@ def initialize_app():
 
 initialize_app()
 
-def is_virtuoso():
-    return Config.DATASET_DB_TRIPLESTORE.lower() == 'virtuoso'
-
-def is_dataset_quadstore():
-    return Config.DATASET_IS_QUADSTORE
-
-def is_provenance_quadstore():
-    return Config.PROVENANCE_IS_QUADSTORE
-
 @app.route('/')
 def index():
     return render_template('index.jinja')
@@ -285,14 +306,7 @@ def catalogue():
             GRAPH ?g {{
                 ?subject ?predicate ?object.
             }}
-            FILTER(?g NOT IN (
-                <http://localhost:8890/DAV/>,
-                <http://www.openlinksw.com/schemas/virtrdf#>,
-                <http://www.w3.org/2002/07/owl#>,
-                <http://www.w3.org/ns/ldp#>,
-                <urn:activitystreams-owl:map>,
-                <urn:core:services:sparql>
-            ))
+            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
         }} LIMIT {per_page} OFFSET {offset}
         """
     else:
@@ -480,14 +494,7 @@ def about(subject):
             GRAPH ?g {{
                 <{decoded_subject}> ?predicate ?object.
             }}
-            FILTER(?g NOT IN (
-                <http://localhost:8890/DAV>,
-                <http://www.openlinksw.com/schemas/virtrdf#>,
-                <http://www.w3.org/2002/07/owl#>,
-                <http://www.w3.org/ns/ldp#>,
-                <urn:activitystreams-owl:map>,
-                <urn:core:services:sparql>
-            ))
+            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
         }}
         """
     else:
@@ -900,7 +907,6 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     data_graph = fetch_data_graph_for_subject(subject)
     if old_value is not None:
         old_value = [triple[2] for triple in data_graph.triples((URIRef(subject), URIRef(predicate), None)) if str(triple[2]) == str(old_value)][0]
-
     if shacl is None:
         # Se non c'è SHACL, accettiamo qualsiasi valore
         if validators.url(new_value):
@@ -911,33 +917,34 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     s_types = [triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))]
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
-        SELECT DISTINCT ?property ?datatype ?a_class ?classIn (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
+        SELECT DISTINCT ?path ?datatype ?a_class ?classIn (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
         WHERE {{
             ?shape sh:targetClass ?type ;
-                sh:property ?property .
+                sh:property ?propertyShape .
+            ?propertyShape sh:path ?path .
+            FILTER(?path = <{predicate}>)
             VALUES ?type {{<{'> <'.join(s_types)}>}}
-            ?property sh:path <{predicate}> .
-            OPTIONAL {{?property sh:datatype ?datatype .}}
-            OPTIONAL {{?property sh:class ?a_class .}}
+            OPTIONAL {{?propertyShape  sh:datatype ?datatype .}}
+            OPTIONAL {{?propertyShape  sh:class ?a_class .}}
             OPTIONAL {{
-                ?property sh:or ?orList .
+                ?propertyShape sh:or ?orList .
                 ?orList rdf:rest*/rdf:first ?orConstraint .
                 ?orConstraint sh:datatype ?datatype .
                 OPTIONAL {{?orConstraint sh:class ?class .}}
             }}
             OPTIONAL {{
-                ?property sh:classIn ?classInList .
+                ?propertyShape  sh:classIn ?classInList .
                 ?classInList rdf:rest*/rdf:first ?classIn .
             }}
             OPTIONAL {{
-                ?property sh:in ?list .
+                ?propertyShape sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }}
         }}
-        GROUP BY ?property ?datatype ?a_class ?classIn
+        GROUP BY ?path ?datatype ?a_class ?classIn
     """
     results = shacl.query(query)
-    property_exists = [row.property for row in results]
+    property_exists = [row.path for row in results]
     if not property_exists:
         return None, old_value, gettext('The property %(predicate)s is not allowed for resources of type %(s_type)s', predicate=filter.human_readable_predicate(predicate, s_types), s_type=filter.human_readable_predicate(s_types[0], s_types))
     datatypes = [row.datatype for row in results if row.datatype is not None]
@@ -1034,7 +1041,6 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
         ordered_display_names = list(grouped_triples.keys())
 
     grouped_triples = OrderedDict((k, grouped_triples[k]) for k in ordered_display_names)
-    print(json.dumps(grouped_triples, indent=4))
     return grouped_triples, relevant_properties
         
 def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped_triples, fetched_values_map):
