@@ -324,6 +324,7 @@ def catalogue():
 @app.route('/create-entity', methods=['GET', 'POST'])
 def create_entity():
     form_fields = get_form_fields_from_shacl()
+
     entity_types = list(form_fields.keys())
 
     datatype_options = {
@@ -523,7 +524,7 @@ def about(subject):
     create_form = CreateTripleFormWithSelect() if can_be_added else CreateTripleFormWithInput()
     if can_be_added:
         create_form.predicate.choices = [(p, filter.human_readable_predicate(p, subject_classes)) for p in can_be_added]
-    return render_template('triples.jinja', subject=decoded_subject, history=history, can_be_added=can_be_added, can_be_deleted=can_be_deleted, datatypes=datatypes, update_form=update_form, create_form=create_form, mandatory_values=mandatory_values, optional_values=optional_values, shacl=True if shacl else False, grouped_triples=grouped_triples, subject_classes=[str(s_class) for s_class in subject_classes], display_rules=display_rules)
+    return render_template('about.jinja', subject=decoded_subject, history=history, can_be_added=can_be_added, can_be_deleted=can_be_deleted, datatypes=datatypes, update_form=update_form, create_form=create_form, mandatory_values=mandatory_values, optional_values=optional_values, shacl=True if shacl else False, grouped_triples=grouped_triples, subject_classes=[str(s_class) for s_class in subject_classes], display_rules=display_rules)
 
 # Funzione per la validazione dinamica dei valori con suggerimento di datatypes
 @app.route('/validate-literal', methods=['POST'])
@@ -1341,7 +1342,7 @@ def get_form_fields_from_shacl():
 
     # Step 4: Ordina i campi del form secondo le regole di visualizzazione
     ordered_form_fields = order_form_fields(form_fields)
-
+    
     return ordered_form_fields
 
 def extract_shacl_form_fields():
@@ -1352,6 +1353,9 @@ def extract_shacl_form_fields():
         defaultdict: Un dizionario dove le chiavi sono i tipi di entità e i valori sono dizionari
                      dei campi del form con le loro proprietà.
     """
+    if not shacl:
+        return dict()
+    
     query = prepareQuery("""
         SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
                (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
@@ -1363,7 +1367,15 @@ def extract_shacl_form_fields():
                 ?property sh:node ?nodeShape .
                 OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
             }
-            OPTIONAL {?property sh:datatype ?datatype .}
+            OPTIONAL {
+                { ?property sh:datatype ?datatype . }
+                UNION
+                { 
+                    ?property sh:or ?orList .
+                    ?orList rdf:rest*/rdf:first ?orConstraint .
+                    ?orConstraint sh:datatype ?datatype .
+                }
+            }
             OPTIONAL {?property sh:maxCount ?maxCount .}
             OPTIONAL {?property sh:minCount ?minCount .}
             OPTIONAL {?property sh:hasValue ?hasValue .}
@@ -1371,16 +1383,11 @@ def extract_shacl_form_fields():
                 ?property sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }
-            OPTIONAL {
-                ?property sh:or ?orList .
-                ?orList rdf:rest*/rdf:first ?orConstraint .
-                ?orConstraint sh:datatype ?datatype .
-            }
             FILTER (isURI(?predicate))
         }
         GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
-    
+
     results = shacl.query(query)
     form_fields = defaultdict(dict)
 
@@ -1390,21 +1397,46 @@ def extract_shacl_form_fields():
         
         entity_type = str(row.type)
         predicate = str(row.predicate)
+        nodeShape = str(row.nodeShape) if row.nodeShape else None
+        hasValue = str(row.hasValue) if row.hasValue else None
+        objectClass = str(row.objectClass) if row.objectClass else None
+        minCount = 0 if row.minCount is None else int(row.minCount)
+        maxCount = None if row.maxCount is None else int(row.maxCount)
+        optionalValues = row.optionalValues.split(",") if row.optionalValues else []
 
         if predicate not in form_fields[entity_type]:
             form_fields[entity_type][predicate] = []
 
-        form_fields[entity_type][predicate].append({
-            "entityType": entity_type,
-            "uri": predicate,
-            "nodeShape": str(row.nodeShape) if row.nodeShape else None,
-            "datatype": row.datatype,
-            "min": 0 if row.minCount is None else int(row.minCount),
-            "max": None if row.maxCount is None else int(row.maxCount),
-            "hasValue": row.hasValue,
-            "objectClass": str(row.objectClass) if row.objectClass else None,
-            "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
-        })
+        # Cerca un campo esistente con gli stessi attributi (eccetto datatype)
+        existing_field = None
+        for field in form_fields[entity_type][predicate]:
+            if (field['nodeShape'] == nodeShape and
+                field['hasValue'] == hasValue and
+                field['objectClass'] == objectClass and
+                field['min'] == minCount and
+                field['max'] == maxCount and
+                field['optionalValues'] == optionalValues):
+                existing_field = field
+                break
+
+        if existing_field:
+            # Aggiorna la lista dei datatypes
+            if row.datatype and str(row.datatype) not in existing_field["datatypes"]:
+                existing_field["datatypes"].append(str(row.datatype))
+        else:
+            field_info = {
+                "entityType": entity_type,
+                "uri": predicate,
+                "nodeShape": nodeShape,
+                "datatypes": [str(row.datatype)] if row.datatype else [],
+                "min": minCount,
+                "max": maxCount,
+                "hasValue": hasValue,
+                "objectClass": objectClass,
+                "optionalValues": optionalValues
+            }
+            form_fields[entity_type][predicate].append(field_info)
+
     return form_fields
 
 def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
@@ -1426,7 +1458,7 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
         return [{"_reference": shape_uri}]
     
     processed_shapes.add(shape_uri)
-    
+
     nested_query = prepareQuery("""
         SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
                (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
@@ -1438,7 +1470,15 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
                 ?property sh:node ?nodeShape .
                 OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
             }
-            OPTIONAL {?property sh:datatype ?datatype .}
+            OPTIONAL {
+                { ?property sh:datatype ?datatype . }
+                UNION
+                { 
+                    ?property sh:or ?orList .
+                    ?orList rdf:rest*/rdf:first ?orConstraint .
+                    ?orConstraint sh:datatype ?datatype .
+                }
+            }
             OPTIONAL {?property sh:maxCount ?maxCount .}
             OPTIONAL {?property sh:minCount ?minCount .}
             OPTIONAL {?property sh:hasValue ?hasValue .}
@@ -1450,7 +1490,8 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
         }
         GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
-    
+
+
     nested_results = shacl.query(nested_query, initBindings={'shape': URIRef(shape_uri)})
     nested_fields = []
     entity_type = None
@@ -1459,24 +1500,50 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
         if str(row.predicate) == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" and not row.optionalValues:
             continue
 
+        predicate = str(row.predicate)
+        nodeShape = str(row.nodeShape) if row.nodeShape else None
+        hasValue = str(row.hasValue) if row.hasValue else None
+        objectClass = str(row.objectClass) if row.objectClass else None
+        minCount = 0 if row.minCount is None else int(row.minCount)
+        maxCount = None if row.maxCount is None else int(row.maxCount)
+        optionalValues = row.optionalValues.split(",") if row.optionalValues else []
+
         if row.type:
             entity_type = str(row.type)
 
-        field_info = {
-            "entityType": entity_type,
-            "uri": str(row.predicate),
-            "nodeShape": str(row.nodeShape) if row.nodeShape else None,
-            "datatype": row.datatype,
-            "min": 0 if row.minCount is None else int(row.minCount),
-            "max": None if row.maxCount is None else int(row.maxCount),
-            "hasValue": row.hasValue,
-            "objectClass": str(row.objectClass) if row.objectClass else None,
-            "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
-        }
-        if row.nodeShape:
-            field_info["nestedShape"] = process_nested_shapes(str(row.nodeShape), depth + 1, processed_shapes)
-        nested_fields.append(field_info)
-    
+        # Cerca un campo esistente con gli stessi attributi (eccetto datatype)
+        existing_field = None
+        for field in nested_fields:
+            if (field['uri'] == predicate and
+                field['nodeShape'] == nodeShape and
+                field['hasValue'] == hasValue and
+                field['objectClass'] == objectClass and
+                field['min'] == minCount and
+                field['max'] == maxCount and
+                field['optionalValues'] == optionalValues):
+                existing_field = field
+                break
+
+        if existing_field:
+            # Aggiorna la lista dei datatypes
+            if row.datatype and str(row.datatype) not in existing_field["datatypes"]:
+                existing_field["datatypes"].append(str(row.datatype))
+        else:
+            field_info = {
+                "entityType": entity_type,
+                "uri": predicate,
+                "nodeShape": nodeShape,
+                "datatypes": [str(row.datatype)] if row.datatype else [],
+                "min": minCount,
+                "max": maxCount,
+                "hasValue": hasValue,
+                "objectClass": objectClass,
+                "optionalValues": optionalValues
+            }
+            if nodeShape:
+                field_info["nestedShape"] = process_nested_shapes(nodeShape, depth + 1, processed_shapes)
+            nested_fields.append(field_info)
+
     # Ottieni l'ordine delle proprietà dalle regole di visualizzazione
     property_order = get_property_order(entity_type)
 
