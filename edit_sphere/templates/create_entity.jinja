@@ -1,162 +1,180 @@
 {% set namespace = namespace(counter=0) %}
 
-{% macro render_form_field(entity_type, prop, details, entity_types, form_fields, depth=0, max_depth=5, label=None) %}
+{% macro render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, index=None, is_template=False, max_depth=5) %}
+    <div data-repeater-item class="input-group mb-3 {% if is_template %}d-none repeater-template{% endif %}" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
+        {% if details.intermediateRelation %}
+            data-intermediate-relation="{{ details.intermediateRelation.class }}"
+            data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"
+        {% endif %}
+        {% if details.additionalProperties %}
+            data-additional-properties='{{ details.additionalProperties | tojson }}'
+        {% endif %}>
+        <div class="d-flex align-items-center w-100 mb-2">
+            {% if details.orderedBy %}
+                <span class="drag-handle me-2" style="cursor: move;">☰</span>
+            {% endif %}
+            {% set label_text = label or details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
+            <h6 class="mb-0 flex-grow-1 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">{{ label_text }}</h6>
+        </div>
+        {% if details.intermediateRelation %}
+            <div class="d-flex flex-column">
+                <div class="nested-form-header mb-4">
+                    <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
+                        <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
+                    </button>
+                </div>
+                <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container collapse" data-object-class="{{ details.intermediateRelation.targetEntityType }}">
+                    {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}
+                        {% for inter_details in inter_details_list %}
+                            {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, form_fields, depth + 1, max_depth, label=None, is_template=is_template) }}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% elif details.nestedShape %}
+            <div class="d-flex flex-column">
+                <div class="nested-form-header mb-4">
+                    <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
+                        <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
+                    </button>
+                </div>
+                <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
+                    {% for nested_details in details.nestedShape %}
+                        {% if nested_details.get('_reference') %}
+                            <!-- Gestione del caso di riferimento, se necessario -->
+                        {% else %}
+                            {% set nested_display_name = nested_details.displayName or nested_details.objectClass | human_readable_predicate(entity_types, False) %}
+                            {{ render_form_field(nested_details.entityType, nested_details.uri, nested_details, entity_types, form_fields, depth + 1, max_depth, nested_display_name, is_template=is_template) }}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% elif details.optionalValues and details.optionalValues|length %}
+            <div class="form-floating flex-grow-1">
+                <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
+                    {% for val in details.optionalValues %}
+                        <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
+                    {% endfor %}
+                </select>
+                <label for="{{ unique_id_base }}" class="input-group-select">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</label>
+            </div>
+        {% elif details.datatypes and (
+            'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
+            or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
+            or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
+            <!-- Date input section -->
+            <div class="date-input-group">
+                <div class="form-floating mb-2">
+                    <select class="form-select date-type-selector"
+                            id="{{ unique_id_base }}_date_type"
+                            name="{{ unique_id_base }}_date_type"
+                            data-allowed-datatypes="{{ details.datatypes | join(',') }}">
+                        {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
+                            <option value="date">{{ _('Date') }}</option>
+                        {% endif %}
+                        {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
+                            <option value="month">{{ _('Year and Month') }}</option>
+                        {% endif %}
+                        {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
+                            <option value="year">{{ _('Year') }}</option>
+                        {% endif %}
+                    </select>
+                    <label for="{{ unique_id_base }}_date_type">{{ _('Select Date Type') }}</label>
+                </div>
+
+                <!-- Date input -->
+                {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
+                    <div class="form-floating date-input-container mb-2" style="display: none;">
+                        <input type="date" class="form-control date-input"
+                            id="{{ unique_id_base }}_date"
+                            name="{{ unique_id_base }}"
+                            data-date-type="date"
+                            data-predicate-uri="{{ details.uri }}"
+                            data-depth="{{ depth }}"
+                            placeholder="{{ label_text }}"
+                            {{ 'required' if details.min and details.min > 0 }}>
+                        <label for="{{ unique_id_base }}_date">{{ label_text }}</label>
+                        <div class="invalid-feedback">{{ _("Please enter a valid date in YYYY-MM-DD format.") }}</div>
+                    </div>
+                {% endif %}
+
+                <!-- Month input -->
+                {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
+                    <div class="form-floating date-input-container mb-2" style="display: none;">
+                        <input type="month" class="form-control date-input"
+                            id="{{ unique_id_base }}_month"
+                            name="{{ unique_id_base }}"
+                            data-date-type="month"
+                            data-predicate-uri="{{ details.uri }}"
+                            data-depth="{{ depth }}"
+                            placeholder="{{ label_text }}"
+                            {{ 'required' if details.min and details.min > 0 }}>
+                        <label for="{{ unique_id_base }}_month">{{ label_text }}</label>
+                        <div class="invalid-feedback">{{ _("Please enter a valid date in YYYY-MM format.") }}</div>
+                    </div>
+                {% endif %}
+
+                <!-- Year input -->
+                {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
+                    <div class="form-floating date-input-container mb-2" style="display: none;">
+                        <input type="number" class="form-control date-input"
+                            id="{{ unique_id_base }}_year"
+                            name="{{ unique_id_base }}"
+                            data-date-type="year"
+                            data-predicate-uri="{{ details.uri }}"
+                            data-depth="{{ depth }}"
+                            placeholder="{{ label_text }}"
+                            min="1000" max="9999"
+                            {{ 'required' if details.min and details.min > 0 }}>
+                        <label for="{{ unique_id_base }}_year">{{ label_text }}</label>
+                        <div class="invalid-feedback">{{ _("Please enter a valid year in YYYY format.") }}</div>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="form-floating flex-grow-1">
+                <input type="text" class="form-control"
+                    id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                    name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                    data-predicate-uri="{{ details.uri }}"
+                    data-depth="{{ depth }}"
+                    placeholder="{{ label_text }}"
+                    {% if not is_template and details.min and details.min > 0 %}
+                        required
+                    {% endif %}
+                    {% if details.datatypes and details.datatypes | length %}
+                        data-datatypes="{{ details.datatypes | join(',') }}"
+                    {% endif %}>
+                <label for="{{ unique_id_base }}_{{ index if index is not none else 'template' }}">{{ label_text }}</label>
+            </div>
+        {% endif %}
+        <button data-repeater-delete type="button" class="repeater-delete-btn">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+{% endmacro %}
+
+{% macro render_form_field(entity_type, prop, details, entity_types, form_fields, depth=0, max_depth=5, label=None, is_template=False) %}
     {% if depth <= max_depth %}
         {% set namespace.counter = namespace.counter + 1 %}
         {% set unique_id_base = (entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) + "_" + namespace.counter | string  %}
 
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
-             {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}>
-            <div data-repeater-item class="input-group mb-3" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
-                {% if details.intermediateRelation %}
-                    data-intermediate-relation="{{ details.intermediateRelation.class }}"
-                    data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"
-                {% endif %}
-                {% if details.additionalProperties %}
-                    data-additional-properties='{{ details.additionalProperties | tojson }}'
-                {% endif %}>
-                <div class="d-flex align-items-center w-100 mb-2">
-                    {% if details.orderedBy %}
-                        <span class="drag-handle me-2" style="cursor: move;">☰</span>
-                    {% endif %}
-                    {% set label_text = label or details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
-                    <h6 class="mb-0 flex-grow-1 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">{{ label_text }}</h6>
-                </div>
-                {% if details.intermediateRelation %}
-                    <div class="d-flex flex-column">
-                        <div class="nested-form-header mb-4">
-                            <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
-                                <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
-                            </button>
-                        </div>
-                        <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.intermediateRelation.targetEntityType }}">
-                            {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}
-                                {% for inter_details in inter_details_list %}
-                                    {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, entity_types, form_fields, depth + 1, max_depth) }}
-                                {% endfor %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% elif details.nestedShape %}
-                    <div class="d-flex flex-column">
-                        <div class="nested-form-header mb-4">
-                            <button class="btn btn-outline-secondary btn-sm toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form">
-                                <span id="{{ unique_id_base }}_toggle_icon" class="bi bi-chevron-right"></span>
-                            </button>
-                        </div>
-                        <div id="{{ unique_id_base }}_nested_form" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
-                            {% for nested_details in details.nestedShape %}
-                                {% if nested_details.get('_reference') %}
-                                    <!-- Handle reference case if needed -->
-                                {% else %}
-                                    {% set nested_display_name = nested_details.displayName or nested_details.objectClass | human_readable_predicate(entity_types, False) %}
-                                    {{ render_form_field(nested_details.entityType, nested_details.uri, nested_details, entity_types, form_fields, depth + 1, max_depth, nested_display_name) }}
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% elif details.optionalValues and details.optionalValues|length %}
-                    <div class="form-floating flex-grow-1">
-                        <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
-                            {% for val in details.optionalValues %}
-                                <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
-                            {% endfor %}
-                        </select>
-                        <label for="{{ unique_id_base }}" class="input-group-select">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</label>
-                    </div>
-                {% elif details.datatypes and (
-                    'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
-                    or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
-                    or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
-                    <!-- Date input section -->
-                    <div class="date-input-group">
-                        <div class="form-floating mb-2">
-                            <select class="form-select date-type-selector"
-                                    id="{{ unique_id_base }}_date_type"
-                                    name="{{ unique_id_base }}_date_type"
-                                    data-allowed-datatypes="{{ details.datatypes | join(',') }}">
-                                {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
-                                    <option value="date">{{ _('Date') }}</option>
-                                {% endif %}
-                                {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
-                                    <option value="month">{{ _('Year and Month') }}</option>
-                                {% endif %}
-                                {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
-                                    <option value="year">{{ _('Year') }}</option>
-                                {% endif %}
-                            </select>
-                            <label for="{{ unique_id_base }}_date_type">{{ _('Select Date Type') }}</label>
-                        </div>
+            {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}
+            data-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}">
 
-                        <!-- Date input -->
-                        {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
-                            <div class="form-floating date-input-container mb-2" style="display: none;">
-                                <input type="date" class="form-control date-input"
-                                    id="{{ unique_id_base }}_date"
-                                    name="{{ unique_id_base }}"
-                                    data-date-type="date"
-                                    data-predicate-uri="{{ details.uri }}"
-                                    data-depth="{{ depth }}"
-                                    placeholder="{{ label_text }}"
-                                    {{ 'required' if details.min and details.min > 0 }}>
-                                <label for="{{ unique_id_base }}_date">{{ label_text }}</label>
-                                <div class="invalid-feedback">{{ _("Please enter a valid date in YYYY-MM-DD format.") }}</div>
-                            </div>
-                        {% endif %}
+            {% if details.min > 0 %}
+                {% for i in range(details.min) %}
+                    {{ render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, index=i, is_template=is_template, max_depth=max_depth) }}
+                {% endfor %}
+            {% else %}
+                <!-- Template nascosto per elementi opzionali -->
+                {{ render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, is_template=True, max_depth=max_depth) }}
+            {% endif %}
 
-                        <!-- Month input -->
-                        {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
-                            <div class="form-floating date-input-container mb-2" style="display: none;">
-                                <input type="month" class="form-control date-input"
-                                    id="{{ unique_id_base }}_month"
-                                    name="{{ unique_id_base }}"
-                                    data-date-type="month"
-                                    data-predicate-uri="{{ details.uri }}"
-                                    data-depth="{{ depth }}"
-                                    placeholder="{{ label_text }}"
-                                    {{ 'required' if details.min and details.min > 0 }}>
-                                <label for="{{ unique_id_base }}_month">{{ label_text }}</label>
-                                <div class="invalid-feedback">{{ _("Please enter a valid date in YYYY-MM format.") }}</div>
-                            </div>
-                        {% endif %}
-
-                        <!-- Year input -->
-                        {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
-                            <div class="form-floating date-input-container mb-2" style="display: none;">
-                                <input type="number" class="form-control date-input"
-                                    id="{{ unique_id_base }}_year"
-                                    name="{{ unique_id_base }}"
-                                    data-date-type="year"
-                                    data-predicate-uri="{{ details.uri }}"
-                                    data-depth="{{ depth }}"
-                                    placeholder="{{ label_text }}"
-                                    min="1000" max="9999"
-                                    {{ 'required' if details.min and details.min > 0 }}>
-                                <label for="{{ unique_id_base }}_year">{{ label_text }}</label>
-                                <div class="invalid-feedback">{{ _("Please enter a valid year in YYYY format.") }}</div>
-                            </div>
-                        {% endif %}
-                    </div>
-                {% else %}
-                    <div class="form-floating flex-grow-1">
-                        <input type="text" class="form-control"
-                            id="{{ unique_id_base }}"
-                            name="{{ unique_id_base }}"
-                            data-predicate-uri="{{ details.uri }}"
-                            placeholder="{{ label_text }}"
-                            {{ 'required' if details.min and details.min > 0 }}
-                            {% if details.datatypes and details.datatypes|length %}
-                                data-datatypes="{{ details.datatypes | join(',') }}"
-                            {% endif %}>
-                        <label for="{{ unique_id_base }}">{{ label_text }}</label>
-                    </div>
-                {% endif %}
-                <button data-repeater-delete type="button" class="repeater-delete-btn">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
+            <!-- Pulsante per aggiungere nuovi elementi -->
             <div class="mb-3 text-start" data-repeater-create>
-                <button type="button" class="add-button">
+                <button type="button" class="add-button {% if details.min > 0 %}initial-structure-add{% endif %}">
                     <i class="bi bi-plus-circle"></i>
                     {{ _("Add %(element_type)s", element_type=details.displayName or (prop | human_readable_predicate(entity_types, False))) }}
                 </button>
@@ -414,7 +432,7 @@
             function updateButtons(list, recursive = true) {
                 const maxItems = parseInt(list.data('max-items')) || Infinity;
                 const minItems = parseInt(list.data('min-items')) || 0;
-                const items = list.children('[data-repeater-item]');
+                const items = list.children('[data-repeater-item]').not('.repeater-template');
                 const addButton = list.children('[data-repeater-create]');
 
                 // Gestione del pulsante di aggiunta
@@ -492,6 +510,21 @@
                         let isSelected = group.data('uri') === selectedUri;
                         group.find(':input').prop('disabled', !isSelected);
                     });
+
+                    // Inizializza gli elementi obbligatori della struttura iniziale
+                    selectedGroup.find('[data-repeater-list]').each(function() {
+                        var list = $(this);
+                        var minItems = parseInt(list.data('min-items') || 0);
+                        var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
+                        
+                        if (minItems > 0 && currentItems === 0) {
+                            // Simula il click sul pulsante di aggiunta per gli elementi obbligatori della struttura iniziale
+                            var addButton = list.find('[data-repeater-create] .initial-structure-add');
+                            for (var i = 0; i < minItems; i++) {
+                                addButton.click();
+                            }
+                        }
+                    });
                 } else {
                     // Se nessun tipo è selezionato, disabilita tutti gli input
                     $('.property-group :input').prop('disabled', true);
@@ -531,7 +564,7 @@
                     var labelGroups = {};
 
                     // Raggruppa gli elementi per etichetta originale
-                    $(this).find('[data-repeater-item]').each(function() {
+                    $(this).find('[data-repeater-item]').not('.repeater-template').each(function() {
                         var label = $(this).find('.form-label').first();
                         var originalText = label.data('original-text');
                         if (!labelGroups[originalText]) {
@@ -581,52 +614,83 @@
                 $(target).collapse('toggle');
             });
 
+            function setRequiredForVisibleFields(item, isInitialStructure = false) {
+                item.find('input, select, textarea').each(function() {
+                    var elem = $(this);
+                    var isVisible = elem.is(':visible');
+                    var parentRepeaterList = elem.closest('[data-repeater-list]');
+                    var isRequired = parentRepeaterList.length > 0 && 
+                                    (isInitialStructure || parseInt(parentRepeaterList.data('min-items') || 0) > 0);
+                    elem.prop('required', isVisible && isRequired);
+                });
+            }
+
             function bindRepeaterEvents(context) {
+                function initializeNewItem(newItem, isRequired, isInitialStructure = false) {
+                    newItem.find('input, select, textarea').each(function() {
+                        var elem = $(this);
+                        var elemId = elem.attr('id');
+                        
+                        if (elemId) {
+                            var newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
+                            elem.attr('id', newId);
+                            elem.attr('name', newId);
+                        }
+
+                        if (elem.is('select')) {
+                            elem.find('option:first').prop('selected', true);
+                        } else {
+                            elem.val('');
+                        }
+                    });
+
+                    newItem.find('.nested-form-header').each(function() {
+                        var $header = $(this);
+                        var $toggleBtn = $header.find('.toggle-btn');
+                        var $collapseDiv = $header.next('.nested-form-container');
+                        
+                        var newId = generateUniqueId('nested_form');
+                        $toggleBtn.attr('data-bs-target', '#' + newId);
+                        $toggleBtn.attr('aria-controls', newId);
+                        $collapseDiv.attr('id', newId);
+
+                        $collapseDiv.collapse({toggle: false});
+                    });
+
+                    // Inizializza gli elementi obbligatori della struttura iniziale
+                    if (isInitialStructure) {
+                        newItem.find('[data-repeater-list]').each(function() {
+                            var nestedList = $(this);
+                            var minItems = parseInt(nestedList.data('min-items') || 0);
+                            if (minItems > 0) {
+                                for (var i = 0; i < minItems; i++) {
+                                    var nestedItem = initialCopies[nestedList.data('repeater-list')].clone(true, true);
+                                    initializeNewItem(nestedItem, true, true);
+                                    nestedItem.appendTo(nestedList);
+                                }
+                            }
+                        });
+                    }
+                }
+
                 context.find('[data-repeater-create]').off('click').on('click', function() {
                     var list = $(this).closest('[data-repeater-list]');
                     var maxItems = parseInt(list.data('max-items')) || Infinity;
-                    var counter = list.find('[data-repeater-item]').length;
+                    var counter = list.children('[data-repeater-item]').not('.repeater-template').length;
                     if (counter < maxItems) {
-                        // Clone the initial copy for this list
                         var newItem = initialCopies[list.data('repeater-list')].clone(true, true);
+                        newItem.removeClass('d-none repeater-template');
 
-                        // Reset values and nested elements
-                        newItem.find('input, select, textarea').each(function() {
-                            var elem = $(this);
-                            var elemId = elem.attr('id');
-                            
-                            if (elemId) {
-                                var newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
-                                elem.attr('id', newId);
-                                elem.attr('name', newId);
-                            }
+                        var isRequired = parseInt(list.data('min-items') || 0) > 0;
+                        var isInitialStructure = $(this).hasClass('initial-structure-add');
 
-                            // Reset value
-                            if (elem.is('select')) {
-                                elem.find('option:first').prop('selected', true);
-                            } else {
-                                elem.val('');
-                            }
-                        });
+                        initializeNewItem(newItem, isRequired, isInitialStructure);
 
-                        // Update nested IDs for collapse elements
-                        newItem.find('.nested-form-header').each(function() {
-                            var $header = $(this);
-                            var $toggleBtn = $header.find('.toggle-btn');
-                            var $collapseDiv = $header.next('.nested-form-container');
-                            
-                            var newId = generateUniqueId('nested_form');
-                            $toggleBtn.attr('data-bs-target', '#' + newId);
-                            $toggleBtn.attr('aria-controls', newId);
-                            $collapseDiv.attr('id', newId);
-
-                            // Re-initialize Bootstrap collapse
-                            $collapseDiv.collapse({toggle: false});
-                        });
-
-                        // Append the new item within its level
                         newItem.appendTo(list);
                         list.children('[data-repeater-create]').appendTo(list);
+
+                        newItem.find('.collapse').addClass('show');
+                        newItem.find('.toggle-btn').removeClass('collapsed');
 
                         updateButtons(list, true);
 
@@ -636,6 +700,8 @@
                         updateOrderedElementsNumbering();
 
                         bindRepeaterEvents(newItem);
+
+                        setRequiredForVisibleFields(newItem, isInitialStructure);
 
                         initializeForm();
                     }
@@ -647,25 +713,19 @@
                     updateButtons(list);
                     // Dopo aver rimosso un elemento, aggiorna la numerazione
                     updateOrderedElementsNumbering();
+                    setRequiredForVisibleFields(list);
                 });
 
-                context.find('.collapse').on('shown.bs.collapse', function(e) {
+                context.find('.collapse').on('shown.bs.collapse hidden.bs.collapse', function(e) {
                     e.stopPropagation();
-                    $(this).prev('.nested-form-header').find('.toggle-btn').removeClass('collapsed');
+                    var $header = $(this).prev('.nested-form-header');
+                    $header.find('.toggle-btn').toggleClass('collapsed', e.type === 'hidden');
+                    
+                    // Aggiorniamo lo stato required per tutti gli elementi visibili dopo l'espansione/collasso
+                    setRequiredForVisibleFields($(this).closest('[data-repeater-list]'));
                 });
 
-                context.find('.collapse').on('hidden.bs.collapse', function(e) {
-                    e.stopPropagation();
-                    $(this).prev('.nested-form-header').find('.toggle-btn').addClass('collapsed');
-                });
-
-                context.find('.collapse').each(function() {
-                    if ($(this).hasClass('show')) {
-                        $(this).prev('.nested-form-header').find('.toggle-btn').removeClass('collapsed');
-                    } else {
-                        $(this).prev('.nested-form-header').find('.toggle-btn').addClass('collapsed');
-                    }
-                });
+                setRequiredForVisibleFields(context);
             }
 
             $('[data-repeater-list]').each(function() {
@@ -980,7 +1040,7 @@
 
             $('#entityForm').on('submit', function(event) {
                 event.preventDefault();
-
+                                
                 let structuredData = {};
 
                 if ('{{shacl}}' === 'True') {
@@ -1010,7 +1070,7 @@
                     });
                     return;  // Blocca l'invio del form se non valido
                 }
-
+                
                 this.submit();
             });
 
