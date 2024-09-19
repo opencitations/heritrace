@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  1.0\n"
 "Report-Msgid-Bugs-To: arcangelo.massari@unibo.it\n"
-"POT-Creation-Date: 2024-09-18 21:44+0200\n"
+"POT-Creation-Date: 2024-09-19 15:34+0200\n"
 "PO-Revision-Date: 2023-09-09 15:01+0200\n"
 "Last-Translator: Arcangelo Massari <arcangelo.massari@unibo.it>\n"
 "Language: en\n"
@@ -251,8 +251,8 @@ msgid "Add a new piece of information"
 msgstr ""
 
 #: edit_sphere/templates/about.jinja:67
-#: edit_sphere/templates/create_entity.jinja:221
-#: edit_sphere/templates/create_entity.jinja:604
+#: edit_sphere/templates/create_entity.jinja:323
+#: edit_sphere/templates/create_entity.jinja:706
 msgid "Value"
 msgstr ""
 
@@ -311,82 +311,110 @@ msgstr ""
 msgid "Oops..."
 msgstr ""
 
+#: edit_sphere/templates/create_entity.jinja:79
+msgid "Date"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:82
+msgid "Year and Month"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:85
+msgid "Year"
+msgstr ""
+
 #: edit_sphere/templates/create_entity.jinja:88
+msgid "Select Date Type"
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:103
+msgid "Please enter a valid date in YYYY-MM-DD format."
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:119
+msgid "Please enter a valid date in YYYY-MM format."
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:136
+msgid "Please enter a valid year in YYYY format."
+msgstr ""
+
+#: edit_sphere/templates/create_entity.jinja:161
 #, python-format
 msgid "Add %(element_type)s"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:169
+#: edit_sphere/templates/create_entity.jinja:271
 #: edit_sphere/templates/navigation.jinja:16
 msgid "Add New Record"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:189
-#: edit_sphere/templates/create_entity.jinja:194
+#: edit_sphere/templates/create_entity.jinja:291
+#: edit_sphere/templates/create_entity.jinja:296
 msgid "Select an entity type"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:212
-#: edit_sphere/templates/create_entity.jinja:594
-#: edit_sphere/templates/create_entity.jinja:644
+#: edit_sphere/templates/create_entity.jinja:314
+#: edit_sphere/templates/create_entity.jinja:696
+#: edit_sphere/templates/create_entity.jinja:746
 msgid "Property"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:217
-#: edit_sphere/templates/create_entity.jinja:600
+#: edit_sphere/templates/create_entity.jinja:319
+#: edit_sphere/templates/create_entity.jinja:702
 msgid "Property URI"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:218
-#: edit_sphere/templates/create_entity.jinja:601
+#: edit_sphere/templates/create_entity.jinja:320
+#: edit_sphere/templates/create_entity.jinja:703
 msgid "Please enter a valid URL for the property URI"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:225
-#: edit_sphere/templates/create_entity.jinja:608
+#: edit_sphere/templates/create_entity.jinja:327
+#: edit_sphere/templates/create_entity.jinja:710
 msgid "Value Type"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:227
-#: edit_sphere/templates/create_entity.jinja:610
+#: edit_sphere/templates/create_entity.jinja:329
+#: edit_sphere/templates/create_entity.jinja:712
 msgid "Literal"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:228
-#: edit_sphere/templates/create_entity.jinja:611
+#: edit_sphere/templates/create_entity.jinja:330
+#: edit_sphere/templates/create_entity.jinja:713
 msgid "URI"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:234
-#: edit_sphere/templates/create_entity.jinja:617
+#: edit_sphere/templates/create_entity.jinja:336
+#: edit_sphere/templates/create_entity.jinja:719
 msgid "Select Datatype"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:243
+#: edit_sphere/templates/create_entity.jinja:345
 msgid "Add Property"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:247
+#: edit_sphere/templates/create_entity.jinja:349
 msgid "Create"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:296
+#: edit_sphere/templates/create_entity.jinja:398
 msgid "No valid datatypes for this value"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:723
+#: edit_sphere/templates/create_entity.jinja:830
 msgid "Please enter a valid URL"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:900
+#: edit_sphere/templates/create_entity.jinja:1007
 msgid "Invalid Submission"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:901
+#: edit_sphere/templates/create_entity.jinja:1008
 msgid "Please provide at least one valid property with URI and value"
 msgstr ""
 
-#: edit_sphere/templates/create_entity.jinja:902
+#: edit_sphere/templates/create_entity.jinja:1009
 msgid "OK"
 msgstr ""
 

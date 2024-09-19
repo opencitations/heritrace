@@ -64,6 +64,79 @@
                         </select>
                         <label for="{{ unique_id_base }}" class="input-group-select">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</label>
                     </div>
+                {% elif details.datatypes and (
+                    'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
+                    or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
+                    or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
+                    <!-- Date input section -->
+                    <div class="date-input-group">
+                        <div class="form-floating mb-2">
+                            <select class="form-select date-type-selector"
+                                    id="{{ unique_id_base }}_date_type"
+                                    name="{{ unique_id_base }}_date_type"
+                                    data-allowed-datatypes="{{ details.datatypes | join(',') }}">
+                                {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
+                                    <option value="date">{{ _('Date') }}</option>
+                                {% endif %}
+                                {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
+                                    <option value="month">{{ _('Year and Month') }}</option>
+                                {% endif %}
+                                {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
+                                    <option value="year">{{ _('Year') }}</option>
+                                {% endif %}
+                            </select>
+                            <label for="{{ unique_id_base }}_date_type">{{ _('Select Date Type') }}</label>
+                        </div>
+
+                        <!-- Date input -->
+                        {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
+                            <div class="form-floating date-input-container mb-2" style="display: none;">
+                                <input type="date" class="form-control date-input"
+                                    id="{{ unique_id_base }}_date"
+                                    name="{{ unique_id_base }}"
+                                    data-date-type="date"
+                                    data-predicate-uri="{{ details.uri }}"
+                                    data-depth="{{ depth }}"
+                                    placeholder="{{ label_text }}"
+                                    {{ 'required' if details.min and details.min > 0 }}>
+                                <label for="{{ unique_id_base }}_date">{{ label_text }}</label>
+                                <div class="invalid-feedback">{{ _("Please enter a valid date in YYYY-MM-DD format.") }}</div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Month input -->
+                        {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
+                            <div class="form-floating date-input-container mb-2" style="display: none;">
+                                <input type="month" class="form-control date-input"
+                                    id="{{ unique_id_base }}_month"
+                                    name="{{ unique_id_base }}"
+                                    data-date-type="month"
+                                    data-predicate-uri="{{ details.uri }}"
+                                    data-depth="{{ depth }}"
+                                    placeholder="{{ label_text }}"
+                                    {{ 'required' if details.min and details.min > 0 }}>
+                                <label for="{{ unique_id_base }}_month">{{ label_text }}</label>
+                                <div class="invalid-feedback">{{ _("Please enter a valid date in YYYY-MM format.") }}</div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Year input -->
+                        {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
+                            <div class="form-floating date-input-container mb-2" style="display: none;">
+                                <input type="number" class="form-control date-input"
+                                    id="{{ unique_id_base }}_year"
+                                    name="{{ unique_id_base }}"
+                                    data-date-type="year"
+                                    data-predicate-uri="{{ details.uri }}"
+                                    data-depth="{{ depth }}"
+                                    placeholder="{{ label_text }}"
+                                    min="1000" max="9999"
+                                    {{ 'required' if details.min and details.min > 0 }}>
+                                <label for="{{ unique_id_base }}_year">{{ label_text }}</label>
+                                <div class="invalid-feedback">{{ _("Please enter a valid year in YYYY format.") }}</div>
+                            </div>
+                        {% endif %}
+                    </div>
                 {% else %}
                     <div class="form-floating flex-grow-1">
                         <input type="text" class="form-control"
@@ -162,6 +235,35 @@
     }
     .add-button i {
         margin-right: 0.25rem;
+    }
+    .is-invalid {
+        border-color: #dc3545;
+    }
+    .invalid-feedback {
+        display: none;
+        color: #dc3545;
+    }
+    .is-invalid + .invalid-feedback {
+        display: block;
+    }
+
+    /* Lyout verticale degli input di data */
+    .date-input-group {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .date-input-container {
+        width: 100%;
+    }
+
+    .date-type-selector {
+        margin-bottom: 0.5rem;
+    }
+
+    .date-input {
+        width: 100%;
     }
 </style>
 
@@ -662,6 +764,11 @@
                 propertyCount = $('.custom-property').length;
             }
 
+            // Associa l'evento di validazione
+            $(document).on('input change', '.date-input', function() {
+                validateDateInput($(this));
+            });
+
             $(document).on('input', '.custom-value-input', function() {
                 var propertyId = $(this).attr('id').split('_').pop();
                 var value = $(this).val();
@@ -905,6 +1012,30 @@
                 }
 
                 this.submit();
+            });
+
+            function showAppropriateDateInput(selector) {
+                const dateInputGroup = selector.closest('.input-group');
+                const selectedDateType = selector.val();
+
+                // Hide all date input containers
+                dateInputGroup.find('.date-input-container').hide();
+                dateInputGroup.find('.date-input').attr('disabled', true);
+
+                // Show the selected date input container
+                const inputToShow = dateInputGroup.find(`.date-input-container input[data-date-type="${selectedDateType}"]`).closest('.date-input-container');
+                inputToShow.show();
+                inputToShow.find('.date-input').attr('disabled', false);
+            }
+
+            // On change of date type selection
+            $(document).on('change', '.date-type-selector', function() {
+                showAppropriateDateInput($(this));
+            });
+
+            // Initialize date inputs on page load
+            $('.date-type-selector').each(function() {
+                showAppropriateDateInput($(this));
             });
         });
     </script>
