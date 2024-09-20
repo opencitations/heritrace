@@ -519,13 +519,13 @@ schema:ResourceEmbodimentShape
   sh:property [
     sh:path prism:startingPage ;
     sh:datatype xsd:string ;
-    sh:minCount 0 ;
+    sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:endingPage ;
     sh:datatype xsd:string ;
-    sh:minCount 0 ;
+    sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [

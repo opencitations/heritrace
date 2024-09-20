@@ -671,6 +671,10 @@
                             }
                         });
                     }
+
+                    newItem.find('.date-type-selector').each(function() {
+                        showAppropriateDateInput($(this));
+                    });
                 }
 
                 context.find('[data-repeater-create]').off('click').on('click', function() {
@@ -823,11 +827,6 @@
                 // Ricalcola il numero di proprietà attuali
                 propertyCount = $('.custom-property').length;
             }
-
-            // Associa l'evento di validazione
-            $(document).on('input change', '.date-input', function() {
-                validateDateInput($(this));
-            });
 
             $(document).on('input', '.custom-value-input', function() {
                 var propertyId = $(this).attr('id').split('_').pop();
