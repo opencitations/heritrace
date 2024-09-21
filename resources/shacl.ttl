@@ -59,21 +59,67 @@ schema:JournalArticleIdentifierShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
+    sh:path datacite:usesIdentifierScheme ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path datacite:usesIdentifierScheme ;
     sh:in (
       datacite:doi
       datacite:pmid
       datacite:pmcid
       datacite:openalex
     ) ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.\\d{4,9}/[-._;()/:A-Z0-9]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix and a suffix" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:pmid ;
+    ] ;
+    sh:pattern "^\\d+$" ;
+    sh:message "PMID must contain only numbers" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:pmcid ;
+    ] ;
+    sh:pattern "^PMC\\d+$" ;
+    sh:message "PMCID must start with 'PMC' followed by numbers" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:openalex ;
+    ] ;
+    sh:pattern "^W\\d+$" ;
+    sh:message "OpenAlex work ID must start with 'W' followed by numbers" ;
+  ] ;
+  sh:property [
+    sh:path [sh:inversePath datacite:hasIdentifier] ;
+    sh:node schema:JournalArticleShape ;
   ] .
 
 schema:JournalIdentifierShape
@@ -86,13 +132,9 @@ schema:JournalIdentifierShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
+    sh:path datacite:usesIdentifierScheme ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path datacite:usesIdentifierScheme ;
     sh:in (
       datacite:doi 
       datacite:issn 
@@ -100,8 +142,66 @@ schema:JournalIdentifierShape
       datacite:openalex
       datacite:jid      
     ) ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:issn ;
+    ] ;
+    sh:pattern "^\\d{4}-\\d{3}[0-9X]$" ;
+    sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.\\d{4,9}/[-._;()/:A-Z0-9]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix and a suffix" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:jid ;
+    ] ;
+    sh:pattern "^[A-Z0-9]+$" ;
+    sh:message "JID must contain only uppercase letters and numbers" ;
+  ] ;  
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:openalex ;
+    ] ;
+    sh:pattern "^J\\d+$" ;
+    sh:message "The OpenAlex journal ID must start with 'J' followed by numbers" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:url ;
+    ] ;
+    sh:pattern "^https?://[\\w\\.-]+\\.[a-z]{2,}[\\w\\.-]*/?.*$" ;
+    sh:message "URL must be a valid HTTP or HTTPS URL" ;
   ] ;
   sh:property [
     sh:path [sh:inversePath datacite:hasIdentifier] ;

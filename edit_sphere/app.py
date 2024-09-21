@@ -65,12 +65,12 @@ if shacl_path:
         shacl = Graph()
         shacl.parse(source=app.config["SHACL_PATH"], format="turtle")
 
-filter = Filter(context, display_rules)
+custom_filter = Filter(context, display_rules)
 
-app.jinja_env.filters['human_readable_predicate'] = filter.human_readable_predicate
-app.jinja_env.filters['human_readable_primary_source'] = filter.human_readable_primary_source
-app.jinja_env.filters['format_datetime'] = filter.human_readable_datetime
-app.jinja_env.filters['split_ns'] = filter.split_ns
+app.jinja_env.filters['human_readable_predicate'] = custom_filter.human_readable_predicate
+app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_readable_primary_source
+app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime
+app.jinja_env.filters['split_ns'] = custom_filter.split_ns
 
 CACHE_FILE = app.config['CACHE_FILE']
 CACHE_VALIDITY_DAYS = app.config['CACHE_VALIDITY_DAYS']
@@ -523,7 +523,7 @@ def about(subject):
     update_form = UpdateTripleForm()
     create_form = CreateTripleFormWithSelect() if can_be_added else CreateTripleFormWithInput()
     if can_be_added:
-        create_form.predicate.choices = [(p, filter.human_readable_predicate(p, subject_classes)) for p in can_be_added]
+        create_form.predicate.choices = [(p, custom_filter.human_readable_predicate(p, subject_classes)) for p in can_be_added]
     return render_template('about.jinja', subject=decoded_subject, history=history, can_be_added=can_be_added, can_be_deleted=can_be_deleted, datatypes=datatypes, update_form=update_form, create_form=create_form, mandatory_values=mandatory_values, optional_values=optional_values, shacl=True if shacl else False, grouped_triples=grouped_triples, subject_classes=[str(s_class) for s_class in subject_classes], display_rules=display_rules)
 
 # Funzione per la validazione dinamica dei valori con suggerimento di datatypes
@@ -553,7 +553,7 @@ def add_triple():
         data_graph = fetch_data_graph_for_subject(subject)
         can_be_added, _, _, _, _, s_types = get_valid_predicates(list(data_graph.triples((None, None, None))))
         if predicate not in can_be_added and URIRef(predicate) in data_graph.predicates():
-            flash(gettext('This resource cannot have any other %(predicate)s properties', predicate=filter.human_readable_predicate(predicate, s_types)))
+            flash(gettext('This resource cannot have any other %(predicate)s properties', predicate=custom_filter.human_readable_predicate(predicate, s_types)))
             return redirect(url_for('about', subject=subject))
         if object_value is None:
             flash(report_text)
@@ -697,14 +697,14 @@ def entity_history(entity_uri):
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
         date = datetime.fromisoformat(metadata['generatedAtTime'])
         responsible_agent = f"<a href='{metadata['wasAttributedTo']}' alt='{gettext('Link to the responsible agent description')} target='_blank'>{metadata['wasAttributedTo']}</a>" if validators.url(metadata['wasAttributedTo']) else metadata['wasAttributedTo']
-        primary_source = filter.human_readable_primary_source(metadata['hadPrimarySource'])
+        primary_source = custom_filter.human_readable_primary_source(metadata['hadPrimarySource'])
         modifications = metadata['hasUpdateQuery']
         modification_text = ""
         if modifications:
             modifications = parse_sparql_update(modifications)
             for mod_type, triples in modifications.items():
                 for triple in triples:
-                    modification_text += f"<p><strong>{mod_type}</strong>: {filter.human_readable_predicate(triple[1], subject_classes)} {filter.human_readable_predicate(triple[2], subject_classes)}</p>"
+                    modification_text += f"<p><strong>{mod_type}</strong>: {custom_filter.human_readable_predicate(triple[1], subject_classes)} {custom_filter.human_readable_predicate(triple[2], subject_classes)}</p>"
         event = {
             "start_date": {
                 "year": date.year,
@@ -947,7 +947,7 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     results = shacl.query(query)
     property_exists = [row.path for row in results]
     if not property_exists:
-        return None, old_value, gettext('The property %(predicate)s is not allowed for resources of type %(s_type)s', predicate=filter.human_readable_predicate(predicate, s_types), s_type=filter.human_readable_predicate(s_types[0], s_types))
+        return None, old_value, gettext('The property %(predicate)s is not allowed for resources of type %(s_type)s', predicate=custom_filter.human_readable_predicate(predicate, s_types), s_type=custom_filter.human_readable_predicate(s_types[0], s_types))
     datatypes = [row.datatype for row in results if row.datatype is not None]
     classes = [row.a_class for row in results if row.a_class]
     classes.extend([row.classIn for row in results if row.classIn])
@@ -955,18 +955,18 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     optional_values_str = optional_values_str[0] if optional_values_str else ''
     optional_values = [value for value in optional_values_str.split(',') if value]
     if optional_values and new_value not in optional_values:
-        return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s', new_value=filter.human_readable_predicate(new_value, s_types), property=filter.human_readable_predicate(predicate, s_types), o_values=', '.join([f'<code>{filter.human_readable_predicate(value, s_types)}</code>' for value in optional_values]))
+        return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_values=', '.join([f'<code>{custom_filter.human_readable_predicate(value, s_types)}</code>' for value in optional_values]))
     if classes:
         if not validators.url(new_value):
-            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=filter.human_readable_predicate(new_value, s_types), property=filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{filter.human_readable_predicate(o_class, s_types)}</code>' for o_class in classes]))
+            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{custom_filter.human_readable_predicate(o_class, s_types)}</code>' for o_class in classes]))
         valid_value = convert_to_matching_class(new_value, classes)
         if valid_value is None:
-            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=filter.human_readable_predicate(new_value, s_types), property=filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{filter.human_readable_predicate(o_class, s_types)}</code>' for o_class in classes]))
+            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{custom_filter.human_readable_predicate(o_class, s_types)}</code>' for o_class in classes]))
         return valid_value, old_value, ''
     elif datatypes:
         valid_value = convert_to_matching_literal(new_value, datatypes)
         if valid_value is None:
-            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=filter.human_readable_predicate(new_value, s_types), property=filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{filter.human_readable_predicate(datatype, s_types)}</code>' for datatype in datatypes]))
+            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{custom_filter.human_readable_predicate(datatype, s_types)}</code>' for datatype in datatypes]))
         return valid_value, old_value, ''
     # Se non ci sono datatypes o classes specificati, determiniamo il tipo in base a old_value e new_value
     if isinstance(old_value, Literal):
@@ -1342,7 +1342,7 @@ def get_form_fields_from_shacl():
 
     # Step 4: Ordina i campi del form secondo le regole di visualizzazione
     ordered_form_fields = order_form_fields(form_fields)
-    
+
     return ordered_form_fields
 
 def extract_shacl_form_fields():
@@ -1357,8 +1357,8 @@ def extract_shacl_form_fields():
         return dict()
     
     query = prepareQuery("""
-        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
-               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
+        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass ?conditionPath ?conditionValue ?pattern ?message
+        (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
         WHERE {
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
@@ -1367,25 +1367,29 @@ def extract_shacl_form_fields():
                 ?property sh:node ?nodeShape .
                 OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
             }
+            OPTIONAL { ?property sh:datatype ?datatype . }
+            OPTIONAL { ?property sh:maxCount ?maxCount . }
+            OPTIONAL { ?property sh:minCount ?minCount . }
+            OPTIONAL { ?property sh:hasValue ?hasValue . }
             OPTIONAL {
-                { ?property sh:datatype ?datatype . }
-                UNION
-                { 
                     ?property sh:or ?orList .
                     ?orList rdf:rest*/rdf:first ?orConstraint .
                     ?orConstraint sh:datatype ?datatype .
-                }
             }
-            OPTIONAL {?property sh:maxCount ?maxCount .}
-            OPTIONAL {?property sh:minCount ?minCount .}
-            OPTIONAL {?property sh:hasValue ?hasValue .}
             OPTIONAL {
                 ?property sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }
+            OPTIONAL {
+                ?property sh:condition ?conditionNode .
+                ?conditionNode sh:path ?conditionPath ;
+                               sh:hasValue ?conditionValue .
+            }
+            OPTIONAL { ?property sh:pattern ?pattern . }
+            OPTIONAL { ?property sh:message ?message . }
             FILTER (isURI(?predicate))
         }
-        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
+        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass ?conditionPath ?conditionValue ?pattern ?message
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
     results = shacl.query(query)
@@ -1402,7 +1406,19 @@ def extract_shacl_form_fields():
         objectClass = str(row.objectClass) if row.objectClass else None
         minCount = 0 if row.minCount is None else int(row.minCount)
         maxCount = None if row.maxCount is None else int(row.maxCount)
+        datatype = str(row.datatype) if row.datatype else None
         optionalValues = row.optionalValues.split(",") if row.optionalValues else []
+
+        condition_entry = {}
+        if row.conditionPath and row.conditionValue:
+            condition_entry['condition'] = {
+                "path": str(row.conditionPath),
+                "value": str(row.conditionValue)
+            }
+        if row.pattern:
+            condition_entry['pattern'] = str(row.pattern)
+        if row.message:
+            condition_entry['message'] = str(row.message)
 
         if predicate not in form_fields[entity_type]:
             form_fields[entity_type][predicate] = []
@@ -1423,17 +1439,20 @@ def extract_shacl_form_fields():
             # Aggiorna la lista dei datatypes
             if row.datatype and str(row.datatype) not in existing_field["datatypes"]:
                 existing_field["datatypes"].append(str(row.datatype))
+            if condition_entry:
+                existing_field.setdefault('conditions', []).append(condition_entry)
         else:
             field_info = {
                 "entityType": entity_type,
                 "uri": predicate,
                 "nodeShape": nodeShape,
-                "datatypes": [str(row.datatype)] if row.datatype else [],
+                "datatypes": [datatype] if datatype else [],
                 "min": minCount,
                 "max": maxCount,
                 "hasValue": hasValue,
                 "objectClass": objectClass,
-                "optionalValues": optionalValues
+                "optionalValues": optionalValues,
+                "conditions": [condition_entry] if condition_entry else []
             }
             form_fields[entity_type][predicate].append(field_info)
 
@@ -1460,8 +1479,8 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
     processed_shapes.add(shape_uri)
 
     nested_query = prepareQuery("""
-        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
-               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
+        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass ?conditionPath ?conditionValue ?pattern ?message
+        (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
         WHERE {
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
@@ -1470,29 +1489,33 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
                 ?property sh:node ?nodeShape .
                 OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
             }
+            OPTIONAL { ?property sh:datatype ?datatype . }
+            OPTIONAL { ?property sh:maxCount ?maxCount . }
+            OPTIONAL { ?property sh:minCount ?minCount . }
+            OPTIONAL { ?property sh:hasValue ?hasValue . }
             OPTIONAL {
-                { ?property sh:datatype ?datatype . }
-                UNION
-                { 
-                    ?property sh:or ?orList .
-                    ?orList rdf:rest*/rdf:first ?orConstraint .
-                    ?orConstraint sh:datatype ?datatype .
-                }
+                ?property sh:or ?orList .
+                ?orList rdf:rest*/rdf:first ?orConstraint .
+                ?orConstraint sh:datatype ?datatype .
             }
-            OPTIONAL {?property sh:maxCount ?maxCount .}
-            OPTIONAL {?property sh:minCount ?minCount .}
-            OPTIONAL {?property sh:hasValue ?hasValue .}
             OPTIONAL {
                 ?property sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }
+            OPTIONAL {
+                ?property sh:condition ?conditionNode .
+                ?conditionNode sh:path ?conditionPath ;
+                               sh:hasValue ?conditionValue .
+            }
+            OPTIONAL { ?property sh:pattern ?pattern . }
+            OPTIONAL { ?property sh:message ?message . }
             FILTER (isURI(?predicate))
         }
-        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass
+        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass ?conditionPath ?conditionValue ?pattern ?message
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
-
     nested_results = shacl.query(nested_query, initBindings={'shape': URIRef(shape_uri)})
+
     nested_fields = []
     entity_type = None
 
@@ -1506,7 +1529,19 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
         objectClass = str(row.objectClass) if row.objectClass else None
         minCount = 0 if row.minCount is None else int(row.minCount)
         maxCount = None if row.maxCount is None else int(row.maxCount)
+        datatype = str(row.datatype) if row.datatype else None
         optionalValues = row.optionalValues.split(",") if row.optionalValues else []
+
+        condition_entry = {}
+        if row.conditionPath and row.conditionValue:
+            condition_entry['condition'] = {
+                "path": str(row.conditionPath),
+                "value": str(row.conditionValue)
+            }
+        if row.pattern:
+            condition_entry['pattern'] = str(row.pattern)
+        if row.message:
+            condition_entry['message'] = str(row.message)
 
         if row.type:
             entity_type = str(row.type)
@@ -1528,17 +1563,20 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
             # Aggiorna la lista dei datatypes
             if row.datatype and str(row.datatype) not in existing_field["datatypes"]:
                 existing_field["datatypes"].append(str(row.datatype))
+            if condition_entry:
+                existing_field.setdefault('conditions', []).append(condition_entry)
         else:
             field_info = {
                 "entityType": entity_type,
                 "uri": predicate,
                 "nodeShape": nodeShape,
-                "datatypes": [str(row.datatype)] if row.datatype else [],
+                "datatypes": [datatype] if datatype else [],
                 "min": minCount,
                 "max": maxCount,
                 "hasValue": hasValue,
                 "objectClass": objectClass,
-                "optionalValues": optionalValues
+                "optionalValues": optionalValues,
+                "conditions": [condition_entry] if condition_entry else []
             }
             if nodeShape:
                 field_info["nestedShape"] = process_nested_shapes(nodeShape, depth + 1, processed_shapes)
