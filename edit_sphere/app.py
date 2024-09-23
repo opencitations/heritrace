@@ -363,7 +363,19 @@ def create_entity():
     if request.method == 'POST':
         structured_data = json.loads(request.form.get('structured_data', '{}'))
 
-        editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
+        validation_errors = validate_entity_data(structured_data, form_fields)
+
+        if validation_errors:
+            return jsonify({'status': 'error', 'errors': validation_errors}), 400
+
+        editor = Editor(
+            dataset_endpoint,
+            provenance_endpoint,
+            app.config['COUNTER_HANDLER'],
+            app.config['RESPONSIBLE_AGENT'],
+            app.config['PRIMARY_SOURCE'],
+            app.config['DATASET_GENERATION_TIME']
+        )
         
         if shacl:
             entity_type = structured_data.get('entity_type')
@@ -373,9 +385,16 @@ def create_entity():
             editor.import_entity(entity_uri)
             editor.preexisting_finished()
 
-            default_graph_uri = URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
+            default_graph_uri = (
+                URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
+            )
 
-            editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_type), default_graph_uri)
+            editor.create(
+                entity_uri,
+                URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+                URIRef(entity_type),
+                default_graph_uri
+            )
 
             for predicate, values in properties.items():
                 if not isinstance(values, list):
@@ -442,13 +461,117 @@ def create_entity():
 
         try:
             editor.save()
+            response = jsonify({
+                'status': 'success',
+                'redirect_url': url_for('about', subject=str(entity_uri))
+            })
             flash(gettext('Entity created successfully'), 'success')
-            return redirect(url_for('about', subject=str(entity_uri)))
+            return response, 200
         except Exception as e:
-            flash(gettext('An error occurred while creating the entity: %(error)s', error=str(e)), 'danger')
-            return redirect(url_for('create_entity'))
+            error_message = gettext('An error occurred while creating the entity: %(error)s', error=str(e))
+            return jsonify({'status': 'error', 'errors': [error_message]}), 500
 
-    return render_template('create_entity.jinja', shacl=bool(shacl), entity_types=entity_types, form_fields=form_fields, datatype_options=datatype_options)
+    return render_template(
+        'create_entity.jinja',
+        shacl=bool(shacl),
+        entity_types=entity_types,
+        form_fields=form_fields,
+        datatype_options=datatype_options
+    )
+
+def validate_entity_data(structured_data, form_fields):
+    errors = []
+    entity_type = structured_data.get('entity_type')
+    if not entity_type:
+        errors.append(gettext('Entity type is required.'))
+    elif entity_type not in form_fields:
+        errors.append(gettext('Invalid entity type selected.'))
+
+    if errors:
+        return errors
+
+    entity_fields = form_fields.get(entity_type, {})
+    properties = structured_data.get('properties', {})
+
+    for prop_uri, prop_values in properties.items():
+        if URIRef(prop_uri) == RDF.type:
+            continue
+        field_definitions = entity_fields.get(prop_uri)
+        if not field_definitions:
+            errors.append(
+                gettext(
+                    'Unknown property %(prop_uri)s for entity type %(entity_type)s.',
+                    prop_uri=prop_uri,
+                    entity_type=entity_type
+                )
+            )
+            continue
+
+        for field_def in field_definitions:
+            min_count = field_def.get('min', 0)
+            max_count = field_def.get('max', None)
+            prop_value_list = prop_values if isinstance(prop_values, list) else [prop_values]
+            value_count = len(prop_value_list)
+            if value_count < min_count:
+                errors.append(
+                    gettext(
+                        'Property %(prop_uri)s requires at least %(min_count)d value(s).',
+                        prop_uri=custom_filter.human_readable_predicate(prop_uri, [entity_type]),
+                        min_count=min_count
+                    )
+                )
+            if max_count is not None and value_count > max_count:
+                errors.append(
+                    gettext(
+                        'Property %(prop_uri)s allows at most %(max_count)d value(s).',
+                        prop_uri=custom_filter.human_readable_predicate(prop_uri, [entity_type]),
+                        max_count=max_count
+                    )
+                )
+
+            for value in prop_value_list:
+                if isinstance(value, dict) and 'entity_type' in value:
+                    nested_errors = validate_entity_data(value, form_fields)
+                    errors.extend(nested_errors)
+                else:
+                    datatypes = field_def.get('datatypes', [])
+                    if datatypes:
+                        is_valid_datatype = False
+                        for dtype in datatypes:
+                            validation_func = next(
+                                (d[1] for d in DATATYPE_MAPPING if d[0] == URIRef(dtype)),
+                                None
+                            )
+                            if validation_func and validation_func(value):
+                                is_valid_datatype = True
+                                break
+                        if not is_valid_datatype:
+                            expected_types = ', '.join(
+                                [custom_filter.human_readable_predicate(dtype, form_fields.keys()) for dtype in datatypes]
+                            )
+                            errors.append(
+                                gettext(
+                                    'Value "%(value)s" for property %(prop_uri)s is not of expected type %(expected_types)s.',
+                                    value=value,
+                                    prop_uri=custom_filter.human_readable_predicate(prop_uri, form_fields.keys()),
+                                    expected_types=expected_types
+                                )
+                            )
+                    optional_values = field_def.get('optionalValues', [])
+                    if optional_values and value not in optional_values:
+                        acceptable_values = ', '.join(
+                            [custom_filter.human_readable_predicate(val, form_fields.keys()) for val in optional_values]
+                        )
+                        errors.append(
+                            gettext(
+                                'Value "%(value)s" is not permitted for property %(prop_uri)s. Acceptable values are: %(acceptable_values)s.',
+                                value=value,
+                                prop_uri=custom_filter.human_readable_predicate(prop_uri, form_fields.keys()),
+                                acceptable_values=acceptable_values
+                            )
+                        )
+
+    return errors
 
 def create_nested_entity(editor: Editor, entity_uri, entity_data, graph_uri=None):
     # Add rdf:type

@@ -374,6 +374,22 @@
       displayName: "Ending Page"
       shouldBeDisplayed: true
 
+- class: "http://purl.org/spar/pro/RoleInTime"
+  displayName: "Agent Role"
+  displayProperties:
+    - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+      displayName: "Type"
+      shouldBeDisplayed: true
+    - property: "http://purl.org/spar/pro/isHeldBy"
+      displayName: "Helb By"
+      shouldBeDisplayed: true
+    - property: "https://w3id.org/oc/ontology/hasNext"
+      displayName: "Has Next"
+      shouldBeDisplayed: true
+    - property: "http://purl.org/spar/pro/withRole"
+      displayName: "Role"
+      shouldBeDisplayed: true
+
 - class: "http://xmlns.com/foaf/0.1/Agent"
   displayName: "Responsible Agent"
   displayProperties:

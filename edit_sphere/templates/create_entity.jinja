@@ -1323,7 +1323,7 @@
                 });
             }
 
-            $('#entityForm').on('submit', function(event) {
+            $('#entityForm').off('submit').on('submit', function(event) {
                 event.preventDefault();
 
                 let errors = [];
@@ -1412,9 +1412,59 @@
                     collectFormData(null, structuredData.properties);
                 }
 
-                $('#structured_data').val(JSON.stringify(structuredData));
+                showLoadingIndicator();
 
-                this.submit();
+                $.ajax({
+                    url: '{{ url_for("create_entity") }}',
+                    type: 'POST',
+                    data: {
+                        structured_data: JSON.stringify(structuredData)
+                    },
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    success: function(response) {
+                        hideLoadingIndicator();
+                        if (response.status === 'success') {
+                            // Reindirizza alla pagina dell'entità creata
+                            window.location.href = response.redirect_url;
+                        }
+                    },
+                    error: function(xhr) {
+                        hideLoadingIndicator();
+                        if (xhr.status === 400) {
+                            let response = JSON.parse(xhr.responseText);
+                            let errors = response.errors;
+
+                            // Mostra gli errori all'utente
+                            let errorMessage = '<ul style="list-style-type: none; padding-left: 0;">';
+                            errors.forEach(function(error) {
+                                errorMessage += `
+                                    <li style="margin-bottom: 8px; display: flex; align-items: flex-start; text-align: left">
+                                        <span style="color: #d32f2f; margin-right: 8px;">&#9888;</span>
+                                        <span>` + error + `</span>
+                                    </li>
+                                `;
+                            });
+                            errorMessage += '</ul>';
+
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ _("Validation Errors") }}',
+                                html: errorMessage,
+                                confirmButtonText: '{{ _("OK") }}',
+                            });
+                        } else {
+                            // Gestisci altri errori (ad esempio errori 500)
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ _("An error occurred") }}',
+                                text: '{{ _("Please try again later.") }}',
+                                confirmButtonText: '{{ _("OK") }}',
+                            });
+                        }
+                    }
+                });
             });
 
             function showAppropriateDateInput(selector) {
@@ -1496,6 +1546,21 @@
             $(document).on('blur', 'input[data-conditions]', function() {
                 validateFieldWithConditions($(this));
             });
+
+            function showLoadingIndicator() {
+                Swal.fire({
+                    title: '{{ _("Validating data...") }}',
+                    text: '{{ _("Please wait while we validate your data.") }}',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                });
+            }
+
+            function hideLoadingIndicator() {
+                Swal.close();
+            }
         });
     </script>
 </div>
