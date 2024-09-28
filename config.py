@@ -1,9 +1,9 @@
 import os
 
 from rdflib import URIRef
-from edit_sphere.meta_counter_handler import MetaCounterHandler
 
-from edit_sphere.uri_generator import DefaultURIGenerator, MetaURIGenerator
+from heritrace.meta_counter_handler import MetaCounterHandler
+from heritrace.uri_generator import DefaultURIGenerator, MetaURIGenerator
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 

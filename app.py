@@ -1,4 +1,4 @@
-from edit_sphere.app import app
+from heritrace.app import app
 
 if __name__ == '__main__':
     app.run(debug=True, host='localhost', port=5001)

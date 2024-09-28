@@ -32,10 +32,10 @@ from time_agnostic_library.prov_entity import ProvEntity
 from time_agnostic_library.sparql import Sparql
 from time_agnostic_library.support import convert_to_datetime
 
-from edit_sphere.editor import Editor
-from edit_sphere.filters import *
-from edit_sphere.forms import *
-from edit_sphere.uri_generator.uri_generator import *
+from heritrace.editor import Editor
+from heritrace.filters import *
+from heritrace.forms import *
+from heritrace.uri_generator.uri_generator import *
 
 app = Flask(__name__)
 

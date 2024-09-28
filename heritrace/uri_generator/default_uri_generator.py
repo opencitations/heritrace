@@ -1,6 +1,9 @@
-from rdflib import URIRef
 import uuid
-from edit_sphere.uri_generator.uri_generator import URIGenerator
+
+from rdflib import URIRef
+
+from heritrace.uri_generator.uri_generator import URIGenerator
+
 
 class DefaultURIGenerator(URIGenerator):
     def __init__(self, base_iri: str):

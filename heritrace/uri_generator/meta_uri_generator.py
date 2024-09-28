@@ -2,7 +2,7 @@ from rdflib import URIRef
 from rdflib_ocdm.counter_handler.sqlite_counter_handler import \
     SqliteCounterHandler
 
-from edit_sphere.uri_generator.uri_generator import URIGenerator
+from heritrace.uri_generator.uri_generator import URIGenerator
 
 
 class MetaURIGenerator(URIGenerator):
