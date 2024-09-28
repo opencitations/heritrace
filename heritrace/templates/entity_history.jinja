@@ -14,6 +14,32 @@
     <div id="timeline-embed"></div>
 </div>
 
+<style>
+    .tl-text-content p {
+        margin-bottom: 5px;
+    }
+    .modifications h4 {
+        margin-top: 10px;
+        margin-bottom: 5px;
+        font-size: 1em;
+        font-weight: bold;
+    }
+    .modifications ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin-bottom: 10px;
+    }
+    .modifications li {
+        margin-bottom: 3px;
+    }
+    .tl-timeline a.view-version {
+        color: white;
+    }
+    .tl-slide {
+        padding: 2rem 0;
+    }
+</style>
+
 <script type="text/javascript">
     var timeline_json = {{ timeline_data|tojson }};
     window.timeline = new TL.Timeline('timeline-embed', timeline_json);

@@ -826,8 +826,11 @@ def entity_history(entity_uri):
         if modifications:
             modifications = parse_sparql_update(modifications)
             for mod_type, triples in modifications.items():
+                modification_text += f"<h4>{mod_type}</h4><ul>"
                 for triple in triples:
-                    modification_text += f"<p><strong>{mod_type}</strong>: {custom_filter.human_readable_predicate(triple[1], subject_classes)} {custom_filter.human_readable_predicate(triple[2], subject_classes)}</p>"
+                    modification_text += f"<li><strong>{custom_filter.human_readable_predicate(triple[1], subject_classes)}:</strong> {custom_filter.human_readable_predicate(triple[2], subject_classes)}</li>"
+                modification_text += "</ul>"
+        
         event = {
             "start_date": {
                 "year": date.year,
@@ -840,15 +843,17 @@ def entity_history(entity_uri):
             "text": {
                 "headline": gettext('Snapshot') + ' ' + str(i + 1),
                 "text": f"""
-                    <p><strong>""" + gettext('Responsible agent') + f"""</strong>: {responsible_agent}</p>
-                    <p><strong>""" + gettext('Primary source') + f"""</strong>: {primary_source}</p>
-                    <p><strong>""" + gettext('Description') + f"""</strong>: {metadata['description']}</p>
-                    {modification_text}"""
+                    <p><strong>{gettext('Responsible agent')}:</strong> {responsible_agent}</p>
+                    <p><strong>{gettext('Primary source')}:</strong> {primary_source}</p>
+                    <p><strong>{gettext('Description')}:</strong> {metadata['description']}</p>
+                    <div class="modifications">
+                        {modification_text}
+                    </div>
+                """
             },
             "autolink": False
         }
 
-        # Imposta l'end_date sull'evento successivo, se esiste
         if i + 1 < len(sorted_metadata):
             next_date = datetime.fromisoformat(sorted_metadata[i + 1][1]['generatedAtTime'])
             event["end_date"] = {
@@ -860,7 +865,6 @@ def entity_history(entity_uri):
                 "second": next_date.second
             }
         else:
-            # Se è l'ultimo evento, imposta l'end_date al momento attuale
             now = datetime.now()
             event["end_date"] = {
                 "year": now.year,
@@ -871,8 +875,8 @@ def entity_history(entity_uri):
                 "second": now.second
             }
 
-        view_version_button = f"<button><a href='/entity-version/{entity_uri}/{metadata['generatedAtTime']}' alt='{gettext('Materialize snapshot')} {i+1}' target='_self'>" + gettext('View version') + "</a></button>"
-        event["text"]["text"] += f"<br>{view_version_button}"
+        view_version_button = f"<a href='/entity-version/{entity_uri}/{metadata['generatedAtTime']}' class='btn btn-primary mt-2 view-version' target='_self'>{gettext('View version')}</a>"
+        event["text"]["text"] += f"{view_version_button}"
         events.append(event)
 
     timeline_data = {
