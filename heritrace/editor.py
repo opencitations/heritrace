@@ -22,13 +22,15 @@ class Editor:
         self.dataset_is_quadstore = Config.DATASET_IS_QUADSTORE
         self.g_set = OCDMConjunctiveGraph(self.counter_handler) if self.dataset_is_quadstore else OCDMGraph(self.counter_handler)
 
-    def create(self, subject: URIRef, predicate: URIRef, value: Literal|URIRef, graph: URIRef = None) -> None:
+    def create(self, subject: URIRef, predicate: URIRef, value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
+        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph)
         if self.dataset_is_quadstore and graph:
             self.g_set.add((subject, predicate, value, graph))
         else:
             self.g_set.add((subject, predicate, value))
 
-    def update(self, subject: URIRef, predicate: URIRef, old_value: Literal|URIRef, new_value: Literal|URIRef, graph: URIRef = None) -> None:
+    def update(self, subject: URIRef, predicate: URIRef, old_value: Literal|URIRef, new_value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
+        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph)
         if self.dataset_is_quadstore and graph:
             self.g_set.remove((subject, predicate, old_value, graph))
             self.g_set.add((subject, predicate, new_value, graph))
@@ -36,11 +38,10 @@ class Editor:
             self.g_set.remove((subject, predicate, old_value))
             self.g_set.add((subject, predicate, new_value))
 
-    def delete(self, subject: str, predicate: str = None, value: str = None, graph: str = None) -> None:
+    def delete(self, subject: str, predicate: str = None, value: str = None, graph: URIRef|Graph|str = None) -> None:
         subject = URIRef(subject)
         predicate = URIRef(predicate) if predicate else None
-        graph = URIRef(graph) if graph else None
-        
+        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph)
         if predicate:
             if value:
                 if self.dataset_is_quadstore and graph:

@@ -674,7 +674,7 @@ def add_triple():
     object_value, _, report_text = validate_new_triple(subject, predicate, object_value)
     if shacl:
         data_graph = fetch_data_graph_for_subject(subject)
-        can_be_added, _, _, _, _, s_types = get_valid_predicates(list(data_graph.triples((None, None, None))))
+        can_be_added, _, _, _, _, s_types, _ = get_valid_predicates(list(data_graph.triples((None, None, None))))
         if predicate not in can_be_added and URIRef(predicate) in data_graph.predicates():
             flash(gettext('This resource cannot have any other %(predicate)s properties', predicate=custom_filter.human_readable_predicate(predicate, s_types)))
             return redirect(url_for('about', subject=subject))
@@ -742,7 +742,7 @@ def update_logic(editor: Editor, subject, predicate, old_value, new_value, graph
 def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=None):
     if shacl:
         data_graph = fetch_data_graph_for_subject(subject)
-        _, can_be_deleted, _, _, _, _ = get_valid_predicates(list(data_graph.triples((URIRef(subject), None, None))))
+        _, can_be_deleted, _, _, _, _, _ = get_valid_predicates(list(data_graph.triples((URIRef(subject), None, None))))
         if predicate not in can_be_deleted:
             raise ValueError(gettext('This property cannot be deleted'))
     editor.delete(subject, predicate, object_value, graph_uri)
