@@ -1,7 +1,12 @@
 {% set unique_counter = namespace(value=0) %}
 
 {% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id) %}
-    <li class="d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" data-subject-id="{{subject}}" data-property-id="{{ triple[1] }}" data-old-object-id="{{object}}" data-ordered_by="{{ orderedBy }}">
+    <li class="d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
+        data-subject-id="{{subject}}" 
+        data-property-id="{{ triple[1] }}" 
+        data-old-object-id="{{object}}" 
+        data-ordered_by="{{ orderedBy }}"
+        data-datatypes="{{ datatypes.get(triple[1], [])|join(',') }}">
         <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center p-3 w-75">
             {% if externalEntity %}
                 {% if isDraggable %}
@@ -18,6 +23,45 @@
                             <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>{{ value | human_readable_predicate(subject_classes) }}</option>
                         {% endfor %}
                     </select>
+            {% elif 'http://www.w3.org/2001/XMLSchema#date' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYear' in datatypes.get(triple[1], []) %}
+                <div class="date-input-group">
+                    <div class="form-floating mb-2 date-type-selector-container" style="display: none;">
+                        <select class="form-control date-type-selector"
+                                id="{{ unique_id }}_date_type"
+                                name="{{ unique_id }}_date_type"
+                                data-allowed-datatypes="{{ datatypes.get(triple[1], [])|join(',') }}">
+                            {% if 'http://www.w3.org/2001/XMLSchema#date' in datatypes.get(triple[1], []) %}
+                                <option value="date" {% if triple[2]|length == 10 %}selected{% endif %}>{{ _('Date') }}</option>
+                            {% endif %}
+                            {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in datatypes.get(triple[1], []) %}
+                                <option value="month" {% if triple[2]|length == 7 %}selected{% endif %}>{{ _('Year and Month') }}</option>
+                            {% endif %}
+                            {% if 'http://www.w3.org/2001/XMLSchema#gYear' in datatypes.get(triple[1], []) %}
+                                <option value="year" {% if triple[2]|length == 4 %}selected{% endif %}>{{ _('Year') }}</option>
+                            {% endif %}
+                        </select>
+                        <label for="{{ unique_id }}_date_type">{{ _('Select Date Type') }}</label>
+                    </div>
+                    <div class="form-floating date-input-container" style="display: none;">
+                        <input type="date" class="form-control editable-field date-input" 
+                            value="{{ triple[2] }}" 
+                            id="new_value_{{ unique_id }}_date"
+                            style="display: none;">
+                        <input type="month" class="form-control editable-field date-input" 
+                            value="{{ triple[2] }}" 
+                            id="new_value_{{ unique_id }}_month"
+                            style="display: none;">
+                        <input type="number" class="form-control editable-field date-input" 
+                            value="{{ triple[2] }}" 
+                            id="new_value_{{ unique_id }}_year"
+                            min="1000" max="9999"
+                            style="display: none;">
+                        <label for="new_value_{{ unique_id }}_date">{{ triple[1] | human_readable_predicate(subject_classes) }}</label>
+                    </div>
+                    <div class="date-display-container">
+                        <span class="date-display">{{ triple[2] }}</span>
+                    </div>
+                </div>
                 {% else %}
                     <span>{{ update_form.new_value(class="form-control editable-field", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}</span>
                 {% endif %}
@@ -215,6 +259,48 @@
             });
         }
 
+        function showAppropriateDateInput(selector) {
+            const dateInputGroup = selector.closest('.date-input-group');
+            const selectedDateType = selector.val();
+            
+            // Nascondi tutti gli input di data
+            dateInputGroup.find('.date-input').hide();
+            
+            // Mostra l'input appropriato
+            const selectedInput = dateInputGroup.find(`#new_value_${selector.attr('id').replace('_date_type', '')}_${selectedDateType}`);
+            selectedInput.show();
+
+            // Update the label's 'for' attribute
+            dateInputGroup.find('.date-input-container label').attr('for', selectedInput.attr('id'));
+
+            // Aggiorna il valore del display
+            dateInputGroup.find('.date-display').text(selectedInput.val());
+        }
+
+        function toggleDateStrike(dateInputGroup, isStriked) {
+            const dateDisplayContainer = dateInputGroup.find('.date-display-container');
+            const dateInputContainer = dateInputGroup.find('.date-input-container');
+            const dateTypeSelectorContainer = dateInputGroup.find('.date-type-selector-container');
+
+            if (isStriked) {
+                // Nascondi gli input della data e il selettore del tipo di data
+                dateInputContainer.hide();
+                dateTypeSelectorContainer.hide();
+
+                // Mostra il date-display-container e applica la classe 'striked'
+                dateDisplayContainer.show();
+                dateDisplayContainer.find('.date-display').addClass('striked');
+            } else {
+                // Mostra gli input della data e il selettore del tipo di data
+                dateInputContainer.show();
+                dateTypeSelectorContainer.show();
+
+                // Nascondi il date-display-container e rimuovi la classe 'striked'
+                dateDisplayContainer.hide();
+                dateDisplayContainer.find('.date-display').removeClass('striked');
+            }
+        }
+
         $('.edit-button').click(function () {
             const isRedirect = $(this).find('i').hasClass('bi-arrow-right-square');
             if (isRedirect) {
@@ -260,10 +346,13 @@
                 $(".editable-field").prop('readonly', true);
                 $(".editable-select").prop('disabled', true);
                 $(".delete-button").hide();
-                $(".drag-handle").children('span:first-child').hide(); // Nascondi gli handle
+                $(".drag-handle").children('span:first-child').hide();
                 $("#saveChangesBtn").hide();
                 $("#cancelChangesBtn").hide();
-                $(this).removeClass('edit-mode'); // Rimuovi lo stile di modalità di modifica
+                $(".date-type-selector-container").hide();
+                $(".date-input-container").hide();
+                $(".date-display-container").show();
+                $(this).removeClass('edit-mode');
                 isInEditMode = false;
                 pendingChanges = [];
             } else {
@@ -273,26 +362,39 @@
                 $(".editable-field").prop('readonly', false);
                 $(".editable-select").prop('disabled', false);
                 $(".delete-button").show();
-                $(".drag-handle").children('span:first-child').show(); // Mostra gli handle
+                $(".drag-handle").children('span:first-child').show();
                 $("#saveChangesBtn").show();
                 $("#cancelChangesBtn").show();
-                $(this).addClass('edit-mode'); // Aggiungi lo stile di modalità di modifica
+                $(".date-type-selector-container").show();
+                $(".date-input-container").show();
+                $(".date-display-container").hide();
+                $(this).addClass('edit-mode');
                 isInEditMode = true;
             }
         });
         $('#cancelChangesBtn').click(function(){
             $('#editEntityBtn').click();
         });
-        $('.editable-field[id^="new_value_"], .editable-select').change(function() {
+        $('.editable-field[id^="new_value_"], .editable-select, .date-type-selector').change(function() {
             const listItem = $(this).closest('.property-value');
             const subject = listItem.data('subject-id');
             const predicate = listItem.data('property-id');
             const oldObject = listItem.data('old-object-id');
-            const newObject = $(this).val();
+            let newObject;
+
+            if ($(this).hasClass('date-type-selector')) {
+                const selectedType = $(this).val();
+                newObject = listItem.find(`#new_value_${$(this).attr('id').replace('_date_type', '')}_${selectedType}`).val();
+            } else {
+                newObject = $(this).val();
+            }
+
             storePendingChange('update', subject, predicate, oldObject, newObject);
         });
-        $('.delete-button').click(function() {
+        $(document).on('click', '.delete-button', function() {
             const listItem = $(this).closest('.property-value');
+            const dateInputGroup = listItem.find('.date-input-group');
+            toggleDateStrike(dateInputGroup, true);
             const subject = listItem.data('subject-id');
             const predicate = listItem.data('property-id');
             const object_value = listItem.data('old-object-id');
@@ -315,6 +417,8 @@
                     if (index > -1) {
                         pendingChanges.splice(index, 1);
                     }
+                    const dateInputGroup = listItem.find('.date-input-group');
+                    toggleDateStrike(dateInputGroup, false);
                 });
         });
         $('#saveChangesBtn').click(function(){
@@ -358,6 +462,20 @@
                 }
             });
         });
-    });
+
+        // Gestisci il cambio di selezione del tipo di data
+        $(document).on('change', '.date-type-selector', function() {
+            showAppropriateDateInput($(this));
+        });
+
+        // Inizializza gli input di data al caricamento della pagina
+        $('.date-type-selector').each(function() {
+            showAppropriateDateInput($(this));
+        });
+
+        $(document).on('change', '.date-input', function() {
+            $(this).closest('.date-input-group').find('.date-display').text($(this).val());
+        });
+   });
 </script>
 {% endblock %}

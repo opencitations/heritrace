@@ -1423,9 +1423,9 @@ def get_valid_predicates(triples):
     datatypes = defaultdict(list)
     for row in results:
         if row.datatype:
-            datatypes[str(row.predicate)].append(row.datatype)
+            datatypes[str(row.predicate)].append(str(row.datatype))
         else:
-            datatypes[str(row.predicate)].append(XSD.string)
+            datatypes[str(row.predicate)].append(str(XSD.string))
     mandatory_values = {}
     for valid_predicate in valid_predicates:
         for predicate, ranges in valid_predicate.items():
