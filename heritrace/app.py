@@ -763,6 +763,7 @@ def order_logic(editor: Editor, subject, predicate, new_order, ordered_by, graph
             ordered_list.append(start)
             start = next_map.get(start)
         return ordered_list
+    
     query_current_order = f'''
         SELECT ?entity ?next
         WHERE {{
@@ -846,7 +847,7 @@ def entity_history(entity_uri):
                     <p><strong>{gettext('Responsible agent')}:</strong> {responsible_agent}</p>
                     <p><strong>{gettext('Primary source')}:</strong> {primary_source}</p>
                     <p><strong>{gettext('Description')}:</strong> {metadata['description']}</p>
-                    <div class="modifications">
+                    <div class="modifications mb-3">
                         {modification_text}
                     </div>
                 """
@@ -1004,7 +1005,7 @@ def page_not_found(e):
 def parse_sparql_update(query):
     parsed = parseUpdate(query)
     translated = translateUpdate(parsed).algebra
-    modifications = {gettext('Deletions'): [], gettext('Additions'): []}
+    modifications = {}
 
     def extract_quads(quads):
         result = []
@@ -1020,14 +1021,18 @@ def parse_sparql_update(query):
     for operation in translated:
         if operation.name == "DeleteData":
             if hasattr(operation, 'quads'):
-                modifications[gettext('Deletions')].extend(extract_quads(operation.quads))
+                deletions = extract_quads(operation.quads)
             else:
-                modifications[gettext('Deletions')].extend(operation.triples)
+                deletions = operation.triples
+            if deletions:
+                modifications.setdefault(gettext('Deletions'), list()).extend(deletions)
         elif operation.name == "InsertData":
             if hasattr(operation, 'quads'):
-                modifications[gettext('Additions')].extend(extract_quads(operation.quads))
+                additions = extract_quads(operation.quads)
             else:
-                modifications[gettext('Additions')].extend(operation.triples)
+                additions = extract_quads(operation.quads)
+            if additions:
+                modifications.setdefault(gettext('Additions'), list()).extend(additions)
 
     return modifications
 
