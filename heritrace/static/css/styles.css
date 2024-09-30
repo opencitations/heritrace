@@ -119,10 +119,6 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     margin-bottom: 3rem;
 }
 
-[data-repeater-create] {
-    margin-top: -1rem; /* Sposta il pulsante "Add another" più vicino all'elemento sopra */
-}
-
 .add-button {
     background: none;
     border: none;

@@ -1,7 +1,7 @@
 {% set namespace_render_form_field = namespace(counter=0) %}
 
 {% macro render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, index=None, is_template=False, max_depth=5) %}
-    <div data-repeater-item class="input-group mb-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
+    <div data-repeater-item class="input-group mb-3 ms-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
         {% if details.intermediateRelation %}
             data-intermediate-relation="{{ details.intermediateRelation.class }}"
             data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"
@@ -51,7 +51,7 @@
             </div>
         {% elif details.optionalValues and details.optionalValues|length %}
             <div class="form-floating flex-grow-1">
-                <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
+                <select class="form-select w-75" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
                     {% for val in details.optionalValues %}
                         <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
                     {% endfor %}
@@ -65,7 +65,7 @@
             <!-- Date input section -->
             <div class="date-input-group">
                 <div class="form-floating mb-2">
-                    <select class="form-select date-type-selector"
+                    <select class="form-select w-75 date-type-selector"
                             id="{{ unique_id_base }}_date_type"
                             name="{{ unique_id_base }}_date_type"
                             data-allowed-datatypes="{{ details.datatypes | join(',') }}">
@@ -86,7 +86,7 @@
                 <!-- Date input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
                     <div class="form-floating date-input-container mb-2" style="display: none;">
-                        <input type="date" class="form-control date-input"
+                        <input type="date" class="form-control date-input w-75"
                             id="{{ unique_id_base }}_date"
                             name="{{ unique_id_base }}"
                             data-date-type="date"
@@ -103,7 +103,7 @@
                 <!-- Month input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
                     <div class="form-floating date-input-container mb-2" style="display: none;">
-                        <input type="month" class="form-control date-input"
+                        <input type="month" class="form-control date-input w-75"
                             id="{{ unique_id_base }}_month"
                             name="{{ unique_id_base }}"
                             data-date-type="month"
@@ -120,7 +120,7 @@
                 <!-- Year input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
                     <div class="form-floating date-input-container mb-2" style="display: none;">
-                        <input type="number" class="form-control date-input"
+                        <input type="number" class="form-control date-input w-75"
                             id="{{ unique_id_base }}_year"
                             name="{{ unique_id_base }}"
                             data-date-type="year"
@@ -137,7 +137,7 @@
             </div>
         {% else %}
             <div class="form-floating flex-grow-1">
-                <input type="text" class="form-control"
+                <input type="text" class="form-control w-75"
                     id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
                     name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
                     data-predicate-uri="{{ details.uri }}"
@@ -156,7 +156,7 @@
                 <div class="invalid-feedback"></div>
             </div>
         {% endif %}
-        <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger me-2">
+        <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger me-4">
             <i class="bi bi-trash"></i>
         </button>
     </div>
@@ -193,7 +193,7 @@
 
 {% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data) %}
     {% set shape = grouped_triples_data.get('shape') %}
-    <li data-repeater-item class="d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
+    <div data-repeater-item class="d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
         data-subject-id="{{ subject }}" 
         data-property-id="{{ triple[1] }}" 
         data-old-object-id="{{ object }}" 
@@ -212,11 +212,13 @@
                 {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
                     <span style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
                 {% elif shacl and optional_values[triple[1]] %}
-                    <select name="new_value" class="form-control editable-select" disabled=true>
-                        {% for value in optional_values[triple[1]] %}
-                            <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>{{ value | human_readable_predicate(subject_classes) }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="form-floating">
+                        <select name="new_value" class="form-control editable-select" disabled>
+                            {% for value in optional_values[triple[1]] %}
+                                <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>{{ value | human_readable_predicate(subject_classes) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 {% elif 'http://www.w3.org/2001/XMLSchema#date' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYear' in datatypes.get(triple[1], []) %}
                     <div class="date-input-group">
                         <div class="form-floating mb-2 date-type-selector-container" style="display: none;">
@@ -257,7 +259,9 @@
                         </div>
                     </div>
                 {% else %}
-                    <span>{{ update_form.new_value(class="form-control editable-field", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}</span>
+                    <div class="form-floating">
+                        {{ update_form.new_value(class="form-control editable-field", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
+                    </div>
                 {% endif %}
             {% endif %}
         </span>
@@ -290,5 +294,5 @@
                 {% endif %}
             </div>
         </div>
-    </li>
+    </div>
 {% endmacro %}

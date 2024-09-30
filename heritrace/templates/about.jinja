@@ -43,37 +43,37 @@
                     {% if data['triples'] %}
                         <h6 class="item-label">{{ display_name | human_readable_predicate(subject_classes) }}</h6>
                         {% set isDraggable = data['is_draggable'] and data['triples']|length > 1 %}
-                        <div data-repeater-list="{{ display_name | replace(' ', '_') }}" {% if data.orderedBy %}data-ordered-by="{{ data.orderedBy }}"{% endif %} data-uri="{{ data['property'] }}">
-                            <ul class="predicate-ul mb-4">
-                                {% if data['property'] in can_be_added %}
-                                    {% set predicate = data['property'] %}
-                                    {% for details in form_fields[entity_type][predicate] %}
-                                        {% set shape = details.get('nodeShape') %}
-                                        {% if details.get('nodeShape') == data.get('shape') or not data.get('shape')%}
-                                            {% set key = (predicate, entity_type, shape) %}
-                                            {% if key in predicate_details_map %}
-                                                {% set unique_id_base = (entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + predicate | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) + "_" + namespace_render_repeater_item.counter | string  %}
-                                                {{ render_repeater_item(entity_type, predicate, predicate_details_map[key], entity_types, form_fields, depth=0, unique_id_base=unique_id_base, label=None, is_template=True) }}
-                                                {% set namespace_render_repeater_item.counter = namespace_render_repeater_item.counter + 1 %}
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                                {% for triple_data in data['triples'] %}
-                                    {% set unique_counter.value = unique_counter.value + 1 %}
-                                    {{ render_triple(triple_data['triple'], subject, triple_data['external_entity'], isDraggable, triple_data['object'], data['ordered_by'], unique_counter.value, data) }}
-                                {% endfor %}
-                            </ul>
+                        <div class="predicate-ul" data-repeater-list="{{ display_name | replace(' ', '_') }}" {% if data.orderedBy %}data-ordered-by="{{ data.orderedBy }}"{% endif %} data-uri="{{ data['property'] }}">
                             {% if data['property'] in can_be_added %}
                                 {% set predicate = data['property'] %}
                                 {% for details in form_fields[entity_type][predicate] %}
                                     {% set shape = details.get('nodeShape') %}
-                                    {% if details.get('nodeShape') == data.get('shape') or not data.get('shape')%}
+                                    {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') %}
                                         {% set key = (predicate, entity_type, shape) %}
                                         {% if key in predicate_details_map %}
-                                            {% set unique_id_base = (entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + predicate | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) + "_" + namespace_render_repeater_item.counter | string  %}
-                                            <!-- Pulsante per aggiungere nuovi elementi -->
-                                            <div class="text-start" data-repeater-create>
+                                            {% set unique_id_base = (entity_type | human_readable_predicate(entitytypes, False) | replace(" ", "") + "_" + predicate | human_readable_predicate(entitytypes, False) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
+                                            {{ render_repeater_item(entity_type, predicate, predicate_details_map[key], entity_types, form_fields, depth=0, unique_id_base=unique_id_base, label=None, is_template=True) }}
+                                            {% set namespace_render_repeater_item.counter = namespace_render_repeater_item.counter + 1 %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            {% for triple_data in data['triples'] %}
+                                {% set unique_counter.value = unique_counter.value + 1 %}
+                                {{ render_triple(triple_data['triple'], subject, triple_data['external_entity'], isDraggable, triple_data['object'], data['ordered_by'], unique_counter.value, data) }}
+                            {% endfor %}
+
+                            <!-- Move the add-button inside the ul -->
+                            {% if data['property'] in can_be_added %}
+                                {% set predicate = data['property'] %}
+                                {% for details in form_fields[entity_type][predicate] %}
+                                    {% set shape = details.get('nodeShape') %}
+                                    {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') %}
+                                        {% set key = (predicate, entity_type, shape) %}
+                                        {% if key in predicate_details_map %}
+                                            {% set unique_id_base = (entity_type | human_readable_predicate(entitytypes, False) | replace(" ", "") + "_" + predicate | human_readable_predicate(entitytypes, False) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
+                                            <!-- Button to add new items -->
+                                            <div class="text-start ms-2 mt-3" data-repeater-create>
                                                 <button type="button" class="add-button">
                                                     <i class="bi bi-plus-circle"></i>
                                                     {{ _("Add %(element_type)s", element_type=details.displayName or (data['property'] | human_readable_predicate(entity_types, False))) }}
@@ -245,7 +245,7 @@
             $('.add-form').addClass('d-none');
         });
         $('.predicate-select').change(updateObjectInput);
-        $('.predicate-ul').each(function() {
+        $('[data-repeater-list]').each(function() {
             new Sortable(this, {
                 animation: 150,
                 draggable: '.draggable',
