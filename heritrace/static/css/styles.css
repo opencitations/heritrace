@@ -74,3 +74,105 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     background-color: black !important;
 }
 
+.nested-form-container {
+    border-left: .2rem solid #eee;
+    padding-left: 1rem;
+    margin-left: 1rem;
+    position: relative;
+}
+
+.repeater-delete-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: transparent;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border 0.2s;
+    border-radius: 0.25rem;
+    border-top-left-radius: 0.25rem !important;
+    border-bottom-left-radius: 0.25rem !important;
+}
+
+.repeater-delete-btn:hover {
+    background-color: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.input-group {
+    position: relative;
+    padding-right: 3.5rem; /* Adjusted padding to make space for delete button */
+}
+
+.nested-form-header .toggle-btn.collapsed {
+    transform: rotate(0deg);
+}
+
+.nested-form-header .toggle-btn:not(.collapsed) {
+    transform: rotate(90deg);
+}
+
+[data-repeater-list], #entity_type {
+    margin-bottom: 3rem;
+}
+
+[data-repeater-create] {
+    margin-top: -1rem; /* Sposta il pulsante "Add another" più vicino all'elemento sopra */
+}
+
+.add-button {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+}
+.add-button:hover {
+    color: #fff;
+    background-color: #6c757d;
+}
+.add-button i {
+    margin-right: 0.25rem;
+}
+.is-invalid {
+    border-color: #dc3545;
+}
+.invalid-feedback {
+    display: none;
+    color: #dc3545;
+}
+.is-invalid + .invalid-feedback {
+    display: block;
+}
+
+/* Lyout verticale degli input di data */
+.date-input-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.date-input-container {
+    width: 100%;
+}
+
+.date-type-selector {
+    margin-bottom: 0.5rem;
+}
+
+.date-input {
+    width: 100%;
+}
+
+.btn.repeater-delete-btn {
+    margin-top: 1.7rem;
+    font-size: 1rem;
+    position: absolute;
+}

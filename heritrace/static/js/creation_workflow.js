@@ -1,0 +1,292 @@
+// Store initial copies of repeater items
+var initialCopies = {};
+
+function generateUniqueId(prefix) {
+    return prefix + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function updateButtons(list, recursive = true) {
+    const maxItems = parseInt(list.data('max-items')) || Infinity;
+    const minItems = parseInt(list.data('min-items')) || 0;
+    const items = list.children('[data-repeater-item]').not('.repeater-template');
+    const addButton = list.children('[data-repeater-create]');
+
+    // Gestione del pulsante di aggiunta
+    if (items.length >= maxItems) {
+        addButton.hide();
+    } else {
+        addButton.show();
+    }
+
+    // Gestione dei pulsanti di cancellazione
+    items.each(function(index) {
+        const deleteBtn = $(this).find('> .repeater-delete-btn');
+        if (index < minItems) {
+            deleteBtn.hide();
+        } else {
+            deleteBtn.show();
+        }
+    });
+
+    // Gestione speciale per elementi opzionali singoli (max=1, min=0)
+    if (maxItems === 1 && minItems === 0) {
+        if (items.length === 0) {
+            addButton.show();
+        } else {
+            addButton.hide();
+            items.find('> .repeater-delete-btn').show();
+        }
+    }
+
+    // Gestione ricorsiva per elementi annidati
+    if (recursive) {
+        items.each(function() {
+            $(this).find('[data-repeater-list]').each(function() {
+                updateButtons($(this), false);
+            });
+        });
+    }
+}
+
+// Funzione per aggiornare la numerazione degli elementi ordinabili
+function updateOrderedElementsNumbering() {
+    $('[data-ordered-by]').each(function() {
+        var labelGroups = {};
+
+        // Raggruppa gli elementi per etichetta originale
+        $(this).find('[data-repeater-item]').not('.repeater-template').each(function() {
+            var label = $(this).find('.form-label').first();
+            var originalText = label.data('original-text');
+            if (!labelGroups[originalText]) {
+                labelGroups[originalText] = [];
+            }
+            labelGroups[originalText].push(label);
+        });
+
+        // Aggiorna la numerazione per ogni gruppo
+        Object.keys(labelGroups).forEach(function(originalText) {
+            labelGroups[originalText].forEach(function(label, index) {
+                label.text(originalText + ' ' + (index + 1));
+            });
+        });
+    });
+}
+
+// Function to initialize the form based on the selected entity type
+function initializeForm() {
+    let selectedUri;
+    if ($('#entity_type').length) {
+        // In create_entity.jinja
+        selectedUri = $('#entity_type').val();
+        $('#entity_type option').prop('selected', function() {
+            return this.value === selectedUri;
+        });
+    } else if (typeof entity_type !== 'undefined' && entity_type) {
+        // In about.jinja, use the entity_type variable
+        selectedUri = entity_type;
+    }
+
+    if (selectedUri) {
+        // Hide all property groups
+        $('.property-group').hide();
+
+        // Show the selected group
+        let selectedGroup = $(`.property-group[data-uri="${selectedUri}"]`);
+        selectedGroup.show();
+        
+        // Enable inputs only in the selected group
+        $('.property-group').each(function() {
+            let group = $(this);
+            let isSelected = group.data('uri') === selectedUri;
+            group.find(':input').prop('disabled', !isSelected);
+        });
+
+        // Initialize mandatory elements of the initial structure
+        selectedGroup.find('[data-repeater-list]').each(function() {
+            var list = $(this);
+            var minItems = parseInt(list.data('min-items') || 0);
+            var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
+            
+            if (minItems > 0 && currentItems === 0) {
+                // Simulate click on add button for mandatory elements of the initial structure
+                var addButton = list.find('[data-repeater-create] .initial-structure-add');
+                for (var i = 0; i < minItems; i++) {
+                    addButton.click();
+                }
+            }
+        });
+    } else {
+        // If no type is selected, disable all inputs
+        $('.property-group :input').prop('disabled', true);
+    }
+}
+
+// Funzione per inizializzare Sortable su un elemento
+function initSortable(element) {
+    new Sortable(element, {
+        handle: '.drag-handle',
+        animation: 150,
+        filter: '.non-sortable', // Esclude elementi con questa classe
+        onMove: function(evt) {
+            return !evt.related.classList.contains('non-sortable');
+        },
+        onEnd: function() {
+            updateOrderedElementsNumbering();
+        }
+    });
+}
+
+// Funzione per aggiornare la struttura Sortable dopo l'aggiunta di nuovi elementi
+function updateSortable(list) {
+    // Rimuovi la classe 'non-sortable' da tutti gli elementi
+    list.find('[data-repeater-item]').removeClass('non-sortable');
+    
+    // Aggiungi la classe 'non-sortable' all'ultimo elemento (il pulsante "Add another...")
+    list.children().last().addClass('non-sortable');
+    
+    // Reinizializza Sortable
+    initSortable(list[0]);
+}
+
+function setRequiredForVisibleFields(item, isInitialStructure = false) {
+    item.find('input, select, textarea').each(function() {
+        var elem = $(this);
+        var isVisible = elem.is(':visible');
+        var parentRepeaterList = elem.closest('[data-repeater-list]');
+        var isRequired = parentRepeaterList.length > 0 && 
+                        (isInitialStructure || parseInt(parentRepeaterList.data('min-items') || 0) > 0);
+        elem.prop('required', isVisible && isRequired);
+    });
+}
+
+function showAppropriateDateInput(selector) {
+    const dateInputGroup = selector.closest('.input-group');
+    const selectedDateType = selector.val();
+
+    // Hide all date input containers
+    dateInputGroup.find('.date-input-container').hide();
+    dateInputGroup.find('.date-input').attr('disabled', true);
+
+    // Show the selected date input container
+    const inputToShow = dateInputGroup.find(`.date-input-container input[data-date-type="${selectedDateType}"]`).closest('.date-input-container');
+    inputToShow.show();
+    inputToShow.find('.date-input').attr('disabled', false);
+}
+
+function bindRepeaterEvents(context) {
+    function initializeNewItem(newItem, isRequired, isInitialStructure = false) {
+        newItem.find('input, select, textarea').each(function() {
+            var elem = $(this);
+            var elemId = elem.attr('id');
+            
+            if (elemId) {
+                var newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
+                elem.attr('id', newId);
+                elem.attr('name', newId);
+            }
+
+            if (elem.is('select')) {
+                elem.find('option:first').prop('selected', true);
+            } else {
+                elem.val('');
+            }
+        });
+
+        newItem.find('.nested-form-header').each(function() {
+            var $header = $(this);
+            var $toggleBtn = $header.find('.toggle-btn');
+            var $collapseDiv = $header.next('.nested-form-container');
+            
+            var newId = generateUniqueId('nested_form');
+            $toggleBtn.attr('data-bs-target', '#' + newId);
+            $toggleBtn.attr('aria-controls', newId);
+            $collapseDiv.attr('id', newId);
+
+            $collapseDiv.collapse({toggle: false});
+        });
+
+        // Inizializza gli elementi obbligatori della struttura iniziale
+        if (isInitialStructure) {
+            newItem.find('[data-repeater-list]').each(function() {
+                var nestedList = $(this);
+                var minItems = parseInt(nestedList.data('min-items') || 0);
+                if (minItems > 0) {
+                    for (var i = 0; i < minItems; i++) {
+                        var nestedItem = initialCopies[nestedList.data('repeater-list')].clone(true, true);
+                        initializeNewItem(nestedItem, true, true);
+                        nestedItem.appendTo(nestedList);
+                    }
+                }
+            });
+        }
+
+        newItem.find('.date-type-selector').each(function() {
+            showAppropriateDateInput($(this));
+        });
+    }
+
+    context.find('[data-repeater-create]').off('click').on('click', function() {
+        var list = $(this).closest('[data-repeater-list]');
+        var maxItems = parseInt(list.data('max-items')) || Infinity;
+        var counter = list.children('[data-repeater-item]').not('.repeater-template').length;
+        if (counter < maxItems) {
+            var newItem = initialCopies[list.data('repeater-list')].clone(true, true);
+            newItem.removeClass('d-none repeater-template');
+
+            var isRequired = parseInt(list.data('min-items') || 0) > 0;
+            var isInitialStructure = $(this).hasClass('initial-structure-add');
+
+            initializeNewItem(newItem, isRequired, isInitialStructure);
+
+            newItem.appendTo(list);
+            list.children('[data-repeater-create]').appendTo(list);
+
+            newItem.find('.collapse').addClass('show');
+            newItem.find('.toggle-btn').removeClass('collapsed');
+
+            updateButtons(list, true);
+
+            if (list.data('ordered-by')) {
+                updateSortable(list);
+            }
+            updateOrderedElementsNumbering();
+
+            bindRepeaterEvents(newItem);
+
+            setRequiredForVisibleFields(newItem, isInitialStructure);
+
+            initializeForm();
+        }
+    });
+
+    context.find('[data-repeater-delete]').off('click').on('click', function() {
+        var list = $(this).closest('[data-repeater-list]');
+        $(this).closest('[data-repeater-item]').remove();
+        updateButtons(list);
+        // Dopo aver rimosso un elemento, aggiorna la numerazione
+        updateOrderedElementsNumbering();
+        setRequiredForVisibleFields(list);
+    });
+
+    context.find('.collapse').on('shown.bs.collapse hidden.bs.collapse', function(e) {
+        e.stopPropagation();
+        var $header = $(this).prev('.nested-form-header');
+        $header.find('.toggle-btn').toggleClass('collapsed', e.type === 'hidden');
+        
+        // Aggiorniamo lo stato required per tutti gli elementi visibili dopo l'espansione/collasso
+        setRequiredForVisibleFields($(this).closest('[data-repeater-list]'));
+    });
+
+    setRequiredForVisibleFields(context);
+}
+
+$('[data-repeater-list]').each(function() {
+    var list = $(this);
+    var firstItem = list.find('[data-repeater-item]').first();
+    initialCopies[list.data('repeater-list')] = firstItem.clone(true, true);
+
+     // Initialize Sortable for each repeater list
+    if (list.data('ordered-by')) {
+        updateSortable(list);
+    }
+});

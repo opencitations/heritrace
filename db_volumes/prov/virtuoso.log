@@ -1,287 +1,105 @@
 
-		Tue Sep 17 2024
-13:35:40 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
-13:35:40   FAILED  plugin 1: Unable to locate file }
-13:35:40 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
-13:35:40   FAILED  plugin 2: Unable to locate file }
-13:35:40 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
-13:35:40   FAILED  plugin 3: Unable to locate file }
-13:35:40 { Loading plugin 4: Type `plain', file `im' in `../hosting'
-13:35:40   FAILED  plugin 4: Unable to locate file }
-13:35:40 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
-13:35:40   FAILED  plugin 6: Unable to locate file }
-13:35:40 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
-13:35:40   plain version 1.2.3240 from OpenLink Software
-13:35:40   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
-13:35:40   SUCCESS plugin 7: loaded from ../hosting/geos.so }
-13:35:40 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
-13:35:40   ShapefileIO version 0.1virt71 from OpenLink Software
-13:35:40   Shapefile support based on Frank Warmerdam's Shapelib
-13:35:40   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
-13:35:40 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
-13:35:40   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
-13:35:40   Support functions for GraphQL/SPARQL Bridge
-13:35:40   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
-13:35:40 OpenLink Virtuoso Universal Server
-13:35:40 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
-13:35:40 uses OpenSSL 1.1.1f  31 Mar 2020
-13:35:40 uses parts of PCRE, Html Tidy
-13:35:40 SQL Optimizer enabled (max 1000 layouts)
-13:35:40 Compiler unit is timed at 0.000248 msec
-13:35:41 Checkpoint started
-13:35:41 Checkpoint finished.
-13:35:41 Roll forward started
-13:35:41 Roll forward complete
-13:35:42 PL LOG: Installing Virtuoso Conductor version 1.00.8869 (DAV)
-13:35:42 PL LOG: Installing with dependencies Virtuoso Conductor version 1.00.8869/2024-06-10 14:48 (DAV)
-13:35:42 Checkpoint started
-13:35:42 Checkpoint finished, log reused
-13:35:43 Checkpoint started
-13:35:43 Checkpoint finished, log reused
-13:35:43 PL LOG: Installation with dependencies complete
-13:35:43 Checkpoint started
-13:35:43 Checkpoint finished, log reused
-13:35:43 HTTP/WebDAV server online at 8893
-13:35:43 Server online at 1112 (pid 1)
-14:35:47 Checkpoint started
-14:35:47 Checkpoint finished, log reused
-15:35:49 Checkpoint started
-15:35:49 Checkpoint finished, log reused
-16:35:50 Checkpoint started
-16:35:50 Checkpoint finished, log reused
-17:35:52 Checkpoint started
-17:35:52 Checkpoint finished, log reused
-18:35:54 Checkpoint started
-18:35:54 Checkpoint finished, log reused
-19:35:55 Checkpoint started
-19:35:55 Checkpoint finished, log reused
-20:35:55 Checkpoint started
-20:35:55 Checkpoint finished, log reused
-21:35:55 Checkpoint started
-21:35:55 Checkpoint finished, log reused
-22:35:57 Checkpoint started
-22:35:57 Checkpoint finished, log reused
-23:35:58 Checkpoint started
-23:35:59 Checkpoint finished, log reused
+		Sun Sep 29 2024
+12:24:34 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
+12:24:34   FAILED  plugin 1: Unable to locate file }
+12:24:34 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
+12:24:34   FAILED  plugin 2: Unable to locate file }
+12:24:34 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
+12:24:34   FAILED  plugin 3: Unable to locate file }
+12:24:34 { Loading plugin 4: Type `plain', file `im' in `../hosting'
+12:24:34   FAILED  plugin 4: Unable to locate file }
+12:24:34 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
+12:24:34   FAILED  plugin 6: Unable to locate file }
+12:24:34 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
+12:24:34   plain version 1.2.3240 from OpenLink Software
+12:24:34   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
+12:24:34   SUCCESS plugin 7: loaded from ../hosting/geos.so }
+12:24:34 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
+12:24:34   ShapefileIO version 0.1virt71 from OpenLink Software
+12:24:34   Shapefile support based on Frank Warmerdam's Shapelib
+12:24:34   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
+12:24:34 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
+12:24:34   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
+12:24:34   Support functions for GraphQL/SPARQL Bridge
+12:24:34   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
+12:24:34 OpenLink Virtuoso Universal Server
+12:24:34 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
+12:24:34 uses OpenSSL 1.1.1f  31 Mar 2020
+12:24:34 uses parts of PCRE, Html Tidy
+12:24:34 SQL Optimizer enabled (max 1000 layouts)
+12:24:34 Compiler unit is timed at 0.000250 msec
+12:24:36 Checkpoint started
+12:24:36 Checkpoint finished.
+12:24:36 Roll forward started
+12:24:36 Roll forward complete
+12:24:36 PL LOG: Installing Virtuoso Conductor version 1.00.8869 (DAV)
+12:24:36 PL LOG: Installing with dependencies Virtuoso Conductor version 1.00.8869/2024-06-10 14:48 (DAV)
+12:24:36 Checkpoint started
+12:24:36 Checkpoint finished, log reused
+12:24:38 Checkpoint started
+12:24:38 Checkpoint finished, log reused
+12:24:38 PL LOG: Installation with dependencies complete
+12:24:38 Checkpoint started
+12:24:38 Checkpoint finished, log reused
+12:24:40 HTTP/WebDAV server online at 8893
+12:24:40 Server online at 1112 (pid 1)
+13:24:41 Checkpoint started
+13:24:41 Checkpoint finished, log reused
+14:24:41 Checkpoint started
+14:24:41 Checkpoint finished, log reused
+15:24:42 Checkpoint started
+15:24:42 Checkpoint finished, log reused
+16:24:43 Checkpoint started
+16:24:43 Checkpoint finished, log reused
+17:24:43 Checkpoint started
+17:24:43 Checkpoint finished, log reused
+18:24:44 Checkpoint started
+18:24:44 Checkpoint finished, log reused
+19:24:46 Checkpoint started
+19:24:46 Checkpoint finished, log reused
+20:24:47 Checkpoint started
+20:24:47 Checkpoint finished, log reused
+21:24:49 Checkpoint started
+21:24:49 Checkpoint finished, log reused
+22:24:50 Checkpoint started
+22:24:50 Checkpoint finished, log reused
+23:24:51 Checkpoint started
+23:24:51 Checkpoint finished, log reused
 
-		Wed Sep 18 2024
-00:36:00 Checkpoint started
-00:36:00 Checkpoint finished, log reused
-01:36:00 Checkpoint started
-01:36:00 Checkpoint finished, log reused
-02:36:01 Checkpoint started
-02:36:01 Checkpoint finished, log reused
-03:36:03 Checkpoint started
-03:36:03 Checkpoint finished, log reused
-04:36:04 Checkpoint started
-04:36:04 Checkpoint finished, log reused
-05:36:05 Checkpoint started
-05:36:05 Checkpoint finished, log reused
-06:36:07 Checkpoint started
-06:36:07 Checkpoint finished, log reused
-07:36:08 Checkpoint started
-07:36:08 Checkpoint finished, log reused
-08:36:09 Checkpoint started
-08:36:09 Checkpoint finished, log reused
-09:36:10 Checkpoint started
-09:36:10 Checkpoint finished, log reused
-10:36:11 Checkpoint started
-10:36:11 Checkpoint finished, log reused
-11:36:13 Checkpoint started
-11:36:13 Checkpoint finished, log reused
-12:36:15 Checkpoint started
-12:36:15 Checkpoint finished, log reused
-13:36:16 Checkpoint started
-13:36:16 Checkpoint finished, log reused
-14:36:17 Checkpoint started
-14:36:17 Checkpoint finished, log reused
-15:36:18 Checkpoint started
-15:36:18 Checkpoint finished, log reused
-15:57:21 Server received signal 2
-15:57:21 Initiating normal shutdown
-15:57:21 Checkpoint started
-15:57:21 Checkpoint finished, log reused
-15:57:21 Server shutdown complete
-
-		Wed Sep 18 2024
-17:05:35 { Loading plugin 1: Type `plain', file `wikiv' in `../hosting'
-17:05:35   FAILED  plugin 1: Unable to locate file }
-17:05:35 { Loading plugin 2: Type `plain', file `mediawiki' in `../hosting'
-17:05:35   FAILED  plugin 2: Unable to locate file }
-17:05:35 { Loading plugin 3: Type `plain', file `creolewiki' in `../hosting'
-17:05:35   FAILED  plugin 3: Unable to locate file }
-17:05:35 { Loading plugin 4: Type `plain', file `im' in `../hosting'
-17:05:35   FAILED  plugin 4: Unable to locate file }
-17:05:35 { Loading plugin 6: Type `plain', file `proj4' in `../hosting'
-17:05:35   FAILED  plugin 6: Unable to locate file }
-17:05:35 { Loading plugin 7: Type `plain', file `geos' in `../hosting'
-17:05:35   plain version 1.2.3240 from OpenLink Software
-17:05:35   GEOS plugin based on Geometry Engine Open Source library from Open Source Geospatial Foundation
-17:05:35   SUCCESS plugin 7: loaded from ../hosting/geos.so }
-17:05:35 { Loading plugin 8: Type `plain', file `shapefileio' in `../hosting'
-17:05:35   ShapefileIO version 0.1virt71 from OpenLink Software
-17:05:35   Shapefile support based on Frank Warmerdam's Shapelib
-17:05:35   SUCCESS plugin 8: loaded from ../hosting/shapefileio.so }
-17:05:35 { Loading plugin 9: Type `plain', file `graphql' in `../hosting'
-17:05:35   GraphQL/SPARQL Bridge version 0.9.3 (a1fd8195b) from OpenLink Software
-17:05:35   Support functions for GraphQL/SPARQL Bridge
-17:05:35   SUCCESS plugin 9: loaded from ../hosting/graphql.so }
-17:05:35 OpenLink Virtuoso Universal Server
-17:05:35 Version 07.20.3240-pthreads for Linux as of Jun 10 2024 (a1fd8195b)
-17:05:35 uses OpenSSL 1.1.1f  31 Mar 2020
-17:05:35 uses parts of PCRE, Html Tidy
-17:05:35 Database version 3126
-17:05:35 SQL Optimizer enabled (max 1000 layouts)
-17:05:36 Compiler unit is timed at 0.000089 msec
-17:05:37 Roll forward started
-17:05:37 Roll forward complete
-17:05:37 Checkpoint started
-17:05:37 Checkpoint finished, log reused
-17:05:37 HTTP/WebDAV server online at 8893
-17:05:37 Server online at 1112 (pid 1)
-18:05:39 Checkpoint started
-18:05:39 Checkpoint finished, log reused
-19:05:40 Checkpoint started
-19:05:40 Checkpoint finished, log reused
-20:05:42 Checkpoint started
-20:05:42 Checkpoint finished, log reused
-21:05:44 Checkpoint started
-21:05:44 Checkpoint finished, log reused
-22:05:45 Checkpoint started
-22:05:45 Checkpoint finished, log reused
-23:05:47 Checkpoint started
-23:05:47 Checkpoint finished, log reused
-
-		Thu Sep 19 2024
-00:05:47 Checkpoint started
-00:05:47 Checkpoint finished, log reused
-01:05:48 Checkpoint started
-01:05:48 Checkpoint finished, log reused
-02:05:48 Checkpoint started
-02:05:49 Checkpoint finished, log reused
-03:05:49 Checkpoint started
-03:05:49 Checkpoint finished, log reused
-04:05:50 Checkpoint started
-04:05:50 Checkpoint finished, log reused
-05:05:50 Checkpoint started
-05:05:50 Checkpoint finished, log reused
-06:05:51 Checkpoint started
-06:05:51 Checkpoint finished, log reused
-07:05:51 Checkpoint started
-07:05:51 Checkpoint finished, log reused
-08:05:52 Checkpoint started
-08:05:52 Checkpoint finished, log reused
-09:05:53 Checkpoint started
-09:05:53 Checkpoint finished, log reused
-10:05:53 Checkpoint started
-10:05:53 Checkpoint finished, log reused
-11:05:54 Checkpoint started
-11:05:54 Checkpoint finished, log reused
-12:05:54 Checkpoint started
-12:05:54 Checkpoint finished, log reused
-13:05:55 Checkpoint started
-13:05:55 Checkpoint finished, log reused
-14:05:56 Checkpoint started
-14:05:56 Checkpoint finished, log reused
-15:05:56 Checkpoint started
-15:05:56 Checkpoint finished, log reused
-16:05:57 Checkpoint started
-16:05:57 Checkpoint finished, log reused
-17:05:58 Checkpoint started
-17:05:58 Checkpoint finished, log reused
-18:05:58 Checkpoint started
-18:05:58 Checkpoint finished, log reused
-19:05:59 Checkpoint started
-19:05:59 Checkpoint finished, log reused
-20:06:00 Checkpoint started
-20:06:00 Checkpoint finished, log reused
-21:06:00 Checkpoint started
-21:06:00 Checkpoint finished, log reused
-22:06:02 Checkpoint started
-22:06:02 Checkpoint finished, log reused
-23:06:02 Checkpoint started
-23:06:02 Checkpoint finished, log reused
-
-		Fri Sep 20 2024
-00:06:03 Checkpoint started
-00:06:03 Checkpoint finished, log reused
-01:06:03 Checkpoint started
-01:06:03 Checkpoint finished, log reused
-02:06:04 Checkpoint started
-02:06:04 Checkpoint finished, log reused
-03:06:04 Checkpoint started
-03:06:04 Checkpoint finished, log reused
-04:06:05 Checkpoint started
-04:06:05 Checkpoint finished, log reused
-05:06:06 Checkpoint started
-05:06:06 Checkpoint finished, log reused
-06:06:06 Checkpoint started
-06:06:06 Checkpoint finished, log reused
-07:06:07 Checkpoint started
-07:06:07 Checkpoint finished, log reused
-08:06:08 Checkpoint started
-08:06:08 Checkpoint finished, log reused
-09:06:09 Checkpoint started
-09:06:09 Checkpoint finished, log reused
-10:06:10 Checkpoint started
-10:06:10 Checkpoint finished, log reused
-11:06:10 Checkpoint started
-11:06:10 Checkpoint finished, log reused
-12:06:11 Checkpoint started
-12:06:11 Checkpoint finished, log reused
-13:06:11 Checkpoint started
-13:06:11 Checkpoint finished, log reused
-14:06:12 Checkpoint started
-14:06:12 Checkpoint finished, log reused
-15:06:13 Checkpoint started
-15:06:13 Checkpoint finished, log reused
-16:06:13 Checkpoint started
-16:06:13 Checkpoint finished, log reused
-17:06:14 Checkpoint started
-17:06:14 Checkpoint finished, log reused
-18:06:14 Checkpoint started
-18:06:14 Checkpoint finished, log reused
-19:06:15 Checkpoint started
-19:06:15 Checkpoint finished, log reused
-20:06:16 Checkpoint started
-20:06:16 Checkpoint finished, log reused
-21:06:16 Checkpoint started
-21:06:16 Checkpoint finished, log reused
-22:06:17 Checkpoint started
-22:06:17 Checkpoint finished, log reused
-23:06:17 Checkpoint started
-23:06:17 Checkpoint finished, log reused
-
-		Sat Sep 21 2024
-00:06:18 Checkpoint started
-00:06:18 Checkpoint finished, log reused
-01:06:19 Checkpoint started
-01:06:19 Checkpoint finished, log reused
-02:06:19 Checkpoint started
-02:06:19 Checkpoint finished, log reused
-03:06:20 Checkpoint started
-03:06:20 Checkpoint finished, log reused
-04:06:20 Checkpoint started
-04:06:20 Checkpoint finished, log reused
-05:06:21 Checkpoint started
-05:06:21 Checkpoint finished, log reused
-06:06:21 Checkpoint started
-06:06:21 Checkpoint finished, log reused
-07:06:22 Checkpoint started
-07:06:22 Checkpoint finished, log reused
-08:06:23 Checkpoint started
-08:06:23 Checkpoint finished, log reused
-09:06:23 Checkpoint started
-09:06:23 Checkpoint finished, log reused
-10:06:24 Checkpoint started
-10:06:24 Checkpoint finished, log reused
-11:06:24 Checkpoint started
-11:06:24 Checkpoint finished, log reused
-12:06:25 Checkpoint started
-12:06:25 Checkpoint finished, log reused
-13:06:26 Checkpoint started
-13:06:26 Checkpoint finished, log reused
-14:06:27 Checkpoint started
-14:06:27 Checkpoint finished, log reused
-15:06:28 Checkpoint started
-15:06:28 Checkpoint finished, log reused
+		Mon Sep 30 2024
+00:24:53 Checkpoint started
+00:24:53 Checkpoint finished, log reused
+01:24:55 Checkpoint started
+01:24:55 Checkpoint finished, log reused
+02:24:57 Checkpoint started
+02:24:57 Checkpoint finished, log reused
+03:24:59 Checkpoint started
+03:24:59 Checkpoint finished, log reused
+04:25:01 Checkpoint started
+04:25:01 Checkpoint finished, log reused
+05:25:03 Checkpoint started
+05:25:03 Checkpoint finished, log reused
+06:25:05 Checkpoint started
+06:25:05 Checkpoint finished, log reused
+07:25:07 Checkpoint started
+07:25:07 Checkpoint finished, log reused
+08:25:09 Checkpoint started
+08:25:09 Checkpoint finished, log reused
+09:25:10 Checkpoint started
+09:25:10 Checkpoint finished, log reused
+10:25:10 Checkpoint started
+10:25:10 Checkpoint finished, log reused
+11:25:10 Checkpoint started
+11:25:10 Checkpoint finished, log reused
+12:25:12 Checkpoint started
+12:25:12 Checkpoint finished, log reused
+13:25:14 Checkpoint started
+13:25:14 Checkpoint finished, log reused
+14:25:15 Checkpoint started
+14:25:15 Checkpoint finished, log reused
+15:25:16 Checkpoint started
+15:25:16 Checkpoint finished, log reused
+16:25:18 Checkpoint started
+16:25:18 Checkpoint finished, log reused
+17:25:19 Checkpoint started
+17:25:19 Checkpoint finished, log reused

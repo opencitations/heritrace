@@ -647,7 +647,22 @@ def about(subject):
     create_form = CreateTripleFormWithSelect() if can_be_added else CreateTripleFormWithInput()
     if can_be_added:
         create_form.predicate.choices = [(p, custom_filter.human_readable_predicate(p, subject_classes)) for p in can_be_added]
-    return render_template('about.jinja', subject=decoded_subject, history=history, can_be_added=can_be_added, can_be_deleted=can_be_deleted, datatypes=datatypes, update_form=update_form, create_form=create_form, mandatory_values=mandatory_values, optional_values=optional_values, shacl=True if shacl else False, grouped_triples=grouped_triples, subject_classes=[str(s_class) for s_class in subject_classes], display_rules=display_rules)
+    
+    form_fields = get_form_fields_from_shacl()
+    entity_types = list(form_fields.keys())
+
+    # Map predicates to their details and entity types
+    predicate_details_map = {}
+    for entity_type, predicates in form_fields.items():
+        for predicate_uri, details_list in predicates.items():
+            for details in details_list:
+                shape = details.get('nodeShape')
+                key = (predicate_uri, entity_type, shape)
+                predicate_details_map[key] = details
+    
+    entity_type = str(subject_classes[0]) if subject_classes else None
+
+    return render_template('about.jinja', subject=decoded_subject, history=history, can_be_added=can_be_added, can_be_deleted=can_be_deleted, datatypes=datatypes, update_form=update_form, create_form=create_form, mandatory_values=mandatory_values, optional_values=optional_values, shacl=True if shacl else False, grouped_triples=grouped_triples, subject_classes=[str(s_class) for s_class in subject_classes], display_rules=display_rules, form_fields=form_fields, entity_types=entity_types, entity_type=entity_type, predicate_details_map=predicate_details_map)
 
 # Funzione per la validazione dinamica dei valori con suggerimento di datatypes
 @app.route('/validate-literal', methods=['POST'])
@@ -1180,7 +1195,8 @@ def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped
     if display_name not in grouped_triples:
         grouped_triples[display_name] = {
             'property': prop_uri,
-            'triples': []
+            'triples': [],
+            'shape': rule.get('shape')
         }
     for triple in triples:
         if str(triple[1]) == prop_uri:
@@ -1194,13 +1210,15 @@ def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped
                         new_triple_data = {
                             'triple': new_triple,
                             'external_entity': external_entity,
-                            'object': str(triple[2])
+                            'object': str(triple[2]),
+                            'shape': rule.get('shape')
                         }
                         grouped_triples[display_name]['triples'].append(new_triple_data)
             else:
                 new_triple_data = {
                     'triple': (str(triple[0]), str(triple[1]), str(triple[2])),
-                    'object': str(triple[2])
+                    'object': str(triple[2]),
+                    'shape': rule.get('shape')
                 }
                 grouped_triples[display_name]['triples'].append(new_triple_data)
 
@@ -1242,13 +1260,15 @@ def process_default_property(prop_uri, triples, grouped_triples):
     display_name = prop_uri
     grouped_triples[display_name] = {
         'property': prop_uri,
-        'triples': []
+        'triples': [],
+        'shape': None
     }
     triples_for_prop = [triple for triple in triples if str(triple[1]) == prop_uri]
     for triple in triples_for_prop:
         new_triple_data = {
             'triple': (str(triple[0]), str(triple[1]), str(triple[2])),
-            'object': str(triple[2])
+            'object': str(triple[2]),
+            'shape': None
         }
         grouped_triples[display_name]['triples'].append(new_triple_data)
 
@@ -1410,6 +1430,7 @@ def get_valid_predicates(triples):
             "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
         }
     } for row in results]
+
     can_be_added = set()
     can_be_deleted = set()
     for valid_predicate in valid_predicates:
@@ -1419,9 +1440,9 @@ def get_valid_predicates(triples):
                 if not mandatory_value_present:
                     can_be_added.add(predicate)
             else:
-                max_reached_for_generic = (ranges["max"] is not None and int(ranges["max"]) <= predicate_counts.get(predicate, 0))
-                max_reached_for_optional = (ranges["max"] is not None and int(ranges["max"]) <= sum(1 for triple in triples if triple[2] in ranges["optionalValues"])) if ranges["optionalValues"] else max_reached_for_generic
-                if not max_reached_for_generic or not max_reached_for_optional:
+                max_reached = (ranges["max"] is not None and int(ranges["max"]) <= predicate_counts.get(predicate, 0))
+
+                if not max_reached:
                     can_be_added.add(predicate)
                 if not (ranges["min"] is not None and int(ranges["min"]) == predicate_counts.get(predicate, 0)):
                     can_be_deleted.add(predicate)
