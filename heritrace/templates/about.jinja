@@ -40,7 +40,7 @@
 
             {% for display_name, data in grouped_triples.items() %}
                 <div class="property-group" data-uri="{{entity_type}}">
-                    {% if data['triples'] %}
+                    {% if data['triples'] or data['property'] in can_be_added %}
                         <h6 class="item-label">{{ display_name | human_readable_predicate(subject_classes) }}</h6>
                         {% set isDraggable = data['is_draggable'] and data['triples']|length > 1 %}
                         <div class="predicate-ul" data-repeater-list="{{ display_name | replace(' ', '_') }}" {% if data.orderedBy %}data-ordered-by="{{ data.orderedBy }}"{% endif %} data-uri="{{ data['property'] }}">
@@ -110,13 +110,7 @@
 
         var isInEditMode = false;
 
-        $('[data-repeater-create]').hide();
-
-        $(window).on('pageshow', function(event) {
-            initializeForm();
-        });
-
-        initializeForm();       
+        $('[data-repeater-create]').hide();         
 
         bindRepeaterEvents($(document));
 

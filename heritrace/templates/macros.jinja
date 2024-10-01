@@ -50,13 +50,12 @@
                 </div>
             </div>
         {% elif details.optionalValues and details.optionalValues|length %}
-            <div class="form-floating flex-grow-1">
-                <select class="form-select w-75" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
+            <div class="w-75">
+                <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
                     {% for val in details.optionalValues %}
                         <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
                     {% endfor %}
                 </select>
-                <label for="{{ unique_id_base }}" class="input-group-select">{{ details.displayName or (prop | human_readable_predicate(entity_types, False)) }}</label>
             </div>
         {% elif details.datatypes and (
             'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
@@ -64,8 +63,8 @@
             or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
             <!-- Date input section -->
             <div class="date-input-group">
-                <div class="form-floating mb-2">
-                    <select class="form-select w-75 date-type-selector"
+                <div class="mb-2 w-75">
+                    <select class="form-select date-type-selector"
                             id="{{ unique_id_base }}_date_type"
                             name="{{ unique_id_base }}_date_type"
                             data-allowed-datatypes="{{ details.datatypes | join(',') }}">
@@ -85,8 +84,8 @@
 
                 <!-- Date input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
-                    <div class="form-floating date-input-container mb-2" style="display: none;">
-                        <input type="date" class="form-control date-input w-75"
+                    <div class="date-input-container mb-2 w-75" style="display: none;">
+                        <input type="date" class="form-control date-input"
                             id="{{ unique_id_base }}_date"
                             name="{{ unique_id_base }}"
                             data-date-type="date"
@@ -95,15 +94,14 @@
                             data-datatypes="http://www.w3.org/2001/XMLSchema#date"
                             placeholder="{{ label_text }}"
                             {{ 'required' if details.min and details.min > 0 }}>
-                        <label for="{{ unique_id_base }}_date">{{ label_text }}</label>
                         <div class="invalid-feedback"></div>
                     </div>
                 {% endif %}
 
                 <!-- Month input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
-                    <div class="form-floating date-input-container mb-2" style="display: none;">
-                        <input type="month" class="form-control date-input w-75"
+                    <div class="date-input-container mb-2 w-75" style="display: none;">
+                        <input type="month" class="form-control date-input"
                             id="{{ unique_id_base }}_month"
                             name="{{ unique_id_base }}"
                             data-date-type="month"
@@ -112,15 +110,14 @@
                             data-datatypes="http://www.w3.org/2001/XMLSchema#gYearMonth"
                             placeholder="{{ label_text }}"
                             {{ 'required' if details.min and details.min > 0 }}>
-                        <label for="{{ unique_id_base }}_month">{{ label_text }}</label>
                         <div class="invalid-feedback"></div>
                     </div>
                 {% endif %}
 
                 <!-- Year input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
-                    <div class="form-floating date-input-container mb-2" style="display: none;">
-                        <input type="number" class="form-control date-input w-75"
+                    <div class="date-input-container mb-2 w-75" style="display: none;">
+                        <input type="number" class="form-control date-input"
                             id="{{ unique_id_base }}_year"
                             name="{{ unique_id_base }}"
                             data-date-type="year"
@@ -130,13 +127,12 @@
                             placeholder="{{ label_text }}"
                             min="1000" max="9999"
                             {{ 'required' if details.min and details.min > 0 }}>
-                        <label for="{{ unique_id_base }}_year">{{ label_text }}</label>
                         <div class="invalid-feedback"></div>
                     </div>
                 {% endif %}
             </div>
         {% else %}
-            <div class="form-floating flex-grow-1">
+            <div class="flex-grow-1">
                 <input type="text" class="form-control w-75"
                     id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
                     name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
@@ -152,7 +148,6 @@
                     {% if details.datatypes and details.datatypes | length %}
                         data-datatypes="{{ details.datatypes | join(',') }}"
                     {% endif %}>
-                <label for="{{ unique_id_base }}_{{ index if index is not none else 'template' }}">{{ label_text }}</label>
                 <div class="invalid-feedback"></div>
             </div>
         {% endif %}
@@ -201,7 +196,7 @@
         data-datatypes="{{ datatypes.get(triple[1], [])|join(',') }}"
         data-shape="{{ shape }}"
         data-depth="0">
-        <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center p-3 w-75">
+        <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center p-3">
             {% if externalEntity %}
                 {% if isDraggable %}
                     <span class="drag-handle"><span style="display: none;">☰</span><span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span></span>
@@ -212,8 +207,8 @@
                 {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
                     <span style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
                 {% elif shacl and optional_values[triple[1]] %}
-                    <div class="form-floating">
-                        <select name="new_value" class="form-control editable-select" disabled>
+                    <div class="w-75">
+                        <select name="new_value" class="form-select editable-select" disabled>
                             {% for value in optional_values[triple[1]] %}
                                 <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>{{ value | human_readable_predicate(subject_classes) }}</option>
                             {% endfor %}
@@ -238,7 +233,7 @@
                             </select>
                             <label for="{{ unique_id }}_date_type">{{ _('Select Date Type') }}</label>
                         </div>
-                        <div class="form-floating date-input-container" style="display: none;">
+                        <div class="date-input-container" style="display: none;">
                             <input type="date" class="form-control editable-field date-input" 
                                 value="{{ triple[2] }}" 
                                 id="new_value_{{ unique_id }}_date"
@@ -252,16 +247,13 @@
                                 id="new_value_{{ unique_id }}_year"
                                 min="1000" max="9999"
                                 style="display: none;">
-                            <label for="new_value_{{ unique_id }}_date">{{ triple[1] | human_readable_predicate(subject_classes) }}</label>
                         </div>
                         <div class="date-display-container">
                             <span class="date-display">{{ triple[2] }}</span>
                         </div>
                     </div>
                 {% else %}
-                    <div class="form-floating">
-                        {{ update_form.new_value(class="form-control editable-field", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
-                    </div>
+                    {{ update_form.new_value(class="form-control editable-field", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
                 {% endif %}
             {% endif %}
         </span>
