@@ -42,8 +42,8 @@
                 <div class="property-group" data-uri="{{entity_type}}">
                     {% if data['triples'] or data['property'] in can_be_added %}
                         <h6 class="item-label">{{ display_name | human_readable_predicate(subject_classes) }}</h6>
-                        {% set isDraggable = data['is_draggable'] and data['triples']|length > 1 %}
-                        <div class="predicate-ul" data-repeater-list="{{ display_name | replace(' ', '_') }}" {% if data.orderedBy %}data-ordered-by="{{ data.orderedBy }}"{% endif %} data-uri="{{ data['property'] }}">
+                        {% set isDraggable = data['is_draggable'] %}
+                        <div class="predicate-ul" data-repeater-list="{{ display_name | replace(' ', '_') }}" {% if isDraggable %}data-ordered-by="{{ data.orderedBy }}"{% endif %} data-uri="{{ data['property'] }}">
                             {% if data['property'] in can_be_added %}
                                 {% set predicate = data['property'] %}
                                 {% for details in form_fields[entity_type][predicate] %}
@@ -60,7 +60,7 @@
                             {% endif %}
                             {% for triple_data in data['triples'] %}
                                 {% set unique_counter.value = unique_counter.value + 1 %}
-                                {{ render_triple(triple_data['triple'], subject, triple_data['external_entity'], isDraggable, triple_data['object'], data['ordered_by'], unique_counter.value, data) }}
+                                {{ render_triple(triple_data['triple'], subject, triple_data['external_entity'], isDraggable, triple_data['object'], data['ordered_by'], unique_counter.value, data, display_name) }}
                             {% endfor %}
 
                             <!-- Move the add-button inside the ul -->
@@ -254,6 +254,7 @@
                         orderedBy = $(this).data('ordered_by');
                     });
                     storePendingChange('order', '{{ subject }}', predicate, new_order, orderedBy);
+                    updateOrderedElementsNumbering();
                 }
             });
         });
@@ -263,7 +264,7 @@
                 $(".editable-field").prop('readonly', true);
                 $(".editable-select").prop('disabled', true);
                 $(".delete-button").hide();
-                $(".drag-handle").children('span:first-child').hide();
+                $(".drag-handle").children().addClass('d-none');
                 $("#saveChangesBtn").hide();
                 $("#cancelChangesBtn").hide();
                 $(".date-type-selector-container").hide();
@@ -274,13 +275,14 @@
                 isInEditMode = false;
                 pendingChanges = [];
             } else {
+                updateOrderedElementsNumbering();
                 $('.editable-field, .editable-select').each(function() {
                     $(this).data('original-value', $(this).val());
                 });
                 $(".editable-field").prop('readonly', false);
                 $(".editable-select").prop('disabled', false);
                 $(".delete-button").show();
-                $(".drag-handle").children('span:first-child').show();
+                $(".drag-handle").children().removeClass('d-none');
                 $("#saveChangesBtn").show();
                 $("#cancelChangesBtn").show();
                 $(".date-type-selector-container").show();

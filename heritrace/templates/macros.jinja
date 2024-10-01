@@ -186,7 +186,7 @@
     {% endif %}
 {% endmacro %}
 
-{% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data) %}
+{% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data, display_name) %}
     {% set shape = grouped_triples_data.get('shape') %}
     <div data-repeater-item class="d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
         data-subject-id="{{ subject }}" 
@@ -199,7 +199,11 @@
         <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center p-3">
             {% if externalEntity %}
                 {% if isDraggable %}
-                    <span class="drag-handle"><span style="display: none;">☰</span><span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span></span>
+                    <div class="d-flex align-items-center w-100 mb-2 drag-handle">
+                        <span class="me-2 d-none">☰</span>
+                        <h6 class="mb-0 flex-grow-1 form-label d-none" data-original-text="{{ display_name }}">{{ display_name }}</h6>
+                    </div>
+                    <span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span>
                 {% else %}
                     <span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span>
                 {% endif %}
