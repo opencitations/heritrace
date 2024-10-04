@@ -1,8 +1,5 @@
-import atexit
 import json
 import os
-import signal
-import sys
 import time
 import traceback
 import urllib
@@ -725,8 +722,7 @@ def apply_changes():
             predicate = change["predicate"]
             object_value = change["object"]
             if action == "create":
-                # Handle create action if needed
-                pass
+                create_logic(editor, subject, predicate, object_value, graph_uri)
             elif action == "delete":
                 delete_logic(editor, subject, predicate, object_value, graph_uri)
             elif action == "update":
@@ -744,6 +740,14 @@ def apply_changes():
         error_message = f"Error while applying changes: {str(e)}\n{traceback.format_exc()}"
         app.logger.error(error_message)
         return jsonify(status="error", message=gettext("An error occurred while applying changes")), 500
+
+def create_logic(editor: Editor, subject, predicate, object_value, graph_uri=None):
+    # Validate the new triple
+    new_value, _, report_text = validate_new_triple(subject, predicate, object_value)
+    if shacl and new_value is None:
+        raise ValueError(report_text)
+    # Add the new triple
+    editor.create(URIRef(subject), URIRef(predicate), new_value, graph_uri)
 
 def update_logic(editor: Editor, subject, predicate, old_value, new_value, graph_uri=None):
     new_value, old_value, report_text = validate_new_triple(subject, predicate, new_value, old_value)

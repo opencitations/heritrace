@@ -218,6 +218,41 @@
             }
         }
 
+        function collectNewProperties() {
+            $('[data-repeater-list]:visible').each(function() {
+                var $list = $(this);
+                var predicate = $list.data('uri');
+                var subject = '{{ subject }}'; // Get the subject from the template
+                var depth = $list.data('depth') || 0;
+                var shape = $list.data('shape') || null;
+
+                $list.find('[data-repeater-item]:visible').each(function() {
+                    var $item = $(this);
+                    // Check if it's a new item (no old-object-id)
+                    if (!$item.data('old-object-id')) {
+                        var newObjectValue;
+                        if ($item.find('.date-input').length > 0) {
+                            // Handle date inputs
+                            var dateType = $item.find('.date-type-selector').val();
+                            newObjectValue = $item.find('.date-input[data-date-type="' + dateType + '"]').val();
+                        } else {
+                            newObjectValue = $item.find('input, select, textarea').val();
+                        }
+
+                        if (newObjectValue) {
+                            pendingChanges.push({
+                                action: 'create',
+                                subject: subject,
+                                predicate: predicate,
+                                object: newObjectValue,
+                                shape: shape
+                            });
+                        }
+                    }
+                });
+            });
+        }
+
         $('.edit-button').click(function () {
             const isRedirect = $(this).find('i').hasClass('bi-arrow-right-square');
             if (isRedirect) {
@@ -343,6 +378,7 @@
                 });
         });
         $('#saveChangesBtn').click(function(){
+            collectNewProperties();
             $.ajax({
                 url: '/apply_changes',
                 method: 'POST',
