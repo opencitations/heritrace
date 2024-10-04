@@ -39,13 +39,23 @@
             </div>
 
             {% for display_name, data in grouped_triples.items() %}
+                {% set predicate = data['property'] %}
+                {% set isDraggable = data['is_draggable'] %}
                 <div class="property-group" data-uri="{{entity_type}}">
                     {% if data['triples'] or data['property'] in can_be_added %}
+                        {% set objectClass = namespace(value='') %}
+                        {% for details in form_fields[entity_type][predicate] %}
+                            {% if details['objectClass'] %}
+                                {% set objectClass.value = details['objectClass'] %}
+                            {% endif %}
+                        {% endfor %}
                         <h6 class="item-label">{{ display_name | human_readable_predicate(subject_classes) }}</h6>
-                        {% set isDraggable = data['is_draggable'] %}
-                        <div class="predicate-ul" data-repeater-list="{{ display_name | replace(' ', '_') }}" {% if isDraggable %}data-ordered-by="{{ data.orderedBy }}"{% endif %} data-uri="{{ data['property'] }}">
+                        <div class="predicate-ul" 
+                            data-repeater-list="{{ display_name | replace(' ', '_') }}" 
+                            {% if isDraggable %}data-ordered-by="{{ data.orderedBy }}"{% endif %} 
+                            data-uri="{{ data['property'] }}"
+                            data-object-class="{{ objectClass.value }}">
                             {% if data['property'] in can_be_added %}
-                                {% set predicate = data['property'] %}
                                 {% for details in form_fields[entity_type][predicate] %}
                                     {% set shape = details.get('nodeShape') %}
                                     {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') %}
@@ -219,37 +229,19 @@
         }
 
         function collectNewProperties() {
-            $('[data-repeater-list]:visible').each(function() {
-                var $list = $(this);
-                var predicate = $list.data('uri');
-                var subject = '{{ subject }}'; // Get the subject from the template
-                var depth = $list.data('depth') || 0;
-                var shape = $list.data('shape') || null;
+            var subject = '{{ subject }}';
 
-                $list.find('[data-repeater-item]:visible').each(function() {
-                    var $item = $(this);
-                    // Check if it's a new item (no old-object-id)
-                    if (!$item.data('old-object-id')) {
-                        var newObjectValue;
-                        if ($item.find('.date-input').length > 0) {
-                            // Handle date inputs
-                            var dateType = $item.find('.date-type-selector').val();
-                            newObjectValue = $item.find('.date-input[data-date-type="' + dateType + '"]').val();
-                        } else {
-                            newObjectValue = $item.find('input, select, textarea').val();
-                        }
+            var structuredData = {
+                entity_type: '{{ entity_type }}',
+                properties: {}
+            };
 
-                        if (newObjectValue) {
-                            pendingChanges.push({
-                                action: 'create',
-                                subject: subject,
-                                predicate: predicate,
-                                object: newObjectValue,
-                                shape: shape
-                            });
-                        }
-                    }
-                });
+            collectFormData($('.triples'), structuredData.properties, shacl);
+
+            pendingChanges.push({
+                action: 'create',
+                subject: subject,
+                data: structuredData
             });
         }
 
@@ -379,6 +371,7 @@
         });
         $('#saveChangesBtn').click(function(){
             collectNewProperties();
+
             $.ajax({
                 url: '/apply_changes',
                 method: 'POST',

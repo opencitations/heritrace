@@ -17,7 +17,7 @@
             <h6 class="mb-0 flex-grow-1 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">{{ label_text }}</h6>
         </div>
         {% if details.intermediateRelation %}
-            <div class="d-flex flex-column">
+            <div class="d-flex flex-column newEntityPropertiesContainer">
                 <div class="nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
@@ -32,7 +32,7 @@
                 </div>
             </div>
         {% elif details.nestedShape %}
-            <div class="d-flex flex-column">
+            <div class="d-flex flex-column newEntityPropertiesContainer">
                 <div class="nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
@@ -50,7 +50,7 @@
                 </div>
             </div>
         {% elif details.optionalValues and details.optionalValues|length %}
-            <div class="w-75">
+            <div class="w-75 newEntityPropertiesContainer">
                 <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
                     {% for val in details.optionalValues %}
                         <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
@@ -62,7 +62,7 @@
             or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
             or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
             <!-- Date input section -->
-            <div class="date-input-group">
+            <div class="date-input-group newEntityPropertiesContainer">
                 <div class="mb-2 w-75">
                     <select class="form-select date-type-selector"
                             id="{{ unique_id_base }}_date_type"
@@ -132,7 +132,7 @@
                 {% endif %}
             </div>
         {% else %}
-            <div class="flex-grow-1">
+            <div class="flex-grow-1 newEntityPropertiesContainer">
                 <input type="text" class="form-control w-75"
                     id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
                     name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
@@ -162,7 +162,7 @@
         {% set namespace_render_form_field.counter = namespace_render_form_field.counter + 1 %}
         {% set unique_id_base = (entity_type | human_readable_predicate(entity_types, False) | replace(" ", "_") + "_" + prop | human_readable_predicate(entity_types, False) | replace(" ", "_") | string) + "_" + namespace_render_form_field.counter | string  %}
 
-        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
+        <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-object-class="{{ details.objectClass }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
             {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}
             data-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}">
 

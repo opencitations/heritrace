@@ -5,6 +5,7 @@ import traceback
 import urllib
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta, timezone
+from typing import Dict, List
 from urllib.parse import urlparse
 
 import click
@@ -16,6 +17,10 @@ from config import Config
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
+from heritrace.editor import Editor
+from heritrace.filters import *
+from heritrace.forms import *
+from heritrace.uri_generator.uri_generator import *
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.namespace import XSD
 from rdflib.plugins.sparql import prepareQuery
@@ -28,11 +33,6 @@ from time_agnostic_library.agnostic_entity import (
 from time_agnostic_library.prov_entity import ProvEntity
 from time_agnostic_library.sparql import Sparql
 from time_agnostic_library.support import convert_to_datetime
-
-from heritrace.editor import Editor
-from heritrace.filters import *
-from heritrace.forms import *
-from heritrace.uri_generator.uri_generator import *
 
 app = Flask(__name__)
 
@@ -379,7 +379,6 @@ def create_entity():
             properties = structured_data.get('properties', {})
             
             entity_uri = generate_unique_uri(entity_type)
-            editor.import_entity(entity_uri)
             editor.preexisting_finished()
 
             default_graph_uri = (
@@ -678,34 +677,10 @@ def validate_literal():
     
     return jsonify({"valid_datatypes": matching_datatypes}), 200
 
-@app.route('/add_triple', methods=['POST'])
-def add_triple():
-    subject = request.form.get('subject')
-    predicate = request.form.get('predicate')
-    object_value = request.form.get('object')
-    object_value, _, report_text = validate_new_triple(subject, predicate, object_value)
-    if shacl:
-        data_graph = fetch_data_graph_for_subject(subject)
-        can_be_added, _, _, _, _, s_types, _ = get_valid_predicates(list(data_graph.triples((None, None, None))))
-        if predicate not in can_be_added and URIRef(predicate) in data_graph.predicates():
-            flash(gettext('This resource cannot have any other %(predicate)s properties', predicate=custom_filter.human_readable_predicate(predicate, s_types)))
-            return redirect(url_for('about', subject=subject))
-        if object_value is None:
-            flash(report_text)
-            return redirect(url_for('about', subject=subject))
-    else:
-        object_value = URIRef(object_value) if validators.url(object_value) else Literal(object_value, datatype=XSD.string)
-    editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
-    editor.import_entity(URIRef(subject))
-    editor.preexisting_finished()
-    editor.create(URIRef(subject), URIRef(predicate), object_value)
-    editor.save()
-    return redirect(url_for('about', subject=subject))
-
 @app.route('/apply_changes', methods=['POST'])
 def apply_changes():
     try:
-        changes = request.json
+        changes: List[dict] = request.json
         subject = changes[0]["subject"]
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
         editor.import_entity(URIRef(subject))
@@ -719,10 +694,12 @@ def apply_changes():
 
         for change in changes:
             action = change["action"]
-            predicate = change["predicate"]
-            object_value = change["object"]
+            predicate = change.get("predicate")
+            object_value = change.get("object")
             if action == "create":
-                create_logic(editor, subject, predicate, object_value, graph_uri)
+                data = change["data"]
+                if data:
+                    subject = create_logic(editor, data, subject, graph_uri)
             elif action == "delete":
                 delete_logic(editor, subject, predicate, object_value, graph_uri)
             elif action == "update":
@@ -741,13 +718,29 @@ def apply_changes():
         app.logger.error(error_message)
         return jsonify(status="error", message=gettext("An error occurred while applying changes")), 500
 
-def create_logic(editor: Editor, subject, predicate, object_value, graph_uri=None):
-    # Validate the new triple
-    new_value, _, report_text = validate_new_triple(subject, predicate, object_value)
-    if shacl and new_value is None:
-        raise ValueError(report_text)
-    # Add the new triple
-    editor.create(URIRef(subject), URIRef(predicate), new_value, graph_uri)
+def create_logic(editor: Editor, data: Dict[str, dict], subject=None, graph_uri=None, parent_subject=None, parent_predicate=None):
+    entity_type = data.get('entity_type')
+    properties = data.get('properties', {})
+
+    if subject is None:
+        subject = generate_unique_uri(entity_type)
+
+    if parent_subject is not None:
+        editor.create(URIRef(subject), RDF.type, URIRef(entity_type), graph_uri)
+
+    if parent_subject and parent_predicate:
+        editor.create(URIRef(parent_subject), URIRef(parent_predicate), URIRef(subject), graph_uri)
+
+    for predicate, values in properties.items():        
+        for value in values:
+            if isinstance(value, dict) and 'entity_type' in value:
+                nested_subject = generate_unique_uri(value['entity_type'])
+                create_logic(editor, value, nested_subject, graph_uri, subject, predicate)
+            else:
+                object_value = URIRef(value) if validators.url(value) else Literal(value)
+                editor.create(URIRef(subject), URIRef(predicate), object_value, graph_uri)
+
+    return subject
 
 def update_logic(editor: Editor, subject, predicate, old_value, new_value, graph_uri=None):
     new_value, old_value, report_text = validate_new_triple(subject, predicate, new_value, old_value)
@@ -1209,15 +1202,13 @@ def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped
                 if result:
                     fetched_values_map[result] = str(triple[2])
                     new_triple = (str(triple[0]), str(triple[1]), str(result))
-                    existing_values = [t['triple'][2] for t in grouped_triples[display_name]['triples']]
-                    if new_triple[2] not in existing_values:
-                        new_triple_data = {
-                            'triple': new_triple,
-                            'external_entity': external_entity,
-                            'object': str(triple[2]),
-                            'shape': rule.get('shape')
-                        }
-                        grouped_triples[display_name]['triples'].append(new_triple_data)
+                    new_triple_data = {
+                        'triple': new_triple,
+                        'external_entity': external_entity,
+                        'object': str(triple[2]),
+                        'shape': rule.get('shape')
+                    }
+                    grouped_triples[display_name]['triples'].append(new_triple_data)
             else:
                 new_triple_data = {
                     'triple': (str(triple[0]), str(triple[1]), str(triple[2])),

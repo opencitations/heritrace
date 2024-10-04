@@ -280,6 +280,131 @@ function bindRepeaterEvents(context) {
     setRequiredForVisibleFields(context);
 }
 
+// Funzione ricorsiva per raccogliere i dati dai campi del form
+function collectFormData(container, data, shacl = 'False', depth = 0) {
+    if (shacl === 'True' || shacl === true) {
+        container.find('[data-repeater-list]').each(function() {
+            let repeaterList = $(this);
+            let predicateUri = repeaterList.find('[data-repeater-item]:first').data('predicate-uri');
+            
+            repeaterList.find('[data-repeater-item]:visible').each(function(index) {
+                let repeaterItem = $(this);
+                let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
+                let itemDepth = parseInt(repeaterItem.data('depth'));
+
+                if (predicateUri && objectClass && itemDepth === depth) {
+                    if (!Array.isArray(data[predicateUri])) {
+                        data[predicateUri] = [];
+                    }
+
+                    if (repeaterItem.data('intermediate-relation')) {
+                        let intermediateClass = repeaterItem.data('intermediate-relation');
+                        let connectingProperty = repeaterItem.data('connecting-property');
+                        let intermediateEntity = {
+                            "entity_type": intermediateClass,
+                            "properties": {}
+                        };
+
+                        // Aggiungi l'informazione sulla shape se disponibile
+                        let intermediateShape = repeaterItem.data('shape');
+                        if (intermediateShape) {
+                            intermediateEntity['shape'] = intermediateShape;
+                        }
+
+                        intermediateEntity.properties[connectingProperty] = {
+                            "entity_type": objectClass,
+                            "properties": {}
+                        };
+
+                        // Aggiungi l'informazione sulla shape all'entità annidata se disponibile
+                        let nestedShape = repeaterItem.find('[data-object-class]:visible').first().data('shape');
+                        if (nestedShape) {
+                            intermediateEntity.properties[connectingProperty]['shape'] = nestedShape;
+                        }
+
+                        let additionalProperties = repeaterItem.data('additional-properties');
+                        if (additionalProperties) {
+                            Object.assign(intermediateEntity.properties, additionalProperties);
+                        }
+
+                        collectFormData(repeaterItem, intermediateEntity.properties[connectingProperty].properties, shacl, depth + 1);
+                        data[predicateUri].push(intermediateEntity);
+                    } else {
+                        let nestedEntity = {
+                            "entity_type": objectClass,
+                            "properties": {}
+                        };
+
+                        // Aggiungi l'informazione sulla shape se disponibile
+                        let nestedShape = repeaterItem.data('shape');
+                        if (nestedShape) {
+                            nestedEntity['shape'] = nestedShape;
+                        }
+
+                        collectFormData(repeaterItem, nestedEntity.properties, shacl, depth + 1);
+
+                        if (Object.keys(nestedEntity.properties).length > 0) {
+                            data[predicateUri].push(nestedEntity);
+                        }
+                    }
+                } else if (itemDepth === depth) {
+                    repeaterItem.find('input:visible, select:visible').each(function() {
+                        let propertyUri = $(this).data('predicate-uri');
+                        if (propertyUri) {
+                            let value = $(this).val();
+                            if (value !== "") {
+                                if (!data[propertyUri]) {
+                                    data[propertyUri] = [];
+                                }
+                                data[propertyUri].push(value);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        container.children('input:visible, select:visible').each(function() {
+            let propertyUri = $(this).data('predicate-uri');
+            let inputDepth = parseInt($(this).data('depth'));
+            if (propertyUri && inputDepth === depth) {
+                let value = $(this).val();
+                if (value !== "") {
+                    if (!data[propertyUri]) {
+                        data[propertyUri] = [];
+                    }
+                    data[propertyUri].push(value);
+                }
+            }
+        });
+    } else {
+        $('.custom-property').each(function() {
+            let propertyUri = $(this).find('input[type="url"]').val();
+            let propertyValue = $(this).find('.custom-value-input').val();
+            let valueType = $(this).find('.custom-value-type').val();
+            let datatype = $(this).find('select[id^="custom_datatype_"]').val();
+
+            if (propertyUri && propertyValue) {
+                if (!data[propertyUri]) {
+                    data[propertyUri] = [];
+                }
+                if (valueType === 'uri') {
+                    data[propertyUri].push({
+                        value: propertyValue,
+                        type: 'uri'
+                    });
+                } else {
+                    data[propertyUri].push({
+                        value: propertyValue,
+                        type: 'literal',
+                        datatype: datatype
+                    });
+                }
+            }
+        });
+    }
+}
+
 $('[data-repeater-list]').each(function() {
     var list = $(this);
     var firstItem = list.find('[data-repeater-item]').first();
