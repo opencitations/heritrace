@@ -595,7 +595,8 @@ def create_nested_entity(editor: Editor, entity_uri, entity_data, graph_uri=None
                 object_value = URIRef(value) if validators.url(value) else Literal(value)
                 editor.create(entity_uri, URIRef(predicate), object_value, graph_uri)
 
-def generate_unique_uri(entity_type=None):
+def generate_unique_uri(entity_type: URIRef|str =None):
+    entity_type = str(entity_type)
     uri = Config.URI_GENERATOR.generate_uri(entity_type)
     if hasattr(Config.URI_GENERATOR, 'counter_handler'):
         Config.URI_GENERATOR.counter_handler.increment_counter(entity_type)
@@ -683,7 +684,7 @@ def apply_changes():
         changes: List[dict] = request.json
         subject = changes[0]["subject"]
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
-        editor.import_entity(URIRef(subject))
+        editor = import_subject_and_direct_objects(editor, subject)
         editor.preexisting_finished()
 
         graph_uri = None
@@ -718,6 +719,34 @@ def apply_changes():
         app.logger.error(error_message)
         return jsonify(status="error", message=gettext("An error occurred while applying changes")), 500
 
+def import_subject_and_direct_objects(editor: Editor, subject: str):
+    """
+    Import the main subject and all entities that are direct objects of it.
+    """
+    # Import the main subject
+    editor.import_entity(URIRef(subject))
+
+    # Query for all objects directly connected to the subject
+    query = f"""
+        SELECT DISTINCT ?o
+        WHERE {{
+            <{subject}> ?p ?o .
+            FILTER(isIRI(?o))
+        }}
+    """
+    
+    sparql = SPARQLWrapper(editor.dataset_endpoint)
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+
+    # Import each direct object entity
+    for result in results["results"]["bindings"]:
+        object_entity = URIRef(result["o"]["value"])
+        editor.import_entity(object_entity)
+    
+    return editor
+
 def create_logic(editor: Editor, data: Dict[str, dict], subject=None, graph_uri=None, parent_subject=None, parent_predicate=None):
     entity_type = data.get('entity_type')
     properties = data.get('properties', {})
@@ -731,7 +760,9 @@ def create_logic(editor: Editor, data: Dict[str, dict], subject=None, graph_uri=
     if parent_subject and parent_predicate:
         editor.create(URIRef(parent_subject), URIRef(parent_predicate), URIRef(subject), graph_uri)
 
-    for predicate, values in properties.items():        
+    for predicate, values in properties.items():
+        if not isinstance(values, list):
+            values = [values]
         for value in values:
             if isinstance(value, dict) and 'entity_type' in value:
                 nested_subject = generate_unique_uri(value['entity_type'])
@@ -760,45 +791,51 @@ def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=Non
     editor.delete(subject, predicate, object_value, graph_uri)
 
 def order_logic(editor: Editor, subject, predicate, new_order, ordered_by, graph_uri=None):
-    def order_by_next(data):
-        # Costruisci una mappa dove la chiave è l'entity e il valore è il next
-        next_map = {entity: next_val for entity, next_val in data}
-        # Trova l'elemento iniziale (quello che non ha un predecessore)
-        start = None
-        for entity in next_map:
-            if entity not in next_map.values():
-                start = entity
-                break
-        # Ordina la lista seguendo la catena di next
-        ordered_list = []
-        while start:
-            ordered_list.append(start)
-            start = next_map.get(start)
-        return ordered_list
-    
-    query_current_order = f'''
-        SELECT ?entity ?next
-        WHERE {{
-            <{subject}> <{predicate}> ?entity.
-            ?entity <{ordered_by}> ?next.
-        }}
-    '''
-    sparql.setQuery(query_current_order)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-    old_order = order_by_next([(result["entity"]["value"], result["next"]["value"]) for result in results["results"]["bindings"]])
-    old_next_map = {entity: next_val for entity, next_val in zip(old_order, old_order[1:] + [None])}
-    for old_entity in old_order:
-        editor.import_entity(URIRef(old_entity))
-    editor.preexisting_finished()
-    for entity, next_val in old_next_map.items():
-        if next_val is not None:
-            editor.delete(URIRef(entity), URIRef(ordered_by), next_val, graph_uri)
-    
+    subject_uri = URIRef(subject)
+    predicate_uri = URIRef(predicate)
+    ordered_by_uri = URIRef(ordered_by)
+
+    # Ottieni tutte le entità ordinate attuali direttamente dall'editor
+    current_entities = [o for _, _, o in editor.g_set.triples((subject_uri, predicate_uri, None))]
+
+    # Dizionario per mappare le vecchie entità alle nuove
+    old_to_new_mapping = {}
+
+    # Per ogni entità attuale
+    for old_entity in current_entities:
+        # Memorizza tutte le proprietà dell'entità attuale
+        entity_properties = list(editor.g_set.triples((old_entity, None, None)))
+        
+        entity_type = next((o for _, p, o in entity_properties if p == RDF.type), None)
+
+        if entity_type is None:
+            raise ValueError(f"Impossibile determinare il tipo dell'entità per {old_entity}")
+
+        # Crea una nuova entità
+        new_entity_uri = generate_unique_uri(entity_type)
+        old_to_new_mapping[old_entity] = new_entity_uri
+        
+        # Cancella la vecchia entità
+        editor.delete(subject_uri, predicate_uri, old_entity, graph_uri)
+        editor.delete(old_entity)
+        
+        # Ricrea il collegamento tra il soggetto principale e la nuova entità
+        editor.create(subject_uri, predicate_uri, new_entity_uri, graph_uri)
+        
+        # Ripristina tutte le altre proprietà per la nuova entità
+        for _, p, o in entity_properties:
+            if p != predicate_uri and p != ordered_by_uri:
+                editor.create(new_entity_uri, p, o, graph_uri)
+
+    # Aggiungi la proprietà legata all'ordine alle entità giuste
     for idx, entity in enumerate(new_order):
+        new_entity_uri = old_to_new_mapping.get(URIRef(entity), URIRef(entity))
         if idx < len(new_order) - 1:
             next_entity = new_order[idx + 1]
-            editor.create(URIRef(entity), URIRef(ordered_by), URIRef(next_entity), graph_uri)
+            next_entity_uri = old_to_new_mapping.get(URIRef(next_entity), URIRef(next_entity))
+            editor.create(new_entity_uri, ordered_by_uri, next_entity_uri, graph_uri)
+
+    return editor
 
 @app.route('/search')
 def search():

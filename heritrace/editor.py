@@ -23,14 +23,14 @@ class Editor:
         self.g_set = OCDMConjunctiveGraph(self.counter_handler) if self.dataset_is_quadstore else OCDMGraph(self.counter_handler)
 
     def create(self, subject: URIRef, predicate: URIRef, value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
-        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph)
+        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
         if self.dataset_is_quadstore and graph:
             self.g_set.add((subject, predicate, value, graph))
         else:
             self.g_set.add((subject, predicate, value))
 
     def update(self, subject: URIRef, predicate: URIRef, old_value: Literal|URIRef, new_value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
-        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph)
+        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
         if self.dataset_is_quadstore and graph:
             self.g_set.remove((subject, predicate, old_value, graph))
             self.g_set.add((subject, predicate, new_value, graph))
@@ -41,8 +41,19 @@ class Editor:
     def delete(self, subject: str, predicate: str = None, value: str = None, graph: URIRef|Graph|str = None) -> None:
         subject = URIRef(subject)
         predicate = URIRef(predicate) if predicate else None
-        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph)
-        if predicate:
+        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
+
+        if predicate is None:
+            # Delete the entire entity
+            if self.dataset_is_quadstore:
+                for quad in list(self.g_set.quads((subject, None, None, None))):
+                    self.g_set.remove(quad)
+            else:
+                for triple in list(self.g_set.triples((subject, None, None))):
+                    self.g_set.remove(triple)
+            # Mark the entity as deleted
+            self.g_set.mark_as_deleted(subject)
+        else:
             if value:
                 if self.dataset_is_quadstore and graph:
                     for quad in self.g_set.quads((subject, predicate, None, graph)):
@@ -52,7 +63,17 @@ class Editor:
                     for triple in self.g_set.triples((subject, predicate, None)):
                         if str(value) == str(triple[2]):
                             self.g_set.remove(triple)
-        if len(self.g_set) == 0:
+            else:
+                # Remove all triples with the given subject and predicate
+                if self.dataset_is_quadstore and graph:
+                    for quad in list(self.g_set.quads((subject, predicate, None, graph))):
+                        self.g_set.remove(quad)
+                else:
+                    for triple in list(self.g_set.triples((subject, predicate, None))):
+                        self.g_set.remove(triple)
+
+        # Check if the entity is now empty and mark it as deleted if so
+        if len(list(self.g_set.triples((subject, None, None)))) == 0:
             self.g_set.mark_as_deleted(subject)
 
     def import_entity_from_triplestore(self, res_list: list):
