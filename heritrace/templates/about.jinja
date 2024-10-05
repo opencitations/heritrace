@@ -52,7 +52,7 @@
                         <h6 class="item-label">{{ display_name | human_readable_predicate(subject_classes) }}</h6>
                         <div class="predicate-ul" 
                             data-repeater-list="{{ display_name | replace(' ', '_') }}" 
-                            {% if isDraggable %}data-ordered-by="{{ data.orderedBy }}"{% endif %} 
+                            {% if isDraggable %}data-ordered-by="{{ data.ordered_by }}"{% endif %} 
                             data-uri="{{ data['property'] }}"
                             data-object-class="{{ objectClass.value }}">
                             {% if data['property'] in can_be_added %}
@@ -111,6 +111,7 @@
 
 <script>
     var entity_type = "{{ entity_type }}";
+    var subject = "{{ subject }}";
 </script>
 
 <script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
@@ -123,8 +124,6 @@
         $('[data-repeater-create]').hide();         
 
         bindRepeaterEvents($(document));
-
-        var pendingChanges = [];
 
         const optional_values = {{ optional_values|tojson|safe }};
         const shacl = {{ shacl|tojson|safe }};
@@ -168,16 +167,6 @@
                 $('.object-input').hide().prop('disabled', true);
                 $('.object-input-text').show().prop('disabled', false);
             }
-        }
-
-        function storePendingChange(action, subject, predicate, object, newObject = null) {
-            pendingChanges.push({
-                action: action, 
-                subject: subject, 
-                predicate: predicate, 
-                object: object, 
-                newObject: newObject
-            });
         }
 
         function restoreOriginalValues() {
@@ -238,11 +227,52 @@
 
             collectFormData($('.triples'), structuredData.properties, shacl);
 
-            pendingChanges.push({
-                action: 'create',
-                subject: subject,
-                data: structuredData
+            Object.keys(structuredData.properties).forEach(function (predicate) {
+                structuredData.properties[predicate].forEach(function (property) {
+                    if (property.orderedBy) {
+                        // Create the new order array
+                        var newOrder = [];
+                        var shape = property.shape || '';
+
+                        // Iterate through the elements in the repeater list and collect their IDs or values
+                        $('[data-repeater-list]').find('[data-repeater-item]').each(function () {
+                            $item = $(this)
+                            if ($item.data('shape') == shape) {
+                                var objectId = $item.data('old-object-id');
+                                var tempId = $item.data('temp-id');
+                                if (objectId) {
+                                    newOrder.push(objectId);
+                                } else if (tempId) {
+                                    newOrder.push(tempId);
+                                }
+                            }
+                        });
+
+                        var existingOrderIndex = pendingChanges.findIndex(function(change) {
+                            return change.action === 'order' && 
+                                change.subject === subject && 
+                                change.predicate === predicate &&
+                                change.shape === shape;
+                        });
+
+                        if (existingOrderIndex !== -1) {
+                            // Update the existing order action
+                            pendingChanges[existingOrderIndex].object = newOrder;
+                        } else {
+                            // Add a new order action
+                            storePendingChange('order', subject, predicate, newOrder, property.orderedBy, shape);
+                        }
+                    }
+                });
             });
+
+            if (Object.keys(structuredData.properties).length > 0) {
+                pendingChanges.push({
+                    action: 'create',
+                    subject: subject,
+                    data: structuredData
+                });
+            }
         }
 
         $('.edit-button').click(function () {
@@ -266,25 +296,7 @@
             $('.add-form').addClass('d-none');
         });
         $('.predicate-select').change(updateObjectInput);
-        $('[data-repeater-list]').each(function() {
-            new Sortable(this, {
-                animation: 150,
-                draggable: '.draggable',
-                handle: '.drag-handle',
-                onEnd: function(evt) {
-                    let new_order = [];
-                    let predicate = null;
-                    let orderedBy = null;
-                    $(evt.from).find('.property-value').each(function() {
-                        new_order.push($(this).data('old-object-id'));
-                        predicate = $(this).data('property-id');
-                        orderedBy = $(this).data('ordered_by');
-                    });
-                    storePendingChange('order', '{{ subject }}', predicate, new_order, orderedBy);
-                    updateOrderedElementsNumbering();
-                }
-            });
-        });
+
         $('#editEntityBtn').click(function(){
             if (isInEditMode) {
                 restoreOriginalValues();
@@ -328,6 +340,8 @@
             const subject = listItem.data('subject-id');
             const predicate = listItem.data('property-id');
             const oldObject = listItem.data('old-object-id');
+            const shape = listItem.data('shape');
+
             let newObject;
 
             if ($(this).hasClass('date-type-selector')) {
@@ -337,7 +351,7 @@
                 newObject = $(this).val();
             }
 
-            storePendingChange('update', subject, predicate, oldObject, newObject);
+            storePendingChange('update', subject, predicate, oldObject, newObject, shape);
         });
         $(document).on('click', '.delete-button', function() {
             const listItem = $(this).closest('.property-value');
@@ -346,11 +360,12 @@
             const subject = listItem.data('subject-id');
             const predicate = listItem.data('property-id');
             const object_value = listItem.data('old-object-id');
+            const shape = listItem.data('shape');
             listItem.find('.tripleObject').addClass('striked');
             listItem.find('.editable-field').prop('readonly', true);
             listItem.find('.editable-select').prop('disabled', true);
             $(this).hide();
-            storePendingChange('delete', subject, predicate, object_value);
+            storePendingChange('delete', subject, predicate, object_value, shape);
             const undoButton = $('<button>')
                 .addClass('btn btn-outline-warning undo-delete-button mt-3 mx-2')
                 .html('<i class="bi bi-arrow-counterclockwise"></i>')

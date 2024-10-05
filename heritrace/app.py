@@ -5,7 +5,7 @@ import traceback
 import urllib
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 import click
@@ -692,7 +692,8 @@ def apply_changes():
             for quad in editor.g_set.quads((URIRef(subject), None, None)):
                 graph_uri = quad[3]
                 break
-
+        
+        temp_id_to_uri = {}
         for change in changes:
             action = change["action"]
             predicate = change.get("predicate")
@@ -700,8 +701,13 @@ def apply_changes():
             if action == "create":
                 data = change["data"]
                 if data:
-                    subject = create_logic(editor, data, subject, graph_uri)
-            elif action == "delete":
+                    subject = create_logic(editor, data, subject, graph_uri, temp_id_to_uri=temp_id_to_uri)
+
+        for change in changes:
+            action = change["action"]
+            predicate = change.get("predicate")
+            object_value = change.get("object")
+            if action == "delete":
                 delete_logic(editor, subject, predicate, object_value, graph_uri)
             elif action == "update":
                 new_object_value = change["newObject"]
@@ -709,7 +715,7 @@ def apply_changes():
             elif action == "order":
                 new_order = change["object"]
                 ordered_by = change["newObject"]
-                order_logic(editor, subject, predicate, new_order, ordered_by, graph_uri)
+                order_logic(editor, subject, predicate, new_order, ordered_by, graph_uri, temp_id_to_uri)
         editor.save()
         return jsonify(status="success", message=gettext("Changes applied successfully")), 201
     except ValueError as ve:
@@ -747,12 +753,16 @@ def import_subject_and_direct_objects(editor: Editor, subject: str):
     
     return editor
 
-def create_logic(editor: Editor, data: Dict[str, dict], subject=None, graph_uri=None, parent_subject=None, parent_predicate=None):
+def create_logic(editor: Editor, data: Dict[str, dict], subject=None, graph_uri=None, parent_subject=None, parent_predicate=None, temp_id_to_uri=None):
     entity_type = data.get('entity_type')
     properties = data.get('properties', {})
+    temp_id = data.get('tempId')
 
     if subject is None:
         subject = generate_unique_uri(entity_type)
+
+    if temp_id and temp_id_to_uri is not None:
+        temp_id_to_uri[temp_id] = str(subject)
 
     if parent_subject is not None:
         editor.create(URIRef(subject), RDF.type, URIRef(entity_type), graph_uri)
@@ -766,7 +776,7 @@ def create_logic(editor: Editor, data: Dict[str, dict], subject=None, graph_uri=
         for value in values:
             if isinstance(value, dict) and 'entity_type' in value:
                 nested_subject = generate_unique_uri(value['entity_type'])
-                create_logic(editor, value, nested_subject, graph_uri, subject, predicate)
+                create_logic(editor, value, nested_subject, graph_uri, subject, predicate, temp_id_to_uri)
             else:
                 object_value = URIRef(value) if validators.url(value) else Literal(value)
                 editor.create(URIRef(subject), URIRef(predicate), object_value, graph_uri)
@@ -790,7 +800,7 @@ def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=Non
             raise ValueError(gettext('This property cannot be deleted'))
     editor.delete(subject, predicate, object_value, graph_uri)
 
-def order_logic(editor: Editor, subject, predicate, new_order, ordered_by, graph_uri=None):
+def order_logic(editor: Editor, subject, predicate, new_order, ordered_by, graph_uri=None, temp_id_to_uri: Optional[Dict] = None):
     subject_uri = URIRef(subject)
     predicate_uri = URIRef(predicate)
     ordered_by_uri = URIRef(ordered_by)
@@ -803,35 +813,39 @@ def order_logic(editor: Editor, subject, predicate, new_order, ordered_by, graph
 
     # Per ogni entità attuale
     for old_entity in current_entities:
-        # Memorizza tutte le proprietà dell'entità attuale
-        entity_properties = list(editor.g_set.triples((old_entity, None, None)))
-        
-        entity_type = next((o for _, p, o in entity_properties if p == RDF.type), None)
+        if str(old_entity) in new_order:  # Processa solo le entità preesistenti
+            # Memorizza tutte le proprietà dell'entità attuale
+            entity_properties = list(editor.g_set.triples((old_entity, None, None)))
+            
+            entity_type = next((o for _, p, o in entity_properties if p == RDF.type), None)
 
-        if entity_type is None:
-            raise ValueError(f"Impossibile determinare il tipo dell'entità per {old_entity}")
+            if entity_type is None:
+                raise ValueError(f"Impossibile determinare il tipo dell'entità per {old_entity}")
 
-        # Crea una nuova entità
-        new_entity_uri = generate_unique_uri(entity_type)
-        old_to_new_mapping[old_entity] = new_entity_uri
-        
-        # Cancella la vecchia entità
-        editor.delete(subject_uri, predicate_uri, old_entity, graph_uri)
-        editor.delete(old_entity)
-        
-        # Ricrea il collegamento tra il soggetto principale e la nuova entità
-        editor.create(subject_uri, predicate_uri, new_entity_uri, graph_uri)
-        
-        # Ripristina tutte le altre proprietà per la nuova entità
-        for _, p, o in entity_properties:
-            if p != predicate_uri and p != ordered_by_uri:
-                editor.create(new_entity_uri, p, o, graph_uri)
+            # Crea una nuova entità
+            new_entity_uri = generate_unique_uri(entity_type)
+            old_to_new_mapping[old_entity] = new_entity_uri
+            
+            # Cancella la vecchia entità
+            editor.delete(subject_uri, predicate_uri, old_entity, graph_uri)
+            editor.delete(old_entity)
+            
+            # Ricrea il collegamento tra il soggetto principale e la nuova entità
+            editor.create(subject_uri, predicate_uri, new_entity_uri, graph_uri)
+            
+            # Ripristina tutte le altre proprietà per la nuova entità
+            for _, p, o in entity_properties:
+                if p != predicate_uri and p != ordered_by_uri:
+                    editor.create(new_entity_uri, p, o, graph_uri)
 
     # Aggiungi la proprietà legata all'ordine alle entità giuste
     for idx, entity in enumerate(new_order):
-        new_entity_uri = old_to_new_mapping.get(URIRef(entity), URIRef(entity))
+        new_entity_uri = old_to_new_mapping.get(URIRef(entity))
+        if not new_entity_uri:
+            new_entity_uri = URIRef(temp_id_to_uri.get(entity, entity))
         if idx < len(new_order) - 1:
             next_entity = new_order[idx + 1]
+            next_entity = URIRef(temp_id_to_uri.get(next_entity, next_entity))
             next_entity_uri = old_to_new_mapping.get(URIRef(next_entity), URIRef(next_entity))
             editor.create(new_entity_uri, ordered_by_uri, next_entity_uri, graph_uri)
 

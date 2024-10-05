@@ -1,6 +1,10 @@
 // Store initial copies of repeater items
 var initialCopies = {};
 
+var pendingChanges = [];
+
+var tempIdCounter = 0;
+
 function generateUniqueId(prefix) {
     return prefix + '_' + Math.random().toString(36).substr(2, 9);
 }
@@ -121,17 +125,57 @@ function initializeForm() {
     }
 }
 
+function storePendingChange(action, subject, predicate, object, newObject = null, shape = null) {
+    pendingChanges.push({
+        action: action, 
+        subject: subject, 
+        predicate: predicate, 
+        object: object, 
+        newObject: newObject,
+        shape: shape
+    });
+}
+
 // Funzione per inizializzare Sortable su un elemento
 function initSortable(element) {
     new Sortable(element, {
         handle: '.drag-handle',
         animation: 150,
+        draggable: '.draggable',
         filter: '.non-sortable', // Esclude elementi con questa classe
         onMove: function(evt) {
             return !evt.related.classList.contains('non-sortable');
         },
-        onEnd: function() {
+        onEnd: function(evt) {
+            let new_order = [];
+            let predicate = null;
+            let orderedBy = null;
+            $(evt.from).find('.property-value').each(function() {
+                new_order.push($(this).data('old-object-id'));
+                predicate = $(this).data('property-id');
+                orderedBy = $(this).data('ordered_by');
+                shape = $(this).data('shape');
+            });
             updateOrderedElementsNumbering();
+
+            if (typeof subject === 'undefined' || subject === 'null' || subject === null) {
+                return;
+            }
+
+            // Cerca un'azione di ordinamento esistente per questo predicato e forma
+            let existingOrderIndex = pendingChanges.findIndex(change => 
+                change.action === 'order' && 
+                change.predicate === predicate &&
+                change.shape === shape
+            );
+
+            if (existingOrderIndex !== -1) {
+                // Aggiorna l'ordine esistente
+                pendingChanges[existingOrderIndex].object = new_order;
+            } else {
+                // Aggiungi una nuova azione di ordinamento
+                storePendingChange('order', subject, predicate, new_order, orderedBy, shape);
+            }
         }
     });
 }
@@ -175,6 +219,11 @@ function showAppropriateDateInput(selector) {
 
 function bindRepeaterEvents(context) {
     function initializeNewItem(newItem, isRequired, isInitialStructure = false) {
+        if (newItem.hasClass('draggable')) {
+            var tempId = 'temp-' + (++tempIdCounter);
+            newItem.attr('data-temp-id', tempId);
+        }
+    
         newItem.find('input, select, textarea').each(function() {
             var elem = $(this);
             var elemId = elem.attr('id');
@@ -286,12 +335,14 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
         container.find('[data-repeater-list]').each(function() {
             let repeaterList = $(this);
             let predicateUri = repeaterList.find('[data-repeater-item]:first').data('predicate-uri');
-            
+            let orderedBy = repeaterList.data('ordered-by');
+
             repeaterList.find('[data-repeater-item]:visible').each(function(index) {
                 let repeaterItem = $(this);
                 let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
                 let itemDepth = parseInt(repeaterItem.data('depth'));
-
+                let tempId = repeaterItem.data('temp-id');
+        
                 if (predicateUri && objectClass && itemDepth === depth) {
                     if (!Array.isArray(data[predicateUri])) {
                         data[predicateUri] = [];
@@ -328,6 +379,15 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                         }
 
                         collectFormData(repeaterItem, intermediateEntity.properties[connectingProperty].properties, shacl, depth + 1);
+                        
+                        if (orderedBy) {
+                            intermediateEntity['orderedBy'] = orderedBy;
+                        }
+
+                        if (tempId) {
+                            intermediateEntity['tempId'] = tempId;
+                        }
+        
                         data[predicateUri].push(intermediateEntity);
                     } else {
                         let nestedEntity = {
@@ -342,6 +402,14 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                         }
 
                         collectFormData(repeaterItem, nestedEntity.properties, shacl, depth + 1);
+
+                        if (orderedBy) {
+                            nestedEntity['orderedBy'] = orderedBy;
+                        }
+
+                        if (tempId) {
+                            nestedEntity['tempId'] = tempId;
+                        }
 
                         if (Object.keys(nestedEntity.properties).length > 0) {
                             data[predicateUri].push(nestedEntity);

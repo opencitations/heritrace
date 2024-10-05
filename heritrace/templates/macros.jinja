@@ -1,7 +1,12 @@
 {% set namespace_render_form_field = namespace(counter=0) %}
 
 {% macro render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, index=None, is_template=False, max_depth=5) %}
-    <div data-repeater-item class="input-group mb-3 ms-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" style="position: relative; padding-right: 3.5rem;" data-predicate-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
+
+    <div data-repeater-item 
+        class="input-group mb-3 ms-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" style="position: relative; padding-right: 3.5rem;" 
+        data-predicate-uri="{{ details.uri }}" 
+        data-depth="{{ depth }}" 
+        data-shape="{{ details.nodeShape or '' }}"
         {% if details.intermediateRelation %}
             data-intermediate-relation="{{ details.intermediateRelation.class }}"
             data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"
