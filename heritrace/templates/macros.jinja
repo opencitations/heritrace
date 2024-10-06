@@ -68,7 +68,7 @@
             or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
             <!-- Date input section -->
             <div class="date-input-group newEntityPropertiesContainer">
-                <div class="mb-2 w-75">
+                <div class="form-floating mb-2 mb-2 w-75 date-type-selector-container">
                     <select class="form-select date-type-selector"
                             id="{{ unique_id_base }}_date_type"
                             name="{{ unique_id_base }}_date_type"
@@ -89,7 +89,7 @@
 
                 <!-- Date input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
-                    <div class="date-input-container mb-2 w-75" style="display: none;">
+                    <div class="date-input-container mb-2 w-75 d-none">
                         <input type="date" class="form-control date-input"
                             id="{{ unique_id_base }}_date"
                             name="{{ unique_id_base }}"
@@ -105,7 +105,7 @@
 
                 <!-- Month input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
-                    <div class="date-input-container mb-2 w-75" style="display: none;">
+                    <div class="date-input-container mb-2 w-75 d-none">
                         <input type="month" class="form-control date-input"
                             id="{{ unique_id_base }}_month"
                             name="{{ unique_id_base }}"
@@ -121,7 +121,7 @@
 
                 <!-- Year input -->
                 {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
-                    <div class="date-input-container mb-2 w-75" style="display: none;">
+                    <div class="date-input-container mb-2 w-75 d-none">
                         <input type="number" class="form-control date-input"
                             id="{{ unique_id_base }}_year"
                             name="{{ unique_id_base }}"
@@ -193,7 +193,7 @@
 
 {% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data, display_name) %}
     {% set shape = grouped_triples_data.get('shape') %}
-    <div data-repeater-item class="d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
+    <div data-repeater-item class="input-group d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
         data-subject-id="{{ subject }}" 
         data-property-id="{{ triple[1] }}" 
         data-old-object-id="{{ object }}" 
@@ -225,7 +225,7 @@
                     </div>
                 {% elif 'http://www.w3.org/2001/XMLSchema#date' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYear' in datatypes.get(triple[1], []) %}
                     <div class="date-input-group">
-                        <div class="form-floating mb-2 date-type-selector-container" style="display: none;">
+                        <div class="form-floating mb-2 w-75 date-type-selector-container d-none">
                             <select class="form-control date-type-selector"
                                     id="{{ unique_id }}_date_type"
                                     name="{{ unique_id }}_date_type"
@@ -241,21 +241,30 @@
                                 {% endif %}
                             </select>
                             <label for="{{ unique_id }}_date_type">{{ _('Select Date Type') }}</label>
+                            <div class="invalid-feedback"></div>
                         </div>
-                        <div class="date-input-container" style="display: none;">
-                            <input type="date" class="form-control editable-field date-input" 
+                        
+                        <div class="date-input-container d-none w-75">
+                            <input type="date" class="form-control editable-field date-input"
+                                data-date-type="date"
+                                data-datatypes="http://www.w3.org/2001/XMLSchema#date"
                                 value="{{ triple[2] }}" 
-                                id="new_value_{{ unique_id }}_date"
-                                style="display: none;">
-                            <input type="month" class="form-control editable-field date-input" 
+                                id="new_value_{{ unique_id }}_date">
+                        </div>
+                        <div class="date-input-container d-none w-75">
+                            <input type="month" class="form-control editable-field date-input"
+                                data-datatypes="http://www.w3.org/2001/XMLSchema#gYearMonth"
+                                data-date-type="month"
                                 value="{{ triple[2] }}" 
-                                id="new_value_{{ unique_id }}_month"
-                                style="display: none;">
-                            <input type="number" class="form-control editable-field date-input" 
+                                id="new_value_{{ unique_id }}_month">
+                        </div>
+                        <div class="date-input-container d-none w-75">
+                            <input type="number" class="form-control editable-field date-input"
+                                data-datatypes="http://www.w3.org/2001/XMLSchema#gYear" 
+                                data-date-type="year"
                                 value="{{ triple[2] }}" 
                                 id="new_value_{{ unique_id }}_year"
-                                min="1000" max="9999"
-                                style="display: none;">
+                                min="1000" max="9999">
                         </div>
                         <div class="date-display-container">
                             <span class="date-display">{{ triple[2] }}</span>

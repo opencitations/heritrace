@@ -49,7 +49,9 @@
                                 {% set objectClass.value = details['objectClass'] %}
                             {% endif %}
                         {% endfor %}
-                        <h6 class="item-label">{{ display_name | human_readable_predicate(subject_classes) }}</h6>
+                        {%if data['triples'] %}
+                            <h6 class="item-label">{{ display_name | human_readable_predicate(subject_classes) }}</h6>
+                        {% endif %}
                         <div class="predicate-ul" 
                             data-repeater-list="{{ display_name | replace(' ', '_') }}" 
                             {% if isDraggable %}data-ordered-by="{{ data.ordered_by }}"{% endif %} 
@@ -175,24 +177,6 @@
             });
         }
 
-        function showAppropriateDateInput(selector) {
-            const dateInputGroup = selector.closest('.date-input-group');
-            const selectedDateType = selector.val();
-            
-            // Nascondi tutti gli input di data
-            dateInputGroup.find('.date-input').hide();
-            
-            // Mostra l'input appropriato
-            const selectedInput = dateInputGroup.find(`#new_value_${selector.attr('id').replace('_date_type', '')}_${selectedDateType}`);
-            selectedInput.show();
-
-            // Update the label's 'for' attribute
-            dateInputGroup.find('.date-input-container label').attr('for', selectedInput.attr('id'));
-
-            // Aggiorna il valore del display
-            dateInputGroup.find('.date-display').text(selectedInput.val());
-        }
-
         function toggleDateStrike(dateInputGroup, isStriked) {
             const dateDisplayContainer = dateInputGroup.find('.date-display-container');
             const dateInputContainer = dateInputGroup.find('.date-input-container');
@@ -306,7 +290,7 @@
                 $(".drag-handle").children().addClass('d-none');
                 $("#saveChangesBtn").hide();
                 $("#cancelChangesBtn").hide();
-                $(".date-type-selector-container").hide();
+                $(".date-type-selector-container").addClass('d-none');
                 $(".date-input-container").hide();
                 $(".date-display-container").show();
                 $("[data-repeater-create]").hide();
@@ -324,8 +308,11 @@
                 $(".drag-handle").children().removeClass('d-none');
                 $("#saveChangesBtn").show();
                 $("#cancelChangesBtn").show();
-                $(".date-type-selector-container").show();
+                $(".date-type-selector-container").removeClass('d-none');
                 $(".date-input-container").show();
+                $('.date-type-selector').each(function() {
+                    showAppropriateDateInput($(this));
+                });
                 $(".date-display-container").hide();
                 $("[data-repeater-create]").show();
                 $(this).addClass('edit-mode');
@@ -385,6 +372,38 @@
                 });
         });
         $('#saveChangesBtn').click(function(){
+            let errors = [];
+            errors = errors.concat(validateRequiredFields());
+            errors = errors.concat(validateUrls());
+            errors = errors.concat(validateDatatypes());
+            errors = errors.concat(validateConditions());
+
+            {# if (errors.length > 0) {
+                let errorMessages = errors.map(function(error) {
+                    return error.message;
+                });
+                let errorMessage = `
+                    <ul style="list-style-type: none; padding-left: 0;">
+                        ${errorMessages.map(error => `
+                            <li style="margin-bottom: 8px; display: flex; align-items: flex-start; text-align: left">
+                                <span style="color: #d32f2f; margin-right: 8px;">&#9888;</span>
+                                <span>${error}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+
+                Swal.fire({
+                    icon: 'error',
+                    title: '{{ _("Invalid Submission") }}',
+                    html: errorMessage,
+                    confirmButtonText: '{{ _("OK") }}',
+                });
+
+                highlightValidationErrors(errors);
+                return;
+            } #}
+
             collectNewProperties();
 
             $.ajax({
@@ -426,16 +445,6 @@
                     });
                 }
             });
-        });
-
-        // Gestisci il cambio di selezione del tipo di data
-        $(document).on('change', '.date-type-selector', function() {
-            showAppropriateDateInput($(this));
-        });
-
-        // Inizializza gli input di data al caricamento della pagina
-        $('.date-type-selector').each(function() {
-            showAppropriateDateInput($(this));
         });
 
         $(document).on('change', '.date-input', function() {
