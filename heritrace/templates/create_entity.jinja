@@ -469,62 +469,6 @@
                 });
             });
 
-            function validateFieldWithConditions(input) {
-                var conditions = input.data('conditions');
-                var inputValue = input.val();
-
-                if (!conditions) {
-                    return;
-                }
-
-                var isValid = true;
-                var errorMessage = '';
-                conditions.forEach(function(conditionObj) {
-                    var condition = conditionObj.condition;
-                    var pattern = new RegExp(conditionObj.pattern);
-                    var message = conditionObj.message;
-
-                    var currentList = input.closest('[data-repeater-list]');
-                    var dependentField = currentList.siblings().find('[data-repeater-item]').not('.repeater-template').find('[data-predicate-uri="' + condition.path + '"]');
-
-                    var dependentValue;
-                    if (dependentField.is('select')) {
-                        dependentValue = dependentField.val();
-                    } else if (dependentField.is('input')) {
-                        dependentValue = dependentField.val();
-                    } else {
-                        var inputOrSelect = dependentField.find('input, select').closest();
-                        dependentValue = inputOrSelect.val();
-                    }
-
-                    if (dependentValue === condition.value) {
-                        // Applicare la validazione
-                        if (!pattern.test(inputValue)) {
-                            isValid = false;
-                            errorMessage = message;
-                        }
-                    }
-                });
-
-                if (!isValid) {
-                    input.addClass('is-invalid');
-                    input.siblings('.invalid-feedback').first().text(errorMessage).show();
-                } else {
-                    input.removeClass('is-invalid');
-                    input.next('.invalid-feedback').first().text('').hide();
-                }
-            }
-
-            $(document).on('change', 'select', function() {
-                $(this).closest('[data-object-class]').find('input[data-conditions]').each(function() {
-                    validateFieldWithConditions($(this));
-                });
-            });
-
-            $(document).on('blur', 'input[data-conditions]', function() {
-                validateFieldWithConditions($(this));
-            });
-
             function showLoadingIndicator() {
                 Swal.fire({
                     title: '{{ _("Validating data...") }}',

@@ -84,7 +84,7 @@
                         {% endif %}
                     </select>
                     <label for="{{ unique_id_base }}_date_type">{{ _('Select Date Type') }}</label>
-                    <div class="invalid-feedback"></div>
+                    <div class="invalid-feedback w-75"></div>
                 </div>
 
                 <!-- Date input -->
@@ -99,7 +99,7 @@
                             data-datatypes="http://www.w3.org/2001/XMLSchema#date"
                             placeholder="{{ label_text }}"
                             {{ 'required' if details.min and details.min > 0 }}>
-                        <div class="invalid-feedback"></div>
+                        <div class="invalid-feedback w-75"></div>
                     </div>
                 {% endif %}
 
@@ -115,7 +115,7 @@
                             data-datatypes="http://www.w3.org/2001/XMLSchema#gYearMonth"
                             placeholder="{{ label_text }}"
                             {{ 'required' if details.min and details.min > 0 }}>
-                        <div class="invalid-feedback"></div>
+                        <div class="invalid-feedback w-75"></div>
                     </div>
                 {% endif %}
 
@@ -132,7 +132,7 @@
                             placeholder="{{ label_text }}"
                             min="1000" max="9999"
                             {{ 'required' if details.min and details.min > 0 }}>
-                        <div class="invalid-feedback"></div>
+                        <div class="invalid-feedback w-75"></div>
                     </div>
                 {% endif %}
             </div>
@@ -153,7 +153,7 @@
                     {% if details.datatypes and details.datatypes | length %}
                         data-datatypes="{{ details.datatypes | join(',') }}"
                     {% endif %}>
-                <div class="invalid-feedback"></div>
+                <div class="invalid-feedback w-75"></div>
             </div>
         {% endif %}
         <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger me-4">
@@ -243,7 +243,7 @@
                                 {% endif %}
                             </select>
                             <label for="{{ unique_id }}_date_type">{{ _('Select Date Type') }}</label>
-                            <div class="invalid-feedback"></div>
+                            <div class="invalid-feedback w-75"></div>
                         </div>
                         
                         <div class="date-input-container d-none w-75">

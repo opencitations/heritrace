@@ -102,11 +102,6 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     border-color: #dc3545;
 }
 
-.input-group {
-    position: relative;
-    padding-right: 3.5rem; /* Adjusted padding to make space for delete button */
-}
-
 .nested-form-header .toggle-btn.collapsed {
     transform: rotate(0deg);
 }

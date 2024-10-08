@@ -44,11 +44,19 @@
                 <div class="property-group" data-uri="{{entity_type}}">
                     {% if data['triples'] or data['property'] in can_be_added %}
                         {% set objectClass = namespace(value='') %}
+                        {% set max_items = namespace(value='') %}
+                        {% set min_items = namespace(value='') %}
                         {% for details in form_fields[entity_type][predicate] %}
                             {% if details['objectClass'] %}
                                 {% set objectClass.value = details['objectClass'] %}
                             {% endif %}
+                            {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') %}
+                                {# We have the matching details #}
+                                {% set max_items.value = details.max %}
+                                {% set min_items.value = details.min %}
+                            {% endif %}
                         {% endfor %}
+                        
                         {%if data['triples'] %}
                             <h6 class="item-label">{{ display_name | human_readable_predicate(subject_classes) }}</h6>
                         {% endif %}
@@ -56,7 +64,9 @@
                             data-repeater-list="{{ display_name | replace(' ', '_') }}" 
                             {% if isDraggable %}data-ordered-by="{{ data.ordered_by }}"{% endif %} 
                             data-uri="{{ data['property'] }}"
-                            data-object-class="{{ objectClass.value }}">
+                            data-object-class="{{ objectClass.value }}"
+                            {% if max_items.value %}data-max-items="{{ max_items.value }}"{% endif %}
+                            {% if min_items.value %}data-min-items="{{ min_items.value }}"{% endif %}>
                             {% if data['property'] in can_be_added %}
                                 {% for details in form_fields[entity_type][predicate] %}
                                     {% set shape = details.get('nodeShape') %}
