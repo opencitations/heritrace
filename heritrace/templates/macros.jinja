@@ -169,7 +169,9 @@
 
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-object-class="{{ details.objectClass }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
             {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}
-            data-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}">
+            data-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
+            data-container-display-name="{{ details.displayName }}"ù
+            data-display-name="{{ entity_type | human_readable_predicate(entity_types, False) }}">
 
             {% if details.min > 0 %}
                 {% for i in range(details.min) %}

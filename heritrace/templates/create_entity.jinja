@@ -85,12 +85,278 @@
             </div>
         {% endif %}
         <div class="mb-3">
-            <input type="submit" value="{{ _('Create') }}" class="btn btn-primary">
+            <input id="submitForm" type="button" value="{{ _('Create') }}" class="btn btn-primary">
         </div>
 
     </form>
 
     <script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
+
+    <script>
+        function getContainerName(input) {
+            let containerName = '';
+            let repeaterList = input.closest('[data-repeater-list]');
+            containerName = repeaterList.data('display-name');
+            return containerName;
+        }
+
+        // Funzione per validare i campi richiesti
+        function validateRequiredFields(errors) {
+            $(':input[required]:visible').each(function() {
+                if (!$(this).val()) {
+                    let fieldName = $(this).closest('.form-floating').find('label').text() || 
+                                    $(this).attr('placeholder') || 
+                                    $(this).attr('name') || 
+                                    '{{ _("Unknown field") }}';
+                    let containerName = getContainerName($(this));
+                    errors.push({
+                        field: $(this),
+                        message: `{{ _("The field") }} "${fieldName}" {{ _("of the") }} ${containerName} {{ _("is required") }}`
+                    });
+                }
+            });
+        }
+
+        // Funzione per validare gli URL
+        function validateUrls(errors) {
+            $('input[type="url"]:visible').each(function() {
+                let url = $(this).val();
+                if (url && !validateUrl(url)) {
+                    let fieldName = $(this).closest('.form-floating').find('label').text() || 
+                                    $(this).attr('placeholder') || 
+                                    $(this).attr('name') || 
+                                    '{{ _("Unknown URL field") }}';
+                    let containerName = getContainerName($(this));
+                    errors.push({
+                        field: $(this),
+                        message: `{{ _("Please enter a valid URL for") }} "${fieldName}" {{ _("of the") }} ${containerName}`
+                    });
+                }
+            });
+        }
+
+        // Funzione per validare i campi in base al datatype
+        function validateDatatypes(errors) {
+            $('[data-datatypes]:visible').each(function() {
+                let input = $(this);
+                let datatypes = input.data('datatypes').split(',');
+                let value = input.val();
+                let isValidDatatype = false;
+                let expectedFormat = '';
+
+                datatypes.forEach(function(datatype) {
+                    switch(datatype) {
+                        case 'http://www.w3.org/2001/XMLSchema#string':
+                            isValidDatatype = true; // All strings are valid
+                            expectedFormat = '{{ _("any text") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#normalizedString':
+                            isValidDatatype = !/[\n\r\t]/.test(value);
+                            expectedFormat = '{{ _("text without line breaks or tabs") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#integer':
+                        case 'http://www.w3.org/2001/XMLSchema#int':
+                            isValidDatatype = /^-?\d+$/.test(value);
+                            expectedFormat = '{{ _("whole number") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#positiveInteger':
+                            isValidDatatype = /^\d+$/.test(value) && parseInt(value) > 0;
+                            expectedFormat = '{{ _("positive whole number") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#negativeInteger':
+                            isValidDatatype = /^-\d+$/.test(value) && parseInt(value) < 0;
+                            expectedFormat = '{{ _("negative whole number") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#nonNegativeInteger':
+                            isValidDatatype = /^\d+$/.test(value) && parseInt(value) >= 0;
+                            expectedFormat = '{{ _("non-negative whole number") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#nonPositiveInteger':
+                            isValidDatatype = /^-?\d+$/.test(value) && parseInt(value) <= 0;
+                            expectedFormat = '{{ _("non-positive whole number") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#byte':
+                            isValidDatatype = /^-?\d+$/.test(value) && -128 <= parseInt(value) && parseInt(value) <= 127;
+                            expectedFormat = '{{ _("whole number between -128 and 127") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#short':
+                            isValidDatatype = /^-?\d+$/.test(value) && -32768 <= parseInt(value) && parseInt(value) <= 32767;
+                            expectedFormat = '{{ _("whole number between -32768 and 32767") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#long':
+                            isValidDatatype = /^-?\d+$/.test(value) && -2147483648 <= parseInt(value) && parseInt(value) <= 2147483647;
+                            expectedFormat = '{{ _("whole number between -2147483648 and 2147483647") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#unsignedByte':
+                            isValidDatatype = /^\d+$/.test(value) && 0 <= parseInt(value) && parseInt(value) <= 255;
+                            expectedFormat = '{{ _("whole number between 0 and 255") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#unsignedShort':
+                            isValidDatatype = /^\d+$/.test(value) && 0 <= parseInt(value) && parseInt(value) <= 65535;
+                            expectedFormat = '{{ _("whole number between 0 and 65535") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#unsignedLong':
+                        case 'http://www.w3.org/2001/XMLSchema#unsignedInt':
+                            isValidDatatype = /^\d+$/.test(value) && 0 <= parseInt(value) && parseInt(value) <= 4294967295;
+                            expectedFormat = '{{ _("whole number between 0 and 4294967295") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#decimal':
+                        case 'http://www.w3.org/2001/XMLSchema#float':
+                        case 'http://www.w3.org/2001/XMLSchema#double':
+                            isValidDatatype = /^-?\d*\.?\d+$/.test(value);
+                            expectedFormat = '{{ _("number (can include decimal point)") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#duration':
+                            isValidDatatype = /^P(?=\d|T\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/.test(value);
+                            expectedFormat = '{{ _("duration (e.g. P1Y2M3DT4H5M6S)") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#dayTimeDuration':
+                            isValidDatatype = /^P(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$/.test(value);
+                            expectedFormat = '{{ _("day and time duration (e.g. P1DT2H3M4S)") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#yearMonthDuration':
+                            isValidDatatype = /^P(?:\d+Y)?(?:\d+M)?$/.test(value);
+                            expectedFormat = '{{ _("year and month duration (e.g. P1Y2M)") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#gYearMonth':
+                            isValidDatatype = /^(\d{4})-(\d{2})$/.test(value) && new Date(value + '-01').getMonth() === parseInt(value.split('-')[1]) - 1;
+                            expectedFormat = '{{ _("year and month in format YYYY-MM") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#gYear':
+                            isValidDatatype = /^\d{4}$/.test(value);
+                            expectedFormat = '{{ _("year in format YYYY") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#dateTime':
+                            isValidDatatype = /^-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/.test(value);
+                            expectedFormat = '{{ _("date and time (e.g. 2023-06-15T14:30:00+02:00)") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#dateTimeStamp':
+                            isValidDatatype = /^-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(value);
+                            expectedFormat = '{{ _("date and time with timezone (e.g. 2023-06-15T14:30:00+02:00)") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#date':
+                            isValidDatatype = /^\d{4}-\d{2}-\d{2}$/.test(value) && !isNaN(new Date(value).getTime());
+                            expectedFormat = '{{ _("date in format YYYY-MM-DD") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#time':
+                            isValidDatatype = /^([01]\d|2[0-3]):?([0-5]\d):?([0-5]\d)$/.test(value);
+                            expectedFormat = '{{ _("time in format HH:MM:SS") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#gMonth':
+                            isValidDatatype = /^--(0[1-9]|1[0-2])$/.test(value);
+                            expectedFormat = '{{ _("month in format --MM") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#gDay':
+                            isValidDatatype = /^---(0[1-9]|[12]\d|3[01])$/.test(value);
+                            expectedFormat = '{{ _("day in format ---DD") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#gMonthDay':
+                            isValidDatatype = /^--(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value);
+                            expectedFormat = '{{ _("month and day in format --MM-DD") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#boolean':
+                            isValidDatatype = /^(true|false|1|0)$/i.test(value);
+                            expectedFormat = '{{ _("true or false") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#hexBinary':
+                            isValidDatatype = /^[0-9A-Fa-f]*$/.test(value);
+                            expectedFormat = '{{ _("hexadecimal digits") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#base64Binary':
+                            isValidDatatype = /^[A-Za-z0-9+/]*={0,2}$/.test(value);
+                            expectedFormat = '{{ _("base64 encoded data") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#anyURI':
+                            isValidDatatype = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(value);
+                            expectedFormat = '{{ _("valid URL") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#QName':
+                        case 'http://www.w3.org/2001/XMLSchema#NOTATION':
+                            isValidDatatype = /^(?:[a-zA-Z_][\w.-]*:)?[a-zA-Z_][\w.-]*$/.test(value);
+                            expectedFormat = '{{ _("qualified name") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#ENTITY':
+                        case 'http://www.w3.org/2001/XMLSchema#ID':
+                        case 'http://www.w3.org/2001/XMLSchema#IDREF':
+                        case 'http://www.w3.org/2001/XMLSchema#NCName':
+                            isValidDatatype = /^[a-zA-Z_][\w.-]*$/.test(value);
+                            expectedFormat = '{{ _("valid XML name") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#ENTITIES':
+                        case 'http://www.w3.org/2001/XMLSchema#IDREFS':
+                            isValidDatatype = value.split(/\s+/).every(token => /^[a-zA-Z_][\w.-]*$/.test(token));
+                            expectedFormat = '{{ _("list of valid XML names") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#NMTOKEN':
+                            isValidDatatype = /^[\w.-]+$/.test(value);
+                            expectedFormat = '{{ _("valid XML token") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#NMTOKENS':
+                            isValidDatatype = value.split(/\s+/).every(token => /^[\w.-]+$/.test(token));
+                            expectedFormat = '{{ _("list of valid XML tokens") }}';
+                            break;
+                        case 'http://www.w3.org/2001/XMLSchema#Name':
+                            isValidDatatype = /^[a-zA-Z_:][\w.-]*$/.test(value);
+                            expectedFormat = '{{ _("valid XML Name") }}';
+                            break;
+                    }
+                    if (isValidDatatype) return false; // Esci dal ciclo se trova un datatype valido
+                });
+
+                if (!isValidDatatype) {
+                    let fieldName = input.closest('.form-floating').find('label').text() || 
+                                    input.attr('placeholder') || 
+                                    input.attr('name') || 
+                                    '{{ _("This field") }}';
+                    let containerName = getContainerName(input);
+                    errors.push({
+                        field: input,
+                        message: `${fieldName} {{ _("of the") }} ${containerName}: {{ _("Invalid input. Expected") }} ${expectedFormat}.`
+                    });
+                }
+            });
+        }
+
+        // Funzione per validare le condizioni
+        function validateConditions(errors) {
+            $('input[data-conditions]:visible').each(function() {
+                let input = $(this);
+                let conditions = input.data('conditions');
+                let value = input.val();
+
+                conditions.forEach(function(conditionObj) {
+                    var condition = conditionObj.condition;
+                    var pattern = new RegExp(conditionObj.pattern);
+                    var message = conditionObj.message;
+
+                    var currentList = input.closest('[data-repeater-list]');
+                    var dependentField = currentList.siblings().find('[data-repeater-item]').not('.repeater-template').find('[data-predicate-uri="' + condition.path + '"]');
+
+                    var dependentValue;
+                    if (dependentField.is('select')) {
+                        dependentValue = dependentField.val();
+                    } else if (dependentField.is('input')) {
+                        dependentValue = dependentField.val();
+                    } else {
+                        var inputOrSelect = dependentField.find('input, select').closest();
+                        dependentValue = inputOrSelect.val();
+                    }
+
+                    // Controlla se il campo dipendente è disponibile e visibile
+                    if (dependentValue === condition.value) {
+                        // Applicare la validazione
+                        if (!pattern.test(value)) {
+                            let containerName = getContainerName(input);
+                            errors.push({
+                                field: input,
+                                message: `In the ${containerName}, ${message} {{ _("in the") }}`
+                            });
+                        }
+                    }
+                });
+            });
+        }
+    </script>
 
     <script>
         $(document).ready(function() {
@@ -364,9 +630,7 @@
 
             toggleRemoveButtons();
 
-            $('#entityForm').off('submit').on('submit', function(event) {
-                event.preventDefault();
-
+            $('#submitForm').click(function(){
                 let errors = [];
 
                 validateRequiredFields(errors);
