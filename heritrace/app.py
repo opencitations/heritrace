@@ -62,13 +62,6 @@ if shacl_path:
         shacl = Graph()
         shacl.parse(source=app.config["SHACL_PATH"], format="turtle")
 
-custom_filter = Filter(context, display_rules)
-
-app.jinja_env.filters['human_readable_predicate'] = custom_filter.human_readable_predicate
-app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_readable_primary_source
-app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime
-app.jinja_env.filters['split_ns'] = custom_filter.split_ns
-
 CACHE_FILE = app.config['CACHE_FILE']
 CACHE_VALIDITY_DAYS = app.config['CACHE_VALIDITY_DAYS']
 
@@ -287,6 +280,14 @@ def initialize_app():
 
 initialize_app()
 
+custom_filter = Filter(context, display_rules, dataset_endpoint)
+
+app.jinja_env.filters['human_readable_predicate'] = custom_filter.human_readable_predicate
+app.jinja_env.filters['human_readable_entity'] = custom_filter.human_readable_entity
+app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_readable_primary_source
+app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime
+app.jinja_env.filters['split_ns'] = custom_filter.split_ns
+
 @app.route('/')
 def index():
     return render_template('index.jinja')
@@ -316,7 +317,7 @@ def catalogue():
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
     subjects = sparql.query().convert().get("results", {}).get("bindings", [])
-    return render_template('entities.jinja', subjects=subjects, page=page)
+    return render_template('catalogue.jinja', subjects=subjects, page=page)
 
 @app.route('/create-entity', methods=['GET', 'POST'])
 def create_entity():
@@ -686,7 +687,6 @@ def apply_changes():
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
         editor = import_subject_and_direct_objects(editor, subject)
         editor.preexisting_finished()
-
         graph_uri = None
         if editor.dataset_is_quadstore:
             for quad in editor.g_set.quads((URIRef(subject), None, None)):
@@ -881,6 +881,12 @@ def entity_history(entity_uri):
     events = []
     sorted_metadata = sorted(provenance[entity_uri].items(), key=lambda x: x[1]['generatedAtTime'])  # Ordina gli eventi per data
 
+    entity_classes = []
+    for snapshot in history[entity_uri].values():
+        classes = list(snapshot.triples((URIRef(entity_uri), RDF.type, None)))
+        if classes:
+            entity_classes.append(str(classes[0][2]))
+
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
         date = datetime.fromisoformat(metadata['generatedAtTime'])
         responsible_agent = f"<a href='{metadata['wasAttributedTo']}' alt='{gettext('Link to the responsible agent description')} target='_blank'>{metadata['wasAttributedTo']}</a>" if validators.url(metadata['wasAttributedTo']) else metadata['wasAttributedTo']
@@ -909,7 +915,7 @@ def entity_history(entity_uri):
                 "text": f"""
                     <p><strong>{gettext('Responsible agent')}:</strong> {responsible_agent}</p>
                     <p><strong>{gettext('Primary source')}:</strong> {primary_source}</p>
-                    <p><strong>{gettext('Description')}:</strong> {metadata['description']}</p>
+                    <p><strong>{gettext('Description')}:</strong> {metadata['description'].replace(entity_uri, custom_filter.human_readable_entity(entity_uri, entity_classes))}</p>
                     <div class="modifications mb-3">
                         {modification_text}
                     </div>
@@ -946,13 +952,17 @@ def entity_history(entity_uri):
     timeline_data = {
         "title": {
             "text": {
-                "headline": gettext('Version history for') + ' ' + entity_uri
+                "headline": gettext('Version history for') + ' ' + custom_filter.human_readable_entity(entity_uri, entity_classes) 
             }
         },
         "events": events
     }
 
-    return render_template('entity_history.jinja', entity_uri=entity_uri, timeline_data=timeline_data)
+    return render_template('entity_history.jinja', 
+                           entity_uri=entity_uri, 
+                           timeline_data=timeline_data, 
+                           entity_classes=entity_classes)
+
 
 @app.route('/entity-version/<path:entity_uri>/<timestamp>')
 def entity_version(entity_uri, timestamp):
@@ -1024,6 +1034,8 @@ def entity_version(entity_uri, timestamp):
         modifications = parse_sparql_update(sparql_query)
     else:
         modifications = None
+    if closest_metadata[closest_metadata_key]['description']:
+        closest_metadata[closest_metadata_key]['description'] = closest_metadata[closest_metadata_key]['description'].replace(entity_uri, custom_filter.human_readable_entity(entity_uri, subject_classes))
     return render_template('entity_version.jinja', subject=entity_uri, metadata=closest_metadata, timestamp=closest_timestamp, next_snapshot_timestamp=next_snapshot_timestamp, prev_snapshot_timestamp=prev_snapshot_timestamp, modifications=modifications, grouped_triples=grouped_triples, subject_classes=subject_classes)
 
 @app.route('/restore-version/<path:entity_uri>/<timestamp>', methods=['POST'])

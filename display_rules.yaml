@@ -1,5 +1,14 @@
 - class: "http://purl.org/spar/fabio/JournalArticle"
   displayName: "Journal Article"
+  fetchUriDisplay: |
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    SELECT ?display
+    WHERE {
+      [[uri]] a fabio:JournalArticle ;
+              dcterms:title ?title .
+      BIND(CONCAT("Article: ", SUBSTR(?title, 1, 30), "...") AS ?display)
+    }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"
@@ -149,6 +158,14 @@
 
 - class: "http://purl.org/spar/fabio/Journal"
   displayName: "Journal"
+  fetchUriDisplay: |
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT ?display
+    WHERE {
+      [[uri]] dcterms:title ?title .
+      BIND(CONCAT("Journal: ", ?title) AS ?display)
+    }
+
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"
@@ -172,6 +189,17 @@
 
 - class: "http://purl.org/spar/fabio/JournalVolume"
   displayName: "Volume"
+  fetchUriDisplay: |
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT ?display
+    WHERE {
+      [[uri]] fabio:hasSequenceIdentifier ?number ;
+              frbr:partOf ?journal .
+      ?journal dcterms:title ?journalTitle .
+      BIND(CONCAT("Volume ", ?number, " of ", ?journalTitle) AS ?display)
+    }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"
@@ -196,6 +224,19 @@
 
 - class: "http://purl.org/spar/fabio/JournalIssue"
   displayName: "Issue"
+  fetchUriDisplay: |
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT ?display
+    WHERE {
+      [[uri]] fabio:hasSequenceIdentifier ?number ;
+              frbr:partOf ?volume .
+      ?volume frbr:partOf ?journal ;
+              fabio:hasSequenceIdentifier ?volumeNumber .
+      ?journal dcterms:title ?journalTitle .
+      BIND(CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber, ", ", ?journalTitle) AS ?display)
+    }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"
@@ -232,6 +273,15 @@
 
 - class: "http://purl.org/spar/fabio/Book"
   displayName: "Book"
+  fetchUriDisplay: |
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    SELECT ?display
+    WHERE {
+      [[uri]] a fabio:Book ;
+              dcterms:title ?title .
+      BIND(CONCAT("Book: ", SUBSTR(?title, 1, 30), "...") AS ?display)
+    }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"
@@ -347,6 +397,15 @@
 
 - class: "http://purl.org/spar/datacite/Identifier"
   displayName: "Identifier"
+  fetchUriDisplay: |
+    PREFIX datacite: <http://purl.org/spar/datacite/>
+    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+    SELECT ?display
+    WHERE {
+      [[uri]] datacite:usesIdentifierScheme ?scheme ;
+              literal:hasLiteralValue ?value .
+      BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ": ", ?value) AS ?display)
+    }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"
@@ -360,6 +419,22 @@
 
 - class: "http://purl.org/spar/fabio/Manifestation"
   displayName: "Page"
+  fetchUriDisplay: |
+    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    SELECT ?display
+    WHERE {
+      OPTIONAL { [[uri]] prism:startingPage ?start . }
+      OPTIONAL { [[uri]] prism:endingPage ?end . }
+      BIND(
+        IF(BOUND(?start) && BOUND(?end), 
+           CONCAT("Pages ", ?start, "-", ?end),
+           IF(BOUND(?start), 
+              CONCAT("Page ", ?start),
+              IF(BOUND(?end), 
+                 CONCAT("Page ", ?end),
+                 "Unknown page")))
+        AS ?display)
+    }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"
@@ -376,6 +451,14 @@
 
 - class: "http://purl.org/spar/pro/RoleInTime"
   displayName: "Agent Role"
+  fetchUriDisplay: |
+    PREFIX pro: <http://purl.org/spar/pro/>
+    SELECT ?display
+    WHERE {
+      [[uri]] pro:withRole ?role ;
+              pro:isHeldBy ?agent .
+      BIND(CONCAT(STRAFTER(STR(?role), "pro/"), " role for ", STR(?agent)) AS ?display)
+    }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"
@@ -392,6 +475,24 @@
 
 - class: "http://xmlns.com/foaf/0.1/Agent"
   displayName: "Responsible Agent"
+  fetchUriDisplay: |
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    SELECT ?display 
+    WHERE {
+        OPTIONAL { [[uri]] foaf:name ?name. }
+        OPTIONAL { [[uri]] foaf:familyName ?familyName. }
+        OPTIONAL { [[uri]] foaf:givenName ?givenName. }
+        BIND(
+            IF(BOUND(?name), ?name,
+                IF(BOUND(?familyName) && BOUND(?givenName), 
+                    CONCAT(?givenName, " ", ?familyName),
+                    IF(BOUND(?familyName), ?familyName, 
+                        IF(BOUND(?givenName), ?givenName, "")
+                    )
+                )
+            ) AS ?display
+        )
+    }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
       displayName: "Type"

@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="container">
-    <h2 class="mb-4 word-wrap">{{_('About')}} {{ subject | human_readable_predicate(subject_classes, False) }}</h2>
+    <h2 class="mb-4 word-wrap">{{_('About')}} {{ subject | human_readable_entity(subject_classes) }}</h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

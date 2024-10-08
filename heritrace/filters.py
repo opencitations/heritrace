@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 from typing import Tuple
-from urllib.parse import urlparse, quote
-from flask import url_for
-from flask_babel import gettext
+from urllib.parse import quote, urlparse
+
 import dateutil
 import validators
-from flask_babel import format_datetime, lazy_gettext
+from flask import url_for
+from flask_babel import format_datetime, gettext, lazy_gettext
+from SPARQLWrapper import JSON, SPARQLWrapper
 
 
 class Filter:
-    def __init__(self, context: dict, display_rules: dict):
+    def __init__(self, context: dict, display_rules: dict, sparql_endpoint: str):
         self.context = context
         self.display_rules = display_rules
+        self.sparql = SPARQLWrapper(sparql_endpoint)
+        self.sparql.setReturnFormat(JSON)
 
     def human_readable_predicate(self, url: str, entity_classes: list, is_link: bool = True):
         subject_classes = [str(subject_class) for subject_class in entity_classes]
@@ -52,6 +55,33 @@ class Filter:
             return f"<a href='{url_for('about', subject=quote(url))}' alt='{gettext('Link to the entity %(entity)s', entity=url)}'>{url}</a>"
         else:
             return url
+
+    def human_readable_entity(self, uri: str, entity_classes: list) -> str:
+        subject_classes = [str(subject_class) for subject_class in entity_classes]
+        # Cerca prima una configurazione fetchUriDisplay
+        uri_display = self.get_fetch_uri_display(uri, subject_classes)
+        if uri_display:
+            return uri_display
+
+        # Se non trova nulla, restituisce l'URI originale
+        return uri
+
+    def get_fetch_uri_display(self, uri: str, entity_classes: list) -> str | None:
+        for entity_class in entity_classes:
+            for rule in self.display_rules:
+                if rule['class'] == entity_class and 'fetchUriDisplay' in rule:
+                    query = rule['fetchUriDisplay'].replace('[[uri]]', f'<{uri}>')
+                    self.sparql.setQuery(query)
+                    try:
+                        results = self.sparql.query().convert()
+                        if results['results']['bindings']:
+                            # Prendi il primo binding e il primo (e unico) valore
+                            first_binding = results['results']['bindings'][0]
+                            first_key = list(first_binding.keys())[0]
+                            return first_binding[first_key]['value']
+                    except Exception as e:
+                        print(f"Error executing fetchUriDisplay query: {e}")
+        return None
 
     def human_readable_datetime(self, dt_str):
         dt = dateutil.parser.parse(dt_str)
