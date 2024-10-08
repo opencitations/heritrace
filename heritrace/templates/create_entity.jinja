@@ -96,15 +96,6 @@
 
     <script>
         $(document).ready(function() {
-
-            function validateUrlInput(inputElement) {
-                if (inputElement[0].checkValidity() === false) {
-                    inputElement.addClass('is-invalid');
-                } else {
-                    inputElement.removeClass('is-invalid');
-                }
-            }
-
             // Funzione per validare il valore in tempo reale con AJAX
             function validateValue(propertyId, value) {
                 if (!value.trim()) {
@@ -159,14 +150,6 @@
                 }
             }
 
-            function validateUrl(url) {
-                var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
-                    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|(\\d{1,3}\\.){3}\\d{1,3})' + // domain name and extension
-                    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
-                    '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
-                    '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
-                return !!pattern.test(url);
-            }
 
             $(window).on('pageshow', function(event) {
                 initializeForm();
@@ -411,29 +394,7 @@
 
                 // Gestione degli errori
                 if (errors.length > 0) {
-                    let errorMessages = errors.map(function(error) {
-                        return error.message;
-                    });
-                    let errorMessage = `
-                        <ul style="list-style-type: none; padding-left: 0;">
-                            ${errorMessages.map(error => `
-                                <li style="margin-bottom: 8px; display: flex; align-items: flex-start; text-align: left">
-                                    <span style="color: #d32f2f; margin-right: 8px;">&#9888;</span>
-                                    <span>${error}</span>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    `;
-
-                    Swal.fire({
-                        icon: 'error',
-                        title: '{{ _("Invalid Submission") }}',
-                        html: errorMessage,
-                        confirmButtonText: '{{ _("OK") }}',
-                    });
-
-                    highlightValidationErrors(errors);
-
+                    displayValidationErrors(errors);   
                     return; // Interrompe l'invio del form
                 }
 

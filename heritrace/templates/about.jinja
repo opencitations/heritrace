@@ -382,28 +382,7 @@
             validateConditions(errors);
 
             if (errors.length > 0) {
-                let errorMessages = errors.map(function(error) {
-                    return error.message;
-                });
-                let errorMessage = `
-                    <ul style="list-style-type: none; padding-left: 0;">
-                        ${errorMessages.map(error => `
-                            <li style="margin-bottom: 8px; display: flex; align-items: flex-start; text-align: left">
-                                <span style="color: #d32f2f; margin-right: 8px;">&#9888;</span>
-                                <span>${error}</span>
-                            </li>
-                        `).join('')}
-                    </ul>
-                `;
-
-                Swal.fire({
-                    icon: 'error',
-                    title: '{{ _("Invalid Submission") }}',
-                    html: errorMessage,
-                    confirmButtonText: '{{ _("OK") }}',
-                });
-
-                highlightValidationErrors(errors);
+                displayValidationErrors(errors);                
                 return;
             }
 
