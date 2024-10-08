@@ -1,5 +1,5 @@
-- class: "http://purl.org/spar/fabio/JournalArticle"
-  displayName: "Journal Article"
+- class: "http://purl.org/spar/fabio/Expression"
+  displayName: "Bibliographic Resource"
   fetchUriDisplay: |
     PREFIX dcterms: <http://purl.org/dc/terms/>
     PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -7,7 +7,91 @@
     WHERE {
       [[uri]] a fabio:JournalArticle ;
               dcterms:title ?title .
-      BIND(CONCAT("Article: ", SUBSTR(?title, 1, 30), "...") AS ?display)
+      BIND((?title) AS ?display)
+    }
+
+- class: "http://purl.org/spar/fabio/JournalArticle"
+  displayName: "Journal Article"
+  fetchUriDisplay: |
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX pro: <http://purl.org/spar/pro/>
+    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT ?display
+    WHERE {
+      {
+        SELECT ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
+              (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+        WHERE {
+          [[uri]] a fabio:JournalArticle .
+          OPTIONAL { [[uri]] dcterms:title ?title . }
+          OPTIONAL {
+            [[uri]] pro:isDocumentContextFor ?authorRole .
+            ?authorRole pro:withRole pro:author ;
+                        pro:isHeldBy ?author .
+            OPTIONAL { ?author foaf:name ?authorName . }
+            OPTIONAL {
+              ?author foaf:familyName ?familyName .
+              OPTIONAL { ?author foaf:givenName ?givenName . }
+              BIND(CONCAT(
+                ?familyName,
+                COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+              ) AS ?authorName)
+            }
+          }
+          OPTIONAL {
+            [[uri]] prism:publicationDate ?pubDateRaw . 
+            BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                    STR(?pubDateRaw),
+                    IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                      SUBSTR(STR(?pubDateRaw), 1, 4),
+                      STR(?pubDateRaw))) AS ?pubDate)
+          }
+          OPTIONAL {
+            [[uri]] frbr:partOf ?issue .
+            ?issue a fabio:JournalIssue ;
+                  frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    fabio:hasSequenceIdentifier ?volumeNumber ;
+                    frbr:partOf ?journal .
+            ?journal dcterms:title ?journalTitle .
+            OPTIONAL { ?issue fabio:hasSequenceIdentifier ?issueNumber . }
+          }
+          OPTIONAL {
+            [[uri]] frbr:embodiment ?embodiment .
+            OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+            OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+          }
+        }
+        GROUP BY ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
+      }
+      
+      BIND(CONCAT(
+        COALESCE(?authorList, ""),
+        IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+        IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+        IF(BOUND(?title), CONCAT(
+          IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+          ?title
+        ), ""),
+        IF(BOUND(?journalTitle), CONCAT(
+          IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+          ?journalTitle
+        ), ""),
+        IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+        IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+        IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+        COALESCE(?startPage, ""),
+        IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+        COALESCE(?endPage, ""),
+        "."
+      ) AS ?displayWithDot)
+
+      BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+      BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
     }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
@@ -163,7 +247,7 @@
     SELECT ?display
     WHERE {
       [[uri]] dcterms:title ?title .
-      BIND(CONCAT("Journal: ", ?title) AS ?display)
+      BIND((?title) AS ?display)
     }
 
   displayProperties:
@@ -404,7 +488,7 @@
     WHERE {
       [[uri]] datacite:usesIdentifierScheme ?scheme ;
               literal:hasLiteralValue ?value .
-      BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ": ", ?value) AS ?display)
+      BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
     }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
@@ -453,11 +537,25 @@
   displayName: "Agent Role"
   fetchUriDisplay: |
     PREFIX pro: <http://purl.org/spar/pro/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
     SELECT ?display
     WHERE {
       [[uri]] pro:withRole ?role ;
               pro:isHeldBy ?agent .
-      BIND(CONCAT(STRAFTER(STR(?role), "pro/"), " role for ", STR(?agent)) AS ?display)
+      OPTIONAL { ?agent foaf:name ?name. }
+      OPTIONAL { ?agent foaf:familyName ?familyName. }
+      OPTIONAL { ?agent foaf:givenName ?givenName. }
+      BIND(
+          IF(BOUND(?name), ?name,
+              IF(BOUND(?familyName) && BOUND(?givenName), 
+                  CONCAT(?givenName, " ", ?familyName),
+                  IF(BOUND(?familyName), ?familyName, 
+                      IF(BOUND(?givenName), ?givenName, STR(?agent))
+                  )
+              )
+          ) AS ?agentDisplay
+      )
+      BIND(CONCAT(STRAFTER(STR(?role), "pro/"), " role for ", ?agentDisplay) AS ?display)
     }
   displayProperties:
     - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
