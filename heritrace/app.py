@@ -294,30 +294,110 @@ def index():
 
 @app.route('/catalogue')
 def catalogue():
+    selected_class = request.args.get('class')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 100))
-    offset = (page - 1) * per_page
 
+    # Add a list of allowed per_page values
+    allowed_per_page = [50, 100, 200, 500]
+    if per_page not in allowed_per_page:
+        per_page = 100
+
+    # Query to get all available classes
     if is_virtuoso():
-        query = f"""
-        SELECT DISTINCT ?subject WHERE {{
-            GRAPH ?g {{
-                ?subject ?predicate ?object.
+        classes_query = f"""
+            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
+            WHERE {{
+                GRAPH ?g {{
+                    ?subject a ?class .
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
             }}
-            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-        }} LIMIT {per_page} OFFSET {offset}
+            GROUP BY ?class
+            ORDER BY DESC(?count)
         """
     else:
-        query = f"""
-        SELECT DISTINCT ?subject WHERE {{
-            ?subject ?predicate ?object.
-        }} LIMIT {per_page} OFFSET {offset}
+        classes_query = """
+            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
+            WHERE {
+                ?subject a ?class .
+            }
+            GROUP BY ?class
+            ORDER BY DESC(?count)
         """
-
-    sparql.setQuery(query)
+    
+    sparql.setQuery(classes_query)
     sparql.setReturnFormat(JSON)
-    subjects = sparql.query().convert().get("results", {}).get("bindings", [])
-    return render_template('catalogue.jinja', subjects=subjects, page=page)
+    classes_results = sparql.query().convert()
+
+    available_classes = [(result['class']['value'], int(result['count']['value'])) 
+                         for result in classes_results["results"]["bindings"]]
+
+    # Calculate total pages for class list
+    total_classes = len(available_classes)
+    total_class_pages = (total_classes + per_page - 1) // per_page
+
+    # Paginate the class list
+    class_page = page if not selected_class else 1
+    paginated_classes = available_classes[(class_page-1)*per_page:class_page*per_page]
+
+    entities = []
+    total_entity_pages = 0
+
+    if selected_class:
+        # Calculate offset for entities
+        entity_page = page if selected_class else 1
+        offset = (entity_page - 1) * per_page
+
+        # Query to get entities of the selected class
+        if is_virtuoso():
+            entities_query = f"""
+            SELECT DISTINCT ?subject
+            WHERE {{
+                GRAPH ?g {{
+                    ?subject a <{selected_class}> .
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            }}
+            ORDER BY ?subject
+            LIMIT {per_page} OFFSET {offset}
+            """
+        else:
+            entities_query = f"""
+            SELECT ?subject
+            WHERE {{
+                ?subject a <{selected_class}> .
+            }}
+            ORDER BY ?subject
+            LIMIT {per_page} OFFSET {offset}
+            """
+        
+        sparql.setQuery(entities_query)
+        entities_results = sparql.query().convert()
+
+        entities = [result['subject']['value'] 
+                    for result in entities_results["results"]["bindings"]]
+
+        total_count = next((count for cls, count in available_classes if cls == selected_class), 0)
+        total_entity_pages = (total_count + per_page - 1) // per_page
+
+    def template_max(*args):
+        return max(args)
+
+    def template_min(*args):
+        return min(args)
+
+    return render_template('catalogue.jinja', 
+                           available_classes=paginated_classes,
+                           selected_class=selected_class,
+                           entities=entities, 
+                           page=page,
+                           total_class_pages=total_class_pages,
+                           total_entity_pages=total_entity_pages,
+                           per_page=per_page,
+                           allowed_per_page=allowed_per_page,
+                           template_max=template_max,
+                           template_min=template_min)
 
 @app.route('/create-entity', methods=['GET', 'POST'])
 def create_entity():
