@@ -519,9 +519,32 @@ function validateUrl(url) {
     return !!pattern.test(url);
 }
 
+function convertDate(originalValue, newType) {
+    let date = new Date(originalValue);
+    switch(newType) {
+        case 'date':
+            return date.toISOString().split('T')[0];
+        case 'month':
+            return date.toISOString().slice(0, 7);
+        case 'year':
+            return date.getFullYear().toString();
+        default:
+            return originalValue;
+    }
+}
+
 $(document).ready(function() {
     // On change of date type selection
     $(document).on('change', '.date-type-selector', function() {
+        let dateInputGroup = $(this).closest('.date-input-group');
+        let originalValue = dateInputGroup.data('original-value');
+        if (originalValue) {
+            let newType = $(this).val();
+            let newValue = convertDate(originalValue, newType);
+            dateInputGroup.find(`.date-input[data-date-type="${newType}"]`).val(newValue);
+            dateInputGroup.find('.date-display').text(newValue);    
+        }
+
         showAppropriateDateInput($(this));
     });
 });
