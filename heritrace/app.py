@@ -296,7 +296,7 @@ def index():
 def catalogue():
     selected_class = request.args.get('class')
     page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 100))
+    per_page = int(request.args.get('per_page', 50))
 
     # Add a list of allowed per_page values
     allowed_per_page = [50, 100, 200, 500]
@@ -606,6 +606,18 @@ def validate_entity_data(structured_data, form_fields):
                     )
                 )
 
+            # Verifica i valori obbligatori
+            mandatory_values = field_def.get('mandatory_values', [])
+            for mandatory_value in mandatory_values:
+                if mandatory_value not in prop_value_list:
+                    errors.append(
+                        gettext(
+                            'Property %(prop_uri)s requires the value %(mandatory_value)s.',
+                            prop_uri=custom_filter.human_readable_predicate(prop_uri, [entity_type]),
+                            mandatory_value=mandatory_value
+                        )
+                    )
+
             for value in prop_value_list:
                 if isinstance(value, dict) and 'entity_type' in value:
                     nested_errors = validate_entity_data(value, form_fields)
@@ -715,7 +727,6 @@ def about(subject):
     triples = list(g.triples((None, None, None)))
 
     can_be_added, can_be_deleted, datatypes, mandatory_values, optional_values, subject_classes, valid_predicates = get_valid_predicates(triples)
-
     grouped_triples, relevant_properties = get_grouped_triples(subject, triples, subject_classes, valid_predicates)
 
     can_be_added = [uri for uri in can_be_added if uri in relevant_properties]
@@ -1571,12 +1582,14 @@ def get_valid_predicates(triples):
 
     can_be_added = set()
     can_be_deleted = set()
+    mandatory_values = defaultdict(list)
     for valid_predicate in valid_predicates:
         for predicate, ranges in valid_predicate.items():
             if ranges["hasValue"]:
                 mandatory_value_present = any(triple[2] == str(ranges["hasValue"]) for triple in triples)
                 if not mandatory_value_present:
                     can_be_added.add(predicate)
+                mandatory_values[str(predicate)].append(str(ranges["hasValue"]))
             else:
                 max_reached = (ranges["max"] is not None and int(ranges["max"]) <= predicate_counts.get(predicate, 0))
 
@@ -1584,17 +1597,14 @@ def get_valid_predicates(triples):
                     can_be_added.add(predicate)
                 if not (ranges["min"] is not None and int(ranges["min"]) == predicate_counts.get(predicate, 0)):
                     can_be_deleted.add(predicate)
+
     datatypes = defaultdict(list)
     for row in results:
         if row.datatype:
             datatypes[str(row.predicate)].append(str(row.datatype))
         else:
             datatypes[str(row.predicate)].append(str(XSD.string))
-    mandatory_values = {}
-    for valid_predicate in valid_predicates:
-        for predicate, ranges in valid_predicate.items():
-            if ranges["hasValue"]:
-                mandatory_values[str(predicate)] = str(ranges["hasValue"])
+
     optional_values = dict()
     for valid_predicate in valid_predicates:
         for predicate, ranges in valid_predicate.items():

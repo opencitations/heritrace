@@ -215,7 +215,7 @@
                     <span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span>
                 {% endif %}
             {% else %}
-                {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
+                {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
                     <span style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
                 {% elif shacl and optional_values[triple[1]] %}
                     <div class="w-75">
@@ -279,7 +279,7 @@
         </span>
         <div class="align-self-start">
             <div class="d-flex flex-column flex-sm-row">
-                {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
+                {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
                     <div title="{{ _('This property is mandatory and cannot be edited') }}" class="info-cursor">
                 {% endif %}
                 {% if externalEntity %}
@@ -287,10 +287,10 @@
                         <i class="bi bi-arrow-right-square"></i>
                     </a>
                 {% endif %}
-                {% if shacl and triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]] %}
+                {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
                     </div>
                 {% endif %}
-                {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]])) %}
+                {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
                     <div title="{{ _('This property is mandatory and cannot be deleted') }}" class="info-cursor">
                 {% endif %}
                     <button class="btn btn-outline-danger delete-button mt-3 mx-2"
@@ -298,10 +298,10 @@
                             data-subject="{{ subject }}" 
                             data-predicate="{{ triple[1] }}" 
                             data-object="{{ externalEntity if externalEntity else triple[2] }}"
-                            {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]])) %}disabled{% endif %}>
+                            {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}disabled{% endif %}>
                         <i class="bi bi-trash"></i>
                     </button>
-                {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] == mandatory_values[triple[1]])) %}
+                {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
                     </div>
                 {% endif %}
             </div>
