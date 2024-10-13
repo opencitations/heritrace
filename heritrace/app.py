@@ -1625,7 +1625,7 @@ def get_form_fields_from_shacl():
     
     # Step 1: Ottieni i campi iniziali dalle shape SHACL
     form_fields = extract_shacl_form_fields()
-
+    
     # Step 2: Processa le shape annidate per ogni campo
     processed_shapes = set()
     for entity_type in form_fields:

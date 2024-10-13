@@ -499,12 +499,6 @@ schema:BookShape
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
-  # sh:property [
-  #   sh:path frbr:partOf ;
-  #   sh:node schema:BibliographicResourceShape ;
-  #   sh:minCount 0 ;
-  #   sh:maxCount 1 ;
-  # ] ;
   sh:property [
     sh:path prism:publicationDate ;
     sh:or (
@@ -515,15 +509,153 @@ schema:BookShape
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
-  # sh:property [
-  #   sh:path frbr:embodiment ;
-  #   sh:node schema:ResourceEmbodimentShape ;
-  #   sh:minCount 0 ;
-  #   sh:maxCount 1 ;
-  # ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:AgentRoleShape ;
+  ] .
+
+schema:BookChapterShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:BookChapter ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:BookChapter ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:BookShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:embodiment ;
+    sh:node schema:ResourceEmbodimentShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AgentRoleShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:BookIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:ProceedingsPaperShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:ProceedingsPaper ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:ProceedingsPaper ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:ProceedingsShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:embodiment ;
+    sh:node schema:ResourceEmbodimentShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AgentRoleShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalArticleIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:ProceedingsShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Proceedings ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Proceedings ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AgentRoleShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalIdentifierShape ;
+    sh:minCount 0 ;
   ] .
 
 schema:AuthorShape
