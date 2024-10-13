@@ -5,8 +5,9 @@ import traceback
 import urllib
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Dict, List, Optional
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import click
 import docker
@@ -48,7 +49,14 @@ display_rules_path = app.config["DISPLAY_RULES_PATH"]
 display_rules = None
 if display_rules_path:
     with open(display_rules_path, 'r') as f:
-        display_rules = yaml.safe_load(f)
+        display_rules: List[dict] = yaml.safe_load(f)
+
+class_priorities = {}
+if display_rules:
+    for rule in display_rules:
+        cls = rule['class']
+        priority = rule.get('priority', 0)
+        class_priorities[cls] = priority
 
 change_tracking_config = app.config["CHANGE_TRACKING_CONFIG"]
 if change_tracking_config:
@@ -288,6 +296,16 @@ app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_rea
 app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime
 app.jinja_env.filters['split_ns'] = custom_filter.split_ns
 
+def get_highest_priority_class(subject_classes):
+    max_priority = None
+    highest_priority_class = None
+    for cls in subject_classes:
+        priority = class_priorities.get(str(cls), 0)
+        if max_priority is None or priority < max_priority:
+            max_priority = priority
+            highest_priority_class = cls
+    return highest_priority_class
+
 @app.route('/')
 def index():
     return render_template('index.jinja')
@@ -330,8 +348,11 @@ def catalogue():
     sparql.setReturnFormat(JSON)
     classes_results = sparql.query().convert()
 
-    available_classes = [(result['class']['value'], int(result['count']['value'])) 
-                         for result in classes_results["results"]["bindings"]]
+    available_classes = [
+        (result['class']['value'], int(result['count']['value'])) 
+        for result in classes_results["results"]["bindings"]
+        if is_entity_type_visible(result['class']['value'])
+    ]
 
     # Calculate total pages for class list
     total_classes = len(available_classes)
@@ -399,11 +420,21 @@ def catalogue():
                            template_max=template_max,
                            template_min=template_min)
 
+def is_entity_type_visible(entity_type):
+    for rule in display_rules:
+        if rule['class'] == entity_type:
+            return rule.get('shouldBeDisplayed', True)
+    return True
+
 @app.route('/create-entity', methods=['GET', 'POST'])
 def create_entity():
     form_fields = get_form_fields_from_shacl()
 
-    entity_types = list(form_fields.keys())
+    entity_types = sorted(
+        [entity_type for entity_type in form_fields.keys() if is_entity_type_visible(entity_type)],
+        key=lambda et: class_priorities.get(et, 0),
+        reverse=True
+    )
 
     datatype_options = {
         gettext("Text (string)"): XSD.string,
@@ -739,7 +770,9 @@ def about(subject):
     
     form_fields = get_form_fields_from_shacl()
     entity_types = list(form_fields.keys())
-
+    highest_priority_class = get_highest_priority_class(entity_types)
+    if highest_priority_class:
+        form_fields = {highest_priority_class: form_fields[highest_priority_class]}
     # Map predicates to their details and entity types
     predicate_details_map = {}
     for entity_type, predicates in form_fields.items():
@@ -1284,9 +1317,15 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
     fetched_values_map = dict()  # Map of original values to values returned by the query
     primary_properties = valid_predicates_info
 
+    highest_priority_class = get_highest_priority_class(subject_classes)
+    highest_priority_rules = [rule for rule in display_rules if rule['class'] == str(highest_priority_class)]
     for prop_uri in primary_properties:
-        if display_rules:
-            matched_rules = [rule for rule in display_rules if URIRef(rule['class']) in subject_classes and any(p['property'] == prop_uri for p in rule['displayProperties'])]
+        if display_rules and highest_priority_rules:
+            matched_rules = []
+            for rule in highest_priority_rules:
+                for prop in rule['displayProperties']:
+                    if prop['property'] == prop_uri:
+                        matched_rules.append(rule)
             if matched_rules:
                 rule = matched_rules[0]
                 for prop in rule['displayProperties']:
@@ -1542,11 +1581,16 @@ def get_valid_predicates(triples):
     predicate_counts = {str(predicate): existing_predicates.count(predicate) for predicate in set(existing_predicates)}
     default_datatypes = {str(predicate): XSD.string for predicate in existing_predicates}
     s_types = [triple[2] for triple in triples if triple[1] == RDF.type]
+
     valid_predicates = [{str(predicate): {"min": None, "max": None, "hasValue": None, "optionalValues": []}} for predicate in set(existing_predicates)]
     if not s_types:
         return existing_predicates, existing_predicates, default_datatypes, dict(), dict(), [], [str(predicate) for predicate in existing_predicates]
     if not shacl:
         return existing_predicates, existing_predicates, default_datatypes, dict(), dict(), s_types, [str(predicate) for predicate in existing_predicates]
+
+    highest_priority_class = get_highest_priority_class(s_types)
+    s_types = [highest_priority_class] if highest_priority_class else s_types
+
     query = prepareQuery(f"""
         SELECT ?predicate ?datatype ?maxCount ?minCount ?hasValue (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
             ?shape sh:targetClass ?type ;
@@ -1612,6 +1656,7 @@ def get_valid_predicates(triples):
                 optional_values.setdefault(str(predicate), list()).extend(ranges["optionalValues"])
     return list(can_be_added), list(can_be_deleted), dict(datatypes), mandatory_values, optional_values, s_types, {list(predicate_data.keys())[0] for predicate_data in valid_predicates}
 
+@lru_cache(maxsize=None)
 def get_form_fields_from_shacl():
     """
     Analizza le shape SHACL per estrarre i campi del form per ogni tipo di entità.
@@ -2143,8 +2188,10 @@ def order_form_fields(form_fields):
     return ordered_form_fields
 
 def execute_sparql_query(query: str, subject: str, value: str) -> Tuple[str, str]:
-    query = query.replace('[[subject]]', f'<{subject}>')
-    query = query.replace('[[value]]', f'<{value}>')
+    decoded_subject = unquote(subject)
+    decoded_value = unquote(value)
+    query = query.replace('[[subject]]', f'<{decoded_subject}>')
+    query = query.replace('[[value]]', f'<{decoded_value}>')
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
     results = sparql.query().convert().get("results", {}).get("bindings", [])

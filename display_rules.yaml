@@ -1,4 +1,6 @@
 - class: "http://purl.org/spar/fabio/Expression"
+  priority: 2
+  shouldBeDisplayed: false
   displayName: "Bibliographic Resource"
   fetchUriDisplay: |
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -259,17 +261,26 @@
       displayName: "Publication Date"
       shouldBeDisplayed: true
     - property: "http://purl.org/vocab/frbr/core#embodiment"
-      displayName: "Embodiment"
+      displayName: "Page"
       shouldBeDisplayed: true
       fetchValueFromQuery: |
-          PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-          PREFIX dcterms: <http://purl.org/dc/terms/>
-          SELECT ?embodimentDisplay ?re
-          WHERE {
-              [[subject]] frbr:embodiment ?re.
-              OPTIONAL { ?re dcterms:format ?format. }
-              BIND(COALESCE(?format, "Unknown format") AS ?embodimentDisplay)
-          }
+        PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+        PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+        SELECT ?pageInfo ?re
+        WHERE {
+            [[subject]] frbr:embodiment ?re.
+            OPTIONAL { ?re prism:startingPage ?startingPage. }
+            OPTIONAL { ?re prism:endingPage ?endingPage. }
+            BIND(
+              IF(BOUND(?startingPage) && BOUND(?endingPage), 
+                CONCAT(?startingPage, "-", ?endingPage),
+                IF(BOUND(?startingPage), 
+                    ?startingPage,
+                    IF(BOUND(?endingPage), 
+                      ?end,
+                      "Unknown page")))
+              AS ?pageInfo)
+        }
     - property: "http://purl.org/vocab/frbr/core#partOf"
       displayName: "Part Of"
       shouldBeDisplayed: true
@@ -284,6 +295,8 @@
         }
 
 - class: "http://purl.org/spar/fabio/JournalArticle"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Journal Article"
   fetchUriDisplay: |
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -464,16 +477,20 @@
       fetchValueFromQuery: |
           PREFIX frbr: <http://purl.org/vocab/frbr/core#>
           PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-          SELECT 
-              (IF(BOUND(?startingPage) && BOUND(?endingPage), 
-                  CONCAT(STR(?startingPage), "-", STR(?endingPage)), 
-                  IF(BOUND(?startingPage), STR(?startingPage), 
-                  IF(BOUND(?endingPage), STR(?endingPage), ""))) AS ?page) 
-            ?re
+          SELECT ?pageInfo ?re
           WHERE {
               [[subject]] frbr:embodiment ?re.
               OPTIONAL { ?re prism:startingPage ?startingPage. }
               OPTIONAL { ?re prism:endingPage ?endingPage. }
+              BIND(
+                IF(BOUND(?startingPage) && BOUND(?endingPage), 
+                  CONCAT(?startingPage, "-", ?endingPage),
+                  IF(BOUND(?startingPage), 
+                      ?startingPage,
+                      IF(BOUND(?endingPage), 
+                        ?endingPage,
+                        "Unknown page")))
+                AS ?pageInfo)
           }
     - property: "http://purl.org/vocab/frbr/core#partOf"
       displayRules:
@@ -514,6 +531,8 @@
             }
 
 - class: "http://purl.org/spar/fabio/Journal"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Journal"
   fetchUriDisplay: |
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -545,6 +564,8 @@
       shouldBeDisplayed: true
 
 - class: "http://purl.org/spar/fabio/JournalVolume"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Volume"
   fetchUriDisplay: |
     PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -580,6 +601,8 @@
             }
 
 - class: "http://purl.org/spar/fabio/JournalIssue"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Issue"
   fetchUriDisplay: |
     PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -629,6 +652,8 @@
             }
 
 - class: "http://purl.org/spar/fabio/Book"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Book"
   fetchUriDisplay: |
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -809,6 +834,8 @@
       shouldBeDisplayed: true
 
 - class: "http://purl.org/spar/fabio/BookChapter"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Book Chapter"
   fetchUriDisplay: |
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -999,6 +1026,8 @@
         }
 
 - class: "http://purl.org/spar/fabio/ProceedingsPaper"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Proceedings Paper"
   fetchUriDisplay: |
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -1189,6 +1218,8 @@
         }
 
 - class: "http://purl.org/spar/fabio/Proceedings"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Proceedings"
   fetchUriDisplay: |
     PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -1332,6 +1363,8 @@
       shouldBeDisplayed: true
 
 - class: "http://purl.org/spar/datacite/Identifier"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Identifier"
   fetchUriDisplay: |
     PREFIX datacite: <http://purl.org/spar/datacite/>
@@ -1354,6 +1387,8 @@
       shouldBeDisplayed: true
 
 - class: "http://purl.org/spar/fabio/Manifestation"
+  priority: 1
+  shouldBeDisplayed: false
   displayName: "Page"
   fetchUriDisplay: |
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
@@ -1401,6 +1436,8 @@
       shouldBeDisplayed: true
 
 - class: "http://purl.org/spar/pro/RoleInTime"
+  priority: 1
+  shouldBeDisplayed: false
   displayName: "Agent Role"
   fetchUriDisplay: |
     PREFIX pro: <http://purl.org/spar/pro/>
@@ -1439,16 +1476,60 @@
       displayName: "Type"
       shouldBeDisplayed: true
     - property: "http://purl.org/spar/pro/isHeldBy"
-      displayName: "Helb By"
+      displayName: "Held By"
       shouldBeDisplayed: true
+      fetchValueFromQuery: |
+        PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+        SELECT ?agentDisplay ?agent
+        WHERE {
+          VALUES (?agent) {([[value]])}
+          OPTIONAL { ?agent foaf:name ?name. }
+          OPTIONAL { ?agent foaf:familyName ?familyName. }
+          OPTIONAL { ?agent foaf:givenName ?givenName. }
+          BIND(
+            IF(BOUND(?name), ?name,
+              IF(BOUND(?familyName) && BOUND(?givenName), 
+                CONCAT(?familyName, ", ", ?givenName),
+                IF(BOUND(?familyName), ?familyName, 
+                  IF(BOUND(?givenName), ?givenName, STR(?agent))
+                )
+              )
+            ) AS ?agentDisplay
+          )
+        }
     - property: "https://w3id.org/oc/ontology/hasNext"
       displayName: "Has Next"
       shouldBeDisplayed: true
+      fetchValueFromQuery: |
+        PREFIX oco: <https://w3id.org/oc/ontology/>
+        PREFIX pro: <http://purl.org/spar/pro/>
+        PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+        SELECT ?nextRoleDisplay ?nextRole
+        WHERE {
+          [[subject]] oco:hasNext ?nextRole .
+          ?nextRole pro:withRole ?role ;
+                    pro:isHeldBy ?agent .
+          OPTIONAL { ?agent foaf:name ?name. }
+          OPTIONAL { ?agent foaf:familyName ?familyName. }
+          OPTIONAL { ?agent foaf:givenName ?givenName. }
+          BIND(
+            IF(BOUND(?name), ?name,
+              IF(BOUND(?familyName) && BOUND(?givenName), 
+                CONCAT(?familyName, ", ", ?givenName),
+                IF(BOUND(?familyName), ?familyName, 
+                  IF(BOUND(?givenName), ?givenName, STR(?agent))
+                )
+              )
+            ) AS ?nextRoleDisplay
+          )
+        }
     - property: "http://purl.org/spar/pro/withRole"
       displayName: "Role"
       shouldBeDisplayed: true
 
 - class: "http://xmlns.com/foaf/0.1/Agent"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Responsible Agent"
   fetchUriDisplay: |
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
