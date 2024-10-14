@@ -135,7 +135,9 @@
 
         var isInEditMode = false;
 
-        $('[data-repeater-create]').hide();         
+        var originalOrder = {};
+
+        $('[data-repeater-create]').addClass('d-none');         
 
         bindRepeaterEvents($(document));
 
@@ -184,8 +186,66 @@
         }
 
         function restoreOriginalValues() {
-            $('.editable-field, .editable-select').each(function() {
-                $(this).val($(this).data('original-value'));
+            $('.editable-field, .editable-select, .date-type-selector, .date-input').each(function() {
+                var originalValue = $(this).data('original-value');
+                if (originalValue !== undefined) {
+                    $(this).val(originalValue);
+                }
+            });
+
+            // Aggiorna la visualizzazione dei campi data
+            $('.date-input-group').each(function() {
+                var dateInputGroup = $(this);
+                var dateTypeSelector = dateInputGroup.find('.date-type-selector');
+                var selectedDateType = dateTypeSelector.val();
+
+                // Mostra l'input data appropriato
+                showAppropriateDateInput(dateTypeSelector);
+
+                // Aggiorna la visualizzazione della data
+                var dateInput = dateInputGroup.find(`.date-input[data-date-type="${selectedDateType}"]`);
+                var dateDisplay = dateInputGroup.find('.date-display');
+                dateDisplay.text(dateInput.val());
+            });
+
+            // Rimuovi gli elementi aggiunti durante la modalità di modifica
+            $('.added-in-edit-mode').remove();
+
+            // Ripristina l'ordine originale degli elementi
+            $('[data-repeater-list][data-ordered-by]').each(function() {
+                var list = $(this);
+                var listId = list.data('repeater-list');
+                var originalListOrder = originalOrder[listId];
+
+                if (originalListOrder) {
+                    var addButton = list.children('[data-repeater-create]').detach();
+
+                    var items = list.find('[data-repeater-item].draggable').not('.repeater-template');
+                    items.sort(function(a, b) {
+                        var aId = $(a).data('old-object-id');
+                        var bId = $(b).data('old-object-id');
+                        return originalListOrder.indexOf(aId) - originalListOrder.indexOf(bId);
+                    });
+                    list.append(items);
+                    list.append(addButton);
+                }
+            });
+
+            originalOrder = {};
+
+            // Ripristina gli elementi contrassegnati per la cancellazione
+            $('.marked-for-deletion').each(function() {
+                var listItem = $(this);
+                listItem.find('.tripleObject').removeClass('striked');
+                listItem.find('.editable-field').prop('readonly', false);
+                listItem.find('.editable-select').prop('disabled', false);
+                listItem.find('.undo-delete-button').remove();
+                listItem.find('.delete-button').show();
+                listItem.removeClass('marked-for-deletion');
+
+                // Ripristina il dateInputGroup se applicabile
+                const dateInputGroup = listItem.find('.date-input-group');
+                toggleDateStrike(dateInputGroup, false);
             });
         }
 
@@ -297,7 +357,8 @@
             if (isInEditMode) {
                 restoreOriginalValues();
                 $(".editable-field").prop('readonly', true);
-                $(".editable-select").prop('disabled', true);
+                $('.editable-select').addClass('d-none');
+                $('.select-value-display').removeClass('d-none');
                 $(".delete-button").hide();
                 $(".drag-handle").children().addClass('d-none');
                 $("#saveChangesBtn").hide();
@@ -305,17 +366,35 @@
                 $(".date-type-selector-container").addClass('d-none');
                 $(".date-input-container").hide();
                 $(".date-display-container").show();
-                $("[data-repeater-create]").hide();
+                $("[data-repeater-create]").addClass('d-none');
                 $(this).removeClass('edit-mode');
                 isInEditMode = false;
                 pendingChanges = [];
+
+                // Aggiorna lo stato dei pulsanti dopo la rimozione
+                $('[data-repeater-list]').each(function() {
+                    updateButtons($(this));
+                });
             } else {
                 updateOrderedElementsNumbering();
-                $('.editable-field, .editable-select').each(function() {
+                $('.editable-field, .editable-select, .date-type-selector, .date-input').each(function() {
                     $(this).data('original-value', $(this).val());
                 });
+                // Salva l'ordine originale degli elementi
+                $('[data-repeater-list][data-ordered-by]').each(function() {
+                    var list = $(this);
+                    var listId = list.data('repeater-list');
+                    originalOrder[listId] = [];
+
+                    list.find('[data-repeater-item].draggable').not('.repeater-template').each(function() {
+                        var item = $(this);
+                        var itemId = item.data('old-object-id');
+                        originalOrder[listId].push(itemId);
+                    });
+                });
                 $(".editable-field").prop('readonly', false);
-                $(".editable-select").prop('disabled', false);
+                $('.editable-select').removeClass('d-none');
+                $('.select-value-display').addClass('d-none');
                 $(".delete-button").show();
                 $(".drag-handle").children().removeClass('d-none');
                 $("#saveChangesBtn").show();
@@ -326,7 +405,7 @@
                     showAppropriateDateInput($(this));
                 });
                 $(".date-display-container").hide();
-                $("[data-repeater-create]").show();
+                $("[data-repeater-create]").removeClass('d-none');
                 $(this).addClass('edit-mode');
                 isInEditMode = true;
             }
@@ -354,6 +433,7 @@
         });
         $(document).on('click', '.delete-button', function() {
             const listItem = $(this).closest('.property-value');
+            listItem.addClass('marked-for-deletion');
             const dateInputGroup = listItem.find('.date-input-group');
             toggleDateStrike(dateInputGroup, true);
             const subject = listItem.data('subject-id');

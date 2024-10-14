@@ -200,7 +200,6 @@
         data-property-id="{{ triple[1] }}" 
         data-old-object-id="{{ object }}" 
         data-ordered_by="{{ orderedBy }}"
-        data-datatypes="{{ datatypes.get(triple[1], [])|join(',') }}"
         data-shape="{{ shape }}"
         data-depth="0">
         <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center p-3">
@@ -219,11 +218,12 @@
                     <span style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
                 {% elif shacl and optional_values[triple[1]] %}
                     <div class="w-75">
-                        <select name="new_value" class="form-select editable-select" disabled>
+                        <select name="new_value" class="form-select editable-select d-none">
                             {% for value in optional_values[triple[1]] %}
                                 <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>{{ value | human_readable_predicate(subject_classes) }}</option>
                             {% endfor %}
                         </select>
+                        <span class="select-value-display" id="display_value_{{ unique_id }}">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
                     </div>
                 {% elif 'http://www.w3.org/2001/XMLSchema#date' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYear' in datatypes.get(triple[1], []) %}
                     <div class="date-input-group" data-original-value="{{ triple[2] }}">
@@ -273,7 +273,7 @@
                         </div>
                     </div>
                 {% else %}
-                    {{ update_form.new_value(class="form-control editable-field", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
+                    {{ update_form.new_value(class="form-control editable-field w-75", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
                 {% endif %}
             {% endif %}
         </span>

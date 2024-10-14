@@ -220,6 +220,8 @@ function showAppropriateDateInput(selector) {
 
 function bindRepeaterEvents(context) {
     function initializeNewItem(newItem, isRequired, isInitialStructure = false) {
+        newItem.addClass('added-in-edit-mode');
+
         if (newItem.hasClass('draggable')) {
             var tempId = 'temp-' + (++tempIdCounter);
             newItem.attr('data-temp-id', tempId);
@@ -520,6 +522,12 @@ function validateUrl(url) {
 }
 
 function convertDate(originalValue, newType) {
+    // Se l'originalValue è solo un anno o anno-mese, aggiungiamo valori di default
+    if (/^\d{4}$/.test(originalValue)) {
+        originalValue += '-01-01';
+    } else if (/^\d{4}-\d{2}$/.test(originalValue)) {
+        originalValue += '-01';
+    }
     let date = new Date(originalValue);
     switch(newType) {
         case 'date':

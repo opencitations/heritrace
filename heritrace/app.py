@@ -770,9 +770,6 @@ def about(subject):
     
     form_fields = get_form_fields_from_shacl()
     entity_types = list(form_fields.keys())
-    highest_priority_class = get_highest_priority_class(entity_types)
-    if highest_priority_class:
-        form_fields = {highest_priority_class: form_fields[highest_priority_class]}
     # Map predicates to their details and entity types
     predicate_details_map = {}
     for entity_type, predicates in form_fields.items():
