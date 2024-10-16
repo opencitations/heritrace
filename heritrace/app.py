@@ -306,6 +306,12 @@ def get_highest_priority_class(subject_classes):
             highest_priority_class = cls
     return highest_priority_class
 
+def get_datatype_label(datatype_uri):
+    for dt_uri, _, dt_label in DATATYPE_MAPPING:
+        if str(dt_uri) == str(datatype_uri):
+            return dt_label
+    return custom_filter.human_readable_predicate(datatype_uri, [])
+
 @app.route('/')
 def index():
     return render_template('index.jinja')
@@ -729,7 +735,7 @@ def generate_unique_uri(entity_type: URIRef|str =None):
 @app.route('/about/<path:subject>')
 def about(subject):
     decoded_subject = urllib.parse.unquote(subject)
-    agnostic_entity = AgnosticEntity(res=decoded_subject, config=change_tracking_config)
+    agnostic_entity = AgnosticEntity(res=decoded_subject, config=change_tracking_config, related_entities_history=False)
     history, _ = agnostic_entity.get_history(include_prov_metadata=True)
     g = Graph()
 
@@ -806,7 +812,7 @@ def apply_changes():
         changes: List[dict] = request.json
         subject = changes[0]["subject"]
         editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
-        editor = import_subject_and_direct_objects(editor, subject)
+        editor = import_entity_graph(editor, subject)
         editor.preexisting_finished()
         graph_uri = None
         if editor.dataset_is_quadstore:
@@ -846,32 +852,49 @@ def apply_changes():
         app.logger.error(error_message)
         return jsonify(status="error", message=gettext("An error occurred while applying changes")), 500
 
-def import_subject_and_direct_objects(editor: Editor, subject: str):
+def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5):
     """
-    Import the main subject and all entities that are direct objects of it.
-    """
-    # Import the main subject
-    editor.import_entity(URIRef(subject))
+    Recursively import the main subject and its connected entity graph up to a specified depth.
 
-    # Query for all objects directly connected to the subject
-    query = f"""
-        SELECT DISTINCT ?o
-        WHERE {{
-            <{subject}> ?p ?o .
-            FILTER(isIRI(?o))
-        }}
-    """
-    
-    sparql = SPARQLWrapper(editor.dataset_endpoint)
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
+    This function imports the specified subject and all entities connected to it,
+    directly or indirectly, up to the maximum depth specified. It traverses the
+    graph of connected entities, importing each one into the editor.
 
-    # Import each direct object entity
-    for result in results["results"]["bindings"]:
-        object_entity = URIRef(result["o"]["value"])
-        editor.import_entity(object_entity)
-    
+    Args:
+    editor (Editor): The Editor instance to use for importing.
+    subject (str): The URI of the subject to start the import from.
+    max_depth (int): The maximum depth of recursion (default is 5).
+
+    Returns:
+    Editor: The updated Editor instance with all imported entities.
+    """
+    imported_subjects = set()
+
+    def recursive_import(current_subject: str, current_depth: int):
+        if current_depth > max_depth or current_subject in imported_subjects:
+            return
+
+        imported_subjects.add(current_subject)
+        editor.import_entity(URIRef(current_subject))
+
+        query = f"""
+            SELECT ?p ?o
+            WHERE {{
+                <{current_subject}> ?p ?o .
+                FILTER(isIRI(?o))
+            }}
+        """
+        
+        sparql = SPARQLWrapper(editor.dataset_endpoint)
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
+
+        for result in results["results"]["bindings"]:
+            object_entity = result["o"]["value"]
+            recursive_import(object_entity, current_depth + 1)
+
+    recursive_import(subject, 1)
     return editor
 
 def create_logic(editor: Editor, data: Dict[str, dict], subject=None, graph_uri=None, parent_subject=None, parent_predicate=None, temp_id_to_uri=None):
@@ -995,21 +1018,21 @@ def sparql_proxy():
 
 @app.route('/entity-history/<path:entity_uri>')
 def entity_history(entity_uri):
-    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config)
+    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
     subject_classes = [subject_class[2] for subject_class in list(history[entity_uri].values())[0].triples((URIRef(entity_uri), RDF.type, None))]
     # Trasforma i dati in formato TimelineJS useless
     events = []
     sorted_metadata = sorted(provenance[entity_uri].items(), key=lambda x: x[1]['generatedAtTime'])  # Ordina gli eventi per data
-
-    entity_classes = []
+    entity_classes = set()
     for snapshot in history[entity_uri].values():
         classes = list(snapshot.triples((URIRef(entity_uri), RDF.type, None)))
         if classes:
-            entity_classes.append(str(classes[0][2]))
-
+            for triple in classes:
+                entity_classes.add(str(triple[2]))
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
         date = datetime.fromisoformat(metadata['generatedAtTime'])
+        snapshot_graph: ConjunctiveGraph|Graph = history[entity_uri][metadata['generatedAtTime']]
         responsible_agent = f"<a href='{metadata['wasAttributedTo']}' alt='{gettext('Link to the responsible agent description')} target='_blank'>{metadata['wasAttributedTo']}</a>" if validators.url(metadata['wasAttributedTo']) else metadata['wasAttributedTo']
         primary_source = custom_filter.human_readable_primary_source(metadata['hadPrimarySource'])
         modifications = metadata['hasUpdateQuery']
@@ -1019,7 +1042,21 @@ def entity_history(entity_uri):
             for mod_type, triples in modifications.items():
                 modification_text += f"<h4>{mod_type}</h4><ul>"
                 for triple in triples:
-                    modification_text += f"<li><strong>{custom_filter.human_readable_predicate(triple[1], subject_classes)}:</strong> {custom_filter.human_readable_predicate(triple[2], subject_classes)}</li>"
+                    predicate_label = custom_filter.human_readable_predicate(triple[1], subject_classes)
+                    object_value = triple[2]
+                    if validators.url(object_value):
+                        if mod_type == gettext('Deletions'):
+                            # For deletions, look in the previous snapshot
+                            relevant_snapshot = history[entity_uri][sorted_metadata[i-1][1]['generatedAtTime']]
+                            object_classes = [str(o) for s, p, o in relevant_snapshot.triples((URIRef(object_value), RDF.type, None))]
+                        else:
+                            # For additions or modifications, look in the current snapshot
+                            relevant_snapshot = snapshot_graph
+                            object_classes = [str(o) for s, p, o in snapshot_graph.triples((URIRef(object_value), RDF.type, None))]
+                        object_label = custom_filter.human_readable_entity(object_value, object_classes, relevant_snapshot)
+                    else:
+                        object_label = object_value
+                    modification_text += f"<li><strong>{predicate_label}:</strong> {object_label}</li>"
                 modification_text += "</ul>"
         
         event = {
@@ -1087,6 +1124,16 @@ def entity_history(entity_uri):
 
 @app.route('/entity-version/<path:entity_uri>/<timestamp>')
 def entity_version(entity_uri, timestamp):
+    def convert_to_datetime(date_str, stringify=False):
+        try:
+            dt = datetime.fromisoformat(date_str)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt if not stringify else dt.isoformat()
+        except ValueError:
+            # Handle parsing other date formats if necessary
+            return None
+
     try:
         timestamp_dt = datetime.fromisoformat(timestamp)
     except ValueError:
@@ -1104,60 +1151,121 @@ def entity_version(entity_uri, timestamp):
             abort(404)
         timestamp = generation_time
         timestamp_dt = datetime.fromisoformat(generation_time)
-    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config)
-    history, metadata, other_snapshots_metadata = agnostic_entity.get_state_at_time(time=(None, timestamp), include_prov_metadata=True)
-    all_snapshots = list(metadata.items()) + list(other_snapshots_metadata.items())
-    sorted_all_snapshots = sorted(all_snapshots, key=lambda x: x[1]['generatedAtTime'])
-    last_snapshot_timestamp = sorted_all_snapshots[-1][1]['generatedAtTime'] if sorted_all_snapshots else None
+
+    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
+    history, metadata, other_snapshots_metadata = agnostic_entity.get_state_at_time(
+        time=(None, timestamp), include_prov_metadata=True
+    )
+
+    # Get the main entity's history and metadata
+    main_entity_history = history.get(entity_uri, {})
+    main_entity_metadata = metadata.get(entity_uri, {})
+    main_entity_other_snapshots = other_snapshots_metadata.get(entity_uri, {}) if other_snapshots_metadata else {}
+
+    # Collect all snapshots for the main entity
+    all_snapshots = list(main_entity_metadata.values()) + list(main_entity_other_snapshots.values())
+    sorted_all_snapshots = sorted(all_snapshots, key=lambda x: convert_to_datetime(x['generatedAtTime']))
+
+    last_snapshot_timestamp = sorted_all_snapshots[-1]['generatedAtTime'] if sorted_all_snapshots else None
     if last_snapshot_timestamp and timestamp > last_snapshot_timestamp:
         abort(404)
+
     if not timestamp_dt.tzinfo:
         timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
-    history = {k: v for k, v in history.items()}
-    for key, value in metadata.items():
-        value['generatedAtTime'] = datetime.fromisoformat(value['generatedAtTime']).astimezone(timezone.utc).isoformat()
+
+    # Find the closest timestamp in main_entity_history
+    if not main_entity_history:
+        abort(404)
+
+    # Convert the timestamps to datetime objects
+    timestamp_map = {t: convert_to_datetime(t) for t in main_entity_history.keys()}
+
     try:
-        closest_timestamp = min(history.keys(), key=lambda t: abs(datetime.fromisoformat(t).astimezone(timezone.utc) - timestamp_dt))
+        closest_timestamp = min(
+            timestamp_map.keys(),
+            key=lambda t: abs(timestamp_map[t].astimezone(timezone.utc) - timestamp_dt)
+        )
     except ValueError:
         abort(404)
-    version: Graph = history[closest_timestamp]
-    triples = list(version.triples((None, None, None)))
+
+    version: Graph = main_entity_history[closest_timestamp]
+
+    # Process the version graph as before
+    triples = list(version.triples((URIRef(entity_uri), None, None)))
     relevant_properties = set()
     _, _, _, _, _, subject_classes, valid_predicates = get_valid_predicates(triples)
 
-    grouped_triples, relevant_properties = get_grouped_triples(entity_uri, triples, subject_classes, valid_predicates)
+    grouped_triples, relevant_properties = get_grouped_triples(
+        entity_uri, triples, subject_classes, valid_predicates
+    )
 
     if relevant_properties:
         triples = [triple for triple in triples if str(triple[1]) in relevant_properties]
 
-    sorted_snapshots = sorted(other_snapshots_metadata.items(), key=lambda x: x[1]['generatedAtTime'])
+    # Now process snapshots to find next and previous snapshots
+    # Combine all snapshot timestamps into a list
+    snapshot_times = [
+        convert_to_datetime(meta['generatedAtTime'])
+        for meta in main_entity_metadata.values()
+    ] + [
+        convert_to_datetime(meta['generatedAtTime'])
+        for meta in main_entity_other_snapshots.values()
+    ]
 
+    snapshot_times = sorted(set(snapshot_times))
+
+    # Find next and previous snapshots
     next_snapshot_timestamp = None
     prev_snapshot_timestamp = None
-    for snapshot_uri, meta in sorted_snapshots:
-        if meta['generatedAtTime'] >= timestamp:
-            next_snapshot_timestamp = meta['generatedAtTime']
+    
+    for snap_time in snapshot_times:
+        if snap_time > timestamp_dt:
+            next_snapshot_timestamp = snap_time.isoformat()
             break
-    for snapshot_uri, meta in reversed(sorted_snapshots):
-        if meta['generatedAtTime'] < timestamp:
-            prev_snapshot_timestamp = meta['generatedAtTime']
+
+    for snap_time in reversed(snapshot_times):
+        if snap_time < timestamp_dt:
+            prev_snapshot_timestamp = snap_time.isoformat()
             break
-    if not prev_snapshot_timestamp:
-        sorted_metadata = sorted(metadata.items(), key=lambda x: x[1]['generatedAtTime'], reverse=True)
-        for snapshot_uri, meta in sorted_metadata:
-            if meta['generatedAtTime'] < timestamp and not datetime.fromisoformat(meta['generatedAtTime']).replace(tzinfo=None) == datetime.fromisoformat(closest_timestamp):
-                prev_snapshot_timestamp = meta['generatedAtTime']
-                break
-    closest_metadata_key = min(metadata.keys(), key=lambda k: abs(datetime.fromisoformat(metadata[k]['generatedAtTime']).astimezone(timezone.utc) - timestamp_dt))
-    closest_metadata = {closest_metadata_key: metadata[closest_metadata_key]}
-    if closest_metadata[closest_metadata_key]['hasUpdateQuery']:
-        sparql_query = closest_metadata[closest_metadata_key]['hasUpdateQuery']
+
+    # Get the metadata for the closest snapshot
+    all_metadata = {**main_entity_metadata, **main_entity_other_snapshots}
+    closest_metadata = None
+    min_time_diff = None
+    for meta in all_metadata.values():
+        meta_time = convert_to_datetime(meta['generatedAtTime'])
+        time_diff = abs((meta_time - timestamp_dt).total_seconds())
+        if closest_metadata is None or time_diff < min_time_diff:
+            closest_metadata = meta
+            min_time_diff = time_diff
+
+    if closest_metadata is None:
+        abort(404)
+
+    if closest_metadata.get('hasUpdateQuery'):
+        sparql_query = closest_metadata['hasUpdateQuery']
         modifications = parse_sparql_update(sparql_query)
     else:
         modifications = None
-    if closest_metadata[closest_metadata_key]['description']:
-        closest_metadata[closest_metadata_key]['description'] = closest_metadata[closest_metadata_key]['description'].replace(entity_uri, custom_filter.human_readable_entity(entity_uri, subject_classes))
-    return render_template('entity_version.jinja', subject=entity_uri, metadata=closest_metadata, timestamp=closest_timestamp, next_snapshot_timestamp=next_snapshot_timestamp, prev_snapshot_timestamp=prev_snapshot_timestamp, modifications=modifications, grouped_triples=grouped_triples, subject_classes=subject_classes)
+
+    if closest_metadata.get('description'):
+        closest_metadata['description'] = closest_metadata['description'].replace(
+            entity_uri, custom_filter.human_readable_entity(entity_uri, subject_classes)
+        )
+
+    closest_timestamp = closest_metadata['generatedAtTime']
+
+    return render_template(
+        'entity_version.jinja',
+        subject=entity_uri,
+        metadata={closest_timestamp: closest_metadata},
+        timestamp=closest_timestamp,
+        next_snapshot_timestamp=next_snapshot_timestamp,
+        prev_snapshot_timestamp=prev_snapshot_timestamp,
+        modifications=modifications,
+        grouped_triples=grouped_triples,
+        subject_classes=subject_classes
+    )
 
 @app.route('/restore-version/<path:entity_uri>/<timestamp>', methods=['POST'])
 def restore_version(entity_uri, timestamp):
@@ -1283,7 +1391,13 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     optional_values_str = optional_values_str[0] if optional_values_str else ''
     optional_values = [value for value in optional_values_str.split(',') if value]
     if optional_values and new_value not in optional_values:
-        return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_values=', '.join([f'<code>{custom_filter.human_readable_predicate(value, s_types)}</code>' for value in optional_values]))
+        optional_value_labels = [custom_filter.human_readable_predicate(value, s_types) for value in optional_values]
+        return None, old_value, gettext(
+            '<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s.',
+            new_value=custom_filter.human_readable_predicate(new_value, s_types),
+            property=custom_filter.human_readable_predicate(predicate, s_types),
+            o_values=', '.join([f'<code>{label}</code>' for label in optional_value_labels])
+        )
     if classes:
         if not validators.url(new_value):
             return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{custom_filter.human_readable_predicate(o_class, s_types)}</code>' for o_class in classes]))
@@ -1294,7 +1408,13 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     elif datatypes:
         valid_value = convert_to_matching_literal(new_value, datatypes)
         if valid_value is None:
-            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{custom_filter.human_readable_predicate(datatype, s_types)}</code>' for datatype in datatypes]))
+            datatype_labels = [get_datatype_label(datatype) for datatype in datatypes]
+            return None, old_value, gettext(
+                '<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s.',
+                new_value=custom_filter.human_readable_predicate(new_value, s_types),
+                property=custom_filter.human_readable_predicate(predicate, s_types),
+                o_types=', '.join([f'<code>{label}</code>' for label in datatype_labels])
+            )
         return valid_value, old_value, ''
     # Se non ci sono datatypes o classes specificati, determiniamo il tipo in base a old_value e new_value
     if isinstance(old_value, Literal):

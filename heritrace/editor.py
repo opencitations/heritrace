@@ -21,22 +21,22 @@ class Editor:
         self.c_time = self.to_posix_timestamp(c_time)
         self.dataset_is_quadstore = Config.DATASET_IS_QUADSTORE
         self.g_set = OCDMConjunctiveGraph(self.counter_handler) if self.dataset_is_quadstore else OCDMGraph(self.counter_handler)
-
+    
     def create(self, subject: URIRef, predicate: URIRef, value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
         graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
         if self.dataset_is_quadstore and graph:
-            self.g_set.add((subject, predicate, value, graph))
+            self.g_set.add((subject, predicate, value, graph), resp_agent=self.resp_agent, source=self.source)
         else:
-            self.g_set.add((subject, predicate, value))
+            self.g_set.add((subject, predicate, value), resp_agent=self.resp_agent, source=self.source)
 
     def update(self, subject: URIRef, predicate: URIRef, old_value: Literal|URIRef, new_value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
         graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
         if self.dataset_is_quadstore and graph:
             self.g_set.remove((subject, predicate, old_value, graph))
-            self.g_set.add((subject, predicate, new_value, graph))
+            self.g_set.add((subject, predicate, new_value, graph), resp_agent=self.resp_agent, source=self.source)
         else:
             self.g_set.remove((subject, predicate, old_value))
-            self.g_set.add((subject, predicate, new_value))
+            self.g_set.add((subject, predicate, new_value), resp_agent=self.resp_agent, source=self.source)
 
     def delete(self, subject: str, predicate: str = None, value: str = None, graph: URIRef|Graph|str = None) -> None:
         subject = URIRef(subject)
@@ -111,7 +111,7 @@ class Editor:
                         else:
                             o = Literal(value)
 
-                    self.g_set.add((s, p, o, g))
+                    self.g_set.add((s, p, o, g), resp_agent=self.resp_agent, source=self.source)
         else:
             query: str = f'''
                 CONSTRUCT {{
@@ -128,7 +128,7 @@ class Editor:
 
             if result is not None:
                 for triple in result:
-                    self.g_set.add(triple)
+                    self.g_set.add(triple, resp_agent=self.resp_agent, source=self.source)
 
     def execute(self, sparql_query: str) -> None:
         parsed = parseUpdate(sparql_query)

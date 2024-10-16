@@ -580,20 +580,23 @@ files = [
 
 [[package]]
 name = "oc-ocdm"
-version = "7.3.1"
+version = "9.1.0"
 description = "Object mapping library for manipulating RDF graphs that are compliant with the OpenCitations datamodel."
 optional = false
-python-versions = ">=3.7.4,<4.0.0"
+python-versions = "<4.0,>=3.8"
 files = [
-    {file = "oc_ocdm-7.3.1-py3-none-any.whl", hash = "sha256:3f60535e8038652e1a0a9d4975f74f7ea22da1a16393e2a2e2e12c77f9d3a25c"},
-    {file = "oc_ocdm-7.3.1.tar.gz", hash = "sha256:f87f777bdf0941cf856866eb28bddfe927ba4c76694750c6e8391fca01684548"},
+    {file = "oc_ocdm-9.1.0-py3-none-any.whl", hash = "sha256:a3f9895f33bc0d2b02d8f3b8dcd994628afacade65633128be5d77bf4e74b31b"},
+    {file = "oc_ocdm-9.1.0.tar.gz", hash = "sha256:2dbe3d51a3dacf9850f03675bec89a60d0fc72bb9b7463a9c0aba0573ea3878a"},
 ]
 
 [package.dependencies]
 filelock = ">=3.6.0,<4.0.0"
 pyshacl = "0.23.0"
 rdflib = ">=6.0.0,<7.0.0"
+redis = ">=4.5.5,<5.0.0"
+setuptools = ">=68.2.2,<69.0.0"
 SPARQLWrapper = "2.0.0"
+tqdm = ">=4.66.5,<5.0.0"
 
 [[package]]
 name = "owlrl"
@@ -831,17 +834,17 @@ networkx = ["networkx (>=2.0.0,<3.0.0)"]
 
 [[package]]
 name = "rdflib-ocdm"
-version = "0.3.9"
+version = "0.3.12"
 description = ""
 optional = false
 python-versions = "<4.0.0,>=3.8"
 files = [
-    {file = "rdflib_ocdm-0.3.9-py3-none-any.whl", hash = "sha256:bc1eef832dddf5a32b874fcc3e7fcf5ca81db8daf743704c8fa2b152175829da"},
-    {file = "rdflib_ocdm-0.3.9.tar.gz", hash = "sha256:e2390d8ef7bc1f44858c00829842df3fd75549bc41cf5d6d7993377689a22306"},
+    {file = "rdflib_ocdm-0.3.12-py3-none-any.whl", hash = "sha256:45ec8bd92a3c44b61d5b1d95889ee57332fb1e6a9e7e0f5be708bf3ea9917351"},
+    {file = "rdflib_ocdm-0.3.12.tar.gz", hash = "sha256:46a36b02ca59052b27dada35fa437bb927822d7fe3b990b08d880dc97f3f2a19"},
 ]
 
 [package.dependencies]
-oc-ocdm = ">=7.1.7,<8.0.0"
+oc-ocdm = ">=9.0.0,<10.0.0"
 rdflib = ">=6.2.0,<7.0.0"
 redis = ">=4.5.5,<5.0.0"
 sparqlwrapper = ">=2.0.0,<3.0.0"
@@ -935,13 +938,13 @@ pandas = ["pandas (>=1.3.5)"]
 
 [[package]]
 name = "time-agnostic-library"
-version = "4.4.4"
+version = "4.6.0"
 description = "time-agnostic-library is a Python ≥3.7 library that allows performing time-travel queries on RDF datasets compliant with the OCDM v2.0.1 provenance specification."
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "time_agnostic_library-4.4.4-py3-none-any.whl", hash = "sha256:8c6c9822b46a453bb96775443a8bbe87ba7b39d9b1a6f8add99740910d0bcd40"},
-    {file = "time_agnostic_library-4.4.4.tar.gz", hash = "sha256:abace35c569d09e6d6ce8ee8ba7d3eaa4ad63eac5b650678ac3e6ffa519fd17f"},
+    {file = "time_agnostic_library-4.6.0-py3-none-any.whl", hash = "sha256:3e35547bca7f3adede79bd89ea84d1f503b8e0faf7249562a9a7f1976b2c0b55"},
+    {file = "time_agnostic_library-4.6.0.tar.gz", hash = "sha256:3758bb56bc9a7d7be9de2821d4bb9c51084b4c76c414f75276a8956b74a5014f"},
 ]
 
 [package.dependencies]
@@ -1067,4 +1070,4 @@ email = ["email-validator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "93c7a3c71669da478924012cdc02b13afef93e8385fe05b976fe197ff62c0724"
+content-hash = "228c3a2806dd71b94a880a912628b569ea10ee08d90dcfe3af0258741cae86f3"

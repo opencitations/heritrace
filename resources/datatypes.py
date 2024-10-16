@@ -1,4 +1,3 @@
-from flask_babel import gettext
 from rdflib import XSD
 
 from resources.datatypes_validation import *

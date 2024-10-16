@@ -111,8 +111,6 @@
             {% endfor %}
         {% else %}
             <p class="alert alert-warning mt-5 mb-4">{{_('There is no information related to this entity in the dataset')}}</p>
-            <button class="btn btn-outline-success add-button" title="{{_('Add new information')}}">{{_("Let's add some metadata")}}</button>
-            {{ add_form() }}
         {% endif %}
     </div>
     <div>
@@ -413,7 +411,7 @@
         $('#cancelChangesBtn').click(function(){
             $('#editEntityBtn').click();
         });
-        $('.editable-field[id^="new_value_"], .editable-select, .date-type-selector').change(function() {
+        $(document).on('change', '.editable-field[id^="new_value_"], .editable-select, .date-type-selector', function() {
             const listItem = $(this).closest('.property-value');
             const subject = listItem.data('subject-id');
             const predicate = listItem.data('property-id');

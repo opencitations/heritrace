@@ -7,6 +7,7 @@ import dateutil
 import validators
 from flask import url_for
 from flask_babel import format_datetime, gettext, lazy_gettext
+from rdflib import ConjunctiveGraph, Graph
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 
@@ -56,31 +57,39 @@ class Filter:
         else:
             return url
 
-    def human_readable_entity(self, uri: str, entity_classes: list) -> str:
+    def human_readable_entity(self, uri: str, entity_classes: list, graph: Graph|ConjunctiveGraph = None) -> str:
         subject_classes = [str(subject_class) for subject_class in entity_classes]
         # Cerca prima una configurazione fetchUriDisplay
-        uri_display = self.get_fetch_uri_display(uri, subject_classes)
+        uri_display = self.get_fetch_uri_display(uri, subject_classes, graph)
         if uri_display:
             return uri_display
 
         # Se non trova nulla, restituisce l'URI originale
         return uri
 
-    def get_fetch_uri_display(self, uri: str, entity_classes: list) -> str | None:
+    def get_fetch_uri_display(self, uri: str, entity_classes: list, graph: Graph|ConjunctiveGraph = None) -> str | None:
         for entity_class in entity_classes:
             for rule in self.display_rules:
                 if rule['class'] == entity_class and 'fetchUriDisplay' in rule:
                     query = rule['fetchUriDisplay'].replace('[[uri]]', f'<{uri}>')
-                    self.sparql.setQuery(query)
-                    try:
-                        results = self.sparql.query().convert()
-                        if results['results']['bindings']:
-                            # Prendi il primo binding e il primo (e unico) valore
-                            first_binding = results['results']['bindings'][0]
-                            first_key = list(first_binding.keys())[0]
-                            return first_binding[first_key]['value']
-                    except Exception as e:
-                        print(f"Error executing fetchUriDisplay query: {e}")
+                    if graph is not None:
+                        try:
+                            results = graph.query(query)
+                            for row in results:
+                                return str(row[0])
+                        except Exception as e:
+                            print(f"Error executing fetchUriDisplay query: {e}")
+                    else:
+                        self.sparql.setQuery(query)
+                        try:
+                            results = self.sparql.query().convert()
+                            if results['results']['bindings']:
+                                # Prendi il primo binding e il primo (e unico) valore
+                                first_binding = results['results']['bindings'][0]
+                                first_key = list(first_binding.keys())[0]
+                                return first_binding[first_key]['value']
+                        except Exception as e:
+                            print(f"Error executing fetchUriDisplay query: {e}")
         return None
 
     def human_readable_datetime(self, dt_str):
