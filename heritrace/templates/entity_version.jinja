@@ -23,9 +23,6 @@
 
 {% block content %}
 <div class="container">
-    {% set first_snapshot_uri = metadata.keys()|first %}
-    {% set version_number = first_snapshot_uri.split('/')[-1] %}
-
     <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{{ url_for('about', subject=subject) }}">{{_('About %(subject)s', subject=subject | human_readable_entity(subject_classes))}}</a></li>

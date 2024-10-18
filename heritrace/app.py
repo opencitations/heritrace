@@ -1131,7 +1131,6 @@ def generate_modification_text(modifications, subject_classes, history=None, ent
             if validators.url(object_value):
                 if mod_type == gettext('Deletions') and history and entity_uri and current_snapshot_timestamp:
                     # For deletions, look in the previous snapshot
-                    print(history)
                     sorted_timestamps = sorted(history[entity_uri].keys())
                     current_index = sorted_timestamps.index(current_snapshot_timestamp)
                     if current_index > 0:
@@ -1174,7 +1173,6 @@ def entity_history(entity_uri):
 
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-    subject_classes = [subject_class[2] for subject_class in list(history[entity_uri].values())[0].triples((URIRef(entity_uri), RDF.type, None))]
 
     # Transform data into TimelineJS format
     events = []
@@ -1243,14 +1241,7 @@ def entity_history(entity_uri):
             }
         else:
             now = datetime.now()
-            event["end_date"] = {
-                "year": now.year,
-                "month": now.month,
-                "day": now.day,
-                "hour": now.hour,
-                "minute": now.minute,
-                "second": now.second
-            }
+            event["end_date"] = gettext("Present")
 
         view_version_button = f"<a href='/entity-version/{entity_uri}/{metadata['generatedAtTime']}' class='btn btn-primary mt-2 view-version' target='_self'>{gettext('View version')}</a>"
         event["text"]["text"] += f"{view_version_button}"
@@ -1303,7 +1294,6 @@ def entity_version(entity_uri, timestamp):
 
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-
     # Get the main entity's history and provenance
     main_entity_history = history.get(entity_uri, {})
     main_entity_provenance = provenance.get(entity_uri, {})
@@ -1336,6 +1326,7 @@ def entity_version(entity_uri, timestamp):
 
     snapshot_times = [convert_to_datetime(meta['generatedAtTime']) for meta in main_entity_provenance.values()]
     snapshot_times = sorted(set(snapshot_times))
+    version_number = snapshot_times.index(timestamp_dt) + 1
 
     # Find next and previous snapshots
     next_snapshot_timestamp = None
@@ -1394,7 +1385,8 @@ def entity_version(entity_uri, timestamp):
         prev_snapshot_timestamp=prev_snapshot_timestamp,
         modifications=modifications,
         grouped_triples=grouped_triples,
-        subject_classes=subject_classes
+        subject_classes=subject_classes,
+        version_number=version_number
     )
 
 @app.route('/restore-version/<path:entity_uri>/<timestamp>', methods=['POST'])

@@ -42,6 +42,20 @@
 
 <script type="text/javascript">
     var timeline_json = {{ timeline_data|tojson }};
+    
+    // Funzione per formattare la data di fine per l'ultimo evento
+    function formatEndDate(event, index, array) {
+        if (index === array.length - 1 && event.end_date === "Present") {
+            event.end_date = {
+                display_date: "{{_('Present')}}"
+            };
+        }
+        return event;
+    }
+
+    // Applica la formattazione a tutti gli eventi
+    timeline_json.events = timeline_json.events.map(formatEndDate);
+
     window.timeline = new TL.Timeline('timeline-embed', timeline_json);
 </script>
 {% endblock %}
