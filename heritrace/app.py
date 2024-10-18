@@ -559,7 +559,7 @@ def create_entity():
             dataset_endpoint,
             provenance_endpoint,
             app.config['COUNTER_HANDLER'],
-            app.config['RESPONSIBLE_AGENT'],
+            URIRef(f'https://orcid.org/{current_user.orcid}'),
             app.config['PRIMARY_SOURCE'],
             app.config['DATASET_GENERATION_TIME']
         )
@@ -886,7 +886,13 @@ def apply_changes():
     try:
         changes: List[dict] = request.json
         subject = changes[0]["subject"]
-        editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
+        editor = Editor(
+            dataset_endpoint, 
+            provenance_endpoint, 
+            app.config['COUNTER_HANDLER'], 
+            URIRef(f'https://orcid.org/{current_user.orcid}'), 
+            app.config['PRIMARY_SOURCE'], 
+            app.config['DATASET_GENERATION_TIME'])
         editor = import_entity_graph(editor, subject)
         editor.preexisting_finished()
         graph_uri = None
@@ -1095,50 +1101,113 @@ def sparql_proxy():
     response = requests.post(dataset_endpoint, data={'query': query}, headers={'Accept': 'application/sparql-results+json'})
     return response.content, response.status_code, {'Content-Type': 'application/sparql-results+json'}
 
+def generate_modification_text(modifications, subject_classes, history=None, entity_uri=None, current_snapshot=None, current_snapshot_timestamp=None, custom_filter=custom_filter):
+    """
+    Generate HTML text describing modifications to an entity.
+
+    Args:
+    modifications (dict): A dictionary of modifications, typically from parse_sparql_update.
+    subject_classes (list): A list of classes for the subject entity.
+    history (dict, optional): A dictionary of historical snapshots, used for deletions.
+    entity_uri (str, optional): The URI of the entity being modified.
+    current_snapshot (Graph, optional): The current snapshot of the entity.
+    current_snapshot_timestamp (str, optional): The timestamp of the current snapshot.
+    custom_filter (object): An object containing filter methods like human_readable_predicate and human_readable_entity.
+
+    Returns:
+    str: HTML formatted string describing the modifications.
+    """
+    modification_text = ""
+    for mod_type, triples in modifications.items():
+        modification_text += "<p><strong>" + gettext("Modifications") + "</strong></p><ul class='list-group mb-3'><p>"
+        if mod_type == gettext('Additions'):
+            modification_text += '<i class="bi bi-plus-circle-fill text-success"></i>'
+        elif mod_type == gettext('Deletions'):
+            modification_text += '<i class="bi bi-dash-circle-fill text-danger"></i>'
+        modification_text += ' <em>' + gettext(mod_type) + '</em></p>'
+        for triple in triples:
+            predicate_label = custom_filter.human_readable_predicate(triple[1], subject_classes)
+            object_value = triple[2]
+            if validators.url(object_value):
+                if mod_type == gettext('Deletions') and history and entity_uri and current_snapshot_timestamp:
+                    # For deletions, look in the previous snapshot
+                    print(history)
+                    sorted_timestamps = sorted(history[entity_uri].keys())
+                    current_index = sorted_timestamps.index(current_snapshot_timestamp)
+                    if current_index > 0:
+                        previous_snapshot = history[entity_uri][sorted_timestamps[current_index - 1]]
+                        object_classes = [str(o) for s, p, o in previous_snapshot.triples((URIRef(object_value), RDF.type, None))]
+                        relevant_snapshot = previous_snapshot
+                    else:
+                        object_classes = []
+                        relevant_snapshot = None
+                else:
+                    # For additions or modifications, use the current snapshot
+                    relevant_snapshot = current_snapshot
+                    object_classes = [str(o) for s, p, o in current_snapshot.triples((URIRef(object_value), RDF.type, None))]
+                
+                object_label = custom_filter.human_readable_entity(object_value, object_classes, relevant_snapshot)
+            else:
+                object_label = object_value
+            modification_text += f"""
+                <li class='d-flex align-items-center'>
+                    <span class='flex-grow-1 d-flex flex-column justify-content-center ms-3 mb-2 w-75'>
+                        <strong>{predicate_label}</strong>
+                        <span class="object-value word-wrap">{object_label}</span>
+                    </span>
+                </li>"""
+        modification_text += "</ul>"
+    return modification_text
+
 @app.route('/entity-history/<path:entity_uri>')
 @login_required
 def entity_history(entity_uri):
+    def convert_to_datetime(date_str, stringify=False):
+        try:
+            dt = datetime.fromisoformat(date_str)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt if not stringify else dt.isoformat()
+        except ValueError:
+            # Handle parsing other date formats if necessary
+            return None
+
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
     subject_classes = [subject_class[2] for subject_class in list(history[entity_uri].values())[0].triples((URIRef(entity_uri), RDF.type, None))]
-    # Trasforma i dati in formato TimelineJS useless
+
+    # Transform data into TimelineJS format
     events = []
-    sorted_metadata = sorted(provenance[entity_uri].items(), key=lambda x: x[1]['generatedAtTime'])  # Ordina gli eventi per data
+    # Sort events by date using convert_to_datetime
+    sorted_metadata = sorted(provenance[entity_uri].items(), key=lambda x: convert_to_datetime(x[1]['generatedAtTime']))
+
     entity_classes = set()
     for snapshot in history[entity_uri].values():
         classes = list(snapshot.triples((URIRef(entity_uri), RDF.type, None)))
         if classes:
             for triple in classes:
                 entity_classes.add(str(triple[2]))
+
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
-        date = datetime.fromisoformat(metadata['generatedAtTime'])
-        snapshot_graph: ConjunctiveGraph|Graph = history[entity_uri][metadata['generatedAtTime']]
-        responsible_agent = f"<a href='{metadata['wasAttributedTo']}' alt='{gettext('Link to the responsible agent description')} target='_blank'>{metadata['wasAttributedTo']}</a>" if validators.url(metadata['wasAttributedTo']) else metadata['wasAttributedTo']
+        date = convert_to_datetime(metadata['generatedAtTime'])
+        snapshot_timestamp_str = convert_to_datetime(metadata['generatedAtTime'], stringify=True)
+        snapshot_graph = history[entity_uri][snapshot_timestamp_str]
+
+        responsible_agent = f"<a href='{metadata['wasAttributedTo']}' alt='{gettext('Link to the responsible agent description')}' target='_blank'>{metadata['wasAttributedTo']}</a>" if validators.url(metadata['wasAttributedTo']) else metadata['wasAttributedTo']
         primary_source = custom_filter.human_readable_primary_source(metadata['hadPrimarySource'])
         modifications = metadata['hasUpdateQuery']
         modification_text = ""
         if modifications:
-            modifications = parse_sparql_update(modifications)
-            for mod_type, triples in modifications.items():
-                modification_text += f"<h4>{mod_type}</h4><ul>"
-                for triple in triples:
-                    predicate_label = custom_filter.human_readable_predicate(triple[1], subject_classes)
-                    object_value = triple[2]
-                    if validators.url(object_value):
-                        if mod_type == gettext('Deletions'):
-                            # For deletions, look in the previous snapshot
-                            relevant_snapshot = history[entity_uri][sorted_metadata[i-1][1]['generatedAtTime']]
-                            object_classes = [str(o) for s, p, o in relevant_snapshot.triples((URIRef(object_value), RDF.type, None))]
-                        else:
-                            # For additions or modifications, look in the current snapshot
-                            relevant_snapshot = snapshot_graph
-                            object_classes = [str(o) for s, p, o in snapshot_graph.triples((URIRef(object_value), RDF.type, None))]
-                        object_label = custom_filter.human_readable_entity(object_value, object_classes, relevant_snapshot)
-                    else:
-                        object_label = object_value
-                    modification_text += f"<li><strong>{predicate_label}:</strong> {object_label}</li>"
-                modification_text += "</ul>"
-        
+            parsed_modifications = parse_sparql_update(modifications)
+            modification_text = generate_modification_text(
+                parsed_modifications, 
+                list(entity_classes), 
+                history=history, 
+                entity_uri=entity_uri, 
+                current_snapshot=snapshot_graph,
+                current_snapshot_timestamp=snapshot_timestamp_str
+            )
+
         event = {
             "start_date": {
                 "year": date.year,
@@ -1163,7 +1232,7 @@ def entity_history(entity_uri):
         }
 
         if i + 1 < len(sorted_metadata):
-            next_date = datetime.fromisoformat(sorted_metadata[i + 1][1]['generatedAtTime'])
+            next_date = convert_to_datetime(sorted_metadata[i + 1][1]['generatedAtTime'])
             event["end_date"] = {
                 "year": next_date.year,
                 "month": next_date.month,
@@ -1190,7 +1259,7 @@ def entity_history(entity_uri):
     timeline_data = {
         "title": {
             "text": {
-                "headline": gettext('Version history for') + ' ' + custom_filter.human_readable_entity(entity_uri, entity_classes) 
+                "headline": gettext('Version history for') + ' ' + custom_filter.human_readable_entity(entity_uri, entity_classes)
             }
         },
         "events": events
@@ -1200,7 +1269,6 @@ def entity_history(entity_uri):
                            entity_uri=entity_uri, 
                            timeline_data=timeline_data, 
                            entity_classes=entity_classes)
-
 
 @app.route('/entity-version/<path:entity_uri>/<timestamp>')
 @login_required
@@ -1234,33 +1302,16 @@ def entity_version(entity_uri, timestamp):
         timestamp_dt = datetime.fromisoformat(generation_time)
 
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
-    history, metadata, other_snapshots_metadata = agnostic_entity.get_state_at_time(
-        time=(None, timestamp), include_prov_metadata=True
-    )
+    history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
-    # Get the main entity's history and metadata
+    # Get the main entity's history and provenance
     main_entity_history = history.get(entity_uri, {})
-    main_entity_metadata = metadata.get(entity_uri, {})
-    main_entity_other_snapshots = other_snapshots_metadata.get(entity_uri, {}) if other_snapshots_metadata else {}
-
-    # Collect all snapshots for the main entity
-    all_snapshots = list(main_entity_metadata.values()) + list(main_entity_other_snapshots.values())
-    sorted_all_snapshots = sorted(all_snapshots, key=lambda x: convert_to_datetime(x['generatedAtTime']))
-
-    last_snapshot_timestamp = sorted_all_snapshots[-1]['generatedAtTime'] if sorted_all_snapshots else None
-    if last_snapshot_timestamp and timestamp > last_snapshot_timestamp:
-        abort(404)
-
-    if not timestamp_dt.tzinfo:
-        timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
-
-    # Find the closest timestamp in main_entity_history
-    if not main_entity_history:
-        abort(404)
+    main_entity_provenance = provenance.get(entity_uri, {})
 
     # Convert the timestamps to datetime objects
     timestamp_map = {t: convert_to_datetime(t) for t in main_entity_history.keys()}
 
+    # Now find the closest timestamp to the requested timestamp
     try:
         closest_timestamp = min(
             timestamp_map.keys(),
@@ -1283,22 +1334,13 @@ def entity_version(entity_uri, timestamp):
     if relevant_properties:
         triples = [triple for triple in triples if str(triple[1]) in relevant_properties]
 
-    # Now process snapshots to find next and previous snapshots
-    # Combine all snapshot timestamps into a list
-    snapshot_times = [
-        convert_to_datetime(meta['generatedAtTime'])
-        for meta in main_entity_metadata.values()
-    ] + [
-        convert_to_datetime(meta['generatedAtTime'])
-        for meta in main_entity_other_snapshots.values()
-    ]
-
+    snapshot_times = [convert_to_datetime(meta['generatedAtTime']) for meta in main_entity_provenance.values()]
     snapshot_times = sorted(set(snapshot_times))
 
     # Find next and previous snapshots
     next_snapshot_timestamp = None
     prev_snapshot_timestamp = None
-    
+
     for snap_time in snapshot_times:
         if snap_time > timestamp_dt:
             next_snapshot_timestamp = snap_time.isoformat()
@@ -1310,10 +1352,9 @@ def entity_version(entity_uri, timestamp):
             break
 
     # Get the metadata for the closest snapshot
-    all_metadata = {**main_entity_metadata, **main_entity_other_snapshots}
     closest_metadata = None
     min_time_diff = None
-    for meta in all_metadata.values():
+    for meta in main_entity_provenance.values():
         meta_time = convert_to_datetime(meta['generatedAtTime'])
         time_diff = abs((meta_time - timestamp_dt).total_seconds())
         if closest_metadata is None or time_diff < min_time_diff:
@@ -1325,9 +1366,17 @@ def entity_version(entity_uri, timestamp):
 
     if closest_metadata.get('hasUpdateQuery'):
         sparql_query = closest_metadata['hasUpdateQuery']
-        modifications = parse_sparql_update(sparql_query)
+        parsed_modifications = parse_sparql_update(sparql_query)
+        modifications = generate_modification_text(
+            parsed_modifications, 
+            subject_classes, 
+            history=history, 
+            entity_uri=entity_uri, 
+            current_snapshot=version,
+            current_snapshot_timestamp=closest_timestamp
+        )
     else:
-        modifications = None
+        modifications = ""
 
     if closest_metadata.get('description'):
         closest_metadata['description'] = closest_metadata['description'].replace(
@@ -1376,7 +1425,7 @@ def restore_version(entity_uri, timestamp):
         dataset_endpoint, 
         provenance_endpoint, 
         app.config['COUNTER_HANDLER'], 
-        f"https://orcid.org/{current_user.orcid}", 
+        f"https://orcid.org/{URIRef(f'https://orcid.org/{current_user.orcid}')}", 
         primary_source, 
         app.config['DATASET_GENERATION_TIME'])
     editor.execute(inverted_query)
@@ -1771,7 +1820,13 @@ def invert_sparql_update(sparql_query: str) -> str:
     return inverted_query
 
 def execute_sparql_update(sparql_query: str):
-    editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], app.config['PRIMARY_SOURCE'], app.config['DATASET_GENERATION_TIME'])
+    editor = Editor(
+        dataset_endpoint, 
+        provenance_endpoint, 
+        app.config['COUNTER_HANDLER'], 
+        URIRef(f'https://orcid.org/{current_user.orcid}'), 
+        app.config['PRIMARY_SOURCE'], 
+        app.config['DATASET_GENERATION_TIME'])
     editor.execute(sparql_query)
     editor.save()
 

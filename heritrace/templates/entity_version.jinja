@@ -98,26 +98,9 @@
                         <li class="list-group-item"><strong>{{_('Description')}}:</strong> {{ meta['description'] }}</li>
                         {% endif %}
                         {% if modifications %}
-                            <li class="list-group-item">
-                                <p><strong>{{_('Modifications')}}:</strong></p>
-                                {% for mod_type, triples in modifications.items() %}
-                                    {% if triples %}
-                                        <ul class="list-group mb-3">
-                                            <p>
-                                                {% if mod_type in ["Aggiunte", "Additions"] %}
-                                                    <i class="bi bi-plus-circle-fill text-success"></i>
-                                                {% elif mod_type in ["Cancellazioni", "Deletions"] %}
-                                                    <i class="bi bi-dash-circle-fill text-danger"></i>
-                                                {% endif %}
-                                                <em>{{ mod_type }}</em>
-                                            </p>
-                                            {% for triple in triples %}
-                                                {{ render_modification_triple(triple, subject) }}
-                                            {% endfor %}
-                                        </ul>
-                                    {% endif %}
-                                {% endfor %}
-                            </li>
+                        <li class="list-group-item">
+                            {{ modifications }}
+                        </li>
                         {% endif %}
                     </ul>
                 </div>
