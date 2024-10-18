@@ -1,14 +1,14 @@
 {
     "dataset": {
         "triplestore_urls": [
-            "http://localhost:8892/sparql"
+            "http://localhost:8999/sparql"
         ],
         "file_paths": [],
         "is_quadstore": true
     },
     "provenance": {
         "triplestore_urls": [
-            "http://localhost:8893/sparql"
+            "http://localhost:8998/sparql"
         ],
         "file_paths": [],
         "is_quadstore": true
