@@ -1,4 +1,6 @@
 __pycache__
 blazegraph.jnl
 config.py
-db_volumes*
+db_volumes/
+*.pem
+meta_counter_handler.db
