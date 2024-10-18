@@ -21,6 +21,8 @@ oc-ocdm = "^9.0.0"
 pyshacl = "0.23.0"
 setuptools = "^68.2.2"
 docker = "^7.1.0"
+requests-oauthlib = "^2.0.0"
+flask-login = "^0.6.3"
 
 
 [build-system]

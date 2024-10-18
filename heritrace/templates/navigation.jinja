@@ -7,17 +7,26 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{{ url_for('index') }}" alt="{{_('Go to the home')}}">Home</a>
+                    <a class="nav-link" aria-current="page" href="{{ url_for('index') }}" alt="{{_('Go to the home')}}">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{{ url_for('catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
+                    <a class="nav-link" aria-current="page" href="{{ url_for('catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{{ url_for('create_entity') }}" alt="{{_('Add New Record')}}">{{_('Add New Record')}}</a>
+                    <a class="nav-link" aria-current="page" href="{{ url_for('create_entity') }}" alt="{{_('Add New Record')}}">{{_('Add New Record')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{{ url_for('endpoint') }}" alt="{{_('SPARQL Endpoint')}}">{{_('SPARQL Endpoint')}}</a>
+                    <a class="nav-link" aria-current="page" href="{{ url_for('endpoint') }}" alt="{{_('SPARQL Endpoint')}}">{{_('SPARQL Endpoint')}}</a>
                 </li>
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">{{ _('Logout') }}</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login_page') }}">{{ _('Login') }}</a>
+                    </li>
+                {% endif %}
             </ul>
             <form class="d-flex" action="{{ url_for('search') }}" method="GET" role="search">
                 <input class="form-control me-2" type="search" placeholder="{{_('Search')}}" aria-label="Search" name="q">

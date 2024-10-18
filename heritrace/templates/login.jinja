@@ -1,0 +1,69 @@
+{% extends "_base.jinja" %}
+
+{% block content %}
+
+<style>
+    .login-button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: none;
+        border-radius: 4px;
+        background-color: white;
+        color: black;
+        border: 1px solid lightgrey;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .login-button:hover {
+        background-color: #8BAE32;
+    }
+    .orcid-logo {
+        width: 24px;
+        margin-right: 10px;
+    }
+</style>
+
+<div class="container mt-5">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-6">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-center">{{ _('Login with ORCID') }}</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-center">{{ _('Click the button below to log in using your ORCID account') }}</p>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg login-button">
+                            <img src="{{ url_for('static', filename='images/orcid-logo.png') }}" alt="ORCID logo" class="orcid-logo">
+                            {{ _('Sign in with ORCID') }}
+                        </a>
+                    </div>
+                    {% if error %}
+                        <div class="alert alert-danger mt-3" role="alert">
+                            {{ error }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -18,15 +18,19 @@ from config import Config
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
+from flask_login import (LoginManager, current_user, login_required,
+                         login_user, logout_user)
 from heritrace.editor import Editor
 from heritrace.filters import *
 from heritrace.forms import *
 from heritrace.uri_generator.uri_generator import *
+from heritrace.models import User
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.namespace import XSD
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.algebra import translateQuery, translateUpdate
 from rdflib.plugins.sparql.parser import parseQuery, parseUpdate
+from requests_oauthlib import OAuth2Session
 from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import (
@@ -296,6 +300,72 @@ app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_rea
 app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime
 app.jinja_env.filters['split_ns'] = custom_filter.split_ns
 
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login_page'
+
+def unauthorized_callback():
+    flash(gettext('Please log in to access this page'), 'info')
+    return redirect(url_for('login_page'))
+
+login_manager.unauthorized_handler(unauthorized_callback)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User(id=user_id, name="Test User", orcid=user_id)
+
+@app.route('/login')
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('catalogue'))
+
+    callback_url = url_for('callback', _external=True, _scheme='https')
+    orcid = OAuth2Session(
+        app.config['ORCID_CLIENT_ID'],
+        redirect_uri=callback_url,
+        scope=app.config['ORCID_SCOPE']
+    )
+    authorization_url, state = orcid.authorization_url(app.config['ORCID_AUTHORIZE_URL'])
+    session['oauth_state'] = state
+    return redirect(authorization_url)
+
+@app.route('/callback')
+def callback():
+    if request.url.startswith('http://'):
+        secure_url = request.url.replace('http://', 'https://', 1)
+    else:
+        secure_url = request.url
+
+    orcid = OAuth2Session(app.config['ORCID_CLIENT_ID'], state=session['oauth_state'])
+    try:
+        token = orcid.fetch_token(app.config['ORCID_TOKEN_URL'], client_secret=app.config['ORCID_CLIENT_SECRET'],
+                                  authorization_response=secure_url)
+    except Exception as e:
+        flash(gettext('An error occurred during authentication. Please try again.'), 'danger')
+        return redirect(url_for('login'))
+    orcid_id = token['orcid']
+    
+    if orcid_id not in app.config['ORCID_WHITELIST']:
+        flash(gettext('Your ORCID is not authorized to access this application.'), 'danger')
+        return redirect(url_for('login'))
+    user = User(id=orcid_id, name=token['name'], orcid=orcid_id)
+    login_user(user)
+    flash(gettext('Welcome back %(name)s!', name=current_user.name), 'success')
+    return redirect(url_for('catalogue'))
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash(gettext('You have been logged out'), 'info')
+    return redirect(url_for('index'))
+
+@app.route('/login_page')
+def login_page():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    return render_template('login.jinja')
+
 def get_highest_priority_class(subject_classes):
     max_priority = None
     highest_priority_class = None
@@ -317,6 +387,7 @@ def index():
     return render_template('index.jinja')
 
 @app.route('/catalogue')
+@login_required
 def catalogue():
     selected_class = request.args.get('class')
     page = int(request.args.get('page', 1))
@@ -433,6 +504,7 @@ def is_entity_type_visible(entity_type):
     return True
 
 @app.route('/create-entity', methods=['GET', 'POST'])
+@login_required
 def create_entity():
     form_fields = get_form_fields_from_shacl()
 
@@ -733,6 +805,7 @@ def generate_unique_uri(entity_type: URIRef|str =None):
     return URIRef(uri)
 
 @app.route('/about/<path:subject>')
+@login_required
 def about(subject):
     decoded_subject = urllib.parse.unquote(subject)
     agnostic_entity = AgnosticEntity(res=decoded_subject, config=change_tracking_config, related_entities_history=False)
@@ -791,6 +864,7 @@ def about(subject):
 
 # Funzione per la validazione dinamica dei valori con suggerimento di datatypes
 @app.route('/validate-literal', methods=['POST'])
+@login_required
 def validate_literal():
     value = request.json.get('value')
     if not value:
@@ -807,6 +881,7 @@ def validate_literal():
     return jsonify({"valid_datatypes": matching_datatypes}), 200
 
 @app.route('/apply_changes', methods=['POST'])
+@login_required
 def apply_changes():
     try:
         changes: List[dict] = request.json
@@ -996,27 +1071,32 @@ def order_logic(editor: Editor, subject, predicate, new_order, ordered_by, graph
     return editor
 
 @app.route('/search')
+@login_required
 def search():
     subject = request.args.get('q')
     return redirect(url_for('about', subject=subject))
 
 @app.route('/set-language/<lang_code>')
+@login_required
 def set_language(lang_code=None):
     session['lang'] = lang_code
     refresh()
     return redirect(request.referrer or url_for('index'))
 
 @app.route('/endpoint')
+@login_required
 def endpoint():
     return render_template('endpoint.jinja', dataset_endpoint=dataset_endpoint)
 
 @app.route('/dataset-endpoint', methods=['POST'])
+@login_required
 def sparql_proxy():
     query = request.form.get('query')
     response = requests.post(dataset_endpoint, data={'query': query}, headers={'Accept': 'application/sparql-results+json'})
     return response.content, response.status_code, {'Content-Type': 'application/sparql-results+json'}
 
 @app.route('/entity-history/<path:entity_uri>')
+@login_required
 def entity_history(entity_uri):
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
@@ -1123,6 +1203,7 @@ def entity_history(entity_uri):
 
 
 @app.route('/entity-version/<path:entity_uri>/<timestamp>')
+@login_required
 def entity_version(entity_uri, timestamp):
     def convert_to_datetime(date_str, stringify=False):
         try:
@@ -1268,6 +1349,7 @@ def entity_version(entity_uri, timestamp):
     )
 
 @app.route('/restore-version/<path:entity_uri>/<timestamp>', methods=['POST'])
+@login_required
 def restore_version(entity_uri, timestamp):
     query_snapshots = f"""
         SELECT ?time ?updateQuery ?snapshot
@@ -1290,7 +1372,13 @@ def restore_version(entity_uri, timestamp):
                     sum_update_queries += (result[1]) +  ";"
         primary_source = URIRef(relevant_result[2])
     inverted_query = invert_sparql_update(sum_update_queries)
-    editor = Editor(dataset_endpoint, provenance_endpoint, app.config['COUNTER_HANDLER'], app.config['RESPONSIBLE_AGENT'], primary_source, app.config['DATASET_GENERATION_TIME'])
+    editor = Editor(
+        dataset_endpoint, 
+        provenance_endpoint, 
+        app.config['COUNTER_HANDLER'], 
+        f"https://orcid.org/{current_user.orcid}", 
+        primary_source, 
+        app.config['DATASET_GENERATION_TIME'])
     editor.execute(inverted_query)
     editor.save()
     query = f"""
