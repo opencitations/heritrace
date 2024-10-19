@@ -25,13 +25,13 @@
 <div class="container">
     <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('about', subject=subject) }}">{{_('About %(subject)s', subject=subject | human_readable_entity(subject_classes))}}</a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('entity_history', entity_uri=subject) }}">{{_('History of %(subject)s', subject=subject | human_readable_entity(subject_classes))}}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{_('Version %(version_number)s of %(subject)s', version_number=version_number, subject=subject | human_readable_entity(subject_classes))}}</li>
+        <li class="breadcrumb-item"><a href="{{ url_for('about', subject=subject) }}"><em>{{subject | human_readable_entity(subject_classes)}}</em></a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('entity_history', entity_uri=subject) }}">{{_('History of <em>%(subject)s</em>', subject=subject | human_readable_entity(subject_classes))}}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{_('Version %(version_number)s of <em>%(subject)s</em>', version_number=version_number, subject=subject | human_readable_entity(subject_classes))}}</li>
     </ol>
     </nav>
 
-    <h2 class="mb-4 word-wrap">{{_('Version')}} {{ version_number }} {{_('of')}} <span title="{{subject | human_readable_entity(subject_classes)}}">{{ subject | human_readable_entity(subject_classes) }}</span></h2>
+    <h2 class="mb-4 word-wrap">{{_('Version')}} {{ version_number }} {{_('of')}} <span title="{{subject | human_readable_entity(subject_classes)}}"><em>{{ subject | human_readable_entity(subject_classes) }}</em></span></h2>
 
     <div class="d-flex">
         <div class="me-4">

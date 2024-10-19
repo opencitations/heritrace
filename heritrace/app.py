@@ -19,12 +19,12 @@ from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
 from flask_login import (LoginManager, current_user, login_required,
-                         login_user, logout_user)
+                         login_user, logout_user, user_loaded_from_cookie)
 from heritrace.editor import Editor
 from heritrace.filters import *
 from heritrace.forms import *
-from heritrace.uri_generator.uri_generator import *
 from heritrace.models import User
+from heritrace.uri_generator.uri_generator import *
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.namespace import XSD
 from rdflib.plugins.sparql import prepareQuery
@@ -314,6 +314,10 @@ login_manager.unauthorized_handler(unauthorized_callback)
 def load_user(user_id):
     return User(id=user_id, name="Test User", orcid=user_id)
 
+@user_loaded_from_cookie.connect
+def rotate_session_token(sender, user):
+    session.modified = True
+
 @app.route('/login')
 def login():
     if current_user.is_authenticated:
@@ -349,6 +353,8 @@ def callback():
         flash(gettext('Your ORCID is not authorized to access this application.'), 'danger')
         return redirect(url_for('login'))
     user = User(id=orcid_id, name=token['name'], orcid=orcid_id)
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(days=30)
     login_user(user)
     flash(gettext('Welcome back %(name)s!', name=current_user.name), 'success')
     return redirect(url_for('catalogue'))
@@ -1144,7 +1150,7 @@ def generate_modification_text(modifications, subject_classes, history=None, ent
                     # For additions or modifications, use the current snapshot
                     relevant_snapshot = current_snapshot
                     object_classes = [str(o) for s, p, o in current_snapshot.triples((URIRef(object_value), RDF.type, None))]
-                
+
                 object_label = custom_filter.human_readable_entity(object_value, object_classes, relevant_snapshot)
             else:
                 object_label = object_value
@@ -1250,7 +1256,7 @@ def entity_history(entity_uri):
     timeline_data = {
         "title": {
             "text": {
-                "headline": gettext('Version history for') + ' ' + custom_filter.human_readable_entity(entity_uri, entity_classes)
+                "headline": gettext('Version history for') + ' <em>' + custom_filter.human_readable_entity(entity_uri, entity_classes) + '</em>'
             }
         },
         "events": events
@@ -1314,11 +1320,12 @@ def entity_version(entity_uri, timestamp):
 
     # Process the version graph as before
     triples = list(version.triples((URIRef(entity_uri), None, None)))
+
     relevant_properties = set()
     _, _, _, _, _, subject_classes, valid_predicates = get_valid_predicates(triples)
 
     grouped_triples, relevant_properties = get_grouped_triples(
-        entity_uri, triples, subject_classes, valid_predicates
+        entity_uri, triples, subject_classes, valid_predicates, historical_snapshot=version
     )
 
     if relevant_properties:
@@ -1557,7 +1564,7 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
         valid_value = Literal(new_value)
     return valid_value, old_value, ''
 
-def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info):
+def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info, historical_snapshot=None):
     grouped_triples = OrderedDict()
     relevant_properties = set()
     fetched_values_map = dict()  # Map of original values to values returned by the query
@@ -1583,27 +1590,26 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
                             for display_rule in prop['displayRules']:
                                 display_name = display_rule.get('displayName', prop_uri)
                                 relevant_properties.add(prop_uri)
-                                process_display_rule(display_name, prop_uri, display_rule, subject, triples, grouped_triples, fetched_values_map)
+                                process_display_rule(display_name, prop_uri, display_rule, subject, triples, grouped_triples, fetched_values_map, historical_snapshot)
                                 
                                 if is_ordered:
                                     grouped_triples[display_name]['is_draggable'] = True
                                     grouped_triples[display_name]['ordered_by'] = order_property
-                                    process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map)
+                                    process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map, historical_snapshot)
                         else:
                             display_name = prop.get('displayName', prop_uri)
                             relevant_properties.add(prop_uri)
-                            process_display_rule(display_name, prop_uri, prop, subject, triples, grouped_triples, fetched_values_map)
+                            process_display_rule(display_name, prop_uri, prop, subject, triples, grouped_triples, fetched_values_map, historical_snapshot)
                             
                             if is_ordered:
                                 grouped_triples[display_name]['is_draggable'] = True
                                 grouped_triples[display_name]['ordered_by'] = order_property
-                                process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map)
+                                process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map, historical_snapshot)
             else:
                 process_default_property(prop_uri, triples, grouped_triples)
         else:
             process_default_property(prop_uri, triples, grouped_triples)
 
-    # Ordering logic remains the same
     if display_rules:
         ordered_display_names = []
         for rule in display_rules:
@@ -1627,7 +1633,7 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
     grouped_triples = OrderedDict((k, grouped_triples[k]) for k in ordered_display_names)
     return grouped_triples, relevant_properties
         
-def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped_triples, fetched_values_map):
+def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped_triples, fetched_values_map, historical_snapshot=None):
     if display_name not in grouped_triples:
         grouped_triples[display_name] = {
             'property': prop_uri,
@@ -1637,7 +1643,10 @@ def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped
     for triple in triples:
         if str(triple[1]) == prop_uri:
             if rule.get('fetchValueFromQuery'):
-                result, external_entity = execute_sparql_query(rule['fetchValueFromQuery'], subject, triple[2])
+                if historical_snapshot:
+                    result, external_entity = execute_historical_query(rule['fetchValueFromQuery'], subject, triple[2], historical_snapshot)
+                else:
+                    result, external_entity = execute_sparql_query(rule['fetchValueFromQuery'], subject, triple[2])
                 if result:
                     fetched_values_map[result] = str(triple[2])
                     new_triple = (str(triple[0]), str(triple[1]), str(result))
@@ -1656,12 +1665,19 @@ def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped
                 }
                 grouped_triples[display_name]['triples'].append(new_triple_data)
 
-def process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map):
+def process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map, historical_snapshot: ConjunctiveGraph|Graph|None = None):
     def get_ordered_sequence(order_results):
         order_map = {}
         for res in order_results:
-            next_value = res['nextValue']['value']
-            order_map[res['orderedEntity']['value']] = None if next_value == "NONE" else next_value
+            if isinstance(res, dict):  # For live triplestore results
+                ordered_entity = res['orderedEntity']['value']
+                next_value = res['nextValue']['value']
+            else:  # For historical snapshot results
+                ordered_entity = str(res[0])
+                next_value = str(res[1]) if res[1] else "NONE"
+
+            order_map[ordered_entity] = None if next_value == "NONE" else next_value
+
         all_sequences = []
         start_elements = set(order_map.keys()) - set(order_map.values())
         while start_elements:
@@ -1682,9 +1698,13 @@ def process_ordering(subject, prop, order_property, grouped_triples, display_nam
             }}
         }}
     """
-    sparql.setQuery(order_query)
-    sparql.setReturnFormat(JSON)
-    order_results = sparql.query().convert().get("results", {}).get("bindings", [])
+    if historical_snapshot:
+        order_results = list(historical_snapshot.query(order_query))
+    else:
+        sparql.setQuery(order_query)
+        sparql.setReturnFormat(JSON)
+        order_results = sparql.query().convert().get("results", {}).get("bindings", [])
+
     order_sequences = get_ordered_sequence(order_results)
     for sequence in order_sequences:
         grouped_triples[display_name]['triples'].sort(
@@ -2456,6 +2476,17 @@ def execute_sparql_query(query: str, subject: str, value: str) -> Tuple[str, str
         first_value = values[0] if len(values) > 0 else None
         second_value = values[1] if len(values) > 1 else None
         return (first_value, second_value)
+    return None, None
+
+def execute_historical_query(query: str, subject: str, value: str, historical_snapshot: Graph) -> Tuple[str, str]:
+    decoded_subject = unquote(subject)
+    decoded_value = unquote(value)
+    query = query.replace('[[subject]]', f'<{decoded_subject}>')
+    query = query.replace('[[value]]', f'<{decoded_value}>')
+    results = historical_snapshot.query(query)
+    if results:
+        for result in results:
+            return (result[0], result[1])
     return None, None
 
 @app.cli.group()

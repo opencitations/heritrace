@@ -4,8 +4,8 @@
 <div class="container">
     <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('about', subject=entity_uri) }}">{{_('About %(subject)s', subject=entity_uri | human_readable_entity(entity_classes))}}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{_('History of %(subject)s', subject=entity_uri | human_readable_entity(entity_classes))}}</li>
+        <li class="breadcrumb-item"><a href="{{ url_for('about', subject=entity_uri) }}"><em>{{entity_uri | human_readable_entity(entity_classes)}}</em></a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{_('History of <em>%(subject)s</em>', subject=entity_uri | human_readable_entity(entity_classes))}}</li>
     </ol>
     </nav>
 </div>
@@ -37,6 +37,16 @@
     }
     .tl-slide {
         padding: 2rem 0;
+    }
+    .tl-timeline .tl-slide-titleslide .tl-headline-date,
+    .tl-timeline .tl-slide-titleslide .tl-headline {
+        font-size: 32px !important;
+        line-height: 36px !important;
+    }
+
+    .tl-timeline .tl-slide-titleslide .tl-text .tl-text-content p {
+        font-size: 18px !important;
+        line-height: 24px !important;
     }
 </style>
 
