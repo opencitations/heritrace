@@ -589,6 +589,8 @@ def create_entity():
                 if not isinstance(values, list):
                     values = [values]
                 
+                field_definitions = form_fields.get(entity_type, {}).get(predicate, [])
+
                 # Check if this predicate needs to be ordered
                 ordered_by = None
                 for field_details in form_fields[entity_type][predicate]:
@@ -614,7 +616,7 @@ def create_entity():
                         for value in shape_values:
                             nested_uri = generate_unique_uri(value['entity_type'])
                             editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
-                            create_nested_entity(editor, nested_uri, value, default_graph_uri)
+                            create_nested_entity(editor, nested_uri, value, default_graph_uri, form_fields)
 
                             if previous_entity:
                                 editor.create(previous_entity, URIRef(ordered_by), nested_uri, default_graph_uri)
@@ -625,9 +627,13 @@ def create_entity():
                         if isinstance(value, dict) and 'entity_type' in value:
                             nested_uri = generate_unique_uri(value['entity_type'])
                             editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
-                            create_nested_entity(editor, nested_uri, value, default_graph_uri)
+                            create_nested_entity(editor, nested_uri, value, default_graph_uri, form_fields)
                         else:
-                            object_value = URIRef(value) if validators.url(value) else Literal(value)
+                            datatype_uris = []
+                            if field_definitions:
+                                datatype_uris = field_definitions[0].get('datatypes', [])
+                            datatype = determine_datatype(value, datatype_uris)
+                            object_value = URIRef(value) if validators.url(value) else Literal(value, datatype=datatype)
                             editor.create(entity_uri, URIRef(predicate), object_value, default_graph_uri)
         else:
             properties = structured_data.get('properties', {})
@@ -667,6 +673,17 @@ def create_entity():
         form_fields=form_fields,
         datatype_options=datatype_options
     )
+
+def determine_datatype(value, datatype_uris):
+    for datatype_uri in datatype_uris:
+        validation_func = next(
+            (d[1] for d in DATATYPE_MAPPING if str(d[0]) == str(datatype_uri)),
+            None
+        )
+        if validation_func and validation_func(value):
+            return URIRef(datatype_uri)
+    # If none match, default to XSD.string
+    return XSD.string
 
 def validate_entity_data(structured_data, form_fields):
     errors = []
@@ -774,14 +791,18 @@ def validate_entity_data(structured_data, form_fields):
 
     return errors
 
-def create_nested_entity(editor: Editor, entity_uri, entity_data, graph_uri=None):
+def create_nested_entity(editor: Editor, entity_uri, entity_data, graph_uri=None, form_fields=None):
     # Add rdf:type
     editor.create(entity_uri, URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'), URIRef(entity_data['entity_type']), graph_uri)
 
+    entity_type = entity_data.get('entity_type')
+    properties = entity_data.get('properties', {})
+
     # Add other properties
-    for predicate, values in entity_data.get('properties', {}).items():
+    for predicate, values in properties.items():
         if not isinstance(values, list):
             values = [values]
+        field_definitions = form_fields.get(entity_type, {}).get(predicate, [])
         for value in values:
             if isinstance(value, dict) and 'entity_type' in value:
                 if 'intermediateRelation' in value:
@@ -789,15 +810,20 @@ def create_nested_entity(editor: Editor, entity_uri, entity_data, graph_uri=None
                     target_uri = generate_unique_uri(value['entity_type'])
                     editor.create(entity_uri, URIRef(predicate), intermediate_uri, graph_uri)
                     editor.create(intermediate_uri, URIRef(value['intermediateRelation']['property']), target_uri, graph_uri)
-                    create_nested_entity(editor, target_uri, value, graph_uri)
+                    create_nested_entity(editor, target_uri, value, graph_uri, form_fields)
                 else:
                     # Handle nested entities
                     nested_uri = generate_unique_uri(value['entity_type'])
                     editor.create(entity_uri, URIRef(predicate), nested_uri, graph_uri)
-                    create_nested_entity(editor, nested_uri, value, graph_uri)
+                    create_nested_entity(editor, nested_uri, value, graph_uri, form_fields)
             else:
                 # Handle simple properties
-                object_value = URIRef(value) if validators.url(value) else Literal(value)
+                datatype = XSD.string  # Default to string if not specified
+                datatype_uris = []
+                if field_definitions:
+                    datatype_uris = field_definitions[0].get('datatypes', [])
+                datatype = determine_datatype(value, datatype_uris)
+                object_value = URIRef(value) if validators.url(value) else Literal(value, datatype=datatype)
                 editor.create(entity_uri, URIRef(predicate), object_value, graph_uri)
 
 def generate_unique_uri(entity_type: URIRef|str =None):
@@ -1313,7 +1339,7 @@ def entity_version(entity_uri, timestamp):
     except ValueError:
         abort(404)
 
-    version: Graph = main_entity_history[closest_timestamp]
+    version: Graph|ConjunctiveGraph = main_entity_history[closest_timestamp]
 
     # Process the version graph as before
     triples = list(version.triples((URIRef(entity_uri), None, None)))
@@ -1579,7 +1605,7 @@ def parse_sparql_update(query):
 
     return modifications
 
-def validate_new_triple(subject, predicate, new_value, old_value = None):
+def validate_new_triple(subject, predicate, new_value, action: str, old_value = None):
     data_graph = fetch_data_graph_for_subject(subject)
     if old_value is not None:
         old_value = [triple[2] for triple in data_graph.triples((URIRef(subject), URIRef(predicate), None)) if str(triple[2]) == str(old_value)][0]
@@ -1593,15 +1619,17 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     s_types = [triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))]
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
-        SELECT DISTINCT ?path ?datatype ?a_class ?classIn (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
+        SELECT DISTINCT ?path ?datatype ?a_class ?classIn ?maxCount ?minCount (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
         WHERE {{
             ?shape sh:targetClass ?type ;
                 sh:property ?propertyShape .
             ?propertyShape sh:path ?path .
             FILTER(?path = <{predicate}>)
             VALUES ?type {{<{'> <'.join(s_types)}>}}
-            OPTIONAL {{?propertyShape  sh:datatype ?datatype .}}
-            OPTIONAL {{?propertyShape  sh:class ?a_class .}}
+            OPTIONAL {{?propertyShape sh:datatype ?datatype .}}
+            OPTIONAL {{?propertyShape sh:maxCount ?maxCount .}}
+            OPTIONAL {{?propertyShape sh:minCount ?minCount .}}
+            OPTIONAL {{?propertyShape sh:class ?a_class .}}
             OPTIONAL {{
                 ?propertyShape sh:or ?orList .
                 ?orList rdf:rest*/rdf:first ?orConstraint .
@@ -1617,7 +1645,7 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }}
         }}
-        GROUP BY ?path ?datatype ?a_class ?classIn
+        GROUP BY ?path ?datatype ?a_class ?classIn ?maxCount ?minCount
     """
     results = shacl.query(query)
     property_exists = [row.path for row in results]
@@ -1629,6 +1657,39 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
     optional_values_str = [row.optionalValues for row in results if row.optionalValues]
     optional_values_str = optional_values_str[0] if optional_values_str else ''
     optional_values = [value for value in optional_values_str.split(',') if value]
+
+    max_count = [row.maxCount for row in results if row.maxCount]
+    min_count = [row.minCount for row in results if row.minCount]
+    max_count = int(max_count[0]) if max_count else None
+    min_count = int(min_count[0]) if min_count else None
+
+    current_values = list(data_graph.triples((URIRef(subject), URIRef(predicate), None)))
+    current_count = len(current_values)
+
+    if action == 'create':
+        new_count = current_count + 1
+    elif action == 'delete':
+        new_count = current_count - 1
+    else:  # update
+        new_count = current_count
+
+    if max_count is not None and new_count > max_count:
+        value = gettext('value') if max_count == 1 else gettext('values')
+        return None, old_value, gettext(
+            'The property %(predicate)s allows at most %(max_count)s %(value)s',
+            predicate=custom_filter.human_readable_predicate(predicate, s_types),
+            max_count=max_count,
+            value=value
+        )
+    if min_count is not None and new_count < min_count:
+        value = gettext('value') if min_count == 1 else gettext('values')
+        return None, old_value, gettext(
+            'The property %(predicate)s requires at least %(min_count)s %(value)s',
+            predicate=custom_filter.human_readable_predicate(predicate, s_types),
+            min_count=min_count,
+            value=value
+        )
+
     if optional_values and new_value not in optional_values:
         optional_value_labels = [custom_filter.human_readable_predicate(value, s_types) for value in optional_values]
         return None, old_value, gettext(
@@ -1660,11 +1721,11 @@ def validate_new_triple(subject, predicate, new_value, old_value = None):
         if old_value.datatype:
             valid_value = Literal(new_value, datatype=old_value.datatype)
         else:
-            valid_value = Literal(new_value)
+            valid_value = Literal(new_value, datatype=XSD.string)
     elif isinstance(old_value, URIRef) or validators.url(new_value):
         valid_value = URIRef(new_value)
     else:
-        valid_value = Literal(new_value)
+        valid_value = Literal(new_value, datatype=XSD.string)
     return valid_value, old_value, ''
 
 def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info, historical_snapshot=None):
@@ -1672,7 +1733,6 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
     relevant_properties = set()
     fetched_values_map = dict()  # Map of original values to values returned by the query
     primary_properties = valid_predicates_info
-
     highest_priority_class = get_highest_priority_class(subject_classes)
     highest_priority_rules = [rule for rule in display_rules if rule['class'] == str(highest_priority_class)]
     for prop_uri in primary_properties:
@@ -1751,7 +1811,7 @@ def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped
                 else:
                     result, external_entity = execute_sparql_query(rule['fetchValueFromQuery'], subject, triple[2])
                 if result:
-                    fetched_values_map[result] = str(triple[2])
+                    fetched_values_map[str(result)] = str(triple[2])
                     new_triple = (str(triple[0]), str(triple[1]), str(result))
                     new_triple_data = {
                         'triple': new_triple,
@@ -1777,9 +1837,9 @@ def process_ordering(subject, prop, order_property, grouped_triples, display_nam
                 next_value = res['nextValue']['value']
             else:  # For historical snapshot results
                 ordered_entity = str(res[0])
-                next_value = str(res[1]) if res[1] else "NONE"
+                next_value = str(res[1])
 
-            order_map[ordered_entity] = None if next_value == "NONE" else next_value
+            order_map[str(ordered_entity)] = None if str(next_value) == "NONE" else str(next_value)
 
         all_sequences = []
         start_elements = set(order_map.keys()) - set(order_map.values())
@@ -1791,11 +1851,13 @@ def process_ordering(subject, prop, order_property, grouped_triples, display_nam
                 current_element = order_map[current_element]
             all_sequences.append(sequence)
         return all_sequences
-        
+    
+    decoded_subject = unquote(subject)
+
     order_query = f"""
         SELECT ?orderedEntity (COALESCE(?next, "NONE") AS ?nextValue)
         WHERE {{
-            <{subject}> <{prop['property']}> ?orderedEntity.
+            <{decoded_subject}> <{prop['property']}> ?orderedEntity.
             OPTIONAL {{
                 ?orderedEntity <{order_property}> ?next.
             }}
@@ -1811,7 +1873,10 @@ def process_ordering(subject, prop, order_property, grouped_triples, display_nam
     order_sequences = get_ordered_sequence(order_results)
     for sequence in order_sequences:
         grouped_triples[display_name]['triples'].sort(
-            key=lambda x: sequence.index(fetched_values_map.get(x['triple'][2], x['triple'][2])) if fetched_values_map.get(x['triple'][2], x['triple'][2]) in sequence else float('inf'))
+            key=lambda x: sequence.index(
+                fetched_values_map.get(str(x['triple'][2]), str(x['triple'][2]))
+            ) if fetched_values_map.get(str(x['triple'][2]), str(x['triple'][2])) in sequence else float('inf')
+        )
 
 def process_default_property(prop_uri, triples, grouped_triples):
     display_name = prop_uri
@@ -2565,7 +2630,7 @@ def execute_historical_query(query: str, subject: str, value: str, historical_sn
     results = historical_snapshot.query(query)
     if results:
         for result in results:
-            return (result[0], result[1])
+            return (str(result[0]), str(result[1]))
     return None, None
 
 @app.cli.group()

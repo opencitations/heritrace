@@ -1003,13 +1003,13 @@ pandas = ["pandas (>=1.3.5)"]
 
 [[package]]
 name = "time-agnostic-library"
-version = "4.6.5"
+version = "4.6.7"
 description = "time-agnostic-library is a Python ≥3.7 library that allows performing time-travel queries on RDF datasets compliant with the OCDM v2.0.1 provenance specification."
 optional = false
 python-versions = "<3.14,>=3.8"
 files = [
-    {file = "time_agnostic_library-4.6.5-py3-none-any.whl", hash = "sha256:68a8a6bc26fd8bd343bf08c26ad1d02f8c0a1930cb795233ce2e1fad90be8e7b"},
-    {file = "time_agnostic_library-4.6.5.tar.gz", hash = "sha256:415052ae3a0477a0b475b5f1b02e32cf1d33e5f2ba1f60551973f4b7fb7c106d"},
+    {file = "time_agnostic_library-4.6.7-py3-none-any.whl", hash = "sha256:4f2728e7cebb0b7ef83de6a88378fdd515d36833e4585646f3d59acf12579ce5"},
+    {file = "time_agnostic_library-4.6.7.tar.gz", hash = "sha256:1ad6bd0ce05f8bf6e51da4e501b973d7de01068ce9bfdb03dbad82209322540b"},
 ]
 
 [package.dependencies]
@@ -1135,4 +1135,4 @@ email = ["email-validator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10,<3.14"
-content-hash = "7125daed55c92f921c1b8fdf716e9972a900a3cc7244d40cd1650935cee58f84"
+content-hash = "d2b658d88142e2909eb4a8776a575ee8fa45674e0324740b0429be81d0d9bf76"
