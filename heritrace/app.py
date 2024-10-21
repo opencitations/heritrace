@@ -33,11 +33,8 @@ from rdflib.plugins.sparql.parser import parseQuery, parseUpdate
 from requests_oauthlib import OAuth2Session
 from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON, XML, SPARQLWrapper
-from time_agnostic_library.agnostic_entity import (
-    AgnosticEntity, _filter_timestamps_by_interval)
+from time_agnostic_library.agnostic_entity import AgnosticEntity
 from time_agnostic_library.prov_entity import ProvEntity
-from time_agnostic_library.sparql import Sparql
-from time_agnostic_library.support import convert_to_datetime
 
 app = Flask(__name__)
 
@@ -1396,48 +1393,154 @@ def entity_version(entity_uri, timestamp):
         version_number=version_number
     )
 
+def fetch_data_graph_recursively(subject_uri, max_depth=5, current_depth=0, visited=None):
+    """
+    Recursively fetch all quads associated with a subject and its connected entities.
+
+    Args:
+        subject_uri (str): The URI of the subject to fetch.
+        max_depth (int): Maximum depth of recursion.
+        current_depth (int): Current depth in recursion.
+        visited (set): Set of visited URIs to avoid cycles.
+
+    Returns:
+        ConjunctiveGraph: A graph containing all fetched quads.
+    """
+    if visited is None:
+        visited = set()
+    if current_depth > max_depth or subject_uri in visited:
+        return ConjunctiveGraph()
+
+    visited.add(subject_uri)
+    g = ConjunctiveGraph()
+
+    # Fetch all quads where the subject is involved
+    if is_dataset_quadstore():
+        query = f"""
+        SELECT ?s ?p ?o ?g
+        WHERE {{
+            GRAPH ?g {{
+                ?s ?p ?o .
+                VALUES (?s) {{(<{subject_uri}>)}}
+            }}
+        }}
+        """
+    else:
+        query = f"""
+        CONSTRUCT {{
+            <{subject_uri}> ?p ?o .
+        }}
+        WHERE {{
+            <{subject_uri}> ?p ?o .
+        }}
+        """
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON if is_dataset_quadstore() else XML)
+    results = sparql.query().convert()
+
+    if is_dataset_quadstore():
+        for result in results["results"]["bindings"]:
+            s = URIRef(result["s"]["value"])
+            p = URIRef(result["p"]["value"])
+            o = result["o"]
+            g_context = URIRef(result["g"]["value"])
+
+            if o["type"] == "uri":
+                o_node = URIRef(o["value"])
+            else:
+                value = o["value"]
+                lang = result.get("lang", {}).get("value")
+                datatype = o.get("datatype")
+                
+                if lang:
+                    o_node = Literal(value, lang=lang)
+                elif datatype:
+                    o_node = Literal(value, datatype=URIRef(datatype))
+                else:
+                    o_node = Literal(value, datatype=XSD.string)
+            g.add((s, p, o_node, g_context))
+    else:
+        for triple in results:
+            g.add(triple)
+
+    # Recursively fetch connected entities
+    for triple in g.quads((URIRef(subject_uri), None, None, None)):
+        o = triple[2]
+        if isinstance(o, URIRef) and o not in visited:
+            if is_dataset_quadstore():
+                for quad in fetch_data_graph_recursively(str(o), max_depth, current_depth + 1, visited).quads():
+                    g.add(quad)
+            else:
+                for triple in fetch_data_graph_recursively(str(o), max_depth, current_depth + 1, visited):
+                    g.add(triple)
+
+    return g
+
+def get_entity_graph(entity_uri, timestamp=None) -> Graph|ConjunctiveGraph:
+    if timestamp:
+        # Retrieve the historical snapshot
+        agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
+        history, _ = agnostic_entity.get_history(include_prov_metadata=False)
+        snapshot = history.get(entity_uri, {}).get(timestamp)
+        if snapshot is None:
+            abort(404)
+        return snapshot
+    else:
+        # Retrieve the current state
+        data_graph = fetch_data_graph_recursively(entity_uri)
+        return data_graph
+
+def compute_graph_differences(current_graph: Graph|ConjunctiveGraph, historical_graph: Graph|ConjunctiveGraph):
+    if is_dataset_quadstore():
+        current_data = set(current_graph.quads())
+        historical_data = set(historical_graph.quads())
+    else:
+        current_data = set(current_graph.quads())
+        historical_data = set(historical_graph.quads())
+    triples_or_quads_to_delete = current_data - historical_data
+    triples_or_quads_to_add = historical_data - current_data
+
+    return triples_or_quads_to_delete, triples_or_quads_to_add
+
 @app.route('/restore-version/<path:entity_uri>/<timestamp>', methods=['POST'])
 @login_required
 def restore_version(entity_uri, timestamp):
-    query_snapshots = f"""
-        SELECT ?time ?updateQuery ?snapshot
-        WHERE {{
-            ?snapshot <{ProvEntity.iri_specialization_of}> <{entity_uri}>;
-                <{ProvEntity.iri_generated_at_time}> ?time
-            OPTIONAL {{
-                ?snapshot <{ProvEntity.iri_has_update_query}> ?updateQuery.
-            }}
-        }}
-    """
-    results = list(Sparql(query_snapshots, config=change_tracking_config).run_select_query())
-    results.sort(key=lambda x:convert_to_datetime(x[0]), reverse=True)
-    relevant_results = _filter_timestamps_by_interval((timestamp, timestamp), results, time_index=0)
-    sum_update_queries = ""
-    for relevant_result in relevant_results:
-        for result in results:
-            if result[1]:
-                if convert_to_datetime(result[0]) > convert_to_datetime(relevant_result[0]):
-                    sum_update_queries += (result[1]) +  ";"
-        primary_source = URIRef(relevant_result[2])
-    inverted_query = invert_sparql_update(sum_update_queries)
+    current_graph = get_entity_graph(entity_uri)
+    historical_graph = get_entity_graph(entity_uri, timestamp)
+    triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(current_graph, historical_graph)
+
     editor = Editor(
         dataset_endpoint, 
         provenance_endpoint, 
         app.config['COUNTER_HANDLER'], 
-        f"https://orcid.org/{URIRef(f'https://orcid.org/{current_user.orcid}')}", 
-        primary_source, 
-        app.config['DATASET_GENERATION_TIME'])
-    editor.execute(inverted_query)
-    editor.save()
-    query = f"""
-        SELECT ?predicate ?object WHERE {{
-            <{entity_uri}> ?predicate ?object.
-        }}
-    """
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
+        URIRef(f'https://orcid.org/{current_user.orcid}'), 
+        app.config['PRIMARY_SOURCE'], 
+        app.config['DATASET_GENERATION_TIME']
+    )
+
+    editor = import_entity_graph(editor, entity_uri)
+    editor.preexisting_finished()
+
+    for item in triples_or_quads_to_delete:
+        if len(item) == 4:
+            editor.delete(item[0], item[1], item[2], item[3])
+        else:
+            editor.delete(item[0], item[1], item[2])
+
+    for item in triples_or_quads_to_add:
+        if len(item) == 4:
+            editor.create(item[0], item[1], item[2], item[3])
+        else:
+            editor.create(item[0], item[1], item[2])
+
+    try:
+        editor.save()
+        flash(gettext('Version restored successfully'), 'success')
+    except Exception as e:
+        flash(gettext('An error occurred while restoring the version: %(error)s', error=str(e)), 'error')
+
     return redirect(url_for('about', subject=entity_uri))
-    
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('errors/404.jinja'), 404
@@ -1787,30 +1890,6 @@ def fetch_data_graph_for_subject(subject_uri):
 def is_valid_uri(uri):
     parsed_uri = urlparse(uri)
     return all([parsed_uri.scheme, parsed_uri.netloc])
-
-def fetch_data_graph_for_subject_recursively(subject_uri):
-    """
-    Fetch all triples associated with subject and all triples of all the entities that the subject points to.
-    """
-    query_str = f'''
-        PREFIX eea: <https://jobu_tupaki/>
-        CONSTRUCT {{
-            ?s ?p ?o .
-        }}
-        WHERE {{
-            {{
-                <{subject_uri}> ?p ?o .
-                ?s ?p ?o .
-            }} UNION {{
-                <{subject_uri}> (<eea:everything_everywhere_allatonce>|!<eea:everything_everywhere_allatonce>)* ?s.
-                ?s ?p ?o. 
-            }}
-        }}
-    '''
-    sparql.setQuery(query_str)
-    sparql.setReturnFormat(XML)
-    result = sparql.queryAndConvert()
-    return result
 
 def convert_to_matching_class(object_value, classes):
     data_graph = fetch_data_graph_for_subject(object_value)

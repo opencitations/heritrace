@@ -2,12 +2,13 @@ from collections import defaultdict
 from datetime import datetime
 
 from config import Config
-from rdflib import Graph, Literal, URIRef
+from rdflib import XSD, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMConjunctiveGraph, OCDMGraph
-from rdflib_ocdm.storer import Reader, Storer
+from rdflib_ocdm.reader import Reader
+from rdflib_ocdm.storer import Storer
 from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 
 
@@ -25,18 +26,18 @@ class Editor:
     def create(self, subject: URIRef, predicate: URIRef, value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
         graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
         if self.dataset_is_quadstore and graph:
-            self.g_set.add((subject, predicate, value, graph), resp_agent=self.resp_agent, source=self.source)
+            self.g_set.add((subject, predicate, value, graph), resp_agent=self.resp_agent, primary_source=self.source)
         else:
-            self.g_set.add((subject, predicate, value), resp_agent=self.resp_agent, source=self.source)
+            self.g_set.add((subject, predicate, value), resp_agent=self.resp_agent, primary_source=self.source)
 
     def update(self, subject: URIRef, predicate: URIRef, old_value: Literal|URIRef, new_value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
         graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
         if self.dataset_is_quadstore and graph:
             self.g_set.remove((subject, predicate, old_value, graph))
-            self.g_set.add((subject, predicate, new_value, graph), resp_agent=self.resp_agent, source=self.source)
+            self.g_set.add((subject, predicate, new_value, graph), resp_agent=self.resp_agent, primary_source=self.source)
         else:
             self.g_set.remove((subject, predicate, old_value))
-            self.g_set.add((subject, predicate, new_value), resp_agent=self.resp_agent, source=self.source)
+            self.g_set.add((subject, predicate, new_value), resp_agent=self.resp_agent, primary_source=self.source)
 
     def delete(self, subject: str, predicate: str = None, value: str = None, graph: URIRef|Graph|str = None) -> None:
         subject = URIRef(subject)
@@ -109,9 +110,9 @@ class Editor:
                         elif datatype:
                             o = Literal(value, datatype=URIRef(datatype))
                         else:
-                            o = Literal(value)
+                            o = Literal(value, datatype=XSD.string)
 
-                    self.g_set.add((s, p, o, g), resp_agent=self.resp_agent, source=self.source)
+                    self.g_set.add((s, p, o, g), resp_agent=self.resp_agent, primary_source=self.source)
         else:
             query: str = f'''
                 CONSTRUCT {{
@@ -128,7 +129,7 @@ class Editor:
 
             if result is not None:
                 for triple in result:
-                    self.g_set.add(triple, resp_agent=self.resp_agent, source=self.source)
+                    self.g_set.add(triple, resp_agent=self.resp_agent, primary_source=self.source)
 
     def execute(self, sparql_query: str) -> None:
         parsed = parseUpdate(sparql_query)
