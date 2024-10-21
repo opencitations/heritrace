@@ -342,12 +342,12 @@ def callback():
         token = orcid.fetch_token(app.config['ORCID_TOKEN_URL'], client_secret=app.config['ORCID_CLIENT_SECRET'],
                                   authorization_response=secure_url)
     except Exception as e:
-        flash(gettext('An error occurred during authentication. Please try again.'), 'danger')
+        flash(gettext('An error occurred during authentication. Please try again'), 'danger')
         return redirect(url_for('login'))
     orcid_id = token['orcid']
     
     if orcid_id not in app.config['ORCID_WHITELIST']:
-        flash(gettext('Your ORCID is not authorized to access this application.'), 'danger')
+        flash(gettext('Your ORCID is not authorized to access this application'), 'danger')
         return redirect(url_for('login'))
     user = User(id=orcid_id, name=token['name'], orcid=orcid_id)
     session.permanent = True
@@ -689,9 +689,9 @@ def validate_entity_data(structured_data, form_fields):
     errors = []
     entity_type = structured_data.get('entity_type')
     if not entity_type:
-        errors.append(gettext('Entity type is required.'))
+        errors.append(gettext('Entity type is required'))
     elif entity_type not in form_fields:
-        errors.append(gettext('Invalid entity type selected.'))
+        errors.append(gettext('Invalid entity type selected'))
 
     if errors:
         return errors
@@ -706,7 +706,7 @@ def validate_entity_data(structured_data, form_fields):
         if not field_definitions:
             errors.append(
                 gettext(
-                    'Unknown property %(prop_uri)s for entity type %(entity_type)s.',
+                    'Unknown property %(prop_uri)s for entity type %(entity_type)s',
                     prop_uri=prop_uri,
                     entity_type=entity_type
                 )
@@ -719,19 +719,23 @@ def validate_entity_data(structured_data, form_fields):
             prop_value_list = prop_values if isinstance(prop_values, list) else [prop_values]
             value_count = len(prop_value_list)
             if value_count < min_count:
+                value = gettext('values') if min_count > 1 else gettext('value')
                 errors.append(
                     gettext(
-                        'Property %(prop_uri)s requires at least %(min_count)d value(s).',
+                        'Property %(prop_uri)s requires at least %(min_count)d %(value)s',
                         prop_uri=custom_filter.human_readable_predicate(prop_uri, [entity_type]),
-                        min_count=min_count
+                        min_count=min_count,
+                        value=value
                     )
                 )
             if max_count is not None and value_count > max_count:
+                value = gettext('values') if max_count > 1 else gettext('value')
                 errors.append(
                     gettext(
-                        'Property %(prop_uri)s allows at most %(max_count)d value(s).',
+                        'Property %(prop_uri)s allows at most %(max_count)d %(value)s',
                         prop_uri=custom_filter.human_readable_predicate(prop_uri, [entity_type]),
-                        max_count=max_count
+                        max_count=max_count,
+                        value=value
                     )
                 )
 
@@ -741,7 +745,7 @@ def validate_entity_data(structured_data, form_fields):
                 if mandatory_value not in prop_value_list:
                     errors.append(
                         gettext(
-                            'Property %(prop_uri)s requires the value %(mandatory_value)s.',
+                            'Property %(prop_uri)s requires the value %(mandatory_value)s',
                             prop_uri=custom_filter.human_readable_predicate(prop_uri, [entity_type]),
                             mandatory_value=mandatory_value
                         )
@@ -769,7 +773,7 @@ def validate_entity_data(structured_data, form_fields):
                             )
                             errors.append(
                                 gettext(
-                                    'Value "%(value)s" for property %(prop_uri)s is not of expected type %(expected_types)s.',
+                                    'Value "%(value)s" for property %(prop_uri)s is not of expected type %(expected_types)s',
                                     value=value,
                                     prop_uri=custom_filter.human_readable_predicate(prop_uri, form_fields.keys()),
                                     expected_types=expected_types
@@ -782,7 +786,7 @@ def validate_entity_data(structured_data, form_fields):
                         )
                         errors.append(
                             gettext(
-                                'Value "%(value)s" is not permitted for property %(prop_uri)s. Acceptable values are: %(acceptable_values)s.',
+                                'Value "%(value)s" is not permitted for property %(prop_uri)s. Acceptable values are: %(acceptable_values)s',
                                 value=value,
                                 prop_uri=custom_filter.human_readable_predicate(prop_uri, form_fields.keys()),
                                 acceptable_values=acceptable_values
@@ -1146,9 +1150,9 @@ def generate_modification_text(modifications, subject_classes, history=None, ent
     Returns:
     str: HTML formatted string describing the modifications.
     """
-    modification_text = ""
+    modification_text = "<p><strong>" + gettext("Modifications") + "</strong></p>"
     for mod_type, triples in modifications.items():
-        modification_text += "<p><strong>" + gettext("Modifications") + "</strong></p><ul class='list-group mb-3'><p>"
+        modification_text += "<ul class='list-group mb-3'><p>"
         if mod_type == gettext('Additions'):
             modification_text += '<i class="bi bi-plus-circle-fill text-success"></i>'
         elif mod_type == gettext('Deletions'):
@@ -1693,7 +1697,7 @@ def validate_new_triple(subject, predicate, new_value, action: str, old_value = 
     if optional_values and new_value not in optional_values:
         optional_value_labels = [custom_filter.human_readable_predicate(value, s_types) for value in optional_values]
         return None, old_value, gettext(
-            '<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s.',
+            '<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s',
             new_value=custom_filter.human_readable_predicate(new_value, s_types),
             property=custom_filter.human_readable_predicate(predicate, s_types),
             o_values=', '.join([f'<code>{label}</code>' for label in optional_value_labels])
@@ -1710,7 +1714,7 @@ def validate_new_triple(subject, predicate, new_value, action: str, old_value = 
         if valid_value is None:
             datatype_labels = [get_datatype_label(datatype) for datatype in datatypes]
             return None, old_value, gettext(
-                '<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s.',
+                '<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s',
                 new_value=custom_filter.human_readable_predicate(new_value, s_types),
                 property=custom_filter.human_readable_predicate(predicate, s_types),
                 o_types=', '.join([f'<code>{label}</code>' for label in datatype_labels])

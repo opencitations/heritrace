@@ -461,7 +461,7 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: '{{ _("An error occurred") }}',
-                                text: '{{ _("Please try again later.") }}',
+                                text: '{{ _("Please try again later") }}',
                                 confirmButtonText: '{{ _("OK") }}',
                             });
                         }
@@ -472,7 +472,7 @@
             function showLoadingIndicator() {
                 Swal.fire({
                     title: '{{ _("Validating data...") }}',
-                    text: '{{ _("Please wait while we validate your data.") }}',
+                    text: '{{ _("Please wait while we validate your data") }}',
                     allowOutsideClick: false,
                     didOpen: () => {
                         Swal.showLoading()

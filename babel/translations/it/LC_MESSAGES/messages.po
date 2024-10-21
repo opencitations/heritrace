@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT 1.0\n"
 "Report-Msgid-Bugs-To: arcangelo.massari@unibo.it\n"
-"POT-Creation-Date: 2024-09-19 15:34+0200\n"
+"POT-Creation-Date: 2024-10-21 23:27+0200\n"
 "PO-Revision-Date: 2023-09-09 15:01+0200\n"
 "Last-Translator: Arcangelo Massari <arcangelo.massari@unibo.it>\n"
 "Language: it\n"
@@ -16,210 +16,293 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.12.1\n"
+"Generated-By: Babel 2.16.0\n"
 
-#: edit_sphere/app.py:331
+#: heritrace/app.py:305
+msgid "Please log in to access this page"
+msgstr "Effettua l'accesso per accedere a questa pagina"
+
+#: heritrace/app.py:345
+msgid "An error occurred during authentication. Please try again"
+msgstr "Si è verificato un errore durante l'autenticazione. Riprova"
+
+#: heritrace/app.py:350
+msgid "Your ORCID is not authorized to access this application"
+msgstr "Il tuo ORCID non è autorizzato ad accedere a questa applicazione"
+
+#: heritrace/app.py:356
+#, python-format
+msgid "Welcome back %(name)s!"
+msgstr "Bentornato %(name)s!"
+
+#: heritrace/app.py:363
+msgid "You have been logged out"
+msgstr "Sei stato disconnesso"
+
+#: heritrace/app.py:521
 msgid "Text (string)"
 msgstr "Testo (stringa)"
 
-#: edit_sphere/app.py:332
+#: heritrace/app.py:522
 msgid "Whole number (integer)"
 msgstr "Numero intero"
 
-#: edit_sphere/app.py:333
+#: heritrace/app.py:523
 msgid "True or False (boolean)"
 msgstr "Vero o Falso (booleano)"
 
-#: edit_sphere/app.py:334
+#: heritrace/app.py:524
 msgid "Date (YYYY-MM-DD)"
 msgstr "Data (AAAA-MM-GG)"
 
-#: edit_sphere/app.py:335
+#: heritrace/app.py:525
 msgid "Date and Time (YYYY-MM-DDThh:mm:ss)"
 msgstr "Data e Ora (AAAA-MM-GGThh:mm:ss)"
 
-#: edit_sphere/app.py:336
+#: heritrace/app.py:526
 msgid "Decimal number"
 msgstr "Numero decimale"
 
-#: edit_sphere/app.py:337
+#: heritrace/app.py:527
 msgid "Floating point number"
 msgstr "Numero a virgola mobile"
 
-#: edit_sphere/app.py:338
+#: heritrace/app.py:528
 msgid "Double precision floating point number"
 msgstr "Numero a virgola mobile a doppia precisione"
 
-#: edit_sphere/app.py:339
+#: heritrace/app.py:529
 msgid "Time (hh:mm:ss)"
 msgstr "Ora (hh:mm:ss)"
 
-#: edit_sphere/app.py:340
+#: heritrace/app.py:530
 msgid "Year (YYYY)"
 msgstr "Anno (AAAA)"
 
-#: edit_sphere/app.py:341
+#: heritrace/app.py:531
 msgid "Month (MM)"
 msgstr "Mese (MM)"
 
-#: edit_sphere/app.py:342
+#: heritrace/app.py:532
 msgid "Day of the month (DD)"
 msgstr "Giorno del mese (GG)"
 
-#: edit_sphere/app.py:343
+#: heritrace/app.py:533
 msgid "Duration (e.g., P1Y2M3DT4H5M6S)"
 msgstr "Durata (es., P1A2M3GT4H5M6S)"
 
-#: edit_sphere/app.py:344
+#: heritrace/app.py:534
 msgid "Hexadecimal binary"
 msgstr "Binario esadecimale"
 
-#: edit_sphere/app.py:345
+#: heritrace/app.py:535
 msgid "Base64 encoded binary"
 msgstr "Binario codificato in Base64"
 
-#: edit_sphere/app.py:346
+#: heritrace/app.py:536
 msgid "Web address (URL)"
 msgstr "Indirizzo web (URL)"
 
-#: edit_sphere/app.py:347
+#: heritrace/app.py:537
 msgid "Language code (e.g., en, it)"
 msgstr "Codice lingua (es., en, it)"
 
-#: edit_sphere/app.py:348
+#: heritrace/app.py:538
 msgid "Normalized text (no line breaks)"
 msgstr "Testo normalizzato (senza interruzioni di linea)"
 
-#: edit_sphere/app.py:349
+#: heritrace/app.py:539
 msgid "Tokenized text (single word)"
 msgstr "Testo tokenizzato (parola singola)"
 
-#: edit_sphere/app.py:350
+#: heritrace/app.py:540
 msgid "Non-positive integer (0 or negative)"
 msgstr "Numero intero non positivo (0 o negativo)"
 
-#: edit_sphere/app.py:351
+#: heritrace/app.py:541
 msgid "Negative integer"
 msgstr "Numero intero negativo"
 
-#: edit_sphere/app.py:352
+#: heritrace/app.py:542
 msgid "Long integer"
 msgstr "Numero intero lungo"
 
-#: edit_sphere/app.py:353
+#: heritrace/app.py:543
 msgid "Short integer"
 msgstr "Numero intero breve"
 
-#: edit_sphere/app.py:354
+#: heritrace/app.py:544
 msgid "Byte-sized integer"
 msgstr "Numero intero di dimensione byte"
 
-#: edit_sphere/app.py:355
+#: heritrace/app.py:545
 msgid "Non-negative integer (0 or positive)"
 msgstr "Numero intero non negativo (0 o positivo)"
 
-#: edit_sphere/app.py:356
+#: heritrace/app.py:546
 msgid "Positive integer (greater than 0)"
 msgstr "Numero intero positivo (maggiore di 0)"
 
-#: edit_sphere/app.py:357
+#: heritrace/app.py:547
 msgid "Unsigned long integer"
 msgstr "Numero intero lungo senza segno"
 
-#: edit_sphere/app.py:358
+#: heritrace/app.py:548
 msgid "Unsigned integer"
 msgstr "Numero intero senza segno"
 
-#: edit_sphere/app.py:359
+#: heritrace/app.py:549
 msgid "Unsigned short integer"
 msgstr "Numero intero breve senza segno"
 
-#: edit_sphere/app.py:360
+#: heritrace/app.py:550
 msgid "Unsigned byte"
 msgstr "Byte senza segno"
 
-#: edit_sphere/app.py:445
+#: heritrace/app.py:663
 msgid "Entity created successfully"
 msgstr "Entità creata con successo"
 
-#: edit_sphere/app.py:448
+#: heritrace/app.py:666
 #, python-format
 msgid "An error occurred while creating the entity: %(error)s"
 msgstr "Si è verificato un errore durante la creazione dell'entità: %(error)s"
 
-#: edit_sphere/app.py:534
+#: heritrace/app.py:692
+msgid "Entity type is required"
+msgstr "Il tipo di entità è obbligatorio"
+
+#: heritrace/app.py:694
+msgid "Invalid entity type selected"
+msgstr "Tipo di entità selezionato non valido"
+
+#: heritrace/app.py:708
+#, python-format
+msgid "Unknown property %(prop_uri)s for entity type %(entity_type)s"
+msgstr "Proprietà sconosciuta %(prop_uri)s per il tipo di entità %(entity_type)s"
+
+#: heritrace/app.py:722 heritrace/app.py:732 heritrace/app.py:1681
+#: heritrace/app.py:1689
+msgid "values"
+msgstr "valori"
+
+#: heritrace/app.py:722 heritrace/app.py:732 heritrace/app.py:1681
+#: heritrace/app.py:1689
+msgid "value"
+msgstr "valore"
+
+#: heritrace/app.py:726
+#, python-format
+msgid "Property %(prop_uri)s requires at least %(min_count)d %(value)s"
+msgstr "La proprietà %(prop_uri)s richiede almeno %(min_count)d %(value)s"
+
+#: heritrace/app.py:736
+#, python-format
+msgid "Property %(prop_uri)s allows at most %(max_count)d %(value)s"
+msgstr "La proprietà %(prop_uri)s permette al massimo %(max_count)d %(value)s"
+
+#: heritrace/app.py:749
+#, python-format
+msgid "Property %(prop_uri)s requires the value %(mandatory_value)s"
+msgstr "La proprietà %(prop_uri)s richiede il valore %(mandatory_value)s"
+
+#: heritrace/app.py:778
+#, python-format
+msgid ""
+"Value \"%(value)s\" for property %(prop_uri)s is not of expected type "
+"%(expected_types)s"
+msgstr ""
+"Il valore \"%(value)s\" per la proprietà %(prop_uri)s non è del tipo "
+"atteso %(expected_types)s."
+
+#: heritrace/app.py:791
+#, python-format
+msgid ""
+"Value \"%(value)s\" is not permitted for property %(prop_uri)s. "
+"Acceptable values are: %(acceptable_values)s"
+msgstr ""
+"Il valore \"%(value)s\" non è consentito per la proprietà %(prop_uri)s. I"
+" valori accettabili sono: %(acceptable_values)s"
+
+#: heritrace/app.py:904
 msgid "Value is required."
 msgstr "Il valore è obbligatorio."
 
-#: edit_sphere/app.py:542
+#: heritrace/app.py:912
 msgid "No matching datatypes found."
 msgstr "Nessun tipo di dati corrispondente trovato."
 
-#: edit_sphere/app.py:556
-#, python-format
-msgid "This resource cannot have any other %(predicate)s properties"
-msgstr "Questa risorsa non può avere altre proprietà %(predicate)s"
-
-#: edit_sphere/app.py:602
+#: heritrace/app.py:961
 msgid "Changes applied successfully"
 msgstr "Modifiche applicate con successo"
 
-#: edit_sphere/app.py:608
+#: heritrace/app.py:967
 msgid "An error occurred while applying changes"
 msgstr "Si è verificato un errore durante l'applicazione delle modifiche"
 
-#: edit_sphere/app.py:624
+#: heritrace/app.py:1058
 msgid "This property cannot be deleted"
 msgstr "Questa proprietà non può essere cancellata"
 
-#: edit_sphere/app.py:718
-msgid "Snapshot"
-msgstr "Versione"
+#: heritrace/app.py:1153
+msgid "Modifications"
+msgstr "Modifiche"
 
-#: edit_sphere/app.py:720
-msgid "Responsible agent"
-msgstr "Agente responsabile"
-
-#: edit_sphere/app.py:721 edit_sphere/templates/entity_version.jinja:96
-msgid "Primary source"
-msgstr "Fonte primaria"
-
-#: edit_sphere/app.py:722 edit_sphere/templates/entity_version.jinja:98
-msgid "Description"
-msgstr "Descrizione"
-
-#: edit_sphere/app.py:751
-msgid "View version"
-msgstr "Visualizza versione"
-
-#: edit_sphere/app.py:758
-msgid "Version history for"
-msgstr "Storia delle versioni di"
-
-#: edit_sphere/app.py:880 edit_sphere/app.py:896 edit_sphere/app.py:898
-msgid "Deletions"
-msgstr "Cancellazioni"
-
-#: edit_sphere/app.py:880 edit_sphere/app.py:901 edit_sphere/app.py:903
+#: heritrace/app.py:1156 heritrace/app.py:1608
 msgid "Additions"
 msgstr "Aggiunte"
 
-#: edit_sphere/app.py:950
+#: heritrace/app.py:1158 heritrace/app.py:1165 heritrace/app.py:1601
+msgid "Deletions"
+msgstr "Cancellazioni"
+
+#: heritrace/app.py:1252
+msgid "Snapshot"
+msgstr "Versione"
+
+#: heritrace/app.py:1277 heritrace/templates/entity_history.jinja:60
+msgid "Present"
+msgstr "Presente"
+
+#: heritrace/app.py:1286
+msgid "Version history for"
+msgstr "Storia delle versioni di"
+
+#: heritrace/app.py:1568
+msgid "Version restored successfully"
+msgstr "Versione ripristinata con successo"
+
+#: heritrace/app.py:1570
+#, python-format
+msgid "An error occurred while restoring the version: %(error)s"
+msgstr "Si è verificato un errore durante il ripristino della versione: %(error)s"
+
+#: heritrace/app.py:1657
 #, python-format
 msgid "The property %(predicate)s is not allowed for resources of type %(s_type)s"
 msgstr "%(predicate)s non è un metadato valido per risorse di tipo %(s_type)s"
 
-#: edit_sphere/app.py:958
+#: heritrace/app.py:1684
+#, python-format
+msgid "The property %(predicate)s allows at most %(max_count)s %(value)s"
+msgstr "La proprietà %(predicate)s permette al massimo %(max_count)s %(value)s"
+
+#: heritrace/app.py:1692
+#, python-format
+msgid "The property %(predicate)s requires at least %(min_count)s %(value)s"
+msgstr "La proprietà %(predicate)s richiede almeno %(min_count)s %(value)s"
+
+#: heritrace/app.py:1703
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
 "<code>%(property)s</code> property requires one of the following values: "
 "%(o_values)s"
 msgstr ""
-"<code>%(new_value)s</code> non è un valore valido. "
-"<code>%(property)s</code> richiede valori di tipo %(o_values)s"
+"<code>%(new_value)s</code> non è un valore valido. La proprietà "
+"<code>%(property)s</code> richiede uno dei seguenti valori: %(o_values)s"
 
-#: edit_sphere/app.py:961 edit_sphere/app.py:964 edit_sphere/app.py:969
+#: heritrace/app.py:1707 heritrace/app.py:1710 heritrace/app.py:1720
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
@@ -228,60 +311,45 @@ msgstr ""
 "<code>%(new_value)s</code> non è un valore valido. "
 "<code>%(property)s</code> richiede valori di tipo %(o_types)s"
 
-#: edit_sphere/filters.py:72
+#: heritrace/filters.py:111
 msgid "Unknown"
 msgstr "Sconosciuta"
 
-#: edit_sphere/filters.py:75 edit_sphere/templates/entity_version.jinja:37
+#: heritrace/filters.py:114 heritrace/templates/entity_version.jinja:34
 msgid "Version"
 msgstr "Versione"
 
-#: edit_sphere/templates/about.jinja:8 edit_sphere/templates/about.jinja:10
-#: edit_sphere/templates/about.jinja:32
-#, python-format
-msgid "Redirection to the entity %(entity)s"
-msgstr "Reindirizzamento all'entità %(entity)s"
-
-#: edit_sphere/templates/about.jinja:29
-msgid "This property is mandatory and cannot be edited"
-msgstr "Questa proprietà è obbligatoria e non può essere modificata"
-
-#: edit_sphere/templates/about.jinja:40
-msgid "This property is mandatory and cannot be deleted"
-msgstr "Questa proprietà è obbligatoria e non può essere cancellata"
-
-#: edit_sphere/templates/about.jinja:60
-msgid "Add a new piece of information"
-msgstr "Aggiungi una nuova informazione"
-
-#: edit_sphere/templates/about.jinja:67
-#: edit_sphere/templates/create_entity.jinja:323
-#: edit_sphere/templates/create_entity.jinja:706
-msgid "Value"
-msgstr "Valore"
-
-#: edit_sphere/templates/about.jinja:80
-msgid "Add"
-msgstr "Aggiungi"
-
-#: edit_sphere/templates/about.jinja:81 edit_sphere/templates/about.jinja:149
-msgid "Cancel"
-msgstr "Annulla"
-
-#: edit_sphere/templates/about.jinja:91
-msgid "About"
-msgstr "Riguardo"
-
-#: edit_sphere/templates/about.jinja:109
-#: edit_sphere/templates/entity_version.jinja:42
+#: heritrace/templates/about.jinja:29
+#: heritrace/templates/entity_version.jinja:39
 msgid "Time machine"
 msgstr "Macchina del tempo"
 
-#: edit_sphere/templates/about.jinja:116
+#: heritrace/templates/about.jinja:36
 msgid "Edit"
 msgstr "Modifica"
 
-#: edit_sphere/templates/about.jinja:120 edit_sphere/templates/about.jinja:176
+#: heritrace/templates/about.jinja:101 heritrace/templates/macros.jinja:189
+#, python-format
+msgid "Add %(element_type)s"
+msgstr "Aggiungi %(element_type)s"
+
+#: heritrace/templates/about.jinja:113
+msgid "There is no information related to this entity in the dataset"
+msgstr "Non ci sono informazioni disponibili su questa risorsa nella banca dati"
+
+#: heritrace/templates/about.jinja:117
+msgid "Save Changes"
+msgstr "Salva Modifiche"
+
+#: heritrace/templates/about.jinja:118
+msgid "Cancel"
+msgstr "Annulla"
+
+#: heritrace/templates/about.jinja:159
+msgid "Warning"
+msgstr "Attenzione"
+
+#: heritrace/templates/about.jinja:160
 msgid ""
 "You cannot add more properties; the limit for each property has been "
 "reached"
@@ -289,258 +357,491 @@ msgstr ""
 "Non puoi aggiungere altre proprietà; il limite per ogni proprietà è stato"
 " raggiunto"
 
-#: edit_sphere/templates/about.jinja:124 edit_sphere/templates/about.jinja:143
-msgid "Add new information"
-msgstr "Aggiungi una nuova informazione"
+#: heritrace/templates/about.jinja:482
+msgid "No Changes Detected"
+msgstr "Nessuna modifica rilevata"
 
-#: edit_sphere/templates/about.jinja:142
-msgid "There is no information related to this entity in the dataset"
-msgstr "Non ci sono informazioni disponibili su questa risorsa nella banca dati"
+#: heritrace/templates/about.jinja:483
+msgid ""
+"Oops! It looks like you haven\\'t made any changes yet. Try updating a "
+"field first"
+msgstr ""
+"Ops! Sembra che tu non abbia ancora apportato modifiche. Prova a "
+"modificare prima un campo"
 
-#: edit_sphere/templates/about.jinja:143
-msgid "Let's add some metadata"
-msgstr "Aggiungiamo un po' di metadati"
-
-#: edit_sphere/templates/about.jinja:148
-msgid "Save Changes"
-msgstr "Salva Modifiche"
-
-#: edit_sphere/templates/about.jinja:175
-msgid "Warning"
-msgstr "Attenzione"
-
-#: edit_sphere/templates/about.jinja:351
+#: heritrace/templates/about.jinja:519
 msgid "An unexpected error occurred!"
 msgstr "Si è verificato un errore inaspettato!"
 
-#: edit_sphere/templates/about.jinja:354
+#: heritrace/templates/about.jinja:522
 msgid "Oops..."
 msgstr "Ops..."
 
-#: edit_sphere/templates/create_entity.jinja:79
-msgid "Date"
-msgstr "Data"
-
-#: edit_sphere/templates/create_entity.jinja:82
-msgid "Year and Month"
-msgstr "Anno e Mese"
-
-#: edit_sphere/templates/create_entity.jinja:85
-msgid "Year"
-msgstr "Anno"
-
-#: edit_sphere/templates/create_entity.jinja:88
-msgid "Select Date Type"
-msgstr "Seleziona il formato della data"
-
-#: edit_sphere/templates/create_entity.jinja:103
-msgid "Please enter a valid date in YYYY-MM-DD format."
-msgstr "Inserisci una data valida nel formato AAAA-MM-GG."
-
-#: edit_sphere/templates/create_entity.jinja:119
-msgid "Please enter a valid date in YYYY-MM format."
-msgstr "Inserisci una data valida nel formato AAAA-MM."
-
-#: edit_sphere/templates/create_entity.jinja:136
-msgid "Please enter a valid year in YYYY format."
-msgstr "Inserisci un anno valido nel formato AAAA."
-
-#: edit_sphere/templates/create_entity.jinja:161
-#, python-format
-msgid "Add %(element_type)s"
-msgstr "Aggiungi %(element_type)s"
-
-#: edit_sphere/templates/create_entity.jinja:271
-#: edit_sphere/templates/navigation.jinja:16
-msgid "Add New Record"
-msgstr "Nuovo Record"
-
-#: edit_sphere/templates/create_entity.jinja:291
-#: edit_sphere/templates/create_entity.jinja:296
-msgid "Select an entity type"
-msgstr "Seleziona un tipo di entità"
-
-#: edit_sphere/templates/create_entity.jinja:314
-#: edit_sphere/templates/create_entity.jinja:696
-#: edit_sphere/templates/create_entity.jinja:746
-msgid "Property"
-msgstr "Proprietà"
-
-#: edit_sphere/templates/create_entity.jinja:319
-#: edit_sphere/templates/create_entity.jinja:702
-msgid "Property URI"
-msgstr "URI della proprietà"
-
-#: edit_sphere/templates/create_entity.jinja:320
-#: edit_sphere/templates/create_entity.jinja:703
-msgid "Please enter a valid URL for the property URI"
-msgstr "Si prega di inserire un URL valido per l'URI della proprietà"
-
-#: edit_sphere/templates/create_entity.jinja:327
-#: edit_sphere/templates/create_entity.jinja:710
-msgid "Value Type"
-msgstr "Tipo di valore"
-
-#: edit_sphere/templates/create_entity.jinja:329
-#: edit_sphere/templates/create_entity.jinja:712
-msgid "Literal"
-msgstr "Letterale"
-
-#: edit_sphere/templates/create_entity.jinja:330
-#: edit_sphere/templates/create_entity.jinja:713
-msgid "URI"
-msgstr "URI"
-
-#: edit_sphere/templates/create_entity.jinja:336
-#: edit_sphere/templates/create_entity.jinja:719
-msgid "Select Datatype"
-msgstr "Seleziona il tipo di dato"
-
-#: edit_sphere/templates/create_entity.jinja:345
-msgid "Add Property"
-msgstr "Aggiungi Proprietà"
-
-#: edit_sphere/templates/create_entity.jinja:349
-msgid "Create"
-msgstr "Crea"
-
-#: edit_sphere/templates/create_entity.jinja:398
-msgid "No valid datatypes for this value"
-msgstr ""
-
-#: edit_sphere/templates/create_entity.jinja:830
-#, fuzzy
-msgid "Please enter a valid URL"
-msgstr "Si prega di inserire un URL valido per l'URI dell'entità"
-
-#: edit_sphere/templates/create_entity.jinja:1007
-msgid "Invalid Submission"
-msgstr "Invio non valido"
-
-#: edit_sphere/templates/create_entity.jinja:1008
-msgid "Please provide at least one valid property with URI and value"
-msgstr "Si prega di fornire almeno una proprietà valida con URI e valore"
-
-#: edit_sphere/templates/create_entity.jinja:1009
-msgid "OK"
-msgstr "OK"
-
-#: edit_sphere/templates/endpoint.jinja:5
-#: edit_sphere/templates/navigation.jinja:19
-msgid "SPARQL Endpoint"
-msgstr "Endpoint SPARQL"
-
-#: edit_sphere/templates/entities.jinja:4
-#: edit_sphere/templates/navigation.jinja:13
+#: heritrace/templates/catalogue.jinja:15
+#: heritrace/templates/navigation.jinja:13
 msgid "Catalogue"
 msgstr "Catalogo"
 
-#: edit_sphere/templates/entities.jinja:18
+#: heritrace/templates/catalogue.jinja:30
+msgid "Items in category: "
+msgstr "Elementi nella categoria: "
+
+#: heritrace/templates/catalogue.jinja:44
+msgid "Items per page:"
+msgstr "Elementi per pagina:"
+
+#: heritrace/templates/catalogue.jinja:59
+msgid "Prev"
+msgstr "Prec"
+
+#: heritrace/templates/catalogue.jinja:65
+#: heritrace/templates/catalogue.jinja:93
+msgid "Next"
+msgstr "Succ"
+
+#: heritrace/templates/catalogue.jinja:75
+msgid "No entities found for this class"
+msgstr "Nessuna entità trovata per questa classe"
+
+#: heritrace/templates/catalogue.jinja:85
 msgid "Previous"
 msgstr "Indietro"
 
-#: edit_sphere/templates/entities.jinja:40
-msgid "Next"
-msgstr "Avanti"
+#: heritrace/templates/catalogue.jinja:103
+msgid "No data available"
+msgstr "Nessun dato disponibile"
 
-#: edit_sphere/templates/entity_history.jinja:7
-#: edit_sphere/templates/entity_version.jinja:31
+#: heritrace/templates/create_entity.jinja:8
+#: heritrace/templates/navigation.jinja:16
+msgid "Add New Record"
+msgstr "Nuovo Record"
+
+#: heritrace/templates/create_entity.jinja:28
+#: heritrace/templates/create_entity.jinja:33
+msgid "Select an entity type"
+msgstr "Seleziona un tipo di entità"
+
+#: heritrace/templates/create_entity.jinja:51
+#: heritrace/templates/create_entity.jinja:197
+#: heritrace/templates/create_entity.jinja:247
+msgid "Property"
+msgstr "Proprietà"
+
+#: heritrace/templates/create_entity.jinja:56
+#: heritrace/templates/create_entity.jinja:203
+msgid "Property URI"
+msgstr "URI della proprietà"
+
+#: heritrace/templates/create_entity.jinja:57
+#: heritrace/templates/create_entity.jinja:204
+msgid "Please enter a valid URL for the property URI"
+msgstr "Si prega di inserire un URL valido per l'URI della proprietà"
+
+#: heritrace/templates/create_entity.jinja:60
+#: heritrace/templates/create_entity.jinja:207
+msgid "Value"
+msgstr "Valore"
+
+#: heritrace/templates/create_entity.jinja:65
+#: heritrace/templates/create_entity.jinja:211
+msgid "Value Type"
+msgstr "Tipo di valore"
+
+#: heritrace/templates/create_entity.jinja:67
+#: heritrace/templates/create_entity.jinja:213
+msgid "Literal"
+msgstr "Letterale"
+
+#: heritrace/templates/create_entity.jinja:68
+#: heritrace/templates/create_entity.jinja:214
+msgid "URI"
+msgstr "URI"
+
+#: heritrace/templates/create_entity.jinja:75
+#: heritrace/templates/create_entity.jinja:220
+msgid "Select Datatype"
+msgstr "Seleziona il tipo di dato"
+
+#: heritrace/templates/create_entity.jinja:84
+msgid "Add Property"
+msgstr "Aggiungi Proprietà"
+
+#: heritrace/templates/create_entity.jinja:88
+msgid "Create"
+msgstr "Crea"
+
+#: heritrace/templates/create_entity.jinja:132
+msgid "No valid datatypes for this value"
+msgstr "Nessun tipo di dato valido per questo valore"
+
+#: heritrace/templates/create_entity.jinja:326
+msgid "Please enter a valid URL"
+msgstr "Inserisci un URL valido"
+
+#: heritrace/templates/create_entity.jinja:375
+msgid "Please provide at least one property with a value"
+msgstr "Fornisci almeno una proprietà con un valore"
+
+#: heritrace/templates/create_entity.jinja:390
+msgid "Please fill out at least one property"
+msgstr "Compila almeno una proprietà"
+
+#: heritrace/templates/create_entity.jinja:455
+msgid "Validation Errors"
+msgstr "Errori di convalida"
+
+#: heritrace/templates/create_entity.jinja:457
+#: heritrace/templates/create_entity.jinja:465
+#: heritrace/templates/validation.jinja:299
+msgid "OK"
+msgstr "OK"
+
+#: heritrace/templates/create_entity.jinja:463
+msgid "An error occurred"
+msgstr "Si è verificato un errore"
+
+#: heritrace/templates/create_entity.jinja:464
+msgid "Please try again later"
+msgstr "Riprova più tardi"
+
+#: heritrace/templates/create_entity.jinja:474
+msgid "Validating data..."
+msgstr "Convalida dei dati in corso..."
+
+#: heritrace/templates/create_entity.jinja:475
+msgid "Please wait while we validate your data"
+msgstr "Attendi mentre convalidiamo i tuoi dati"
+
+#: heritrace/templates/endpoint.jinja:5 heritrace/templates/navigation.jinja:19
+msgid "SPARQL Endpoint"
+msgstr "Endpoint SPARQL"
+
+#: heritrace/templates/entity_history.jinja:8
+#: heritrace/templates/entity_version.jinja:29
 #, python-format
-msgid "About %(subject)s"
-msgstr "Riguardo %(subject)s"
+msgid "History of <em>%(subject)s</em>"
+msgstr "Cronologia di <em>%(subject)s</em>"
 
-#: edit_sphere/templates/entity_history.jinja:8
-#: edit_sphere/templates/entity_version.jinja:32
+#: heritrace/templates/entity_version.jinja:30
 #, python-format
-msgid "History of %(subject)s"
-msgstr "Storia di %(subject)s"
+msgid "Version %(version_number)s of <em>%(subject)s</em>"
+msgstr "Versione %(version_number)s di <em>%(subject)s</em>"
 
-#: edit_sphere/templates/entity_version.jinja:33
-#, python-format
-msgid "Version %(version_number)s of %(subject)s"
-msgstr "Versione %(version_number)s di %(subject)s"
-
-#: edit_sphere/templates/entity_version.jinja:37
+#: heritrace/templates/entity_version.jinja:34
 msgid "of"
 msgstr "di"
 
-#: edit_sphere/templates/entity_version.jinja:49
+#: heritrace/templates/entity_version.jinja:46
 msgid "Restore this version"
 msgstr "Ripristina questa versione"
 
-#: edit_sphere/templates/entity_version.jinja:63
-#: edit_sphere/templates/entity_version.jinja:69
+#: heritrace/templates/entity_version.jinja:60
+#: heritrace/templates/entity_version.jinja:66
 msgid "Previous version"
 msgstr "Versione precedente"
 
-#: edit_sphere/templates/entity_version.jinja:77
+#: heritrace/templates/entity_version.jinja:74
 msgid "Next version"
 msgstr "Versione successiva"
 
-#: edit_sphere/templates/entity_version.jinja:88
+#: heritrace/templates/entity_version.jinja:85
 msgid "Metadata of snapshot"
 msgstr "Metadati della versione numero"
 
-#: edit_sphere/templates/entity_version.jinja:91
+#: heritrace/templates/entity_version.jinja:88
 msgid "Generation time"
 msgstr "Data di generazione"
 
-#: edit_sphere/templates/entity_version.jinja:93
+#: heritrace/templates/entity_version.jinja:90
 msgid "Invalidation time"
 msgstr "Data di invalidazione"
 
-#: edit_sphere/templates/entity_version.jinja:95
+#: heritrace/templates/entity_version.jinja:92
 msgid "Attributed to"
 msgstr "Agente responsabile"
 
-#: edit_sphere/templates/entity_version.jinja:102
-msgid "Modifications"
-msgstr "Modifiche"
+#: heritrace/templates/entity_version.jinja:93
+msgid "Primary source"
+msgstr "Fonte primaria"
 
-#: edit_sphere/templates/entity_version.jinja:140
+#: heritrace/templates/entity_version.jinja:95
+msgid "Description"
+msgstr "Descrizione"
+
+#: heritrace/templates/entity_version.jinja:120
 msgid "This snapshot does not exist"
 msgstr "Questa versione non esiste"
 
-#: edit_sphere/templates/footer.jinja:15
+#: heritrace/templates/footer.jinja:15
 msgid "Language"
 msgstr "Lingua"
 
-#: edit_sphere/templates/index.jinja:76
+#: heritrace/templates/index.jinja:89
 msgid "An environment for data curation"
 msgstr "Una piattaforma per la curatela dei dati"
 
-#: edit_sphere/templates/index.jinja:77
-#: edit_sphere/templates/navigation.jinja:13
+#: heritrace/templates/index.jinja:90 heritrace/templates/navigation.jinja:13
 msgid "Go to the catalogue"
 msgstr "Vai al catalogo"
 
-#: edit_sphere/templates/navigation.jinja:10
+#: heritrace/templates/login.jinja:49
+msgid "Login with ORCID"
+msgstr "Accedi con ORCID"
+
+#: heritrace/templates/login.jinja:52
+msgid "Click the button below to log in using your ORCID account"
+msgstr "Clicca il pulsante qui sotto per accedere usando il tuo account ORCID"
+
+#: heritrace/templates/login.jinja:56
+msgid "Sign in with ORCID"
+msgstr "Accedi con ORCID"
+
+#: heritrace/templates/macros.jinja:77 heritrace/templates/macros.jinja:236
+msgid "Date"
+msgstr "Data"
+
+#: heritrace/templates/macros.jinja:80 heritrace/templates/macros.jinja:239
+msgid "Year and Month"
+msgstr "Anno e Mese"
+
+#: heritrace/templates/macros.jinja:83 heritrace/templates/macros.jinja:242
+msgid "Year"
+msgstr "Anno"
+
+#: heritrace/templates/macros.jinja:86 heritrace/templates/macros.jinja:245
+msgid "Select Date Type"
+msgstr "Seleziona il formato della data"
+
+#: heritrace/templates/macros.jinja:212 heritrace/templates/macros.jinja:214
+#: heritrace/templates/macros.jinja:286
+#, python-format
+msgid "Redirection to the entity %(entity)s"
+msgstr "Reindirizzamento all'entità %(entity)s"
+
+#: heritrace/templates/macros.jinja:283
+msgid "This property is mandatory and cannot be edited"
+msgstr "Questa proprietà è obbligatoria e non può essere modificata"
+
+#: heritrace/templates/macros.jinja:294
+msgid "This property is mandatory and cannot be deleted"
+msgstr "Questa proprietà è obbligatoria e non può essere cancellata"
+
+#: heritrace/templates/navigation.jinja:10
 msgid "Go to the home"
 msgstr "Torna alla home"
 
-#: edit_sphere/templates/navigation.jinja:23
-#: edit_sphere/templates/navigation.jinja:24
+#: heritrace/templates/navigation.jinja:23
+msgid "Logout"
+msgstr "Disconnetti"
+
+#: heritrace/templates/navigation.jinja:27
+msgid "Login"
+msgstr "Accedi"
+
+#: heritrace/templates/navigation.jinja:32
+#: heritrace/templates/navigation.jinja:33
 msgid "Search"
 msgstr "Cerca"
 
-#: edit_sphere/templates/sub_form_template.jinja:30
-#, python-format
-msgid "Add another %(element_type)s"
-msgstr ""
+#: heritrace/templates/validation.jinja:16
+msgid "Unknown field"
+msgstr "Campo sconosciuto"
 
-#: edit_sphere/templates/errors/404.jinja:6
+#: heritrace/templates/validation.jinja:20
+msgid "The field"
+msgstr "Il campo"
+
+#: heritrace/templates/validation.jinja:20
+#: heritrace/templates/validation.jinja:55
+#: heritrace/templates/validation.jinja:236
+msgid "of the"
+msgstr "del"
+
+#: heritrace/templates/validation.jinja:20
+msgid "is required"
+msgstr "è obbligatorio"
+
+#: heritrace/templates/validation.jinja:51
+msgid "Unknown URL field"
+msgstr "Campo URL sconosciuto"
+
+#: heritrace/templates/validation.jinja:55
+msgid "Please enter a valid URL for"
+msgstr "Inserisci un URL valido per"
+
+#: heritrace/templates/validation.jinja:73
+msgid "any text"
+msgstr "qualsiasi testo"
+
+#: heritrace/templates/validation.jinja:77
+msgid "text without line breaks or tabs"
+msgstr "testo senza interruzioni di riga o tabulazioni"
+
+#: heritrace/templates/validation.jinja:82
+msgid "whole number"
+msgstr "numero intero"
+
+#: heritrace/templates/validation.jinja:86
+msgid "positive whole number"
+msgstr "numero intero positivo"
+
+#: heritrace/templates/validation.jinja:90
+msgid "negative whole number"
+msgstr "numero intero negativo"
+
+#: heritrace/templates/validation.jinja:94
+msgid "non-negative whole number"
+msgstr "numero intero non negativo"
+
+#: heritrace/templates/validation.jinja:98
+msgid "non-positive whole number"
+msgstr "numero intero non positivo"
+
+#: heritrace/templates/validation.jinja:102
+msgid "whole number between -128 and 127"
+msgstr "numero intero tra -128 e 127"
+
+#: heritrace/templates/validation.jinja:106
+msgid "whole number between -32768 and 32767"
+msgstr "numero intero tra -32768 e 32767"
+
+#: heritrace/templates/validation.jinja:110
+msgid "whole number between -2147483648 and 2147483647"
+msgstr "numero intero tra -2147483648 e 2147483647"
+
+#: heritrace/templates/validation.jinja:114
+msgid "whole number between 0 and 255"
+msgstr "numero intero tra 0 e 255"
+
+#: heritrace/templates/validation.jinja:118
+msgid "whole number between 0 and 65535"
+msgstr "numero intero tra 0 e 65535"
+
+#: heritrace/templates/validation.jinja:123
+msgid "whole number between 0 and 4294967295"
+msgstr "numero intero tra 0 e 4294967295"
+
+#: heritrace/templates/validation.jinja:129
+msgid "number (can include decimal point)"
+msgstr "numero (può includere un punto decimale)"
+
+#: heritrace/templates/validation.jinja:133
+msgid "duration (e.g. P1Y2M3DT4H5M6S)"
+msgstr "durata (es. P1Y2M3DT4H5M6S)"
+
+#: heritrace/templates/validation.jinja:137
+msgid "day and time duration (e.g. P1DT2H3M4S)"
+msgstr "durata giorno e ora (es. P1DT2H3M4S)"
+
+#: heritrace/templates/validation.jinja:141
+msgid "year and month duration (e.g. P1Y2M)"
+msgstr "durata anno e mese (es. P1Y2M)"
+
+#: heritrace/templates/validation.jinja:145
+msgid "year and month in format YYYY-MM"
+msgstr "anno e mese nel formato YYYY-MM"
+
+#: heritrace/templates/validation.jinja:149
+msgid "year in format YYYY"
+msgstr "anno nel formato YYYY"
+
+#: heritrace/templates/validation.jinja:153
+msgid "date and time (e.g. 2023-06-15T14:30:00+02:00)"
+msgstr "data e ora (es. 2023-06-15T14:30:00+02:00)"
+
+#: heritrace/templates/validation.jinja:157
+msgid "date and time with timezone (e.g. 2023-06-15T14:30:00+02:00)"
+msgstr "data e ora con fuso orario (es. 2023-06-15T14:30:00+02:00)"
+
+#: heritrace/templates/validation.jinja:161
+msgid "date in format YYYY-MM-DD"
+msgstr "data nel formato YYYY-MM-DD"
+
+#: heritrace/templates/validation.jinja:165
+msgid "time in format HH:MM:SS"
+msgstr "ora nel formato HH:MM:SS"
+
+#: heritrace/templates/validation.jinja:169
+msgid "month in format --MM"
+msgstr "mese nel formato --MM"
+
+#: heritrace/templates/validation.jinja:173
+msgid "day in format ---DD"
+msgstr "giorno nel formato ---DD"
+
+#: heritrace/templates/validation.jinja:177
+msgid "month and day in format --MM-DD"
+msgstr "mese e giorno nel formato --MM-DD"
+
+#: heritrace/templates/validation.jinja:181
+msgid "true or false"
+msgstr "vero o falso"
+
+#: heritrace/templates/validation.jinja:185
+msgid "hexadecimal digits"
+msgstr "cifre esadecimali"
+
+#: heritrace/templates/validation.jinja:189
+msgid "base64 encoded data"
+msgstr "dati codificati in base64"
+
+#: heritrace/templates/validation.jinja:193
+msgid "valid URL"
+msgstr "URL valido"
+
+#: heritrace/templates/validation.jinja:198
+msgid "qualified name"
+msgstr "nome qualificato"
+
+#: heritrace/templates/validation.jinja:205
+msgid "valid XML name"
+msgstr "nome XML valido"
+
+#: heritrace/templates/validation.jinja:210
+msgid "list of valid XML names"
+msgstr "elenco di nomi XML validi"
+
+#: heritrace/templates/validation.jinja:214
+msgid "valid XML token"
+msgstr "token XML valido"
+
+#: heritrace/templates/validation.jinja:218
+msgid "list of valid XML tokens"
+msgstr "elenco di token XML validi"
+
+#: heritrace/templates/validation.jinja:222
+msgid "valid XML Name"
+msgstr "Nome XML valido"
+
+#: heritrace/templates/validation.jinja:232
+msgid "This field"
+msgstr "Questo campo"
+
+#: heritrace/templates/validation.jinja:236
+msgid "Invalid input. Expected"
+msgstr "Inserimento non valido. Atteso"
+
+#: heritrace/templates/validation.jinja:274
+msgid "in the"
+msgstr "nel"
+
+#: heritrace/templates/validation.jinja:297
+msgid "Invalid Submission"
+msgstr "Invio non valido"
+
+#: heritrace/templates/errors/404.jinja:6
 msgid "404"
 msgstr "404"
 
-#: edit_sphere/templates/errors/404.jinja:7
+#: heritrace/templates/errors/404.jinja:7
 msgid "Page Not Found"
 msgstr "Pagina non trovata"
 
-#: edit_sphere/templates/errors/404.jinja:9
+#: heritrace/templates/errors/404.jinja:9
 msgid "The resource you are looking for does not exist"
 msgstr "La risorsa che stai cercando non esiste"
 
-#: edit_sphere/templates/errors/404.jinja:10
+#: heritrace/templates/errors/404.jinja:10
 msgid "Return to homepage"
 msgstr "Torna alla homepage"
 
@@ -635,4 +936,64 @@ msgstr "Torna alla homepage"
 #~ "Go to\n"
 #~ "                the catalogue"
 #~ msgstr "Vai al catalogo"
+
+#~ msgid "This resource cannot have any other %(predicate)s properties"
+#~ msgstr "Questa risorsa non può avere altre proprietà %(predicate)s"
+
+#~ msgid "Responsible agent"
+#~ msgstr "Agente responsabile"
+
+#~ msgid "View version"
+#~ msgstr "Visualizza versione"
+
+#~ msgid "Add a new piece of information"
+#~ msgstr "Aggiungi una nuova informazione"
+
+#~ msgid "Add"
+#~ msgstr "Aggiungi"
+
+#~ msgid "About"
+#~ msgstr "Riguardo"
+
+#~ msgid "Add new information"
+#~ msgstr "Aggiungi una nuova informazione"
+
+#~ msgid "Let's add some metadata"
+#~ msgstr "Aggiungiamo un po' di metadati"
+
+#~ msgid "Please enter a valid date in YYYY-MM-DD format."
+#~ msgstr "Inserisci una data valida nel formato AAAA-MM-GG."
+
+#~ msgid "Please enter a valid date in YYYY-MM format."
+#~ msgstr "Inserisci una data valida nel formato AAAA-MM."
+
+#~ msgid "Please enter a valid year in YYYY format."
+#~ msgstr "Inserisci un anno valido nel formato AAAA."
+
+#~ msgid "About %(subject)s"
+#~ msgstr "Riguardo %(subject)s"
+
+#~ msgid "Add another %(element_type)s"
+#~ msgstr ""
+
+#~ msgid "Your ORCID is not authorized to access this application."
+#~ msgstr ""
+
+#~ msgid "Invalid entity type selected."
+#~ msgstr ""
+
+#~ msgid "Property %(prop_uri)s requires at least %(min_count)d value(s)."
+#~ msgstr ""
+
+#~ msgid "Property %(prop_uri)s allows at most %(max_count)d value(s)."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "<code>%(new_value)s</code> is not a valid "
+#~ "value. The <code>%(property)s</code> property "
+#~ "requires values of type %(o_types)s."
+#~ msgstr ""
+#~ "<code>%(new_value)s</code> non è un valore "
+#~ "valido. La proprietà <code>%(property)s</code> "
+#~ "richiede valori di tipo %(o_types)s."
 
