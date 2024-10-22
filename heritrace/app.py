@@ -20,6 +20,8 @@ from flask import (Flask, abort, flash, jsonify, redirect, render_template,
 from flask_babel import Babel, gettext, refresh
 from flask_login import (LoginManager, current_user, login_required,
                          login_user, logout_user, user_loaded_from_cookie)
+from heritrace.apis.orcid import format_orcid_attribution
+from heritrace.apis.zenodo import format_zenodo_source
 from heritrace.editor import Editor
 from heritrace.filters import *
 from heritrace.forms import *
@@ -296,6 +298,8 @@ app.jinja_env.filters['human_readable_entity'] = custom_filter.human_readable_en
 app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_readable_primary_source
 app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime
 app.jinja_env.filters['split_ns'] = custom_filter.split_ns
+app.jinja_env.filters['format_orcid_attribution'] = format_orcid_attribution
+app.jinja_env.filters['format_zenodo_source'] = format_zenodo_source
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -1201,7 +1205,6 @@ def entity_history(entity_uri):
                 dt = dt.replace(tzinfo=timezone.utc)
             return dt if not stringify else dt.isoformat()
         except ValueError:
-            # Handle parsing other date formats if necessary
             return None
 
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
@@ -1224,8 +1227,10 @@ def entity_history(entity_uri):
         snapshot_timestamp_str = convert_to_datetime(metadata['generatedAtTime'], stringify=True)
         snapshot_graph = history[entity_uri][snapshot_timestamp_str]
 
-        responsible_agent = f"<a href='{metadata['wasAttributedTo']}' alt='{gettext('Link to the responsible agent description')}' target='_blank'>{metadata['wasAttributedTo']}</a>" if validators.url(metadata['wasAttributedTo']) else metadata['wasAttributedTo']
-        primary_source = custom_filter.human_readable_primary_source(metadata['hadPrimarySource'])
+        # Utilizziamo i filtri custom per formattare ORCID e Zenodo
+        responsible_agent = format_orcid_attribution(metadata['wasAttributedTo'])
+        primary_source = format_zenodo_source(metadata['hadPrimarySource'])
+        
         modifications = metadata['hasUpdateQuery']
         modification_text = ""
         if modifications:
@@ -1290,9 +1295,9 @@ def entity_history(entity_uri):
     }
 
     return render_template('entity_history.jinja', 
-                           entity_uri=entity_uri, 
-                           timeline_data=timeline_data, 
-                           entity_classes=entity_classes)
+                         entity_uri=entity_uri, 
+                         timeline_data=timeline_data, 
+                         entity_classes=entity_classes)
 
 @app.route('/entity-version/<path:entity_uri>/<timestamp>')
 @login_required
@@ -1510,15 +1515,15 @@ def get_entity_graph(entity_uri, timestamp=None) -> Graph|ConjunctiveGraph:
     if timestamp:
         # Retrieve the historical snapshot
         agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
-        history, _ = agnostic_entity.get_history(include_prov_metadata=False)
+        history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
         snapshot = history.get(entity_uri, {}).get(timestamp)
         if snapshot is None:
             abort(404)
-        return snapshot
+        return snapshot, provenance
     else:
         # Retrieve the current state
         data_graph = fetch_data_graph_recursively(entity_uri)
-        return data_graph
+        return data_graph, None
 
 def compute_graph_differences(current_graph: Graph|ConjunctiveGraph, historical_graph: Graph|ConjunctiveGraph):
     if is_dataset_quadstore():
@@ -1535,16 +1540,22 @@ def compute_graph_differences(current_graph: Graph|ConjunctiveGraph, historical_
 @app.route('/restore-version/<path:entity_uri>/<timestamp>', methods=['POST'])
 @login_required
 def restore_version(entity_uri, timestamp):
-    current_graph = get_entity_graph(entity_uri)
-    historical_graph = get_entity_graph(entity_uri, timestamp)
+    current_graph, _ = get_entity_graph(entity_uri)
+    historical_graph, provenance = get_entity_graph(entity_uri, timestamp)
     triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(current_graph, historical_graph)
+
+    snapshot_uri = None
+    for se, meta in provenance[entity_uri].items():
+        if meta['generatedAtTime'] == timestamp:
+            snapshot_uri = se
+            break
 
     editor = Editor(
         dataset_endpoint, 
         provenance_endpoint, 
         app.config['COUNTER_HANDLER'], 
         URIRef(f'https://orcid.org/{current_user.orcid}'), 
-        app.config['PRIMARY_SOURCE'], 
+        URIRef(snapshot_uri), 
         app.config['DATASET_GENERATION_TIME']
     )
 

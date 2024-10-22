@@ -82,15 +82,23 @@
             <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header">
-                        {{_('Metadata of snapshot')}} {{ snapshot_uri.split('/')[-1] }}
+                        {{_('Metadata of snapshot')}} {{ version_number }}
                     </div>
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item"><strong>{{_('Generation time')}}:</strong> {{ meta['generatedAtTime'] | format_datetime }}</li>
                         {% if meta['invalidatedAtTime'] %}
                             <li class="list-group-item"><strong>{{_('Invalidation time')}}:</strong> {{ meta['invalidatedAtTime'] | format_datetime }}</li>
                         {% endif %}
-                        <li class="list-group-item"><strong>{{_('Attributed to')}}:</strong> <a href="{{ meta['wasAttributedTo'] }}" target="_blank">{{ meta['wasAttributedTo'] }}</a></li>
-                        <li class="list-group-item"><strong>{{_('Primary source')}}:</strong> {{ meta['hadPrimarySource'] | human_readable_primary_source }}</li>
+                        <li class="list-group-item">
+                            <strong>{{_('Attributed to')}}:</strong> 
+                            {{ meta['wasAttributedTo'] | format_orcid_attribution | safe }}
+                        </li>
+                        {% if meta['hadPrimarySource'] %}
+                            <li class="list-group-item">
+                                <strong>{{_('Primary source')}}:</strong> 
+                                {{ meta['hadPrimarySource'] | format_zenodo_source | safe }}
+                            </li>
+                        {% endif %}
                         {% if meta['description'] %}
                         <li class="list-group-item"><strong>{{_('Description')}}:</strong> {{ meta['description'] }}</li>
                         {% endif %}
