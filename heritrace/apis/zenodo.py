@@ -208,9 +208,7 @@ def format_authors_apa(authors):
 
 def format_zenodo_source(url):
     """Format Zenodo source for display with full APA citation."""
-    if not is_zenodo_url(url):
-        return f'<a href="{url}" target="_blank">{url}</a>'
-        
+            
     record_id = extract_zenodo_id(url)
     if not record_id:
         return f'<a href="{url}" target="_blank">{url}</a>'

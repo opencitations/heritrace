@@ -20,8 +20,6 @@ from flask import (Flask, abort, flash, jsonify, redirect, render_template,
 from flask_babel import Babel, gettext, refresh
 from flask_login import (LoginManager, current_user, login_required,
                          login_user, logout_user, user_loaded_from_cookie)
-from heritrace.apis.orcid import format_orcid_attribution
-from heritrace.apis.zenodo import format_zenodo_source
 from heritrace.editor import Editor
 from heritrace.filters import *
 from heritrace.forms import *
@@ -298,8 +296,8 @@ app.jinja_env.filters['human_readable_entity'] = custom_filter.human_readable_en
 app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_readable_primary_source
 app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime
 app.jinja_env.filters['split_ns'] = custom_filter.split_ns
-app.jinja_env.filters['format_orcid_attribution'] = format_orcid_attribution
-app.jinja_env.filters['format_zenodo_source'] = format_zenodo_source
+app.jinja_env.filters['format_source_reference'] = custom_filter.format_source_reference
+app.jinja_env.filters['format_agent_reference'] = custom_filter.format_agent_reference
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -580,13 +578,6 @@ def create_entity():
 
             default_graph_uri = (
                 URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
-            )
-
-            editor.create(
-                entity_uri,
-                URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-                URIRef(entity_type),
-                default_graph_uri
             )
 
             for predicate, values in properties.items():
@@ -1228,8 +1219,8 @@ def entity_history(entity_uri):
         snapshot_graph = history[entity_uri][snapshot_timestamp_str]
 
         # Utilizziamo i filtri custom per formattare ORCID e Zenodo
-        responsible_agent = format_orcid_attribution(metadata['wasAttributedTo'])
-        primary_source = format_zenodo_source(metadata['hadPrimarySource'])
+        responsible_agent = custom_filter.format_agent_reference(metadata['wasAttributedTo'])
+        primary_source = custom_filter.format_source_reference(metadata['hadPrimarySource'])
         
         modifications = metadata['hasUpdateQuery']
         modification_text = ""
@@ -2061,9 +2052,7 @@ def get_valid_predicates(triples):
     for valid_predicate in valid_predicates:
         for predicate, ranges in valid_predicate.items():
             if ranges["hasValue"]:
-                mandatory_value_present = any(triple[2] == str(ranges["hasValue"]) for triple in triples)
-                if not mandatory_value_present:
-                    can_be_added.add(predicate)
+                mandatory_value_present = any(triple[2] == ranges["hasValue"] for triple in triples)
                 mandatory_values[str(predicate)].append(str(ranges["hasValue"]))
             else:
                 max_reached = (ranges["max"] is not None and int(ranges["max"]) <= predicate_counts.get(predicate, 0))
@@ -2172,10 +2161,7 @@ def extract_shacl_form_fields():
     results = shacl.query(query)
     form_fields = defaultdict(dict)
 
-    for row in results:
-        if str(row.predicate) == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" and not row.optionalValues:
-            continue
-        
+    for row in results:        
         entity_type = str(row.type)
         predicate = str(row.predicate)
         nodeShape = str(row.nodeShape) if row.nodeShape else None
@@ -2297,9 +2283,6 @@ def process_nested_shapes(shape_uri, depth=0, processed_shapes=None):
     entity_type = None
 
     for row in nested_results:
-        if str(row.predicate) == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" and not row.optionalValues:
-            continue
-
         predicate = str(row.predicate)
         nodeShape = str(row.nodeShape) if row.nodeShape else None
         hasValue = str(row.hasValue) if row.hasValue else None

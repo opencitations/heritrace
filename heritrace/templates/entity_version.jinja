@@ -91,12 +91,12 @@
                         {% endif %}
                         <li class="list-group-item">
                             <strong>{{_('Attributed to')}}:</strong> 
-                            {{ meta['wasAttributedTo'] | format_orcid_attribution | safe }}
+                            {{ meta['wasAttributedTo'] | format_agent_reference | safe }}
                         </li>
                         {% if meta['hadPrimarySource'] %}
                             <li class="list-group-item">
                                 <strong>{{_('Primary source')}}:</strong> 
-                                {{ meta['hadPrimarySource'] | format_zenodo_source | safe }}
+                                {{ meta['hadPrimarySource'] | format_source_reference | safe }}
                             </li>
                         {% endif %}
                         {% if meta['description'] %}

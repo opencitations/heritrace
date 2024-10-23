@@ -7,6 +7,8 @@ import dateutil
 import validators
 from flask import url_for
 from flask_babel import format_datetime, gettext, lazy_gettext
+from heritrace.apis.orcid import format_orcid_attribution, is_orcid_url
+from heritrace.apis.zenodo import format_zenodo_source, is_zenodo_url
 from rdflib import ConjunctiveGraph, Graph
 from SPARQLWrapper import JSON, SPARQLWrapper
 
@@ -117,3 +119,47 @@ class Filter:
                 return f"<a href='{primary_source}' alt='{lazy_gettext('Link to the primary source description')} target='_blank'>{primary_source}</a>"
             else:
                 return primary_source
+
+    def format_source_reference(self, url: str) -> str:
+        """
+        Format a source reference for display, handling various URL types including Zenodo DOIs and generic URLs.
+        
+        Args:
+            url (str): The source URL or identifier to format
+            human_readable_primary_source (callable): Function to handle generic/unknown source types
+            
+        Returns:
+            str: Formatted HTML string representing the source
+        """
+        if not url:
+            return "Unknown"
+            
+        # First check if it's a Zenodo DOI since this is more specific than a generic URL
+        if is_zenodo_url(url):
+            return format_zenodo_source(url)
+        
+        # If not Zenodo, use the provided generic handler
+        return self.human_readable_primary_source(url)
+
+    def format_agent_reference(self, url: str) -> str:
+        """
+        Format an agent reference for display, handling various URL types including ORCID and others.
+        
+        Args:
+            url (str): The agent URL or identifier to format
+            
+        Returns:
+            str: Formatted HTML string representing the agent
+        """
+        if not url:
+            return "Unknown"
+            
+        if is_orcid_url(url):
+            return format_orcid_attribution(url)
+        
+        # For now, just return a simple linked version for other URLs
+        if validators.url(url):
+            return f'<a href="{url}" target="_blank">{url}</a>'
+        
+        # If it's not a URL at all, just return the raw value
+        return url

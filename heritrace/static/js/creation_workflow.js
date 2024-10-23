@@ -309,6 +309,11 @@ function bindRepeaterEvents(context) {
 
             initializeForm();
         }
+
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
     });
 
     context.find('[data-repeater-delete]').off('click').on('click', function() {
@@ -430,7 +435,7 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                         data[predicateUri].push(itemData);
                     }
                 } else if (itemDepth === depth) {
-                    repeaterItem.find('input:visible, select:visible').each(function() {
+                    repeaterItem.find('input:visible, select:visible, input[data-mandatory-value="true"]').each(function() {
                         let propertyUri = $(this).data('predicate-uri');
                         if (propertyUri) {
                             let value = $(this).val();
@@ -554,5 +559,11 @@ $(document).ready(function() {
         }
 
         showAppropriateDateInput($(this));
+    });
+
+    // Initialize all tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });

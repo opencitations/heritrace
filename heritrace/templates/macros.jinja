@@ -1,7 +1,6 @@
 {% set namespace_render_form_field = namespace(counter=0) %}
 
 {% macro render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, index=None, is_template=False, max_depth=5) %}
-
     <div data-repeater-item 
         class="input-group mb-3 ms-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" style="position: relative; padding-right: 3.5rem;" 
         data-predicate-uri="{{ details.uri }}" 
@@ -18,9 +17,22 @@
             {% if details.orderedBy %}
                 <span class="drag-handle me-2" style="cursor: move;">☰</span>
             {% endif %}
-            {% set label_text = label or details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
-            <h6 class="mb-0 flex-grow-1 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">{{ label_text }}</h6>
+
+            {# Title area with mandatory value indicator if needed #}
+            <div class="d-flex align-items-center flex-grow-1">
+                {% set label_text = label or details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
+                <h6 class="mb-0 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">
+                    {{ label_text }}
+                </h6>
+                {% if details.hasValue %}
+                    <i class="bi bi-question-circle-fill ms-2 text-info mandatory-value-info" 
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right"
+                       title="{{ _('This property has a mandatory value that cannot be modified') }}"></i>
+                {% endif %}
+            </div>
         </div>
+
         {% if details.intermediateRelation %}
             <div class="d-flex flex-column newEntityPropertiesContainer">
                 <div class="nested-form-header mb-4">
@@ -53,6 +65,23 @@
                         {% endif %}
                     {% endfor %}
                 </div>
+            </div>
+        {% elif details.hasValue %}
+            {# Mandatory value display #}
+            <div class="newEntityPropertiesContainer w-75">
+                <span class="flex-grow-1 d-flex flex-column justify-content-center p-3">
+                    <div class="d-flex align-items-center">
+                        <span style="margin-left: 0.75rem">
+                            {{ details.hasValue | human_readable_predicate(entity_types, False) }}
+                        </span>
+                    </div>
+                </span>
+                <input type="hidden" 
+                    name="{{ unique_id_base }}" 
+                    value="{{ details.hasValue }}"
+                    data-predicate-uri="{{ details.uri }}"
+                    data-depth="{{ depth }}"
+                    data-mandatory-value="true">
             </div>
         {% elif details.optionalValues and details.optionalValues|length %}
             <div class="w-75 newEntityPropertiesContainer">
@@ -156,9 +185,11 @@
                 <div class="invalid-feedback w-75"></div>
             </div>
         {% endif %}
-        <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger me-4">
-            <i class="bi bi-trash"></i>
-        </button>
+        {% if not details.hasValue %}
+            <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger me-4">
+                <i class="bi bi-trash"></i>
+            </button>
+        {% endif %}
     </div>
 {% endmacro %}
 
@@ -209,13 +240,33 @@
                         <span class="me-2 d-none">☰</span>
                         <h6 class="mb-0 flex-grow-1 form-label d-none" data-original-text="{{ display_name }}">{{ display_name }}</h6>
                     </div>
-                    <span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span>
+                    <span style="margin-left: .75rem;">
+                        <a href="{{url_for('about', subject=externalEntity)}}" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}">
+                            {{ triple[2] | human_readable_predicate(subject_classes) }}
+                        </a>
+                    </span>
                 {% else %}
-                    <span style="margin-left: .75rem;"><a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">{{ triple[2] | human_readable_predicate(subject_classes) }}</a></span>
+                    <span style="margin-left: .75rem;">
+                        <a href="{{url_for('about', subject=externalEntity)}}"
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}">
+                            {{ triple[2] | human_readable_predicate(subject_classes) }}
+                        </a>
+                    </span>
                 {% endif %}
             {% else %}
                 {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
-                    <span style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
+                    <div class="d-flex align-items-center">
+                        <span style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
+                        <i class="bi bi-question-circle-fill ms-2 text-info" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="right"
+                           title="{{ _('This property has a mandatory value that cannot be modified') }}"></i>
+                    </div>
                 {% elif shacl and optional_values[triple[1]] %}
                     <div class="w-75">
                         <select name="new_value" class="form-select editable-select d-none">
@@ -223,7 +274,7 @@
                                 <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>{{ value | human_readable_predicate(subject_classes) }}</option>
                             {% endfor %}
                         </select>
-                        <span class="select-value-display" id="display_value_{{ unique_id }}">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
+                        <span class="select-value-display" id="display_value_{{ unique_id }}" style="margin-left: .75rem;">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
                     </div>
                 {% elif 'http://www.w3.org/2001/XMLSchema#date' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYear' in datatypes.get(triple[1], []) %}
                     <div class="date-input-group" data-original-value="{{ triple[2] }}">
@@ -279,29 +330,24 @@
         </span>
         <div class="align-self-start">
             <div class="d-flex flex-column flex-sm-row">
-                {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
-                    <div title="{{ _('This property is mandatory and cannot be edited') }}" class="info-cursor">
-                {% endif %}
                 {% if externalEntity %}
-                    <a alt="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" class="btn btn-outline-primary mx-2 mt-3" title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}" href="{{url_for('about', subject=externalEntity)}}">
+                    <a class="btn btn-outline-primary mx-2 mt-3" 
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}"
+                       href="{{url_for('about', subject=externalEntity)}}">
                         <i class="bi bi-arrow-right-square"></i>
                     </a>
                 {% endif %}
-                {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
-                    </div>
-                {% endif %}
-                {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
-                    <div title="{{ _('This property is mandatory and cannot be deleted') }}" class="info-cursor">
-                {% endif %}
-                    <button class="btn btn-outline-danger delete-button mt-3 mx-2"
-                            style="display: none;"
-                            data-subject="{{ subject }}" 
-                            data-predicate="{{ triple[1] }}" 
-                            data-object="{{ externalEntity if externalEntity else triple[2] }}"
-                            {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}disabled{% endif %}>
+                {% if shacl and not (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-outline-danger delete-button mt-3 mx-2"
+                                style="display: none;"
+                                data-subject="{{ subject }}" 
+                                data-predicate="{{ triple[1] }}" 
+                                data-object="{{ externalEntity if externalEntity else triple[2] }}">
                         <i class="bi bi-trash"></i>
-                    </button>
-                {% if shacl and (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
+                        </button>
                     </div>
                 {% endif %}
             </div>

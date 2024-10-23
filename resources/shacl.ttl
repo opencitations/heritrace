@@ -931,16 +931,16 @@ schema:ResourceEmbodimentShape
 
 schema:ResponsibleAgentShape
   a sh:NodeShape ;
-  sh:targetClass foaf:Agent ;
-  sh:property [
-    sh:path datacite:hasIdentifier ;
-    sh:node schema:AgentIdentifierShape ;
-  ] ;
   sh:property [
     sh:path rdf:type ;
     sh:hasValue foaf:Agent ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:targetClass foaf:Agent ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:AgentIdentifierShape ;
   ] ;
   sh:property [
     sh:path foaf:name ;

@@ -92,8 +92,6 @@ def format_orcid_attribution(url):
     Returns:
         str: Formatted HTML for displaying ORCID attribution
     """
-    if not is_orcid_url(url):
-        return f'<a href="{url}" target="_blank">{url}</a>'
         
     orcid_id = extract_orcid_id(url)
     if not orcid_id:
