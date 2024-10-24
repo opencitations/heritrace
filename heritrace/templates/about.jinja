@@ -137,8 +137,6 @@
 
         $('[data-repeater-create]').addClass('d-none');         
 
-        bindRepeaterEvents($(document));
-
         const optional_values = {{ optional_values|tojson|safe }};
         const shacl = {{ shacl|tojson|safe }};
 

@@ -197,10 +197,13 @@ function setRequiredForVisibleFields(item, isInitialStructure = false) {
     item.find('input, select, textarea').each(function() {
         var elem = $(this);
         var isVisible = elem.is(':visible');
-        var parentRepeaterList = elem.closest('[data-repeater-list]');
-        var isRequired = parentRepeaterList.length > 0 && 
-                        (isInitialStructure || parseInt(parentRepeaterList.data('min-items') || 0) > 0);
-        elem.prop('required', isVisible && isRequired);
+
+        if (isVisible) {
+            var parentRepeaterList = elem.closest('[data-repeater-list]');
+            var isRequired = parentRepeaterList.length > 0 && 
+                            (isInitialStructure || parseInt(parentRepeaterList.data('min-items') || 0) > 0);
+            elem.prop('required', isVisible && isRequired);    
+        }
     });
 }
 
@@ -218,123 +221,73 @@ function showAppropriateDateInput(selector) {
     inputToShow.find('.date-input').attr('disabled', false);
 }
 
-function bindRepeaterEvents(context) {
-    function initializeNewItem(newItem, isRequired, isInitialStructure = false) {
-        newItem.addClass('added-in-edit-mode');
+function initializeNewItem($newItem, isInitialStructure = false) {
+    $newItem.addClass('added-in-edit-mode');
 
-        if (newItem.hasClass('draggable')) {
-            var tempId = 'temp-' + (++tempIdCounter);
-            newItem.attr('data-temp-id', tempId);
-        }
+    if ($newItem.hasClass('draggable')) {
+        $newItem.attr('data-temp-id', 'temp-' + (++tempIdCounter));
+    }
+    
+    // Aggiorna ID in batch
+    $newItem.find('input, select, textarea').each(function() {
+        const $elem = $(this);
+        const elemId = $elem.attr('id');
         
-        newItem.find('input, select, textarea').each(function() {
-            var elem = $(this);
-            var elemId = elem.attr('id');
-            
-            if (elemId) {
-                var newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
-                elem.attr('id', newId);
-                elem.attr('name', newId);
-            }
-
-            if (elem.is('select')) {
-                elem.find('option:first').prop('selected', true);
-            } else {
-                elem.val('');
-            }
-        });
-
-        newItem.find('.nested-form-header').each(function() {
-            var $header = $(this);
-            var $toggleBtn = $header.find('.toggle-btn');
-            var $collapseDiv = $header.next('.nested-form-container');
-            
-            var newId = generateUniqueId('nested_form');
-            $toggleBtn.attr('data-bs-target', '#' + newId);
-            $toggleBtn.attr('aria-controls', newId);
-            $collapseDiv.attr('id', newId);
-
-            $collapseDiv.collapse({toggle: false});
-        });
-
-        // Inizializza gli elementi obbligatori della struttura iniziale
-        if (isInitialStructure) {
-            newItem.find('[data-repeater-list]').each(function() {
-                var nestedList = $(this);
-                var minItems = parseInt(nestedList.data('min-items') || 0);
-                if (minItems > 0) {
-                    for (var i = 0; i < minItems; i++) {
-                        var nestedItem = initialCopies[nestedList.data('repeater-list')].clone(true, true);
-                        initializeNewItem(nestedItem, true, true);
-                        nestedItem.appendTo(nestedList);
-                    }
-                }
+        if (elemId) {
+            const newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
+            $elem.attr({
+                'id': newId,
+                'name': newId
             });
         }
 
-        newItem.find('.date-type-selector').each(function() {
-            showAppropriateDateInput($(this));
+        // Reset valori
+        if ($elem.is('select')) {
+            $elem.find('option:first').prop('selected', true);
+        } else {
+            $elem.val('');
+        }
+    });
+
+    // Inizializza nested forms in batch
+    $newItem.find('.nested-form-header').each(function() {
+        const $header = $(this);
+        const $toggleBtn = $header.find('.toggle-btn');
+        const $collapseDiv = $header.next('.nested-form-container');
+        
+        const newId = generateUniqueId('nested_form');
+        $toggleBtn.attr({
+            'data-bs-target': '#' + newId,
+            'aria-controls': newId
+        });
+        $collapseDiv.attr('id', newId);
+    });
+
+    // Inizializza struttura iniziale se necessario
+    if (isInitialStructure) {
+        $newItem.find('[data-repeater-list]').each(function() {
+            const $nestedList = $(this);
+            const minItems = parseInt($nestedList.data('min-items') || 0);
+            
+            if (minItems > 0) {
+                const templateKey = $nestedList.data('repeater-list');
+                const $template = initialCopies[templateKey].clone(true, true);
+                
+                for (let i = 0; i < minItems; i++) {
+                    const $nestedItem = $template.clone(true, true);
+                    initializeNewItem($nestedItem, true);
+                    $nestedList.append($nestedItem);
+                }
+            }
         });
     }
 
-    context.find('[data-repeater-create]').off('click').on('click', function() {
-        var list = $(this).closest('[data-repeater-list]');
-        var maxItems = parseInt(list.data('max-items')) || Infinity;
-        var counter = list.children('[data-repeater-item]').not('.repeater-template').length;
-        if (counter < maxItems) {
-            var newItem = initialCopies[list.data('repeater-list')].clone(true, true);
-            newItem.removeClass('d-none repeater-template');
-
-            var isRequired = parseInt(list.data('min-items') || 0) > 0;
-            var isInitialStructure = $(this).hasClass('initial-structure-add');
-
-            initializeNewItem(newItem, isRequired, isInitialStructure);
-
-            newItem.appendTo(list);
-            list.children('[data-repeater-create]').appendTo(list);
-
-            newItem.find('.collapse').addClass('show');
-            newItem.find('.toggle-btn').removeClass('collapsed');
-
-            updateButtons(list, true);
-
-            if (list.data('ordered-by')) {
-                updateSortable(list);
-            }
-            updateOrderedElementsNumbering();
-
-            bindRepeaterEvents(newItem);
-
-            setRequiredForVisibleFields(newItem, isInitialStructure);
-
-            initializeForm();
-        }
-
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-            new bootstrap.Tooltip(tooltipTriggerEl);
-        });
+    // Inizializza date inputs
+    $newItem.find('.date-type-selector').each(function() {
+        showAppropriateDateInput($(this));
     });
 
-    context.find('[data-repeater-delete]').off('click').on('click', function() {
-        var list = $(this).closest('[data-repeater-list]');
-        $(this).closest('[data-repeater-item]').remove();
-        updateButtons(list);
-        // Dopo aver rimosso un elemento, aggiorna la numerazione
-        updateOrderedElementsNumbering();
-        setRequiredForVisibleFields(list);
-    });
-
-    context.find('.collapse').on('shown.bs.collapse hidden.bs.collapse', function(e) {
-        e.stopPropagation();
-        var $header = $(this).prev('.nested-form-header');
-        $header.find('.toggle-btn').toggleClass('collapsed', e.type === 'hidden');
-        
-        // Aggiorniamo lo stato required per tutti gli elementi visibili dopo l'espansione/collasso
-        setRequiredForVisibleFields($(this).closest('[data-repeater-list]'));
-    });
-
-    setRequiredForVisibleFields(context);
+    setRequiredForVisibleFields($newItem, isInitialStructure);
 }
 
 // Funzione ricorsiva per raccogliere i dati dai campi del form
@@ -565,5 +518,70 @@ $(document).ready(function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    $(document)
+    .off('click.repeater', '[data-repeater-create]')
+    .on('click.repeater', '[data-repeater-create]', function() {
+        const $list = $(this).closest('[data-repeater-list]');
+        const maxItems = parseInt($list.data('max-items')) || Infinity;
+        const currentItems = $list.children('[data-repeater-item]').not('.repeater-template').length;
+        
+        if (currentItems >= maxItems) {
+            return;
+        }
+    
+        // Usa template dalla cache o creane uno nuovo
+        const templateKey = $list.data('repeater-list');
+
+        $template = initialCopies[templateKey].clone(true, true);
+    
+        const $newItem = $template.clone(true, true);
+        $newItem.removeClass('d-none repeater-template');
+    
+        const isInitialStructure = $(this).hasClass('initial-structure-add');
+
+        // Inserisci prima del pulsante "Add"
+        $(this).before($newItem);
+
+        // Inizializza il nuovo item
+        initializeNewItem($newItem, isInitialStructure);
+        
+        // Aggiorna UI e binding
+        const $newItemCollapse = $newItem.find('.collapse').addClass('show');
+        $newItem.find('.toggle-btn').removeClass('collapsed');
+    
+        updateButtons($list, true);
+        
+        if ($list.data('ordered-by')) {
+            updateSortable($list);
+        }
+        updateOrderedElementsNumbering();
+    
+        initializeForm();
+    
+        // Inizializza i tooltip una sola volta per il nuovo item
+        $newItem.find('[data-bs-toggle="tooltip"]').tooltip();
+    });
+
+    $(document)
+        .off('click.repeaterDelete', '[data-repeater-delete]')
+        .on('click.repeaterDelete', '[data-repeater-delete]', function() {
+        const $list = $(this).closest('[data-repeater-list]');
+        $(this).closest('[data-repeater-item]').remove();
+        updateButtons($list);
+        updateOrderedElementsNumbering();
+        setRequiredForVisibleFields($list);
+    });
+
+    $(document)
+        .off('shown.bs.collapse hidden.bs.collapse', '.collapse')
+        .on('shown.bs.collapse hidden.bs.collapse', '.collapse', function(e) {
+        e.stopPropagation();
+        var $header = $(this).prev('.nested-form-header');
+        $header.find('.toggle-btn').toggleClass('collapsed', e.type === 'hidden');
+        
+        // Aggiorniamo lo stato required per tutti gli elementi visibili dopo l'espansione/collasso
+        setRequiredForVisibleFields($(this).closest('[data-repeater-list]'));
     });
 });
