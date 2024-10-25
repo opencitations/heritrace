@@ -204,14 +204,8 @@
             data-container-display-name="{{ details.displayName }}"ù
             data-display-name="{{ entity_type | human_readable_predicate(entity_types, False) }}">
 
-            {% if details.min > 0 %}
-                {% for i in range(details.min) %}
-                    {{ render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, index=i, is_template=is_template, max_depth=max_depth) }}
-                {% endfor %}
-            {% else %}
-                <!-- Template nascosto per elementi opzionali -->
-                {{ render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, is_template=True, max_depth=max_depth) }}
-            {% endif %}
+            <!-- Template nascosto per elementi opzionali -->
+            {{ render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, is_template=True, max_depth=max_depth) }}
 
             <!-- Pulsante per aggiungere nuovi elementi -->
             <div class="mb-3 text-start" data-repeater-create>

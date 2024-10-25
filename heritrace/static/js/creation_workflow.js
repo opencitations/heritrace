@@ -76,6 +76,25 @@ function updateOrderedElementsNumbering() {
     });
 }
 
+function initializeMandatoryElements(container) {
+    container.find(':input').each(function() {
+        $(this).prop('disabled', false);
+    });
+
+    container.find('[data-repeater-list]').each(function() {
+        var list = $(this);
+        var minItems = parseInt(list.data('min-items') || 0);
+        var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
+        if (minItems > 0 && currentItems === 0) {
+            // Simulate click on add button for mandatory elements of the initial structure
+            var addButton = list.find('[data-repeater-create] .initial-structure-add');
+            for (var i = 0; i < minItems; i++) {
+                addButton.click();
+            }
+        }
+    });
+}
+
 // Function to initialize the form based on the selected entity type
 function initializeForm() {
     let selectedUri;
@@ -98,27 +117,8 @@ function initializeForm() {
         let selectedGroup = $(`.property-group[data-uri="${selectedUri}"]`);
         selectedGroup.show();
         
-        // Enable inputs only in the selected group
-        $('.property-group').each(function() {
-            let group = $(this);
-            let isSelected = group.data('uri') === selectedUri;
-            group.find(':input').prop('disabled', !isSelected);
-        });
-
-        // Initialize mandatory elements of the initial structure
-        selectedGroup.find('[data-repeater-list]').each(function() {
-            var list = $(this);
-            var minItems = parseInt(list.data('min-items') || 0);
-            var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
-            
-            if (minItems > 0 && currentItems === 0) {
-                // Simulate click on add button for mandatory elements of the initial structure
-                var addButton = list.find('[data-repeater-create] .initial-structure-add');
-                for (var i = 0; i < minItems; i++) {
-                    addButton.click();
-                }
-            }
-        });
+        // Initialize mandatory elements recursively
+        initializeMandatoryElements(selectedGroup);
     } else {
         // If no type is selected, disable all inputs
         $('.property-group :input').prop('disabled', true);
@@ -558,7 +558,7 @@ $(document).ready(function() {
         }
         updateOrderedElementsNumbering();
     
-        initializeForm();
+        initializeMandatoryElements($newItem);
     
         // Inizializza i tooltip una sola volta per il nuovo item
         $newItem.find('[data-bs-toggle="tooltip"]').tooltip();
