@@ -71,14 +71,12 @@
             <div class="newEntityPropertiesContainer w-75">
                 <span class="flex-grow-1 d-flex flex-column justify-content-center p-3">
                     <div class="d-flex align-items-center">
-                        <span style="margin-left: 0.75rem">
-                            {{ details.hasValue | human_readable_predicate(entity_types, False) }}
-                        </span>
+                        <span style="margin-left: 0.75rem">{{ details.hasValue | human_readable_predicate(entity_types, False) }}</span>
                     </div>
                 </span>
                 <input type="hidden" 
                     name="{{ unique_id_base }}" 
-                    value="{{ details.hasValue }}"
+                    data-value="{{ details.hasValue|safe }}"
                     data-predicate-uri="{{ details.uri }}"
                     data-depth="{{ depth }}"
                     data-mandatory-value="true">
@@ -201,7 +199,7 @@
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-object-class="{{ details.objectClass }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
             {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}
             data-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
-            data-container-display-name="{{ details.displayName }}"ù
+            data-container-display-name="{{ details.displayName }}"
             data-display-name="{{ entity_type | human_readable_predicate(entity_types, False) }}">
 
             <!-- Template nascosto per elementi opzionali -->

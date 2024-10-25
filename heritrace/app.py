@@ -570,7 +570,6 @@ def create_entity():
 
     if request.method == 'POST':
         structured_data = json.loads(request.form.get('structured_data', '{}'))
-
         validation_errors = validate_entity_data(structured_data, form_fields)
 
         if validation_errors:

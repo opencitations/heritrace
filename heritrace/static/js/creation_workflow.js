@@ -391,7 +391,7 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                     repeaterItem.find('input:visible, select:visible, input[data-mandatory-value="true"]').each(function() {
                         let propertyUri = $(this).data('predicate-uri');
                         if (propertyUri) {
-                            let value = $(this).val();
+                            let value = $(this).val() || $(this).data('value');
                             if (value !== "") {
                                 if (!data[propertyUri]) {
                                     data[propertyUri] = [];
