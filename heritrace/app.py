@@ -50,7 +50,7 @@ display_rules_path = app.config["DISPLAY_RULES_PATH"]
 display_rules = None
 if display_rules_path:
     with open(display_rules_path, 'r') as f:
-        display_rules: List[dict] = yaml.safe_load(f)
+        display_rules: List[dict] = yaml.safe_load(f)['classes']
 
 class_priorities = {}
 if display_rules:
