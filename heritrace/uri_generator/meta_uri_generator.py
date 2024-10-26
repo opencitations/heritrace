@@ -21,6 +21,8 @@ class MetaURIGenerator(URIGenerator):
             'http://purl.org/spar/fabio/JournalIssue': 'br',
             'http://purl.org/spar/fabio/JournalVolume': 'br',
             'http://purl.org/spar/fabio/Journal': 'br',
+            'http://purl.org/spar/fabio/AcademicProceedings': 'br',
+            'http://purl.org/spar/fabio/ProceedingsPaper': 'br',
             'http://purl.org/spar/pro/RoleInTime': 'ar',
             'http://purl.org/spar/fabio/Manifestation': 're',
             'http://xmlns.com/foaf/0.1/Agent': 'ra',

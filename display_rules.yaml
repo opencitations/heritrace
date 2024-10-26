@@ -13,61 +13,130 @@ queries:
   author_query: &author_query |
     PREFIX pro: <http://purl.org/spar/pro/>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX datacite: <http://purl.org/spar/datacite/>
+    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
     SELECT DISTINCT ?formattedName ?ra WHERE {
-        [[value]] pro:isHeldBy ?ra;
-            pro:withRole pro:author.
-        OPTIONAL { ?ra foaf:name ?name. }
-        OPTIONAL { ?ra foaf:familyName ?familyName. }
-        OPTIONAL { ?ra foaf:givenName ?givenName. }
-        BIND(
-            IF(BOUND(?name), ?name,
-                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                    )
+      [[value]] pro:isHeldBy ?ra;
+          pro:withRole pro:author.
+      OPTIONAL { ?ra foaf:name ?name. }
+      OPTIONAL { ?ra foaf:familyName ?familyName. }
+      OPTIONAL { ?ra foaf:givenName ?givenName. }
+      
+      {
+        SELECT ?ra (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        WHERE {
+          OPTIONAL {
+            ?ra datacite:hasIdentifier ?identifier .
+            ?identifier datacite:usesIdentifierScheme ?scheme ;
+                      literal:hasLiteralValue ?value .
+            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+          }
+        }
+        GROUP BY ?ra
+      }
+
+      BIND(
+        IF(BOUND(?name), ?name,
+            IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                    IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
                 )
-            ) AS ?formattedName
-        )
+            )
+        ) AS ?nameDisplay
+      )
+      
+      BIND(STR(?ra) AS ?uriString)
+      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+            CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
+            CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+        ) AS ?formattedName)
     }
 
   editor_query: &editor_query |
     PREFIX pro: <http://purl.org/spar/pro/>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX datacite: <http://purl.org/spar/datacite/>
+    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
     SELECT DISTINCT ?formattedName ?ra WHERE {
-        [[value]] pro:isHeldBy ?ra;
-            pro:withRole pro:editor.
-        OPTIONAL { ?ra foaf:name ?name. }
-        OPTIONAL { ?ra foaf:familyName ?familyName. }
-        OPTIONAL { ?ra foaf:givenName ?givenName. }
-        BIND(
-            IF(BOUND(?name), ?name,
-                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                    )
+      [[value]] pro:isHeldBy ?ra;
+          pro:withRole pro:editor.
+      OPTIONAL { ?ra foaf:name ?name. }
+      OPTIONAL { ?ra foaf:familyName ?familyName. }
+      OPTIONAL { ?ra foaf:givenName ?givenName. }
+      
+      {
+        SELECT ?ra (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        WHERE {
+          OPTIONAL {
+            ?ra datacite:hasIdentifier ?identifier .
+            ?identifier datacite:usesIdentifierScheme ?scheme ;
+                      literal:hasLiteralValue ?value .
+            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+          }
+        }
+        GROUP BY ?ra
+      }
+
+      BIND(
+        IF(BOUND(?name), ?name,
+            IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                    IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
                 )
-            ) AS ?formattedName
-        )
+            )
+        ) AS ?nameDisplay
+      )
+      
+      BIND(STR(?ra) AS ?uriString)
+      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+            CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
+            CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+        ) AS ?formattedName)
     }
 
   publisher_query: &publisher_query |
     PREFIX pro: <http://purl.org/spar/pro/>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX datacite: <http://purl.org/spar/datacite/>
+    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
     SELECT DISTINCT ?formattedName ?ra WHERE {
-        [[value]] pro:isHeldBy ?ra;
-            pro:withRole pro:publisher.
-        OPTIONAL { ?ra foaf:name ?name. }
-        OPTIONAL { ?ra foaf:familyName ?familyName. }
-        OPTIONAL { ?ra foaf:givenName ?givenName. }
-        BIND(
-            IF(BOUND(?name), ?name,
-                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                    )
+      [[value]] pro:isHeldBy ?ra;
+          pro:withRole pro:publisher.
+      OPTIONAL { ?ra foaf:name ?name. }
+      OPTIONAL { ?ra foaf:familyName ?familyName. }
+      OPTIONAL { ?ra foaf:givenName ?givenName. }
+      
+      {
+        SELECT ?ra (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        WHERE {
+          OPTIONAL {
+            ?ra datacite:hasIdentifier ?identifier .
+            ?identifier datacite:usesIdentifierScheme ?scheme ;
+                      literal:hasLiteralValue ?value .
+            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+          }
+        }
+        GROUP BY ?ra
+      }
+
+      BIND(
+        IF(BOUND(?name), ?name,
+            IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                    IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
                 )
-            ) AS ?formattedName
-        )
+            )
+        ) AS ?nameDisplay
+      )
+      
+      BIND(STR(?ra) AS ?uriString)
+      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+            CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
+            CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+        ) AS ?formattedName)
     }
 
   page_info_query: &page_info_query |
@@ -157,11 +226,33 @@ queries:
     PREFIX fabio: <http://purl.org/spar/fabio/>
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
     PREFIX dcterms: <http://purl.org/dc/terms/>
-    SELECT ?bookTitle ?book
+    PREFIX datacite: <http://purl.org/spar/datacite/>
+    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+    SELECT ?bookDisplay ?book
     WHERE {
-        [[subject]] frbr:partOf ?book.
-        ?book a fabio:Book;
-            dcterms:title ?bookTitle.
+      [[subject]] frbr:partOf ?book.
+      ?book a fabio:Book;
+          dcterms:title ?bookTitle.
+
+      {
+        SELECT ?book (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        WHERE {
+          OPTIONAL {
+            ?book datacite:hasIdentifier ?identifier .
+            ?identifier datacite:usesIdentifierScheme ?scheme ;
+                      literal:hasLiteralValue ?value .
+            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+          }
+        }
+        GROUP BY ?book
+      }
+      
+      BIND(STR(?book) AS ?uriString)
+      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+            CONCAT(?bookTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
+            CONCAT(?bookTitle, " [omid:", ?omid, "]")
+        ) AS ?bookDisplay)
     }
 
   proceedings_query: &proceedings_query |
@@ -171,7 +262,7 @@ queries:
     SELECT ?proceedingsTitle ?proceedings
     WHERE {
         [[subject]] frbr:partOf ?proceedings.
-        ?proceedings a fabio:Proceedings;
+        ?proceedings a fabio:AcademicProceedings;
             dcterms:title ?proceedingsTitle.
     }
 
@@ -365,7 +456,7 @@ classes:
             OPTIONAL {
               FILTER(?entityType IN (fabio:ProceedingsPaper, fabio:Expression))
               [[uri]] frbr:partOf ?proceedings .
-              ?proceedings a fabio:Proceedings ;
+              ?proceedings a fabio:AcademicProceedings ;
                           dcterms:title ?proceedingsTitle .
             }
             
@@ -422,7 +513,7 @@ classes:
                   IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
                   IF(BOUND(?title), CONCAT(". ", ?title), ""),
                   "."),
-          IF(?entityType IN (fabio:Proceedings, fabio:Expression),
+          IF(?entityType IN (fabio:AcademicProceedings, fabio:Expression),
             CONCAT(IF(BOUND(?title), ?title, ""),
                   IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
                   "."),
@@ -832,7 +923,7 @@ classes:
             }
             OPTIONAL {
               [[uri]] frbr:partOf ?proceedings .
-              ?proceedings a fabio:Proceedings ;
+              ?proceedings a fabio:AcademicProceedings ;
                           dcterms:title ?proceedingsTitle .
             }
           }
@@ -869,7 +960,7 @@ classes:
         shouldBeDisplayed: true
         fetchValueFromQuery: *proceedings_query
 
-  - class: "http://purl.org/spar/fabio/Proceedings"
+  - class: "http://purl.org/spar/fabio/AcademicProceedings"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Proceedings"
@@ -882,7 +973,7 @@ classes:
       PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
       SELECT ?display
       WHERE {
-        [[uri]] a fabio:Proceedings ;
+        [[uri]] a fabio:AcademicProceedings ;
                 dcterms:title ?title .
         OPTIONAL {
           [[uri]] prism:publicationDate ?pubDateRaw . 

@@ -709,10 +709,10 @@ schema:ProceedingsPaperShape
 
 schema:ProceedingsShape
   a sh:NodeShape ;
-  sh:targetClass fabio:Proceedings ;
+  sh:targetClass fabio:AcademicProceedings ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Proceedings ;
+    sh:hasValue fabio:AcademicProceedings ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
