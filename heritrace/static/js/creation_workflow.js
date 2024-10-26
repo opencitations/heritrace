@@ -388,7 +388,7 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                         data[predicateUri].push(itemData);
                     }
                 } else if (itemDepth === depth) {
-                    repeaterItem.find('input:visible, select:visible, input[data-mandatory-value="true"]').each(function() {
+                    repeaterItem.find('input:visible, select:visible, input[data-mandatory-value="true"], textarea:visible').each(function() {
                         let propertyUri = $(this).data('predicate-uri');
                         if (propertyUri) {
                             let value = $(this).val() || $(this).data('value');
@@ -404,11 +404,12 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
             });
         });
 
-        container.children('input:visible, select:visible').each(function() {
+        container.children('input:visible, select:visible, input[data-mandatory-value="true"], textarea:visible').each(function() {
             let propertyUri = $(this).data('predicate-uri');
             let inputDepth = parseInt($(this).data('depth'));
             if (propertyUri && inputDepth === depth) {
                 let value = $(this).val();
+                console.log(propertyUri, value)
                 if (value !== "") {
                     if (!data[propertyUri]) {
                         data[propertyUri] = [];

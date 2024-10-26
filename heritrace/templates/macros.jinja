@@ -165,21 +165,48 @@
             </div>
         {% else %}
             <div class="flex-grow-1 newEntityPropertiesContainer">
-                <input type="text" class="form-control w-75"
-                    id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
-                    name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
-                    data-predicate-uri="{{ details.uri }}"
-                    data-depth="{{ depth }}"
-                    {% if details.conditions %}
-                        data-conditions='{{ details.conditions | tojson | safe }}'
-                    {% endif %}
-                    placeholder="{{ label_text }}"
-                    {% if not is_template and details.min and details.min > 0 %}
-                        required
-                    {% endif %}
-                    {% if details.datatypes and details.datatypes | length %}
-                        data-datatypes="{{ details.datatypes | join(',') }}"
-                    {% endif %}>
+                {% if details.inputType == "textarea" %}
+                    <textarea 
+                        class="form-control w-75"
+                        id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                        name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                        data-predicate-uri="{{ details.uri }}"
+                        data-depth="{{ depth }}"
+                        {% if details.conditions %}
+                            data-conditions='{{ details.conditions | tojson | safe }}'
+                        {% endif %}
+                        placeholder="{{ label_text }}"
+                        {% if not is_template and details.min and details.min > 0 %}
+                            required
+                        {% endif %}
+                        {% if details.datatypes and details.datatypes | length %}
+                            data-datatypes="{{ details.datatypes | join(',') }}"
+                        {% endif %}
+                        rows="5"
+                    ></textarea>
+                {% else %}
+                    <input 
+                        type="{{ details.inputType or 'text' }}"
+                        class="form-control w-75"
+                        id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                        name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                        data-predicate-uri="{{ details.uri }}"
+                        data-depth="{{ depth }}"
+                        {% if details.conditions %}
+                            data-conditions='{{ details.conditions | tojson | safe }}'
+                        {% endif %}
+                        placeholder="{{ label_text }}"
+                        {% if not is_template and details.min and details.min > 0 %}
+                            required
+                        {% endif %}
+                        {% if details.datatypes and details.datatypes | length %}
+                            data-datatypes="{{ details.datatypes | join(',') }}"
+                        {% endif %}
+                        {% if details.inputType == "number" %}
+                            step="any"
+                        {% endif %}
+                    >
+                {% endif %}
                 <div class="invalid-feedback w-75"></div>
             </div>
         {% endif %}
@@ -316,7 +343,31 @@
                         </div>
                     </div>
                 {% else %}
-                    {{ update_form.new_value(class="form-control editable-field w-75", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
+                    {% set key = (triple[1], entity_type, shape) %}
+                    {% if predicate_details_map.get(key) %}
+                        {% set details = predicate_details_map.get(key) %}
+                        {% if details.inputType == "textarea" %}
+                            <textarea 
+                                class="form-control editable-field w-75"
+                                readonly
+                                id="new_value_{{ unique_id }}"
+                                rows="5"
+                            >{{ triple[2] }}</textarea>
+                        {% else %}
+                            <input 
+                                type="{{ details.inputType or 'text' }}"
+                                class="form-control editable-field w-75"
+                                value="{{ triple[2] }}"
+                                readonly
+                                id="new_value_{{ unique_id }}"
+                                {% if details.inputType == "number" %}
+                                    step="any"
+                                {% endif %}
+                            >
+                        {% endif %}
+                    {% else %}
+                        {{ update_form.new_value(class="form-control editable-field w-75", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
+                    {% endif %}
                 {% endif %}
             {% endif %}
         </span>

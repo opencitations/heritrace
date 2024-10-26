@@ -497,6 +497,12 @@ schema:JournalArticleShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path frbr:partOf ;
     sh:node schema:IssueShape ;
     sh:minCount 0 ;
@@ -565,6 +571,12 @@ schema:BookShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -612,6 +624,12 @@ schema:BookChapterShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:abstract ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -681,6 +699,12 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:abstract ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -1004,6 +1028,12 @@ schema:ReviewArticleShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path frbr:partOf ;
     sh:node schema:IssueShape ;
     sh:minCount 0 ;
@@ -1070,6 +1100,12 @@ schema:ThesisShape
     sh:path dcterms:title ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -1286,5 +1322,29 @@ schema:TranslatorShape
     sh:path oco:hasNext ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+# Document components
+
+schema:AbstractShape
+  a sh:NodeShape ;
+  sh:targetClass doco:Abstract ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue doco:Abstract ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path [sh:inversePath frbr:part] ;
+    sh:node schema:BibliographicResourceShape ;
+    sh:minCount 1 ;
     sh:maxCount 1 ;
   ] .

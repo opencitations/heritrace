@@ -53,8 +53,9 @@ def extract_shacl_form_fields(shacl):
         return dict()
     
     query = prepareQuery("""
-        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass ?conditionPath ?conditionValue ?pattern ?message
-        (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
+        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
+               ?conditionPath ?conditionValue ?pattern ?message
+               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
         WHERE {
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
@@ -68,9 +69,9 @@ def extract_shacl_form_fields(shacl):
             OPTIONAL { ?property sh:minCount ?minCount . }
             OPTIONAL { ?property sh:hasValue ?hasValue . }
             OPTIONAL {
-                    ?property sh:or ?orList .
-                    ?orList rdf:rest*/rdf:first ?orConstraint .
-                    ?orConstraint sh:datatype ?datatype .
+                ?property sh:or ?orList .
+                ?orList rdf:rest*/rdf:first ?orConstraint .
+                ?orConstraint sh:datatype ?datatype .
             }
             OPTIONAL {
                 ?property sh:in ?list .
@@ -85,7 +86,8 @@ def extract_shacl_form_fields(shacl):
             OPTIONAL { ?property sh:message ?message . }
             FILTER (isURI(?predicate))
         }
-        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass ?conditionPath ?conditionValue ?pattern ?message
+        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
+                ?conditionPath ?conditionValue ?pattern ?message
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
     results = shacl.query(query)
@@ -130,11 +132,14 @@ def extract_shacl_form_fields(shacl):
 
         if existing_field:
             # Aggiorna la lista dei datatypes
-            if row.datatype and str(row.datatype) not in existing_field["datatypes"]:
-                existing_field["datatypes"].append(str(row.datatype))
+            if datatype and str(datatype) not in existing_field["datatypes"]:
+                existing_field["datatypes"].append(str(datatype))
             if condition_entry:
                 existing_field.setdefault('conditions', []).append(condition_entry)
         else:
+            # Determina il tipo di input basato sul datatype
+            input_type = determine_input_type(datatype)
+            
             field_info = {
                 "entityType": entity_type,
                 "uri": predicate,
@@ -145,7 +150,8 @@ def extract_shacl_form_fields(shacl):
                 "hasValue": hasValue,
                 "objectClass": objectClass,
                 "optionalValues": optionalValues,
-                "conditions": [condition_entry] if condition_entry else []
+                "conditions": [condition_entry] if condition_entry else [],
+                "inputType": input_type
             }
             form_fields[entity_type][predicate].append(field_info)
 
@@ -172,8 +178,9 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
     processed_shapes.add(shape_uri)
 
     nested_query = prepareQuery("""
-        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass ?conditionPath ?conditionValue ?pattern ?message
-        (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
+        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
+               ?conditionPath ?conditionValue ?pattern ?message
+               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
         WHERE {
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
@@ -204,7 +211,8 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
             OPTIONAL { ?property sh:message ?message . }
             FILTER (isURI(?predicate))
         }
-        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass ?conditionPath ?conditionValue ?pattern ?message
+        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
+                ?conditionPath ?conditionValue ?pattern ?message
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
     nested_results = shacl.query(nested_query, initBindings={'shape': URIRef(shape_uri)})
@@ -260,6 +268,9 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
                 if condition_entry:
                     existing_field.setdefault('conditions', []).append(condition_entry)
             else:
+                # Determina il tipo di input basato sul datatype
+                input_type = determine_input_type(datatype)
+                
                 field_info = {
                     "entityType": entity_type,
                     "uri": predicate,
@@ -270,10 +281,12 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
                     "hasValue": hasValue,
                     "objectClass": objectClass,
                     "optionalValues": optionalValues,
-                    "conditions": [condition_entry] if condition_entry else []
+                    "conditions": [condition_entry] if condition_entry else [],
+                    "inputType": input_type  # Aggiungi il tipo di input
                 }
 
                 if nodeShape:
+                    # Processa ricorsivamente le shape annidate
                     field_info["nestedShape"] = process_nested_shapes(
                         shacl, display_rules, nodeShape, depth + 1, processed_shapes
                     )
@@ -382,6 +395,29 @@ def apply_display_rules_to_nested_shapes(nested_fields, parent_prop, display_rul
         if 'nestedShape' in field_info:
             apply_display_rules_to_nested_shapes(field_info['nestedShape'], field_info, display_rules)
 
+def determine_input_type(datatype):
+    """
+    Determina il tipo di input appropriato basato sul datatype XSD.
+    """
+    if not datatype:
+        return "text"
+        
+    datatype = str(datatype)
+    datatype_to_input = {
+        "http://www.w3.org/2001/XMLSchema#string": "text",
+        "http://www.w3.org/2001/XMLSchema#integer": "number",
+        "http://www.w3.org/2001/XMLSchema#decimal": "number",
+        "http://www.w3.org/2001/XMLSchema#float": "number",
+        "http://www.w3.org/2001/XMLSchema#double": "number",
+        "http://www.w3.org/2001/XMLSchema#boolean": "checkbox",
+        "http://www.w3.org/2001/XMLSchema#date": "date",
+        "http://www.w3.org/2001/XMLSchema#time": "time",
+        "http://www.w3.org/2001/XMLSchema#dateTime": "datetime-local",
+        "http://www.w3.org/2001/XMLSchema#anyURI": "url",
+        "http://www.w3.org/2001/XMLSchema#email": "email"
+    }
+    return datatype_to_input.get(datatype, "text")
+
 def add_display_information(field_info, prop):
     """
     Aggiunge informazioni di visualizzazione dal display_rules ad un campo.
@@ -396,6 +432,8 @@ def add_display_information(field_info, prop):
         field_info['shouldBeDisplayed'] = prop.get('shouldBeDisplayed', True)
     if 'orderedBy' in prop:
         field_info['orderedBy'] = prop['orderedBy']
+    if 'inputType' in prop:
+        field_info['inputType'] = prop['inputType']
 
 def handle_intermediate_relation(shacl, field_info, prop):
     """

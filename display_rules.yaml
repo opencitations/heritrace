@@ -365,6 +365,12 @@ common_properties:
     displayName: "Title"
     shouldBeDisplayed: true
 
+  abstract_property: &abstract_property
+    property: "http://purl.org/dc/terms/abstract"
+    displayName: "Abstract"
+    shouldBeDisplayed: true
+    inputType: "textarea"
+
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
     displayName: "Identifier"
@@ -615,6 +621,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *abstract_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -696,6 +703,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *abstract_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -776,6 +784,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *abstract_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -870,6 +879,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *abstract_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1017,6 +1027,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *abstract_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1291,6 +1302,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *abstract_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1478,6 +1490,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *abstract_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
