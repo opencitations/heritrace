@@ -204,12 +204,6 @@ schema:BookIdentifierShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
     sh:path datacite:usesIdentifierScheme ;
     sh:in (
       datacite:doi datacite:pmid datacite:pmcid datacite:isbn datacite:openalex     
@@ -218,10 +212,70 @@ schema:BookIdentifierShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:pmid ;
+    ] ;
+    sh:pattern "^[1-9]\\d*$" ;
+    sh:message "PMID must contain only numbers. For example: 39288764" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:pmcid ;
+    ] ;
+    sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
+    sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:isbn ;
+    ] ;
+    sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
+    sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:openalex ;
+    ] ;
+    sh:pattern "^W[1-9]\\d*$" ;
+    sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
+  ] ;
+  sh:property [
     sh:path [sh:inversePath datacite:hasIdentifier] ;
     sh:or schema:BookShape ;
   ] .
-
+  
 schema:AgentIdentifierShape
   a sh:NodeShape ;
   sh:targetClass datacite:Identifier ;
@@ -716,7 +770,7 @@ schema:AuthorShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:node schema:PersonShape ;
+    sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -744,7 +798,7 @@ schema:EditorShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:node schema:PersonShape ;
+    sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -772,7 +826,7 @@ schema:PublisherShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:node schema:OrganizationShape ;
+    sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -780,44 +834,6 @@ schema:PublisherShape
     sh:path oco:hasNext ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] .
-
-schema:PersonShape
-  a sh:NodeShape ;
-  sh:targetClass foaf:Person ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue foaf:Person ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path foaf:givenName ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path foaf:familyName ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] .
-
-schema:OrganizationShape
-  a sh:NodeShape ;
-  sh:targetClass foaf:Organization ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue foaf:Organization ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path foaf:name ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
     sh:maxCount 1 ;
   ] .
 

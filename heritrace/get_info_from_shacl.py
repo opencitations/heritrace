@@ -208,9 +208,10 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
     nested_results = shacl.query(nested_query, initBindings={'shape': URIRef(shape_uri)})
-
+    
     nested_fields = []
     entity_type = None
+    temp_form_fields = defaultdict(dict)
 
     for row in nested_results:
         predicate = str(row.predicate)
@@ -236,48 +237,60 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
         if row.type:
             entity_type = str(row.type)
 
-        # Cerca un campo esistente con gli stessi attributi (eccetto datatype)
-        existing_field = None
-        for field in nested_fields:
-            if (field['uri'] == predicate and
-                field['nodeShape'] == nodeShape and
-                field['hasValue'] == hasValue and
-                field['objectClass'] == objectClass and
-                field['min'] == minCount and
-                field['max'] == maxCount and
-                field['optionalValues'] == optionalValues):
-                existing_field = field
-                break
+        if entity_type:
+            if predicate not in temp_form_fields[entity_type]:
+                temp_form_fields[entity_type][predicate] = []
 
-        if existing_field:
-            # Aggiorna la lista dei datatypes
-            if row.datatype and str(row.datatype) not in existing_field["datatypes"]:
-                existing_field["datatypes"].append(str(row.datatype))
-            if condition_entry:
-                existing_field.setdefault('conditions', []).append(condition_entry)
-        else:
-            field_info = {
-                "entityType": entity_type,
-                "uri": predicate,
-                "nodeShape": nodeShape,
-                "datatypes": [datatype] if datatype else [],
-                "min": minCount,
-                "max": maxCount,
-                "hasValue": hasValue,
-                "objectClass": objectClass,
-                "optionalValues": optionalValues,
-                "conditions": [condition_entry] if condition_entry else []
-            }
-            if nodeShape:
-                field_info["nestedShape"] = process_nested_shapes(shacl, display_rules, nodeShape, depth + 1, processed_shapes)
-            nested_fields.append(field_info)
+            # Cerca un campo esistente con gli stessi attributi (eccetto datatype)
+            existing_field = None
+            for field in temp_form_fields[entity_type][predicate]:
+                if (field['nodeShape'] == nodeShape and
+                    field['hasValue'] == hasValue and
+                    field['objectClass'] == objectClass and
+                    field['min'] == minCount and
+                    field['max'] == maxCount and
+                    field['optionalValues'] == optionalValues):
+                    existing_field = field
+                    break
 
-    # Ottieni l'ordine delle proprietà dalle regole di visualizzazione
-    property_order = get_property_order(entity_type, display_rules)
+            if existing_field:
+                # Aggiorna la lista dei datatypes
+                if datatype and str(datatype) not in existing_field["datatypes"]:
+                    existing_field["datatypes"].append(str(datatype))
+                if condition_entry:
+                    existing_field.setdefault('conditions', []).append(condition_entry)
+            else:
+                field_info = {
+                    "entityType": entity_type,
+                    "uri": predicate,
+                    "nodeShape": nodeShape,
+                    "datatypes": [datatype] if datatype else [],
+                    "min": minCount,
+                    "max": maxCount,
+                    "hasValue": hasValue,
+                    "objectClass": objectClass,
+                    "optionalValues": optionalValues,
+                    "conditions": [condition_entry] if condition_entry else []
+                }
 
-    # Ordina i campi se l'ordine delle proprietà è disponibile
-    if property_order:
-        nested_fields = order_fields(nested_fields, property_order)
+                if nodeShape:
+                    field_info["nestedShape"] = process_nested_shapes(
+                        shacl, display_rules, nodeShape, depth + 1, processed_shapes
+                    )
+
+                temp_form_fields[entity_type][predicate].append(field_info)
+
+    # Applichiamo le regole di visualizzazione al dizionario temporaneo
+    if display_rules and entity_type:
+        temp_form_fields = apply_display_rules(shacl, temp_form_fields, display_rules)
+
+        # Applichiamo l'ordinamento ai campi
+        temp_form_fields = order_form_fields(temp_form_fields, display_rules)
+
+        # Estraiamo i campi processati per il tipo di entità
+        if entity_type in temp_form_fields:
+            for predicate in temp_form_fields[entity_type]:
+                nested_fields.extend(temp_form_fields[entity_type][predicate])
 
     processed_shapes.remove(shape_uri)
     return nested_fields
@@ -344,7 +357,7 @@ def apply_display_rules(shacl, form_fields, display_rules):
                         if 'nestedShape' in field_info:
                             apply_display_rules_to_nested_shapes(field_info['nestedShape'], prop, display_rules)
                         if 'intermediateRelation' in prop:
-                            handle_intermediate_relation(shacl, form_fields, field_info, prop)
+                            handle_intermediate_relation(shacl, field_info, prop)
                     if 'displayRules' in prop:
                         handle_sub_display_rules(shacl, form_fields, entity_class, form_fields[entity_class][prop_uri], prop)
     return form_fields
@@ -384,7 +397,7 @@ def add_display_information(field_info, prop):
     if 'orderedBy' in prop:
         field_info['orderedBy'] = prop['orderedBy']
 
-def handle_intermediate_relation(shacl, form_fields, field_info, prop):
+def handle_intermediate_relation(shacl, field_info, prop):
     """
     Processa 'intermediateRelation' nelle display_rules e aggiorna il campo.
 
@@ -415,13 +428,26 @@ def handle_intermediate_relation(shacl, form_fields, field_info, prop):
     
     connecting_property = next((str(row.property) for row in connecting_property_results), None)
 
+    # Cerca il campo con il connecting_property nella nestedShape
+    intermediate_properties = {}
+    if 'nestedShape' in field_info:
+        for nested_field in field_info['nestedShape']:
+            if nested_field.get('uri') == connecting_property:
+                # Usa le proprietà dalla nestedShape del connecting_property
+                if 'nestedShape' in nested_field:
+                    for target_field in nested_field['nestedShape']:
+                        uri = target_field.get('uri')
+                        if uri:
+                            if uri not in intermediate_properties:
+                                intermediate_properties[uri] = []
+                            intermediate_properties[uri].append(target_field)
+
     field_info['intermediateRelation'] = {
         "class": intermediate_class,
         "targetEntityType": target_entity_type,
         "connectingProperty": connecting_property,
-        "properties": form_fields.get(target_entity_type, {}),
+        "properties": intermediate_properties
     }
-
 def handle_sub_display_rules(shacl, form_fields, entity_class, field_info_list, prop):
     """
     Gestisce 'displayRules' nelle display_rules, applicando la regola corretta in base allo shape.

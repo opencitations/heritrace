@@ -17,6 +17,7 @@ class MetaURIGenerator(URIGenerator):
             'http://purl.org/spar/fabio/Expression': 'br',
             'http://purl.org/spar/fabio/JournalArticle': 'br',
             'http://purl.org/spar/fabio/Book': 'br',
+            'http://purl.org/spar/fabio/BookChapter': 'br',
             'http://purl.org/spar/fabio/JournalIssue': 'br',
             'http://purl.org/spar/fabio/JournalVolume': 'br',
             'http://purl.org/spar/fabio/Journal': 'br',
