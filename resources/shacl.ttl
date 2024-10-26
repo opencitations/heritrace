@@ -503,6 +503,11 @@ schema:JournalArticleShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path frbr:partOf ;
     sh:node schema:IssueShape ;
     sh:minCount 0 ;
@@ -577,6 +582,11 @@ schema:BookShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -633,6 +643,11 @@ schema:BookChapterShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
@@ -708,6 +723,11 @@ schema:ProceedingsPaperShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
@@ -959,6 +979,17 @@ schema:ReviewShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1034,6 +1065,11 @@ schema:ReviewArticleShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path frbr:partOf ;
     sh:node schema:IssueShape ;
     sh:minCount 0 ;
@@ -1107,6 +1143,11 @@ schema:ThesisShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;

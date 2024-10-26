@@ -371,6 +371,12 @@ common_properties:
     shouldBeDisplayed: true
     inputType: "textarea"
 
+  keyword_property: &keyword_property  
+    property: "http://prismstandard.org/namespaces/basic/2.0/keyword"
+    displayName: "Keyword"
+    shouldBeDisplayed: true
+    inputType: "tag"
+
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
     displayName: "Identifier"
@@ -622,6 +628,7 @@ classes:
       - *identifier_property
       - *title_property
       - *abstract_property
+      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -704,6 +711,7 @@ classes:
       - *identifier_property
       - *title_property
       - *abstract_property
+      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -880,6 +888,7 @@ classes:
       - *identifier_property
       - *title_property
       - *abstract_property
+      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1028,6 +1037,7 @@ classes:
       - *identifier_property
       - *title_property
       - *abstract_property
+      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1199,6 +1209,8 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *abstract_property
+      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1303,6 +1315,7 @@ classes:
       - *identifier_property
       - *title_property
       - *abstract_property
+      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1491,6 +1504,7 @@ classes:
       - *identifier_property
       - *title_property
       - *abstract_property
+      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
