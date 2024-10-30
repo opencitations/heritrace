@@ -149,7 +149,11 @@ def extract_shacl_form_fields(shacl, display_rules):
                 existing_field.setdefault("or", [])
                 for node in orNodes:
                     if not any(s.get("shape") == node for s in existing_field["or"]):
-                        existing_field["or"].append({"shape": node})
+                        existing_field["or"].append({
+                            "shape": node,
+                            "min": minCount,
+                            "max": maxCount
+                        })
         else:
             field_info = {
                 "entityType": entity_type,
@@ -177,7 +181,12 @@ def extract_shacl_form_fields(shacl, display_rules):
 
             # Se abbiamo orNodes, processiamo ogni shape
             if orNodes:
-                field_info["or"] = [{"shape": node} for node in orNodes]
+                # Aggiungiamo min e max per ogni shape nell'or
+                field_info["or"] = [{
+                    "shape": node,
+                    "min": minCount,
+                    "max": maxCount
+                } for node in orNodes]
             
             form_fields[entity_type][predicate].append(field_info)
 
@@ -301,11 +310,15 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
                 if condition_entry:
                     existing_field.setdefault('conditions', []).append(condition_entry)
                 if orNodes:
-                    # Salviamo solo l'informazione della shape per gli orNodes
+                    # Aggiungiamo min e max per ogni shape nell'or
                     existing_field.setdefault("or", [])
                     for node in orNodes:
                         if not any(s.get("shape") == node for s in existing_field["or"]):
-                            existing_field["or"].append({"shape": node})
+                            existing_field["or"].append({
+                                "shape": node,
+                                "min": minCount,
+                                "max": maxCount
+                            })
             else:
                 field_info = {
                     "entityType": entity_type,
@@ -327,9 +340,12 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
                         shacl, display_rules, nodeShape, depth + 1, processed_shapes
                     )
 
-                # Per gli orNodes, salviamo solo l'informazione della shape
                 if orNodes:
-                    field_info["or"] = [{"shape": node} for node in orNodes]
+                    field_info["or"] = [{
+                        "shape": node,
+                        "min": minCount,
+                        "max": maxCount
+                    } for node in orNodes]
 
                 temp_form_fields[entity_type][predicate].append(field_info)
 
