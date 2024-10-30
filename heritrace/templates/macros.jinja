@@ -2,7 +2,8 @@
 
 {% macro render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, index=None, is_template=False, max_depth=5) %}
     <div data-repeater-item 
-        class="input-group mb-3 ms-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" style="position: relative; padding-right: 3.5rem;" 
+        class="input-group mb-3 ms-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" 
+        style="position: relative; padding-right: 3.5rem;" 
         data-predicate-uri="{{ details.uri }}" 
         data-depth="{{ depth }}" 
         data-shape="{{ details.nodeShape or '' }}"
@@ -17,8 +18,6 @@
             {% if details.orderedBy %}
                 <span class="drag-handle me-2" style="cursor: move;">☰</span>
             {% endif %}
-
-            {# Title area with mandatory value indicator if needed #}
             <div class="d-flex align-items-center flex-grow-1">
                 {% set label_text = label or details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
                 <h6 class="mb-0 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">
@@ -32,8 +31,32 @@
                 {% endif %}
             </div>
         </div>
+        {% if details.or %}
+            <div class="container-selection w-75 mb-3">
+                <select class="form-select container-type-selector" 
+                        id="{{ unique_id_base }}_container_type"
+                        name="{{ unique_id_base }}_container_type"
+                        data-predicate-uri="{{ details.uri }}">
+                    <option value="">{{ _('Select an option') }}</option>
+                    {% for shape_info in details.or %}
+                        <option value="{{ shape_info.shape }}" 
+                                data-object-class="{{ shape_info.entityType }}"
+                                data-node-shape="{{ shape_info.shape }}">
+                            {{ shape_info.displayName or shape_info.entityType | human_readable_predicate(entity_types, False) }}
+                        </option>
+                    {% endfor %}
+                </select>
 
-        {% if details.intermediateRelation %}
+                {# Container forms - one for each option #}
+                <div class="container-forms d-none">
+                    {% for shape_info in details.or %}
+                        <div class="container-form d-none" data-shape="{{ shape_info.shape }}">
+                            {{ render_form_field(shape_info.entityType, prop, shape_info, entity_types, form_fields, depth + 1, max_depth=max_depth, is_template=False) }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% elif details.intermediateRelation %}
             <div class="d-flex flex-column newEntityPropertiesContainer">
                 <div class="nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
@@ -210,6 +233,7 @@
                 <div class="invalid-feedback w-75"></div>
             </div>
         {% endif %}
+
         {% if not details.hasValue %}
             <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger me-4">
                 <i class="bi bi-trash"></i>
@@ -233,7 +257,7 @@
             {{ render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, is_template=True, max_depth=max_depth) }}
 
             <!-- Pulsante per aggiungere nuovi elementi -->
-            <div class="mb-3 text-start" data-repeater-create>
+            <div class="my-3 text-start" data-repeater-create>
                 <button type="button" class="add-button {% if details.min > 0 %}initial-structure-add{% endif %}">
                     <i class="bi bi-plus-circle"></i>
                     {{ _("Add %(element_type)s", element_type=details.displayName or (prop | human_readable_predicate(entity_types, False))) }}

@@ -111,7 +111,7 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
 }
 
 [data-repeater-list], #entity_type {
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .add-button {
