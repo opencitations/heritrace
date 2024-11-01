@@ -452,6 +452,7 @@ common_properties:
     shouldBeDisplayed: true
     fetchValueFromQuery: *book_query
 
+
 classes:
   - class: "http://purl.org/spar/fabio/Expression"
     priority: 2

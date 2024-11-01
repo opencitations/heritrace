@@ -151,8 +151,7 @@ def extract_shacl_form_fields(shacl, display_rules):
                     if not any(s.get("shape") == node for s in existing_field["or"]):
                         existing_field["or"].append({
                             "shape": node,
-                            "min": minCount,
-                            "max": maxCount
+                            "uri": predicate
                         })
         else:
             field_info = {
@@ -184,8 +183,7 @@ def extract_shacl_form_fields(shacl, display_rules):
                 # Aggiungiamo min e max per ogni shape nell'or
                 field_info["or"] = [{
                     "shape": node,
-                    "min": minCount,
-                    "max": maxCount
+                    "uri": predicate
                 } for node in orNodes]
             
             form_fields[entity_type][predicate].append(field_info)
@@ -313,11 +311,10 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
                     # Aggiungiamo min e max per ogni shape nell'or
                     existing_field.setdefault("or", [])
                     for node in orNodes:
-                        if not any(s.get("shape") == node for s in existing_field["or"]):
+                        if not any(s.get("shape") == node and s.get("uri") == predicate for s in existing_field["or"]):
                             existing_field["or"].append({
                                 "shape": node,
-                                "min": minCount,
-                                "max": maxCount
+                                "uri": predicate
                             })
             else:
                 field_info = {
@@ -343,8 +340,7 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
                 if orNodes:
                     field_info["or"] = [{
                         "shape": node,
-                        "min": minCount,
-                        "max": maxCount
+                        "uri": predicate
                     } for node in orNodes]
 
                 temp_form_fields[entity_type][predicate].append(field_info)
@@ -655,21 +651,21 @@ def enrich_or_shapes(form_fields):
     """
     Arricchisce la struttura 'or' nei form_fields con tutte le informazioni complete
     delle shape, mantenendo la stessa struttura usata per le altre parti del form.
-    
+
     Args:
         form_fields (OrderedDict): La struttura dei form fields da arricchire
-        
+
     Returns:
         OrderedDict: La struttura arricchita con le informazioni complete
     """
-    # Costruiamo un mapping delle shape e relative informazioni complete
-    shape_to_info_map = {}
+    # Costruiamo un mapping delle shape e del predicato e relative informazioni complete
+    shape_predicate_to_info_map = {}
     for entity_type, properties in form_fields.items():
         for prop_uri, field_details_list in properties.items():
             for field_details in field_details_list:
                 if field_details.get('nodeShape'):
-                    # Catturiamo tutte le chiavi presenti nel field_details
-                    shape_to_info_map[field_details['nodeShape']] = {
+                    key = (field_details['nodeShape'], field_details['uri'])
+                    shape_predicate_to_info_map[key] = {
                         'uri': field_details.get('uri'),
                         'nodeShape': field_details.get('nodeShape'),
                         'datatypes': field_details.get('datatypes', []),
@@ -696,22 +692,24 @@ def enrich_or_shapes(form_fields):
                     enriched_or = []
                     for shape_info in field_details['or']:
                         shape_uri = shape_info.get('shape')
-                        if shape_uri and shape_uri in shape_to_info_map:
-                            base_info = shape_to_info_map[shape_uri].copy()
-                            
+                        predicate_uri = shape_info.get('uri')
+                        key = (shape_uri, predicate_uri)
+                        if shape_uri and predicate_uri and key in shape_predicate_to_info_map:
+                            base_info = shape_predicate_to_info_map[key].copy()
+
                             # Manteniamo l'entityType del contesto padre
                             enriched_shape = {
                                 'shape': shape_uri,
                                 'entityType': entity_type,  # Usiamo l'entityType del contesto padre
-                                'uri': shape_info.get('uri', base_info.get('uri')),
+                                'uri': predicate_uri,
                                 'nodeShape': shape_uri,
-                                'datatypes': shape_info.get('datatypes', base_info.get('datatypes', [])),
-                                'min': shape_info.get('min', 0),
-                                'max': shape_info.get('max', None),
+                                'datatypes': base_info.get('datatypes', []),
+                                'min': base_info.get('min', 0),
+                                'max': base_info.get('max', None),
                                 'hasValue': base_info.get('hasValue'),
                                 'objectClass': base_info.get('objectClass'),
                                 'optionalValues': base_info.get('optionalValues', []),
-                                'conditions': shape_info.get('conditions', base_info.get('conditions', [])),
+                                'conditions': base_info.get('conditions', []),
                                 'inputType': base_info.get('inputType'),
                                 'displayName': base_info.get('displayName'),
                                 'shouldBeDisplayed': base_info.get('shouldBeDisplayed', True),
@@ -721,7 +719,14 @@ def enrich_or_shapes(form_fields):
                                 'additionalProperties': base_info.get('additionalProperties', {})
                             }
                             enriched_or.append(enriched_shape)
-                    
+                        else:
+                            # Se non troviamo la combinazione, aggiungiamo un placeholder
+                            enriched_or.append({
+                                'shape': shape_uri,
+                                'uri': predicate_uri,
+                                'entityType': entity_type
+                            })
+
                     # Sostituiamo la struttura 'or' originale con quella arricchita
                     field_details['or'] = enriched_or
 
