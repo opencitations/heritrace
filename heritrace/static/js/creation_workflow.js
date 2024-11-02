@@ -288,6 +288,10 @@ function initializeNewItem($newItem, isInitialStructure = false) {
     });
 
     setRequiredForVisibleFields($newItem, isInitialStructure);
+
+    $newItem.find('input').each(function() {
+        enhanceInputWithSearch($(this));
+    });
 }
 
 // Funzione ricorsiva per raccogliere i dati dai campi del form

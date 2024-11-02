@@ -24,7 +24,7 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
     sparqlQuery += `} LIMIT 5`;
 
     // Remove the is-invalid class when a new search starts
-    const input = $('.newEntityPropertiesContainer input:focus');
+    const input = $('.newEntityPropertyContainer input:focus');
     if (input.length) {
         input.removeClass('is-invalid');
         input.siblings('.invalid-feedback').hide();
@@ -195,17 +195,39 @@ function updateSearchResults(results, dropdown) {
 
 // Function to handle the selection of an entity
 function handleEntitySelection(container, entity) {
-    const input = container.find('input');
+    // Find the parent properties container
+    const propertiesContainer = container.closest('.newEntityPropertiesContainer');
+    
+    // Store only the content that isn't the search results or spinner
+    const originalContent = propertiesContainer.children()
+        .not('.entity-search-results')
+        .not('.search-spinner')
+        .detach();
+        
+    // Save the original content in the container's data
+    propertiesContainer.data('originalContent', originalContent);
+
+    // Create the hidden input to store the selected entity's URI
     const hiddenInput = $('<input>')
         .attr('type', 'hidden')
         .val(entity.entity.value)
         .attr('data-entity-reference', 'true');
-    
-    createEntityDisplay(entity, container, function(display) {
-        input.hide().after(hiddenInput).after(display);
+
+    // Create the display for the selected entity
+    createEntityDisplay(entity, propertiesContainer, function(display) {
+        // Clear any existing content first except search-related elements
+        propertiesContainer.children()
+            .not('.entity-search-results')
+            .not('.search-spinner')
+            .remove();
+            
+        // Append the hidden input and display to the container
+        propertiesContainer.append(hiddenInput).append(display);
     });
-    
-    container.find('.entity-search-results').addClass('d-none');
+
+    // Hide the search results dropdown and spinner
+    propertiesContainer.find('.entity-search-results').addClass('d-none');
+    propertiesContainer.find('.search-spinner').addClass('d-none');
 }
 
 // Function to find the object-class in the closest repeater-list that has it
@@ -225,14 +247,15 @@ function findObjectClass(element) {
 
 // Function to enhance existing input fields with search functionality
 function enhanceInputWithSearch(input) {
-    const container = input.closest('.newEntityPropertiesContainer');
+    const container = input.closest('.newEntityPropertyContainer');
+
     if (!container.length) return;
 
     const objectClass = findObjectClass(container);
     if (!objectClass) return;
 
     const predicateUri = container.closest('[data-repeater-item]').data('predicate-uri');
-    
+
     // Add the search results dropdown and spinner
     const searchResults = createSearchDropdown();
     addLoadingSpinner(input);
@@ -284,7 +307,7 @@ function enhanceInputWithSearch(input) {
 
     // Close the results when clicking outside
     $(document).on('click', function(e) {
-        if (!$(e.target).closest('.newEntityPropertiesContainer').length) {
+        if (!$(e.target).closest('.newEntityPropertyContainer').length) {
             searchResults.addClass('d-none');
             container.find('.search-spinner').addClass('d-none');
         }
@@ -294,29 +317,30 @@ function enhanceInputWithSearch(input) {
 // Function to handle changing a selected entity
 $(document).on('click', '.change-entity', function(e) {
     e.preventDefault();
-    const container = $(this).closest('.newEntityPropertiesContainer');
+    const propertiesContainer = $(this).closest('.newEntityPropertiesContainer');
     const display = $(this).closest('.entity-reference-display');
-    const hiddenInput = container.find('input[data-entity-reference="true"]');
-    const originalInput = container.find('input').first();
-    
+    const hiddenInput = propertiesContainer.find('input[data-entity-reference="true"]');
+
+    // Remove the display and hidden input
     display.remove();
     hiddenInput.remove();
-    originalInput.show().val('').focus();
-});
 
-// Override the existing initializeNewItem function
-const originalInitializeNewItem = window.initializeNewItem;
-window.initializeNewItem = function($newItem, isInitialStructure) {
-    originalInitializeNewItem($newItem, isInitialStructure);
-    
-    $newItem.find('input').each(function() {
+    // Restore the original content
+    const originalContent = propertiesContainer.data('originalContent');
+    if (originalContent) {
+        propertiesContainer.append(originalContent);
+        propertiesContainer.removeData('originalContent');
+    }
+
+    // Re-initialize any inputs with search functionality
+    propertiesContainer.find('input').each(function() {
         enhanceInputWithSearch($(this));
     });
-};
+});
 
 // Initialize existing fields
 $(document).ready(function() {
-    $('[data-repeater-item]:not(.repeater-template)').find('input').each(function() {
+    $('[data-repeater-item]:not(.repeater-template)').find('input:visible').each(function() {
         enhanceInputWithSearch($(this));
     });
 });
