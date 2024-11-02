@@ -899,10 +899,7 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:or (
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
-    ) ;
+    sh:node schema:VolumeShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] .
