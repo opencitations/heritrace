@@ -452,6 +452,10 @@ def catalogue():
         if is_entity_type_visible(result['class']['value'])
     ]
 
+    available_classes.sort(
+        key=lambda x: custom_filter.human_readable_predicate(x[0], [x[0]]).lower()
+    )
+
     # Calculate total pages for class list
     total_classes = len(available_classes)
     total_class_pages = (total_classes + per_page - 1) // per_page
