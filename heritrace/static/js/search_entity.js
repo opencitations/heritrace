@@ -27,7 +27,6 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
     const input = $('.newEntityPropertiesContainer input:focus');
     if (input.length) {
         input.removeClass('is-invalid');
-        // Assicurati che il feedback di errore sia nascosto
         input.siblings('.invalid-feedback').hide();
     }
 
@@ -95,21 +94,49 @@ function updateSearchResults(results, dropdown) {
     dropdown.empty();
 
     if (results.length) {
+        // Prima ottieni l'oggetto della ricerca per ottenere il tipo di entità
+        const objectClass = findObjectClass(dropdown);
+
         results.forEach(entity => {
-            const label = entity.label ? 
-                entity.label.value : 
-                entity.entity.value.split('/').pop();
-                
-            dropdown.append(`
-                <button type="button" class="list-group-item list-group-item-action">
-                        <div class="overflow-hidden me-2">
-                            <div class="fw-bold text-truncate">${label}</div>
-                            <small class="text-muted text-truncate d-block">${entity.entity.value}</small>
-                        </div>
-                        <i class="bi bi-chevron-right flex-shrink-0"></i>
-                    </div>
-                </button>
-            `);
+            // Effettua una chiamata per ottenere la versione human readable dell'entità
+            $.ajax({
+                url: '/human-readable-entity',
+                method: 'POST',
+                data: {
+                    uri: entity.entity.value,
+                    entity_class: objectClass
+                },
+                success: function(readableEntity) {
+                    dropdown.append(`
+                        <button type="button" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="overflow-hidden me-2">
+                                    <div class="fw-bold text-truncate">${readableEntity}</div>
+                                </div>
+                                <i class="bi bi-chevron-right flex-shrink-0"></i>
+                            </div>
+                        </button>
+                    `);
+                },
+                error: function() {
+                    // In caso di errore, usa la label se disponibile o l'ultima parte dell'URI
+                    const label = entity.label ? 
+                        entity.label.value : 
+                        entity.entity.value.split('/').pop();
+                        
+                    dropdown.append(`
+                        <button type="button" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="overflow-hidden me-2">
+                                    <div class="fw-bold text-truncate">${label}</div>
+                                    <small class="text-muted text-truncate d-block">${entity.entity.value}</small>
+                                </div>
+                                <i class="bi bi-chevron-right flex-shrink-0"></i>
+                            </div>
+                        </button>
+                    `);
+                }
+            });
         });
     }
 
@@ -184,7 +211,6 @@ function enhanceInputWithSearch(input) {
         
         // Rimuovi la classe is-invalid quando l'utente inizia a digitare
         $(this).removeClass('is-invalid');
-        // Nascondi il messaggio di feedback
         $(this).siblings('.invalid-feedback').hide();
         
         if (term.length < 3) return;

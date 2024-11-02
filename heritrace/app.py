@@ -1213,7 +1213,7 @@ def generate_modification_text(modifications, subject_classes, history=None, ent
                 object_label = object_value
             modification_text += f"""
                 <li class='d-flex align-items-center'>
-                    <span class='flex-grow-1 d-flex flex-column justify-content-center ms-3 mb-2 w-75'>
+                    <span class='flex-grow-1 d-flex flex-column justify-content-center ms-3 mb-2 w-100'>
                         <strong>{predicate_label}</strong>
                         <span class="object-value word-wrap">{object_label}</span>
                     </span>
@@ -1607,6 +1607,14 @@ def restore_version(entity_uri, timestamp):
         flash(gettext('An error occurred while restoring the version: %(error)s', error=str(e)), 'error')
 
     return redirect(url_for('about', subject=entity_uri))
+
+@app.route('/human-readable-entity', methods=['POST'])
+def get_human_readable_entity():
+    uri = request.form['uri']
+    entity_class = request.form['entity_class']
+    filter_instance = Filter(context, display_rules, dataset_endpoint)
+    readable = filter_instance.human_readable_entity(uri, [entity_class])
+    return readable
 
 @app.errorhandler(404)
 def page_not_found(e):
