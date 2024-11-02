@@ -55,7 +55,7 @@ def extract_shacl_form_fields(shacl, display_rules):
         return dict()
     
     query = prepareQuery("""
-        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
+        SELECT ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
                ?conditionPath ?conditionValue ?pattern ?message
                (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
                (GROUP_CONCAT(?orNode; separator=",") AS ?orNodes)
@@ -94,7 +94,7 @@ def extract_shacl_form_fields(shacl, display_rules):
             OPTIONAL { ?property sh:message ?message . }
             FILTER (isURI(?predicate))
         }
-        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue 
+        GROUP BY ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue 
                 ?objectClass ?conditionPath ?conditionValue ?pattern ?message
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
@@ -102,7 +102,8 @@ def extract_shacl_form_fields(shacl, display_rules):
     form_fields = defaultdict(dict)
     processed_shapes = set()  # Insieme per tracciare le shape già processate
 
-    for row in results:        
+    for row in results:
+        subject_shape = str(row.shape)  
         entity_type = str(row.type)
         predicate = str(row.predicate)
         nodeShape = str(row.nodeShape) if row.nodeShape else None
@@ -131,6 +132,7 @@ def extract_shacl_form_fields(shacl, display_rules):
         existing_field = None
         for field in form_fields[entity_type][predicate]:
             if (field.get('nodeShape') == nodeShape and
+                field.get('subjectShape') == subject_shape and
                 field.get('hasValue') == hasValue and
                 field.get('objectClass') == objectClass and
                 field.get('min') == minCount and
@@ -138,7 +140,7 @@ def extract_shacl_form_fields(shacl, display_rules):
                 field.get('optionalValues') == optionalValues):
                 existing_field = field
                 break
-
+                
         if existing_field:
             if datatype and str(datatype) not in existing_field.get("datatypes", []):
                 existing_field.setdefault("datatypes", []).append(str(datatype))
@@ -158,6 +160,7 @@ def extract_shacl_form_fields(shacl, display_rules):
                 "entityType": entity_type,
                 "uri": predicate,
                 "nodeShape": nodeShape,
+                "subjectShape": subject_shape,
                 "datatypes": [datatype] if datatype else [],
                 "min": minCount,
                 "max": maxCount,
@@ -211,7 +214,7 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
     processed_shapes.add(shape_uri)
 
     nested_query = prepareQuery("""
-        SELECT ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
+        SELECT ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
                ?conditionPath ?conditionValue ?pattern ?message
                (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
                (GROUP_CONCAT(?orNode; separator=",") AS ?orNodes)
@@ -250,7 +253,7 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
             OPTIONAL { ?property sh:message ?message . }
             FILTER (isURI(?predicate))
         }
-        GROUP BY ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
+        GROUP BY ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
                 ?conditionPath ?conditionValue ?pattern ?message
     """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
@@ -261,6 +264,7 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
     temp_form_fields = defaultdict(dict)
 
     for row in nested_results:
+        subject_shape = str(row.shape)
         predicate = str(row.predicate)
         nodeShape = str(row.nodeShape) if row.nodeShape else None
         hasValue = str(row.hasValue) if row.hasValue else None
@@ -293,6 +297,7 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
             existing_field = None
             for field in temp_form_fields[entity_type][predicate]:
                 if (field.get('nodeShape') == nodeShape and
+                    field.get('subjectShape') == subject_shape and
                     field.get('hasValue') == hasValue and
                     field.get('objectClass') == objectClass and
                     field.get('min') == minCount and
@@ -321,6 +326,7 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
                     "entityType": entity_type,
                     "uri": predicate,
                     "nodeShape": nodeShape,
+                    "subjectShape": subject_shape,
                     "datatypes": [datatype] if datatype else [],
                     "min": minCount,
                     "max": maxCount,
@@ -538,6 +544,7 @@ def handle_intermediate_relation(shacl, field_info, prop):
         "connectingProperty": connecting_property,
         "properties": intermediate_properties
     }
+
 def handle_sub_display_rules(shacl, form_fields, entity_class, field_info_list, prop):
     """
     Gestisce 'displayRules' nelle display_rules, applicando la regola corretta in base allo shape.
@@ -564,10 +571,12 @@ def handle_sub_display_rules(shacl, form_fields, entity_class, field_info_list, 
                 "max": original_field.get("max"),
                 "hasValue": original_field.get("hasValue"),
                 "nodeShape": original_field.get("nodeShape"),
+                "subjectShape": original_field.get("subjectShape"),
                 "nestedShape": original_field.get("nestedShape"),
                 "displayName": matching_rule['displayName'],
                 "optionalValues": original_field.get("optionalValues", []),
-                "orderedBy": original_field.get('orderedBy')
+                "orderedBy": original_field.get('orderedBy'),
+                "or": original_field.get('or', [])
             }
 
             if 'intermediateRelation' in original_field:
@@ -660,29 +669,22 @@ def enrich_or_shapes(form_fields):
     """
     # Costruiamo un mapping delle shape e del predicato e relative informazioni complete
     shape_predicate_to_info_map = {}
+
     for entity_type, properties in form_fields.items():
         for prop_uri, field_details_list in properties.items():
-            for field_details in field_details_list:
+            for field_details in field_details_list:                
+                # Caso 1: La shape è il soggetto della tripla
+                if field_details.get('subjectShape'):
+                    key = f"{field_details['subjectShape']}|{field_details['uri']}"
+                    shape_predicate_to_info_map[key] = field_details.copy()
+
+                # Caso 2: La shape è l'oggetto della tripla (nodeShape)
                 if field_details.get('nodeShape'):
-                    key = (field_details['nodeShape'], field_details['uri'])
-                    shape_predicate_to_info_map[key] = {
-                        'uri': field_details.get('uri'),
-                        'nodeShape': field_details.get('nodeShape'),
-                        'datatypes': field_details.get('datatypes', []),
-                        'min': field_details.get('min', 0),
-                        'max': field_details.get('max'),
-                        'hasValue': field_details.get('hasValue'),
-                        'objectClass': field_details.get('objectClass'),
-                        'optionalValues': field_details.get('optionalValues', []),
-                        'conditions': field_details.get('conditions', []),
-                        'inputType': field_details.get('inputType'),
-                        'displayName': field_details.get('displayName'),
-                        'shouldBeDisplayed': field_details.get('shouldBeDisplayed', True),
-                        'orderedBy': field_details.get('orderedBy'),
-                        'intermediateRelation': field_details.get('intermediateRelation'),
-                        'nestedShape': field_details.get('nestedShape', []),
-                        'additionalProperties': field_details.get('additionalProperties', {})
-                    }
+                    key = f"{field_details['nodeShape']}|{field_details['uri']}"
+                    shape_predicate_to_info_map[key] = field_details
+
+    # import json
+    # print(json.dumps(shape_predicate_to_info_map['http://schema.org/VolumeShape|http://purl.org/vocab/frbr/core#partOf'], indent=4))
 
     # Ora arricchiamo la struttura 'or', mantenendo il tipo dell'entità padre
     for entity_type, properties in form_fields.items():
@@ -693,11 +695,10 @@ def enrich_or_shapes(form_fields):
                     for shape_info in field_details['or']:
                         shape_uri = shape_info.get('shape')
                         predicate_uri = shape_info.get('uri')
-                        key = (shape_uri, predicate_uri)
+                        key = f"{shape_uri}|{predicate_uri}"
                         if shape_uri and predicate_uri and key in shape_predicate_to_info_map:
                             base_info = shape_predicate_to_info_map[key].copy()
 
-                            # Manteniamo l'entityType del contesto padre
                             enriched_shape = {
                                 'shape': shape_uri,
                                 'entityType': entity_type,  # Usiamo l'entityType del contesto padre
@@ -719,15 +720,7 @@ def enrich_or_shapes(form_fields):
                                 'additionalProperties': base_info.get('additionalProperties', {})
                             }
                             enriched_or.append(enriched_shape)
-                        else:
-                            # Se non troviamo la combinazione, aggiungiamo un placeholder
-                            enriched_or.append({
-                                'shape': shape_uri,
-                                'uri': predicate_uri,
-                                'entityType': entity_type
-                            })
 
-                    # Sostituiamo la struttura 'or' originale con quella arricchita
                     field_details['or'] = enriched_or
 
     return form_fields
