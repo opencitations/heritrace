@@ -1,6 +1,6 @@
-let lastSearchResults = []; // Variabile globale per tenere traccia dei risultati
+let lastSearchResults = []; // Global variable to keep track of results
 
-// Funzione per eseguire la ricerca SPARQL
+// Function to execute the SPARQL search
 function searchEntities(term, entityType = null, predicate = null, callback) {
     let sparqlQuery = `
         SELECT DISTINCT ?entity ?label ?type WHERE {
@@ -23,7 +23,7 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
 
     sparqlQuery += `} LIMIT 5`;
 
-    // Rimuovi la classe is-invalid quando inizia una nuova ricerca
+    // Remove the is-invalid class when a new search starts
     const input = $('.newEntityPropertiesContainer input:focus');
     if (input.length) {
         input.removeClass('is-invalid');
@@ -45,7 +45,7 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
     });
 }
 
-// Funzione per creare il dropdown dei risultati
+// Function to create the search results dropdown
 function createSearchDropdown() {
     return $(`
         <div class="entity-search-results list-group position-absolute d-none" 
@@ -54,7 +54,7 @@ function createSearchDropdown() {
     `);
 }
 
-// Funzione per aggiungere lo spinner al campo
+// Function to add a loading spinner to the input field
 function addLoadingSpinner(input) {
     const spinnerHtml = `
         <div class="position-absolute end-0 top-50 translate-middle-y pe-2 search-spinner d-none">
@@ -66,11 +66,11 @@ function addLoadingSpinner(input) {
     input.parent().css('position', 'relative').append(spinnerHtml);
 }
 
-// Funzione per creare la visualizzazione di un'entità selezionata
+// Function to create the display of a selected entity
 function createEntityDisplay(entity, container, callback) {
     const objectClass = findObjectClass(container);
-    
-    // Prima creiamo un elemento temporaneo
+
+    // Create a temporary element
     const display = $(`
         <div class="entity-reference-display d-flex justify-content-between align-items-center p-2 border rounded">
             <div>
@@ -82,48 +82,56 @@ function createEntityDisplay(entity, container, callback) {
                     <i class="bi bi-pencil"></i>
                 </button>
                 <a href="/about/${encodeURIComponent(entity.entity.value)}" 
-                   class="btn btn-outline-primary btn-sm"
-target="_blank">                    <i class="bi bi-box-arrow-up-right"></i>
+                   class="btn btn-outline-primary btn-sm" target="_blank">
+                    <i class="bi bi-box-arrow-up-right"></i>
                 </a>
             </div>
         </div>
     `);
 
-    // Poi facciamo la chiamata per ottenere la versione human readable
-    $.ajax({
-        url: '/human-readable-entity',
-        method: 'POST',
-        data: {
-            uri: entity.entity.value,
-            entity_class: objectClass
-        },
-        success: function(readableEntity) {
-            display.find('.entity-label').text(readableEntity);
-            if (callback) callback(display);
-        },
-        error: function() {
-            // Fallback alla label o all'URI in caso di errore
-            const label = entity.label ? 
-                entity.label.value : 
-                entity.entity.value.split('/').pop();
-            display.find('.entity-label').text(label);
-            if (callback) callback(display);
-        }
-    });
+    // Use the stored human-readable label if available
+    if (entity.humanReadableLabel) {
+        display.find('.entity-label').text(entity.humanReadableLabel);
+        if (callback) callback(display);
+    } else {
+        // Fetch the human-readable version if not already fetched
+        $.ajax({
+            url: '/human-readable-entity',
+            method: 'POST',
+            data: {
+                uri: entity.entity.value,
+                entity_class: objectClass
+            },
+            success: function(readableEntity) {
+                display.find('.entity-label').text(readableEntity);
+                // Store it for future use
+                entity.humanReadableLabel = readableEntity;
+                if (callback) callback(display);
+            },
+            error: function() {
+                // Fallback to label or URI in case of error
+                const label = entity.label ? 
+                    entity.label.value : 
+                    entity.entity.value.split('/').pop();
+                display.find('.entity-label').text(label);
+                if (callback) callback(display);
+            }
+        });
+    }
 
     return display;
 }
 
-// Funzione per aggiornare i risultati della ricerca
+// Function to update the search results
 function updateSearchResults(results, dropdown) {
     dropdown.empty();
 
     if (results.length) {
-        // Prima ottieni l'oggetto della ricerca per ottenere il tipo di entità
+        // Get the object class to obtain the entity type
         const objectClass = findObjectClass(dropdown);
 
         results.forEach(entity => {
-            // Effettua una chiamata per ottenere la versione human readable dell'entità
+            // Fetch the human-readable version and store it
             $.ajax({
                 url: '/human-readable-entity',
                 method: 'POST',
@@ -132,8 +140,10 @@ function updateSearchResults(results, dropdown) {
                     entity_class: objectClass
                 },
                 success: function(readableEntity) {
+                    // Store the human-readable label
+                    entity.humanReadableLabel = readableEntity;
                     dropdown.append(`
-                        <button type="button" class="list-group-item list-group-item-action">
+                        <button type="button" class="list-group-item list-group-item-action" data-entity-uri="${entity.entity.value}">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="overflow-hidden me-2">
                                     <div class="text-truncate">${readableEntity}</div>
@@ -144,13 +154,16 @@ function updateSearchResults(results, dropdown) {
                     `);
                 },
                 error: function() {
-                    // In caso di errore, usa la label se disponibile o l'ultima parte dell'URI
+                    // In case of error, use the label or the last part of the URI
                     const label = entity.label ? 
                         entity.label.value : 
                         entity.entity.value.split('/').pop();
-                        
+
+                    // Store the label
+                    entity.humanReadableLabel = label;
+
                     dropdown.append(`
-                        <button type="button" class="list-group-item list-group-item-action">
+                        <button type="button" class="list-group-item list-group-item-action" data-entity-uri="${entity.entity.value}">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="overflow-hidden me-2">
                                     <div class="fw-bold text-truncate">${label}</div>
@@ -165,7 +178,7 @@ function updateSearchResults(results, dropdown) {
         });
     }
 
-    // Aggiungi l'opzione "Create New" solo se è un campo di input (non un display)
+    // Add the "Create New" option only if it's an input field (not a display)
     if (dropdown.prev().is('input')) {
         dropdown.append(`
             <button type="button" class="list-group-item list-group-item-action create-new">
@@ -180,7 +193,7 @@ function updateSearchResults(results, dropdown) {
     dropdown.removeClass('d-none');
 }
 
-// Funzione per gestire la selezione di un'entità
+// Function to handle the selection of an entity
 function handleEntitySelection(container, entity) {
     const input = container.find('input');
     const hiddenInput = $('<input>')
@@ -195,7 +208,7 @@ function handleEntitySelection(container, entity) {
     container.find('.entity-search-results').addClass('d-none');
 }
 
-// Funzione per trovare l'object-class nel repeater-list più vicino che ce l'ha
+// Function to find the object-class in the closest repeater-list that has it
 function findObjectClass(element) {
     let current = $(element);
     while (current.length) {
@@ -210,7 +223,7 @@ function findObjectClass(element) {
     return null;
 }
 
-// Funzione per migliorare i campi input esistenti con la funzionalità di ricerca
+// Function to enhance existing input fields with search functionality
 function enhanceInputWithSearch(input) {
     const container = input.closest('.newEntityPropertiesContainer');
     if (!container.length) return;
@@ -220,12 +233,12 @@ function enhanceInputWithSearch(input) {
 
     const predicateUri = container.closest('[data-repeater-item]').data('predicate-uri');
     
-    // Aggiungi il dropdown dei risultati e lo spinner
+    // Add the search results dropdown and spinner
     const searchResults = createSearchDropdown();
     addLoadingSpinner(input);
     input.after(searchResults);
     
-    // Gestisci l'input con debounce
+    // Handle input with debounce
     let searchTimeout;
     input.on('input', function() {
         const term = $(this).val().trim();
@@ -235,7 +248,7 @@ function enhanceInputWithSearch(input) {
         searchResults.addClass('d-none').empty();
         spinner.addClass('d-none');
         
-        // Rimuovi la classe is-invalid quando l'utente inizia a digitare
+        // Remove the is-invalid class when the user starts typing
         $(this).removeClass('is-invalid');
         $(this).siblings('.invalid-feedback').hide();
         
@@ -256,19 +269,20 @@ function enhanceInputWithSearch(input) {
         }, 300);
     });
 
-    // Gestisci i click sui risultati
+    // Handle clicks on the results
     searchResults.on('click', '.list-group-item:not(.create-new)', function() {
-        const index = $(this).index() - 1; // Sottraiamo 1 per compensare il pulsante "Create new"
-        handleEntitySelection(container, lastSearchResults[index]);
+        const entityUri = $(this).data('entity-uri');
+        const entity = lastSearchResults.find(e => e.entity.value === entityUri);
+        handleEntitySelection(container, entity);
     });
 
-    // Gestisci il click su "Create New"
+    // Handle the click on "Create New"
     searchResults.on('click', '.create-new', function() {
         input.trigger('focus');
         searchResults.addClass('d-none');
     });
 
-    // Chiudi i risultati quando si clicca fuori
+    // Close the results when clicking outside
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.newEntityPropertiesContainer').length) {
             searchResults.addClass('d-none');
@@ -277,7 +291,7 @@ function enhanceInputWithSearch(input) {
     });
 }
 
-// Funzione per gestire il cambio di un'entità selezionata
+// Function to handle changing a selected entity
 $(document).on('click', '.change-entity', function(e) {
     e.preventDefault();
     const container = $(this).closest('.newEntityPropertiesContainer');
@@ -290,7 +304,7 @@ $(document).on('click', '.change-entity', function(e) {
     originalInput.show().val('').focus();
 });
 
-// Override della funzione initializeNewItem esistente
+// Override the existing initializeNewItem function
 const originalInitializeNewItem = window.initializeNewItem;
 window.initializeNewItem = function($newItem, isInitialStructure) {
     originalInitializeNewItem($newItem, isInitialStructure);
@@ -300,7 +314,7 @@ window.initializeNewItem = function($newItem, isInitialStructure) {
     });
 };
 
-// Inizializzazione dei campi esistenti
+// Initialize existing fields
 $(document).ready(function() {
     $('[data-repeater-item]:not(.repeater-template)').find('input').each(function() {
         enhanceInputWithSearch($(this));
