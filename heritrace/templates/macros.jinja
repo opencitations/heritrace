@@ -189,46 +189,50 @@
         {% else %}
             <div class="flex-grow-1 newEntityPropertiesContainer">
                 {% if details.inputType == "textarea" %}
-                    <textarea 
-                        class="form-control w-75"
-                        id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
-                        name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
-                        data-predicate-uri="{{ details.uri }}"
-                        data-depth="{{ depth }}"
-                        {% if details.conditions %}
-                            data-conditions='{{ details.conditions | tojson | safe }}'
-                        {% endif %}
-                        placeholder="{{ label_text }}"
-                        {% if not is_template and details.min and details.min > 0 %}
-                            required
-                        {% endif %}
-                        {% if details.datatypes and details.datatypes | length %}
-                            data-datatypes="{{ details.datatypes | join(',') }}"
-                        {% endif %}
-                        rows="5"
-                    ></textarea>
+                    <div class="position-relative w-75">
+                        <textarea 
+                            class="form-control"
+                            id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                            name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                            data-predicate-uri="{{ details.uri }}"
+                            data-depth="{{ depth }}"
+                            {% if details.conditions %}
+                                data-conditions='{{ details.conditions | tojson | safe }}'
+                            {% endif %}
+                            placeholder="{{ label_text }}"
+                            {% if not is_template and details.min and details.min > 0 %}
+                                required
+                            {% endif %}
+                            {% if details.datatypes and details.datatypes | length %}
+                                data-datatypes="{{ details.datatypes | join(',') }}"
+                            {% endif %}
+                            rows="5"
+                        ></textarea>
+                    </div>
                 {% else %}
-                    <input 
-                        type="{{ details.inputType or 'text' }}"
-                        class="form-control w-75"
-                        id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
-                        name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
-                        data-predicate-uri="{{ details.uri }}"
-                        data-depth="{{ depth }}"
-                        {% if details.conditions %}
-                            data-conditions='{{ details.conditions | tojson | safe }}'
-                        {% endif %}
-                        placeholder="{{ label_text }}"
-                        {% if not is_template and details.min and details.min > 0 %}
-                            required
-                        {% endif %}
-                        {% if details.datatypes and details.datatypes | length %}
-                            data-datatypes="{{ details.datatypes | join(',') }}"
-                        {% endif %}
-                        {% if details.inputType == "number" %}
-                            step="any"
-                        {% endif %}
-                    >
+                    <div class="position-relative w-75">
+                        <input 
+                            type="{{ details.inputType or 'text' }}"
+                            class="form-control"
+                            id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                            name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
+                            data-predicate-uri="{{ details.uri }}"
+                            data-depth="{{ depth }}"
+                            {% if details.conditions %}
+                                data-conditions='{{ details.conditions | tojson | safe }}'
+                            {% endif %}
+                            placeholder="{{ label_text }}"
+                            {% if not is_template and details.min and details.min > 0 %}
+                                required
+                            {% endif %}
+                            {% if details.datatypes and details.datatypes | length %}
+                                data-datatypes="{{ details.datatypes | join(',') }}"
+                            {% endif %}
+                            {% if details.inputType == "number" %}
+                                step="any"
+                            {% endif %}
+                        >
+                    </div>
                 {% endif %}
                 <div class="invalid-feedback w-75"></div>
             </div>
