@@ -67,13 +67,15 @@ function addLoadingSpinner(input) {
 }
 
 // Funzione per creare la visualizzazione di un'entità selezionata
-function createEntityDisplay(entity) {
-    const label = entity.label ? entity.label.value : entity.entity.value.split('/').pop();
-    return $(`
+function createEntityDisplay(entity, container, callback) {
+    const objectClass = findObjectClass(container);
+    
+    // Prima creiamo un elemento temporaneo
+    const display = $(`
         <div class="entity-reference-display d-flex justify-content-between align-items-center p-2 border rounded">
             <div>
-                <strong>${label}</strong>
-                <div class="text-muted small">${entity.entity.value}</div>
+                <span class="entity-label">...</span>
+                <div class="text-muted small d-none">${entity.entity.value}</div>
             </div>
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm change-entity">
@@ -81,12 +83,35 @@ function createEntityDisplay(entity) {
                 </button>
                 <a href="/about/${encodeURIComponent(entity.entity.value)}" 
                    class="btn btn-outline-primary btn-sm"
-                   target="_blank">
-                    <i class="bi bi-box-arrow-up-right"></i>
+target="_blank">                    <i class="bi bi-box-arrow-up-right"></i>
                 </a>
             </div>
         </div>
     `);
+
+    // Poi facciamo la chiamata per ottenere la versione human readable
+    $.ajax({
+        url: '/human-readable-entity',
+        method: 'POST',
+        data: {
+            uri: entity.entity.value,
+            entity_class: objectClass
+        },
+        success: function(readableEntity) {
+            display.find('.entity-label').text(readableEntity);
+            if (callback) callback(display);
+        },
+        error: function() {
+            // Fallback alla label o all'URI in caso di errore
+            const label = entity.label ? 
+                entity.label.value : 
+                entity.entity.value.split('/').pop();
+            display.find('.entity-label').text(label);
+            if (callback) callback(display);
+        }
+    });
+
+    return display;
 }
 
 // Funzione per aggiornare i risultati della ricerca
@@ -111,7 +136,7 @@ function updateSearchResults(results, dropdown) {
                         <button type="button" class="list-group-item list-group-item-action">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="overflow-hidden me-2">
-                                    <div class="fw-bold text-truncate">${readableEntity}</div>
+                                    <div class="text-truncate">${readableEntity}</div>
                                 </div>
                                 <i class="bi bi-chevron-right flex-shrink-0"></i>
                             </div>
@@ -163,9 +188,10 @@ function handleEntitySelection(container, entity) {
         .val(entity.entity.value)
         .attr('data-entity-reference', 'true');
     
-    const display = createEntityDisplay(entity);
+    createEntityDisplay(entity, container, function(display) {
+        input.hide().after(hiddenInput).after(display);
+    });
     
-    input.hide().after(hiddenInput).after(display);
     container.find('.entity-search-results').addClass('d-none');
 }
 
@@ -232,7 +258,7 @@ function enhanceInputWithSearch(input) {
 
     // Gestisci i click sui risultati
     searchResults.on('click', '.list-group-item:not(.create-new)', function() {
-        const index = $(this).index();
+        const index = $(this).index() - 1; // Sottraiamo 1 per compensare il pulsante "Create new"
         handleEntitySelection(container, lastSearchResults[index]);
     });
 
