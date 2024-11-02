@@ -23,6 +23,14 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
 
     sparqlQuery += `} LIMIT 5`;
 
+    // Rimuovi la classe is-invalid quando inizia una nuova ricerca
+    const input = $('.newEntityPropertiesContainer input:focus');
+    if (input.length) {
+        input.removeClass('is-invalid');
+        // Assicurati che il feedback di errore sia nascosto
+        input.siblings('.invalid-feedback').hide();
+    }
+
     $.ajax({
         url: '/dataset-endpoint',
         method: 'POST',
@@ -45,6 +53,18 @@ function createSearchDropdown() {
              style="z-index: 1; width: 100%;">
         </div>
     `);
+}
+
+// Funzione per aggiungere lo spinner al campo
+function addLoadingSpinner(input) {
+    const spinnerHtml = `
+        <div class="position-absolute end-0 top-50 translate-middle-y pe-2 search-spinner d-none">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    input.parent().css('position', 'relative').append(spinnerHtml);
 }
 
 // Funzione per creare la visualizzazione di un'entità selezionata
@@ -82,12 +102,11 @@ function updateSearchResults(results, dropdown) {
                 
             dropdown.append(`
                 <button type="button" class="list-group-item list-group-item-action">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="fw-bold">${label}</div>
-                            <small class="text-muted">${entity.entity.value}</small>
+                        <div class="overflow-hidden me-2">
+                            <div class="fw-bold text-truncate">${label}</div>
+                            <small class="text-muted text-truncate d-block">${entity.entity.value}</small>
                         </div>
-                        <i class="bi bi-chevron-right"></i>
+                        <i class="bi bi-chevron-right flex-shrink-0"></i>
                     </div>
                 </button>
             `);
@@ -99,8 +118,8 @@ function updateSearchResults(results, dropdown) {
         dropdown.append(`
             <button type="button" class="list-group-item list-group-item-action create-new">
                 <div class="d-flex justify-content-between align-items-center">
-                    <div>${results.length ? 'Create new entity' : 'No results found. Create new entity?'}</div>
-                    <i class="bi bi-plus-circle"></i>
+                    <div class="text-truncate">${results.length ? 'Create new entity' : 'No results found. Create new entity?'}</div>
+                    <i class="bi bi-plus-circle flex-shrink-0 ms-2"></i>
                 </div>
             </button>
         `);
@@ -147,23 +166,34 @@ function enhanceInputWithSearch(input) {
     if (!objectClass) return;
 
     const predicateUri = container.closest('[data-repeater-item]').data('predicate-uri');
-
-    // Aggiungi il dropdown dei risultati
+    
+    // Aggiungi il dropdown dei risultati e lo spinner
     const searchResults = createSearchDropdown();
+    addLoadingSpinner(input);
     input.after(searchResults);
     
     // Gestisci l'input con debounce
     let searchTimeout;
     input.on('input', function() {
         const term = $(this).val().trim();
+        const spinner = container.find('.search-spinner');
         
         clearTimeout(searchTimeout);
         searchResults.addClass('d-none').empty();
+        spinner.addClass('d-none');
+        
+        // Rimuovi la classe is-invalid quando l'utente inizia a digitare
+        $(this).removeClass('is-invalid');
+        // Nascondi il messaggio di feedback
+        $(this).siblings('.invalid-feedback').hide();
         
         if (term.length < 3) return;
         
+        spinner.removeClass('d-none');
         searchTimeout = setTimeout(() => {
             searchEntities(term, objectClass, predicateUri, function(error, response) {
+                spinner.addClass('d-none');
+                
                 if (error) {
                     console.error('Search failed:', error);
                     return;
@@ -180,10 +210,17 @@ function enhanceInputWithSearch(input) {
         handleEntitySelection(container, lastSearchResults[index]);
     });
 
+    // Gestisci il click su "Create New"
+    searchResults.on('click', '.create-new', function() {
+        input.trigger('focus');
+        searchResults.addClass('d-none');
+    });
+
     // Chiudi i risultati quando si clicca fuori
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.newEntityPropertiesContainer').length) {
             searchResults.addClass('d-none');
+            container.find('.search-spinner').addClass('d-none');
         }
     });
 }
