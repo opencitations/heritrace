@@ -78,8 +78,8 @@ function createEntityDisplay(entity, container, callback) {
                 <div class="text-muted small d-none">${entity.entity.value}</div>
             </div>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-secondary btn-sm change-entity">
-                    <i class="bi bi-pencil"></i>
+                <button type="button" class="btn btn-outline-secondary btn-sm change-entity" title="Clear selection">
+                    <i class="bi bi-x-lg"></i>
                 </button>
                 <a href="/about/${encodeURIComponent(entity.entity.value)}" 
                    class="btn btn-outline-primary btn-sm" target="_blank">
