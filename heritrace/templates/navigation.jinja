@@ -1,5 +1,5 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-5">
-    <div class="container">
+    <div class="container-fluid">
         <a class="navbar-brand" href="{{ url_for('index') }}" alt="Go to the home">{{ config.APP_TITLE }}</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -25,6 +25,10 @@
                     </li>
                 {% endif %}
             </ul>
+            <form class="d-flex" action="{{ url_for('search') }}" method="GET" role="search">
+                <input class="form-control me-2" type="search" placeholder="{{_('Search')}}" aria-label="Search" name="q">
+                <button class="btn btn-outline-success" type="submit">{{_('Search')}}</button>
+            </form> 
         </div>
     </div>
 </nav>

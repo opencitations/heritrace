@@ -12,6 +12,10 @@ main {
     max-width: 70ch !important;
 }
 
+.container-fluid {
+    max-width: 960px !important;
+}
+
 footer {
     flex-shrink: 0;
 }
