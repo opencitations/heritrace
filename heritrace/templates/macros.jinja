@@ -2,8 +2,8 @@
 
 {% macro render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, index=None, is_template=False, max_depth=5) %}
     <div data-repeater-item 
-        class="input-group mb-3 ms-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" 
-        style="position: relative; padding-right: 3.5rem;" 
+        class="input-group mb-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" 
+        style="position: relative;" 
         data-predicate-uri="{{ details.uri }}" 
         data-depth="{{ depth }}" 
         data-shape="{{ details.nodeShape or '' }}"
@@ -57,7 +57,7 @@
                 </div>
             </div>
         {% elif details.intermediateRelation %}
-            <div class="d-flex flex-column newEntityPropertyContainer">
+            <div class="d-flex flex-column newEntityPropertyContainer w-100">
                 <div class="nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
@@ -72,7 +72,7 @@
                 </div>
             </div>
         {% elif details.nestedShape %}
-            <div class="d-flex flex-column newEntityPropertiesContainer">
+            <div class="d-flex flex-column newEntityPropertiesContainer w-100">
                 <div class="nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
@@ -91,7 +91,7 @@
             </div>
         {% elif details.hasValue %}
             {# Mandatory value display #}
-            <div class="newEntityPropertyContainer w-75">
+            <div class="newEntityPropertyContainer w-100">
                 <span class="flex-grow-1 d-flex flex-column justify-content-center p-3">
                     <div class="d-flex align-items-center">
                         <span style="margin-left: 0.75rem">{{ details.hasValue | human_readable_predicate(entity_types, False) }}</span>
@@ -105,7 +105,7 @@
                     data-mandatory-value="true">
             </div>
         {% elif details.optionalValues and details.optionalValues|length %}
-            <div class="w-75 newEntityPropertyContainer">
+            <div class="newEntityPropertyContainer w-75">
                 <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
                     {% for val in details.optionalValues %}
                         <option value="{{ val }}">{{ val | human_readable_predicate(entity_types, False) }}</option>
@@ -117,7 +117,7 @@
             or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
             or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
             <!-- Date input section -->
-            <div class="date-input-group newEntityPropertyContainer">
+            <div class="date-input-group newEntityPropertyContainer w-100">
                 <div class="form-floating mb-2 mb-2 w-75 date-type-selector-container">
                     <select class="form-select date-type-selector"
                             id="{{ unique_id_base }}_date_type"
@@ -187,7 +187,7 @@
                 {% endif %}
             </div>
         {% else %}
-            <div class="flex-grow-1 newEntityPropertyContainer">
+            <div class="flex-grow-1 newEntityPropertyContainer w-100">
                 {% if details.inputType == "textarea" %}
                     <div class="position-relative w-75">
                         <textarea 
@@ -240,7 +240,7 @@
         {% endif %}
 
         {% if not details.hasValue %}
-            <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger me-4">
+            <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger">
                 <i class="bi bi-trash"></i>
             </button>
         {% endif %}

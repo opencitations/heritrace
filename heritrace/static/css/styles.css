@@ -81,7 +81,6 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
 .nested-form-container {
     border-left: .2rem solid #eee;
     padding-left: 1rem;
-    margin-left: 1rem;
     position: relative;
 }
 
@@ -170,4 +169,8 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     margin-top: 1.7rem;
     font-size: 1rem;
     position: absolute;
+}
+
+.entity-reference-display {
+    padding: .375rem .75rem;
 }

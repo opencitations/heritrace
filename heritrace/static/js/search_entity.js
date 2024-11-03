@@ -72,7 +72,7 @@ function createEntityDisplay(entity, container, callback) {
 
     // Create a temporary element
     const display = $(`
-        <div class="entity-reference-display d-flex justify-content-between align-items-center p-2 border rounded">
+        <div class="entity-reference-display d-flex justify-content-between align-items-center border rounded w-75">
             <div>
                 <span class="entity-label">...</span>
                 <div class="text-muted small d-none">${entity.entity.value}</div>
