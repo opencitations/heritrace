@@ -1,18 +1,15 @@
 {% extends "_base.jinja" %}
 
 {% block content %}
-<div class="container">
-    <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('about', subject=entity_uri) }}"><em>{{entity_uri | human_readable_entity(entity_classes)}}</em></a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{_('History of <em>%(subject)s</em>', subject=entity_uri | human_readable_entity(entity_classes))}}</li>
-    </ol>
-    </nav>
-</div>
 
-<div class="container">
-    <div id="timeline-embed"></div>
-</div>
+<nav aria-label="breadcrumb">
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('about', subject=entity_uri) }}"><em>{{entity_uri | human_readable_entity(entity_classes)}}</em></a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{_('History of <em>%(subject)s</em>', subject=entity_uri | human_readable_entity(entity_classes))}}</li>
+</ol>
+</nav>
+
+<div id="timeline-embed"></div>
 
 <style>
     .tl-text-content p {

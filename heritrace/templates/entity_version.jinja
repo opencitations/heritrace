@@ -22,110 +22,110 @@
 {% extends "_base.jinja" %}
 
 {% block content %}
-<div class="container">
-    <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{{ url_for('about', subject=subject) }}"><em>{{subject | human_readable_entity(subject_classes)}}</em></a></li>
-        <li class="breadcrumb-item"><a href="{{ url_for('entity_history', entity_uri=subject) }}">{{_('History of <em>%(subject)s</em>', subject=subject | human_readable_entity(subject_classes))}}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{{_('Version %(version_number)s of <em>%(subject)s</em>', version_number=version_number, subject=subject | human_readable_entity(subject_classes))}}</li>
-    </ol>
-    </nav>
 
-    <h2 class="mb-4 word-wrap">{{_('Version')}} {{ version_number }} {{_('of')}} <span title="{{subject | human_readable_entity(subject_classes)}}"><em>{{ subject | human_readable_entity(subject_classes) }}</em></span></h2>
+<nav aria-label="breadcrumb">
+<ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ url_for('about', subject=subject) }}"><em>{{subject | human_readable_entity(subject_classes)}}</em></a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('entity_history', entity_uri=subject) }}">{{_('History of <em>%(subject)s</em>', subject=subject | human_readable_entity(subject_classes))}}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{_('Version %(version_number)s of <em>%(subject)s</em>', version_number=version_number, subject=subject | human_readable_entity(subject_classes))}}</li>
+</ol>
+</nav>
 
-    <div class="d-flex">
+<h2 class="mb-4 word-wrap">{{_('Version')}} {{ version_number }} {{_('of')}} <span title="{{subject | human_readable_entity(subject_classes)}}"><em>{{ subject | human_readable_entity(subject_classes) }}</em></span></h2>
+
+<div class="d-flex">
+    <div class="me-4">
+        <a href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary">
+            <i class="bi bi-clock-history"></i> {{_('Time machine')}}
+        </a>    
+    </div>
+
+    {% if next_snapshot_timestamp %}
+        <form action="{{ url_for('restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post">
+            <button type="submit" class="btn btn-warning">
+                <i class="bi bi-arrow-counterclockwise"></i> {{ _('Restore this version') }}
+            </button>
+        </form>
+    {% endif %}    
+</div>
+
+{% if grouped_triples %}
+
+    {# Pulsanti per navigare tra gli snapshot #}
+    <div class="mt-5 mb-5 d-flex justify-content-start">
+
+        {% if prev_snapshot_timestamp %}
         <div class="me-4">
-            <a href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary">
-                <i class="bi bi-clock-history"></i> {{_('Time machine')}}
-            </a>    
+            <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> {{ _('Previous version') }}
+            </a>
         </div>
+        {% else %}
+        <div style="visibility: hidden;" class="me-4">
+            <a href="#" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> {{ _('Previous version') }}
+            </a>
+        </div>
+        {% endif %}
     
         {% if next_snapshot_timestamp %}
-            <form action="{{ url_for('restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post">
-                <button type="submit" class="btn btn-warning">
-                    <i class="bi bi-arrow-counterclockwise"></i> {{ _('Restore this version') }}
-                </button>
-            </form>
-        {% endif %}    
+        <div>
+            <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" class="btn btn-outline-primary">
+                {{ _('Next version') }} <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+        {% endif %}
     </div>
-    
-    {% if grouped_triples %}
 
-        {# Pulsanti per navigare tra gli snapshot #}
-        <div class="mt-5 mb-5 d-flex justify-content-start">
-
-            {% if prev_snapshot_timestamp %}
-            <div class="me-4">
-                <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" class="btn btn-outline-primary">
-                    <i class="bi bi-arrow-left"></i> {{ _('Previous version') }}
-                </a>
-            </div>
-            {% else %}
-            <div style="visibility: hidden;" class="me-4">
-                <a href="#" class="btn btn-outline-primary">
-                    <i class="bi bi-arrow-left"></i> {{ _('Previous version') }}
-                </a>
-            </div>
-            {% endif %}
-        
-            {% if next_snapshot_timestamp %}
-            <div>
-                <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" class="btn btn-outline-primary">
-                    {{ _('Next version') }} <i class="bi bi-arrow-right"></i>
-                </a>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="row mb-5">
-            {% for snapshot_uri, meta in metadata.items() %}
-            <div class="col-12 mb-4">
-                <div class="card">
-                    <div class="card-header">
-                        {{_('Metadata of snapshot')}} {{ version_number }}
-                    </div>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><strong>{{_('Generation time')}}:</strong> {{ meta['generatedAtTime'] | format_datetime }}</li>
-                        {% if meta['invalidatedAtTime'] %}
-                            <li class="list-group-item"><strong>{{_('Invalidation time')}}:</strong> {{ meta['invalidatedAtTime'] | format_datetime }}</li>
-                        {% endif %}
-                        <li class="list-group-item">
-                            <strong>{{_('Attributed to')}}:</strong> 
-                            {{ meta['wasAttributedTo'] | format_agent_reference | safe }}
-                        </li>
-                        {% if meta['hadPrimarySource'] %}
-                            <li class="list-group-item">
-                                <strong>{{_('Primary source')}}:</strong> 
-                                {{ meta['hadPrimarySource'] | format_source_reference | safe }}
-                            </li>
-                        {% endif %}
-                        {% if meta['description'] %}
-                        <li class="list-group-item"><strong>{{_('Description')}}:</strong> {{ meta['description'] }}</li>
-                        {% endif %}
-                        {% if modifications %}
-                        <li class="list-group-item">
-                            {{ modifications }}
-                        </li>
-                        {% endif %}
-                    </ul>
+    <div class="row mb-5">
+        {% for snapshot_uri, meta in metadata.items() %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    {{_('Metadata of snapshot')}} {{ version_number }}
                 </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item"><strong>{{_('Generation time')}}:</strong> {{ meta['generatedAtTime'] | format_datetime }}</li>
+                    {% if meta['invalidatedAtTime'] %}
+                        <li class="list-group-item"><strong>{{_('Invalidation time')}}:</strong> {{ meta['invalidatedAtTime'] | format_datetime }}</li>
+                    {% endif %}
+                    <li class="list-group-item">
+                        <strong>{{_('Attributed to')}}:</strong> 
+                        {{ meta['wasAttributedTo'] | format_agent_reference | safe }}
+                    </li>
+                    {% if meta['hadPrimarySource'] %}
+                        <li class="list-group-item">
+                            <strong>{{_('Primary source')}}:</strong> 
+                            {{ meta['hadPrimarySource'] | format_source_reference | safe }}
+                        </li>
+                    {% endif %}
+                    {% if meta['description'] %}
+                    <li class="list-group-item"><strong>{{_('Description')}}:</strong> {{ meta['description'] }}</li>
+                    {% endif %}
+                    {% if modifications %}
+                    <li class="list-group-item">
+                        {{ modifications }}
+                    </li>
+                    {% endif %}
+                </ul>
             </div>
-            {% endfor %}
         </div>
-
-        {% for display_name, data in grouped_triples.items() %}
-            <div class="predicate-group mb-4">
-                {% if data['triples'] %}
-                    <span class="fw-bold">{{ display_name | human_readable_predicate(subject_classes) }}</span>
-                    {% for triple_data in data['triples'] %}
-                        {{ render_triple(triple_data['triple'], subject) }}
-                    {% endfor %}
-                {% endif %}
-            </div>
         {% endfor %}
-    
-    {% else %}
-        <p class="alert alert-warning my-5">{{_('This snapshot does not exist')}}</p>
-    {% endif %}
-</div>
+    </div>
+
+    {% for display_name, data in grouped_triples.items() %}
+        <div class="predicate-group mb-4">
+            {% if data['triples'] %}
+                <span class="fw-bold">{{ display_name | human_readable_predicate(subject_classes) }}</span>
+                {% for triple_data in data['triples'] %}
+                    {{ render_triple(triple_data['triple'], subject) }}
+                {% endfor %}
+            {% endif %}
+        </div>
+    {% endfor %}
+
+{% else %}
+    <p class="alert alert-warning my-5">{{_('This snapshot does not exist')}}</p>
+{% endif %}
+
 {% endblock %}

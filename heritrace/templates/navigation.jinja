@@ -15,9 +15,6 @@
                 <li class="nav-item">
                     <a class="nav-link" id="create-entity-link" aria-current="page" href="{{ url_for('create_entity') }}" alt="{{_('Add New Record')}}">{{_('Add New Record')}}</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="endpoint-link" aria-current="page" href="{{ url_for('endpoint') }}" alt="{{_('SPARQL Endpoint')}}">{{_('SPARQL Endpoint')}}</a>
-                </li>
                 {% if current_user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" id="logout-link" href="{{ url_for('logout') }}">{{ _('Logout') }}</a>
@@ -28,10 +25,6 @@
                     </li>
                 {% endif %}
             </ul>
-            <form class="d-flex" action="{{ url_for('search') }}" method="GET" role="search">
-                <input class="form-control me-2" type="search" placeholder="{{_('Search')}}" aria-label="Search" name="q">
-                <button class="btn btn-outline-success" type="submit">{{_('Search')}}</button>
-            </form> 
         </div>
     </div>
 </nav>
