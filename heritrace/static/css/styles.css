@@ -175,7 +175,22 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     padding: .375rem .75rem;
 }
 
-.btn-flex #editEntityBtn, .btn-flex #historyBtn {
+.btn-flex {
+    column-gap: 1rem;
+}
+
+.btn-flex #editEntityBtn, 
+.btn-flex #historyBtn,
+.btn-flex #saveChangesBtn,
+.btn-flex #cancelChangesBtn {
     justify-content: center;
     flex: 1 1 0;
+}
+
+[data-repeater-item]:not(:last-child), .item-label, .form-label {
+    margin-bottom: 1rem;
+}
+
+.textarea-display-container, .date-display-container {
+    margin-left: .75rem;
 }

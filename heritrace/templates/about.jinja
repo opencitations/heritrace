@@ -26,15 +26,14 @@
 <div class="btn-flex d-flex align-items-center my-4">
     {% if grouped_triples %}
         <!-- Bottone per Modificare l'Entità -->
-        <button id="editEntityBtn" class="btn btn-outline-primary d-flex align-items-center me-3 px-3" title="{{ _('Edit') }}">
-            <i class="bi bi-pencil me-1"></i>{{ _('Edit') }}
-            
+        <button id="editEntityBtn" class="btn btn-outline-primary" title="{{ _('Edit') }}">
+            <i class="bi bi-pencil me-2"></i>{{ _('Edit') }}
         </button>
     {% endif %}
     {% if history[subject] %}
         <!-- Bottone per la Storia dell'Entità -->
-        <button id="historyBtn" href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary d-flex align-items-center px-3" title="{{ _('History') }}">
-            <i class="bi bi-clock-history me-1"></i>{{ _('History') }}
+        <button id="historyBtn" href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary" title="{{ _('History') }}">
+            <i class="bi bi-clock-history me-2"></i>{{ _('History') }}
         </button>
     {% endif %}
 </div>
@@ -116,9 +115,14 @@
         <p class="alert alert-warning mt-5 mb-4">{{_('There is no information related to this entity in the dataset')}}</p>
     {% endif %}
 </div>
-<div>
-    <button class="btn btn-primary" id="saveChangesBtn" style="display: none;">{{_('Save Changes')}}</button>
-    <button class="btn btn-secondary" id="cancelChangesBtn" style="display: none;">{{_('Cancel')}}</button>
+
+<div class="btn-flex d-flex align-items-center">
+    <button class="btn btn-outline-primary" id="saveChangesBtn" style="display: none;">
+        <i class="bi bi-check-circle me-2"></i>{{_('Save Changes')}}
+    </button>
+    <button class="btn btn-outline-secondary" id="cancelChangesBtn" style="display: none;">
+        <i class="bi bi-x-circle me-2"></i>{{_('Cancel')}}
+    </button>
 </div>
 
 <script>

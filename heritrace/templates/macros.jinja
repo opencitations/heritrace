@@ -14,13 +14,13 @@
         {% if details.additionalProperties %}
             data-additional-properties='{{ details.additionalProperties | tojson }}'
         {% endif %}>
-        <div class="d-flex align-items-center w-100 mb-2">
+        <div class="d-flex align-items-baseline w-100 mb-2">
             {% if details.orderedBy %}
                 <span class="drag-handle me-2" style="cursor: move;">☰</span>
             {% endif %}
-            <div class="d-flex align-items-center flex-grow-1">
+            <div class="d-flex align-items-start flex-grow-1">
                 {% set label_text = label or details.displayName or (prop | human_readable_predicate(entity_types, False)) %}
-                <h6 class="mb-0 {% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">
+                <h6 class="{% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">
                     {{ label_text }}
                 </h6>
                 {% if details.hasValue %}
@@ -57,7 +57,7 @@
                 </div>
             </div>
         {% elif details.intermediateRelation %}
-            <div class="d-flex flex-column newEntityPropertyContainer w-100 p-3">
+            <div class="d-flex flex-column newEntityPropertyContainer w-100">
                 <div class="nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
@@ -91,10 +91,10 @@
             </div>
         {% elif details.hasValue %}
             {# Mandatory value display #}
-            <div class="newEntityPropertyContainer w-100 p-3">
-                <span class="flex-grow-1 d-flex flex-column justify-content-center p-3">
+            <div class="newEntityPropertyContainer w-100">
+                <span class="flex-grow-1 d-flex flex-column justify-content-center">
                     <div class="d-flex align-items-center">
-                        <span style="margin-left: 0.75rem">{{ details.hasValue | human_readable_predicate(entity_types, False) }}</span>
+                        <p style="margin-left: 0.75rem">{{ details.hasValue | human_readable_predicate(entity_types, False) }}</p>
                     </div>
                 </span>
                 <input type="hidden" 
@@ -117,7 +117,7 @@
             or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
             or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
             <!-- Date input section -->
-            <div class="date-input-group newEntityPropertyContainer w-100 p-3">
+            <div class="date-input-group newEntityPropertyContainer w-100">
                 <div class="form-floating mb-2 mb-2 w-75 date-type-selector-container">
                     <select class="form-select date-type-selector"
                             id="{{ unique_id_base }}_date_type"
@@ -281,21 +281,23 @@
         data-ordered_by="{{ orderedBy }}"
         data-shape="{{ shape }}"
         data-depth="0">
-        <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center py-3">
+        <div class="tripleObject flex-grow-1 d-flex flex-row justify-content-between">
             {% if externalEntity %}
                 {% if isDraggable %}
-                    <div class="d-flex align-items-center w-100 mb-2 drag-handle">
-                        <span class="me-2 d-none">☰</span>
-                        <h6 class="mb-0 flex-grow-1 form-label d-none" data-original-text="{{ display_name }}">{{ display_name }}</h6>
+                    <div class="d-flex flex-column">
+                        <div class="d-flex align-items-baseline w-100 drag-handle">
+                            <span class="me-2 d-none">☰</span>
+                            <h6 class="flex-grow-1 form-label d-none" data-original-text="{{ display_name }}">{{ display_name }}</h6>
+                        </div>
+                        <span style="margin-left: .75rem;">
+                            <a href="{{url_for('about', subject=externalEntity)}}" 
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top" 
+                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}">
+                                {{ triple[2] | human_readable_predicate(subject_classes) }}
+                            </a>
+                        </span>
                     </div>
-                    <span style="margin-left: .75rem;">
-                        <a href="{{url_for('about', subject=externalEntity)}}" 
-                           data-bs-toggle="tooltip" 
-                           data-bs-placement="top" 
-                           title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}">
-                            {{ triple[2] | human_readable_predicate(subject_classes) }}
-                        </a>
-                    </span>
                 {% else %}
                     <span style="margin-left: .75rem;">
                         <a href="{{url_for('about', subject=externalEntity)}}"
@@ -308,8 +310,8 @@
                 {% endif %}
             {% else %}
                 {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
-                    <div class="d-flex align-items-center">
-                        <span style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</span>
+                    <div class="d-flex align-items-baseline">
+                        <p style="margin-left: 0.75rem">{{ triple[2] | human_readable_predicate(subject_classes) }}</p>
                         <i class="bi bi-question-circle-fill ms-2 text-info" 
                            data-bs-toggle="tooltip" 
                            data-bs-placement="right"
@@ -405,29 +407,32 @@
                     {% endif %}
                 {% endif %}
             {% endif %}
-        </span>
-        <div class="align-self-start">
-            <div class="d-flex flex-column flex-sm-row">
-                {% if externalEntity %}
-                    <a class="btn btn-outline-primary mx-2 mt-3" 
-                       data-bs-toggle="tooltip"
-                       data-bs-placement="top"
-                       title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}"
-                       href="{{url_for('about', subject=externalEntity)}}">
-                        <i class="bi bi-arrow-right-square"></i>
-                    </a>
-                {% endif %}
-                {% if shacl and not (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
-                    <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-danger delete-button mt-3"
-                                style="display: none;"
-                                data-subject="{{ subject }}" 
-                                data-predicate="{{ triple[1] }}" 
-                                data-object="{{ externalEntity if externalEntity else triple[2] }}">
-                        <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                {% endif %}
+
+            <div class="align-self-start">
+                <div class="d-flex flex-column flex-sm-row">
+                    {% if externalEntity %}
+                        <div class="mb-2 mb-sm-0">
+                            <a class="btn btn-outline-primary" 
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}"
+                            href="{{url_for('about', subject=externalEntity)}}">
+                                <i class="bi bi-arrow-right-square"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                    {% if shacl and not (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-outline-danger delete-button ms-0 ms-sm-2"
+                                    style="display: none;"
+                                    data-subject="{{ subject }}" 
+                                    data-predicate="{{ triple[1] }}" 
+                                    data-object="{{ externalEntity if externalEntity else triple[2] }}">
+                            <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
