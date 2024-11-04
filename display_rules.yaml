@@ -364,6 +364,7 @@ common_properties:
     property: "http://purl.org/dc/terms/title"
     displayName: "Title"
     shouldBeDisplayed: true
+    inputType: "textarea"
 
   abstract_property: &abstract_property
     property: "http://purl.org/dc/terms/abstract"

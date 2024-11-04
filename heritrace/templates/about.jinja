@@ -23,20 +23,23 @@
     {% endif %}
 {% endwith %}
 
-{% if history[subject] %}
-<div>
-    <a href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary">
-        <i class="bi bi-clock-history"></i> {{_('Time machine')}}
-    </a>
+<div class="btn-flex d-flex align-items-center my-4">
+    {% if grouped_triples %}
+        <!-- Bottone per Modificare l'Entità -->
+        <button id="editEntityBtn" class="btn btn-outline-primary d-flex align-items-center me-3 px-3" title="{{ _('Edit') }}">
+            <i class="bi bi-pencil me-1"></i>{{ _('Edit') }}
+            
+        </button>
+    {% endif %}
+    {% if history[subject] %}
+        <!-- Bottone per la Storia dell'Entità -->
+        <button id="historyBtn" href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary d-flex align-items-center px-3" title="{{ _('History') }}">
+            <i class="bi bi-clock-history me-1"></i>{{ _('History') }}
+        </button>
+    {% endif %}
 </div>
-{% endif %}
 <div class="triples mb-5">
     {% if grouped_triples %}
-        <div class="d-flex justify-content-start align-items-baseline my-4">
-            <button id="editEntityBtn" class="btn btn-outline-primary me-2" title="{{_('Edit')}}">
-                <i class="bi bi-pencil"></i>
-            </button>
-        </div>
 
         {% for display_name, data in grouped_triples.items() %}
             {% set predicate = data['property'] %}
@@ -95,7 +98,7 @@
                                     {% if key in predicate_details_map %}
                                         {% set unique_id_base = (entity_type | human_readable_predicate(entitytypes, False) | replace(" ", "") + "_" + predicate | human_readable_predicate(entitytypes, False) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
                                         <!-- Button to add new items -->
-                                        <div class="text-start ms-2 mt-3" data-repeater-create>
+                                        <div class="text-start mt-3" data-repeater-create>
                                             <button type="button" class="add-button">
                                                 <i class="bi bi-plus-circle"></i>
                                                 {{ _("Add %(element_type)s", element_type=details.displayName or (data['property'] | human_readable_predicate(entity_types, False))) }}
@@ -126,6 +129,7 @@
 {% include 'validation.jinja' %}
 
 <script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
+<script src="{{ url_for('static', filename='js/search_entity.js') }}"></script>
 
 <script>
     $(document).ready(function () {
@@ -354,6 +358,8 @@
                 $(".editable-field").prop('readonly', true);
                 $('.editable-select').addClass('d-none');
                 $('.select-value-display').removeClass('d-none');
+                $(".textarea-input-container").addClass('d-none');
+                $(".textarea-display-container").removeClass('d-none');
                 $(".delete-button").hide();
                 $(".text-info").addClass('d-none');
                 $(".drag-handle").children().addClass('d-none');
@@ -391,6 +397,8 @@
                 $(".editable-field").prop('readonly', false);
                 $('.editable-select').removeClass('d-none');
                 $('.select-value-display').addClass('d-none');
+                $(".textarea-input-container").removeClass('d-none');
+                $(".textarea-display-container").addClass('d-none');
                 $(".delete-button").show();
                 $(".text-info").removeClass('d-none');
                 $(".drag-handle").children().removeClass('d-none');
@@ -443,7 +451,7 @@
             $(this).hide();
             storePendingChange('delete', subject, predicate, object_value, shape);
             const undoButton = $('<button>')
-                .addClass('btn btn-outline-warning undo-delete-button mt-3 mx-2')
+                .addClass('btn btn-outline-warning undo-delete-button mt-3')
                 .html('<i class="bi bi-arrow-counterclockwise"></i>')
                 .insertAfter($(this));
                 undoButton.click(function() {

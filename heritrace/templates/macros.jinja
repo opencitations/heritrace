@@ -57,7 +57,7 @@
                 </div>
             </div>
         {% elif details.intermediateRelation %}
-            <div class="d-flex flex-column newEntityPropertyContainer w-100">
+            <div class="d-flex flex-column newEntityPropertyContainer w-100 p-3">
                 <div class="nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
@@ -91,7 +91,7 @@
             </div>
         {% elif details.hasValue %}
             {# Mandatory value display #}
-            <div class="newEntityPropertyContainer w-100">
+            <div class="newEntityPropertyContainer w-100 p-3">
                 <span class="flex-grow-1 d-flex flex-column justify-content-center p-3">
                     <div class="d-flex align-items-center">
                         <span style="margin-left: 0.75rem">{{ details.hasValue | human_readable_predicate(entity_types, False) }}</span>
@@ -117,7 +117,7 @@
             or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
             or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
             <!-- Date input section -->
-            <div class="date-input-group newEntityPropertyContainer w-100">
+            <div class="date-input-group newEntityPropertyContainer w-100 p-3">
                 <div class="form-floating mb-2 mb-2 w-75 date-type-selector-container">
                     <select class="form-select date-type-selector"
                             id="{{ unique_id_base }}_date_type"
@@ -281,7 +281,7 @@
         data-ordered_by="{{ orderedBy }}"
         data-shape="{{ shape }}"
         data-depth="0">
-        <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center p-3">
+        <span class="tripleObject flex-grow-1 d-flex flex-column justify-content-center py-3">
             {% if externalEntity %}
                 {% if isDraggable %}
                     <div class="d-flex align-items-center w-100 mb-2 drag-handle">
@@ -376,12 +376,18 @@
                     {% if predicate_details_map.get(key) %}
                         {% set details = predicate_details_map.get(key) %}
                         {% if details.inputType == "textarea" %}
-                            <textarea 
-                                class="form-control editable-field w-75"
-                                readonly
-                                id="new_value_{{ unique_id }}"
-                                rows="5"
-                            >{{ triple[2] }}</textarea>
+                            <div class="textarea-input-group w-75">
+                                <div class="textarea-display-container">
+                                    <div class="textarea-display">{{ triple[2] }}</div>
+                                </div>
+                                <div class="textarea-input-container d-none">
+                                    <textarea 
+                                        class="form-control editable-field"
+                                        id="new_value_{{ unique_id }}"
+                                        rows="5"
+                                    >{{ triple[2] }}</textarea>
+                                </div>
+                            </div>
                         {% else %}
                             <input 
                                 type="{{ details.inputType or 'text' }}"
@@ -413,7 +419,7 @@
                 {% endif %}
                 {% if shacl and not (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
                     <div class="d-flex align-items-center">
-                        <button class="btn btn-outline-danger delete-button mt-3 mx-2"
+                        <button class="btn btn-outline-danger delete-button mt-3"
                                 style="display: none;"
                                 data-subject="{{ subject }}" 
                                 data-predicate="{{ triple[1] }}" 

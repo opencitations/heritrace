@@ -174,3 +174,8 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
 .entity-reference-display {
     padding: .375rem .75rem;
 }
+
+.btn-flex #editEntityBtn, .btn-flex #historyBtn {
+    justify-content: center;
+    flex: 1 1 0;
+}
