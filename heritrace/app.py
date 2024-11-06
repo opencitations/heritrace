@@ -700,8 +700,19 @@ def determine_datatype(value, datatype_uris):
     return XSD.string
 
 def validate_entity_data(structured_data, form_fields):
+    """
+    Validates entity data against form field definitions, considering shape matching.
+    
+    Args:
+        structured_data (dict): Data to validate containing entity_type and properties
+        form_fields (dict): Form field definitions from SHACL shapes
+
+    Returns:
+        list: List of validation error messages, empty if validation passes
+    """
     errors = []
     entity_type = structured_data.get('entity_type')
+    
     if not entity_type:
         errors.append(gettext('Entity type is required'))
     elif entity_type not in form_fields:
@@ -716,6 +727,7 @@ def validate_entity_data(structured_data, form_fields):
     for prop_uri, prop_values in properties.items():
         if URIRef(prop_uri) == RDF.type:
             continue
+            
         field_definitions = entity_fields.get(prop_uri)
         if not field_definitions:
             errors.append(
@@ -727,11 +739,38 @@ def validate_entity_data(structured_data, form_fields):
             )
             continue
 
+        if not isinstance(prop_values, list):
+            prop_values = [prop_values]
+
+        # Get the shape from the property value if available
+        property_shape = None
+        if prop_values and isinstance(prop_values[0], dict):
+            property_shape = prop_values[0].get('shape')
+
+        # Filter field definitions to find the matching one based on shape
+        matching_field_def = None
         for field_def in field_definitions:
-            min_count = field_def.get('min', 0)
-            max_count = field_def.get('max', None)
-            prop_value_list = prop_values if isinstance(prop_values, list) else [prop_values]
-            value_count = len(prop_value_list)
+            if property_shape:
+                # If property has a shape, match it with the field definition's subjectShape
+                if field_def.get('subjectShape') == property_shape:
+                    matching_field_def = field_def
+                    break
+            else:
+                # If no shape specified, use the first field definition without a shape requirement
+                if not field_def.get('subjectShape'):
+                    matching_field_def = field_def
+                    break
+        
+        # If no matching field definition found, use the first one (default behavior)
+        if not matching_field_def and field_definitions:
+            matching_field_def = field_definitions[0]
+
+        if matching_field_def:
+            # Validate cardinality
+            min_count = matching_field_def.get('min', 0)
+            max_count = matching_field_def.get('max', None)
+            value_count = len(prop_values)
+
             if value_count < min_count:
                 value = gettext('values') if min_count > 1 else gettext('value')
                 errors.append(
@@ -753,10 +792,10 @@ def validate_entity_data(structured_data, form_fields):
                     )
                 )
 
-            # Verifica i valori obbligatori
-            mandatory_values = field_def.get('mandatory_values', [])
+            # Validate mandatory values
+            mandatory_values = matching_field_def.get('mandatory_values', [])
             for mandatory_value in mandatory_values:
-                if mandatory_value not in prop_value_list:
+                if mandatory_value not in prop_values:
                     errors.append(
                         gettext(
                             'Property %(prop_uri)s requires the value %(mandatory_value)s',
@@ -765,12 +804,14 @@ def validate_entity_data(structured_data, form_fields):
                         )
                     )
 
-            for value in prop_value_list:
+            # Validate each value
+            for value in prop_values:
                 if isinstance(value, dict) and 'entity_type' in value:
                     nested_errors = validate_entity_data(value, form_fields)
                     errors.extend(nested_errors)
                 else:
-                    datatypes = field_def.get('datatypes', [])
+                    # Validate against datatypes
+                    datatypes = matching_field_def.get('datatypes', [])
                     if datatypes:
                         is_valid_datatype = False
                         for dtype in datatypes:
@@ -793,7 +834,9 @@ def validate_entity_data(structured_data, form_fields):
                                     expected_types=expected_types
                                 )
                             )
-                    optional_values = field_def.get('optionalValues', [])
+
+                    # Validate against optional values
+                    optional_values = matching_field_def.get('optionalValues', [])
                     if optional_values and value not in optional_values:
                         acceptable_values = ', '.join(
                             [custom_filter.human_readable_predicate(val, form_fields.keys()) for val in optional_values]

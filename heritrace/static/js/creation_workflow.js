@@ -631,4 +631,14 @@ $(document).ready(function() {
             $containerForms.addClass('d-none');
         }
     });
+
+    $(document).on({
+        mouseenter: function() {
+            $(this).closest('[data-repeater-item]').addClass('highlight-delete');
+        },
+        mouseleave: function() {
+            const $item = $(this).closest('[data-repeater-item]');
+            $item.removeClass('highlight-delete');
+        }
+    }, '.repeater-delete-btn, .delete-button');
 });

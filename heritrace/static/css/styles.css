@@ -166,9 +166,7 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
 }
 
 .btn.repeater-delete-btn {
-    margin-top: 1.7rem;
     font-size: 1rem;
-    position: absolute;
 }
 
 .entity-reference-display {
@@ -193,4 +191,61 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
 
 .textarea-display-container, .date-display-container {
     margin-left: .75rem;
+}
+
+/* Stile per l'elemento padre quando il pulsante di cancellazione è in hover */
+[data-repeater-item].highlight-delete {
+    position: relative;
+}
+
+[data-repeater-item].highlight-delete::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(
+        circle,
+        rgba(220, 53, 69, 0.1) 0%,
+        rgba(220, 53, 69, 0.05) 55%,
+        rgba(220, 53, 69, 0.02) 100%,
+        transparent 100%
+    );
+    opacity: 0;
+    animation: deleteWarningPulse 2s ease-out infinite;
+}
+
+[data-repeater-item].highlight-delete::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: 4px;
+    animation: deleteBorderPulse 2s ease-out infinite;
+}
+
+@keyframes deleteWarningPulse {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+@keyframes deleteBorderPulse {
+    0% {
+        border-color: rgba(220, 53, 69, 0);
+    }
+    50% {
+        border-color: rgba(220, 53, 69, 0.3);
+    }
+    100% {
+        border-color: rgba(220, 53, 69, 0);
+    }
 }

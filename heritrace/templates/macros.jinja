@@ -32,8 +32,8 @@
             </div>
         </div>
         {% if details.or %}
-            <div class="container-selection w-75 mb-3">
-                <select class="form-select container-type-selector" 
+            <div class="d-flex flex-row justify-content-between align-items-start w-100">
+                <select class="form-select container-type-selector w-75" 
                         id="{{ unique_id_base }}_container_type"
                         name="{{ unique_id_base }}_container_type"
                         data-predicate-uri="{{ details.uri }}">
@@ -47,21 +47,31 @@
                     {% endfor %}
                 </select>
 
-                {# Container forms - one for each option #}
-                <div class="container-forms d-none">
-                    {% for shape_info in details.or %}
-                        <div class="container-form d-none" data-shape="{{ shape_info.shape }}">
-                            {{ render_form_field(shape_info.entityType, prop, shape_info, entity_types, form_fields, depth + 1, max_depth=max_depth, is_template=False) }}
-                        </div>
-                    {% endfor %}
-                </div>
+                {% if not details.min > 0 %}
+                    <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                {% endif %}
+            </div>
+            {# Container forms - one for each option #}
+            <div class="container-forms d-none w-100">
+                {% for shape_info in details.or %}
+                    <div class="container-form d-none" data-shape="{{ shape_info.shape }}">
+                        {{ render_form_field(shape_info.entityType, prop, shape_info, entity_types, form_fields, depth + 1, max_depth=max_depth, is_template=False) }}
+                    </div>
+                {% endfor %}
             </div>
         {% elif details.intermediateRelation %}
             <div class="d-flex flex-column newEntityPropertyContainer w-100">
-                <div class="nested-form-header mb-4">
+                <div class="d-flex flex-row justify-content-between nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
                     </button>
+                    {% if not details.min > 0 %}
+                        <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    {% endif %}
                 </div>
                 <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container collapse" data-object-class="{{ details.intermediateRelation.targetEntityType }}">
                     {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}
@@ -73,10 +83,15 @@
             </div>
         {% elif details.nestedShape %}
             <div class="d-flex flex-column newEntityPropertiesContainer w-100">
-                <div class="nested-form-header mb-4">
+                <div class="d-flex flex-row justify-content-between nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
                     </button>
+                    {% if not details.min > 0 %}
+                        <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    {% endif %}
                 </div>
                 <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
                     {% for nested_details in details.nestedShape %}
@@ -116,78 +131,85 @@
             'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
             or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
             or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
-            <!-- Date input section -->
-            <div class="date-input-group newEntityPropertyContainer w-100">
-                <div class="form-floating mb-2 mb-2 w-75 date-type-selector-container">
-                    <select class="form-select date-type-selector"
-                            id="{{ unique_id_base }}_date_type"
-                            name="{{ unique_id_base }}_date_type"
-                            data-allowed-datatypes="{{ details.datatypes | join(',') }}">
-                        {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
-                            <option value="date">{{ _('Date') }}</option>
-                        {% endif %}
-                        {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
-                            <option value="month">{{ _('Year and Month') }}</option>
-                        {% endif %}
-                        {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
-                            <option value="year">{{ _('Year') }}</option>
-                        {% endif %}
-                    </select>
-                    <label for="{{ unique_id_base }}_date_type">{{ _('Select Date Type') }}</label>
-                    <div class="invalid-feedback w-75"></div>
+            <div class="d-flex flex-row justify-content-between align-items-start w-100">
+                <!-- Date input section -->
+                <div class="date-input-group newEntityPropertyContainer w-100">
+                    <div class="form-floating mb-2 mb-2 w-75 date-type-selector-container">
+                        <select class="form-select date-type-selector"
+                                id="{{ unique_id_base }}_date_type"
+                                name="{{ unique_id_base }}_date_type"
+                                data-allowed-datatypes="{{ details.datatypes | join(',') }}">
+                            {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
+                                <option value="date">{{ _('Date') }}</option>
+                            {% endif %}
+                            {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
+                                <option value="month">{{ _('Year and Month') }}</option>
+                            {% endif %}
+                            {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
+                                <option value="year">{{ _('Year') }}</option>
+                            {% endif %}
+                        </select>
+                        <label for="{{ unique_id_base }}_date_type">{{ _('Select Date Type') }}</label>
+                        <div class="invalid-feedback w-75"></div>
+                    </div>
+
+                    <!-- Date input -->
+                    {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
+                        <div class="date-input-container mb-2 w-75 d-none">
+                            <input type="date" class="form-control date-input"
+                                id="{{ unique_id_base }}_date"
+                                name="{{ unique_id_base }}"
+                                data-date-type="date"
+                                data-predicate-uri="{{ details.uri }}"
+                                data-depth="{{ depth }}"
+                                data-datatypes="http://www.w3.org/2001/XMLSchema#date"
+                                placeholder="{{ label_text }}"
+                                {{ 'required' if details.min and details.min > 0 }}>
+                            <div class="invalid-feedback w-75"></div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Month input -->
+                    {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
+                        <div class="date-input-container mb-2 w-75 d-none">
+                            <input type="month" class="form-control date-input"
+                                id="{{ unique_id_base }}_month"
+                                name="{{ unique_id_base }}"
+                                data-date-type="month"
+                                data-predicate-uri="{{ details.uri }}"
+                                data-depth="{{ depth }}"
+                                data-datatypes="http://www.w3.org/2001/XMLSchema#gYearMonth"
+                                placeholder="{{ label_text }}"
+                                {{ 'required' if details.min and details.min > 0 }}>
+                            <div class="invalid-feedback w-75"></div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Year input -->
+                    {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
+                        <div class="date-input-container mb-2 w-75 d-none">
+                            <input type="number" class="form-control date-input"
+                                id="{{ unique_id_base }}_year"
+                                name="{{ unique_id_base }}"
+                                data-date-type="year"
+                                data-predicate-uri="{{ details.uri }}"
+                                data-depth="{{ depth }}"
+                                data-datatypes="http://www.w3.org/2001/XMLSchema#gYear"
+                                placeholder="{{ label_text }}"
+                                min="1000" max="9999"
+                                {{ 'required' if details.min and details.min > 0 }}>
+                            <div class="invalid-feedback w-75"></div>
+                        </div>
+                    {% endif %}
                 </div>
-
-                <!-- Date input -->
-                {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
-                    <div class="date-input-container mb-2 w-75 d-none">
-                        <input type="date" class="form-control date-input"
-                            id="{{ unique_id_base }}_date"
-                            name="{{ unique_id_base }}"
-                            data-date-type="date"
-                            data-predicate-uri="{{ details.uri }}"
-                            data-depth="{{ depth }}"
-                            data-datatypes="http://www.w3.org/2001/XMLSchema#date"
-                            placeholder="{{ label_text }}"
-                            {{ 'required' if details.min and details.min > 0 }}>
-                        <div class="invalid-feedback w-75"></div>
-                    </div>
-                {% endif %}
-
-                <!-- Month input -->
-                {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
-                    <div class="date-input-container mb-2 w-75 d-none">
-                        <input type="month" class="form-control date-input"
-                            id="{{ unique_id_base }}_month"
-                            name="{{ unique_id_base }}"
-                            data-date-type="month"
-                            data-predicate-uri="{{ details.uri }}"
-                            data-depth="{{ depth }}"
-                            data-datatypes="http://www.w3.org/2001/XMLSchema#gYearMonth"
-                            placeholder="{{ label_text }}"
-                            {{ 'required' if details.min and details.min > 0 }}>
-                        <div class="invalid-feedback w-75"></div>
-                    </div>
-                {% endif %}
-
-                <!-- Year input -->
-                {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
-                    <div class="date-input-container mb-2 w-75 d-none">
-                        <input type="number" class="form-control date-input"
-                            id="{{ unique_id_base }}_year"
-                            name="{{ unique_id_base }}"
-                            data-date-type="year"
-                            data-predicate-uri="{{ details.uri }}"
-                            data-depth="{{ depth }}"
-                            data-datatypes="http://www.w3.org/2001/XMLSchema#gYear"
-                            placeholder="{{ label_text }}"
-                            min="1000" max="9999"
-                            {{ 'required' if details.min and details.min > 0 }}>
-                        <div class="invalid-feedback w-75"></div>
-                    </div>
+                {% if not details.min > 0 %}
+                    <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 {% endif %}
             </div>
         {% else %}
-            <div class="flex-grow-1 newEntityPropertyContainer w-100">
+            <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100">
                 {% if details.inputType == "textarea" %}
                     <div class="position-relative w-75">
                         <textarea 
@@ -236,13 +258,12 @@
                         <div class="invalid-feedback"></div>
                     </div>
                 {% endif %}
+                {% if not details.min > 0 %}
+                    <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                {% endif %}
             </div>
-        {% endif %}
-
-        {% if not details.hasValue %}
-            <button data-repeater-delete type="button" class="btn repeater-delete-btn btn-outline-danger">
-                <i class="bi bi-trash"></i>
-            </button>
         {% endif %}
     </div>
 {% endmacro %}
@@ -412,7 +433,7 @@
                 <div class="d-flex flex-column flex-sm-row">
                     {% if externalEntity %}
                         <div class="mb-2 mb-sm-0">
-                            <a class="btn btn-outline-primary" 
+                            <a class="btn btn-sm btn-outline-primary" 
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}"
@@ -423,7 +444,7 @@
                     {% endif %}
                     {% if shacl and not (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
                         <div class="d-flex align-items-center">
-                            <button class="btn btn-outline-danger delete-button ms-0 ms-sm-2"
+                            <button class="btn btn-sm btn-outline-danger delete-button ms-0 ms-sm-2"
                                     style="display: none;"
                                     data-subject="{{ subject }}" 
                                     data-predicate="{{ triple[1] }}" 

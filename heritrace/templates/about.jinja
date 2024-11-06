@@ -455,7 +455,7 @@
             $(this).hide();
             storePendingChange('delete', subject, predicate, object_value, shape);
             const undoButton = $('<button>')
-                .addClass('btn btn-outline-warning undo-delete-button mt-3')
+                .addClass('btn btn-sm btn-outline-warning undo-delete-button ms-0 ms-sm-2')
                 .html('<i class="bi bi-arrow-counterclockwise"></i>')
                 .insertAfter($(this));
                 undoButton.click(function() {
