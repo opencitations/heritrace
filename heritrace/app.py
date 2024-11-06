@@ -602,15 +602,33 @@ def create_entity():
             for predicate, values in properties.items():
                 if not isinstance(values, list):
                     values = [values]
-                
+
                 field_definitions = form_fields.get(entity_type, {}).get(predicate, [])
 
-                # Check if this predicate needs to be ordered
-                ordered_by = None
-                for field_details in form_fields[entity_type][predicate]:
-                    if field_details['uri'] == predicate:
-                        ordered_by = field_details.get('orderedBy')
-                        break
+                # Get the shape from the property value if available
+                property_shape = None
+                if values and isinstance(values[0], dict):
+                    property_shape = values[0].get('shape')
+
+                # Filter field definitions to find the matching one based on shape
+                matching_field_def = None
+                for field_def in field_definitions:
+                    if property_shape:
+                        # If property has a shape, match it with the field definition's subjectShape
+                        if field_def.get('subjectShape') == property_shape:
+                            matching_field_def = field_def
+                            break
+                    else:
+                        # If no shape specified, use the first field definition without a shape requirement
+                        if not field_def.get('subjectShape'):
+                            matching_field_def = field_def
+                            break
+                
+                # If no matching field definition found, use the first one (default behavior)
+                if not matching_field_def and field_definitions:
+                    matching_field_def = field_definitions[0]
+
+                ordered_by = matching_field_def.get('orderedBy') if matching_field_def else None
 
                 if ordered_by:
                     # Gestisci le proprietà ordinate per shape
@@ -648,14 +666,13 @@ def create_entity():
                             editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
                             create_nested_entity(editor, nested_uri, value, default_graph_uri, form_fields)
                         else:
-                            if validators.url(value):
-                                # If it's a URI (reference to existing entity), use it directly
+                            # Handle both URI references and literal values
+                            if validators.url(str(value)):
                                 object_value = URIRef(value)
                             else:
-                                # Otherwise, handle as a literal with appropriate datatype
                                 datatype_uris = []
-                                if field_definitions:
-                                    datatype_uris = field_definitions[0].get('datatypes', [])
+                                if matching_field_def:
+                                    datatype_uris = matching_field_def.get('datatypes', [])
                                 datatype = determine_datatype(value, datatype_uris)
                                 object_value = Literal(value, datatype=datatype)
                             editor.create(entity_uri, URIRef(predicate), object_value, default_graph_uri)
