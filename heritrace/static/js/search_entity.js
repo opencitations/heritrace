@@ -55,11 +55,46 @@ function formatValueForSparql(valueObj) {
     return `"${value}"^^<${valueObj.datatypes[0]}>`;
 }
 
+// Funzione per generare la query SPARQL in base alla configurazione
+function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled) {
+    if (dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso') {
+        // Usa l'indice testuale di Virtuoso
+        let query = `
+            SELECT DISTINCT ?entity ?type ?scoreValue WHERE {
+                ?entity ?p ?text .
+                ?text bif:contains "'${term}*'" OPTION (score ?scoreValue) .
+                ${entityType ? `?entity a <${entityType}> .` : ''}
+                ${predicate ? `?entity <${predicate}> ?text .` : ''}
+                OPTIONAL { ?entity a ?type }
+                FILTER(?scoreValue > 0.2)
+            }
+            ORDER BY DESC(?scoreValue)
+            LIMIT 5
+        `;
+        return query;
+    } else {
+        // Fallback alla ricerca standard con REGEX
+        let query = `
+            SELECT DISTINCT ?entity ?type WHERE {
+                ${entityType ? `?entity a <${entityType}> .` : ''}
+                ${predicate ? 
+                    `?entity <${predicate}> ?searchValue .` :
+                    `?entity ?searchPredicate ?searchValue .`
+                }
+                FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+                OPTIONAL { ?entity a ?type }
+            } 
+            LIMIT 5
+        `;
+        return query;
+    }
+}
+
 // Function to execute the SPARQL search
 function searchEntities(term, entityType = null, predicate = null, callback) {
     const input = $('.newEntityPropertyContainer input:focus');
     const contextData = input.length ? collectContextData(input) : {};
-
+    
     // Genera una chiave di cache che include il contesto
     const cacheKey = `${term}|${entityType || ''}|${predicate || ''}|${JSON.stringify(contextData)}`;
     
@@ -69,48 +104,25 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
         return;
     }
 
-    let sparqlQuery = `
-        SELECT DISTINCT ?entity ?type WHERE {
-    `;
+    let sparqlQuery = generateSearchQuery(term, entityType, predicate, window.dataset_db_triplestore, window.dataset_db_text_index_enabled);
 
-    if (entityType) {
-        sparqlQuery += `
-            ?entity a <${entityType}> .
-        `;
-    }
-
-    // Aggiunge le triple dal contesto come vincoli
+    // Aggiungi le triple dal contesto come vincoli
     Object.entries(contextData).forEach(([predicateUri, values]) => {
-        values.forEach((valueObj, index) => {
+        values.forEach(valueObj => {
             const formattedValue = formatValueForSparql(valueObj);
-            sparqlQuery += `
-                ?entity <${predicateUri}> ${formattedValue} .
-            `;
+            // Inserisci i vincoli del contesto nella posizione appropriata della query
+            sparqlQuery = sparqlQuery.replace(
+                'WHERE {',
+                `WHERE {
+                    ?entity <${predicateUri}> ${formattedValue} .`
+            );
         });
     });
 
-    // Aggiunge la condizione di ricerca sul termine
-    if (predicate) {
-        sparqlQuery += `
-            ?entity <${predicate}> ?searchValue .
-        `;
-    } else {
-        sparqlQuery += `
-            ?entity ?searchPredicate ?searchValue .
-        `;
-    }
-    
-    sparqlQuery += `
-        FILTER(REGEX(STR(?searchValue), "${term}", "i"))
-        OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
-    } 
-    LIMIT 5
-    `;
     if (input.length) {
         input.removeClass('is-invalid');
         input.siblings('.invalid-feedback').hide();
     }
-
     $.ajax({
         url: '/dataset-endpoint',
         method: 'POST',
@@ -126,6 +138,7 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
         }
     });
 }
+
 // Function to create the search results dropdown
 function createSearchDropdown() {
     return $(`
@@ -377,7 +390,7 @@ function enhanceInputWithSearch(input) {
         $(this).removeClass('is-invalid');
         $(this).siblings('.invalid-feedback').hide();
         
-        if (term.length < 3) return;
+        if (term.length < 4) return;
         
         spinner.removeClass('d-none');
         searchTimeout = setTimeout(() => {

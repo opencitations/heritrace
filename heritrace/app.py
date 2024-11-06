@@ -712,7 +712,9 @@ def create_entity():
         shacl=bool(shacl),
         entity_types=entity_types,
         form_fields=form_fields,
-        datatype_options=datatype_options
+        datatype_options=datatype_options,
+        dataset_db_triplestore=app.config['DATASET_DB_TRIPLESTORE'],
+        dataset_db_text_index_enabled=app.config['DATASET_DB_TEXT_INDEX_ENABLED']
     )
 
 def determine_datatype(value, datatype_uris):
@@ -978,7 +980,27 @@ def about(subject):
     
     entity_type = str(subject_classes[0]) if subject_classes else None
 
-    return render_template('about.jinja', subject=decoded_subject, history=history, can_be_added=can_be_added, can_be_deleted=can_be_deleted, datatypes=datatypes, update_form=update_form, create_form=create_form, mandatory_values=mandatory_values, optional_values=optional_values, shacl=True if shacl else False, grouped_triples=grouped_triples, subject_classes=[str(s_class) for s_class in subject_classes], display_rules=display_rules, form_fields=form_fields, entity_types=entity_types, entity_type=entity_type, predicate_details_map=predicate_details_map)
+    return render_template(
+        'about.jinja', 
+        subject=decoded_subject, 
+        history=history, 
+        can_be_added=can_be_added, 
+        can_be_deleted=can_be_deleted, 
+        datatypes=datatypes, 
+        update_form=update_form, 
+        create_form=create_form, 
+        mandatory_values=mandatory_values, 
+        optional_values=optional_values, 
+        shacl=True if shacl else False, 
+        grouped_triples=grouped_triples, 
+        subject_classes=[str(s_class) for s_class in subject_classes], 
+        display_rules=display_rules, 
+        form_fields=form_fields, 
+        entity_types=entity_types, 
+        entity_type=entity_type, 
+        predicate_details_map=predicate_details_map,
+        dataset_db_triplestore=app.config['DATASET_DB_TRIPLESTORE'],
+        dataset_db_text_index_enabled=app.config['DATASET_DB_TEXT_INDEX_ENABLED'])
 
 # Funzione per la validazione dinamica dei valori con suggerimento di datatypes
 @app.route('/validate-literal', methods=['POST'])

@@ -133,6 +133,10 @@
 {% include 'validation.jinja' %}
 
 <script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
+<script>
+    window.dataset_db_triplestore = {{ dataset_db_triplestore | tojson | safe }};
+    window.dataset_db_text_index_enabled = {{ dataset_db_text_index_enabled | tojson | safe }};
+</script>
 <script src="{{ url_for('static', filename='js/search_entity.js') }}"></script>
 
 <script>
