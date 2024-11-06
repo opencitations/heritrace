@@ -3,12 +3,10 @@ let lastSearchResults = []; // Global variable to keep track of results
 // Function to execute the SPARQL search
 function searchEntities(term, entityType = null, predicate = null, callback) {
     let sparqlQuery = `
-        SELECT DISTINCT ?entity ?label ?type WHERE {
+        SELECT DISTINCT ?entity ?type WHERE {
             ?entity ?p ?o .
-            OPTIONAL { ?entity <http://www.w3.org/2000/01/rdf-schema#label> ?label }
             OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
             FILTER(
-                REGEX(STR(?entity), "${term}", "i") ||
                 REGEX(STR(?o), "${term}", "i") 
             )
     `;
@@ -154,10 +152,8 @@ function updateSearchResults(results, dropdown) {
                     `);
                 },
                 error: function() {
-                    // In case of error, use the label or the last part of the URI
-                    const label = entity.label ? 
-                        entity.label.value : 
-                        entity.entity.value.split('/').pop();
+                    // In case of error, use the last part of the URI
+                    const label = entity.entity.value.split('/').pop();
 
                     // Store the label
                     entity.humanReadableLabel = label;
