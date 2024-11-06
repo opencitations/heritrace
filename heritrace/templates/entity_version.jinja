@@ -33,48 +33,57 @@
 
 <h2 class="mb-4 word-wrap">{{_('Version')}} {{ version_number }} {{_('of')}} <span title="{{subject | human_readable_entity(subject_classes)}}"><em>{{ subject | human_readable_entity(subject_classes) }}</em></span></h2>
 
-<div class="d-flex">
-    <div class="me-4">
-        <a href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary">
-            <i class="bi bi-clock-history"></i> {{_('Time machine')}}
+<div class="row g-3 mb-4">
+    <div class="col-6">
+        <a href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary w-100" id="historyBtn">
+            <i class="bi bi-clock-history me-2"></i> {{_('Time Machine')}}
         </a>    
     </div>
-
-    {% if next_snapshot_timestamp %}
-        <form action="{{ url_for('restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post">
-            <button type="submit" class="btn btn-warning">
-                <i class="bi bi-arrow-counterclockwise"></i> {{ _('Restore this version') }}
-            </button>
-        </form>
-    {% endif %}    
+    
+    <div class="col-6">
+        {% if next_snapshot_timestamp %}
+            <form action="{{ url_for('restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post" id="restoreVersionBtn">
+                <button type="submit" class="btn btn-outline-warning w-100">
+                    <i class="bi bi-arrow-counterclockwise me-2"></i> {{ _('Restore this Version') }}
+                </button>
+            </form>
+        {% endif %}    
+    </div>
 </div>
 
 {% if grouped_triples %}
 
     {# Pulsanti per navigare tra gli snapshot #}
-    <div class="mt-5 mb-5 d-flex justify-content-start">
-
-        {% if prev_snapshot_timestamp %}
-        <div class="me-4">
-            <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" class="btn btn-outline-primary">
-                <i class="bi bi-arrow-left"></i> {{ _('Previous version') }}
-            </a>
+    <div class="row g-3 mb-4">
+        <div class="col-6">
+            {% if prev_snapshot_timestamp %}
+                <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" 
+                   class="btn btn-outline-primary w-100 prevVersionBtn">
+                    <i class="bi bi-arrow-left me-2"></i> {{ _('Previous version') }}
+                </a>
+            {% else %}
+                <div class="invisible">
+                    <a href="#" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-arrow-left me-2"></i> {{ _('Previous version') }}
+                    </a>
+                </div>
+            {% endif %}
         </div>
-        {% else %}
-        <div style="visibility: hidden;" class="me-4">
-            <a href="#" class="btn btn-outline-primary">
-                <i class="bi bi-arrow-left"></i> {{ _('Previous version') }}
-            </a>
+        
+        <div class="col-6">
+            {% if next_snapshot_timestamp %}
+                <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" 
+                   class="btn btn-outline-primary w-100 nextVersionBtn">
+                    {{ _('Next version') }} <i class="bi bi-arrow-right ms-2"></i>
+                </a>
+            {% else %}
+                <div class="invisible">
+                    <a href="#" class="btn btn-outline-primary w-100">
+                        {{ _('Next version') }}<i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            {% endif %}
         </div>
-        {% endif %}
-    
-        {% if next_snapshot_timestamp %}
-        <div>
-            <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" class="btn btn-outline-primary">
-                {{ _('Next version') }} <i class="bi bi-arrow-right"></i>
-            </a>
-        </div>
-        {% endif %}
     </div>
 
     <div class="row mb-5">

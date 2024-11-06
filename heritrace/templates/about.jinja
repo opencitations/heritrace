@@ -26,15 +26,15 @@
 <div class="btn-flex d-flex align-items-center my-4">
     {% if grouped_triples %}
         <!-- Bottone per Modificare l'Entità -->
-        <button id="editEntityBtn" class="btn btn-outline-primary" title="{{ _('Edit') }}">
+        <a id="editEntityBtn" class="btn btn-outline-primary" title="{{ _('Edit') }}" type="button">
             <i class="bi bi-pencil me-2"></i>{{ _('Edit') }}
-        </button>
+        </a>
     {% endif %}
     {% if history[subject] %}
         <!-- Bottone per la Storia dell'Entità -->
-        <button id="historyBtn" href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary" title="{{ _('History') }}">
-            <i class="bi bi-clock-history me-2"></i>{{ _('History') }}
-        </button>
+        <a id="historyBtn" href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary" title="{{ _('Time Machine') }}" type="button">
+            <i class="bi bi-clock-history me-2"></i>{{ _('Time Machine') }}
+        </a>
     {% endif %}
 </div>
 <div class="triples mb-5">

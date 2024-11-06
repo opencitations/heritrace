@@ -9,6 +9,8 @@
 </ol>
 </nav>
 
+<h2 class="mb-4 word-wrap">{{_('Version history for')}} <em>{{entity_uri | human_readable_entity(entity_classes)}}</em></h2>
+
 <div id="timeline-embed"></div>
 
 <style>
@@ -30,6 +32,10 @@
         margin-bottom: 3px;
     }
     .tl-timeline a.view-version {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+    .tl-timeline a.view-version:hover {
         color: white;
     }
     .tl-slide {

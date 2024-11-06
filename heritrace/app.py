@@ -1350,16 +1350,11 @@ def entity_history(entity_uri):
             now = datetime.now()
             event["end_date"] = gettext("Present")
 
-        view_version_button = f"<a href='/entity-version/{entity_uri}/{metadata['generatedAtTime']}' class='btn btn-primary mt-2 view-version' target='_self'>{gettext('View version')}</a>"
+        view_version_button = f"<a href='/entity-version/{entity_uri}/{metadata['generatedAtTime']}' class='btn btn-outline-primary mt-2 view-version' target='_self'>{gettext('View version')}</a>"
         event["text"]["text"] += f"{view_version_button}"
         events.append(event)
 
     timeline_data = {
-        "title": {
-            "text": {
-                "headline": gettext('Version history for') + ' <em>' + custom_filter.human_readable_entity(entity_uri, entity_classes) + '</em>'
-            }
-        },
         "events": events
     }
 

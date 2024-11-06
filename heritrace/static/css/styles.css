@@ -249,3 +249,7 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
         border-color: rgba(220, 53, 69, 0);
     }
 }
+
+.tl-skinny .tl-slidenav-next .tl-slidenav-icon {
+    margin-left: 0;
+}
