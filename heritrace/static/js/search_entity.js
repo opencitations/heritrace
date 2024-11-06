@@ -1,32 +1,46 @@
-let lastSearchResults = []; // Global variable to keep track of results
+// Cache object to store search results keyed by the complete search parameters
+const searchCache = {};
+
+// Function to generate a cache key from search parameters
+function generateCacheKey(term, entityType, predicate) {
+    return `${term}|${entityType || ''}|${predicate || ''}`;
+}
 
 // Function to execute the SPARQL search
 function searchEntities(term, entityType = null, predicate = null, callback) {
-    // Build the query starting with the most restrictive conditions
+    const cacheKey = generateCacheKey(term, entityType, predicate);
+    
+    // Check if we have cached results for this exact query
+    console.log(searchCache)
+    console.log(cacheKey)
+    console.log(searchCache[cacheKey])
+    if (searchCache[cacheKey]) {
+        lastSearchResults = searchCache[cacheKey];
+        callback(null, { results: { bindings: searchCache[cacheKey] } });
+        return;
+    }
+
+    // Original query building code remains exactly the same
     let sparqlQuery = `
         SELECT DISTINCT ?entity ?type WHERE {
     `;
 
-    // Add entity type filter first if provided (most restrictive)
     if (entityType) {
         sparqlQuery += `
             ?entity a <${entityType}> .
         `;
     }
 
-    // Add predicate filter if provided (second most restrictive)
     if (predicate) {
         sparqlQuery += `
             ?entity <${predicate}> ?o .
         `;
     } else {
-        // If no specific predicate, use generic pattern
         sparqlQuery += `
             ?entity ?p ?o .
         `;
     }
 
-    // Add REGEX filter last (least restrictive)
     sparqlQuery += `
             FILTER(REGEX(STR(?o), "${term}", "i"))
             OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
@@ -34,7 +48,6 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
         LIMIT 5
     `;
 
-    // Remove the is-invalid class when a new search starts
     const input = $('.newEntityPropertyContainer input:focus');
     if (input.length) {
         input.removeClass('is-invalid');
@@ -48,6 +61,7 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
         headers: { 'Accept': 'application/sparql-results+json' },
         success: function(response) {
             lastSearchResults = response.results.bindings;
+            searchCache[cacheKey] = response.results.bindings; // Cache the results
             callback(null, response);
         },
         error: function(error) {
@@ -273,15 +287,17 @@ function enhanceInputWithSearch(input) {
 
     if (!objectClass) return;
 
+    // Prima rimuoviamo tutti gli handler esistenti
+    input.off('input');
+    container.find('.entity-search-results').off('click');
+
     // Determina il predicato corretto da usare
     let repeaterItem = container.closest('[data-repeater-item]');
     let predicateUri;
     
     if (repeaterItem.data('intermediate-relation')) {
-        // Se siamo in una relazione intermedia, usa la connecting-property
         predicateUri = repeaterItem.data('connecting-property');
     } else {
-        // Altrimenti usa il predicato standard
         predicateUri = repeaterItem.data('predicate-uri');
     }
 
@@ -333,7 +349,6 @@ function enhanceInputWithSearch(input) {
         input.trigger('focus');
         searchResults.addClass('d-none');
     });
-
     // Close the results when clicking outside
     $(document).on('click', function(e) {
         if (!$(e.target).closest('.newEntityPropertyContainer').length) {
