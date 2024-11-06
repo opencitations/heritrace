@@ -2,24 +2,37 @@ let lastSearchResults = []; // Global variable to keep track of results
 
 // Function to execute the SPARQL search
 function searchEntities(term, entityType = null, predicate = null, callback) {
+    // Build the query starting with the most restrictive conditions
     let sparqlQuery = `
         SELECT DISTINCT ?entity ?type WHERE {
-            ?entity ?p ?o .
-            OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
-            FILTER(
-                REGEX(STR(?o), "${term}", "i") 
-            )
     `;
 
+    // Add entity type filter first if provided (most restrictive)
     if (entityType) {
-        sparqlQuery += `?entity a <${entityType}> .`;
-    }
-    
-    if (predicate) {
-        sparqlQuery += `VALUES ?p { <${predicate}> }`;
+        sparqlQuery += `
+            ?entity a <${entityType}> .
+        `;
     }
 
-    sparqlQuery += `} LIMIT 5`;
+    // Add predicate filter if provided (second most restrictive)
+    if (predicate) {
+        sparqlQuery += `
+            ?entity <${predicate}> ?o .
+        `;
+    } else {
+        // If no specific predicate, use generic pattern
+        sparqlQuery += `
+            ?entity ?p ?o .
+        `;
+    }
+
+    // Add REGEX filter last (least restrictive)
+    sparqlQuery += `
+            FILTER(REGEX(STR(?o), "${term}", "i"))
+            OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
+        } 
+        LIMIT 5
+    `;
 
     // Remove the is-invalid class when a new search starts
     const input = $('.newEntityPropertyContainer input:focus');
