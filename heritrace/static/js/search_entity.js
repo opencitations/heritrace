@@ -6,18 +6,69 @@ function generateCacheKey(term, entityType, predicate) {
     return `${term}|${entityType || ''}|${predicate || ''}`;
 }
 
+// Raccoglie tutte le coppie predicato-valore dal contesto corrente
+function collectContextData(currentInput) {
+    const contextData = {};
+    const currentInputUri = currentInput.data('predicate-uri');
+
+    // Trova il container più vicino che contiene tutti i campi correlati
+    const container = currentInput.closest('.newEntityPropertiesContainer');
+    
+    // Raccoglie i valori da tutti gli input/select visibili nel container
+    container.find('input:visible, select:visible, input[data-mandatory-value="true"], textarea:visible').each(function() {
+        const input = $(this);
+        const propertyUri = input.data('predicate-uri');
+
+        // Salta l'input corrente e quelli senza predicato
+        if (!propertyUri || propertyUri === currentInputUri || input.is(currentInput) || propertyUri == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
+            return;
+        }
+        
+        const value = input.val() || input.data('value');
+        if (value && value.trim() !== "") {
+
+            const datatypes = input.data('datatypes')?.split(',') || [];
+
+            if (!contextData[propertyUri]) {
+                contextData[propertyUri] = [];
+            }
+            contextData[propertyUri].push({
+                value: value,
+                datatypes: datatypes
+            });
+        }
+    });
+    
+    return contextData;
+}
+
+// Funzione helper per formattare il valore in base al suo tipo
+function formatValueForSparql(valueObj) {
+    const value = valueObj.value;
+    
+    // Se non ci sono datatype, è un URI
+    if (!valueObj.datatypes?.length) {
+        return `<${value}>`;
+    }
+    
+    // Altrimenti è un letterale con datatype
+    return `"${value}"^^<${valueObj.datatypes[0]}>`;
+}
+
 // Function to execute the SPARQL search
 function searchEntities(term, entityType = null, predicate = null, callback) {
-    const cacheKey = generateCacheKey(term, entityType, predicate);
+    const input = $('.newEntityPropertyContainer input:focus');
+    const contextData = input.length ? collectContextData(input) : {};
+
+    // Genera una chiave di cache che include il contesto
+    const cacheKey = `${term}|${entityType || ''}|${predicate || ''}|${JSON.stringify(contextData)}`;
     
-    // Check if we have cached results for this exact query
     if (searchCache[cacheKey]) {
         lastSearchResults = searchCache[cacheKey];
         callback(null, { results: { bindings: searchCache[cacheKey] } });
         return;
     }
 
-    // Original query building code remains exactly the same
     let sparqlQuery = `
         SELECT DISTINCT ?entity ?type WHERE {
     `;
@@ -28,24 +79,33 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
         `;
     }
 
+    // Aggiunge le triple dal contesto come vincoli
+    Object.entries(contextData).forEach(([predicateUri, values]) => {
+        values.forEach((valueObj, index) => {
+            const formattedValue = formatValueForSparql(valueObj);
+            sparqlQuery += `
+                ?entity <${predicateUri}> ${formattedValue} .
+            `;
+        });
+    });
+
+    // Aggiunge la condizione di ricerca sul termine
     if (predicate) {
         sparqlQuery += `
-            ?entity <${predicate}> ?o .
+            ?entity <${predicate}> ?searchValue .
         `;
     } else {
         sparqlQuery += `
-            ?entity ?p ?o .
+            ?entity ?searchPredicate ?searchValue .
         `;
     }
-
+    
     sparqlQuery += `
-            FILTER(REGEX(STR(?o), "${term}", "i"))
-            OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
-        } 
-        LIMIT 5
+        FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+        OPTIONAL { ?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type }
+    } 
+    LIMIT 5
     `;
-
-    const input = $('.newEntityPropertyContainer input:focus');
     if (input.length) {
         input.removeClass('is-invalid');
         input.siblings('.invalid-feedback').hide();
@@ -58,7 +118,7 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
         headers: { 'Accept': 'application/sparql-results+json' },
         success: function(response) {
             lastSearchResults = response.results.bindings;
-            searchCache[cacheKey] = response.results.bindings; // Cache the results
+            searchCache[cacheKey] = response.results.bindings;
             callback(null, response);
         },
         error: function(error) {
@@ -66,7 +126,6 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
         }
     });
 }
-
 // Function to create the search results dropdown
 function createSearchDropdown() {
     return $(`
@@ -257,14 +316,16 @@ function findObjectClass(element) {
         const repeaterList = current.closest('[data-repeater-list]');
         if (!repeaterList.length) break;
         
-        const objectClass = repeaterList.data('object-class');
+        const objectClass = repeaterList.data('class');
         if (objectClass && objectClass != 'None') {
-            // Se siamo all'interno di una relazione intermedia
+            // Check if we're inside an intermediate relation
             const intermediateItem = current.closest('[data-intermediate-relation]');
             if (intermediateItem.length) {
-                // Usiamo la classe target dell'entità finale invece di quella intermedia
+                // Use the target class of the final entity instead of the intermediate one
                 const innerRepeaterList = intermediateItem.find('.nested-form-container').first();
-                return innerRepeaterList.data('object-class');
+                if (innerRepeaterList.length && innerRepeaterList.data('class')) {
+                    return innerRepeaterList.data('class');
+                }
             }
             return objectClass;
         }
