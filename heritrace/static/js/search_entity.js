@@ -197,7 +197,7 @@ function updateSearchResults(results, dropdown) {
 function handleEntitySelection(container, entity) {
     // Find the parent properties container
     const propertiesContainer = container.closest('.newEntityPropertiesContainer');
-    
+
     // Store only the content that isn't the search results or spinner
     const originalContent = propertiesContainer.children()
         .not('.entity-search-results')
@@ -238,7 +238,16 @@ function findObjectClass(element) {
         if (!repeaterList.length) break;
         
         const objectClass = repeaterList.data('object-class');
-        if (objectClass && objectClass != 'None') return objectClass;
+        if (objectClass && objectClass != 'None') {
+            // Se siamo all'interno di una relazione intermedia
+            const intermediateItem = current.closest('[data-intermediate-relation]');
+            if (intermediateItem.length) {
+                // Usiamo la classe target dell'entità finale invece di quella intermedia
+                const innerRepeaterList = intermediateItem.find('.nested-form-container').first();
+                return innerRepeaterList.data('object-class');
+            }
+            return objectClass;
+        }
         
         current = repeaterList.parent();
     }
@@ -252,9 +261,20 @@ function enhanceInputWithSearch(input) {
     if (!container.length) return;
 
     const objectClass = findObjectClass(container);
+
     if (!objectClass) return;
 
-    const predicateUri = container.closest('[data-repeater-item]').data('predicate-uri');
+    // Determina il predicato corretto da usare
+    let repeaterItem = container.closest('[data-repeater-item]');
+    let predicateUri;
+    
+    if (repeaterItem.data('intermediate-relation')) {
+        // Se siamo in una relazione intermedia, usa la connecting-property
+        predicateUri = repeaterItem.data('connecting-property');
+    } else {
+        // Altrimenti usa il predicato standard
+        predicateUri = repeaterItem.data('predicate-uri');
+    }
 
     // Add the search results dropdown and spinner
     const searchResults = createSearchDropdown();

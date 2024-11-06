@@ -62,7 +62,7 @@
                 {% endfor %}
             </div>
         {% elif details.intermediateRelation %}
-            <div class="d-flex flex-column newEntityPropertyContainer w-100">
+            <div class="d-flex flex-column newEntityPropertiesContainer w-100">
                 <div class="d-flex flex-row justify-content-between nested-form-header mb-4">
                     <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>

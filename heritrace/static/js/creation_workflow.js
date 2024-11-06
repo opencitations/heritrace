@@ -311,12 +311,52 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                 // Check if this item contains a reference to an existing entity
                 let entityReference = repeaterItem.find('input[data-entity-reference="true"]');
                 if (entityReference.length > 0) {
-                    // If we found an entity reference, add it directly to the properties
-                    if (!data[predicateUri]) {
-                        data[predicateUri] = [];
+                    // Se siamo in una relazione intermedia
+                    if (repeaterItem.data('intermediate-relation')) {
+                        let intermediateClass = repeaterItem.data('intermediate-relation');
+                        let connectingProperty = repeaterItem.data('connecting-property');
+                        
+                        // Creiamo la struttura dell'entità intermedia
+                        let intermediateEntity = {
+                            "entity_type": intermediateClass,
+                            "properties": {}
+                        };
+
+                        // Aggiungiamo la connessione all'entità esistente
+                        intermediateEntity.properties[connectingProperty] = entityReference.val();
+
+                        let intermediateShape = repeaterItem.data('shape');
+                        if (intermediateShape) {
+                            intermediateEntity['shape'] = intermediateShape;
+                        }
+
+                        // Aggiungiamo eventuali proprietà aggiuntive
+                        let additionalProperties = repeaterItem.data('additional-properties');
+                        if (additionalProperties) {
+                            Object.assign(intermediateEntity.properties, additionalProperties);
+                        }
+
+                        if (orderedBy) {
+                            intermediateEntity['orderedBy'] = orderedBy;
+                        }
+
+                        if (tempId) {
+                            intermediateEntity['tempId'] = tempId;
+                        }
+
+                        // Aggiungiamo l'entità intermedia alla lista delle proprietà
+                        if (!data[predicateUri]) {
+                            data[predicateUri] = [];
+                        }
+                        data[predicateUri].push(intermediateEntity);
+                    } else {
+                        // Comportamento standard per riferimenti diretti
+                        if (!data[predicateUri]) {
+                            data[predicateUri] = [];
+                        }
+                        data[predicateUri].push(entityReference.val());
                     }
-                    data[predicateUri].push(entityReference.val());
-                    return; // Skip further processing for this item
+                    return;
                 }
 
                 if (predicateUri && objectClass && itemDepth === depth) {
