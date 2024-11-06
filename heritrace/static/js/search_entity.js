@@ -11,9 +11,6 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
     const cacheKey = generateCacheKey(term, entityType, predicate);
     
     // Check if we have cached results for this exact query
-    console.log(searchCache)
-    console.log(cacheKey)
-    console.log(searchCache[cacheKey])
     if (searchCache[cacheKey]) {
         lastSearchResults = searchCache[cacheKey];
         callback(null, { results: { bindings: searchCache[cacheKey] } });
@@ -289,7 +286,6 @@ function enhanceInputWithSearch(input) {
 
     // Prima rimuoviamo tutti gli handler esistenti
     input.off('input');
-    container.find('.entity-search-results').off('click');
 
     // Determina il predicato corretto da usare
     let repeaterItem = container.closest('[data-repeater-item]');
@@ -349,14 +345,15 @@ function enhanceInputWithSearch(input) {
         input.trigger('focus');
         searchResults.addClass('d-none');
     });
-    // Close the results when clicking outside
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('.newEntityPropertyContainer').length) {
-            searchResults.addClass('d-none');
-            container.find('.search-spinner').addClass('d-none');
-        }
-    });
 }
+
+// Handle clicks outside of search results
+$(document).on('click', function(e) {
+    if (!$(e.target).closest('.newEntityPropertyContainer').length) {
+        $('.entity-search-results').addClass('d-none');
+        $('.search-spinner').addClass('d-none');
+    }
+});
 
 // Function to handle changing a selected entity
 $(document).on('click', '.change-entity', function(e) {
