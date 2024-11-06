@@ -84,7 +84,7 @@
                         {% endif %}
                         {% for triple_data in data['triples'] %}
                             {% set unique_counter.value = unique_counter.value + 1 %}
-                            {{ render_triple(triple_data['triple'], subject, triple_data['external_entity'], isDraggable, triple_data['object'], data['ordered_by'], unique_counter.value, data, display_name) }}
+                            {{ render_triple(triple_data['triple'], subject, triple_data['external_entity'], isDraggable, triple_data['object'], data['ordered_by'], unique_counter.value, data, display_name, objectClass.value) }}
                         {% endfor %}
 
                         <!-- Move the add-button inside the ul -->

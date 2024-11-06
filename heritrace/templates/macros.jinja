@@ -293,7 +293,7 @@
     {% endif %}
 {% endmacro %}
 
-{% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data, display_name) %}
+{% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data, display_name, object_class) %}
     {% set shape = grouped_triples_data.get('shape') %}
     <div data-repeater-item class="input-group d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
         data-subject-id="{{ subject }}" 
@@ -314,7 +314,7 @@
                             <a href="{{url_for('about', subject=externalEntity)}}" 
                             data-bs-toggle="tooltip" 
                             data-bs-placement="top" 
-                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}">
+                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity([object_class]))}}">
                                 {{ triple[2] | human_readable_predicate(subject_classes) }}
                             </a>
                         </span>
@@ -324,7 +324,7 @@
                         <a href="{{url_for('about', subject=externalEntity)}}"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top" 
-                           title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}">
+                           title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity([object_class]))}}">
                             {{ triple[2] | human_readable_predicate(subject_classes) }}
                         </a>
                     </span>
@@ -436,7 +436,7 @@
                             <a class="btn btn-sm btn-outline-primary" 
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
-                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity)}}"
+                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity([object_class]))}}"
                             href="{{url_for('about', subject=externalEntity)}}">
                                 <i class="bi bi-arrow-right-square"></i>
                             </a>
