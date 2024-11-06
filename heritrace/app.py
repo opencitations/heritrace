@@ -628,9 +628,14 @@ def create_entity():
                     for shape, shape_values in values_by_shape.items():
                         previous_entity = None
                         for value in shape_values:
-                            nested_uri = generate_unique_uri(value['entity_type'])
-                            editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
-                            create_nested_entity(editor, nested_uri, value, default_graph_uri, form_fields)
+                            if isinstance(value, dict) and 'entity_type' in value:
+                                nested_uri = generate_unique_uri(value['entity_type'])
+                                editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
+                                create_nested_entity(editor, nested_uri, value, default_graph_uri, form_fields)
+                            else:
+                                # If it's a direct URI value (reference to existing entity)
+                                nested_uri = URIRef(value)
+                                editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
 
                             if previous_entity:
                                 editor.create(previous_entity, URIRef(ordered_by), nested_uri, default_graph_uri)
@@ -643,11 +648,16 @@ def create_entity():
                             editor.create(entity_uri, URIRef(predicate), nested_uri, default_graph_uri)
                             create_nested_entity(editor, nested_uri, value, default_graph_uri, form_fields)
                         else:
-                            datatype_uris = []
-                            if field_definitions:
-                                datatype_uris = field_definitions[0].get('datatypes', [])
-                            datatype = determine_datatype(value, datatype_uris)
-                            object_value = URIRef(value) if validators.url(value) else Literal(value, datatype=datatype)
+                            if validators.url(value):
+                                # If it's a URI (reference to existing entity), use it directly
+                                object_value = URIRef(value)
+                            else:
+                                # Otherwise, handle as a literal with appropriate datatype
+                                datatype_uris = []
+                                if field_definitions:
+                                    datatype_uris = field_definitions[0].get('datatypes', [])
+                                datatype = determine_datatype(value, datatype_uris)
+                                object_value = Literal(value, datatype=datatype)
                             editor.create(entity_uri, URIRef(predicate), object_value, default_graph_uri)
         else:
             properties = structured_data.get('properties', {})

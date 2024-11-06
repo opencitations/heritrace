@@ -307,7 +307,18 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                 let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
                 let itemDepth = parseInt(repeaterItem.data('depth'));
                 let tempId = repeaterItem.data('temp-id');
-        
+
+                // Check if this item contains a reference to an existing entity
+                let entityReference = repeaterItem.find('input[data-entity-reference="true"]');
+                if (entityReference.length > 0) {
+                    // If we found an entity reference, add it directly to the properties
+                    if (!data[predicateUri]) {
+                        data[predicateUri] = [];
+                    }
+                    data[predicateUri].push(entityReference.val());
+                    return; // Skip further processing for this item
+                }
+
                 if (predicateUri && objectClass && itemDepth === depth) {
                     let itemData = {};
                     let hasContent = false;
