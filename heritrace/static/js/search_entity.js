@@ -55,69 +55,133 @@ function formatValueForSparql(valueObj) {
     return `"${value}"^^<${valueObj.datatypes[0]}>`;
 }
 
-// Funzione per generare la query SPARQL in base alla configurazione
-function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled) {
+function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled, depth, connectingPredicate) {
+    let query;
     if (dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso') {
-        // Usa l'indice testuale di Virtuoso
-        let query = `
+        // Use Virtuoso text index
+        query = `
             SELECT DISTINCT ?entity ?type ?scoreValue WHERE {
-                ?entity ?p ?text .
+                ${depth > 1 ? `
+                    ?entity a <${entityType}> .
+                    ?entity <${connectingPredicate}> ?nestedEntity .
+                    ?nestedEntity <${predicate}> ?text .
+                ` : `
+                    ?entity ?p ?text .
+                    ${entityType ? `?entity a <${entityType}> .` : ''}
+                    ${predicate ? `?entity <${predicate}> ?text .` : ''}
+                `}
                 ?text bif:contains "'${term}*'" OPTION (score ?scoreValue) .
-                ${entityType ? `?entity a <${entityType}> .` : ''}
-                ${predicate ? `?entity <${predicate}> ?text .` : ''}
                 OPTIONAL { ?entity a ?type }
                 FILTER(?scoreValue > 0.2)
             }
             ORDER BY DESC(?scoreValue)
             LIMIT 5
         `;
-        return query;
     } else {
-        // Fallback alla ricerca standard con REGEX
-        let query = `
+        // Fallback to standard REGEX search
+        query = `
             SELECT DISTINCT ?entity ?type WHERE {
-                ${entityType ? `?entity a <${entityType}> .` : ''}
-                ${predicate ? 
-                    `?entity <${predicate}> ?searchValue .` :
-                    `?entity ?searchPredicate ?searchValue .`
-                }
+                ${depth > 1 ? `
+                    ?entity a <${entityType}> .
+                    ?entity <${connectingPredicate}> ?nestedEntity .
+                    ?nestedEntity <${predicate}> ?searchValue .
+                ` : `
+                    ${entityType ? `?entity a <${entityType}> .` : ''}
+                    ${predicate ? 
+                        `?entity <${predicate}> ?searchValue .` :
+                        `?entity ?searchPredicate ?searchValue .`
+                    }
+                `}
                 FILTER(REGEX(STR(?searchValue), "${term}", "i"))
                 OPTIONAL { ?entity a ?type }
             } 
             LIMIT 5
         `;
-        return query;
     }
+    return query;
+}
+
+// Function to find the parent object class based on the current depth
+function findParentObjectClass(element) {
+    let current = $(element);
+    let depth = parseInt(current.data('depth')) || 0;
+    let parentDepth = depth - 1;
+    while (current.length) {
+        const repeaterList = current.closest('[data-repeater-list]');
+        if (!repeaterList.length) break;
+
+        const objectClass = repeaterList.data('class');
+        const currentDepth = parseInt(repeaterList.data('depth')) || 0;
+        if (objectClass && objectClass != 'None' && currentDepth === parentDepth) {
+            return objectClass;
+        }
+
+        current = repeaterList.parent();
+    }
+    return null;
+}
+
+function findConnectingPredicate(input) {
+    const currentRepeaterItem = input.closest('[data-repeater-item]');
+    if (currentRepeaterItem.length) {
+        const parentRepeaterItem = currentRepeaterItem.parent().closest('[data-repeater-item]');
+        if (parentRepeaterItem.length) {
+            const connectingPredicate = parentRepeaterItem.data('predicate-uri');
+            return connectingPredicate;
+        }
+    }
+    return null;
 }
 
 // Function to execute the SPARQL search
 function searchEntities(term, entityType = null, predicate = null, callback) {
     const input = $('.newEntityPropertyContainer input:focus');
     const contextData = input.length ? collectContextData(input) : {};
-    
-    // Genera una chiave di cache che include il contesto
-    const cacheKey = `${term}|${entityType || ''}|${predicate || ''}|${JSON.stringify(contextData)}`;
-    
+
+    // Get the depth of the current input
+    const depth = parseInt(input.data('depth')) || 0;
+
+    // Adjust the entityType if depth > 1
+    if (depth > 1) {
+        const parentClass = findParentObjectClass(input);
+        if (parentClass) {
+            entityType = parentClass;
+        }
+    }
+
+    // Get the connecting predicate if depth > 1
+    let connectingPredicate = null;
+    if (depth > 1) {
+        connectingPredicate = findConnectingPredicate(input);
+    }
+
+    // Generate a cache key that includes the context
+    const cacheKey = `${term}|${entityType || ''}|${predicate || ''}|${JSON.stringify(contextData)}|${depth}|${connectingPredicate || ''}`;
+
     if (searchCache[cacheKey]) {
         lastSearchResults = searchCache[cacheKey];
         callback(null, { results: { bindings: searchCache[cacheKey] } });
         return;
     }
 
-    let sparqlQuery = generateSearchQuery(term, entityType, predicate, window.dataset_db_triplestore, window.dataset_db_text_index_enabled);
+    let sparqlQuery = generateSearchQuery(term, entityType, predicate, window.dataset_db_triplestore, window.dataset_db_text_index_enabled, depth, connectingPredicate);
 
-    // Aggiungi le triple dal contesto come vincoli
+    let contextConstraints = '';
     Object.entries(contextData).forEach(([predicateUri, values]) => {
         values.forEach(valueObj => {
             const formattedValue = formatValueForSparql(valueObj);
-            // Inserisci i vincoli del contesto nella posizione appropriata della query
-            sparqlQuery = sparqlQuery.replace(
-                'WHERE {',
-                `WHERE {
-                    ?entity <${predicateUri}> ${formattedValue} .`
-            );
+            if (depth > 1) {
+                // Use 'nestedEntity' in the context constraints
+                contextConstraints += `\n    ?nestedEntity <${predicateUri}> ${formattedValue} .`;
+            } else {
+                // Use 'entity' in the context constraints
+                contextConstraints += `\n    ?entity <${predicateUri}> ${formattedValue} .`;
+            }
         });
     });
+
+    // Insert contextConstraints into the sparqlQuery at the appropriate place
+    sparqlQuery = sparqlQuery.replace('WHERE {', `WHERE {${contextConstraints}`);
 
     if (input.length) {
         input.removeClass('is-invalid');
@@ -217,12 +281,19 @@ function createEntityDisplay(entity, container, callback) {
 }
 
 // Function to update the search results
-function updateSearchResults(results, dropdown) {
+function updateSearchResults(results, dropdown, input, depth) {
     dropdown.empty();
 
     if (results.length) {
-        // Get the object class to obtain the entity type
-        const objectClass = findObjectClass(dropdown);
+        // Determine the appropriate object class based on the depth
+        let objectClass;
+        if (depth > 1) {
+            // For depth > 1, use the parent object class
+            objectClass = findParentObjectClass(input);
+        } else {
+            // For depth <= 1, use the current object class
+            objectClass = findObjectClass(input);
+        }
 
         results.forEach(entity => {
             // Fetch the human-readable version and store it
@@ -286,16 +357,20 @@ function updateSearchResults(results, dropdown) {
 }
 
 // Function to handle the selection of an entity
-function handleEntitySelection(container, entity) {
-    // Find the parent properties container
-    const propertiesContainer = container.closest('.newEntityPropertiesContainer');
-
+function handleEntitySelection(container, entity, depth) {
+    let propertiesContainer = container.closest('.newEntityPropertiesContainer');
+    if (depth > 1) {
+        // Move up to the parent 'newEntityPropertiesContainer' at depth - 1
+        for (let i = 1; i < depth; i++) {
+            propertiesContainer = propertiesContainer.closest('[data-repeater-item]').parent().closest('.newEntityPropertiesContainer');
+        }
+    }
     // Store only the content that isn't the search results or spinner
     const originalContent = propertiesContainer.children()
         .not('.entity-search-results')
         .not('.search-spinner')
         .detach();
-        
+
     // Save the original content in the container's data
     propertiesContainer.data('originalContent', originalContent);
 
@@ -312,7 +387,7 @@ function handleEntitySelection(container, entity) {
             .not('.entity-search-results')
             .not('.search-spinner')
             .remove();
-            
+
         // Append the hidden input and display to the container
         propertiesContainer.append(hiddenInput).append(display);
     });
@@ -378,6 +453,9 @@ function enhanceInputWithSearch(input) {
     
     // Handle input with debounce
     let searchTimeout;
+
+    let depth = parseInt(input.data('depth')) || 0;
+
     input.on('input', function() {
         const term = $(this).val().trim();
         const spinner = container.find('.search-spinner');
@@ -401,8 +479,8 @@ function enhanceInputWithSearch(input) {
                     console.error('Search failed:', error);
                     return;
                 }
-                
-                updateSearchResults(response.results.bindings, searchResults);
+
+                updateSearchResults(response.results.bindings, searchResults, input, depth);
             });
         }, 300);
     });
@@ -411,7 +489,7 @@ function enhanceInputWithSearch(input) {
     searchResults.on('click', '.list-group-item:not(.create-new)', function() {
         const entityUri = $(this).data('entity-uri');
         const entity = lastSearchResults.find(e => e.entity.value === entityUri);
-        handleEntitySelection(container, entity);
+        handleEntitySelection(container, entity, depth);
     });
 
     // Handle the click on "Create New"
