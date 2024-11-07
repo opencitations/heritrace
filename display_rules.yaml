@@ -1559,7 +1559,7 @@ classes:
       
   - class: "http://purl.org/spar/datacite/Identifier"
     priority: 1
-    shouldBeDisplayed: true
+    shouldBeDisplayed: false
     displayName: "Identifier"
     fetchUriDisplay: |
       PREFIX datacite: <http://purl.org/spar/datacite/>
@@ -1678,7 +1678,7 @@ classes:
 
   - class: "http://xmlns.com/foaf/0.1/Agent"
     priority: 1
-    shouldBeDisplayed: true
+    shouldBeDisplayed: false
     displayName: "Responsible Agent"
     fetchUriDisplay: |
       PREFIX foaf: <http://xmlns.com/foaf/0.1/>
