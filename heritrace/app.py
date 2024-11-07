@@ -1895,6 +1895,9 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
                                     grouped_triples[display_name]['is_draggable'] = True
                                     grouped_triples[display_name]['ordered_by'] = order_property
                                     process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map, historical_snapshot)
+
+                                if 'intermediateRelation' in prop:
+                                    grouped_triples[display_name]['intermediateRelation'] = prop['intermediateRelation']
                         else:
                             display_name = prop.get('displayName', prop_uri)
                             relevant_properties.add(prop_uri)
@@ -1904,6 +1907,9 @@ def get_grouped_triples(subject, triples, subject_classes, valid_predicates_info
                                 grouped_triples[display_name]['is_draggable'] = True
                                 grouped_triples[display_name]['ordered_by'] = order_property
                                 process_ordering(subject, prop, order_property, grouped_triples, display_name, fetched_values_map, historical_snapshot)
+
+                            if 'intermediateRelation' in prop:
+                                grouped_triples[display_name]['intermediateRelation'] = prop['intermediateRelation']
             else:
                 process_default_property(prop_uri, triples, grouped_triples)
         else:
@@ -1937,7 +1943,8 @@ def process_display_rule(display_name, prop_uri, rule, subject, triples, grouped
         grouped_triples[display_name] = {
             'property': prop_uri,
             'triples': [],
-            'shape': rule.get('shape')
+            'shape': rule.get('shape'),
+            'intermediateRelation': rule.get('intermediateRelation')
         }
     for triple in triples:
         if str(triple[1]) == prop_uri:
