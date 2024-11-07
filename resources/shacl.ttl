@@ -404,7 +404,7 @@ schema:AgentRoleShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:in (pro:publisher pro:author pro:editor pro:translator) ;
+    sh:in (pro:publisher pro:author pro:editor pro:translator pro:contributor) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
@@ -1036,7 +1036,7 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:node schema:BookShape ;
+    sh:node schema:JournalShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
@@ -1075,7 +1075,7 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:node schema:IssueShape ;
+    sh:node schema:JournalShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
@@ -1366,6 +1366,34 @@ schema:TranslatorShape
   sh:property [
     sh:path oco:hasNext ;
     sh:node schema:TranslatorShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:CollaboratorShape
+  a sh:NodeShape ;
+  sh:targetClass pro:RoleInTime ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue pro:RoleInTime ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:withRole ;
+    sh:hasValue pro:contributor ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isHeldBy ;
+    sh:node schema:ResponsibleAgentShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path oco:hasNext ;
+    sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
