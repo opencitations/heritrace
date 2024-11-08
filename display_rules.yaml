@@ -23,7 +23,7 @@ queries:
       OPTIONAL { ?ra foaf:givenName ?givenName. }
       
       {
-        SELECT ?ra (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
           OPTIONAL {
             ?ra datacite:hasIdentifier ?identifier .
@@ -66,7 +66,7 @@ queries:
       OPTIONAL { ?ra foaf:givenName ?givenName. }
       
       {
-        SELECT ?ra (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
           OPTIONAL {
             ?ra datacite:hasIdentifier ?identifier .
@@ -109,7 +109,7 @@ queries:
       OPTIONAL { ?ra foaf:givenName ?givenName. }
       
       {
-        SELECT ?ra (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
           OPTIONAL {
             ?ra datacite:hasIdentifier ?identifier .
@@ -152,7 +152,7 @@ queries:
       OPTIONAL { ?ra foaf:givenName ?givenName. }
       
       {
-        SELECT ?ra (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
           OPTIONAL {
             ?ra datacite:hasIdentifier ?identifier .
@@ -195,7 +195,7 @@ queries:
       OPTIONAL { ?ra foaf:givenName ?givenName. }
       
       {
-        SELECT ?ra (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
           OPTIONAL {
             ?ra datacite:hasIdentifier ?identifier .
@@ -288,7 +288,7 @@ queries:
               dcterms:title ?journalName.
       
       {
-        SELECT ?journal (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
           OPTIONAL {
             ?journal datacite:hasIdentifier ?identifier .
@@ -321,7 +321,7 @@ queries:
           dcterms:title ?bookTitle.
 
       {
-        SELECT ?book (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+        SELECT ?book (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
           OPTIONAL {
             ?book datacite:hasIdentifier ?identifier .
@@ -1688,7 +1688,7 @@ classes:
       SELECT ?display
       WHERE {
         {
-          SELECT ?agentName (GROUP_CONCAT(DISTINCT ?idString; separator=" ") AS ?identifiers)
+          SELECT ?agentName (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
           WHERE {
             [[uri]] a foaf:Agent .
             

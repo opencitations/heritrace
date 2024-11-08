@@ -106,8 +106,5 @@ def format_orcid_attribution(url):
     html = f'<a href="{url}" target="_blank" class="orcid-attribution">'
     html += f'<img src="/static/images/orcid-logo.png" alt="ORCID iD" class="orcid-icon mx-1 mb-1" style="width: 16px; height: 16px;">'
     html += f'{name} [orcid:{orcid_id}]</a>'
-    
-    if researcher_data['biography']:
-        html += f'<div class="text-muted small mt-1">{researcher_data["biography"]}</div>'
-        
+            
     return html
