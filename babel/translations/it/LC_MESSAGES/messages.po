@@ -578,7 +578,7 @@ msgstr "Lingua"
 
 #: heritrace/templates/index.jinja:89
 msgid "An environment for data curation"
-msgstr "Una piattaforma per la curatela dei dati"
+msgstr "Una piattaforma per la cura dei dati"
 
 #: heritrace/templates/index.jinja:90 heritrace/templates/navigation.jinja:13
 msgid "Go to the catalogue"
