@@ -84,14 +84,12 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     position: relative;
 }
 
-.repeater-delete-btn {
+.repeater-delete-btn, .delete-button, .redirection-btn, .collapse-btn, .undo-delete-button {
+    font-size: 1rem;
     position: absolute;
     top: 0;
     right: 0;
     background-color: transparent;
-    border: 1px solid #dc3545;
-    color: #dc3545;
-    font-size: 1.2rem;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, border 0.2s;
     border-radius: 0.25rem;
@@ -163,10 +161,6 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
 
 .date-input {
     width: 100%;
-}
-
-.btn.repeater-delete-btn {
-    font-size: 1rem;
 }
 
 .entity-reference-display {

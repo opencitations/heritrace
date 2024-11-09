@@ -64,7 +64,7 @@
         {% elif details.intermediateRelation %}
             <div class="d-flex flex-column newEntityPropertiesContainer w-100">
                 <div class="d-flex flex-row justify-content-between nested-form-header mb-4">
-                    <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
+                    <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed collapse-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
                     </button>
                     {% if not details.min > 0 %}
@@ -84,7 +84,7 @@
         {% elif details.nestedShape %}
             <div class="d-flex flex-column newEntityPropertiesContainer w-100">
                 <div class="d-flex flex-row justify-content-between nested-form-header mb-4">
-                    <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
+                    <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed collapse-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
                     </button>
                     {% if not details.min > 0 %}
@@ -439,7 +439,7 @@
                     {% if externalEntity %}
                         {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}                        
                         <div class="mb-2 mb-sm-0">
-                            <a class="btn btn-sm btn-outline-primary" 
+                            <a class="btn btn-sm btn-outline-primary redirection-btn" 
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity(entity_classes))}}"
