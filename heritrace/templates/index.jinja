@@ -4,17 +4,13 @@
 
 <style>
 html, body {
-    background-color: #000;
+    background-color: black;
 }
 .navbar {
     margin-bottom: 0 !important;
 }
 .nbsp {
     display: none;
-}
-footer.bg-dark {
-    padding-top: 0 !important;
-    margin-top: 0 !important;
 }
 .container {
     max-width: none !important;
@@ -23,7 +19,7 @@ footer.bg-dark {
 }
 div.books {
     width: 100vw;
-    height: 88vh;
+    height: 87vh;
     min-height: 350px;
     margin: 0;
     position: relative;
@@ -268,6 +264,10 @@ div.books:after {
 
 <div class="books">
     <div class="overlay-content">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" 
+             alt="HERITRACE Logo" 
+             class="mb-4" 
+             style="height: 80px;">
         <h1 class="display-4">{{ config.APP_TITLE }}</h1>
         <p class="lead">{{_('An environment for data curation')}}</p>
         <a class="btn btn-primary btn-lg" href="{{url_for('catalogue')}}" role="button">{{_('Go to the catalogue')}}</a>

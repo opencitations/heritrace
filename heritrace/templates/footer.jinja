@@ -1,16 +1,44 @@
+<style>
+.link-hover:hover .fw-bold {
+    color: grey;
+    text-decoration-thickness: 2px;
+    transition: all 0.2s ease-in-out;
+}
+
+.link-with-icon {
+    position: relative;
+    padding-right: 1.2em;
+}
+
+.link-with-icon::after {
+    content: '↗';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 0.3em;
+    font-size: 1rem;
+}
+
+</style>
+
+
 <!-- footer.jinja -->
-<footer class="bg-dark mt-5 py-3 text-white">
+<footer class="bg-dark py-3 text-white">
     <div class="container-fluid">
-        <div class="d-flex align-items-center row">
-            <div class="col-md-4 mb-sm-4 mb-md-0">
-                2024 HERITRACE
-            </div>
-            <div class="col-md-4 text-md-center mb-sm-4 mb-md-0">
-                <a href="https://github.com/opencitations/heritrace" target="_blank" alt="Visit our GitHub repository">
-                    <i class="bi bi-github" style="font-size: 1.5rem;"></i>
+        <div class="d-flex flex-row align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <a href="https://github.com/opencitations/heritrace" 
+                    target="_blank" 
+                    class="text-white link-hover link-with-icon "
+                    title="Visit our GitHub repository">
+                        <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                            alt="HERITRACE Logo" 
+                            height="30" 
+                            class="me-2">
+                        {{_('Made with')}} <span class="fw-bold">HERITRACE</span>
                 </a>
             </div>
-            <div class="col-md-4 text-md-end mb-sm-4 mb-md-0">
+            <div>
                 <a class="dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     {{ _('Language') }}
                 </a>
