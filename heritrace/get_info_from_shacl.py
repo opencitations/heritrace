@@ -82,8 +82,6 @@ def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict] ):
     # Step 4: Ordina i campi del form secondo le regole di visualizzazione
     ordered_form_fields = order_form_fields(form_fields, display_rules)
 
-    # Step 5: Arricchisci la struttura 'or' con le informazioni complete
-    ordered_form_fields = enrich_or_shapes(ordered_form_fields)
     return ordered_form_fields
 
 def extract_shacl_form_fields(shacl, display_rules):
@@ -174,11 +172,25 @@ def process_query_results(shacl, results, display_rules, processed_shapes):
             if orNodes:
                 existing_field.setdefault("or", [])
                 for node in orNodes:
-                    if not any(s.get("shape") == node for s in existing_field["or"]):
-                        existing_field["or"].append({
-                            "shape": node,
-                            "uri": predicate
-                        })
+                    entity_type_or_node = get_shape_target_class(shacl, node)
+                    # Process orNode as a field_info
+                    or_field_info = {
+                        "entityType": entity_type_or_node,
+                        "uri": predicate,
+                        "subjectShape": subject_shape,
+                        "nodeShape": node,
+                        "min": minCount,
+                        "max": maxCount,
+                        "hasValue": hasValue,
+                        "objectClass": objectClass,
+                        "optionalValues": optionalValues,
+                        "conditions": [condition_entry] if condition_entry else [],
+                    }
+                    if node not in processed_shapes:
+                        or_field_info["nestedShape"] = process_nested_shapes(
+                            shacl, display_rules, node, processed_shapes=processed_shapes
+                        )
+                    existing_field["or"].append(or_field_info)
         else:
             field_info = {
                 "entityType": entity_type,
@@ -202,14 +214,43 @@ def process_query_results(shacl, results, display_rules, processed_shapes):
                 )
 
             if orNodes:
-                field_info["or"] = [{
-                    "shape": node,
-                    "uri": predicate
-                } for node in orNodes]
+                field_info["or"] = []
+                for node in orNodes:
+                    # Process orNode as a field_info
+                    entity_type_or_node = get_shape_target_class(shacl, node)
+                    or_field_info = {
+                        "entityType": entity_type_or_node,
+                        "uri": predicate,
+                        "subjectShape": subject_shape,
+                        "nodeShape": node,
+                        "min": minCount,
+                        "max": maxCount,
+                        "hasValue": hasValue,
+                        "objectClass": objectClass,
+                        "optionalValues": optionalValues,
+                        "conditions": [condition_entry] if condition_entry else [],
+                    }
+                    if node not in processed_shapes:
+                        or_field_info["nestedShape"] = process_nested_shapes(
+                            shacl, display_rules, node, processed_shapes=processed_shapes
+                        )
+                    field_info["or"].append(or_field_info)
             
             form_fields[entity_type][predicate].append(field_info)
 
     return form_fields
+
+def get_shape_target_class(shacl, shape_uri):
+    query = prepareQuery("""
+        SELECT ?targetClass
+        WHERE {
+            ?shape sh:targetClass ?targetClass .
+        }
+    """, initNs={"sh": "http://www.w3.org/ns/shacl#"})
+    results = execute_shacl_query(shacl, query, {'shape': URIRef(shape_uri)})
+    for row in results:
+        return str(row.targetClass)
+    return None
 
 def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_shapes=None):
     """

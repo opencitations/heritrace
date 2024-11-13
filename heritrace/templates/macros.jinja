@@ -39,9 +39,9 @@
                         data-predicate-uri="{{ details.uri }}">
                     <option value="">{{ _('Select an option') }}</option>
                     {% for shape_info in details.or %}
-                        <option value="{{ shape_info.shape }}" 
+                        <option value="{{ shape_info.nodeShape }}" 
                                 data-object-class="{{ shape_info.entityType }}"
-                                data-node-shape="{{ shape_info.shape }}">
+                                data-node-shape="{{ shape_info.nodeShape }}">
                             {{ shape_info.displayName or shape_info.entityType | human_readable_predicate(entity_types, False) }}
                         </option>
                     {% endfor %}
@@ -56,7 +56,7 @@
             {# Container forms - one for each option #}
             <div class="container-forms d-none w-100">
                 {% for shape_info in details.or %}
-                    <div class="container-form d-none" data-shape="{{ shape_info.shape }}">
+                    <div class="container-form d-none" data-shape="{{ shape_info.nodeShape }}">
                         {{ render_form_field(shape_info.entityType, prop, shape_info, entity_types, form_fields, depth + 1, max_depth=max_depth, is_template=False) }}
                     </div>
                 {% endfor %}
