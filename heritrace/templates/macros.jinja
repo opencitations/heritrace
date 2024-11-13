@@ -42,7 +42,7 @@
                         <option value="{{ shape_info.nodeShape }}" 
                                 data-object-class="{{ shape_info.entityType }}"
                                 data-node-shape="{{ shape_info.nodeShape }}">
-                            {{ shape_info.displayName or shape_info.entityType | human_readable_predicate(entity_types, False) }}
+                            {{ shape_info.entityType | human_readable_predicate(entity_types, False) or shape_info.displayName}}
                         </option>
                     {% endfor %}
                 </select>
@@ -98,7 +98,7 @@
                         {% if nested_details.get('_reference') %}
                             <!-- Gestione del caso di riferimento, se necessario -->
                         {% else %}
-                            {% set nested_display_name = nested_details.displayName or nested_details.objectClass | human_readable_predicate(entity_types, False) %}
+                            {% set nested_display_name = nested_details.displayName or nested_details.entityType | human_readable_predicate(entity_types, False) %}
                             {{ render_form_field(nested_details.entityType, nested_details.uri, nested_details, entity_types, form_fields, depth + 1, max_depth, nested_display_name, is_template=is_template) }}
                         {% endif %}
                     {% endfor %}

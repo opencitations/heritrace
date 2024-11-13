@@ -97,7 +97,7 @@ def extract_shacl_form_fields(shacl, display_rules):
 
     processed_shapes = set()
     results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY)
-    form_fields = process_query_results(shacl, results, display_rules, processed_shapes)
+    form_fields = process_query_results(shacl, results, display_rules, processed_shapes, depth=0)
     return form_fields
 
 def execute_shacl_query(shacl: Graph, query, init_bindings=None):
@@ -117,7 +117,7 @@ def execute_shacl_query(shacl: Graph, query, init_bindings=None):
     else:
         return shacl.query(query)
 
-def process_query_results(shacl, results, display_rules, processed_shapes):
+def process_query_results(shacl, results, display_rules, processed_shapes, depth=0):
     form_fields = defaultdict(dict)
     for row in results:
         subject_shape = str(row.shape)  
@@ -188,7 +188,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes):
                     }
                     if node not in processed_shapes:
                         or_field_info["nestedShape"] = process_nested_shapes(
-                            shacl, display_rules, node, processed_shapes=processed_shapes
+                            shacl, display_rules, node, depth=depth+1, processed_shapes=processed_shapes
                         )
                     existing_field["or"].append(or_field_info)
         else:
@@ -210,7 +210,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes):
 
             if nodeShape and nodeShape not in processed_shapes:
                 field_info["nestedShape"] = process_nested_shapes(
-                    shacl, display_rules, nodeShape, depth=0, processed_shapes=processed_shapes
+                    shacl, display_rules, nodeShape, depth=depth+1, processed_shapes=processed_shapes
                 )
 
             if orNodes:
@@ -232,7 +232,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes):
                     }
                     if node not in processed_shapes:
                         or_field_info["nestedShape"] = process_nested_shapes(
-                            shacl, display_rules, node, processed_shapes=processed_shapes
+                            shacl, display_rules, node, depth=depth+1, processed_shapes=processed_shapes
                         )
                     field_info["or"].append(or_field_info)
             
@@ -275,7 +275,7 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
     nested_results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY, init_bindings)
     nested_fields = []
 
-    temp_form_fields = process_query_results(shacl, nested_results, display_rules, processed_shapes)
+    temp_form_fields = process_query_results(shacl, nested_results, display_rules, processed_shapes, depth)
 
     # Applica le regole di visualizzazione ai campi annidati
     if display_rules:
@@ -351,6 +351,9 @@ def apply_display_rules(shacl, form_fields, display_rules):
                         # Chiamata ricorsiva per le nestedShape
                         if 'nestedShape' in field_info:
                             apply_display_rules_to_nested_shapes(field_info['nestedShape'], prop, display_rules)
+                        if 'or' in field_info:
+                            for or_field in field_info['or']:
+                                apply_display_rules_to_nested_shapes([or_field], field_info, display_rules)
                         if 'intermediateRelation' in prop:
                             handle_intermediate_relation(shacl, field_info, prop)
                     if 'displayRules' in prop:
@@ -376,6 +379,9 @@ def apply_display_rules_to_nested_shapes(nested_fields, parent_prop, display_rul
         # Chiamata ricorsiva se ci sono altre nestedShape
         if 'nestedShape' in field_info:
             apply_display_rules_to_nested_shapes(field_info['nestedShape'], field_info, display_rules)
+        if 'or' in field_info:
+            for or_field in field_info['or']:
+                apply_display_rules_to_nested_shapes([or_field], field_info, display_rules)
 
 def determine_input_type(datatype):
     """

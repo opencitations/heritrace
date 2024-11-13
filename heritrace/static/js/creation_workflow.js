@@ -464,7 +464,6 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
             let inputDepth = parseInt($(this).data('depth'));
             if (propertyUri && inputDepth === depth) {
                 let value = $(this).val();
-                console.log(propertyUri, value)
                 if (value !== "") {
                     if (!data[propertyUri]) {
                         data[propertyUri] = [];
@@ -646,9 +645,7 @@ $(document).ready(function() {
         const $selectedOption = $(this).find('option:selected');
         const selectedShape = $selectedOption.val();
         const $containerForms = $container.find('.container-forms');
-        
         $container.find('.container-form').addClass('d-none');
-        
         if (selectedShape) {
             $containerForms.removeClass('d-none');
             const $selectedForm = $container.find(`.container-form[data-shape="${selectedShape}"]`);
@@ -670,7 +667,6 @@ $(document).ready(function() {
                     .not('.d-none');
 
                 if (existingItems.length === 0) {
-                    console.log(addButton)
                     addButton.click();
                 }
             }

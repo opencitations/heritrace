@@ -482,10 +482,23 @@ common_properties:
 
   issue_volume_journal_container_property: &issue_volume_journal_container_property
     property: "http://purl.org/vocab/frbr/core#partOf"
+    displayName: "Container"
     displayRules:
       - shape: "http://schema.org/IssueShape"
         displayName: "Issue"
         fetchValueFromQuery: *issue_query
+      - shape: "http://schema.org/VolumeShape"
+        displayName: "Volume"
+        fetchValueFromQuery: *volume_query
+      - shape: "http://schema.org/JournalShape"
+        displayName: "Journal"
+        fetchValueFromQuery: *journal_query
+
+  volume_journal_container_property: &volume_journal_container_property
+    property: "http://purl.org/vocab/frbr/core#partOf"
+    displayName: "Container"
+    shouldBeDisplayed: true
+    displayRules:
       - shape: "http://schema.org/VolumeShape"
         displayName: "Volume"
         fetchValueFromQuery: *volume_query
@@ -1003,13 +1016,12 @@ classes:
       - *type_property
       - *has_sequence_identifier_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
+        displayName: "Volume"
+        shouldBeDisplayed: true
         displayRules:
           - shape: "http://schema.org/VolumeShape"
             displayName: "Volume"
             fetchValueFromQuery: *volume_query
-          - shape: "http://schema.org/JournalShape"
-            displayName: "Journal"
-            fetchValueFromQuery: *journal_query
 
   - class: "http://purl.org/spar/fabio/ProceedingsPaper"
     priority: 1
@@ -1372,7 +1384,7 @@ classes:
   - class: "http://purl.org/spar/fabio/ReferenceBook"
     priority: 1
     shouldBeDisplayed: true
-    displayName: "Encyclopedia/Dictionary"
+    displayName: "Dictionary"
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1451,7 +1463,7 @@ classes:
           IF(BOUND(?title), CONCAT(
             IF(BOUND(?editorList) || BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
             ?title,
-            " [Encyclopedia/Dictionary]"
+            " [Dictionary]"
           ), ""),
           IF(BOUND(?publisher), CONCAT(
             IF(BOUND(?editorList) || BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
