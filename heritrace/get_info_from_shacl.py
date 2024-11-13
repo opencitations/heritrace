@@ -4,6 +4,49 @@ from typing import List
 from rdflib import Graph, URIRef
 from rdflib.plugins.sparql import prepareQuery
 
+COMMON_SPARQL_QUERY = prepareQuery("""
+    SELECT ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
+           ?conditionPath ?conditionValue ?pattern ?message
+           (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
+           (GROUP_CONCAT(?orNode; separator=",") AS ?orNodes)
+    WHERE {
+        ?shape sh:targetClass ?type ;
+               sh:property ?property .
+        ?property sh:path ?predicate .
+        OPTIONAL {
+            ?property sh:node ?nodeShape .
+            OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
+        }
+        OPTIONAL {
+            ?property sh:or ?orList .
+            {
+                ?orList rdf:rest*/rdf:first ?orConstraint .
+                ?orConstraint sh:datatype ?datatype .
+            } UNION {
+                ?orList rdf:rest*/rdf:first ?orNodeShape .
+                ?orNodeShape sh:node ?orNode .
+            }
+        }
+        OPTIONAL { ?property sh:datatype ?datatype . }
+        OPTIONAL { ?property sh:maxCount ?maxCount . }
+        OPTIONAL { ?property sh:minCount ?minCount . }
+        OPTIONAL { ?property sh:hasValue ?hasValue . }
+        OPTIONAL {
+            ?property sh:in ?list .
+            ?list rdf:rest*/rdf:first ?optionalValue .
+        }
+        OPTIONAL {
+            ?property sh:condition ?conditionNode .
+            ?conditionNode sh:path ?conditionPath ;
+                           sh:hasValue ?conditionValue .
+        }
+        OPTIONAL { ?property sh:pattern ?pattern . }
+        OPTIONAL { ?property sh:message ?message . }
+        FILTER (isURI(?predicate))
+    }
+    GROUP BY ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue 
+            ?objectClass ?conditionPath ?conditionValue ?pattern ?message
+""", initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
 def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict] ):
     """
@@ -53,55 +96,31 @@ def extract_shacl_form_fields(shacl, display_rules):
     """
     if not shacl:
         return dict()
-    
-    query = prepareQuery("""
-        SELECT ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
-               ?conditionPath ?conditionValue ?pattern ?message
-               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
-               (GROUP_CONCAT(?orNode; separator=",") AS ?orNodes)
-        WHERE {
-            ?shape sh:targetClass ?type ;
-                   sh:property ?property .
-            ?property sh:path ?predicate .
-            OPTIONAL {
-                ?property sh:node ?nodeShape .
-                OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
-            }
-            OPTIONAL {
-                ?property sh:or ?orList .
-                {
-                    ?orList rdf:rest*/rdf:first ?orConstraint .
-                    ?orConstraint sh:datatype ?datatype .
-                } UNION {
-                    ?orList rdf:rest*/rdf:first ?orNodeShape .
-                    ?orNodeShape sh:node ?orNode .
-                }
-            }
-            OPTIONAL { ?property sh:datatype ?datatype . }
-            OPTIONAL { ?property sh:maxCount ?maxCount . }
-            OPTIONAL { ?property sh:minCount ?minCount . }
-            OPTIONAL { ?property sh:hasValue ?hasValue . }
-            OPTIONAL {
-                ?property sh:in ?list .
-                ?list rdf:rest*/rdf:first ?optionalValue .
-            }
-            OPTIONAL {
-                ?property sh:condition ?conditionNode .
-                ?conditionNode sh:path ?conditionPath ;
-                               sh:hasValue ?conditionValue .
-            }
-            OPTIONAL { ?property sh:pattern ?pattern . }
-            OPTIONAL { ?property sh:message ?message . }
-            FILTER (isURI(?predicate))
-        }
-        GROUP BY ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue 
-                ?objectClass ?conditionPath ?conditionValue ?pattern ?message
-    """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
 
-    results = shacl.query(query)
+    processed_shapes = set()
+    results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY)
+    form_fields = process_query_results(shacl, results, display_rules, processed_shapes)
+    return form_fields
+
+def execute_shacl_query(shacl: Graph, query, init_bindings=None):
+    """
+    Esegue una query SPARQL sul grafo SHACL con eventuali binding iniziali.
+
+    Argomenti:
+        shacl (Graph): Il grafo SHACL su cui eseguire la query.
+        query (PreparedQuery): La query SPARQL preparata.
+        init_bindings (dict): I binding iniziali per la query.
+
+    Restituisce:
+        Result: I risultati della query.
+    """
+    if init_bindings:
+        return shacl.query(query, initBindings=init_bindings)
+    else:
+        return shacl.query(query)
+
+def process_query_results(shacl, results, display_rules, processed_shapes):
     form_fields = defaultdict(dict)
-    processed_shapes = set()  # Insieme per tracciare le shape già processate
-
     for row in results:
         subject_shape = str(row.shape)  
         entity_type = str(row.type)
@@ -153,7 +172,6 @@ def extract_shacl_form_fields(shacl, display_rules):
             if condition_entry:
                 existing_field.setdefault('conditions', []).append(condition_entry)
             if orNodes:
-                # Salviamo solo l'informazione essenziale della shape per gli orNodes
                 existing_field.setdefault("or", [])
                 for node in orNodes:
                     if not any(s.get("shape") == node for s in existing_field["or"]):
@@ -178,19 +196,12 @@ def extract_shacl_form_fields(shacl, display_rules):
                 "inputType": determine_input_type(datatype)
             }
 
-            # Processa la nodeShape se presente
-            if nodeShape:
+            if nodeShape and nodeShape not in processed_shapes:
                 field_info["nestedShape"] = process_nested_shapes(
-                    shacl,
-                    display_rules=display_rules,
-                    shape_uri=nodeShape,
-                    depth=0,
-                    processed_shapes=processed_shapes
+                    shacl, display_rules, nodeShape, depth=0, processed_shapes=processed_shapes
                 )
 
-            # Se abbiamo orNodes, processiamo ogni shape
             if orNodes:
-                # Aggiungiamo min e max per ogni shape nell'or
                 field_info["or"] = [{
                     "shape": node,
                     "uri": predicate
@@ -217,165 +228,23 @@ def process_nested_shapes(shacl, display_rules, shape_uri, depth=0, processed_sh
 
     if depth > 5 or shape_uri in processed_shapes:
         return [{"_reference": shape_uri}]
-    
+
     processed_shapes.add(shape_uri)
-
-    nested_query = prepareQuery("""
-        SELECT ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
-               ?conditionPath ?conditionValue ?pattern ?message
-               (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
-               (GROUP_CONCAT(?orNode; separator=",") AS ?orNodes)
-        WHERE {
-            ?shape sh:targetClass ?type ;
-                   sh:property ?property .
-            ?property sh:path ?predicate .
-            OPTIONAL {
-                ?property sh:node ?nodeShape .
-                OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
-            }
-            OPTIONAL {
-                ?property sh:or ?orList .
-                {
-                    ?orList rdf:rest*/rdf:first ?orConstraint .
-                    ?orConstraint sh:datatype ?datatype .
-                } UNION {
-                    ?orList rdf:rest*/rdf:first ?orNodeShape .
-                    ?orNodeShape sh:node ?orNode .
-                }
-            }
-            OPTIONAL { ?property sh:datatype ?datatype . }
-            OPTIONAL { ?property sh:maxCount ?maxCount . }
-            OPTIONAL { ?property sh:minCount ?minCount . }
-            OPTIONAL { ?property sh:hasValue ?hasValue . }
-            OPTIONAL {
-                ?property sh:in ?list .
-                ?list rdf:rest*/rdf:first ?optionalValue .
-            }
-            OPTIONAL {
-                ?property sh:condition ?conditionNode .
-                ?conditionNode sh:path ?conditionPath ;
-                               sh:hasValue ?conditionValue .
-            }
-            OPTIONAL { ?property sh:pattern ?pattern . }
-            OPTIONAL { ?property sh:message ?message . }
-            FILTER (isURI(?predicate))
-        }
-        GROUP BY ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
-                ?conditionPath ?conditionValue ?pattern ?message
-    """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
-
-    nested_results = shacl.query(nested_query, initBindings={'shape': URIRef(shape_uri)})
-    
+    init_bindings = {'shape': URIRef(shape_uri)}
+    nested_results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY, init_bindings)
     nested_fields = []
-    entity_type = None
-    temp_form_fields = defaultdict(dict)
 
-    for row in nested_results:
-        subject_shape = str(row.shape)
-        predicate = str(row.predicate)
-        nodeShape = str(row.nodeShape) if row.nodeShape else None
-        hasValue = str(row.hasValue) if row.hasValue else None
-        objectClass = str(row.objectClass) if row.objectClass else None
-        minCount = 0 if row.minCount is None else int(row.minCount)
-        maxCount = None if row.maxCount is None else int(row.maxCount)
-        datatype = str(row.datatype) if row.datatype else None
-        optionalValues = [v for v in (row.optionalValues or "").split(",") if v]
-        orNodes = [n for n in (row.orNodes or "").split(",") if n]
+    temp_form_fields = process_query_results(shacl, nested_results, display_rules, processed_shapes)
 
-        condition_entry = {}
-        if row.conditionPath and row.conditionValue:
-            condition_entry['condition'] = {
-                "path": str(row.conditionPath),
-                "value": str(row.conditionValue)
-            }
-        if row.pattern:
-            condition_entry['pattern'] = str(row.pattern)
-        if row.message:
-            condition_entry['message'] = str(row.message)
-
-        if row.type:
-            entity_type = str(row.type)
-
-        nodeShapes = []
-        if nodeShape:
-            nodeShapes.append(nodeShape)
-        nodeShapes.extend(orNodes)
-
-        if entity_type:
-            if predicate not in temp_form_fields[entity_type]:
-                temp_form_fields[entity_type][predicate] = []
-
-            # Cerca un campo esistente con gli stessi attributi (eccetto datatype)
-            existing_field = None
-            for field in temp_form_fields[entity_type][predicate]:
-                if (field.get('nodeShape') == nodeShape and
-                    field.get('nodeShapes') == nodeShapes and
-                    field.get('subjectShape') == subject_shape and
-                    field.get('hasValue') == hasValue and
-                    field.get('objectClass') == objectClass and
-                    field.get('min') == minCount and
-                    field.get('max') == maxCount and
-                    field.get('optionalValues') == optionalValues):
-                    existing_field = field
-                    break
-
-            if existing_field:
-                # Aggiorna la lista dei datatypes
-                if datatype and str(datatype) not in existing_field.get("datatypes", []):
-                    existing_field.setdefault("datatypes", []).append(str(datatype))
-                if condition_entry:
-                    existing_field.setdefault('conditions', []).append(condition_entry)
-                if orNodes:
-                    # Aggiungiamo min e max per ogni shape nell'or
-                    existing_field.setdefault("or", [])
-                    for node in orNodes:
-                        if not any(s.get("shape") == node and s.get("uri") == predicate for s in existing_field["or"]):
-                            existing_field["or"].append({
-                                "shape": node,
-                                "uri": predicate
-                            })
-            else:
-                field_info = {
-                    "entityType": entity_type,
-                    "uri": predicate,
-                    "nodeShape": nodeShape,
-                    "nodeShapes": nodeShapes,
-                    "subjectShape": subject_shape,
-                    "datatypes": [datatype] if datatype else [],
-                    "min": minCount,
-                    "max": maxCount,
-                    "hasValue": hasValue,
-                    "objectClass": objectClass,
-                    "optionalValues": optionalValues,
-                    "conditions": [condition_entry] if condition_entry else [],
-                    "inputType": determine_input_type(datatype)
-                }
-
-                if nodeShape:
-                    # Processa ricorsivamente le shape annidate
-                    field_info["nestedShape"] = process_nested_shapes(
-                        shacl, display_rules, nodeShape, depth + 1, processed_shapes
-                    )
-
-                if orNodes:
-                    field_info["or"] = [{
-                        "shape": node,
-                        "uri": predicate
-                    } for node in orNodes]
-
-                temp_form_fields[entity_type][predicate].append(field_info)
-
-    # Applichiamo le regole di visualizzazione al dizionario temporaneo
-    if display_rules and entity_type:
+    # Applica le regole di visualizzazione ai campi annidati
+    if display_rules:
         temp_form_fields = apply_display_rules(shacl, temp_form_fields, display_rules)
-
-        # Applichiamo l'ordinamento ai campi
         temp_form_fields = order_form_fields(temp_form_fields, display_rules)
 
-        # Estraiamo i campi processati per il tipo di entità
-        if entity_type in temp_form_fields:
-            for predicate in temp_form_fields[entity_type]:
-                nested_fields.extend(temp_form_fields[entity_type][predicate])
+    # Estrai i campi per il tipo di entità
+    for entity_type in temp_form_fields:
+        for predicate in temp_form_fields[entity_type]:
+            nested_fields.extend(temp_form_fields[entity_type][predicate])
 
     processed_shapes.remove(shape_uri)
     return nested_fields
