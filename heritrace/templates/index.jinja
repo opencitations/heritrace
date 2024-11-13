@@ -3,11 +3,23 @@
 {% block content %}
 
 <style>
-html, body {
-    background-color: black;
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
 }
 .navbar {
     margin-bottom: 0 !important;
+    flex-shrink: 0; /* Impedisce alla navbar di rimpicciolirsi */
+}
+footer {
+    flex-shrink: 0; /* Impedisce al footer di rimpicciolirsi */
+}
+main {
+    display: flex;
 }
 .nbsp {
     display: none;
@@ -19,8 +31,7 @@ html, body {
 }
 div.books {
     width: 100vw;
-    height: 87vh;
-    min-height: 350px;
+    height: 100%;
     margin: 0;
     position: relative;
     background-color: #111;
