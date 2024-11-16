@@ -979,6 +979,8 @@ def about(subject):
     
     entity_type = str(subject_classes[0]) if subject_classes else None
 
+    inverse_references = get_inverse_references(decoded_subject)
+
     return render_template(
         'about.jinja', 
         subject=decoded_subject, 
@@ -999,7 +1001,51 @@ def about(subject):
         entity_type=entity_type, 
         predicate_details_map=predicate_details_map,
         dataset_db_triplestore=app.config['DATASET_DB_TRIPLESTORE'],
-        dataset_db_text_index_enabled=app.config['DATASET_DB_TEXT_INDEX_ENABLED'])
+        dataset_db_text_index_enabled=app.config['DATASET_DB_TEXT_INDEX_ENABLED'],
+        inverse_references=inverse_references)
+
+def get_inverse_references(subject_uri):
+    if is_virtuoso():
+        query = f"""
+        SELECT DISTINCT ?s ?p ?g WHERE {{
+            GRAPH ?g {{
+                ?s ?p <{subject_uri}> .
+            }}
+            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
+        }}
+        """
+    else:
+        query = f"""
+        SELECT DISTINCT ?s ?p WHERE {{
+            ?s ?p <{subject_uri}> .
+            FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
+        }}
+        """
+    
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+    references = []
+    for result in results["results"]["bindings"]:
+        subject = result["s"]["value"]
+        predicate = result["p"]["value"]
+        # Get the type of the referring entity
+        type_query = f"""
+        SELECT ?type WHERE {{
+            <{subject}> a ?type .
+        }}
+        """
+        sparql.setQuery(type_query)
+        type_results = sparql.query().convert()
+        types = [t["type"]["value"] for t in type_results["results"]["bindings"]]
+        references.append({
+            "subject": subject,
+            "predicate": predicate,
+            "types": types
+        })
+    
+    return references
 
 # Funzione per la validazione dinamica dei valori con suggerimento di datatypes
 @app.route('/validate-literal', methods=['POST'])
