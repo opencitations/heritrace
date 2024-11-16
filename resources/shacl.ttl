@@ -545,6 +545,11 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
@@ -608,6 +613,11 @@ schema:BookShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -683,6 +693,11 @@ schema:BookChapterShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -763,6 +778,11 @@ schema:ProceedingsPaperShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -947,6 +967,11 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
@@ -1011,6 +1036,11 @@ schema:ReviewShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -1107,6 +1137,11 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
@@ -1172,6 +1207,11 @@ schema:ThesisShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [

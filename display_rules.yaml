@@ -440,15 +440,15 @@ common_properties:
       - shape: "http://schema.org/EditorShape"
         displayName: "Editor"
         fetchValueFromQuery: *editor_query
+      - shape: "http://schema.org/CollaboratorShape"
+        displayName: "Collaborator"
+        fetchValueFromQuery: *collaborator_query
       - shape: "http://schema.org/TranslatorShape"
         displayName: "Translator"
         fetchValueFromQuery: *translator_query
       - shape: "http://schema.org/PublisherShape"
         displayName: "Publisher"
         fetchValueFromQuery: *publisher_query
-      - shape: "http://schema.org/CollaboratorShape"
-        displayName: "Collaborator"
-        fetchValueFromQuery: *collaborator_query
 
   document_context_property_container: &document_context_property_container
     property: "http://purl.org/spar/pro/isDocumentContextFor"
