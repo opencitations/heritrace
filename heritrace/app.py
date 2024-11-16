@@ -1221,7 +1221,7 @@ def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=Non
     if shacl:
         data_graph = fetch_data_graph_for_subject(subject)
         _, can_be_deleted, _, _, _, _, _ = get_valid_predicates(list(data_graph.triples((URIRef(subject), None, None))))
-        if predicate not in can_be_deleted:
+        if predicate and predicate not in can_be_deleted:
             raise ValueError(gettext('This property cannot be deleted'))
     editor.delete(subject, predicate, object_value, graph_uri)
 

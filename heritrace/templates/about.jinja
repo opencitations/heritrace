@@ -55,6 +55,11 @@
             <i class="bi bi-pencil me-2"></i>{{ _('Edit') }}
         </a>
     {% endif %}
+    {% if grouped_triples %}
+        <button id="deleteEntityBtn" class="btn btn-outline-danger" title="{{ _('Delete') }}" type="button">
+            <i class="bi bi-trash me-2"></i>{{ _('Delete') }}
+        </button>
+    {% endif %}
     {% if history[subject] %}
         <!-- Bottone per la Storia dell'Entità -->
         <a id="historyBtn" href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary" title="{{ _('Time Machine') }}" type="button">
@@ -535,6 +540,61 @@
                     const dateInputGroup = listItem.find('.date-input-group');
                     toggleDateStrike(dateInputGroup, false);
                 });
+        });
+        $(document).on('click', '#deleteEntityBtn', function() {
+            Swal.fire({
+                title: "{{ _('Are you sure?') }}",
+                html: "<p>{{ _('This will delete this resource and all its data') }}</p><p>{{ _('You can still restore it later using the Time Machine') }}</p>",                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: "{{ _('Yes, delete it!') }}",
+                cancelButtonText: "{{ _('Cancel') }}"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/apply_changes',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify([{
+                            action: "delete",
+                            subject: '{{ subject }}',
+                            data: null
+                        }]),
+                        success: function(response) {
+                            if (response.status === "success") {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: "{{ _('Deleted!') }}",
+                                    text: response.message,
+                                    confirmButtonColor: '#3085d6'
+                                }).then(() => {
+                                    window.location.href = '{{ url_for('catalogue') }}';
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: "{{ _('Error') }}",
+                                    text: response.message,
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        },
+                        error: function(jqXHR) {
+                            let response = $.parseJSON(jqXHR.responseText);
+                            let errorMessage = response && response.message ? 
+                                response.message : 
+                                "{{ _('An unexpected error occurred!') }}";
+                            Swal.fire({
+                                icon: 'error',
+                                title: "{{ _('Error') }}",
+                                text: errorMessage,
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    });
+                }
+            });
         });
         $('#saveChangesBtn').click(function(){
             let errors = [];

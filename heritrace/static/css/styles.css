@@ -175,7 +175,8 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
 .btn-flex #editEntityBtn, 
 .btn-flex #historyBtn,
 .btn-flex #saveChangesBtn,
-.btn-flex #cancelChangesBtn {
+.btn-flex #cancelChangesBtn,
+.btn-flex #deleteEntityBtn {
     justify-content: center;
     flex: 1 1 0;
 }
