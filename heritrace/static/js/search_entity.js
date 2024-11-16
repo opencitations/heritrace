@@ -407,6 +407,7 @@ function findObjectClass(element) {
         if (!repeaterList.length) break;
         
         const objectClass = repeaterList.data('class');
+
         if (objectClass && objectClass != 'None') {
             // Check if we're inside an intermediate relation
             const intermediateItem = current.closest('[data-intermediate-relation]');
@@ -428,7 +429,8 @@ function findObjectClass(element) {
 // Function to enhance existing input fields with search functionality
 function enhanceInputWithSearch(input) {
     const container = input.closest('.newEntityPropertyContainer');
-
+    const depth = parseInt(input.data('depth')) || 0;
+    if (!depth > 0) return ;
     if (!container.length) return;
 
     const objectClass = findObjectClass(container);
@@ -455,8 +457,6 @@ function enhanceInputWithSearch(input) {
     
     // Handle input with debounce
     let searchTimeout;
-
-    let depth = parseInt(input.data('depth')) || 0;
 
     input.on('input', function() {
         const term = $(this).val().trim();

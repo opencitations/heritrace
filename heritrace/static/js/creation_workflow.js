@@ -289,7 +289,7 @@ function initializeNewItem($newItem, isInitialStructure = false) {
 
     setRequiredForVisibleFields($newItem, isInitialStructure);
 
-    $newItem.find('input').each(function() {
+    $newItem.find('input, textarea').each(function() {
         enhanceInputWithSearch($(this));
     });
 }
