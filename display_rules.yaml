@@ -1016,7 +1016,6 @@ classes:
       - *type_property
       - *has_sequence_identifier_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
-        displayName: "Volume"
         shouldBeDisplayed: true
         displayRules:
           - shape: "http://schema.org/VolumeShape"

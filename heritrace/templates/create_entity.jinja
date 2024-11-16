@@ -410,12 +410,12 @@
                     entity_type: $('#entity_type').val(),
                     properties: {}
                 };
-                collectFormData($('#entityForm'), structuredData.properties, '{{ shacl }}');
+                collectFormData($('#entityForm'), structuredData.properties, '{{ shacl }}', 0);
             } else {
                 structuredData = {
                     properties: {}
                 };
-                collectFormData(null, structuredData.properties, '{{ shacl }}');
+                collectFormData(null, structuredData.properties, '{{ shacl }}', 0);
             }
 
             showLoadingIndicator();

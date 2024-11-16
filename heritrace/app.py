@@ -741,11 +741,10 @@ def validate_entity_data(structured_data, form_fields):
     """
     errors = []
     entity_type = structured_data.get('entity_type')
-    
     if not entity_type:
         errors.append(gettext('Entity type is required'))
     elif entity_type not in form_fields:
-        errors.append(gettext('Invalid entity type selected'))
+        errors.append(gettext('Invalid entity type selected: %(entity_type)s', entity_type=entity_type))
 
     if errors:
         return errors

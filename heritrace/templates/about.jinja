@@ -288,7 +288,7 @@
                 properties: {}
             };
 
-            collectFormData($('.triples'), structuredData.properties, shacl);
+            collectFormData($('.triples'), structuredData.properties, shacl, 0);
 
             Object.keys(structuredData.properties).forEach(function (predicate) {
                 structuredData.properties[predicate].forEach(function (property) {

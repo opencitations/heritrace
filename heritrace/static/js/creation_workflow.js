@@ -295,23 +295,26 @@ function initializeNewItem($newItem, isInitialStructure = false) {
 }
 
 // Funzione ricorsiva per raccogliere i dati dai campi del form
-function collectFormData(container, data, shacl = 'False', depth = 0) {
+function collectFormData(container, data, shacl, depth) {
     if (shacl === 'True' || shacl === true) {
-        container.find('[data-repeater-list]').each(function() {
+        container.find('[data-repeater-list]:visible').each(function() {
             let repeaterList = $(this);
+
+            if (repeaterList.data('skip-collect')) {
+                return;
+            }
+
             let predicateUri = repeaterList.find('[data-repeater-item]:first').data('predicate-uri');
             let orderedBy = repeaterList.data('ordered-by');
-
-            repeaterList.find('[data-repeater-item]:visible').each(function(index) {
+            repeaterList.children('[data-repeater-item]:visible').each(function(index) {
                 let repeaterItem = $(this);
-                let objectClass = repeaterItem.find('[data-object-class]:visible').first().data('object-class');
                 let itemDepth = parseInt(repeaterItem.data('depth'));
+                let objectClass = repeaterItem.find('[data-class]:visible').first().data('class');
                 let tempId = repeaterItem.data('temp-id');
-
                 // Check if this item contains a reference to an existing entity
                 let entityReference = repeaterItem.find('input[data-entity-reference="true"]');
                 if (entityReference.length > 0) {
-                    // Se siamo in una relazione intermedia
+                    // Handle intermediate relations
                     if (repeaterItem.data('intermediate-relation')) {
                         let intermediateClass = repeaterItem.data('intermediate-relation');
                         let connectingProperty = repeaterItem.data('connecting-property');
@@ -358,11 +361,9 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                     }
                     return;
                 }
-
                 if (predicateUri && objectClass && itemDepth === depth) {
                     let itemData = {};
                     let hasContent = false;
-
                     if (repeaterItem.data('intermediate-relation')) {
                         let intermediateClass = repeaterItem.data('intermediate-relation');
                         let connectingProperty = repeaterItem.data('connecting-property');
@@ -375,16 +376,13 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                         if (intermediateShape) {
                             intermediateEntity['shape'] = intermediateShape;
                         }
-
                         let nestedProperties = {};
-                        collectFormData(repeaterItem, nestedProperties, shacl, depth + 1);
-
+                        collectFormData(repeaterItem, nestedProperties, shacl, itemDepth + 1);
                         if (Object.keys(nestedProperties).length > 0) {
                             intermediateEntity.properties[connectingProperty] = {
                                 "entity_type": objectClass,
                                 "properties": nestedProperties
                             };
-
                             let nestedShape = repeaterItem.find('[data-object-class]:visible').first().data('shape');
                             if (nestedShape) {
                                 intermediateEntity.properties[connectingProperty]['shape'] = nestedShape;
@@ -416,11 +414,12 @@ function collectFormData(container, data, shacl = 'False', depth = 0) {
                         };
 
                         let nestedShape = repeaterItem.data('shape');
+
                         if (nestedShape) {
                             nestedEntity['shape'] = nestedShape;
                         }
 
-                        collectFormData(repeaterItem, nestedEntity.properties, shacl, depth + 1);
+                        collectFormData(repeaterItem, nestedEntity.properties, shacl, itemDepth + 1);
 
                         if (orderedBy) {
                             nestedEntity['orderedBy'] = orderedBy;

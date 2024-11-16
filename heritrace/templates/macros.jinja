@@ -57,7 +57,7 @@
             <div class="container-forms d-none w-100">
                 {% for shape_info in details.or %}
                     <div class="container-form d-none" data-shape="{{ shape_info.nodeShape }}">
-                        {{ render_form_field(shape_info.entityType, prop, shape_info, entity_types, form_fields, depth + 1, max_depth=max_depth, is_template=False) }}
+                        {{ render_form_field(shape_info.entityType, prop, shape_info, entity_types, form_fields, depth, max_depth=max_depth, is_template=is_template) }}
                     </div>
                 {% endfor %}
             </div>
@@ -277,8 +277,8 @@
             {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}
             data-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
             data-container-display-name="{{ details.displayName }}"
-            data-display-name="{{ entity_type | human_readable_predicate(entity_types, False) }}">
-
+            data-display-name="{{ entity_type | human_readable_predicate(entity_types, False) }}"
+            {% if details.or %}data-skip-collect="true"{% endif %}>
             <!-- Template nascosto per elementi opzionali -->
             {{ render_repeater_item(entity_type, prop, details, entity_types, form_fields, depth, unique_id_base, label, is_template=True, max_depth=max_depth) }}
 

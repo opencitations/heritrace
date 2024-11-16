@@ -373,12 +373,14 @@ function handleEntitySelection(container, entity, depth) {
 
     // Save the original content in the container's data
     propertiesContainer.data('originalContent', originalContent);
-
+    const objectClass = findObjectClass(container);
+    propertiesContainer.attr('data-class', objectClass);
     // Create the hidden input to store the selected entity's URI
     const hiddenInput = $('<input>')
         .attr('type', 'hidden')
         .val(entity.entity.value)
-        .attr('data-entity-reference', 'true');
+        .attr('data-entity-reference', 'true')
+        .attr('data-class', objectClass);
 
     // Create the display for the selected entity
     createEntityDisplay(entity, propertiesContainer, function(display) {
