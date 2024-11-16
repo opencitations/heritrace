@@ -95,6 +95,7 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     border-radius: 0.25rem;
     border-top-left-radius: 0.25rem !important;
     border-bottom-left-radius: 0.25rem !important;
+    margin: .25rem .25rem 0 0;
 }
 
 .repeater-delete-btn:hover {

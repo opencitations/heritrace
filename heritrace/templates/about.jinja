@@ -17,8 +17,19 @@
     background-color: rgba(0,0,0,0.02);
 }
 
-.inverse-references .badge {
-    font-size: 0.75rem;
+.inverse-references .text-break {
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+}
+
+/* Ensure the arrow button maintains its shape */
+.inverse-references .redirection-btn {
+    flex-shrink: 0;
+}
+
+/* Adjust spacing for wrapped content */
+.inverse-references .list-group-item .d-flex {
+    row-gap: 0.5rem;
 }
 </style>
 
@@ -145,22 +156,23 @@
         <div class="list-group">
         {% for ref in inverse_references %}
             <div class="list-group-item">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <a href="{{ url_for('about', subject=ref.subject) }}" class="text-primary">
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
+                    <div class="d-flex flex-wrap flex-grow-1 align-items-baseline gap-2 me-2">
+                        <a href="{{ url_for('about', subject=ref.subject) }}" class="text-primary text-break">
                             {{ ref.subject | human_readable_entity(ref.types) }}
                         </a>
-                        <span class="text-muted mx-2">→</span>
-                        <span class="text-muted">{{ ref.predicate | human_readable_predicate(ref.types) }}</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">→</span>
+                            <span class="text-muted text-break">{{ ref.predicate | human_readable_predicate(ref.types) }}</span>
+                        </div>
                     </div>
                     <a href="{{ url_for('about', subject=ref.subject) }}" 
-                       class="btn btn-sm btn-outline-primary redirection-btn m-2" 
+                       class="btn btn-sm btn-outline-primary redirection-btn" 
                        title="{{ _('View entity') }}">
                         <i class="bi bi-arrow-right-square"></i>
                     </a>
                 </div>
-                <div class="text-muted small mt-1">
-                    <i class="bi bi-tag me-1"></i>
+                <div class="text-muted small mt-2">
                     {% for type in ref.types %}
                         <span class="badge bg-secondary me-1">{{ type | human_readable_predicate(ref.types) }}</span>
                     {% endfor %}
