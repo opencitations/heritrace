@@ -26,6 +26,7 @@ class MetaURIGenerator(URIGenerator):
             'http://purl.org/spar/fabio/ReferenceBook': 'br',
             'http://purl.org/spar/fabio/Review': 'br',
             'http://purl.org/spar/fabio/ReviewArticle': 'br',
+            'http://purl.org/spar/fabio/Series': 'br',
             'http://purl.org/spar/fabio/Thesis': 'br',
             'http://purl.org/spar/pro/RoleInTime': 'ar',
             'http://purl.org/spar/fabio/Manifestation': 're',

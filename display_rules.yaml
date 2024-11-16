@@ -698,6 +698,83 @@ classes:
         shouldBeDisplayed: true
         fetchValueFromQuery: *container_query
 
+  - class: "http://purl.org/spar/fabio/Series"
+    priority: 1
+    shouldBeDisplayed: true
+    displayName: "Miscellany"
+    fetchUriDisplay: |
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+      PREFIX pro: <http://purl.org/spar/pro/>
+      PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+      PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      SELECT ?display
+      WHERE {
+        {
+          SELECT ?title ?pubDate ?publisher
+                (GROUP_CONCAT(DISTINCT ?editorName; SEPARATOR = ", ") AS ?editorList)
+          WHERE {
+            [[uri]] a fabio:Series .
+            OPTIONAL { [[uri]] dcterms:title ?title . }
+            
+            # Get editor information
+            OPTIONAL {
+              [[uri]] pro:isDocumentContextFor ?editorRole .
+              ?editorRole pro:withRole pro:editor ;
+                          pro:isHeldBy ?editor .
+              OPTIONAL { ?editor foaf:name ?editorName . }
+              OPTIONAL {
+                ?editor foaf:familyName ?familyName .
+                OPTIONAL { ?editor foaf:givenName ?givenName . }
+                BIND(CONCAT(
+                  ?familyName,
+                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                ) AS ?editorName)
+              }
+            }
+            
+            # Get publication date
+            OPTIONAL {
+              [[uri]] prism:publicationDate ?pubDateRaw . 
+              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                      STR(?pubDateRaw),
+                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                        SUBSTR(STR(?pubDateRaw), 1, 4),
+                        STR(?pubDateRaw))) AS ?pubDate)
+            }
+            
+            # Get publisher information
+            OPTIONAL {
+              [[uri]] pro:isDocumentContextFor ?publisherRole .
+              ?publisherRole pro:withRole pro:publisher ;
+                            pro:isHeldBy ?publisherAgent .
+              ?publisherAgent foaf:name ?publisher .
+            }
+          }
+          GROUP BY ?title ?pubDate ?publisher
+        }
+        
+        BIND(CONCAT(
+          ?title,
+          IF(BOUND(?editorList) && STRLEN(?editorList) > 0, 
+            CONCAT(" (", ?editorList, ", Ed.)"), 
+            ""),
+          IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
+          IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
+          "."
+        ) AS ?displayWithDot)
+        
+        BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+        BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+      }
+    displayProperties:
+      - *type_property
+      - *identifier_property
+      - *title_property
+      - *document_context_property_container
+      - *publication_date_property
+
   - class: "http://purl.org/spar/fabio/Book"
     priority: 1
     shouldBeDisplayed: true
@@ -1101,7 +1178,7 @@ classes:
       - *publication_date_property
       - *embodiment_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
-        displayName: "Proceedings"
+        displayName: "Conference Proceedings"
         shouldBeDisplayed: true
         fetchValueFromQuery: *proceedings_query
 
@@ -1567,7 +1644,7 @@ classes:
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
-      
+
   - class: "http://purl.org/spar/datacite/Identifier"
     priority: 1
     shouldBeDisplayed: false
