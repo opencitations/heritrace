@@ -20,6 +20,7 @@ from flask_babel import Babel, gettext, refresh
 from flask_login import (LoginManager, current_user, login_required,
                          login_user, logout_user, user_loaded_from_cookie)
 from heritrace.editor import Editor
+from heritrace.entity_sorter import *
 from heritrace.filters import *
 from heritrace.forms import *
 from heritrace.get_info_from_shacl import get_form_fields_from_shacl
@@ -413,8 +414,7 @@ def catalogue():
     selected_class = request.args.get('class')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
-
-    # Add a list of allowed per_page values
+    
     allowed_per_page = [50, 100, 200, 500]
     if per_page not in allowed_per_page:
         per_page = 100
@@ -466,40 +466,56 @@ def catalogue():
 
     entities = []
     total_entity_pages = 0
+    sortable_properties = []
 
     if selected_class:
+        sortable_properties = get_sortable_properties(selected_class)
+        
+        sort_property = request.args.get('sort_property')
+        if not sort_property and sortable_properties:
+            sort_property = sortable_properties[0]['property']
+            sort_direction = sortable_properties[0]['sortOrder'][0]
+        else:
+            sort_direction = request.args.get('sort_direction', 'ASC')
+
         # Calculate offset for entities
         entity_page = page if selected_class else 1
         offset = (entity_page - 1) * per_page
 
-        # Query to get entities of the selected class
+        # Build query with optional sorting
+        sort_clause = build_sort_clause(sort_property, selected_class) if sort_property else ""
+        order_clause = f"ORDER BY {sort_direction}(?sortValue)" if sort_property else "ORDER BY ?subject"
+
         if is_virtuoso():
             entities_query = f"""
-            SELECT DISTINCT ?subject
+            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
             WHERE {{
                 GRAPH ?g {{
                     ?subject a <{selected_class}> .
+                    {sort_clause}
                 }}
                 FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
             }}
-            ORDER BY ?subject
-            LIMIT {per_page} OFFSET {offset}
+            {order_clause}
+            LIMIT {per_page} 
+            OFFSET {offset}
             """
         else:
             entities_query = f"""
-            SELECT ?subject
+            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
             WHERE {{
                 ?subject a <{selected_class}> .
+                {sort_clause}
             }}
-            ORDER BY ?subject
-            LIMIT {per_page} OFFSET {offset}
+            {order_clause}
+            LIMIT {per_page} 
+            OFFSET {offset}
             """
-        
         sparql.setQuery(entities_query)
         entities_results = sparql.query().convert()
 
         entities = [result['subject']['value'] 
-                    for result in entities_results["results"]["bindings"]]
+                   for result in entities_results["results"]["bindings"]]
 
         total_count = next((count for cls, count in available_classes if cls == selected_class), 0)
         total_entity_pages = (total_count + per_page - 1) // per_page
@@ -511,16 +527,19 @@ def catalogue():
         return min(args)
 
     return render_template('catalogue.jinja', 
-                           available_classes=paginated_classes,
-                           selected_class=selected_class,
-                           entities=entities, 
-                           page=page,
-                           total_class_pages=total_class_pages,
-                           total_entity_pages=total_entity_pages,
-                           per_page=per_page,
-                           allowed_per_page=allowed_per_page,
-                           template_max=template_max,
-                           template_min=template_min)
+                         available_classes=paginated_classes,
+                         selected_class=selected_class,
+                         entities=entities, 
+                         page=page,
+                         total_class_pages=total_class_pages,
+                         total_entity_pages=total_entity_pages,
+                         per_page=per_page,
+                         allowed_per_page=allowed_per_page,
+                         template_max=template_max,
+                         template_min=template_min,
+                         sortable_properties=sortable_properties,
+                         current_sort_property=sort_property,
+                         current_sort_direction=sort_direction)
 
 def is_entity_type_visible(entity_type):
     for rule in display_rules:

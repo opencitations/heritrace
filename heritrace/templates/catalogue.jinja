@@ -1,6 +1,18 @@
 {% extends "_base.jinja" %}
 {% block content %}
 
+<style>
+    .toggleSortDirection {
+        font-size: 1rem;   
+        border-radius: 0.25rem;
+        border-top-left-radius: 0.25rem !important;
+        border-bottom-left-radius: 0.25rem !important;     
+    }
+    .form-select-sm {
+        font-size: 1rem;
+    }
+</style>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
@@ -28,6 +40,36 @@
 
     {% if selected_class %}
         <h3 class="mb-3">{{_('Items in category: ')}} {{ selected_class | human_readable_predicate([selected_class], False) }}</h3>
+
+        {% if sortable_properties %}
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <label for="sort_property" class="form-label mb-0">{{_('Sort by:')}}</label>
+                    <select id="sort_property" 
+                            class="form-select form-select-sm" 
+                            style="width: auto;"
+                            onchange="updateSort(this.value)">
+                        {% for prop in sortable_properties %}
+                            <option value="{{ prop.property }}"
+                                    {% if prop.property == current_sort_property %}selected{% endif %}>
+                                {{ prop.displayName }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <button class="btn btn-sm btn-outline-secondary toggleSortDirection" 
+                            onclick="toggleSortDirection()"
+                            title="{{_('Toggle sort direction')}}">
+                        {% if current_sort_direction == 'ASC' %}
+                            <i class="bi bi-sort-up-alt"></i>
+                        {% else %}
+                            <i class="bi bi-sort-down-alt"></i>
+                        {% endif %}
+                    </button>
+                </div>
+            </div>
+        {% endif %}
+
         {% if entities %}
             <ul class="list-group mb-4">
                 {% for entity in entities %}
@@ -108,6 +150,20 @@
         const url = new URL(window.location.href);
         url.searchParams.set('per_page', value);
         url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    }
+    
+    function updateSort(property) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('sort_property', property);
+        url.searchParams.set('page', 1);
+        window.location.href = url.toString();
+    }
+
+    function toggleSortDirection() {
+        const url = new URL(window.location.href);
+        const currentDirection = url.searchParams.get('sort_direction') || 'ASC';
+        url.searchParams.set('sort_direction', currentDirection === 'ASC' ? 'DESC' : 'ASC');
         window.location.href = url.toString();
     }
 </script>

@@ -1162,6 +1162,14 @@ classes:
       - *publication_date_property
       - *embodiment_property
       - *issue_volume_journal_container_property
+    sortableBy:
+      - property: "http://purl.org/dc/terms/title"
+        sortOrder: ["asc", "desc"]
+      - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
+        sortOrder: ["desc", "asc"]
+      - property: "http://purl.org/spar/pro/isDocumentContextFor"
+        shape: "http://schema.org/AuthorShape"
+        sortOrder: ["asc", "desc"]
 
   - class: "http://purl.org/spar/fabio/Journal"
     priority: 1
