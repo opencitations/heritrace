@@ -19,6 +19,7 @@ class MetaCounterHandler:
 
         self.entity_type_abbr = {
             'http://purl.org/spar/fabio/Expression': 'br',
+            'http://purl.org/spar/fabio/Article': 'br',
             'http://purl.org/spar/fabio/JournalArticle': 'br',
             'http://purl.org/spar/fabio/Book': 'br',
             'http://purl.org/spar/fabio/BookChapter': 'br',
