@@ -241,9 +241,16 @@ div.books:after {
 .overlay-content p {
     font-size: 1.5rem;
     margin-bottom: 2rem;
+    font-weight: 500;
     text-shadow: 
-        0 0 5px rgba(0, 0, 0, 0.7),
-        0 0 10px rgba(0, 0, 0, 0.5);  /* Added multiple layers of shadow */
+        2px 2px 4px rgba(0, 0, 0, 0.9),
+        -2px -2px 4px rgba(0, 0, 0, 0.9),
+        2px -2px 4px rgba(0, 0, 0, 0.9),
+        -2px 2px 4px rgba(0, 0, 0, 0.9); 
+    letter-spacing: 0.5px;
+    
+    /* Opzionale: aggiunge un sottile background semi-trasparente */
+    backdrop-filter: blur(2px);  /* Effetto blur sotto il testo */
 }
 
 .btn-primary {
@@ -280,7 +287,7 @@ div.books:after {
              class="mb-4" 
              style="height: 80px;">
         <h1 class="display-4">{{ config.APP_TITLE }}</h1>
-        <p class="lead">{{_('An environment for data curation')}}</p>
+        <p class="lead">{{ config.APP_SUBTITLE }}</p>
         <a class="btn btn-primary btn-lg" href="{{url_for('catalogue')}}" role="button">{{_('Go to the catalogue')}}</a>
     </div>
 </div>
