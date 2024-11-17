@@ -41,130 +41,62 @@
     {% if selected_class %}
         <h3 class="mb-3">{{_('Items in category: ')}} {{ selected_class | human_readable_predicate([selected_class], False) }}</h3>
 
-        {% if sortable_properties %}
-            <div class="d-flex align-items-center gap-3 mb-3">
-                <div class="d-flex align-items-center gap-2">
-                    <label for="sort_property" class="form-label mb-0">{{_('Sort by:')}}</label>
-                    <select id="sort_property" 
-                            class="form-select form-select-sm" 
-                            style="width: auto;"
-                            onchange="updateSort(this.value)">
-                        {% for prop in sortable_properties %}
-                            <option value="{{ prop.property }}"
-                                    {% if prop.property == current_sort_property %}selected{% endif %}>
-                                {{ prop.displayName }}
-                            </option>
-                        {% endfor %}
-                    </select>
+        <div id="catalogueControls" 
+            data-initial-page="{{ page }}"
+            data-initial-per-page="{{ per_page }}"
+            data-total-pages="{{ total_entity_pages }}"
+            data-allowed-per-page="{{ allowed_per_page|tojson }}"
+            data-sortable-properties="{{ sortable_properties|e }}"
+            data-initial-sort-property="{{ current_sort_property }}"
+            data-initial-sort-direction="{{ current_sort_direction }}"
+            data-selected-class="{{ selected_class }}"
+        ></div>
 
-                    <button class="btn btn-sm btn-outline-secondary toggleSortDirection" 
-                            onclick="toggleSortDirection()"
-                            title="{{_('Toggle sort direction')}}">
-                        {% if current_sort_direction == 'ASC' %}
-                            <i class="bi bi-sort-up-alt"></i>
-                        {% else %}
-                            <i class="bi bi-sort-down-alt"></i>
-                        {% endif %}
-                    </button>
-                </div>
-            </div>
-        {% endif %}
-
-        {% if entities %}
-            <ul class="list-group mb-4">
-                {% for entity in entities %}
-                <li class="list-group-item">
-                    <a href="{{ url_for('about', subject=entity|urlencode) }}">
-                        {{ entity | human_readable_entity([selected_class]) }}
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
-
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex align-items-center">
-                    <label for="per_page" class="form-label me-2 mb-0">{{_('Items per page:')}}</label>
-                    <select id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="updatePerPage(this.value)">
-                        {% for pp in allowed_per_page %}
-                            <option value="{{ pp }}" {% if pp == per_page %}selected{% endif %}>{{ pp }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                {% if total_entity_pages > 1 %}
-                    <nav aria-label="Pagination">
-                        <ul class="pagination pagination-sm mb-0">
-                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('catalogue', class=selected_class, page=1, per_page=per_page) }}">&laquo;</a>
-                            </li>
-                            <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('catalogue', class=selected_class, page=page-1, per_page=per_page) }}">{{_('Prev')}}</a>
-                            </li>
-                            <li class="page-item active">
-                                <span class="page-link">{{ page }} / {{ total_entity_pages }}</span>
-                            </li>
-                            <li class="page-item {% if page == total_entity_pages %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('catalogue', class=selected_class, page=page+1, per_page=per_page) }}">{{_('Next')}}</a>
-                            </li>
-                            <li class="page-item {% if page == total_entity_pages %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('catalogue', class=selected_class, page=total_entity_pages, per_page=per_page) }}">&raquo;</a>
-                            </li>
-                        </ul>
-                    </nav>
-                {% endif %}
-            </div>
-        {% else %}
-            <p class="alert alert-info">{{_('No entities found for this class')}}</p>
-        {% endif %}
-    {% else %}
-        {% if total_class_pages > 1 %}
-            <nav aria-label="Class pagination" class="mb-4">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('catalogue', page=1) }}">&laquo;</a>
-                    </li>
-                    <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('catalogue', page=page-1) }}">{{_('Previous')}}</a>
-                    </li>
-                    {% for p in range(template_max(1, page-2), template_min(total_class_pages, page+2) + 1) %}
-                    <li class="page-item {% if p == page %}active{% endif %}">
-                        <a class="page-link" href="{{ url_for('catalogue', page=p) }}">{{ p }}</a>
+        <div id="entityList">
+            {% if entities %}
+                <ul class="list-group mb-4">
+                    {% for entity in entities %}
+                    <li class="list-group-item">
+                        <a href="{{ url_for('about', subject=entity|urlencode) }}">
+                            {{ entity | human_readable_entity([selected_class]) }}
+                        </a>
                     </li>
                     {% endfor %}
-                    <li class="page-item {% if page == total_class_pages %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('catalogue', page=page+1) }}">{{_('Next')}}</a>
-                    </li>
-                    <li class="page-item {% if page == total_class_pages %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('catalogue', page=total_class_pages) }}">&raquo;</a>
-                    </li>
                 </ul>
-            </nav>
-        {% endif %}
+            {% else %}
+                <p class="alert alert-info">{{_('No entities found for this class')}}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if not selected_class and total_class_pages > 1 %}
+        <nav aria-label="Class pagination" class="mb-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('catalogue', page=1) }}">&laquo;</a>
+                </li>
+                <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('catalogue', page=page-1) }}">{{_('Previous')}}</a>
+                </li>
+                {% for p in range(template_max(1, page-2), template_min(total_class_pages, page+2) + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('catalogue', page=p) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                <li class="page-item {% if page == total_class_pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('catalogue', page=page+1) }}">{{_('Next')}}</a>
+                </li>
+                <li class="page-item {% if page == total_class_pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('catalogue', page=total_class_pages) }}">&raquo;</a>
+                </li>
+            </ul>
+        </nav>
     {% endif %}
 {% else %}
     <p class="alert alert-info">{{_('No data available')}}</p>
 {% endif %}
+{% endblock %}
 
-<script>
-    function updatePerPage(value) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('per_page', value);
-        url.searchParams.set('page', 1);
-        window.location.href = url.toString();
-    }
-    
-    function updateSort(property) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('sort_property', property);
-        url.searchParams.set('page', 1);
-        window.location.href = url.toString();
-    }
-
-    function toggleSortDirection() {
-        const url = new URL(window.location.href);
-        const currentDirection = url.searchParams.get('sort_direction') || 'ASC';
-        url.searchParams.set('sort_direction', currentDirection === 'ASC' ? 'DESC' : 'ASC');
-        window.location.href = url.toString();
-    }
-</script>
+{% block react_scripts %}
+<script src="{{ url_for('static', filename='dist/catalogue.bundle.js') }}"></script>
 {% endblock %}

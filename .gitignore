@@ -4,3 +4,4 @@ config.py
 db_volumes/
 *.pem
 meta_counter_handler.db
+node_modules/

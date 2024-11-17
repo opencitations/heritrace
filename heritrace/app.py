@@ -414,7 +414,8 @@ def catalogue():
     selected_class = request.args.get('class')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
-    
+    sort_property = None
+    sort_direction = 'ASC'
     allowed_per_page = [50, 100, 200, 500]
     if per_page not in allowed_per_page:
         per_page = 100
@@ -469,7 +470,7 @@ def catalogue():
     sortable_properties = []
 
     if selected_class:
-        sortable_properties = get_sortable_properties(selected_class)
+        sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
         
         sort_property = request.args.get('sort_property')
         if not sort_property and sortable_properties:
@@ -483,7 +484,7 @@ def catalogue():
         offset = (entity_page - 1) * per_page
 
         # Build query with optional sorting
-        sort_clause = build_sort_clause(sort_property, selected_class) if sort_property else ""
+        sort_clause = build_sort_clause(sort_property, selected_class, display_rules) if sort_property else ""
         order_clause = f"ORDER BY {sort_direction}(?sortValue)" if sort_property else "ORDER BY ?subject"
 
         if is_virtuoso():
@@ -525,22 +526,21 @@ def catalogue():
 
     def template_min(*args):
         return min(args)
-
     return render_template('catalogue.jinja', 
-                         available_classes=paginated_classes,
-                         selected_class=selected_class,
-                         entities=entities, 
-                         page=page,
-                         total_class_pages=total_class_pages,
-                         total_entity_pages=total_entity_pages,
-                         per_page=per_page,
-                         allowed_per_page=allowed_per_page,
-                         template_max=template_max,
-                         template_min=template_min,
-                         sortable_properties=sortable_properties,
-                         current_sort_property=sort_property,
-                         current_sort_direction=sort_direction)
-
+                        available_classes=paginated_classes,
+                        selected_class=selected_class,
+                        entities=entities, 
+                        page=page,
+                        total_class_pages=total_class_pages,
+                        total_entity_pages=total_entity_pages,
+                        per_page=per_page,
+                        allowed_per_page=allowed_per_page,
+                        template_max=template_max,
+                        template_min=template_min,
+                        sortable_properties=json.dumps(sortable_properties),
+                        current_sort_property=sort_property,
+                        current_sort_direction=sort_direction)
+    
 def is_entity_type_visible(entity_type):
     for rule in display_rules:
         if rule['class'] == entity_type:
@@ -1759,14 +1759,6 @@ def restore_version(entity_uri, timestamp):
 
     return redirect(url_for('about', subject=entity_uri))
 
-@app.route('/human-readable-entity', methods=['POST'])
-def get_human_readable_entity():
-    uri = request.form['uri']
-    entity_class = request.form['entity_class']
-    filter_instance = Filter(context, display_rules, dataset_endpoint)
-    readable = filter_instance.human_readable_entity(uri, [entity_class])
-    return readable
-
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('errors/404.jinja'), 404
@@ -2342,3 +2334,124 @@ def get_locale():
     return session.get('lang', 'en')
 
 babel.init_app(app=app, locale_selector=get_locale, default_translation_directories=app.config['BABEL_TRANSLATION_DIRECTORIES'])
+
+@app.route('/api/catalogue')
+@login_required
+def catalogue_api():
+    """
+    API endpoint per ottenere i dati del catalogo in formato JSON.
+    Supporta paginazione, ordinamento e filtri
+    """
+    selected_class = request.args.get('class')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    sort_property = request.args.get('sort_property')
+    sort_direction = request.args.get('sort_direction', 'ASC')
+    
+    allowed_per_page = [50, 100, 200, 500]
+    if per_page not in allowed_per_page:
+        per_page = 100
+
+    # Query per ottenere tutte le classi e i conteggi
+    if is_virtuoso():
+        classes_query = f"""
+            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
+            WHERE {{
+                GRAPH ?g {{
+                    ?subject a ?class .
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            }}
+            GROUP BY ?class
+            ORDER BY DESC(?count)
+        """
+    else:
+        classes_query = """
+            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
+            WHERE {
+                ?subject a ?class .
+            }
+            GROUP BY ?class
+            ORDER BY DESC(?count)
+        """
+    
+    sparql.setQuery(classes_query)
+    sparql.setReturnFormat(JSON)
+    classes_results = sparql.query().convert()
+
+    entities = []
+    total_count = 0
+
+    if selected_class:
+        # Costruisci la query con clausole di ordinamento opzionali
+        sort_clause = build_sort_clause(sort_property, selected_class, display_rules) if sort_property else ""
+        order_clause = f"ORDER BY {sort_direction}(?sortValue)" if sort_property else "ORDER BY ?subject"
+        offset = (page - 1) * per_page
+
+        if is_virtuoso():
+            entities_query = f"""
+            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
+            WHERE {{
+                GRAPH ?g {{
+                    ?subject a <{selected_class}> .
+                    {sort_clause}
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            }}
+            {order_clause}
+            LIMIT {per_page} 
+            OFFSET {offset}
+            """
+        else:
+            entities_query = f"""
+            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
+            WHERE {{
+                ?subject a <{selected_class}> .
+                {sort_clause}
+            }}
+            {order_clause}
+            LIMIT {per_page} 
+            OFFSET {offset}
+            """
+        
+        sparql.setQuery(entities_query)
+        entities_results = sparql.query().convert()
+        
+        entities = []
+        for result in entities_results["results"]["bindings"]:
+            subject_uri = result['subject']['value']
+            # Ottieni direttamente l'etichetta human-readable per l'entità
+            entity_label = custom_filter.human_readable_entity(subject_uri, [selected_class])
+            
+            entities.append({
+                'uri': subject_uri,
+                'label': entity_label
+            })
+
+        # Ottieni il conteggio totale per la paginazione
+        total_count = next(
+            (int(result['count']['value']) 
+             for result in classes_results["results"]["bindings"]
+             if result['class']['value'] == selected_class),
+            0
+        )
+
+    # Aggiungi informazioni sulle proprietà ordinabili
+    if selected_class:
+        sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
+    else:
+        sortable_properties = []
+
+    response = {
+        'entities': entities,
+        'total_pages': (total_count + per_page - 1) // per_page if total_count > 0 else 0,
+        'current_page': page,
+        'per_page': per_page,
+        'total_count': total_count,
+        'sort_property': sort_property,
+        'sort_direction': sort_direction,
+        'sortable_properties': sortable_properties,
+        'selected_class': selected_class
+    }
+
+    return jsonify(response)
