@@ -2348,7 +2348,7 @@ def catalogue_api():
             LIMIT {per_page} 
             OFFSET {offset}
             """
-        print(entities_query)
+
         sparql.setQuery(entities_query)
         entities_results = sparql.query().convert()
         

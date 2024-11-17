@@ -13,20 +13,19 @@ const CatalogueControls = ({
   selectedClass,
   onDataUpdate
 }) => {
+  const urlParams = new URLSearchParams(window.location.search);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(initialPage);
-  const [currentPerPage, setCurrentPerPage] = useState(initialPerPage);
+  const [currentPage, setCurrentPage] = useState(parseInt(urlParams.get('page')) || initialPage);
+  const [currentPerPage, setCurrentPerPage] = useState(parseInt(urlParams.get('per_page')) || initialPerPage);
   const [totalPages, setTotalPages] = useState(initialTotalPages);
   const [sortProperty, setSortProperty] = useState(
-    initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)
+    urlParams.get('sort_property') || initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)
   );
-  const [sortDirection, setSortDirection] = useState(initialSortDirection);
+  const [sortDirection, setSortDirection] = useState(urlParams.get('sort_direction') || initialSortDirection);
 
   useEffect(() => {
-    if (!sortProperty && sortableProperties.length > 0) {
-      setSortProperty(sortableProperties[0].property);
-    }
-  }, [sortableProperties]);
+    fetchData(currentPage, currentPerPage, sortProperty, sortDirection);
+  }, [selectedClass]);
 
   const fetchData = async (page, perPage, property, direction) => {
     setIsLoading(true);

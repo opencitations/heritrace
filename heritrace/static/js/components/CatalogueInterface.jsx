@@ -13,14 +13,15 @@ const CatalogueInterface = ({
   initialSortProperty,
   initialSortDirection
 }) => {
+  const urlParams = new URLSearchParams(window.location.search);
   const [classes, setClasses] = useState(initialClasses);
   const [selectedClass, setSelectedClass] = useState(
-    initialSelectedClass || (initialClasses.length > 0 ? initialClasses[0].uri : null)
+    urlParams.get('class') || initialSelectedClass || (initialClasses.length > 0 ? initialClasses[0].uri : null)
   );
   const [filteredClasses, setFilteredClasses] = useState(initialClasses);
   const [isLoading, setIsLoading] = useState(false);
   const [entities, setEntities] = useState([]);
-  const [sortDirection, setSortDirection] = useState('ASC');
+  const [sortDirection, setSortDirection] = useState(urlParams.get('sort_direction') || 'ASC');
   const [sortableProperties, setSortableProperties] = useState(initialSortableProperties || []);
 
   useEffect(() => {

@@ -42,15 +42,16 @@ var CatalogueControls = function CatalogueControls(_ref) {
     initialSortDirection = _ref$initialSortDirec === void 0 ? 'ASC' : _ref$initialSortDirec,
     selectedClass = _ref.selectedClass,
     onDataUpdate = _ref.onDataUpdate;
+  var urlParams = new URLSearchParams(window.location.search);
   var _useState = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false),
     _useState2 = _slicedToArray(_useState, 2),
     isLoading = _useState2[0],
     setIsLoading = _useState2[1];
-  var _useState3 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialPage),
+  var _useState3 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(parseInt(urlParams.get('page')) || initialPage),
     _useState4 = _slicedToArray(_useState3, 2),
     currentPage = _useState4[0],
     setCurrentPage = _useState4[1];
-  var _useState5 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialPerPage),
+  var _useState5 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(parseInt(urlParams.get('per_page')) || initialPerPage),
     _useState6 = _slicedToArray(_useState5, 2),
     currentPerPage = _useState6[0],
     setCurrentPerPage = _useState6[1];
@@ -58,19 +59,17 @@ var CatalogueControls = function CatalogueControls(_ref) {
     _useState8 = _slicedToArray(_useState7, 2),
     totalPages = _useState8[0],
     setTotalPages = _useState8[1];
-  var _useState9 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)),
+  var _useState9 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(urlParams.get('sort_property') || initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)),
     _useState10 = _slicedToArray(_useState9, 2),
     sortProperty = _useState10[0],
     setSortProperty = _useState10[1];
-  var _useState11 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialSortDirection),
+  var _useState11 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(urlParams.get('sort_direction') || initialSortDirection),
     _useState12 = _slicedToArray(_useState11, 2),
     sortDirection = _useState12[0],
     setSortDirection = _useState12[1];
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
-    if (!sortProperty && sortableProperties.length > 0) {
-      setSortProperty(sortableProperties[0].property);
-    }
-  }, [sortableProperties]);
+    fetchData(currentPage, currentPerPage, sortProperty, sortDirection);
+  }, [selectedClass]);
   var fetchData = /*#__PURE__*/function () {
     var _ref2 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(page, perPage, property, direction) {
       var _sortableProperties$, defaultSortProperty, defaultSortDirection, params, response, data, url;
@@ -227,11 +226,12 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     initialSortableProperties = _ref.sortableProperties,
     initialSortProperty = _ref.initialSortProperty,
     initialSortDirection = _ref.initialSortDirection;
+  var urlParams = new URLSearchParams(window.location.search);
   var _useState = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialClasses),
     _useState2 = _slicedToArray(_useState, 2),
     classes = _useState2[0],
     setClasses = _useState2[1];
-  var _useState3 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialSelectedClass || (initialClasses.length > 0 ? initialClasses[0].uri : null)),
+  var _useState3 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(urlParams.get('class') || initialSelectedClass || (initialClasses.length > 0 ? initialClasses[0].uri : null)),
     _useState4 = _slicedToArray(_useState3, 2),
     selectedClass = _useState4[0],
     setSelectedClass = _useState4[1];
@@ -247,7 +247,7 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     _useState10 = _slicedToArray(_useState9, 2),
     entities = _useState10[0],
     setEntities = _useState10[1];
-  var _useState11 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)('ASC'),
+  var _useState11 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(urlParams.get('sort_direction') || 'ASC'),
     _useState12 = _slicedToArray(_useState11, 2),
     sortDirection = _useState12[0],
     setSortDirection = _useState12[1];
