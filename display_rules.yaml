@@ -512,21 +512,8 @@ common_properties:
     shouldBeDisplayed: true
     fetchValueFromQuery: *book_query
 
-  sortableByTitle: &sortableByTitle
-    - property: "http://purl.org/dc/terms/title"
-      sortOrder: ["asc", "desc"]
-
   sortableBySequenceIdentifier: &sortableBySequenceIdentifier
     - property: "http://purl.org/spar/fabio/hasSequenceIdentifier"
-      sortOrder: ["asc", "desc"]
-
-  sortableBy: &sortableByTitleDateAuthor
-    - property: "http://purl.org/dc/terms/title"
-      sortOrder: ["asc", "desc"]
-    - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
-      sortOrder: ["desc", "asc"]
-    - property: "http://purl.org/spar/pro/isDocumentContextFor"
-      shape: "http://schema.org/AuthorShape"
       sortOrder: ["asc", "desc"]
 
   sortableByTitleDate: &sortableByTitleDate
@@ -534,30 +521,6 @@ common_properties:
       sortOrder: ["asc", "desc"]
     - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
       sortOrder: ["desc", "asc"]
-
-  sortableByTitleDateAuthorEditor: &sortableByTitleDateAuthorEditor
-    - property: "http://purl.org/dc/terms/title"
-      sortOrder: ["asc", "desc"]
-    - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
-      sortOrder: ["desc", "asc"]
-    - property: "http://purl.org/spar/pro/isDocumentContextFor"
-      shape: "http://schema.org/AuthorShape"
-      sortOrder: ["asc", "desc"]
-    - property: "http://purl.org/spar/pro/isDocumentContextFor"
-      shape: "http://schema.org/EditorShape"
-      sortOrder: ["asc", "desc"]
-
-  sortableByTitleDateAuthorPublisher: &sortableByTitleDateAuthorPublisher
-    - property: "http://purl.org/dc/terms/title"
-      sortOrder: ["asc", "desc"]
-    - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
-      sortOrder: ["desc", "asc"]
-    - property: "http://purl.org/spar/pro/isDocumentContextFor"
-      shape: "http://schema.org/AuthorShape"
-      sortOrder: ["asc", "desc"]
-    - property: "http://purl.org/spar/pro/isDocumentContextFor"
-      shape: "http://schema.org/PublisherShape"
-      sortOrder: ["asc", "desc"]
 
 classes:
   - class: "http://purl.org/spar/fabio/Expression"
@@ -744,7 +707,7 @@ classes:
         shouldBeDisplayed: true
         fetchValueFromQuery: *container_query
     sortableBy:
-      *sortableByTitleDateAuthor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/Article"
     priority: 1
@@ -877,7 +840,7 @@ classes:
               ) AS ?seriesDisplay)
           }
     sortableBy:
-      *sortableByTitleDateAuthor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/Series"
     priority: 1
@@ -1040,7 +1003,7 @@ classes:
         displayName: "Container"
         shouldBeDisplayed: true
     sortableBy:
-      *sortableByTitleDateAuthorPublisher
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/BookChapter"
     priority: 1
@@ -1121,7 +1084,7 @@ classes:
       - *embodiment_property
       - *book_container_property
     sortableBy:
-      *sortableByTitleDateAuthor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/JournalArticle"
     priority: 1
@@ -1219,7 +1182,7 @@ classes:
       - *embodiment_property
       - *issue_volume_journal_container_property
     sortableBy:
-      *sortableByTitleDateAuthor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/Journal"
     priority: 1
@@ -1237,7 +1200,7 @@ classes:
       - *identifier_property
       - *title_property
     sortableBy:
-      *sortableByTitle
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/JournalVolume"
     priority: 1
@@ -1377,7 +1340,7 @@ classes:
         shouldBeDisplayed: true
         fetchValueFromQuery: *proceedings_query
     sortableBy:
-      *sortableByTitleDateAuthor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/AcademicProceedings"
     priority: 1
@@ -1551,7 +1514,7 @@ classes:
       - *embodiment_property
       - *book_container_property
     sortableBy:
-      *sortableByTitleDateAuthor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/ReviewArticle"
     priority: 1
@@ -1658,7 +1621,7 @@ classes:
       - *embodiment_property
       - *issue_volume_journal_container_property
     sortableBy:
-      *sortableByTitleDateAuthor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/ReferenceBook"
     priority: 1
@@ -1761,7 +1724,7 @@ classes:
       - *document_context_property
       - *publication_date_property
     sortableBy:
-      *sortableByTitleDateAuthorEditor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/fabio/Thesis"
     priority: 1
@@ -1850,7 +1813,7 @@ classes:
       - *publication_date_property
       - *embodiment_property
     sortableBy:
-      *sortableByTitleDateAuthor
+      *sortableByTitleDate
 
   - class: "http://purl.org/spar/datacite/Identifier"
     priority: 1

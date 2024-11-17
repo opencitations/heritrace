@@ -1,13 +1,17 @@
 import React, { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
-import CatalogueControls from './CatalogueControls';
+import CatalogueInterface from './CatalogueInterface';
 
-// Get the element to render into
-const catalogueControlsElement = document.getElementById('catalogueControls');
+// Get the catalogue element
+const catalogueElement = document.getElementById('catalogue');
 
-if (catalogueControlsElement) {
-  // Extract data attributes
+if (catalogueElement) {
+  // Get data from the page
+  const availableClasses = catalogueElement.dataset.availableClasses ? 
+    JSON.parse(catalogueElement.dataset.availableClasses) : [];
+  
   const {
+    selectedClass,
     initialPage,
     initialPerPage,
     totalPages,
@@ -15,8 +19,7 @@ if (catalogueControlsElement) {
     sortableProperties,
     initialSortProperty,
     initialSortDirection,
-    selectedClass,
-  } = catalogueControlsElement.dataset;
+  } = catalogueElement.dataset;
 
   // Parse JSON data
   const parsedAllowedPerPage = JSON.parse(allowedPerPage);
@@ -27,40 +30,20 @@ if (catalogueControlsElement) {
   const parsedInitialPerPage = parseInt(initialPerPage, 10);
   const parsedTotalPages = parseInt(totalPages, 10);
 
-  const onDataUpdate = (data) => {
-    // Update the entity list in the DOM
-    const entityListElement = document.getElementById('entityList');
-    if (entityListElement) {
-      const entityItems = data.entities.map(entity => `
-        <li class="list-group-item">
-          <a href="/about/${encodeURIComponent(entity.uri)}">
-            ${entity.label}
-          </a>
-        </li>
-      `);
-  
-      entityListElement.innerHTML = `
-        <ul class="list-group mb-4">
-          ${entityItems.join('')}
-        </ul>
-      `;
-    }
-  };
-    
-  // Render the component
-  const root = ReactDOM.createRoot(catalogueControlsElement);
+  // Create root and render
+  const root = ReactDOM.createRoot(catalogueElement);
   root.render(
     <StrictMode>
-      <CatalogueControls
+      <CatalogueInterface
+        initialClasses={availableClasses}
+        initialSelectedClass={selectedClass}
         initialPage={parsedInitialPage}
         initialPerPage={parsedInitialPerPage}
-        totalPages={parsedTotalPages}
+        initialTotalPages={parsedTotalPages}
         allowedPerPage={parsedAllowedPerPage}
         sortableProperties={parsedSortableProperties}
         initialSortProperty={initialSortProperty}
         initialSortDirection={initialSortDirection}
-        selectedClass={selectedClass}
-        onDataUpdate={onDataUpdate}
       />
     </StrictMode>
   );

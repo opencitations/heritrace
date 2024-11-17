@@ -81,22 +81,5 @@ def build_sort_clause(sort_property: str, entity_type: str, display_rules) -> st
     
     if not sort_config:
         return ""
-        
-    # Se c'è una shape, indica che è una proprietà che referenzia un'entità
-    if 'shape' in sort_config:
-        return f"""
-            OPTIONAL {{
-                ?subject <{sort_property}> ?intermediateNode .
-                OPTIONAL {{ ?intermediateNode ?labelPred ?sortValue 
-                    FILTER(?labelPred IN (
-                        <http://www.w3.org/2000/01/rdf-schema#label>,
-                        <http://purl.org/dc/terms/title>,
-                        <http://xmlns.com/foaf/0.1/name>
-                    ))
-                }}
-                BIND(COALESCE(?sortValue, STR(?intermediateNode)) AS ?sortValue)
-            }}
-        """
-    
-    # Per proprietà dirette
+            
     return f"OPTIONAL {{ ?subject <{sort_property}> ?sortValue }}"

@@ -27,74 +27,22 @@
 <h2 class="mb-4">{{_('Catalogue')}}</h2>
 
 {% if available_classes %}
-    <div class="list-group mb-4">
-        {% for class, count in available_classes %}
-            <a href="{{ url_for('catalogue', class=class, page=1, per_page=per_page) }}" 
-            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center
-                    {% if class == selected_class %}active{% endif %}">
-                {{ class | human_readable_predicate([class], False) }}
-                <span class="badge bg-primary rounded-pill">{{ count }}</span>
-            </a>
-        {% endfor %}
-    </div>
-
-    {% if selected_class %}
-        <h3 class="mb-3">{{_('Items in category: ')}} {{ selected_class | human_readable_predicate([selected_class], False) }}</h3>
-
-        <div id="catalogueControls" 
-            data-initial-page="{{ page }}"
-            data-initial-per-page="{{ per_page }}"
-            data-total-pages="{{ total_entity_pages }}"
-            data-allowed-per-page="{{ allowed_per_page|tojson }}"
-            data-sortable-properties="{{ sortable_properties|e }}"
-            data-initial-sort-property="{{ current_sort_property }}"
-            data-initial-sort-direction="{{ current_sort_direction }}"
-            data-selected-class="{{ selected_class }}"
-        ></div>
-
-        <div id="entityList">
-            {% if entities %}
-                <ul class="list-group mb-4">
-                    {% for entity in entities %}
-                    <li class="list-group-item">
-                        <a href="{{ url_for('about', subject=entity|urlencode) }}">
-                            {{ entity | human_readable_entity([selected_class]) }}
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="alert alert-info">{{_('No entities found for this class')}}</p>
-            {% endif %}
-        </div>
-    {% endif %}
-
-    {% if not selected_class and total_class_pages > 1 %}
-        <nav aria-label="Class pagination" class="mb-4">
-            <ul class="pagination justify-content-center">
-                <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('catalogue', page=1) }}">&laquo;</a>
-                </li>
-                <li class="page-item {% if page == 1 %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('catalogue', page=page-1) }}">{{_('Previous')}}</a>
-                </li>
-                {% for p in range(template_max(1, page-2), template_min(total_class_pages, page+2) + 1) %}
-                <li class="page-item {% if p == page %}active{% endif %}">
-                    <a class="page-link" href="{{ url_for('catalogue', page=p) }}">{{ p }}</a>
-                </li>
-                {% endfor %}
-                <li class="page-item {% if page == total_class_pages %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('catalogue', page=page+1) }}">{{_('Next')}}</a>
-                </li>
-                <li class="page-item {% if page == total_class_pages %}disabled{% endif %}">
-                    <a class="page-link" href="{{ url_for('catalogue', page=total_class_pages) }}">&raquo;</a>
-                </li>
-            </ul>
-        </nav>
-    {% endif %}
+    {% set selected_class = selected_class or (available_classes[0].uri if available_classes|length > 0 else None) %}
+    <div id="catalogue" 
+         data-available-classes='{{ available_classes|tojson }}'
+         data-selected-class="{{ selected_class }}"
+         data-initial-page="{{ page }}"
+         data-initial-per-page="{{ per_page }}"
+         data-total-pages="{{ total_entity_pages }}"
+         data-allowed-per-page="{{ allowed_per_page|tojson }}"
+         data-sortable-properties="{{ sortable_properties|e }}"
+        data-initial-sort-property="{{ current_sort_property if current_sort_property else '' }}"
+         data-initial-sort-direction="{{ current_sort_direction }}"
+    ></div>
 {% else %}
-    <p class="alert alert-info">{{_('No data available')}}</p>
+    <div class="alert alert-info">{{_('No data available')}}</div>
 {% endif %}
+
 {% endblock %}
 
 {% block react_scripts %}

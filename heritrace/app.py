@@ -411,15 +411,6 @@ def index():
 @app.route('/catalogue')
 @login_required
 def catalogue():
-    selected_class = request.args.get('class')
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 50))
-    sort_property = None
-    sort_direction = 'ASC'
-    allowed_per_page = [50, 100, 200, 500]
-    if per_page not in allowed_per_page:
-        per_page = 100
-
     # Query to get all available classes
     if is_virtuoso():
         classes_query = f"""
@@ -448,98 +439,39 @@ def catalogue():
     classes_results = sparql.query().convert()
 
     available_classes = [
-        (result['class']['value'], int(result['count']['value'])) 
+        {
+            'uri': result['class']['value'],
+            'label': custom_filter.human_readable_predicate(result['class']['value'], [result['class']['value']]),
+            'count': int(result['count']['value'])
+        }
         for result in classes_results["results"]["bindings"]
         if is_entity_type_visible(result['class']['value'])
     ]
 
-    available_classes.sort(
-        key=lambda x: custom_filter.human_readable_predicate(x[0], [x[0]]).lower()
-    )
-
-    # Calculate total pages for class list
-    total_classes = len(available_classes)
-    total_class_pages = (total_classes + per_page - 1) // per_page
-
-    # Paginate the class list
-    class_page = page if not selected_class else 1
-    paginated_classes = available_classes[(class_page-1)*per_page:class_page*per_page]
-
-    entities = []
-    total_entity_pages = 0
+    # Sort classes by label
+    available_classes.sort(key=lambda x: x['label'].lower())
+    # Initialize default values
+    initial_page = 1
+    initial_per_page = 50
+    total_pages = 0
+    selected_class = request.args.get('class')
+    if not selected_class and available_classes:
+        selected_class = available_classes[0]['uri']
     sortable_properties = []
 
     if selected_class:
         sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
-        
-        sort_property = request.args.get('sort_property')
-        if not sort_property and sortable_properties:
-            sort_property = sortable_properties[0]['property']
-            sort_direction = sortable_properties[0]['sortOrder'][0]
-        else:
-            sort_direction = request.args.get('sort_direction', 'ASC')
 
-        # Calculate offset for entities
-        entity_page = page if selected_class else 1
-        offset = (entity_page - 1) * per_page
-
-        # Build query with optional sorting
-        sort_clause = build_sort_clause(sort_property, selected_class, display_rules) if sort_property else ""
-        order_clause = f"ORDER BY {sort_direction}(?sortValue)" if sort_property else "ORDER BY ?subject"
-
-        if is_virtuoso():
-            entities_query = f"""
-            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
-            WHERE {{
-                GRAPH ?g {{
-                    ?subject a <{selected_class}> .
-                    {sort_clause}
-                }}
-                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-            }}
-            {order_clause}
-            LIMIT {per_page} 
-            OFFSET {offset}
-            """
-        else:
-            entities_query = f"""
-            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
-            WHERE {{
-                ?subject a <{selected_class}> .
-                {sort_clause}
-            }}
-            {order_clause}
-            LIMIT {per_page} 
-            OFFSET {offset}
-            """
-        sparql.setQuery(entities_query)
-        entities_results = sparql.query().convert()
-
-        entities = [result['subject']['value'] 
-                   for result in entities_results["results"]["bindings"]]
-
-        total_count = next((count for cls, count in available_classes if cls == selected_class), 0)
-        total_entity_pages = (total_count + per_page - 1) // per_page
-
-    def template_max(*args):
-        return max(args)
-
-    def template_min(*args):
-        return min(args)
-    return render_template('catalogue.jinja', 
-                        available_classes=paginated_classes,
-                        selected_class=selected_class,
-                        entities=entities, 
-                        page=page,
-                        total_class_pages=total_class_pages,
-                        total_entity_pages=total_entity_pages,
-                        per_page=per_page,
-                        allowed_per_page=allowed_per_page,
-                        template_max=template_max,
-                        template_min=template_min,
-                        sortable_properties=json.dumps(sortable_properties),
-                        current_sort_property=sort_property,
-                        current_sort_direction=sort_direction)
+    return render_template('catalogue.jinja',
+                         available_classes=available_classes,
+                         selected_class=selected_class,
+                         page=initial_page,
+                         total_entity_pages=total_pages,
+                         per_page=initial_per_page,
+                         allowed_per_page=[50, 100, 200, 500],
+                         sortable_properties=json.dumps(sortable_properties),
+                         current_sort_property=None,
+                         current_sort_direction='ASC')
     
 def is_entity_type_visible(entity_type):
     for rule in display_rules:
@@ -2346,6 +2278,9 @@ def catalogue_api():
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
     sort_property = request.args.get('sort_property')
+
+    if not sort_property or sort_property.lower() == 'null':
+        sort_property = None
     sort_direction = request.args.get('sort_direction', 'ASC')
     
     allowed_per_page = [50, 100, 200, 500]
@@ -2413,7 +2348,7 @@ def catalogue_api():
             LIMIT {per_page} 
             OFFSET {offset}
             """
-        
+        print(entities_query)
         sparql.setQuery(entities_query)
         entities_results = sparql.query().convert()
         
@@ -2442,6 +2377,9 @@ def catalogue_api():
     else:
         sortable_properties = []
 
+    if not sort_property and sortable_properties:
+        sort_property = sortable_properties[0]['property']
+
     response = {
         'entities': entities,
         'total_pages': (total_count + per_page - 1) // per_page if total_count > 0 else 0,
@@ -2455,3 +2393,11 @@ def catalogue_api():
     }
 
     return jsonify(response)
+
+@app.route('/human-readable-entity', methods=['POST'])
+def get_human_readable_entity():
+    uri = request.form['uri']
+    entity_class = request.form['entity_class']
+    filter_instance = Filter(context, display_rules, dataset_endpoint)
+    readable = filter_instance.human_readable_entity(uri, [entity_class])
+    return readable

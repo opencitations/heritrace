@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SortControls from './SortControls';
 import PaginationControls from './PaginationControls';
 
@@ -8,7 +8,7 @@ const CatalogueControls = ({
   totalPages: initialTotalPages,
   allowedPerPage,
   sortableProperties = [],
-  initialSortProperty = undefined,
+  initialSortProperty = null,
   initialSortDirection = 'ASC',
   selectedClass,
   onDataUpdate
@@ -17,30 +17,40 @@ const CatalogueControls = ({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [currentPerPage, setCurrentPerPage] = useState(initialPerPage);
   const [totalPages, setTotalPages] = useState(initialTotalPages);
-  const [sortProperty, setSortProperty] = useState(initialSortProperty);
+  const [sortProperty, setSortProperty] = useState(
+    initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)
+  );
   const [sortDirection, setSortDirection] = useState(initialSortDirection);
+
+  useEffect(() => {
+    if (!sortProperty && sortableProperties.length > 0) {
+      setSortProperty(sortableProperties[0].property);
+    }
+  }, [sortableProperties]);
 
   const fetchData = async (page, perPage, property, direction) => {
     setIsLoading(true);
     try {
+      const defaultSortProperty = property || sortableProperties[0]?.property;
+      const defaultSortDirection = direction || 'ASC';
+
       const params = new URLSearchParams({
         class: selectedClass,
         page: page,
         per_page: perPage,
-        sort_property: property,
-        sort_direction: direction
+        sort_property: defaultSortProperty,
+        sort_direction: defaultSortDirection
       });
 
       const response = await fetch(`/api/catalogue?${params}`);
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      
       // Update local state
       setCurrentPage(data.current_page);
       setTotalPages(data.total_pages);
       setCurrentPerPage(data.per_page);
-      setSortProperty(data.sort_property);
-      setSortDirection(data.sort_direction);
+      setSortProperty(data.sort_property || null);
+      setSortDirection(data.sort_direction || 'ASC');
 
       // Update URL params without reloading
       const url = new URL(window.location);
@@ -49,6 +59,9 @@ const CatalogueControls = ({
       if (data.sort_property) {
         url.searchParams.set('sort_property', data.sort_property);
         url.searchParams.set('sort_direction', data.sort_direction);
+      } else {
+        url.searchParams.delete('sort_property');
+        url.searchParams.delete('sort_direction');
       }
       window.history.pushState({}, '', url);
 
@@ -69,6 +82,8 @@ const CatalogueControls = ({
   };
 
   const handleSortChange = (property, direction) => {
+    setSortProperty(property);
+    setSortDirection(direction);
     fetchData(currentPage, currentPerPage, property, direction);
   };
 
