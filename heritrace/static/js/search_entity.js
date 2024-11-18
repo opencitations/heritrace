@@ -216,8 +216,12 @@ function searchEntities(term, entityType = null, predicate = null, callback, off
         success: function(response) {
             // Cache the results for this offset
             searchCache.results[cacheKey][currentOffset] = response.results.bindings;
-            // Store last results for entity selection
-            searchCache.lastResults[cacheKey] = response.results.bindings;
+            // Concatenate new results with existing lastResults
+            if (searchCache.lastResults[cacheKey]) {
+                searchCache.lastResults[cacheKey] = searchCache.lastResults[cacheKey].concat(response.results.bindings);
+            } else {
+                searchCache.lastResults[cacheKey] = response.results.bindings;
+            }
             callback(null, response);
         },
         error: function(error) {
@@ -263,7 +267,7 @@ function createEntityDisplay(entity, container, callback) {
                     <i class="bi bi-x-lg"></i>
                 </button>
                 <a href="/about/${encodeURIComponent(entity.entity.value)}" 
-                   class="btn btn-outline-primary btn-sm" target="_blank">
+                   class="btn btn-outline-primary btn-sm redirection-btn" target="_blank">
                     <i class="bi bi-box-arrow-up-right"></i>
                 </a>
             </div>
@@ -333,19 +337,20 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
                 },
                 success: function(readableEntity) {
                     entity.humanReadableLabel = readableEntity;
-                    
+
                     // Aggiungi la voce al dropdown
                     const resultItem = $(`
                         <button type="button" class="list-group-item list-group-item-action" data-entity-uri="${entity.entity.value}">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="overflow-hidden me-2">
                                     <div class="text-truncate">${readableEntity}</div>
-                                    <small class="text-muted text-truncate d-block">${entity.entity.value}</small>
                                 </div>
                                 <i class="bi bi-chevron-right flex-shrink-0"></i>
                             </div>
                         </button>
                     `);
+                    // Memorizza l'entità direttamente sull'elemento della lista
+                    resultItem.data('entity', entity);
                     dropdown.append(resultItem);
 
                     // Se è l'ultimo risultato e abbiamo caricato altri risultati,
@@ -373,6 +378,8 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
                             </div>
                         </button>
                     `);
+                    // Memorizza l'entità anche in caso di errore
+                    resultItem.data('entity', entity);
                     dropdown.append(resultItem);
                 }
             });
@@ -569,58 +576,11 @@ function enhanceInputWithSearch(input) {
     });
 
     // Gestisci i click sui risultati
-    searchResults.on('click', '.list-group-item:not(.create-new, .load-more-results)', function() {
-        const entityUri = $(this).data('entity-uri');
-        const term = input.val().trim();
-        const contextData = collectContextData(input);
-        const connectingPredicate = depth > 1 ? findConnectingPredicate(input) : null;
-        
-        const cacheKey = generateCacheKey(term, objectClass, predicateUri, contextData, depth, connectingPredicate);
-        const entity = searchCache.lastResults[cacheKey]?.find(e => e.entity.value === entityUri);
-        
-        if (entity) {
-            handleEntitySelection(container, entity, depth);
-        }
-    });
-
-    // Gestisci il click su "Create New"
     searchResults.on('click', '.create-new', function() {
         input.trigger('focus');
         searchResults.addClass('d-none');
     });
 }
-
-// Handle clicks outside of search results
-$(document).on('click', function(e) {
-    if (!$(e.target).closest('.newEntityPropertyContainer').length) {
-        $('.entity-search-results').addClass('d-none');
-        $('.search-spinner').addClass('d-none');
-    }
-});
-
-// Function to handle changing a selected entity
-$(document).on('click', '.change-entity', function(e) {
-    e.preventDefault();
-    const propertiesContainer = $(this).closest('.newEntityPropertiesContainer');
-    const display = $(this).closest('.entity-reference-display');
-    const hiddenInput = propertiesContainer.find('input[data-entity-reference="true"]');
-
-    // Remove the display and hidden input
-    display.remove();
-    hiddenInput.remove();
-
-    // Restore the original content
-    const originalContent = propertiesContainer.data('originalContent');
-    if (originalContent) {
-        propertiesContainer.append(originalContent);
-        propertiesContainer.removeData('originalContent');
-    }
-
-    // Re-initialize any inputs with search functionality
-    propertiesContainer.find('input').each(function() {
-        enhanceInputWithSearch($(this));
-    });
-});
 
 // Initialize existing fields
 $(document).ready(function() {
@@ -629,6 +589,38 @@ $(document).ready(function() {
     });
 
     $('head').append(style);
+
+    // Handle clicks outside of search results
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.newEntityPropertyContainer').length) {
+            $('.entity-search-results').addClass('d-none');
+            $('.search-spinner').addClass('d-none');
+        }
+    });
+
+    // Function to handle changing a selected entity
+    $(document).on('click', '.change-entity', function(e) {
+        e.preventDefault();
+        const propertiesContainer = $(this).closest('.newEntityPropertiesContainer');
+        const display = $(this).closest('.entity-reference-display');
+        const hiddenInput = propertiesContainer.find('input[data-entity-reference="true"]');
+
+        // Remove the display and hidden input
+        display.remove();
+        hiddenInput.remove();
+
+        // Restore the original content
+        const originalContent = propertiesContainer.data('originalContent');
+        if (originalContent) {
+            propertiesContainer.append(originalContent);
+            propertiesContainer.removeData('originalContent');
+        }
+
+        // Re-initialize any inputs with search functionality
+        propertiesContainer.find('input').each(function() {
+            enhanceInputWithSearch($(this));
+        });
+    });
 
     $(document).on('click', '.load-more-results', function(e) {
         e.preventDefault();
@@ -667,25 +659,12 @@ $(document).ready(function() {
             updateSearchResults(response.results.bindings, dropdown, input, depth, true);
         }, searchCache.offset[cacheKey]);
     });
-    
+
     $(document).on('click', '.entity-search-results .list-group-item:not(.create-new, .load-more-results)', function() {
-        const dropdown = $(this).closest('.entity-search-results');
-        const input = dropdown.prev('input');
-        const entityUri = $(this).data('entity-uri');
-        const term = input.val().trim();
+        const entity = $(this).data('entity');
+        const input = $(this).closest('.entity-search-results').prev('input');
         const depth = parseInt(input.data('depth')) || 0;
-        const objectClass = depth > 1 ? findParentObjectClass(input) : findObjectClass(input);
-        const repeaterItem = input.closest('[data-repeater-item]');
-        const predicateUri = repeaterItem.data('intermediate-relation') 
-            ? repeaterItem.data('connecting-property') 
-            : repeaterItem.data('predicate-uri');
-        const contextData = collectContextData(input);
-        const connectingPredicate = depth > 1 ? findConnectingPredicate(input) : null;
-        
-        const cacheKey = generateCacheKey(term, objectClass, predicateUri, contextData, depth, connectingPredicate);
-        const lastResults = searchCache.lastResults[cacheKey] || [];
-        const entity = lastResults.find(e => e.entity.value === entityUri);
-        
+    
         if (entity) {
             handleEntitySelection(input.closest('.newEntityPropertyContainer'), entity, depth);
         }

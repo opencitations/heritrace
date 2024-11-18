@@ -84,7 +84,7 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     position: relative;
 }
 
-.repeater-delete-btn, .delete-button, .redirection-btn, .collapse-btn, .undo-delete-button {
+.repeater-delete-btn, .delete-button, .redirection-btn, .collapse-btn, .undo-delete-button, .change-entity {
     font-size: 1rem;
     position: absolute;
     top: 0;
@@ -95,7 +95,6 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     border-radius: 0.25rem;
     border-top-left-radius: 0.25rem !important;
     border-bottom-left-radius: 0.25rem !important;
-    margin: .25rem .25rem 0 0;
 }
 
 .repeater-delete-btn:hover {
