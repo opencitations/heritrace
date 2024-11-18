@@ -78,7 +78,7 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                 OPTIONAL { ?entity a ?type }
                 FILTER(?scoreValue > 0.2)
             }
-            ORDER BY ASC(?entity)
+            ORDER BY DESC(?scoreValue) ASC(?entity)
             OFFSET ${offset}
             LIMIT 5
         `;
@@ -315,8 +315,21 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
         dropdown.empty();
         dropdown.scrollTop(0);
     } else {
-        // Se è un "load more", rimuovi il vecchio pulsante
+        // Se è un "load more", rimuovi il vecchio pulsante "Ask for more"
         dropdown.find('.load-more-results').remove();
+    }
+
+    // Aggiungi il pulsante "Create New" all'inizio se applicabile
+    if (dropdown.prev().is('input') && !dropdown.find('.create-new').length) {
+        const createNewBtn = $(`
+            <button type="button" class="list-group-item list-group-item-action create-new sticky-top bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-truncate">${results.length ? 'Create new entity' : 'No results found. Create new entity?'}</div>
+                    <i class="bi bi-plus-circle flex-shrink-0 ms-2"></i>
+                </div>
+            </button>
+        `);
+        dropdown.prepend(createNewBtn);
     }
 
     if (results.length) {
@@ -351,12 +364,13 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
                     `);
                     // Memorizza l'entità direttamente sull'elemento della lista
                     resultItem.data('entity', entity);
-                    dropdown.append(resultItem);
+                    // Aggiungi il risultato dopo il pulsante "Create New"
+                    dropdown.find('.create-new').after(resultItem);
 
                     // Se è l'ultimo risultato e abbiamo caricato altri risultati,
                     // scorri fino al primo nuovo elemento
                     if (isLoadMore && entity === results[0]) {
-                        const newItemPosition = dropdown.find('.list-group-item').length - results.length;
+                        const newItemPosition = dropdown.find('.list-group-item').length - results.length - 1;
                         const scrollTarget = dropdown.find('.list-group-item').eq(newItemPosition);
                         if (scrollTarget.length) {
                             scrollTarget[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -366,7 +380,7 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
                 error: function() {
                     const label = entity.entity.value.split('/').pop();
                     entity.humanReadableLabel = label;
-                    
+
                     const resultItem = $(`
                         <button type="button" class="list-group-item list-group-item-action" data-entity-uri="${entity.entity.value}">
                             <div class="d-flex justify-content-between align-items-center">
@@ -378,15 +392,15 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
                             </div>
                         </button>
                     `);
-                    // Memorizza l'entità anche in caso di errore
                     resultItem.data('entity', entity);
-                    dropdown.append(resultItem);
+                    // Aggiungi il risultato dopo il pulsante "Create New"
+                    dropdown.find('.create-new').after(resultItem);
                 }
             });
         });
     }
 
-    // Aggiungi il pulsante "Load More" se ci sono risultati
+    // Aggiungi il pulsante "Ask for more" alla fine se ci sono più risultati
     if (results.length === 5) {
         const loadMoreBtn = $(`
             <button type="button" class="list-group-item list-group-item-action load-more-results sticky-bottom bg-light">
@@ -397,19 +411,6 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
             </button>
         `);
         dropdown.append(loadMoreBtn);
-    }
-
-    // Aggiungi il pulsante "Create New" solo se è un input field e non è un load more
-    if (dropdown.prev().is('input') && !isLoadMore) {
-        const createNewBtn = $(`
-            <button type="button" class="list-group-item list-group-item-action create-new sticky-bottom bg-light">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="text-truncate">${results.length ? 'Create new entity' : 'No results found. Create new entity?'}</div>
-                    <i class="bi bi-plus-circle flex-shrink-0 ms-2"></i>
-                </div>
-            </button>
-        `);
-        dropdown.append(createNewBtn);
     }
 
     dropdown.removeClass('d-none');
