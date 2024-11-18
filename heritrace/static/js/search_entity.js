@@ -1,9 +1,13 @@
 // Cache object to store search results keyed by the complete search parameters
-const searchCache = {};
+const searchCache = {
+    results: {},    // Store results by cache key and offset
+    offset: {},     // Store current offset for each search
+    lastResults: {} // Store last results for entity selection
+};
 
 // Function to generate a cache key from search parameters
-function generateCacheKey(term, entityType, predicate) {
-    return `${term}|${entityType || ''}|${predicate || ''}`;
+function generateCacheKey(term, entityType, predicate, contextData, depth, connectingPredicate) {
+    return `${term}|${entityType || ''}|${predicate || ''}|${JSON.stringify(contextData)}|${depth}|${connectingPredicate || ''}`;
 }
 
 // Raccoglie tutte le coppie predicato-valore dal contesto corrente
@@ -55,7 +59,7 @@ function formatValueForSparql(valueObj) {
     return `"${value}"^^<${valueObj.datatypes[0]}>`;
 }
 
-function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled, depth, connectingPredicate) {
+function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled, depth, connectingPredicate, offset = 0) {
     let query;
     if (dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso') {
         // Use Virtuoso text index
@@ -74,7 +78,8 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                 OPTIONAL { ?entity a ?type }
                 FILTER(?scoreValue > 0.2)
             }
-            ORDER BY DESC(?scoreValue)
+            ORDER BY ASC(?entity)
+            OFFSET ${offset}
             LIMIT 5
         `;
     } else {
@@ -95,6 +100,8 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                 FILTER(REGEX(STR(?searchValue), "${term}", "i"))
                 OPTIONAL { ?entity a ?type }
             } 
+            ORDER BY ASC(?entity)
+            OFFSET ${offset}
             LIMIT 5
         `;
     }
@@ -134,14 +141,11 @@ function findConnectingPredicate(input) {
 }
 
 // Function to execute the SPARQL search
-function searchEntities(term, entityType = null, predicate = null, callback) {
+function searchEntities(term, entityType = null, predicate = null, callback, offset = 0) {
     const input = $('.newEntityPropertyContainer input:focus');
     const contextData = input.length ? collectContextData(input) : {};
-
-    // Get the depth of the current input
     const depth = parseInt(input.data('depth')) || 0;
 
-    // Adjust the entityType if depth > 1
     if (depth > 1) {
         const parentClass = findParentObjectClass(input);
         if (parentClass) {
@@ -149,52 +153,71 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
         }
     }
 
-    // Get the connecting predicate if depth > 1
     let connectingPredicate = null;
     if (depth > 1) {
         connectingPredicate = findConnectingPredicate(input);
     }
 
-    // Generate a cache key that includes the context
-    const cacheKey = `${term}|${entityType || ''}|${predicate || ''}|${JSON.stringify(contextData)}|${depth}|${connectingPredicate || ''}`;
+    const cacheKey = generateCacheKey(term, entityType, predicate, contextData, depth, connectingPredicate);
 
-    if (searchCache[cacheKey]) {
-        lastSearchResults = searchCache[cacheKey];
-        callback(null, { results: { bindings: searchCache[cacheKey] } });
+    // Initialize cache structures if they don't exist
+    if (!searchCache.results[cacheKey]) {
+        searchCache.results[cacheKey] = {};
+    }
+    if (typeof searchCache.offset[cacheKey] === 'undefined') {
+        searchCache.offset[cacheKey] = 0;
+    }
+
+    // Use provided offset or the cached one
+    const currentOffset = offset || searchCache.offset[cacheKey];
+
+    // If we have cached results for this offset, use them
+    if (searchCache.results[cacheKey][currentOffset]) {
+        searchCache.lastResults[cacheKey] = searchCache.results[cacheKey][currentOffset];
+        callback(null, { results: { bindings: searchCache.results[cacheKey][currentOffset] } });
         return;
     }
 
-    let sparqlQuery = generateSearchQuery(term, entityType, predicate, window.dataset_db_triplestore, window.dataset_db_text_index_enabled, depth, connectingPredicate);
+    let sparqlQuery = generateSearchQuery(
+        term, 
+        entityType, 
+        predicate, 
+        window.dataset_db_triplestore, 
+        window.dataset_db_text_index_enabled, 
+        depth, 
+        connectingPredicate,
+        currentOffset
+    );
 
     let contextConstraints = '';
     Object.entries(contextData).forEach(([predicateUri, values]) => {
         values.forEach(valueObj => {
             const formattedValue = formatValueForSparql(valueObj);
             if (depth > 1) {
-                // Use 'nestedEntity' in the context constraints
                 contextConstraints += `\n    ?nestedEntity <${predicateUri}> ${formattedValue} .`;
             } else {
-                // Use 'entity' in the context constraints
                 contextConstraints += `\n    ?entity <${predicateUri}> ${formattedValue} .`;
             }
         });
     });
 
-    // Insert contextConstraints into the sparqlQuery at the appropriate place
     sparqlQuery = sparqlQuery.replace('WHERE {', `WHERE {${contextConstraints}`);
 
     if (input.length) {
         input.removeClass('is-invalid');
         input.siblings('.invalid-feedback').hide();
     }
+
     $.ajax({
         url: '/dataset-endpoint',
         method: 'POST',
         data: { query: sparqlQuery },
         headers: { 'Accept': 'application/sparql-results+json' },
         success: function(response) {
-            lastSearchResults = response.results.bindings;
-            searchCache[cacheKey] = response.results.bindings;
+            // Cache the results for this offset
+            searchCache.results[cacheKey][currentOffset] = response.results.bindings;
+            // Store last results for entity selection
+            searchCache.lastResults[cacheKey] = response.results.bindings;
             callback(null, response);
         },
         error: function(error) {
@@ -207,7 +230,7 @@ function searchEntities(term, entityType = null, predicate = null, callback) {
 function createSearchDropdown() {
     return $(`
         <div class="entity-search-results list-group position-absolute d-none" 
-             style="z-index: 1; width: 100%;">
+             style="z-index: 1000; width: 100%; max-height: 400px; overflow-y: auto;">
         </div>
     `);
 }
@@ -281,22 +304,26 @@ function createEntityDisplay(entity, container, callback) {
 }
 
 // Function to update the search results
-function updateSearchResults(results, dropdown, input, depth) {
-    dropdown.empty();
+// Function to update the search results
+function updateSearchResults(results, dropdown, input, depth, isLoadMore = false) {
+    // Se non è un "load more", svuota il dropdown e scrollalo in cima
+    if (!isLoadMore) {
+        dropdown.empty();
+        dropdown.scrollTop(0);
+    } else {
+        // Se è un "load more", rimuovi il vecchio pulsante
+        dropdown.find('.load-more-results').remove();
+    }
 
     if (results.length) {
-        // Determine the appropriate object class based on the depth
         let objectClass;
         if (depth > 1) {
-            // For depth > 1, use the parent object class
             objectClass = findParentObjectClass(input);
         } else {
-            // For depth <= 1, use the current object class
             objectClass = findObjectClass(input);
         }
 
         results.forEach(entity => {
-            // Fetch the human-readable version and store it
             $.ajax({
                 url: '/human-readable-entity',
                 method: 'POST',
@@ -305,27 +332,37 @@ function updateSearchResults(results, dropdown, input, depth) {
                     entity_class: objectClass
                 },
                 success: function(readableEntity) {
-                    // Store the human-readable label
                     entity.humanReadableLabel = readableEntity;
-                    dropdown.append(`
+                    
+                    // Aggiungi la voce al dropdown
+                    const resultItem = $(`
                         <button type="button" class="list-group-item list-group-item-action" data-entity-uri="${entity.entity.value}">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="overflow-hidden me-2">
                                     <div class="text-truncate">${readableEntity}</div>
+                                    <small class="text-muted text-truncate d-block">${entity.entity.value}</small>
                                 </div>
                                 <i class="bi bi-chevron-right flex-shrink-0"></i>
                             </div>
                         </button>
                     `);
+                    dropdown.append(resultItem);
+
+                    // Se è l'ultimo risultato e abbiamo caricato altri risultati,
+                    // scorri fino al primo nuovo elemento
+                    if (isLoadMore && entity === results[0]) {
+                        const newItemPosition = dropdown.find('.list-group-item').length - results.length;
+                        const scrollTarget = dropdown.find('.list-group-item').eq(newItemPosition);
+                        if (scrollTarget.length) {
+                            scrollTarget[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    }
                 },
                 error: function() {
-                    // In case of error, use the last part of the URI
                     const label = entity.entity.value.split('/').pop();
-
-                    // Store the label
                     entity.humanReadableLabel = label;
-
-                    dropdown.append(`
+                    
+                    const resultItem = $(`
                         <button type="button" class="list-group-item list-group-item-action" data-entity-uri="${entity.entity.value}">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="overflow-hidden me-2">
@@ -336,25 +373,70 @@ function updateSearchResults(results, dropdown, input, depth) {
                             </div>
                         </button>
                     `);
+                    dropdown.append(resultItem);
                 }
             });
         });
     }
 
-    // Add the "Create New" option only if it's an input field (not a display)
-    if (dropdown.prev().is('input')) {
-        dropdown.append(`
-            <button type="button" class="list-group-item list-group-item-action create-new">
+    // Aggiungi il pulsante "Load More" se ci sono risultati
+    if (results.length === 5) {
+        const loadMoreBtn = $(`
+            <button type="button" class="list-group-item list-group-item-action load-more-results sticky-bottom bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-truncate">Ask for more results</div>
+                    <i class="bi bi-arrow-clockwise flex-shrink-0 ms-2"></i>
+                </div>
+            </button>
+        `);
+        dropdown.append(loadMoreBtn);
+    }
+
+    // Aggiungi il pulsante "Create New" solo se è un input field e non è un load more
+    if (dropdown.prev().is('input') && !isLoadMore) {
+        const createNewBtn = $(`
+            <button type="button" class="list-group-item list-group-item-action create-new sticky-bottom bg-light">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="text-truncate">${results.length ? 'Create new entity' : 'No results found. Create new entity?'}</div>
                     <i class="bi bi-plus-circle flex-shrink-0 ms-2"></i>
                 </div>
             </button>
         `);
+        dropdown.append(createNewBtn);
     }
 
     dropdown.removeClass('d-none');
 }
+
+const style = $(`
+    <style>
+        .entity-search-results {
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .entity-search-results .sticky-bottom {
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+            border-top: 1px solid rgba(0,0,0,0.125);
+        }
+        .entity-search-results::-webkit-scrollbar {
+            width: 6px;
+        }
+        .entity-search-results::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .entity-search-results::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        .entity-search-results::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+`);
 
 // Function to handle the selection of an entity
 function handleEntitySelection(container, entity, depth) {
@@ -427,20 +509,20 @@ function findObjectClass(element) {
 }
 
 // Function to enhance existing input fields with search functionality
+// Function to enhance existing input fields with search functionality
 function enhanceInputWithSearch(input) {
     const container = input.closest('.newEntityPropertyContainer');
     const depth = parseInt(input.data('depth')) || 0;
-    if (!depth > 0) return ;
+    if (!depth > 0) return;
     if (!container.length) return;
 
     const objectClass = findObjectClass(container);
-
     if (!objectClass) return;
 
-    // Prima rimuoviamo tutti gli handler esistenti
+    // Rimuoviamo gli handler esistenti
     input.off('input');
 
-    // Determina il predicato corretto da usare
+    // Determina il predicato corretto
     let repeaterItem = container.closest('[data-repeater-item]');
     let predicateUri;
     
@@ -450,12 +532,12 @@ function enhanceInputWithSearch(input) {
         predicateUri = repeaterItem.data('predicate-uri');
     }
 
-    // Add the search results dropdown and spinner
+    // Aggiungi dropdown e spinner
     const searchResults = createSearchDropdown();
     addLoadingSpinner(input);
     input.after(searchResults);
     
-    // Handle input with debounce
+    // Handle input con debounce
     let searchTimeout;
 
     input.on('input', function() {
@@ -466,7 +548,6 @@ function enhanceInputWithSearch(input) {
         searchResults.addClass('d-none').empty();
         spinner.addClass('d-none');
         
-        // Remove the is-invalid class when the user starts typing
         $(this).removeClass('is-invalid');
         $(this).siblings('.invalid-feedback').hide();
         
@@ -487,14 +568,22 @@ function enhanceInputWithSearch(input) {
         }, 300);
     });
 
-    // Handle clicks on the results
-    searchResults.on('click', '.list-group-item:not(.create-new)', function() {
+    // Gestisci i click sui risultati
+    searchResults.on('click', '.list-group-item:not(.create-new, .load-more-results)', function() {
         const entityUri = $(this).data('entity-uri');
-        const entity = lastSearchResults.find(e => e.entity.value === entityUri);
-        handleEntitySelection(container, entity, depth);
+        const term = input.val().trim();
+        const contextData = collectContextData(input);
+        const connectingPredicate = depth > 1 ? findConnectingPredicate(input) : null;
+        
+        const cacheKey = generateCacheKey(term, objectClass, predicateUri, contextData, depth, connectingPredicate);
+        const entity = searchCache.lastResults[cacheKey]?.find(e => e.entity.value === entityUri);
+        
+        if (entity) {
+            handleEntitySelection(container, entity, depth);
+        }
     });
 
-    // Handle the click on "Create New"
+    // Gestisci il click su "Create New"
     searchResults.on('click', '.create-new', function() {
         input.trigger('focus');
         searchResults.addClass('d-none');
@@ -537,5 +626,68 @@ $(document).on('click', '.change-entity', function(e) {
 $(document).ready(function() {
     $('[data-repeater-item]:not(.repeater-template)').find('input:visible').each(function() {
         enhanceInputWithSearch($(this));
+    });
+
+    $('head').append(style);
+
+    $(document).on('click', '.load-more-results', function(e) {
+        e.preventDefault();
+        const dropdown = $(this).closest('.entity-search-results');
+        const input = dropdown.prev('input');
+        const term = input.val().trim();
+        const depth = parseInt(input.data('depth')) || 0;
+        
+        // Get the object class and predicate
+        let objectClass = depth > 1 ? findParentObjectClass(input) : findObjectClass(input);
+        let repeaterItem = input.closest('[data-repeater-item]');
+        let predicateUri = repeaterItem.data('intermediate-relation') 
+            ? repeaterItem.data('connecting-property') 
+            : repeaterItem.data('predicate-uri');
+    
+        // Generate the cache key
+        const contextData = input.length ? collectContextData(input) : {};
+        const connectingPredicate = depth > 1 ? findConnectingPredicate(input) : null;
+        const cacheKey = `${term}|${objectClass || ''}|${predicateUri || ''}|${JSON.stringify(contextData)}|${depth}|${connectingPredicate || ''}`;
+    
+        // Increment the offset for this search
+        searchCache.offset[cacheKey] = (searchCache.offset[cacheKey] || 0) + 5;
+    
+        // Show spinner in the "Load More" button
+        const originalButtonContent = $(this).html();
+        $(this).html('<div class="d-flex align-items-center justify-content-center"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Loading...</div>');
+    
+        // Execute the search with the new offset
+        searchEntities(term, objectClass, predicateUri, function(error, response) {
+            if (error) {
+                console.error('Search failed:', error);
+                return;
+            }
+    
+            // Update results with the new data
+            updateSearchResults(response.results.bindings, dropdown, input, depth, true);
+        }, searchCache.offset[cacheKey]);
+    });
+    
+    $(document).on('click', '.entity-search-results .list-group-item:not(.create-new, .load-more-results)', function() {
+        const dropdown = $(this).closest('.entity-search-results');
+        const input = dropdown.prev('input');
+        const entityUri = $(this).data('entity-uri');
+        const term = input.val().trim();
+        const depth = parseInt(input.data('depth')) || 0;
+        const objectClass = depth > 1 ? findParentObjectClass(input) : findObjectClass(input);
+        const repeaterItem = input.closest('[data-repeater-item]');
+        const predicateUri = repeaterItem.data('intermediate-relation') 
+            ? repeaterItem.data('connecting-property') 
+            : repeaterItem.data('predicate-uri');
+        const contextData = collectContextData(input);
+        const connectingPredicate = depth > 1 ? findConnectingPredicate(input) : null;
+        
+        const cacheKey = generateCacheKey(term, objectClass, predicateUri, contextData, depth, connectingPredicate);
+        const lastResults = searchCache.lastResults[cacheKey] || [];
+        const entity = lastResults.find(e => e.entity.value === entityUri);
+        
+        if (entity) {
+            handleEntitySelection(input.closest('.newEntityPropertyContainer'), entity, depth);
+        }
     });
 });
