@@ -912,6 +912,12 @@ schema:ProceedingsShape
   sh:targetClass fabio:AcademicProceedings ;
   sh:property [
     sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
     sh:hasValue fabio:AcademicProceedings ;
     sh:minCount 1 ;
     sh:maxCount 1 ;

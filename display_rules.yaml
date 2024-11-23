@@ -516,6 +516,10 @@ common_properties:
     - property: "http://purl.org/spar/fabio/hasSequenceIdentifier"
       sortOrder: ["asc", "desc"]
 
+  sortableByTitleDate: &sortableByTitle
+    - property: "http://purl.org/dc/terms/title"
+      sortOrder: ["asc", "desc"]
+
   sortableByTitleDate: &sortableByTitleDate
     - property: "http://purl.org/dc/terms/title"
       sortOrder: ["asc", "desc"]
@@ -1200,7 +1204,7 @@ classes:
       - *identifier_property
       - *title_property
     sortableBy:
-      *sortableByTitleDate
+      *sortableByTitle
 
   - class: "http://purl.org/spar/fabio/JournalVolume"
     priority: 1
