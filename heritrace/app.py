@@ -893,8 +893,8 @@ def about(subject):
              if meta['generatedAtTime'] == sorted_timestamps[-1]),
             None
         )
-        
-        is_deleted = latest_metadata and 'invalidatedAtTime' in latest_metadata
+
+        is_deleted = latest_metadata and 'invalidatedAtTime' in latest_metadata and latest_metadata['invalidatedAtTime']
         
         if is_deleted and len(sorted_timestamps) > 1:
             context_snapshot = history[decoded_subject][sorted_timestamps[-2]]
@@ -911,7 +911,7 @@ def about(subject):
     optional_values = {}
     valid_predicates = []
     entity_type = None
-    
+
     if not is_deleted:
         if is_virtuoso():
             query = f"""
@@ -1362,7 +1362,7 @@ def entity_history(entity_uri):
     sorted_timestamps = [convert_to_datetime(meta['generatedAtTime'], stringify=True) for _, meta in sorted_metadata]
 
     latest_metadata = sorted_metadata[-1][1] if sorted_metadata else None
-    is_latest_deletion = latest_metadata and 'invalidatedAtTime' in latest_metadata
+    is_latest_deletion = latest_metadata and 'invalidatedAtTime' in latest_metadata and latest_metadata['invalidatedAtTime']
 
     if is_latest_deletion and len(sorted_timestamps) > 1:
         context_snapshot = history[entity_uri][sorted_timestamps[-2]]
@@ -1455,15 +1455,6 @@ def entity_history(entity_uri):
 @app.route('/entity-version/<path:entity_uri>/<timestamp>')
 @login_required
 def entity_version(entity_uri, timestamp):
-    def convert_to_datetime(date_str, stringify=False):
-        try:
-            dt = datetime.fromisoformat(date_str)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt if not stringify else dt.isoformat()
-        except ValueError:
-            return None
-
     try:
         timestamp_dt = datetime.fromisoformat(timestamp)
     except ValueError:
@@ -1495,7 +1486,6 @@ def entity_version(entity_uri, timestamp):
     )
     timestamp_map = {t: convert_to_datetime(t) for t in sorted_timestamps}
 
-    # Now find the closest timestamp to the requested timestamp
     try:
         closest_timestamp = min(
             timestamp_map.keys(),
@@ -1530,7 +1520,7 @@ def entity_version(entity_uri, timestamp):
     # 1. È l'ultimo snapshot (il timestamp corrente corrisponde all'ultimo timestamp)
     # 2. Ha un tempo di invalidazione
     is_deletion_snapshot = (closest_timestamp == latest_timestamp and 
-                          'invalidatedAtTime' in latest_metadata)
+                          'invalidatedAtTime' in latest_metadata and latest_metadata['invalidatedAtTime'])
 
     # Se è uno snapshot di cancellazione, usa il penultimo snapshot per il contesto
     context_version = version
@@ -1538,7 +1528,6 @@ def entity_version(entity_uri, timestamp):
         # Usa il penultimo snapshot come contesto
         previous_timestamp = sorted_timestamps[-2]  # -2 perché -1 è l'ultimo (quello di cancellazione)
         context_version = main_entity_history[previous_timestamp]
-
     triples = list(version.triples((URIRef(entity_uri), None, None)))
 
     if is_deletion_snapshot and len(sorted_timestamps) > 1:
@@ -1815,6 +1804,7 @@ def compute_graph_differences(current_graph: Graph|ConjunctiveGraph, historical_
 @app.route('/restore-version/<path:entity_uri>/<timestamp>', methods=['POST'])
 @login_required
 def restore_version(entity_uri, timestamp):
+    timestamp = convert_to_datetime(timestamp, stringify=True)
     current_graph, _ = get_entity_graph(entity_uri)
     historical_graph, provenance = get_entity_graph(entity_uri, timestamp)
     triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(current_graph, historical_graph)

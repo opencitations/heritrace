@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import RestoreVersionButton from './RestoreVersionButton';
 
 function DeletedEntitiesInterface() {
   const [deletedEntities, setDeletedEntities] = useState([]);
@@ -105,14 +106,10 @@ function DeletedEntitiesInterface() {
                       <i className="bi bi-clock-history me-2"></i>
                       View Last Valid State
                     </a>
-                    <a
-                      href={`/restore-version/${encodeURIComponent(entity.uri)}/${entity.lastValidSnapshotTime}`}
-                      className="btn btn-primary"
-                      title="Restore this entity to its last valid state"
-                    >
-                      <i className="bi bi-arrow-counterclockwise me-2"></i>
-                      Restore
-                    </a>
+                    <RestoreVersionButton 
+                      entityUri={entity.uri}
+                      timestamp={entity.lastValidSnapshotTime}
+                    />
                   </div>
                 </div>
               </div>
