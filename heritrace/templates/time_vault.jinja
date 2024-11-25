@@ -1,0 +1,9 @@
+{% extends "_base.jinja" %}
+
+{% block content %}
+<div id="deleted-entities-root"></div>
+{% endblock %}
+
+{% block react_scripts %}
+<script src="{{ url_for('static', filename='dist/deletedEntities.bundle.js') }}"></script>
+{% endblock %}

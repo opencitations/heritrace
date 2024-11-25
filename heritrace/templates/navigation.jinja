@@ -13,13 +13,16 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" id="home-link" aria-current="page" href="{{ url_for('index') }}" alt="{{_('Go to the home')}}">Home</a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" id="catalogue-link" aria-current="page" href="{{ url_for('catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="create-entity-link" aria-current="page" href="{{ url_for('create_entity') }}" alt="{{_('Add New Record')}}">{{_('Add New Record')}}</a>
+                    <a class="nav-link" id="create-entity-link" aria-current="page" href="{{ url_for('create_entity') }}" alt="{{_('New Record')}}">{{_('New Record')}}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="time-vault-link" href="{{ url_for('time_vault') }}" 
+                    title="Access and restore deleted entities">
+                        {{_('Time Vault')}}
+                    </a>
                 </li>
                 {% if current_user.is_authenticated %}
                     <li class="nav-item">
@@ -27,7 +30,7 @@
                     </li>
                 {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" id="login-link" href="{{ url_for('login_page') }}">{{ _('Login') }}</a>
+                        <a class="nav-link" id="login-link" href="{{ url_for('login') }}">{{ _('Login') }}</a>
                     </li>
                 {% endif %}
             </ul>
@@ -52,6 +55,8 @@
                 $('#catalogue-link').addClass('active');
             } else if (currentPath.startsWith('/create-entity')) {
                 $('#create-entity-link').addClass('active');
+            } else if (currentPath.startsWith('/time-vault')) {
+                $('#time-vault-link').addClass('active');
             } else if (currentPath.startsWith('/endpoint')) {
                 $('#endpoint-link').addClass('active');
             } else if (currentPath === '/login') {

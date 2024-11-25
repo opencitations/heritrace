@@ -2,7 +2,8 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    catalogue: path.resolve(__dirname, 'heritrace/static/js/components/index.jsx'),
+    catalogue: path.resolve(__dirname, 'heritrace/static/js/components/Catalogue/index.jsx'),
+    deletedEntities: path.resolve(__dirname, 'heritrace/static/js/components/DeletedEntities/index.jsx'),
   },
   output: {
     filename: '[name].bundle.js',

@@ -1229,8 +1229,6 @@ classes:
           - shape: "http://schema.org/JournalShape"
             displayName: "Journal"
             fetchValueFromQuery: *journal_query
-    sortableBy:
-      *sortableBySequenceIdentifier
 
   - class: "http://purl.org/spar/fabio/JournalIssue"
     priority: 1
@@ -1258,8 +1256,6 @@ classes:
           - shape: "http://schema.org/VolumeShape"
             displayName: "Volume"
             fetchValueFromQuery: *volume_query
-    sortableBy:
-      *sortableBySequenceIdentifier
 
   - class: "http://purl.org/spar/fabio/ProceedingsPaper"
     priority: 1

@@ -25,7 +25,7 @@
 <!-- footer.jinja -->
 <footer class="bg-dark py-3 text-white">
     <div class="container-fluid">
-        <div class="d-flex flex-row align-items-center justify-content-between">
+        <div class="d-flex flex-row align-items-center justify-content-center">
             <div class="d-flex align-items-center">
                 <a href="https://github.com/opencitations/heritrace" 
                     target="_blank" 
@@ -37,15 +37,6 @@
                             class="me-2">
                         {{_('Made with')}} <span class="fw-bold">HERITRACE</span>
                 </a>
-            </div>
-            <div>
-                <a class="dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    {{ _('Language') }}
-                </a>
-                <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('set_language', lang_code='en') }}">English</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('set_language', lang_code='it') }}">Italiano</a></li>
-                </ul>
             </div>
         </div>
     </div>

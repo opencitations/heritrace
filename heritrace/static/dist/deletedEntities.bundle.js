@@ -2,10 +2,10 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./heritrace/static/js/components/Catalogue/CatalogueControls.jsx":
-/*!************************************************************************!*\
-  !*** ./heritrace/static/js/components/Catalogue/CatalogueControls.jsx ***!
-  \************************************************************************/
+/***/ "./heritrace/static/js/components/DeletedEntities/DeletedEntitiesInterface.jsx":
+/*!*************************************************************************************!*\
+  !*** ./heritrace/static/js/components/DeletedEntities/DeletedEntitiesInterface.jsx ***!
+  \*************************************************************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -14,8 +14,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _SortControls__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./SortControls */ "./heritrace/static/js/components/Catalogue/SortControls.jsx");
-/* harmony import */ var _PaginationControls__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./PaginationControls */ "./heritrace/static/js/components/Catalogue/PaginationControls.jsx");
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _regeneratorRuntime() { "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */ _regeneratorRuntime = function _regeneratorRuntime() { return e; }; var t, e = {}, r = Object.prototype, n = r.hasOwnProperty, o = Object.defineProperty || function (t, e, r) { t[e] = r.value; }, i = "function" == typeof Symbol ? Symbol : {}, a = i.iterator || "@@iterator", c = i.asyncIterator || "@@asyncIterator", u = i.toStringTag || "@@toStringTag"; function define(t, e, r) { return Object.defineProperty(t, e, { value: r, enumerable: !0, configurable: !0, writable: !0 }), t[e]; } try { define({}, ""); } catch (t) { define = function define(t, e, r) { return t[e] = r; }; } function wrap(t, e, r, n) { var i = e && e.prototype instanceof Generator ? e : Generator, a = Object.create(i.prototype), c = new Context(n || []); return o(a, "_invoke", { value: makeInvokeMethod(t, r, c) }), a; } function tryCatch(t, e, r) { try { return { type: "normal", arg: t.call(e, r) }; } catch (t) { return { type: "throw", arg: t }; } } e.wrap = wrap; var h = "suspendedStart", l = "suspendedYield", f = "executing", s = "completed", y = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} var p = {}; define(p, a, function () { return this; }); var d = Object.getPrototypeOf, v = d && d(d(values([]))); v && v !== r && n.call(v, a) && (p = v); var g = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(p); function defineIteratorMethods(t) { ["next", "throw", "return"].forEach(function (e) { define(t, e, function (t) { return this._invoke(e, t); }); }); } function AsyncIterator(t, e) { function invoke(r, o, i, a) { var c = tryCatch(t[r], t, o); if ("throw" !== c.type) { var u = c.arg, h = u.value; return h && "object" == _typeof(h) && n.call(h, "__await") ? e.resolve(h.__await).then(function (t) { invoke("next", t, i, a); }, function (t) { invoke("throw", t, i, a); }) : e.resolve(h).then(function (t) { u.value = t, i(u); }, function (t) { return invoke("throw", t, i, a); }); } a(c.arg); } var r; o(this, "_invoke", { value: function value(t, n) { function callInvokeWithMethodAndArg() { return new e(function (e, r) { invoke(t, n, e, r); }); } return r = r ? r.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg(); } }); } function makeInvokeMethod(e, r, n) { var o = h; return function (i, a) { if (o === f) throw Error("Generator is already running"); if (o === s) { if ("throw" === i) throw a; return { value: t, done: !0 }; } for (n.method = i, n.arg = a;;) { var c = n.delegate; if (c) { var u = maybeInvokeDelegate(c, n); if (u) { if (u === y) continue; return u; } } if ("next" === n.method) n.sent = n._sent = n.arg;else if ("throw" === n.method) { if (o === h) throw o = s, n.arg; n.dispatchException(n.arg); } else "return" === n.method && n.abrupt("return", n.arg); o = f; var p = tryCatch(e, r, n); if ("normal" === p.type) { if (o = n.done ? s : l, p.arg === y) continue; return { value: p.arg, done: n.done }; } "throw" === p.type && (o = s, n.method = "throw", n.arg = p.arg); } }; } function maybeInvokeDelegate(e, r) { var n = r.method, o = e.iterator[n]; if (o === t) return r.delegate = null, "throw" === n && e.iterator["return"] && (r.method = "return", r.arg = t, maybeInvokeDelegate(e, r), "throw" === r.method) || "return" !== n && (r.method = "throw", r.arg = new TypeError("The iterator does not provide a '" + n + "' method")), y; var i = tryCatch(o, e.iterator, r.arg); if ("throw" === i.type) return r.method = "throw", r.arg = i.arg, r.delegate = null, y; var a = i.arg; return a ? a.done ? (r[e.resultName] = a.value, r.next = e.nextLoc, "return" !== r.method && (r.method = "next", r.arg = t), r.delegate = null, y) : a : (r.method = "throw", r.arg = new TypeError("iterator result is not an object"), r.delegate = null, y); } function pushTryEntry(t) { var e = { tryLoc: t[0] }; 1 in t && (e.catchLoc = t[1]), 2 in t && (e.finallyLoc = t[2], e.afterLoc = t[3]), this.tryEntries.push(e); } function resetTryEntry(t) { var e = t.completion || {}; e.type = "normal", delete e.arg, t.completion = e; } function Context(t) { this.tryEntries = [{ tryLoc: "root" }], t.forEach(pushTryEntry, this), this.reset(!0); } function values(e) { if (e || "" === e) { var r = e[a]; if (r) return r.call(e); if ("function" == typeof e.next) return e; if (!isNaN(e.length)) { var o = -1, i = function next() { for (; ++o < e.length;) if (n.call(e, o)) return next.value = e[o], next.done = !1, next; return next.value = t, next.done = !0, next; }; return i.next = i; } } throw new TypeError(_typeof(e) + " is not iterable"); } return GeneratorFunction.prototype = GeneratorFunctionPrototype, o(g, "constructor", { value: GeneratorFunctionPrototype, configurable: !0 }), o(GeneratorFunctionPrototype, "constructor", { value: GeneratorFunction, configurable: !0 }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, u, "GeneratorFunction"), e.isGeneratorFunction = function (t) { var e = "function" == typeof t && t.constructor; return !!e && (e === GeneratorFunction || "GeneratorFunction" === (e.displayName || e.name)); }, e.mark = function (t) { return Object.setPrototypeOf ? Object.setPrototypeOf(t, GeneratorFunctionPrototype) : (t.__proto__ = GeneratorFunctionPrototype, define(t, u, "GeneratorFunction")), t.prototype = Object.create(g), t; }, e.awrap = function (t) { return { __await: t }; }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, c, function () { return this; }), e.AsyncIterator = AsyncIterator, e.async = function (t, r, n, o, i) { void 0 === i && (i = Promise); var a = new AsyncIterator(wrap(t, r, n, o), i); return e.isGeneratorFunction(r) ? a : a.next().then(function (t) { return t.done ? t.value : a.next(); }); }, defineIteratorMethods(g), define(g, u, "Generator"), define(g, a, function () { return this; }), define(g, "toString", function () { return "[object Generator]"; }), e.keys = function (t) { var e = Object(t), r = []; for (var n in e) r.push(n); return r.reverse(), function next() { for (; r.length;) { var t = r.pop(); if (t in e) return next.value = t, next.done = !1, next; } return next.done = !0, next; }; }, e.values = values, Context.prototype = { constructor: Context, reset: function reset(e) { if (this.prev = 0, this.next = 0, this.sent = this._sent = t, this.done = !1, this.delegate = null, this.method = "next", this.arg = t, this.tryEntries.forEach(resetTryEntry), !e) for (var r in this) "t" === r.charAt(0) && n.call(this, r) && !isNaN(+r.slice(1)) && (this[r] = t); }, stop: function stop() { this.done = !0; var t = this.tryEntries[0].completion; if ("throw" === t.type) throw t.arg; return this.rval; }, dispatchException: function dispatchException(e) { if (this.done) throw e; var r = this; function handle(n, o) { return a.type = "throw", a.arg = e, r.next = n, o && (r.method = "next", r.arg = t), !!o; } for (var o = this.tryEntries.length - 1; o >= 0; --o) { var i = this.tryEntries[o], a = i.completion; if ("root" === i.tryLoc) return handle("end"); if (i.tryLoc <= this.prev) { var c = n.call(i, "catchLoc"), u = n.call(i, "finallyLoc"); if (c && u) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } else if (c) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); } else { if (!u) throw Error("try statement without catch or finally"); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } } } }, abrupt: function abrupt(t, e) { for (var r = this.tryEntries.length - 1; r >= 0; --r) { var o = this.tryEntries[r]; if (o.tryLoc <= this.prev && n.call(o, "finallyLoc") && this.prev < o.finallyLoc) { var i = o; break; } } i && ("break" === t || "continue" === t) && i.tryLoc <= e && e <= i.finallyLoc && (i = null); var a = i ? i.completion : {}; return a.type = t, a.arg = e, i ? (this.method = "next", this.next = i.finallyLoc, y) : this.complete(a); }, complete: function complete(t, e) { if ("throw" === t.type) throw t.arg; return "break" === t.type || "continue" === t.type ? this.next = t.arg : "return" === t.type ? (this.rval = this.arg = t.arg, this.method = "return", this.next = "end") : "normal" === t.type && e && (this.next = e), y; }, finish: function finish(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.finallyLoc === t) return this.complete(r.completion, r.afterLoc), resetTryEntry(r), y; } }, "catch": function _catch(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.tryLoc === t) { var n = r.completion; if ("throw" === n.type) { var o = n.arg; resetTryEntry(r); } return o; } } throw Error("illegal catch attempt"); }, delegateYield: function delegateYield(e, r, n) { return this.delegate = { iterator: values(e), resultName: r, nextLoc: n }, "next" === this.method && (this.arg = t), y; } }, e; }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
@@ -27,134 +25,75 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 
-
-
-var CatalogueControls = function CatalogueControls(_ref) {
-  var initialPage = _ref.initialPage,
-    initialPerPage = _ref.initialPerPage,
-    initialTotalPages = _ref.totalPages,
-    allowedPerPage = _ref.allowedPerPage,
-    _ref$sortableProperti = _ref.sortableProperties,
-    sortableProperties = _ref$sortableProperti === void 0 ? [] : _ref$sortableProperti,
-    _ref$initialSortPrope = _ref.initialSortProperty,
-    initialSortProperty = _ref$initialSortPrope === void 0 ? null : _ref$initialSortPrope,
-    _ref$initialSortDirec = _ref.initialSortDirection,
-    initialSortDirection = _ref$initialSortDirec === void 0 ? 'ASC' : _ref$initialSortDirec,
-    selectedClass = _ref.selectedClass,
-    onDataUpdate = _ref.onDataUpdate;
-  var urlParams = new URLSearchParams(window.location.search);
-  var _useState = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false),
+function DeletedEntitiesInterface() {
+  var _useState = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]),
     _useState2 = _slicedToArray(_useState, 2),
-    isLoading = _useState2[0],
-    setIsLoading = _useState2[1];
-  var _useState3 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(parseInt(urlParams.get('page')) || initialPage),
+    deletedEntities = _useState2[0],
+    setDeletedEntities = _useState2[1];
+  var _useState3 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(true),
     _useState4 = _slicedToArray(_useState3, 2),
-    currentPage = _useState4[0],
-    setCurrentPage = _useState4[1];
-  var _useState5 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(parseInt(urlParams.get('per_page')) || initialPerPage),
+    loading = _useState4[0],
+    setLoading = _useState4[1];
+  var _useState5 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null),
     _useState6 = _slicedToArray(_useState5, 2),
-    currentPerPage = _useState6[0],
-    setCurrentPerPage = _useState6[1];
-  var _useState7 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialTotalPages),
-    _useState8 = _slicedToArray(_useState7, 2),
-    totalPages = _useState8[0],
-    setTotalPages = _useState8[1];
-  var _useState9 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(urlParams.get('sort_property') || initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)),
-    _useState10 = _slicedToArray(_useState9, 2),
-    sortProperty = _useState10[0],
-    setSortProperty = _useState10[1];
-  var _useState11 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(urlParams.get('sort_direction') || initialSortDirection),
-    _useState12 = _slicedToArray(_useState11, 2),
-    sortDirection = _useState12[0],
-    setSortDirection = _useState12[1];
+    error = _useState6[0],
+    setError = _useState6[1];
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
-    fetchData(currentPage, currentPerPage, sortProperty, sortDirection);
-  }, [selectedClass]);
-  var fetchData = /*#__PURE__*/function () {
-    var _ref2 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee(page, perPage, property, direction) {
-      var _sortableProperties$, defaultSortProperty, defaultSortDirection, params, response, data, url;
+    fetchDeletedEntities();
+  }, []);
+  var fetchDeletedEntities = /*#__PURE__*/function () {
+    var _ref = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
+      var response, data;
       return _regeneratorRuntime().wrap(function _callee$(_context) {
         while (1) switch (_context.prev = _context.next) {
           case 0:
-            setIsLoading(true);
-            _context.prev = 1;
-            defaultSortProperty = property || ((_sortableProperties$ = sortableProperties[0]) === null || _sortableProperties$ === void 0 ? void 0 : _sortableProperties$.property);
-            defaultSortDirection = direction || 'ASC';
-            params = new URLSearchParams({
-              "class": selectedClass,
-              page: page,
-              per_page: perPage,
-              sort_property: defaultSortProperty,
-              sort_direction: defaultSortDirection
-            });
-            _context.next = 7;
-            return fetch("/api/catalogue?".concat(params));
-          case 7:
+            _context.prev = 0;
+            _context.next = 3;
+            return fetch('/api/deleted-entities');
+          case 3:
             response = _context.sent;
             if (response.ok) {
-              _context.next = 10;
+              _context.next = 6;
               break;
             }
-            throw new Error('Network response was not ok');
-          case 10:
-            _context.next = 12;
+            throw new Error('Failed to fetch deleted resources');
+          case 6:
+            _context.next = 8;
             return response.json();
-          case 12:
+          case 8:
             data = _context.sent;
-            // Update local state
-            setCurrentPage(data.current_page);
-            setTotalPages(data.total_pages);
-            setCurrentPerPage(data.per_page);
-            setSortProperty(data.sort_property || null);
-            setSortDirection(data.sort_direction || 'ASC');
-
-            // Update URL params without reloading
-            url = new URL(window.location);
-            url.searchParams.set('page', data.current_page);
-            url.searchParams.set('per_page', data.per_page);
-            if (data.sort_property) {
-              url.searchParams.set('sort_property', data.sort_property);
-              url.searchParams.set('sort_direction', data.sort_direction);
-            } else {
-              url.searchParams["delete"]('sort_property');
-              url.searchParams["delete"]('sort_direction');
-            }
-            window.history.pushState({}, '', url);
-            onDataUpdate(data);
-            _context.next = 29;
+            setDeletedEntities(data);
+            _context.next = 15;
             break;
-          case 26:
-            _context.prev = 26;
-            _context.t0 = _context["catch"](1);
-            console.error('Error fetching data:', _context.t0);
-          case 29:
-            _context.prev = 29;
-            setIsLoading(false);
-            return _context.finish(29);
-          case 32:
+          case 12:
+            _context.prev = 12;
+            _context.t0 = _context["catch"](0);
+            setError(_context.t0.message);
+          case 15:
+            _context.prev = 15;
+            setLoading(false);
+            return _context.finish(15);
+          case 18:
           case "end":
             return _context.stop();
         }
-      }, _callee, null, [[1, 26, 29, 32]]);
+      }, _callee, null, [[0, 12, 15, 18]]);
     }));
-    return function fetchData(_x, _x2, _x3, _x4) {
-      return _ref2.apply(this, arguments);
+    return function fetchDeletedEntities() {
+      return _ref.apply(this, arguments);
     };
   }();
-  var handlePageChange = function handlePageChange(newPage) {
-    fetchData(newPage, currentPerPage, sortProperty, sortDirection);
+  var renderDeletedBy = function renderDeletedBy(htmlContent) {
+    return {
+      __html: htmlContent
+    };
   };
-  var handlePerPageChange = function handlePerPageChange(newPerPage) {
-    fetchData(1, newPerPage, sortProperty, sortDirection);
-  };
-  var handleSortChange = function handleSortChange(property, direction) {
-    setSortProperty(property);
-    setSortDirection(direction);
-    fetchData(currentPage, currentPerPage, property, direction);
-  };
-  if (isLoading) {
+  if (loading) {
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-      className: "d-flex justify-content-center my-3"
+      className: "d-flex justify-content-center align-items-center",
+      style: {
+        height: '200px'
+      }
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       className: "spinner-border text-primary",
       role: "status"
@@ -162,806 +101,84 @@ var CatalogueControls = function CatalogueControls(_ref) {
       className: "visually-hidden"
     }, "Loading...")));
   }
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "mb-3"
-  }, (sortableProperties === null || sortableProperties === void 0 ? void 0 : sortableProperties.length) > 0 && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "mb-3"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_SortControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
-    sortableProperties: sortableProperties,
-    currentProperty: sortProperty,
-    currentDirection: sortDirection,
-    onSortChange: handleSortChange
-  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_PaginationControls__WEBPACK_IMPORTED_MODULE_2__["default"], {
-    currentPage: currentPage,
-    totalPages: totalPages,
-    itemsPerPage: currentPerPage,
-    allowedPerPage: allowedPerPage,
-    onPageChange: handlePageChange,
-    onPerPageChange: handlePerPageChange
-  }));
-};
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (CatalogueControls);
-
-/***/ }),
-
-/***/ "./heritrace/static/js/components/Catalogue/CatalogueInterface.jsx":
-/*!*************************************************************************!*\
-  !*** ./heritrace/static/js/components/Catalogue/CatalogueInterface.jsx ***!
-  \*************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/arrow-up-narrow-wide.js");
-/* harmony import */ var _CatalogueControls__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./CatalogueControls */ "./heritrace/static/js/components/Catalogue/CatalogueControls.jsx");
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
-function _regeneratorRuntime() { "use strict"; /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/facebook/regenerator/blob/main/LICENSE */ _regeneratorRuntime = function _regeneratorRuntime() { return e; }; var t, e = {}, r = Object.prototype, n = r.hasOwnProperty, o = Object.defineProperty || function (t, e, r) { t[e] = r.value; }, i = "function" == typeof Symbol ? Symbol : {}, a = i.iterator || "@@iterator", c = i.asyncIterator || "@@asyncIterator", u = i.toStringTag || "@@toStringTag"; function define(t, e, r) { return Object.defineProperty(t, e, { value: r, enumerable: !0, configurable: !0, writable: !0 }), t[e]; } try { define({}, ""); } catch (t) { define = function define(t, e, r) { return t[e] = r; }; } function wrap(t, e, r, n) { var i = e && e.prototype instanceof Generator ? e : Generator, a = Object.create(i.prototype), c = new Context(n || []); return o(a, "_invoke", { value: makeInvokeMethod(t, r, c) }), a; } function tryCatch(t, e, r) { try { return { type: "normal", arg: t.call(e, r) }; } catch (t) { return { type: "throw", arg: t }; } } e.wrap = wrap; var h = "suspendedStart", l = "suspendedYield", f = "executing", s = "completed", y = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} var p = {}; define(p, a, function () { return this; }); var d = Object.getPrototypeOf, v = d && d(d(values([]))); v && v !== r && n.call(v, a) && (p = v); var g = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(p); function defineIteratorMethods(t) { ["next", "throw", "return"].forEach(function (e) { define(t, e, function (t) { return this._invoke(e, t); }); }); } function AsyncIterator(t, e) { function invoke(r, o, i, a) { var c = tryCatch(t[r], t, o); if ("throw" !== c.type) { var u = c.arg, h = u.value; return h && "object" == _typeof(h) && n.call(h, "__await") ? e.resolve(h.__await).then(function (t) { invoke("next", t, i, a); }, function (t) { invoke("throw", t, i, a); }) : e.resolve(h).then(function (t) { u.value = t, i(u); }, function (t) { return invoke("throw", t, i, a); }); } a(c.arg); } var r; o(this, "_invoke", { value: function value(t, n) { function callInvokeWithMethodAndArg() { return new e(function (e, r) { invoke(t, n, e, r); }); } return r = r ? r.then(callInvokeWithMethodAndArg, callInvokeWithMethodAndArg) : callInvokeWithMethodAndArg(); } }); } function makeInvokeMethod(e, r, n) { var o = h; return function (i, a) { if (o === f) throw Error("Generator is already running"); if (o === s) { if ("throw" === i) throw a; return { value: t, done: !0 }; } for (n.method = i, n.arg = a;;) { var c = n.delegate; if (c) { var u = maybeInvokeDelegate(c, n); if (u) { if (u === y) continue; return u; } } if ("next" === n.method) n.sent = n._sent = n.arg;else if ("throw" === n.method) { if (o === h) throw o = s, n.arg; n.dispatchException(n.arg); } else "return" === n.method && n.abrupt("return", n.arg); o = f; var p = tryCatch(e, r, n); if ("normal" === p.type) { if (o = n.done ? s : l, p.arg === y) continue; return { value: p.arg, done: n.done }; } "throw" === p.type && (o = s, n.method = "throw", n.arg = p.arg); } }; } function maybeInvokeDelegate(e, r) { var n = r.method, o = e.iterator[n]; if (o === t) return r.delegate = null, "throw" === n && e.iterator["return"] && (r.method = "return", r.arg = t, maybeInvokeDelegate(e, r), "throw" === r.method) || "return" !== n && (r.method = "throw", r.arg = new TypeError("The iterator does not provide a '" + n + "' method")), y; var i = tryCatch(o, e.iterator, r.arg); if ("throw" === i.type) return r.method = "throw", r.arg = i.arg, r.delegate = null, y; var a = i.arg; return a ? a.done ? (r[e.resultName] = a.value, r.next = e.nextLoc, "return" !== r.method && (r.method = "next", r.arg = t), r.delegate = null, y) : a : (r.method = "throw", r.arg = new TypeError("iterator result is not an object"), r.delegate = null, y); } function pushTryEntry(t) { var e = { tryLoc: t[0] }; 1 in t && (e.catchLoc = t[1]), 2 in t && (e.finallyLoc = t[2], e.afterLoc = t[3]), this.tryEntries.push(e); } function resetTryEntry(t) { var e = t.completion || {}; e.type = "normal", delete e.arg, t.completion = e; } function Context(t) { this.tryEntries = [{ tryLoc: "root" }], t.forEach(pushTryEntry, this), this.reset(!0); } function values(e) { if (e || "" === e) { var r = e[a]; if (r) return r.call(e); if ("function" == typeof e.next) return e; if (!isNaN(e.length)) { var o = -1, i = function next() { for (; ++o < e.length;) if (n.call(e, o)) return next.value = e[o], next.done = !1, next; return next.value = t, next.done = !0, next; }; return i.next = i; } } throw new TypeError(_typeof(e) + " is not iterable"); } return GeneratorFunction.prototype = GeneratorFunctionPrototype, o(g, "constructor", { value: GeneratorFunctionPrototype, configurable: !0 }), o(GeneratorFunctionPrototype, "constructor", { value: GeneratorFunction, configurable: !0 }), GeneratorFunction.displayName = define(GeneratorFunctionPrototype, u, "GeneratorFunction"), e.isGeneratorFunction = function (t) { var e = "function" == typeof t && t.constructor; return !!e && (e === GeneratorFunction || "GeneratorFunction" === (e.displayName || e.name)); }, e.mark = function (t) { return Object.setPrototypeOf ? Object.setPrototypeOf(t, GeneratorFunctionPrototype) : (t.__proto__ = GeneratorFunctionPrototype, define(t, u, "GeneratorFunction")), t.prototype = Object.create(g), t; }, e.awrap = function (t) { return { __await: t }; }, defineIteratorMethods(AsyncIterator.prototype), define(AsyncIterator.prototype, c, function () { return this; }), e.AsyncIterator = AsyncIterator, e.async = function (t, r, n, o, i) { void 0 === i && (i = Promise); var a = new AsyncIterator(wrap(t, r, n, o), i); return e.isGeneratorFunction(r) ? a : a.next().then(function (t) { return t.done ? t.value : a.next(); }); }, defineIteratorMethods(g), define(g, u, "Generator"), define(g, a, function () { return this; }), define(g, "toString", function () { return "[object Generator]"; }), e.keys = function (t) { var e = Object(t), r = []; for (var n in e) r.push(n); return r.reverse(), function next() { for (; r.length;) { var t = r.pop(); if (t in e) return next.value = t, next.done = !1, next; } return next.done = !0, next; }; }, e.values = values, Context.prototype = { constructor: Context, reset: function reset(e) { if (this.prev = 0, this.next = 0, this.sent = this._sent = t, this.done = !1, this.delegate = null, this.method = "next", this.arg = t, this.tryEntries.forEach(resetTryEntry), !e) for (var r in this) "t" === r.charAt(0) && n.call(this, r) && !isNaN(+r.slice(1)) && (this[r] = t); }, stop: function stop() { this.done = !0; var t = this.tryEntries[0].completion; if ("throw" === t.type) throw t.arg; return this.rval; }, dispatchException: function dispatchException(e) { if (this.done) throw e; var r = this; function handle(n, o) { return a.type = "throw", a.arg = e, r.next = n, o && (r.method = "next", r.arg = t), !!o; } for (var o = this.tryEntries.length - 1; o >= 0; --o) { var i = this.tryEntries[o], a = i.completion; if ("root" === i.tryLoc) return handle("end"); if (i.tryLoc <= this.prev) { var c = n.call(i, "catchLoc"), u = n.call(i, "finallyLoc"); if (c && u) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } else if (c) { if (this.prev < i.catchLoc) return handle(i.catchLoc, !0); } else { if (!u) throw Error("try statement without catch or finally"); if (this.prev < i.finallyLoc) return handle(i.finallyLoc); } } } }, abrupt: function abrupt(t, e) { for (var r = this.tryEntries.length - 1; r >= 0; --r) { var o = this.tryEntries[r]; if (o.tryLoc <= this.prev && n.call(o, "finallyLoc") && this.prev < o.finallyLoc) { var i = o; break; } } i && ("break" === t || "continue" === t) && i.tryLoc <= e && e <= i.finallyLoc && (i = null); var a = i ? i.completion : {}; return a.type = t, a.arg = e, i ? (this.method = "next", this.next = i.finallyLoc, y) : this.complete(a); }, complete: function complete(t, e) { if ("throw" === t.type) throw t.arg; return "break" === t.type || "continue" === t.type ? this.next = t.arg : "return" === t.type ? (this.rval = this.arg = t.arg, this.method = "return", this.next = "end") : "normal" === t.type && e && (this.next = e), y; }, finish: function finish(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.finallyLoc === t) return this.complete(r.completion, r.afterLoc), resetTryEntry(r), y; } }, "catch": function _catch(t) { for (var e = this.tryEntries.length - 1; e >= 0; --e) { var r = this.tryEntries[e]; if (r.tryLoc === t) { var n = r.completion; if ("throw" === n.type) { var o = n.arg; resetTryEntry(r); } return o; } } throw Error("illegal catch attempt"); }, delegateYield: function delegateYield(e, r, n) { return this.delegate = { iterator: values(e), resultName: r, nextLoc: n }, "next" === this.method && (this.arg = t), y; } }, e; }
-function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
-function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
-function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
-function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
-function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
-function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
-function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
-function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
-function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
-
-
-
-var CatalogueInterface = function CatalogueInterface(_ref) {
-  var _classes$find;
-  var initialClasses = _ref.initialClasses,
-    initialSelectedClass = _ref.initialSelectedClass,
-    initialPage = _ref.initialPage,
-    initialPerPage = _ref.initialPerPage,
-    initialTotalPages = _ref.initialTotalPages,
-    allowedPerPage = _ref.allowedPerPage,
-    initialSortableProperties = _ref.sortableProperties,
-    initialSortProperty = _ref.initialSortProperty,
-    initialSortDirection = _ref.initialSortDirection;
-  var urlParams = new URLSearchParams(window.location.search);
-  var _useState = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialClasses),
-    _useState2 = _slicedToArray(_useState, 2),
-    classes = _useState2[0],
-    setClasses = _useState2[1];
-  var _useState3 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(urlParams.get('class') || initialSelectedClass || (initialClasses.length > 0 ? initialClasses[0].uri : null)),
-    _useState4 = _slicedToArray(_useState3, 2),
-    selectedClass = _useState4[0],
-    setSelectedClass = _useState4[1];
-  var _useState5 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialClasses),
-    _useState6 = _slicedToArray(_useState5, 2),
-    filteredClasses = _useState6[0],
-    setFilteredClasses = _useState6[1];
-  var _useState7 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false),
-    _useState8 = _slicedToArray(_useState7, 2),
-    isLoading = _useState8[0],
-    setIsLoading = _useState8[1];
-  var _useState9 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)([]),
-    _useState10 = _slicedToArray(_useState9, 2),
-    entities = _useState10[0],
-    setEntities = _useState10[1];
-  var _useState11 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(urlParams.get('sort_direction') || 'ASC'),
-    _useState12 = _slicedToArray(_useState11, 2),
-    sortDirection = _useState12[0],
-    setSortDirection = _useState12[1];
-  var _useState13 = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(initialSortableProperties || []),
-    _useState14 = _slicedToArray(_useState13, 2),
-    sortableProperties = _useState14[0],
-    setSortableProperties = _useState14[1];
-  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
-    var sorted = _toConsumableArray(classes).sort(function (a, b) {
-      return sortDirection === 'ASC' ? a.label.localeCompare(b.label) : b.label.localeCompare(a.label);
-    });
-    setFilteredClasses(sorted);
-  }, [classes, sortDirection]);
-  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
-    var fetchEntitiesAndProperties = /*#__PURE__*/function () {
-      var _ref2 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
-        var _sortableProperties$, params, response, data, url;
-        return _regeneratorRuntime().wrap(function _callee$(_context) {
-          while (1) switch (_context.prev = _context.next) {
-            case 0:
-              if (selectedClass) {
-                _context.next = 2;
-                break;
-              }
-              return _context.abrupt("return");
-            case 2:
-              setIsLoading(true);
-              _context.prev = 3;
-              params = new URLSearchParams({
-                "class": selectedClass,
-                page: '1',
-                per_page: initialPerPage,
-                sort_property: initialSortProperty || ((_sortableProperties$ = sortableProperties[0]) === null || _sortableProperties$ === void 0 ? void 0 : _sortableProperties$.property),
-                sort_direction: initialSortDirection || 'ASC'
-              });
-              _context.next = 7;
-              return fetch("/api/catalogue?".concat(params));
-            case 7:
-              response = _context.sent;
-              _context.next = 10;
-              return response.json();
-            case 10:
-              data = _context.sent;
-              setEntities(data.entities);
-              setSortableProperties(data.sortable_properties);
-              url = new URL(window.location);
-              url.searchParams.set('class', selectedClass);
-              url.searchParams.set('page', '1');
-              window.history.pushState({}, '', url);
-              _context.next = 22;
-              break;
-            case 19:
-              _context.prev = 19;
-              _context.t0 = _context["catch"](3);
-              console.error('Error fetching entities:', _context.t0);
-            case 22:
-              _context.prev = 22;
-              setIsLoading(false);
-              return _context.finish(22);
-            case 25:
-            case "end":
-              return _context.stop();
-          }
-        }, _callee, null, [[3, 19, 22, 25]]);
-      }));
-      return function fetchEntitiesAndProperties() {
-        return _ref2.apply(this, arguments);
-      };
-    }();
-    fetchEntitiesAndProperties();
-  }, [selectedClass]);
-  var handleClassClick = /*#__PURE__*/function () {
-    var _ref3 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2(classUri) {
-      var response, data, url;
-      return _regeneratorRuntime().wrap(function _callee2$(_context2) {
-        while (1) switch (_context2.prev = _context2.next) {
-          case 0:
-            setIsLoading(true);
-            setSelectedClass(classUri);
-            _context2.prev = 2;
-            _context2.next = 5;
-            return fetch("/api/catalogue?class=".concat(encodeURIComponent(classUri), "&page=1&per_page=").concat(initialPerPage));
-          case 5:
-            response = _context2.sent;
-            _context2.next = 8;
-            return response.json();
-          case 8:
-            data = _context2.sent;
-            setEntities(data.entities);
-            setSortableProperties(data.sortable_properties);
-            url = new URL(window.location);
-            url.searchParams.set('class', classUri);
-            url.searchParams.set('page', '1');
-            window.history.pushState({}, '', url);
-            _context2.next = 20;
-            break;
-          case 17:
-            _context2.prev = 17;
-            _context2.t0 = _context2["catch"](2);
-            console.error('Error fetching entities:', _context2.t0);
-          case 20:
-            _context2.prev = 20;
-            setIsLoading(false);
-            return _context2.finish(20);
-          case 23:
-          case "end":
-            return _context2.stop();
-        }
-      }, _callee2, null, [[2, 17, 20, 23]]);
-    }));
-    return function handleClassClick(_x) {
-      return _ref3.apply(this, arguments);
-    };
-  }();
-  var handleDataUpdate = function handleDataUpdate(data) {
-    setEntities(data.entities);
-  };
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "row"
+  if (error) {
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "alert alert-danger",
+      role: "alert"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+      className: "alert-heading"
+    }, "Error"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+      className: "mb-0"
+    }, error));
+  }
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "d-flex align-items-center justify-content-between mb-4"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h2", {
+    className: "mb-2"
+  }, "Time Vault - Deleted Resources"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    className: "text-muted"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
+    className: "bi bi-info-circle me-2"
+  }), "Here you can find and restore deleted resources"))), deletedEntities.length === 0 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "alert alert-info",
+    role: "alert"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "col-md-4"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "card mb-4"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "card-header bg-light"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "d-flex justify-content-between align-items-center"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h5", {
+    className: "d-flex"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
+    className: "bi bi-clock-history fs-4 me-3"
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h4", {
+    className: "alert-heading"
+  }, "No Deleted Resources Found"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
     className: "mb-0"
-  }, "Categories"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    className: "btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center",
-    style: {
-      width: '32px',
-      height: '32px',
-      padding: 0
-    },
-    onClick: function onClick() {
-      return setSortDirection(function (prev) {
-        return prev === 'ASC' ? 'DESC' : 'ASC';
-      });
-    },
-    title: "Sort ".concat(sortDirection === 'ASC' ? 'A-Z' : 'Z-A')
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_2__["default"], {
-    size: 16,
-    style: {
-      transform: sortDirection === 'DESC' ? 'scaleY(-1)' : 'none'
-    }
-  })))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "card-body p-0"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "list-group list-group-flush"
-  }, filteredClasses.map(function (cls) {
-    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-      key: cls.uri,
-      onClick: function onClick() {
-        return handleClassClick(cls.uri);
-      },
-      className: "list-group-item list-group-item-action d-flex justify-content-between align-items-center ".concat(cls.uri === selectedClass ? 'active' : '')
-    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", null, cls.label), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
-      className: "badge bg-primary rounded-pill"
-    }, cls.count));
-  }))))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "col-md-8"
-  }, selectedClass && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h3", {
-    className: "mb-3"
-  }, "Items in category: ", (_classes$find = classes.find(function (c) {
-    return c.uri === selectedClass;
-  })) === null || _classes$find === void 0 ? void 0 : _classes$find.label), isLoading ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "d-flex justify-content-center my-3"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "spinner-border text-primary",
-    role: "status"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
-    className: "visually-hidden"
-  }, "Loading..."))) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CatalogueControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
-    initialPage: initialPage,
-    initialPerPage: initialPerPage,
-    totalPages: initialTotalPages,
-    allowedPerPage: allowedPerPage,
-    sortableProperties: sortableProperties,
-    initialSortProperty: sortableProperties.length > 0 ? sortableProperties[0].property : null,
-    initialSortDirection: initialSortDirection,
-    selectedClass: selectedClass,
-    onDataUpdate: handleDataUpdate
-  }), entities.length > 0 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "list-group"
-  }, entities.map(function (entity) {
-    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", {
-      key: entity.uri,
-      href: "/about/".concat(encodeURIComponent(entity.uri)),
-      className: "list-group-item list-group-item-action"
-    }, entity.label);
-  })) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
-    className: "alert alert-info"
-  }, "No entities found for this class")))));
-};
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (CatalogueInterface);
-
-/***/ }),
-
-/***/ "./heritrace/static/js/components/Catalogue/PaginationControls.jsx":
-/*!*************************************************************************!*\
-  !*** ./heritrace/static/js/components/Catalogue/PaginationControls.jsx ***!
-  \*************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/chevron-first.js");
-/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/chevron-left.js");
-/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/chevron-right.js");
-/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/chevron-last.js");
-
-
-var PaginationControls = function PaginationControls(_ref) {
-  var currentPage = _ref.currentPage,
-    totalPages = _ref.totalPages,
-    itemsPerPage = _ref.itemsPerPage,
-    allowedPerPage = _ref.allowedPerPage,
-    onPageChange = _ref.onPageChange,
-    onPerPageChange = _ref.onPerPageChange;
-  var handlePerPageChange = function handlePerPageChange(e) {
-    var newPerPage = parseInt(e.target.value);
-    onPerPageChange(newPerPage);
-  };
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "d-flex justify-content-between align-items-center"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "d-flex align-items-center"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
-    htmlFor: "per_page",
-    className: "form-label me-2 mb-0"
-  }, "Items per page:"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
-    id: "per_page",
-    className: "form-select form-select-sm",
-    style: {
-      width: 'auto'
-    },
-    value: itemsPerPage,
-    onChange: handlePerPageChange
-  }, allowedPerPage.map(function (pp) {
-    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
-      key: pp,
-      value: pp
-    }, pp);
-  }))), totalPages > 1 && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("nav", {
-    "aria-label": "Pagination"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("ul", {
-    className: "pagination pagination-sm mb-0"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("li", {
-    className: "page-item ".concat(currentPage === 1 ? 'disabled' : '')
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    className: "page-link",
-    onClick: function onClick() {
-      return onPageChange(1);
-    },
-    disabled: currentPage === 1
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_1__["default"], {
-    size: 16
-  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("li", {
-    className: "page-item ".concat(currentPage === 1 ? 'disabled' : '')
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    className: "page-link",
-    onClick: function onClick() {
-      return onPageChange(currentPage - 1);
-    },
-    disabled: currentPage === 1
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_2__["default"], {
-    size: 16
-  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("li", {
-    className: "page-item active"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
-    className: "page-link"
-  }, currentPage, " / ", totalPages)), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("li", {
-    className: "page-item ".concat(currentPage === totalPages ? 'disabled' : '')
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    className: "page-link",
-    onClick: function onClick() {
-      return onPageChange(currentPage + 1);
-    },
-    disabled: currentPage === totalPages
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_3__["default"], {
-    size: 16
-  }))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("li", {
-    className: "page-item ".concat(currentPage === totalPages ? 'disabled' : '')
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    className: "page-link",
-    onClick: function onClick() {
-      return onPageChange(totalPages);
-    },
-    disabled: currentPage === totalPages
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_4__["default"], {
-    size: 16
-  }))))));
-};
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (PaginationControls);
-
-/***/ }),
-
-/***/ "./heritrace/static/js/components/Catalogue/SortControls.jsx":
-/*!*******************************************************************!*\
-  !*** ./heritrace/static/js/components/Catalogue/SortControls.jsx ***!
-  \*******************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/arrow-up-narrow-wide.js");
-
-
-var SortControls = function SortControls(_ref) {
-  var sortableProperties = _ref.sortableProperties,
-    currentProperty = _ref.currentProperty,
-    currentDirection = _ref.currentDirection,
-    onSortChange = _ref.onSortChange;
-  if (!sortableProperties || sortableProperties.length === 0) {
-    return null;
-  }
-  var handlePropertyChange = function handlePropertyChange(e) {
-    var newProperty = e.target.value;
-    onSortChange(newProperty, currentDirection);
-  };
-  var toggleDirection = function toggleDirection() {
-    var newDirection = currentDirection === 'ASC' ? 'DESC' : 'ASC';
-    onSortChange(currentProperty, newDirection);
-  };
-  var getSortLabel = function getSortLabel() {
-    var _currentProp$sortType;
-    var currentProp = sortableProperties.find(function (p) {
-      return p.property === currentProperty;
-    });
-    if (!currentProp) return 'Sort';
-
-    // Se c'è una shape, indica che è una referenza a un'entità (label)
-    if (currentProp.shape) {
-      return 'Sort';
-    }
-    // Controlla il tipo di dato dalla configurazione di sortableBy
-    switch ((_currentProp$sortType = currentProp.sortType) === null || _currentProp$sortType === void 0 ? void 0 : _currentProp$sortType.toLowerCase()) {
-      case 'date':
-      case 'number':
-      default:
-        return 'Sort';
-    }
-  };
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "d-flex align-items-center gap-2"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
-    htmlFor: "sort_property",
-    className: "form-label mb-0"
-  }, "Sort by:"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
-    id: "sort_property",
-    className: "form-select form-select-sm",
-    style: {
-      width: 'auto'
-    },
-    value: currentProperty || '',
-    onChange: handlePropertyChange
-  }, sortableProperties.map(function (prop) {
-    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
-      key: prop.property,
-      value: prop.property
-    }, prop.displayName);
-  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    className: "btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center toggleSortDirection",
-    onClick: toggleDirection,
-    title: "Change sort direction",
-    style: {
-      width: '32px',
-      height: '32px',
-      padding: 0
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_1__["default"], {
-    size: 16,
-    style: {
-      transform: currentDirection === 'DESC' ? 'scaleY(-1)' : 'none'
-    }
+  }, "The Time Vault is currently empty. When you delete resources, they will be stored here and can be restored")))) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "row row-cols-1 row-cols-md-2 g-4"
+  }, deletedEntities.map(function (entity) {
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "col",
+      key: entity.uri
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "card h-100 shadow-sm"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "card-body"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h5", {
+      className: "card-title text-primary mb-3"
+    }, entity.label || entity.uri), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "mb-3"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+      className: "mb-1"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
+      className: "bi bi-tag me-2"
+    }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, "Resource Type:"), " ", entity.type), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+      className: "mb-1"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
+      className: "bi bi-person me-2"
+    }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, "Deleted By:"), ' ', /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+      dangerouslySetInnerHTML: renderDeletedBy(entity.deletedBy)
+    })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+      className: "mb-1"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
+      className: "bi bi-calendar me-2"
+    }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("strong", null, "Deletion Time:"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("br", null), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+      className: "ms-4"
+    }, new Date(entity.deletionTime).toLocaleString()))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "d-flex flex-column gap-2"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", {
+      href: "/entity-version/".concat(encodeURIComponent(entity.uri), "/").concat(entity.lastValidSnapshotTime),
+      className: "btn btn-outline-primary",
+      title: "View the entity's state before deletion"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
+      className: "bi bi-clock-history me-2"
+    }), "View Last Valid State"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", {
+      href: "/restore-version/".concat(encodeURIComponent(entity.uri), "/").concat(entity.lastValidSnapshotTime),
+      className: "btn btn-primary",
+      title: "Restore this entity to its last valid state"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
+      className: "bi bi-arrow-counterclockwise me-2"
+    }), "Restore")))));
   })));
-};
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (SortControls);
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/Icon.js":
-/*!****************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/Icon.js ***!
-  \****************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ Icon)
-/* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _defaultAttributes_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./defaultAttributes.js */ "./node_modules/lucide-react/dist/esm/defaultAttributes.js");
-/* harmony import */ var _shared_src_utils_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./shared/src/utils.js */ "./node_modules/lucide-react/dist/esm/shared/src/utils.js");
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-
-
-
-
-const Icon = (0,react__WEBPACK_IMPORTED_MODULE_0__.forwardRef)(
-  ({
-    color = "currentColor",
-    size = 24,
-    strokeWidth = 2,
-    absoluteStrokeWidth,
-    className = "",
-    children,
-    iconNode,
-    ...rest
-  }, ref) => {
-    return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(
-      "svg",
-      {
-        ref,
-        ..._defaultAttributes_js__WEBPACK_IMPORTED_MODULE_1__["default"],
-        width: size,
-        height: size,
-        stroke: color,
-        strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
-        className: (0,_shared_src_utils_js__WEBPACK_IMPORTED_MODULE_2__.mergeClasses)("lucide", className),
-        ...rest
-      },
-      [
-        ...iconNode.map(([tag, attrs]) => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(tag, attrs)),
-        ...Array.isArray(children) ? children : [children]
-      ]
-    );
-  }
-);
-
-
-//# sourceMappingURL=Icon.js.map
-
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/createLucideIcon.js":
-/*!****************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/createLucideIcon.js ***!
-  \****************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ createLucideIcon)
-/* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _shared_src_utils_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./shared/src/utils.js */ "./node_modules/lucide-react/dist/esm/shared/src/utils.js");
-/* harmony import */ var _Icon_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Icon.js */ "./node_modules/lucide-react/dist/esm/Icon.js");
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-
-
-
-
-const createLucideIcon = (iconName, iconNode) => {
-  const Component = (0,react__WEBPACK_IMPORTED_MODULE_0__.forwardRef)(
-    ({ className, ...props }, ref) => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_Icon_js__WEBPACK_IMPORTED_MODULE_1__["default"], {
-      ref,
-      iconNode,
-      className: (0,_shared_src_utils_js__WEBPACK_IMPORTED_MODULE_2__.mergeClasses)(`lucide-${(0,_shared_src_utils_js__WEBPACK_IMPORTED_MODULE_2__.toKebabCase)(iconName)}`, className),
-      ...props
-    })
-  );
-  Component.displayName = `${iconName}`;
-  return Component;
-};
-
-
-//# sourceMappingURL=createLucideIcon.js.map
-
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/defaultAttributes.js":
-/*!*****************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/defaultAttributes.js ***!
-  \*****************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ defaultAttributes)
-/* harmony export */ });
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-var defaultAttributes = {
-  xmlns: "http://www.w3.org/2000/svg",
-  width: 24,
-  height: 24,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-};
-
-
-//# sourceMappingURL=defaultAttributes.js.map
-
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/icons/arrow-up-narrow-wide.js":
-/*!**************************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/icons/arrow-up-narrow-wide.js ***!
-  \**************************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ ArrowUpNarrowWide)
-/* harmony export */ });
-/* harmony import */ var _createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../createLucideIcon.js */ "./node_modules/lucide-react/dist/esm/createLucideIcon.js");
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-
-
-const ArrowUpNarrowWide = (0,_createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__["default"])("ArrowUpNarrowWide", [
-  ["path", { d: "m3 8 4-4 4 4", key: "11wl7u" }],
-  ["path", { d: "M7 4v16", key: "1glfcx" }],
-  ["path", { d: "M11 12h4", key: "q8tih4" }],
-  ["path", { d: "M11 16h7", key: "uosisv" }],
-  ["path", { d: "M11 20h10", key: "jvxblo" }]
-]);
-
-
-//# sourceMappingURL=arrow-up-narrow-wide.js.map
-
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/icons/chevron-first.js":
-/*!*******************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/icons/chevron-first.js ***!
-  \*******************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ ChevronFirst)
-/* harmony export */ });
-/* harmony import */ var _createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../createLucideIcon.js */ "./node_modules/lucide-react/dist/esm/createLucideIcon.js");
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-
-
-const ChevronFirst = (0,_createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__["default"])("ChevronFirst", [
-  ["path", { d: "m17 18-6-6 6-6", key: "1yerx2" }],
-  ["path", { d: "M7 6v12", key: "1p53r6" }]
-]);
-
-
-//# sourceMappingURL=chevron-first.js.map
-
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/icons/chevron-last.js":
-/*!******************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/icons/chevron-last.js ***!
-  \******************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ ChevronLast)
-/* harmony export */ });
-/* harmony import */ var _createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../createLucideIcon.js */ "./node_modules/lucide-react/dist/esm/createLucideIcon.js");
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-
-
-const ChevronLast = (0,_createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__["default"])("ChevronLast", [
-  ["path", { d: "m7 18 6-6-6-6", key: "lwmzdw" }],
-  ["path", { d: "M17 6v12", key: "1o0aio" }]
-]);
-
-
-//# sourceMappingURL=chevron-last.js.map
-
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/icons/chevron-left.js":
-/*!******************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/icons/chevron-left.js ***!
-  \******************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ ChevronLeft)
-/* harmony export */ });
-/* harmony import */ var _createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../createLucideIcon.js */ "./node_modules/lucide-react/dist/esm/createLucideIcon.js");
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-
-
-const ChevronLeft = (0,_createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__["default"])("ChevronLeft", [
-  ["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]
-]);
-
-
-//# sourceMappingURL=chevron-left.js.map
-
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/icons/chevron-right.js":
-/*!*******************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/icons/chevron-right.js ***!
-  \*******************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (/* binding */ ChevronRight)
-/* harmony export */ });
-/* harmony import */ var _createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../createLucideIcon.js */ "./node_modules/lucide-react/dist/esm/createLucideIcon.js");
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-
-
-const ChevronRight = (0,_createLucideIcon_js__WEBPACK_IMPORTED_MODULE_0__["default"])("ChevronRight", [
-  ["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]
-]);
-
-
-//# sourceMappingURL=chevron-right.js.map
-
-
-/***/ }),
-
-/***/ "./node_modules/lucide-react/dist/esm/shared/src/utils.js":
-/*!****************************************************************!*\
-  !*** ./node_modules/lucide-react/dist/esm/shared/src/utils.js ***!
-  \****************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   mergeClasses: () => (/* binding */ mergeClasses),
-/* harmony export */   toKebabCase: () => (/* binding */ toKebabCase)
-/* harmony export */ });
-/**
- * @license lucide-react v0.460.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-
-const toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
-const mergeClasses = (...classes) => classes.filter((className, index, array) => {
-  return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
-}).join(" ").trim();
-
-
-//# sourceMappingURL=utils.js.map
-
+}
+;
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (DeletedEntitiesInterface);
 
 /***/ }),
 
@@ -34476,58 +33693,24 @@ if (false) {} else {
 var __webpack_exports__ = {};
 // This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
 (() => {
-/*!************************************************************!*\
-  !*** ./heritrace/static/js/components/Catalogue/index.jsx ***!
-  \************************************************************/
+/*!******************************************************************!*\
+  !*** ./heritrace/static/js/components/DeletedEntities/index.jsx ***!
+  \******************************************************************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var react_dom_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom/client */ "./node_modules/react-dom/client.js");
-/* harmony import */ var _CatalogueInterface__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./CatalogueInterface */ "./heritrace/static/js/components/Catalogue/CatalogueInterface.jsx");
+/* harmony import */ var _DeletedEntitiesInterface__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./DeletedEntitiesInterface */ "./heritrace/static/js/components/DeletedEntities/DeletedEntitiesInterface.jsx");
 
 
 
-
-// Get the catalogue element
-var catalogueElement = document.getElementById('catalogue');
-if (catalogueElement) {
-  // Get data from the page
-  var availableClasses = catalogueElement.dataset.availableClasses ? JSON.parse(catalogueElement.dataset.availableClasses) : [];
-  var _catalogueElement$dat = catalogueElement.dataset,
-    selectedClass = _catalogueElement$dat.selectedClass,
-    initialPage = _catalogueElement$dat.initialPage,
-    initialPerPage = _catalogueElement$dat.initialPerPage,
-    totalPages = _catalogueElement$dat.totalPages,
-    allowedPerPage = _catalogueElement$dat.allowedPerPage,
-    sortableProperties = _catalogueElement$dat.sortableProperties,
-    initialSortProperty = _catalogueElement$dat.initialSortProperty,
-    initialSortDirection = _catalogueElement$dat.initialSortDirection;
-
-  // Parse JSON data
-  var parsedAllowedPerPage = JSON.parse(allowedPerPage);
-  var parsedSortableProperties = JSON.parse(sortableProperties);
-
-  // Convert string attributes to appropriate types
-  var parsedInitialPage = parseInt(initialPage, 10);
-  var parsedInitialPerPage = parseInt(initialPerPage, 10);
-  var parsedTotalPages = parseInt(totalPages, 10);
-
-  // Create root and render
-  var root = react_dom_client__WEBPACK_IMPORTED_MODULE_1__.createRoot(catalogueElement);
-  root.render(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react__WEBPACK_IMPORTED_MODULE_0__.StrictMode, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CatalogueInterface__WEBPACK_IMPORTED_MODULE_2__["default"], {
-    initialClasses: availableClasses,
-    initialSelectedClass: selectedClass,
-    initialPage: parsedInitialPage,
-    initialPerPage: parsedInitialPerPage,
-    initialTotalPages: parsedTotalPages,
-    allowedPerPage: parsedAllowedPerPage,
-    sortableProperties: parsedSortableProperties,
-    initialSortProperty: initialSortProperty,
-    initialSortDirection: initialSortDirection
-  })));
+var deletedEntitiesElement = document.getElementById('deleted-entities-root');
+if (deletedEntitiesElement) {
+  var root = react_dom_client__WEBPACK_IMPORTED_MODULE_1__.createRoot(deletedEntitiesElement);
+  root.render(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react__WEBPACK_IMPORTED_MODULE_0__.StrictMode, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_DeletedEntitiesInterface__WEBPACK_IMPORTED_MODULE_2__["default"], null)));
 }
 })();
 
 /******/ })()
 ;
-//# sourceMappingURL=catalogue.bundle.js.map
+//# sourceMappingURL=deletedEntities.bundle.js.map

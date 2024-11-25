@@ -195,7 +195,7 @@
     <nav class="shelf">
     <a class="book home-page" href="{{ url_for('index') }}" alt="{{_('Go to the home')}}">Home</a>
     <a class="book about-us" href="{{ url_for('catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
-    <a class="book contact" href="{{ url_for('create_entity') }}" alt="{{_('Add New Record')}}">{{_('Add New Record')}}</a>
+    <a class="book contact" href="{{ url_for('create_entity') }}" alt="{{_('New Record')}}">{{_('New Record')}}</a>
 
         {% if current_user.is_authenticated %}
             <a class="book faq" href="{{ url_for('logout') }}">{{ _('Logout') }}</a>

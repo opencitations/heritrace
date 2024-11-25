@@ -382,7 +382,7 @@ def logout():
     flash(gettext('You have been logged out'), 'info')
     return redirect(url_for('index'))
 
-@app.route('/login_page')
+@app.route('/login')
 def login_page():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -1534,8 +1534,92 @@ def entity_version(entity_uri, timestamp):
         modifications=modifications,
         grouped_triples=grouped_triples,
         subject_classes=subject_classes,
-        version_number=version_number
+        version_number=version_number,
+        version=version
     )
+
+@app.route('/time-vault')
+@login_required
+def time_vault():
+    """Render the Time Vault page showing deleted entities."""
+    return render_template('time_vault.jinja')
+
+@app.route('/api/deleted-entities')
+@login_required
+def get_deleted_entities():
+    """
+    API endpoint to retrieve deleted entities.
+    Returns entities whose last snapshot is an invalidation snapshot.
+    """
+    # Query per ottenere le entità cancellate dalla provenance
+    prov_query = """
+    SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
+    WHERE {
+        ?lastSnapshot a <http://www.w3.org/ns/prov#Entity> ;
+                     <http://www.w3.org/ns/prov#specializationOf> ?entity ;
+                     <http://www.w3.org/ns/prov#generatedAtTime> ?deletionTime ;
+                     <http://www.w3.org/ns/prov#invalidatedAtTime> ?invalidationTime ;
+                     <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastValidSnapshot.
+        
+        ?lastValidSnapshot <http://www.w3.org/ns/prov#generatedAtTime> ?lastValidSnapshotTime .
+
+        OPTIONAL { ?lastSnapshot  <http://www.w3.org/ns/prov#wasAttributedTo> ?agent . }
+        
+        FILTER NOT EXISTS {
+            ?laterSnapshot <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastSnapshot .
+        }
+    }
+    ORDER BY DESC(?deletionTime)
+    """
+
+    provenance_sparql.setQuery(prov_query)
+    provenance_sparql.setReturnFormat(JSON)
+    prov_results = provenance_sparql.query().convert()
+    deleted_entities = []
+    entity_uris = []
+
+    for result in prov_results["results"]["bindings"]:
+        entity_uri = result["entity"]["value"]
+        deletion_time = result["deletionTime"]["value"]
+        deleted_by = result["agent"]["value"]
+        last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
+
+        deleted_entities.append({
+            "uri": entity_uri,
+            "deletionTime": deletion_time,
+            "deletedBy": custom_filter.format_agent_reference(deleted_by),
+            "lastValidSnapshotTime": last_valid_snapshot_time
+        })
+        entity_uris.append(f"<{entity_uri}>")
+
+    if not entity_uris:
+        return jsonify([])
+
+    types_query = f"""
+        SELECT ?entity ?type
+        WHERE {{
+            VALUES ?entity {{{" ".join(entity_uris)}}}
+            ?entity a ?type .
+        }}
+    """
+
+    sparql.setQuery(types_query)
+    sparql.setReturnFormat(JSON)
+    types_results = sparql.query().convert()
+    entity_types = {}
+    for result in types_results["results"]["bindings"]:
+        entity_uri = result["entity"]["value"]
+        entity_type = result["type"]["value"]
+        entity_types[entity_uri] = entity_type
+
+    for entity in deleted_entities:
+        entity_uri = entity["uri"]
+        if entity_uri in entity_types:
+            entity_type = entity_types[entity_uri]
+            entity["type"] = custom_filter.human_readable_predicate(entity_type, [entity_type])
+            entity["label"] = custom_filter.human_readable_entity(entity_uri, [entity_type])
+
+    return jsonify(deleted_entities)
 
 def fetch_data_graph_recursively(subject_uri, max_depth=5, current_depth=0, visited=None):
     """
