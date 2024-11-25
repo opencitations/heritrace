@@ -61,6 +61,7 @@ class Filter:
 
     def human_readable_entity(self, uri: str, entity_classes: list, graph: Graph|ConjunctiveGraph = None) -> str:
         subject_classes = [str(subject_class) for subject_class in entity_classes]
+
         # Cerca prima una configurazione fetchUriDisplay
         uri_display = self.get_fetch_uri_display(uri, subject_classes, graph)
         if uri_display:

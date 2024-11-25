@@ -877,49 +877,85 @@ def generate_unique_uri(entity_type: URIRef|str =None):
 @login_required
 def about(subject):
     decoded_subject = urllib.parse.unquote(subject)
-    agnostic_entity = AgnosticEntity(res=decoded_subject, config=change_tracking_config, related_entities_history=False)
-    history, _ = agnostic_entity.get_history(include_prov_metadata=True)
+    agnostic_entity = AgnosticEntity(res=decoded_subject, config=change_tracking_config, related_entities_history=True)
+    history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+    
+    is_deleted = False
+    context_snapshot = None
+    subject_classes = []
+    
+    if history.get(decoded_subject):
+        sorted_timestamps = sorted(history[decoded_subject].keys())
+        latest_snapshot = history[decoded_subject][sorted_timestamps[-1]]
+        latest_metadata = next(
+            (meta for _, meta in provenance[decoded_subject].items() 
+             if meta['generatedAtTime'] == sorted_timestamps[-1]),
+            None
+        )
+        
+        is_deleted = latest_metadata and 'invalidatedAtTime' in latest_metadata
+        
+        if is_deleted and len(sorted_timestamps) > 1:
+            context_snapshot = history[decoded_subject][sorted_timestamps[-2]]
+            subject_classes = [o for _, _, o in context_snapshot.triples((URIRef(decoded_subject), RDF.type, None))]
+        else:
+            context_snapshot = latest_snapshot
+    
     g = Graph()
-
-    if is_virtuoso():
-        query = f"""
-        SELECT ?predicate ?object WHERE {{
-            GRAPH ?g {{
+    grouped_triples = {}
+    can_be_added = []
+    can_be_deleted = []
+    datatypes = {}
+    mandatory_values = {}
+    optional_values = {}
+    valid_predicates = []
+    entity_type = None
+    
+    if not is_deleted:
+        if is_virtuoso():
+            query = f"""
+            SELECT ?predicate ?object WHERE {{
+                GRAPH ?g {{
+                    <{decoded_subject}> ?predicate ?object.
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            }}
+            """
+        else:
+            query = f"""
+            SELECT ?predicate ?object WHERE {{
                 <{decoded_subject}> ?predicate ?object.
             }}
-            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-        }}
-        """
-    else:
-        query = f"""
-        SELECT ?predicate ?object WHERE {{
-            <{decoded_subject}> ?predicate ?object.
-        }}
-        """
+            """
 
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    triples = sparql.query().convert().get("results", {}).get("bindings", [])
-    for triple in triples:
-        value = Literal(triple['object']['value'], datatype=URIRef(triple['object']['datatype'])) if triple['object']['type'] == 'literal' and 'datatype' in triple['object'] else Literal(triple['object']['value'], datatype=XSD.string) if triple['object']['type'] == 'literal' else URIRef(triple['object']['value'])
-        g.add((URIRef(decoded_subject), URIRef(triple['predicate']['value']), value))
-    triples = list(g.triples((None, None, None)))
-
-    can_be_added, can_be_deleted, datatypes, mandatory_values, optional_values, subject_classes, valid_predicates = get_valid_predicates(triples)
-    grouped_triples, relevant_properties = get_grouped_triples(subject, triples, subject_classes, valid_predicates)
-
-    can_be_added = [uri for uri in can_be_added if uri in relevant_properties]
-    can_be_deleted = [uri for uri in can_be_deleted if uri in relevant_properties]
-
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        triples = sparql.query().convert().get("results", {}).get("bindings", [])
+        
+        for triple in triples:
+            value = (Literal(triple['object']['value'], datatype=URIRef(triple['object']['datatype'])) 
+                    if triple['object']['type'] == 'literal' and 'datatype' in triple['object'] 
+                    else Literal(triple['object']['value'], datatype=XSD.string) 
+                    if triple['object']['type'] == 'literal' 
+                    else URIRef(triple['object']['value']))
+            g.add((URIRef(decoded_subject), URIRef(triple['predicate']['value']), value))
+        
+        triples = list(g.triples((None, None, None)))
+        
+        can_be_added, can_be_deleted, datatypes, mandatory_values, optional_values, subject_classes, valid_predicates = get_valid_predicates(triples)
+        grouped_triples, relevant_properties = get_grouped_triples(subject, triples, subject_classes, valid_predicates)
+        
+        can_be_added = [uri for uri in can_be_added if uri in relevant_properties]
+        can_be_deleted = [uri for uri in can_be_deleted if uri in relevant_properties]
+    
     update_form = UpdateTripleForm()
     create_form = CreateTripleFormWithSelect() if can_be_added else CreateTripleFormWithInput()
     if can_be_added:
         create_form.predicate.choices = [(p, custom_filter.human_readable_predicate(p, subject_classes)) for p in can_be_added]
     
     form_fields = get_cached_form_fields()
-
     entity_types = list(form_fields.keys())
-    # Map predicates to their details and entity types
+    
     predicate_details_map = {}
     for entity_type, predicates in form_fields.items():
         for predicate_uri, details_list in predicates.items():
@@ -929,31 +965,34 @@ def about(subject):
                 predicate_details_map[key] = details
     
     entity_type = str(subject_classes[0]) if subject_classes else None
-
+    
     inverse_references = get_inverse_references(decoded_subject)
 
     return render_template(
         'about.jinja', 
-        subject=decoded_subject, 
-        history=history, 
-        can_be_added=can_be_added, 
-        can_be_deleted=can_be_deleted, 
-        datatypes=datatypes, 
-        update_form=update_form, 
-        create_form=create_form, 
-        mandatory_values=mandatory_values, 
-        optional_values=optional_values, 
-        shacl=True if shacl else False, 
-        grouped_triples=grouped_triples, 
-        subject_classes=[str(s_class) for s_class in subject_classes], 
-        display_rules=display_rules, 
-        form_fields=form_fields, 
-        entity_types=entity_types, 
-        entity_type=entity_type, 
+        subject=decoded_subject,
+        history=history,
+        can_be_added=can_be_added,
+        can_be_deleted=can_be_deleted,
+        datatypes=datatypes,
+        update_form=update_form,
+        create_form=create_form,
+        mandatory_values=mandatory_values,
+        optional_values=optional_values,
+        shacl=True if shacl else False,
+        grouped_triples=grouped_triples,
+        subject_classes=[str(s_class) for s_class in subject_classes],
+        display_rules=display_rules,
+        form_fields=form_fields,
+        entity_types=entity_types,
+        entity_type=entity_type,
         predicate_details_map=predicate_details_map,
         dataset_db_triplestore=app.config['DATASET_DB_TRIPLESTORE'],
         dataset_db_text_index_enabled=app.config['DATASET_DB_TEXT_INDEX_ENABLED'],
-        inverse_references=inverse_references)
+        inverse_references=inverse_references,
+        is_deleted=is_deleted,
+        context=context_snapshot
+    )
 
 def get_inverse_references(subject_uri):
     if is_virtuoso():
@@ -1328,13 +1367,20 @@ def entity_history(entity_uri):
     events = []
     # Sort events by date using convert_to_datetime
     sorted_metadata = sorted(provenance[entity_uri].items(), key=lambda x: convert_to_datetime(x[1]['generatedAtTime']))
+    sorted_timestamps = [convert_to_datetime(meta['generatedAtTime'], stringify=True) for _, meta in sorted_metadata]
+
+    latest_metadata = sorted_metadata[-1][1] if sorted_metadata else None
+    is_latest_deletion = latest_metadata and 'invalidatedAtTime' in latest_metadata
+
+    if is_latest_deletion and len(sorted_timestamps) > 1:
+        context_snapshot = history[entity_uri][sorted_timestamps[-2]]
+    else:
+        context_snapshot = history[entity_uri][sorted_timestamps[-1]]
 
     entity_classes = set()
-    for snapshot in history[entity_uri].values():
-        classes = list(snapshot.triples((URIRef(entity_uri), RDF.type, None)))
-        if classes:
-            for triple in classes:
-                entity_classes.add(str(triple[2]))
+    classes = list(context_snapshot.triples((URIRef(entity_uri), RDF.type, None)))
+    for triple in classes:
+        entity_classes.add(str(triple[2]))
 
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
         date = convert_to_datetime(metadata['generatedAtTime'])
@@ -1358,6 +1404,11 @@ def entity_history(entity_uri):
                 current_snapshot_timestamp=snapshot_timestamp_str
             )
 
+        description = metadata['description'].replace(
+            entity_uri, 
+            custom_filter.human_readable_entity(entity_uri, entity_classes, context_snapshot)
+        )
+
         event = {
             "start_date": {
                 "year": date.year,
@@ -1372,7 +1423,7 @@ def entity_history(entity_uri):
                 "text": f"""
                     <p><strong>{gettext('Responsible agent')}:</strong> {responsible_agent}</p>
                     <p><strong>{gettext('Primary source')}:</strong> {primary_source}</p>
-                    <p><strong>{gettext('Description')}:</strong> {metadata['description'].replace(entity_uri, custom_filter.human_readable_entity(entity_uri, entity_classes))}</p>
+                    <p><strong>{gettext('Description')}:</strong> {description}</p>
                     <div class="modifications mb-3">
                         {modification_text}
                     </div>
@@ -1406,7 +1457,8 @@ def entity_history(entity_uri):
     return render_template('entity_history.jinja', 
                          entity_uri=entity_uri, 
                          timeline_data=timeline_data, 
-                         entity_classes=entity_classes)
+                         entity_classes=entity_classes,
+                         context=context_snapshot)
 
 @app.route('/entity-version/<path:entity_uri>/<timestamp>')
 @login_required
@@ -1418,7 +1470,6 @@ def entity_version(entity_uri, timestamp):
                 dt = dt.replace(tzinfo=timezone.utc)
             return dt if not stringify else dt.isoformat()
         except ValueError:
-            # Handle parsing other date formats if necessary
             return None
 
     try:
@@ -1445,8 +1496,12 @@ def entity_version(entity_uri, timestamp):
     main_entity_history = history.get(entity_uri, {})
     main_entity_provenance = provenance.get(entity_uri, {})
 
-    # Convert the timestamps to datetime objects
-    timestamp_map = {t: convert_to_datetime(t) for t in main_entity_history.keys()}
+    # Convert the timestamps to datetime objects and sort them
+    sorted_timestamps = sorted(
+        main_entity_history.keys(),
+        key=lambda t: convert_to_datetime(t)
+    )
+    timestamp_map = {t: convert_to_datetime(t) for t in sorted_timestamps}
 
     # Now find the closest timestamp to the requested timestamp
     try:
@@ -1458,15 +1513,52 @@ def entity_version(entity_uri, timestamp):
         abort(404)
 
     version: Graph|ConjunctiveGraph = main_entity_history[closest_timestamp]
+    
+    is_deletion_snapshot = False
+    closest_metadata = None
+    min_time_diff = None
+    
+    latest_timestamp = max(sorted_timestamps)
+    latest_metadata = None
+    for se_uri, meta in main_entity_provenance.items():
+        meta_time = convert_to_datetime(meta['generatedAtTime'])
+        
+        time_diff = abs((meta_time - timestamp_dt).total_seconds())
+        if closest_metadata is None or time_diff < min_time_diff:
+            closest_metadata = meta
+            min_time_diff = time_diff
+            
+        if meta['generatedAtTime'] == latest_timestamp:
+            latest_metadata = meta
+            
+    if closest_metadata is None or latest_metadata is None:
+        abort(404)
+        
+    # Uno snapshot è di cancellazione solo se:
+    # 1. È l'ultimo snapshot (il timestamp corrente corrisponde all'ultimo timestamp)
+    # 2. Ha un tempo di invalidazione
+    is_deletion_snapshot = (closest_timestamp == latest_timestamp and 
+                          'invalidatedAtTime' in latest_metadata)
 
-    # Process the version graph as before
+    # Se è uno snapshot di cancellazione, usa il penultimo snapshot per il contesto
+    context_version = version
+    if is_deletion_snapshot and len(sorted_timestamps) > 1:
+        # Usa il penultimo snapshot come contesto
+        previous_timestamp = sorted_timestamps[-2]  # -2 perché -1 è l'ultimo (quello di cancellazione)
+        context_version = main_entity_history[previous_timestamp]
+
     triples = list(version.triples((URIRef(entity_uri), None, None)))
 
+    if is_deletion_snapshot and len(sorted_timestamps) > 1:
+        subject_classes = [o for _, _, o in context_version.triples((URIRef(entity_uri), RDF.type, None))]
+    else:
+        subject_classes = [o for _, _, o in version.triples((URIRef(entity_uri), RDF.type, None))]
+
     relevant_properties = set()
-    _, _, _, _, _, subject_classes, valid_predicates = get_valid_predicates(triples)
+    _, _, _, _, _, _, valid_predicates = get_valid_predicates(triples)
 
     grouped_triples, relevant_properties = get_grouped_triples(
-        entity_uri, triples, subject_classes, valid_predicates, historical_snapshot=version
+        entity_uri, triples, subject_classes, valid_predicates, historical_snapshot=context_version
     )
 
     if relevant_properties:
@@ -1490,19 +1582,6 @@ def entity_version(entity_uri, timestamp):
             prev_snapshot_timestamp = snap_time.isoformat()
             break
 
-    # Get the metadata for the closest snapshot
-    closest_metadata = None
-    min_time_diff = None
-    for meta in main_entity_provenance.values():
-        meta_time = convert_to_datetime(meta['generatedAtTime'])
-        time_diff = abs((meta_time - timestamp_dt).total_seconds())
-        if closest_metadata is None or time_diff < min_time_diff:
-            closest_metadata = meta
-            min_time_diff = time_diff
-
-    if closest_metadata is None:
-        abort(404)
-
     if closest_metadata.get('hasUpdateQuery'):
         sparql_query = closest_metadata['hasUpdateQuery']
         parsed_modifications = parse_sparql_update(sparql_query)
@@ -1519,7 +1598,7 @@ def entity_version(entity_uri, timestamp):
 
     if closest_metadata.get('description'):
         closest_metadata['description'] = closest_metadata['description'].replace(
-            entity_uri, custom_filter.human_readable_entity(entity_uri, subject_classes)
+            entity_uri, custom_filter.human_readable_entity(entity_uri, subject_classes, context_version)
         )
 
     closest_timestamp = closest_metadata['generatedAtTime']
@@ -1535,7 +1614,7 @@ def entity_version(entity_uri, timestamp):
         grouped_triples=grouped_triples,
         subject_classes=subject_classes,
         version_number=version_number,
-        version=version
+        version=context_version
     )
 
 @app.route('/time-vault')

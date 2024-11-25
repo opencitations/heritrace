@@ -37,7 +37,7 @@
 }
 </style>
 
-<h2 class="mb-4 word-wrap"><em>{{ subject | human_readable_entity(subject_classes) }}</em></h2>
+<h2 class="mb-4 word-wrap"><em>{{ subject | human_readable_entity(subject_classes, context) }}</em></h2>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -53,26 +53,30 @@
 {% endwith %}
 
 <div class="btn-flex d-flex align-items-center my-4">
-    {% if grouped_triples %}
-        <!-- Bottone per Modificare l'Entità -->
+    {% if not is_deleted and grouped_triples %}
         <a id="editEntityBtn" class="btn btn-outline-primary" title="{{ _('Edit') }}" type="button">
             <i class="bi bi-pencil me-2"></i>{{ _('Edit') }}
         </a>
     {% endif %}
-    {% if grouped_triples %}
+    {% if not is_deleted and grouped_triples %}
         <button id="deleteEntityBtn" class="btn btn-outline-danger" title="{{ _('Delete') }}" type="button">
             <i class="bi bi-trash me-2"></i>{{ _('Delete') }}
         </button>
     {% endif %}
     {% if history[subject] %}
-        <!-- Bottone per la Storia dell'Entità -->
         <a id="historyBtn" href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary" title="{{ _('Time Machine') }}" type="button">
             <i class="bi bi-clock-history me-2"></i>{{ _('Time Machine') }}
         </a>
     {% endif %}
 </div>
+
 <div class="triples mb-5">
-    {% if grouped_triples %}
+    {% if is_deleted %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            {{_('This entity has been deleted. You can view its history using the Time Machine above')}}
+        </div>
+    {% elif grouped_triples %}
 
         {% for display_name, data in grouped_triples.items() %}
             {% set predicate = data['property'] %}
@@ -146,7 +150,7 @@
             </div>
         {% endfor %}
     {% else %}
-        <p class="alert alert-warning mt-5 mb-4">{{_('There is no information related to this entity in the dataset')}}</p>
+        <p class="alert alert-warning mt-5 mb-4">{{_('There is no information related to this resource in the dataset')}}</p>
     {% endif %}
 </div>
 

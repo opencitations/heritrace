@@ -4,12 +4,12 @@
 
 <nav aria-label="breadcrumb">
 <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="{{ url_for('about', subject=entity_uri) }}"><em>{{entity_uri | human_readable_entity(entity_classes)}}</em></a></li>
-    <li class="breadcrumb-item active" aria-current="page">{{_('History of <em>%(subject)s</em>', subject=entity_uri | human_readable_entity(entity_classes))}}</li>
+    <li class="breadcrumb-item"><a href="{{ url_for('about', subject=entity_uri) }}"><em>{{entity_uri | human_readable_entity(entity_classes, context)}}</em></a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{_('History of <em>%(subject)s</em>', subject=entity_uri | human_readable_entity(entity_classes, context))}}</li>
 </ol>
 </nav>
 
-<h2 class="mb-4 word-wrap">{{_('Version history for')}} <em>{{entity_uri | human_readable_entity(entity_classes)}}</em></h2>
+<h2 class="mb-4 word-wrap">{{_('Version history for')}} <em>{{entity_uri | human_readable_entity(entity_classes, context)}}</em></h2>
 
 <div id="timeline-embed"></div>
 

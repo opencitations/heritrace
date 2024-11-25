@@ -51,8 +51,7 @@
     </div>
 </div>
 
-{% if grouped_triples %}
-
+{% if metadata %}
     {# Pulsanti per navigare tra gli snapshot #}
     <div class="row g-3 mb-4">
         <div class="col-6">
@@ -122,17 +121,23 @@
         {% endfor %}
     </div>
 
-    {% for display_name, data in grouped_triples.items() %}
-        <div class="predicate-group mb-4">
-            {% if data['triples'] %}
-                <span class="fw-bold">{{ display_name | human_readable_predicate(subject_classes) }}</span>
-                {% for triple_data in data['triples'] %}
-                    {{ render_triple(triple_data['triple'], subject) }}
-                {% endfor %}
-            {% endif %}
+    {% if grouped_triples %}
+        {% for display_name, data in grouped_triples.items() %}
+            <div class="predicate-group mb-4">
+                {% if data['triples'] %}
+                    <span class="fw-bold">{{ display_name | human_readable_predicate(subject_classes) }}</span>
+                    {% for triple_data in data['triples'] %}
+                        {{ render_triple(triple_data['triple'], subject) }}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info my-5">
+            <i class="bi bi-info-circle me-2"></i>
+            {{_('This is a deletion snapshot. The entity was deleted at this point in time')}}
         </div>
-    {% endfor %}
-
+    {% endif %}
 {% else %}
     <p class="alert alert-warning my-5">{{_('This snapshot does not exist')}}</p>
 {% endif %}
