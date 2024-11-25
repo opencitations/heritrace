@@ -4,6 +4,7 @@ import time
 import traceback
 import urllib
 from collections import OrderedDict, defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 from urllib.parse import unquote, urlparse
@@ -1351,15 +1352,6 @@ def generate_modification_text(modifications, subject_classes, history=None, ent
 @app.route('/entity-history/<path:entity_uri>')
 @login_required
 def entity_history(entity_uri):
-    def convert_to_datetime(date_str, stringify=False):
-        try:
-            dt = datetime.fromisoformat(date_str)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt if not stringify else dt.isoformat()
-        except ValueError:
-            return None
-
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
@@ -1630,7 +1622,6 @@ def get_deleted_entities():
     API endpoint to retrieve deleted entities.
     Returns entities whose last snapshot is an invalidation snapshot.
     """
-    # Query per ottenere le entità cancellate dalla provenance
     prov_query = """
     SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
     WHERE {
@@ -1654,49 +1645,61 @@ def get_deleted_entities():
     provenance_sparql.setQuery(prov_query)
     provenance_sparql.setReturnFormat(JSON)
     prov_results = provenance_sparql.query().convert()
-    deleted_entities = []
-    entity_uris = []
-
-    for result in prov_results["results"]["bindings"]:
+    
+    def process_entity(result):
         entity_uri = result["entity"]["value"]
         deletion_time = result["deletionTime"]["value"]
         deleted_by = result["agent"]["value"]
         last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
 
-        deleted_entities.append({
+        agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
+        state, snapshots, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
+
+        if entity_uri not in state:
+            return None
+            
+        last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
+        last_valid_state = state[entity_uri][last_valid_time]
+        
+        entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
+
+        highest_priority = None
+        highest_priority_type = None
+        for entity_type in entity_types:
+            for rule in display_rules:
+                if rule['class'] == entity_type:
+                    priority = rule.get('priority', 0)
+                    if highest_priority is None or priority < highest_priority:
+                        highest_priority = priority
+                        highest_priority_type = entity_type
+
+        return {
             "uri": entity_uri,
             "deletionTime": deletion_time,
             "deletedBy": custom_filter.format_agent_reference(deleted_by),
-            "lastValidSnapshotTime": last_valid_snapshot_time
-        })
-        entity_uris.append(f"<{entity_uri}>")
+            "lastValidSnapshotTime": last_valid_snapshot_time,
+            "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
+            "label": custom_filter.human_readable_entity(
+                entity_uri, 
+                [highest_priority_type],
+                last_valid_state
+            )
+        }
 
-    if not entity_uris:
-        return jsonify([])
-
-    types_query = f"""
-        SELECT ?entity ?type
-        WHERE {{
-            VALUES ?entity {{{" ".join(entity_uris)}}}
-            ?entity a ?type .
-        }}
-    """
-
-    sparql.setQuery(types_query)
-    sparql.setReturnFormat(JSON)
-    types_results = sparql.query().convert()
-    entity_types = {}
-    for result in types_results["results"]["bindings"]:
-        entity_uri = result["entity"]["value"]
-        entity_type = result["type"]["value"]
-        entity_types[entity_uri] = entity_type
-
-    for entity in deleted_entities:
-        entity_uri = entity["uri"]
-        if entity_uri in entity_types:
-            entity_type = entity_types[entity_uri]
-            entity["type"] = custom_filter.human_readable_predicate(entity_type, [entity_type])
-            entity["label"] = custom_filter.human_readable_entity(entity_uri, [entity_type])
+    deleted_entities = []
+    # Usa un numero di workers appropriato per il tuo sistema
+    max_workers = min(32, len(prov_results["results"]["bindings"]))
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_entity = {
+            executor.submit(process_entity, result): result 
+            for result in prov_results["results"]["bindings"]
+        }
+        
+        for future in as_completed(future_to_entity):
+            entity_info = future.result()
+            if entity_info is not None:
+                deleted_entities.append(entity_info)
 
     return jsonify(deleted_entities)
 
@@ -2393,6 +2396,15 @@ def execute_historical_query(query: str, subject: str, value: str, historical_sn
         for result in results:
             return (str(result[0]), str(result[1]))
     return None, None
+
+def convert_to_datetime(date_str, stringify=False):
+    try:
+        dt = datetime.fromisoformat(date_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt if not stringify else dt.isoformat()
+    except ValueError:
+        return None
 
 @app.cli.group()
 def translate():
