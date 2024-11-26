@@ -544,7 +544,7 @@ classes:
       WHERE {
         {
           SELECT ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?proceedingsTitle
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
             [[uri]] a fabio:Expression .
             OPTIONAL { 
@@ -729,7 +729,7 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?seriesTitle
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
             [[uri]] a fabio:Article .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -861,7 +861,7 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?publisher
-                (GROUP_CONCAT(DISTINCT ?editorName; SEPARATOR = ", ") AS ?editorList)
+                (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
           WHERE {
             [[uri]] a fabio:Series .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -940,10 +940,13 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?publisher
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
           WHERE {
             [[uri]] a fabio:Book .
             OPTIONAL { [[uri]] dcterms:title ?title . }
+            
+            # Get author information
             OPTIONAL {
               [[uri]] pro:isDocumentContextFor ?authorRole .
               ?authorRole pro:withRole pro:author ;
@@ -958,6 +961,24 @@ classes:
                 ) AS ?authorName)
               }
             }
+
+            # Get editor information
+            OPTIONAL {
+              [[uri]] pro:isDocumentContextFor ?editorRole .
+              ?editorRole pro:withRole pro:editor ;
+                          pro:isHeldBy ?editor .
+              OPTIONAL { ?editor foaf:name ?editorName . }
+              OPTIONAL {
+                ?editor foaf:familyName ?familyName .
+                OPTIONAL { ?editor foaf:givenName ?givenName . }
+                BIND(CONCAT(
+                  ?familyName,
+                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                ) AS ?editorName)
+              }
+            }
+            
+            # Get publication date
             OPTIONAL {
               [[uri]] prism:publicationDate ?pubDateRaw . 
               BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
@@ -966,6 +987,8 @@ classes:
                         SUBSTR(STR(?pubDateRaw), 1, 4),
                         STR(?pubDateRaw))) AS ?pubDate)
             }
+            
+            # Get publisher information
             OPTIONAL {
               [[uri]] pro:isDocumentContextFor ?publisherRole .
               ?publisherRole pro:withRole pro:publisher ;
@@ -976,24 +999,33 @@ classes:
           GROUP BY ?title ?pubDate ?publisher
         }
         
-        BIND(CONCAT(
-          COALESCE(?authorList, ""),
-          IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-          IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-          IF(BOUND(?title), CONCAT(
-            IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
-            ?title
-          ), ""),
-          IF(BOUND(?publisher), CONCAT(
-            IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
-            ?publisher
-          ), ""),
-          "."
-        ) AS ?displayWithDot)
+        # Construct the display string based on available information
+        BIND(
+          IF(BOUND(?editorList) && (!BOUND(?authorList) || ?authorList = ""),
+            # Case 1: Only editors
+            CONCAT(
+              ?editorList, " (Ed.)",
+              IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
+              IF(BOUND(?title), CONCAT(". ", ?title), ""),
+              IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
+              "."
+            ),
+            # Case 2: Authors (with or without editors)
+            CONCAT(
+              COALESCE(?authorList, ""),
+              IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+              IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+              IF(BOUND(?title), CONCAT(". ", ?title), ""),
+              IF(BOUND(?editorList), CONCAT(". ", ?editorList, " (Ed.)"), ""),
+              IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
+              "."
+            )
+          ) AS ?displayWithDot
+        )
 
         BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
         BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
-      }
+      }    
     displayProperties:
       - *type_property
       - *identifier_property
@@ -1025,7 +1057,7 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?bookTitle
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
             [[uri]] a fabio:BookChapter .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -1106,7 +1138,7 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
             [[uri]] a fabio:JournalArticle .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -1273,7 +1305,7 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?proceedingsTitle
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
             [[uri]] a fabio:ProceedingsPaper .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -1366,7 +1398,7 @@ classes:
                     STR(?pubDateRaw))) AS ?pubDate)
         }
         OPTIONAL {
-          SELECT (GROUP_CONCAT(DISTINCT ?editorName; SEPARATOR = ", ") AS ?editorList)
+          SELECT (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
           WHERE {
             [[uri]] pro:isDocumentContextFor ?editorRole .
             ?editorRole pro:withRole pro:editor ;
@@ -1418,7 +1450,7 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?containerTitle ?volumeNumber ?issueNumber ?startPage ?endPage
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
             [[uri]] a fabio:Review .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -1532,7 +1564,7 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
             [[uri]] a fabio:ReviewArticle .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -1638,8 +1670,8 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate ?publisher ?edition
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
-                (GROUP_CONCAT(DISTINCT ?editorName; SEPARATOR = ", ") AS ?editorList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
           WHERE {
             [[uri]] a fabio:ReferenceBook .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -1741,8 +1773,8 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate
-                (GROUP_CONCAT(DISTINCT ?authorName; SEPARATOR = " & ") AS ?authorList)
-                (GROUP_CONCAT(DISTINCT ?publisherName; SEPARATOR = ", ") AS ?publisherList)
+                (GROUP_CONCAT(ì?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(ì?publisherName; SEPARATOR = ", ") AS ?publisherList)
           WHERE {
             [[uri]] a fabio:Thesis .
             OPTIONAL { [[uri]] dcterms:title ?title . }

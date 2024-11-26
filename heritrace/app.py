@@ -900,7 +900,7 @@ def about(subject):
             context_snapshot = history[decoded_subject][sorted_timestamps[-2]]
             subject_classes = [o for _, _, o in context_snapshot.triples((URIRef(decoded_subject), RDF.type, None))]
         else:
-            context_snapshot = latest_snapshot
+            context_snapshot = None
     
     g = Graph()
     grouped_triples = {}
@@ -1475,6 +1475,7 @@ def entity_version(entity_uri, timestamp):
 
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+
     # Get the main entity's history and provenance
     main_entity_history = history.get(entity_uri, {})
     main_entity_provenance = provenance.get(entity_uri, {})
@@ -1524,6 +1525,7 @@ def entity_version(entity_uri, timestamp):
 
     # Se è uno snapshot di cancellazione, usa il penultimo snapshot per il contesto
     context_version = version
+
     if is_deletion_snapshot and len(sorted_timestamps) > 1:
         # Usa il penultimo snapshot come contesto
         previous_timestamp = sorted_timestamps[-2]  # -2 perché -1 è l'ultimo (quello di cancellazione)
@@ -1649,7 +1651,6 @@ def get_deleted_entities():
             
         last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
         last_valid_state = state[entity_uri][last_valid_time]
-        
         entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
 
         highest_priority = None
