@@ -1,6 +1,7 @@
 {% extends "_base.jinja" %}
 
 {% block content %}
+<div id="breadcrumb-root"></div>
 <div id="entity-timeline-root"></div>
 {% endblock %}
 
@@ -9,4 +10,5 @@
     window.timelineData = {{ timeline_data|tojson }};
 </script>
 <script src="{{ url_for('static', filename='dist/timeline.bundle.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/navigation.bundle.js') }}"></script>
 {% endblock %}

@@ -2,10 +2,10 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./heritrace/static/js/components/Timeline/Timeline.jsx":
-/*!**************************************************************!*\
-  !*** ./heritrace/static/js/components/Timeline/Timeline.jsx ***!
-  \**************************************************************/
+/***/ "./heritrace/static/js/components/Navigation/Breadcrumb.jsx":
+/*!******************************************************************!*\
+  !*** ./heritrace/static/js/components/Navigation/Breadcrumb.jsx ***!
+  \******************************************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -14,58 +14,40 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
-function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
-function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
-function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
-function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 
-function EntityTimeline(_ref) {
+function Breadcrumb(_ref) {
   var timelineData = _ref.timelineData;
   var entityUri = timelineData.entityUri,
-    entityLabel = timelineData.entityLabel,
-    entityClasses = timelineData.entityClasses;
-  var breadcrumbItems = [{
+    entityLabel = timelineData.entityLabel;
+  var items = [{
     label: "<em>".concat(entityLabel, "</em>"),
-    href: "/about/".concat(encodeURIComponent(entityUri))
+    href: "/about/".concat(entityUri)
   }, {
     label: "History of <em>".concat(entityLabel, "</em>"),
     active: true
   }];
-  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
-    var timeline = new TL.Timeline('timeline-container', {
-      events: timelineData.events.map(function (event, index, array) {
-        if (index === array.length - 1 && event.end_date === "Present") {
-          return _objectSpread(_objectSpread({}, event), {}, {
-            end_date: {
-              display_date: "Present"
-            }
-          });
-        }
-        return event;
-      })
-    });
-    return function () {
-      var container = document.getElementById('timeline-container');
-      if (container) {
-        container.innerHTML = '';
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("nav", {
+    "aria-label": "breadcrumb"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("ol", {
+    className: "breadcrumb"
+  }, items.map(function (item, index) {
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("li", {
+      key: index,
+      className: "breadcrumb-item".concat(item.active ? ' active' : ''),
+      "aria-current": item.active ? 'page' : undefined
+    }, item.href ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", {
+      href: item.href,
+      dangerouslySetInnerHTML: {
+        __html: item.label
       }
-    };
-  }, [timelineData]);
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "space-y-4"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h2", {
-    className: "mb-4 word-wrap"
-  }, "Version history for ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("em", {
-    dangerouslySetInnerHTML: {
-      __html: entityLabel
-    }
-  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    id: "timeline-container"
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("style", null, "\n        #timeline-container {\n            width: 100%;\n            height: 70vh;\n        }\n        .tl-text-content p {\n          margin-bottom: 5px;\n        }\n        .modifications h4 {\n          margin-top: 10px;\n          margin-bottom: 5px;\n          font-size: 1em;\n          font-weight: bold;\n        }\n        .modifications ul {\n          list-style-type: none;\n          padding-left: 0;\n          margin-bottom: 10px;\n        }\n        .modifications li {\n          margin-bottom: 3px;\n        }\n        .tl-timeline a.view-version {\n          color: #0d6efd;\n          text-decoration: none;\n        }\n        .tl-timeline a.view-version:hover {\n          color: white;\n        }\n        .tl-slide {\n          padding: 2rem 0;\n        }\n        .tl-timeline .tl-slide-titleslide .tl-headline-date,\n        .tl-timeline .tl-slide-titleslide .tl-headline {\n          font-size: 32px !important;\n          line-height: 36px !important;\n        }\n        .tl-timeline .tl-slide-titleslide .tl-text .tl-text-content p {\n          font-size: 18px !important;\n          line-height: 24px !important;\n        }\n        .tl-text-content .orcid-attribution img,\n        .tl-text-content .zenodo-attribution img {\n          vertical-align: middle;\n          margin-right: 4px;\n        }\n        .tl-text-content .text-muted {\n          color: #6c757d !important;\n          font-size: 0.9em;\n        }\n        .tl-text-content .small {\n          font-size: 85%;\n        }\n        .tl-skinny .tl-slidenav-next .tl-slidenav-icon {\n          margin-left: 0;\n        }\n      "));
+    }) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+      dangerouslySetInnerHTML: {
+        __html: item.label
+      }
+    }));
+  })));
 }
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (EntityTimeline);
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Breadcrumb);
 
 /***/ }),
 
@@ -33580,28 +33562,28 @@ if (false) {} else {
 var __webpack_exports__ = {};
 // This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
 (() => {
-/*!***********************************************************!*\
-  !*** ./heritrace/static/js/components/Timeline/index.jsx ***!
-  \***********************************************************/
+/*!*************************************************************!*\
+  !*** ./heritrace/static/js/components/Navigation/index.jsx ***!
+  \*************************************************************/
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var react_dom_client__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom/client */ "./node_modules/react-dom/client.js");
-/* harmony import */ var _Timeline__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Timeline */ "./heritrace/static/js/components/Timeline/Timeline.jsx");
+/* harmony import */ var _Breadcrumb__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Breadcrumb */ "./heritrace/static/js/components/Navigation/Breadcrumb.jsx");
 
 
 
-var rootElement = document.getElementById('entity-timeline-root');
-if (rootElement) {
-  var root = (0,react_dom_client__WEBPACK_IMPORTED_MODULE_1__.createRoot)(rootElement);
-  root.render(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_Timeline__WEBPACK_IMPORTED_MODULE_2__["default"], {
+var breadcrumbElement = document.getElementById('breadcrumb-root');
+if (breadcrumbElement) {
+  var breadcrumbRoot = (0,react_dom_client__WEBPACK_IMPORTED_MODULE_1__.createRoot)(breadcrumbElement);
+  breadcrumbRoot.render(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_Breadcrumb__WEBPACK_IMPORTED_MODULE_2__["default"], {
     timelineData: window.timelineData
   }));
 } else {
-  console.error('Root element not found: entity-timeline-root');
+  console.error('Root element not found: breadcrumb-root');
 }
 })();
 
 /******/ })()
 ;
-//# sourceMappingURL=timeline.bundle.js.map
+//# sourceMappingURL=navigation.bundle.js.map

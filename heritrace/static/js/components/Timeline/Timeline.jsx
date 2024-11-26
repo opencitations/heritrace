@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import Breadcrumb from '../Navigation';
 
 function EntityTimeline({ timelineData }) {
   const { entityUri, entityLabel, entityClasses } = timelineData;
@@ -40,8 +39,6 @@ function EntityTimeline({ timelineData }) {
 
   return (
     <div className="space-y-4">
-      <Breadcrumb items={breadcrumbItems} />
-
       <h2 className="mb-4 word-wrap">
         Version history for <em dangerouslySetInnerHTML={{ __html: entityLabel }} />
       </h2>

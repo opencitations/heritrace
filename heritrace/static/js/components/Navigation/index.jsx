@@ -1,25 +1,11 @@
 import React from 'react';
+import { createRoot } from 'react-dom/client';
+import Breadcrumb from './Breadcrumb';
 
-function Breadcrumb({ items }) {
-  return (
-    <nav aria-label="breadcrumb">
-      <ol className="breadcrumb">
-        {items.map((item, index) => (
-          <li 
-            key={index} 
-            className={`breadcrumb-item${item.active ? ' active' : ''}`}
-            aria-current={item.active ? 'page' : undefined}
-          >
-            {item.href ? (
-              <a href={item.href} dangerouslySetInnerHTML={{ __html: item.label }} />
-            ) : (
-              <span dangerouslySetInnerHTML={{ __html: item.label }} />
-            )}
-          </li>
-        ))}
-      </ol>
-    </nav>
-  );
+const breadcrumbElement = document.getElementById('breadcrumb-root');
+if (breadcrumbElement) {
+    const breadcrumbRoot = createRoot(breadcrumbElement);
+    breadcrumbRoot.render(<Breadcrumb timelineData={window.timelineData} />);
+} else {
+    console.error('Root element not found: breadcrumb-root');
 }
-
-export default Breadcrumb
