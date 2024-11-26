@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import time
@@ -1496,7 +1497,9 @@ def entity_version(entity_uri, timestamp):
         abort(404)
 
     version: Graph|ConjunctiveGraph = main_entity_history[closest_timestamp]
-    
+
+    triples = list(version.triples((URIRef(entity_uri), None, None)))
+
     is_deletion_snapshot = False
     closest_metadata = None
     min_time_diff = None
@@ -1517,20 +1520,23 @@ def entity_version(entity_uri, timestamp):
     if closest_metadata is None or latest_metadata is None:
         abort(404)
         
-    # Uno snapshot è di cancellazione solo se:
-    # 1. È l'ultimo snapshot (il timestamp corrente corrisponde all'ultimo timestamp)
-    # 2. Ha un tempo di invalidazione
-    is_deletion_snapshot = (closest_timestamp == latest_timestamp and 
-                          'invalidatedAtTime' in latest_metadata and latest_metadata['invalidatedAtTime'])
+    # A snapshot is a deletion snapshot if either:
+    # 1. It's the latest snapshot AND has an invalidation time OR
+    # 2. It has zero triples (indicating the entity was deleted at this point)
+    is_deletion_snapshot = (
+        (closest_timestamp == latest_timestamp and 
+         'invalidatedAtTime' in latest_metadata and 
+         latest_metadata['invalidatedAtTime']) 
+        or len(triples) == 0
+    )
 
     # Se è uno snapshot di cancellazione, usa il penultimo snapshot per il contesto
     context_version = version
 
     if is_deletion_snapshot and len(sorted_timestamps) > 1:
-        # Usa il penultimo snapshot come contesto
-        previous_timestamp = sorted_timestamps[-2]  # -2 perché -1 è l'ultimo (quello di cancellazione)
-        context_version = main_entity_history[previous_timestamp]
-    triples = list(version.triples((URIRef(entity_uri), None, None)))
+        current_index = sorted_timestamps.index(closest_timestamp)
+        if current_index > 0:
+            context_version = main_entity_history[sorted_timestamps[current_index - 1]]
 
     if is_deletion_snapshot and len(sorted_timestamps) > 1:
         subject_classes = [o for _, _, o in context_version.triples((URIRef(entity_uri), RDF.type, None))]
@@ -1806,9 +1812,22 @@ def compute_graph_differences(current_graph: Graph|ConjunctiveGraph, historical_
 @login_required
 def restore_version(entity_uri, timestamp):
     timestamp = convert_to_datetime(timestamp, stringify=True)
-    current_graph, _ = get_entity_graph(entity_uri)
-    historical_graph, provenance = get_entity_graph(entity_uri, timestamp)
-    triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(current_graph, historical_graph)
+    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
+    history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+
+    historical_graph = copy.deepcopy(history.get(entity_uri, {}).get(timestamp))
+    if historical_graph is None:
+        abort(404)
+
+    current_graph = fetch_data_graph_recursively(entity_uri)
+
+    if current_graph is None or len(current_graph) == 0:
+        current_graph = copy.deepcopy(history[entity_uri][timestamp])
+        current_graph.remove((URIRef(entity_uri), None, None, None))
+
+    triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(
+        current_graph, historical_graph
+    )
 
     snapshot_uri = None
     for se, meta in provenance[entity_uri].items():
@@ -1825,7 +1844,13 @@ def restore_version(entity_uri, timestamp):
         app.config['DATASET_GENERATION_TIME']
     )
 
-    editor = import_entity_graph(editor, entity_uri)
+    if is_dataset_quadstore():
+        for quad in current_graph:
+            editor.g_set.add(quad)
+    else:
+        for triple in current_graph:
+            editor.g_set.add(triple)
+
     editor.preexisting_finished()
 
     for item in triples_or_quads_to_delete:
