@@ -4,6 +4,8 @@ module.exports = {
   entry: {
     catalogue: path.resolve(__dirname, 'heritrace/static/js/components/Catalogue/index.jsx'),
     deletedEntities: path.resolve(__dirname, 'heritrace/static/js/components/DeletedEntities/index.jsx'),
+    timeline: path.resolve(__dirname, 'heritrace/static/js/components/Timeline/index.jsx'),
+    breadcrumb: path.resolve(__dirname, 'heritrace/static/js/components/Timeline/index.jsx'),
   },
   output: {
     filename: '[name].bundle.js',

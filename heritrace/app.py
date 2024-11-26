@@ -1356,12 +1356,13 @@ def entity_history(entity_uri):
     agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
-    # Transform data into TimelineJS format
-    events = []
-    # Sort events by date using convert_to_datetime
-    sorted_metadata = sorted(provenance[entity_uri].items(), key=lambda x: convert_to_datetime(x[1]['generatedAtTime']))
+    sorted_metadata = sorted(
+        provenance[entity_uri].items(),
+        key=lambda x: convert_to_datetime(x[1]['generatedAtTime'])
+    )
     sorted_timestamps = [convert_to_datetime(meta['generatedAtTime'], stringify=True) for _, meta in sorted_metadata]
 
+    # Otteniamo il contesto corretto per l'etichetta dell'entità
     latest_metadata = sorted_metadata[-1][1] if sorted_metadata else None
     is_latest_deletion = latest_metadata and 'invalidatedAtTime' in latest_metadata and latest_metadata['invalidatedAtTime']
 
@@ -1375,12 +1376,12 @@ def entity_history(entity_uri):
     for triple in classes:
         entity_classes.add(str(triple[2]))
 
+    events = []
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
         date = convert_to_datetime(metadata['generatedAtTime'])
         snapshot_timestamp_str = convert_to_datetime(metadata['generatedAtTime'], stringify=True)
         snapshot_graph = history[entity_uri][snapshot_timestamp_str]
 
-        # Utilizziamo i filtri custom per formattare ORCID e Zenodo
         responsible_agent = custom_filter.format_agent_reference(metadata['wasAttributedTo'])
         primary_source = custom_filter.format_source_reference(metadata['hadPrimarySource'])
         
@@ -1420,6 +1421,7 @@ def entity_history(entity_uri):
                     <div class="modifications mb-3">
                         {modification_text}
                     </div>
+                    <a href='/entity-version/{entity_uri}/{metadata['generatedAtTime']}' class='btn btn-outline-primary mt-2 view-version' target='_self'>{gettext('View version')}</a>
                 """
             },
             "autolink": False
@@ -1436,22 +1438,21 @@ def entity_history(entity_uri):
                 "second": next_date.second
             }
         else:
-            now = datetime.now()
-            event["end_date"] = gettext("Present")
+            event["end_date"] = "Present"
 
-        view_version_button = f"<a href='/entity-version/{entity_uri}/{metadata['generatedAtTime']}' class='btn btn-outline-primary mt-2 view-version' target='_self'>{gettext('View version')}</a>"
-        event["text"]["text"] += f"{view_version_button}"
         events.append(event)
 
+    entity_label = custom_filter.human_readable_entity(entity_uri, entity_classes, context_snapshot)
+
     timeline_data = {
+        "entityUri": entity_uri,
+        "entityLabel": entity_label,
+        "entityClasses": list(entity_classes),
         "events": events
     }
 
     return render_template('entity_history.jinja', 
-                         entity_uri=entity_uri, 
-                         timeline_data=timeline_data, 
-                         entity_classes=entity_classes,
-                         context=context_snapshot)
+                         timeline_data=timeline_data)
 
 @app.route('/entity-version/<path:entity_uri>/<timestamp>')
 @login_required

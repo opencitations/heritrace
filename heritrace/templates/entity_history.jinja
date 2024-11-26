@@ -1,90 +1,12 @@
 {% extends "_base.jinja" %}
 
 {% block content %}
+<div id="entity-timeline-root"></div>
+{% endblock %}
 
-<nav aria-label="breadcrumb">
-<ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="{{ url_for('about', subject=entity_uri) }}"><em>{{entity_uri | human_readable_entity(entity_classes, context)}}</em></a></li>
-    <li class="breadcrumb-item active" aria-current="page">{{_('History of <em>%(subject)s</em>', subject=entity_uri | human_readable_entity(entity_classes, context))}}</li>
-</ol>
-</nav>
-
-<h2 class="mb-4 word-wrap">{{_('Version history for')}} <em>{{entity_uri | human_readable_entity(entity_classes, context)}}</em></h2>
-
-<div id="timeline-embed"></div>
-
-<style>
-    .tl-text-content p {
-        margin-bottom: 5px;
-    }
-    .modifications h4 {
-        margin-top: 10px;
-        margin-bottom: 5px;
-        font-size: 1em;
-        font-weight: bold;
-    }
-    .modifications ul {
-        list-style-type: none;
-        padding-left: 0;
-        margin-bottom: 10px;
-    }
-    .modifications li {
-        margin-bottom: 3px;
-    }
-    .tl-timeline a.view-version {
-        color: #0d6efd;
-        text-decoration: none;
-    }
-    .tl-timeline a.view-version:hover {
-        color: white;
-    }
-    .tl-slide {
-        padding: 2rem 0;
-    }
-    .tl-timeline .tl-slide-titleslide .tl-headline-date,
-    .tl-timeline .tl-slide-titleslide .tl-headline {
-        font-size: 32px !important;
-        line-height: 36px !important;
-    }
-    .tl-timeline .tl-slide-titleslide .tl-text .tl-text-content p {
-        font-size: 18px !important;
-        line-height: 24px !important;
-    }
-    
-    /* Stili aggiuntivi per ORCID e Zenodo */
-    .tl-text-content .orcid-attribution img,
-    .tl-text-content .zenodo-attribution img {
-        vertical-align: middle;
-        margin-right: 4px;
-    }
-    .tl-text-content .text-muted {
-        color: #6c757d !important;
-        font-size: 0.9em;
-    }
-    .tl-text-content .small {
-        font-size: 85%;
-    }
-    .tl-skinny .tl-slidenav-next .tl-slidenav-icon {
-        margin-left: 0;
-    }
-</style>
-
-<script type="text/javascript">
-    var timeline_json = {{ timeline_data|tojson }};
-    
-    // Funzione per formattare la data di fine per l'ultimo evento
-    function formatEndDate(event, index, array) {
-        if (index === array.length - 1 && event.end_date === "Present") {
-            event.end_date = {
-                display_date: "{{_('Present')}}"
-            };
-        }
-        return event;
-    }
-
-    // Applica la formattazione a tutti gli eventi
-    timeline_json.events = timeline_json.events.map(formatEndDate);
-
-    window.timeline = new TL.Timeline('timeline-embed', timeline_json);
+{% block react_scripts %}
+<script>
+    window.timelineData = {{ timeline_data|tojson }};
 </script>
+<script src="{{ url_for('static', filename='dist/timeline.bundle.js') }}"></script>
 {% endblock %}
