@@ -15,7 +15,7 @@ import docker
 import requests
 import validators
 import yaml
-from config import Config
+from config import Config, OrphanHandlingStrategy
 from flask import (Flask, abort, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
@@ -1061,55 +1061,78 @@ def validate_literal():
 @login_required
 def apply_changes():
     try:
-        changes: List[dict] = request.json
+        changes = request.json
         subject = changes[0]["subject"]
+        orphaned_entities = changes[0].get("orphaned_entities", [])
+        delete_orphans = changes[0].get("deleteOrphans", False)
+        
         editor = Editor(
             dataset_endpoint, 
             provenance_endpoint, 
             app.config['COUNTER_HANDLER'], 
             URIRef(f'https://orcid.org/{current_user.orcid}'), 
             app.config['PRIMARY_SOURCE'], 
-            app.config['DATASET_GENERATION_TIME'])
+            app.config['DATASET_GENERATION_TIME']
+        )
         editor = import_entity_graph(editor, subject)
         editor.preexisting_finished()
+        
         graph_uri = None
         if editor.dataset_is_quadstore:
             for quad in editor.g_set.quads((URIRef(subject), None, None)):
                 graph_uri = quad[3]
                 break
         
+        # Gestisci prima le creazioni
         temp_id_to_uri = {}
         for change in changes:
-            action = change["action"]
-            predicate = change.get("predicate")
-            object_value = change.get("object")
-            if action == "create":
-                data = change["data"]
+            if change["action"] == "create":
+                data = change.get("data")
                 if data:
                     subject = create_logic(editor, data, subject, graph_uri, temp_id_to_uri=temp_id_to_uri)
 
+        # Poi gestisci le altre modifiche
+        strategy = app.config.get('ORPHAN_HANDLING_STRATEGY', OrphanHandlingStrategy.KEEP)
+        
         for change in changes:
-            action = change["action"]
-            predicate = change.get("predicate")
-            object_value = change.get("object")
-            if action == "delete":
-                delete_logic(editor, subject, predicate, object_value, graph_uri)
-            elif action == "update":
-                new_object_value = change["newObject"]
-                update_logic(editor, subject, predicate, object_value, new_object_value, graph_uri)
-            elif action == "order":
-                new_order = change["object"]
-                ordered_by = change["newObject"]
-                order_logic(editor, subject, predicate, new_order, ordered_by, graph_uri, temp_id_to_uri)
+            if change["action"] == "delete":
+                delete_logic(editor, change["subject"], change["predicate"], change["object"], graph_uri)
+                
+                if strategy == OrphanHandlingStrategy.DELETE or (
+                    strategy == OrphanHandlingStrategy.ASK and delete_orphans
+                ):
+                    for orphan in orphaned_entities:
+                        editor.delete(orphan['uri'])
+                        
+                
+            elif change["action"] == "update":
+                update_logic(
+                    editor,
+                    change["subject"],
+                    change["predicate"],
+                    change["object"],
+                    change["newObject"],
+                    graph_uri
+                )
+            elif change["action"] == "order":
+                order_logic(
+                    editor,
+                    change["subject"],
+                    change["predicate"],
+                    change["object"],
+                    change["newObject"],
+                    graph_uri,
+                    temp_id_to_uri
+                )
+                
         editor.save()
-        return jsonify(status="success", message=gettext("Changes applied successfully")), 201
-    except ValueError as ve:
-        return jsonify(status="error", message=str(ve)), 400 
+        return jsonify({"status": "success", "message": gettext("Changes applied successfully")}), 200
+        
     except Exception as e:
         error_message = f"Error while applying changes: {str(e)}\n{traceback.format_exc()}"
         app.logger.error(error_message)
-        return jsonify(status="error", message=gettext("An error occurred while applying changes")), 500
-
+        return jsonify({"status": "error", "message": gettext("An error occurred while applying changes")}), 500
+    
 def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5):
     """
     Recursively import the main subject and its connected entity graph up to a specified depth.
@@ -1209,6 +1232,55 @@ def update_logic(editor: Editor, subject, predicate, old_value, new_value, graph
         new_value = Literal(new_value, datatype=old_value.datatype) if old_value.datatype and isinstance(old_value, Literal) else Literal(new_value, datatype=XSD.string) if isinstance(old_value, Literal) else URIRef(new_value)
     editor.update(URIRef(subject), URIRef(predicate), old_value, new_value, graph_uri)
 
+@app.route('/check_orphans', methods=['POST'])
+@login_required
+def check_orphans():
+    strategy = app.config.get('ORPHAN_HANDLING_STRATEGY', OrphanHandlingStrategy.KEEP)
+    changes = request.json
+    potential_orphans = []
+
+    if strategy in (OrphanHandlingStrategy.DELETE, OrphanHandlingStrategy.ASK):
+        for change in changes:
+            if change['action'] == 'delete':
+                orphans = find_orphaned_entities(
+                    change['subject'],
+                    change['predicate'],
+                    change['object']
+                )
+                potential_orphans.extend(orphans)
+
+    # If we're keeping orphans or none were found, return empty list
+    if strategy == OrphanHandlingStrategy.KEEP or not potential_orphans:
+        return jsonify({'status': 'success', 'orphaned_entities': []})
+
+    # Prepare orphan information for frontend
+    orphan_info = [{
+        'uri': entity['uri'],
+        'label': custom_filter.human_readable_entity(
+            entity['uri'], 
+            [entity['type']]
+        ),
+        'type': custom_filter.human_readable_predicate(
+            entity['type'], 
+            [entity['type']]
+        )
+    } for entity in potential_orphans]
+
+    # For DELETE strategy, return orphans with should_delete flag
+    if strategy == OrphanHandlingStrategy.DELETE:
+        return jsonify({
+            'status': 'success',
+            'orphaned_entities': orphan_info,
+            'should_delete': True
+        })
+
+    # For ASK strategy, return orphans with confirmation required
+    return jsonify({
+        'status': 'confirmation_required',
+        'orphaned_entities': orphan_info,
+        'message': gettext('The following entities will become orphaned. Do you want to delete them?')
+    })
+
 def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=None):
     if shacl:
         data_graph = fetch_data_graph_for_subject(subject)
@@ -1216,6 +1288,56 @@ def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=Non
         if predicate and predicate not in can_be_deleted:
             raise ValueError(gettext('This property cannot be deleted'))
     editor.delete(subject, predicate, object_value, graph_uri)
+
+def find_orphaned_entities(subject, predicate, object_value):
+    """
+    Find entities that would become orphaned after deleting the specified triple.
+    An entity is considered orphaned if:
+    1. It has no incoming references from other entities
+    2. It does not reference any entities that are subjects of other triples
+    
+    Returns:
+        list: A list of dictionaries containing URIs and types of orphaned entities
+    """
+    query = f"""
+    SELECT DISTINCT ?entity ?type
+    WHERE {{
+        # The entity we're checking
+        <{subject}> <{predicate}> ?entity .
+        FILTER(?entity = <{object_value}>)
+        
+        # Get entity type
+        ?entity a ?type .
+        
+        # First condition: No incoming references from other entities
+        FILTER NOT EXISTS {{
+            ?other ?anyPredicate ?entity .
+            FILTER(?other != <{subject}>)
+        }}
+        
+        # Second condition: Does not reference any entities that are subjects
+        FILTER NOT EXISTS {{
+            # Find any outgoing connections from our entity
+            ?entity ?outgoingPredicate ?connectedEntity .
+            
+            # Check if the connected entity is a subject in any triple
+            ?connectedEntity ?furtherPredicate ?furtherObject .
+        }}
+    }}
+    """
+    
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+    
+    orphaned_entities = []
+    for result in results["results"]["bindings"]:
+        orphaned_entities.append({
+            'uri': result["entity"]["value"],
+            'type': result["type"]["value"]
+        })
+    
+    return orphaned_entities
 
 def order_logic(editor: Editor, subject, predicate, new_order, ordered_by, graph_uri=None, temp_id_to_uri: Optional[Dict] = None):
     subject_uri = URIRef(subject)

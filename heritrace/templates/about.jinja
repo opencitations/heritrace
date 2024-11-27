@@ -224,6 +224,49 @@
         const optional_values = {{ optional_values|tojson|safe }};
         const shacl = {{ shacl|tojson|safe }};
 
+        function applyChanges(orphanedEntities, deleteOrphans = false) {
+            // Aggiungiamo le informazioni sugli orfani al primo elemento dei pendingChanges
+            if (orphanedEntities && orphanedEntities.length > 0) {
+                pendingChanges[0].orphaned_entities = orphanedEntities;
+                pendingChanges[0].deleteOrphans = deleteOrphans;
+            }
+
+            $.ajax({
+                url: '/apply_changes',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(pendingChanges),
+                success: function(response) {
+                    if (response.status === "success") {
+                        pendingChanges = [];
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: response.message,
+                            confirmButtonColor: '#3085d6'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '{{url_for('about', subject=subject)}}';
+                            }
+                        });
+                    }
+                },
+                error: function(jqXHR) {
+                    pendingChanges = [];
+                    let response = $.parseJSON(jqXHR.responseText);
+                    let errorMessage = response && response.message ? 
+                        response.message : 
+                        "{{_('An unexpected error occurred!')}}";
+                    Swal.fire({
+                        icon: 'error',
+                        title: "{{_('Oops...')}}",
+                        html: errorMessage,
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            });
+        }
+
         function toggleEditForm(listItem) {
             const form = listItem.find('.edit-form');
             const valueSpan = listItem.find('.object-value');
@@ -604,6 +647,7 @@
                 }
             });
         });
+
         $('#saveChangesBtn').click(function(){
             let errors = [];
 
@@ -623,47 +667,69 @@
                 Swal.fire({
                     icon: 'warning',
                     title: '{{ _("No Changes Detected") }}',
-                    text: '{{ _("Oops! It looks like you haven\\'t made any changes yet. Try updating a field first") }}',
+                    text: '{{ _("Oops! It looks like you have not made any changes yet. Try updating a field first") }}',
                     confirmButtonColor: '#3085d6'
                 });
                 return;
             }
 
             $.ajax({
-                url: '/apply_changes',
+                url: '/check_orphans',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(pendingChanges),
                 success: function(response) {
-                    if (response.status === "success") {
-                        pendingChanges = [];
+                    if (response.status === 'confirmation_required') {
+                        // Chiedi conferma per gli orfani
+                        const orphanList = response.orphaned_entities.map(entity => 
+                            `<li style="margin-bottom: 0.5rem;">
+                                <i class="bi bi-dash text-muted me-2"></i>
+                                <span>${entity.label}</span>
+                                <small class="text-muted">
+                                    (${entity.type})
+                                </small>
+                            </li>`
+                        ).join('');                        
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            text: response.message,
-                            confirmButtonColor: '#3085d6'
+                            title: '{{ _("Warning") }}',
+                            html: `
+                                <div class="text-start">
+                                    <p>{{ _("The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):") }}</p>
+                                    <ul class="list-unstyled" style="margin-left: 1rem;">
+                                        ${orphanList}
+                                    </ul>
+                                    <p>{{ _("These resources might become difficult to find and access in the future. Would you like to delete them now?") }}</p>
+                                </div>
+                            `,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: '{{ _("Yes, delete orphans") }}',
+                            cancelButtonText: '{{ _("No, keep orphans") }}',
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6'
                         }).then((result) => {
-                            if (result.isConfirmed) {
-                                window.location.href = '{{url_for('about', subject=subject)}}';
-                            }
+                            applyChanges(response.orphaned_entities, result.isConfirmed);
                         });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: response.message,
-                            confirmButtonColor: '#d33'
-                        });
+                    } else if (response.status === 'success') {
+                        // Procedi normalmente con le modifiche
+                        if (response.should_delete) {
+                            // Se la strategia è DELETE, passa gli orfani da cancellare
+                            applyChanges(response.orphaned_entities, true);
+                        } else {
+                            // Se la strategia è KEEP, procedi senza orfani
+                            applyChanges();
+                        }
                     }
                 },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    pendingChanges = [];
-                    response = $.parseJSON(jqXHR.responseText);
-                    let errorMessage = response && response.message ? response.message : "{{_('An unexpected error occurred!')}}";
+                error: function(jqXHR) {
+                    let response = $.parseJSON(jqXHR.responseText);
+                    let errorMessage = response && response.message ? 
+                        response.message : 
+                        "{{ _('An unexpected error occurred!') }}";
                     Swal.fire({
                         icon: 'error',
-                        title: "{{_('Oops...')}}",
-                        html: errorMessage,
+                        title: "{{ _('Error') }}",
+                        text: errorMessage,
                         confirmButtonColor: '#d33'
                     });
                 }
