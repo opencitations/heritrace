@@ -1684,8 +1684,13 @@ def get_deleted_entities():
         }
 
     deleted_entities = []
-    # Usa un numero di workers appropriato per il tuo sistema
-    max_workers = min(32, len(prov_results["results"]["bindings"]))
+    results_bindings = prov_results["results"]["bindings"]
+
+    if not results_bindings:
+        return jsonify(deleted_entities)
+
+    # Set minimum of 1 worker, maximum of 32 workers
+    max_workers = max(1, min(32, len(results_bindings)))
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_entity = {
