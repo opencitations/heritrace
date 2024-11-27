@@ -23,18 +23,8 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
 
 function EntityTimeline(_ref) {
   var timelineData = _ref.timelineData;
-  var entityUri = timelineData.entityUri,
-    entityLabel = timelineData.entityLabel,
-    entityClasses = timelineData.entityClasses;
-  var breadcrumbItems = [{
-    label: "<em>".concat(entityLabel, "</em>"),
-    href: "/about/".concat(encodeURIComponent(entityUri))
-  }, {
-    label: "History of <em>".concat(entityLabel, "</em>"),
-    active: true
-  }];
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
-    var timeline = new TL.Timeline('timeline-container', {
+    new TL.Timeline('timeline-container', {
       events: timelineData.events.map(function (event, index, array) {
         if (index === array.length - 1 && event.end_date === "Present") {
           return _objectSpread(_objectSpread({}, event), {}, {
@@ -55,15 +45,9 @@ function EntityTimeline(_ref) {
   }, [timelineData]);
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "space-y-4"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h2", {
-    className: "mb-4 word-wrap"
-  }, "Version history for ", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("em", {
-    dangerouslySetInnerHTML: {
-      __html: entityLabel
-    }
-  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     id: "timeline-container"
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("style", null, "\n        #timeline-container {\n            width: 100%;\n            height: 70vh;\n        }\n        .tl-text-content p {\n          margin-bottom: 5px;\n        }\n        .modifications h4 {\n          margin-top: 10px;\n          margin-bottom: 5px;\n          font-size: 1em;\n          font-weight: bold;\n        }\n        .modifications ul {\n          list-style-type: none;\n          padding-left: 0;\n          margin-bottom: 10px;\n        }\n        .modifications li {\n          margin-bottom: 3px;\n        }\n        .tl-timeline a.view-version {\n          color: #0d6efd;\n          text-decoration: none;\n        }\n        .tl-timeline a.view-version:hover {\n          color: white;\n        }\n        .tl-slide {\n          padding: 2rem 0;\n        }\n        .tl-timeline .tl-slide-titleslide .tl-headline-date,\n        .tl-timeline .tl-slide-titleslide .tl-headline {\n          font-size: 32px !important;\n          line-height: 36px !important;\n        }\n        .tl-timeline .tl-slide-titleslide .tl-text .tl-text-content p {\n          font-size: 18px !important;\n          line-height: 24px !important;\n        }\n        .tl-text-content .orcid-attribution img,\n        .tl-text-content .zenodo-attribution img {\n          vertical-align: middle;\n          margin-right: 4px;\n        }\n        .tl-text-content .text-muted {\n          color: #6c757d !important;\n          font-size: 0.9em;\n        }\n        .tl-text-content .small {\n          font-size: 85%;\n        }\n        .tl-skinny .tl-slidenav-next .tl-slidenav-icon {\n          margin-left: 0;\n        }\n      "));
+  }));
 }
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (EntityTimeline);
 
