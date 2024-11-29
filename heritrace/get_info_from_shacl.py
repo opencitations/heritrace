@@ -117,6 +117,33 @@ def execute_shacl_query(shacl: Graph, query, init_bindings=None):
     else:
         return shacl.query(query)
 
+def get_display_name_for_shape(entity_type, property_uri, shape_uri, display_rules):
+    """
+    Helper function to get displayName from display_rules by matching entity class,
+    property, and shape URI.
+    
+    Args:
+        entity_type (str): The type of the current entity
+        property_uri (str): The URI of the property being processed
+        shape_uri (str): The URI of the shape to match
+        display_rules (list): The display rules configuration
+        
+    Returns:
+        str: The display name if found, None otherwise
+    """
+    if display_rules:
+        for rule in display_rules:
+            # Match the entity class first
+            if rule.get('class') == entity_type:
+                # Then find the matching property
+                for prop in rule.get('displayProperties', []):
+                    if prop.get('property') == property_uri:
+                        # Finally match the shape in displayRules
+                        for shape_rule in prop.get('displayRules', []):
+                            if shape_rule.get('shape') == shape_uri:
+                                return shape_rule.get('displayName')
+    return None
+
 def process_query_results(shacl, results, display_rules, processed_shapes, depth=0):
     form_fields = defaultdict(dict)
     for row in results:
@@ -174,10 +201,17 @@ def process_query_results(shacl, results, display_rules, processed_shapes, depth
                 for node in orNodes:
                     entity_type_or_node = get_shape_target_class(shacl, node)
                     object_class = get_object_class(shacl, node, predicate)
+                    shape_display_name = get_display_name_for_shape(
+                        entity_type, 
+                        predicate,
+                        node, 
+                        display_rules
+                    )
                     # Process orNode as a field_info
                     or_field_info = {
                         "entityType": entity_type_or_node,
                         "uri": predicate,
+                        "displayName": shape_display_name,
                         "subjectShape": subject_shape,
                         "nodeShape": node,
                         "min": minCount,
@@ -220,9 +254,16 @@ def process_query_results(shacl, results, display_rules, processed_shapes, depth
                     # Process orNode as a field_info
                     entity_type_or_node = get_shape_target_class(shacl, node)
                     object_class = get_object_class(shacl, node, predicate)
+                    shape_display_name = get_display_name_for_shape(
+                        entity_type,
+                        predicate,
+                        node,
+                        display_rules
+                    )
                     or_field_info = {
                         "entityType": entity_type_or_node,
                         "uri": predicate,
+                        "displayName": shape_display_name,
                         "subjectShape": subject_shape,
                         "nodeShape": node,
                         "min": minCount,

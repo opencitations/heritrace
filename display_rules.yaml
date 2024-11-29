@@ -1269,12 +1269,12 @@ classes:
     displayProperties:
       - *type_property
       - *has_sequence_identifier_property
+      - *description_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
         displayRules:
           - shape: "http://schema.org/JournalShape"
             displayName: "Journal"
             fetchValueFromQuery: *journal_query
-      - *description_property
 
   - class: "http://purl.org/spar/fabio/JournalIssue"
     priority: 1
@@ -1296,13 +1296,13 @@ classes:
     displayProperties:
       - *type_property
       - *has_sequence_identifier_property
+      - *description_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
         shouldBeDisplayed: true
         displayRules:
           - shape: "http://schema.org/VolumeShape"
             displayName: "Volume"
             fetchValueFromQuery: *volume_query
-      - *description_property
 
   - class: "http://purl.org/spar/fabio/ProceedingsPaper"
     priority: 1
