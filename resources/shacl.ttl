@@ -465,6 +465,22 @@ schema:ExpressionShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -521,6 +537,11 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
@@ -614,6 +635,11 @@ schema:JournalArticleShape
     sh:minCount 0 ;
   ] ;
   sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path frbr:partOf ;
     sh:or (
       [ sh:node schema:IssueShape ]
@@ -702,6 +728,11 @@ schema:BookShape
     sh:minCount 0 ;
   ] ;
   sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -766,6 +797,11 @@ schema:BookChapterShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
@@ -855,6 +891,11 @@ schema:ProceedingsPaperShape
     sh:minCount 0 ;
   ] ;
   sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path frbr:partOf ;
     sh:node schema:ProceedingsShape ;
     sh:minCount 1 ;
@@ -929,6 +970,11 @@ schema:ProceedingsShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -978,6 +1024,11 @@ schema:JournalShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
   ] .
 
 schema:VolumeShape
@@ -1006,6 +1057,11 @@ schema:VolumeShape
     sh:node schema:JournalShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
   ] .
 
 schema:IssueShape
@@ -1034,6 +1090,11 @@ schema:IssueShape
     sh:node schema:VolumeShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
   ] .
 
 schema:ReferenceBookShape
@@ -1056,6 +1117,11 @@ schema:ReferenceBookShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
@@ -1127,6 +1193,11 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
@@ -1216,6 +1287,11 @@ schema:ReviewArticleShape
     sh:minCount 0 ;
   ] ;
   sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path frbr:partOf ;
     sh:node schema:JournalShape ;
     sh:minCount 0 ;
@@ -1301,6 +1377,11 @@ schema:ThesisShape
     sh:minCount 0 ;
   ] ;
   sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1362,6 +1443,11 @@ schema:SeriesShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;

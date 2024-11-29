@@ -421,6 +421,12 @@ common_properties:
     shouldBeDisplayed: true
     inputType: "tag"
 
+  description_property: &description_property
+    property: "http://purl.org/dc/terms/description"
+    displayName: "Description"
+    shouldBeDisplayed: true
+    inputType: "textarea"
+
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
     displayName: "Identifier"
@@ -701,6 +707,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *keyword_property
       - *document_context_property
@@ -803,6 +810,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *keyword_property
       - *document_context_property
@@ -920,6 +928,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *document_context_property_container
       - *publication_date_property
     sortableBy:
@@ -1030,6 +1039,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *keyword_property
       - *document_context_property
@@ -1114,6 +1124,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *document_context_property
       - *publication_date_property
@@ -1211,6 +1222,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *keyword_property
       - *document_context_property
@@ -1235,6 +1247,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
     sortableBy:
       *sortableByTitle
 
@@ -1261,6 +1274,7 @@ classes:
           - shape: "http://schema.org/JournalShape"
             displayName: "Journal"
             fetchValueFromQuery: *journal_query
+      - *description_property
 
   - class: "http://purl.org/spar/fabio/JournalIssue"
     priority: 1
@@ -1288,6 +1302,7 @@ classes:
           - shape: "http://schema.org/VolumeShape"
             displayName: "Volume"
             fetchValueFromQuery: *volume_query
+      - *description_property
 
   - class: "http://purl.org/spar/fabio/ProceedingsPaper"
     priority: 1
@@ -1362,6 +1377,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *keyword_property
       - *document_context_property
@@ -1429,6 +1445,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *document_context_property_container
       - *publication_date_property
     sortableBy:
@@ -1539,6 +1556,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *keyword_property
       - *document_context_property
@@ -1646,6 +1664,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *keyword_property
       - *document_context_property
@@ -1753,6 +1772,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *document_context_property
       - *publication_date_property
     sortableBy:
@@ -1839,6 +1859,7 @@ classes:
       - *type_property
       - *identifier_property
       - *title_property
+      - *description_property
       - *abstract_property
       - *keyword_property
       - *document_context_property
