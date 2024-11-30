@@ -1096,7 +1096,7 @@ def apply_changes():
         
         for change in changes:
             if change["action"] == "delete":
-                delete_logic(editor, change["subject"], change["predicate"], change["object"], graph_uri)
+                delete_logic(editor, change["subject"], change.get('predicate'), change.get('object'), graph_uri)
                 
                 if strategy == OrphanHandlingStrategy.DELETE or (
                     strategy == OrphanHandlingStrategy.ASK and delete_orphans
@@ -1948,8 +1948,10 @@ def restore_version(entity_uri, timestamp):
         abort(404)
 
     current_graph = fetch_data_graph_recursively(entity_uri)
-
-    if current_graph is None or len(current_graph) == 0:
+    
+    is_deleted = current_graph is None or len(current_graph) == 0
+    
+    if is_deleted:
         current_graph = copy.deepcopy(history[entity_uri][timestamp])
         current_graph.remove((URIRef(entity_uri), None, None, None))
 
@@ -1957,10 +1959,10 @@ def restore_version(entity_uri, timestamp):
         current_graph, historical_graph
     )
 
-    snapshot_uri = None
+    snapshot_to_restore = None
     for se, meta in provenance[entity_uri].items():
         if meta['generatedAtTime'] == timestamp:
-            snapshot_uri = se
+            snapshot_to_restore = se
             break
 
     editor = Editor(
@@ -1968,7 +1970,7 @@ def restore_version(entity_uri, timestamp):
         provenance_endpoint, 
         app.config['COUNTER_HANDLER'], 
         URIRef(f'https://orcid.org/{current_user.orcid}'), 
-        URIRef(snapshot_uri), 
+        URIRef(snapshot_to_restore),
         app.config['DATASET_GENERATION_TIME']
     )
 
@@ -1992,6 +1994,9 @@ def restore_version(entity_uri, timestamp):
             editor.create(item[0], item[1], item[2], item[3])
         else:
             editor.create(item[0], item[1], item[2])
+
+    if is_deleted:
+        editor.g_set.mark_as_restored(URIRef(entity_uri))
 
     try:
         editor.save()

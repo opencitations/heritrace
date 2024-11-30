@@ -15,7 +15,7 @@ pyyaml = "^6.0.1"
 flask-babel = "^3.1.0"
 validators = "0.20.0"
 requests = "^2.31.0"
-time-agnostic-library = "4.6.8"
+time-agnostic-library = "^4.6.11"
 flask-wtf = "^1.1.1"
 oc-ocdm = "^9.0.0"
 pyshacl = "0.23.0"
@@ -23,7 +23,7 @@ setuptools = "^68.2.2"
 docker = "^7.1.0"
 requests-oauthlib = "^2.0.0"
 flask-login = "^0.6.3"
-rdflib-ocdm = "^0.3.13"
+rdflib-ocdm = "^0.4.1"
 
 
 [build-system]
