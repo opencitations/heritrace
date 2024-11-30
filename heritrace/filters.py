@@ -81,7 +81,7 @@ class Filter:
                             for row in results:
                                 return str(row[0])
                         except Exception as e:
-                            print(f"Error executing fetchUriDisplay query: {e}")
+                            print(f"Error executing fetchUriDisplay query: {e}. {query}")
                     else:
                         self.sparql.setQuery(query)
                         try:
