@@ -1244,8 +1244,8 @@ def check_orphans():
             if change['action'] == 'delete':
                 orphans = find_orphaned_entities(
                     change['subject'],
-                    change['predicate'],
-                    change['object']
+                    change.get('predicate'),
+                    change.get('object')
                 )
                 potential_orphans.extend(orphans)
 
@@ -1289,42 +1289,79 @@ def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=Non
             raise ValueError(gettext('This property cannot be deleted'))
     editor.delete(subject, predicate, object_value, graph_uri)
 
-def find_orphaned_entities(subject, predicate, object_value):
+def find_orphaned_entities(subject, predicate=None, object_value=None):
     """
-    Find entities that would become orphaned after deleting the specified triple.
+    Find entities that would become orphaned after deleting a triple or an entire entity.
     An entity is considered orphaned if:
-    1. It has no incoming references from other entities
+    1. It has no incoming references from other entities (except from the entity being deleted)
     2. It does not reference any entities that are subjects of other triples
     
+    Args:
+        subject (str): The URI of the subject being deleted
+        predicate (str, optional): The predicate being deleted. If None, entire entity is being deleted
+        object_value (str, optional): The object value being deleted. If None, entire entity is being deleted
+        
     Returns:
         list: A list of dictionaries containing URIs and types of orphaned entities
     """
-    query = f"""
-    SELECT DISTINCT ?entity ?type
-    WHERE {{
-        # The entity we're checking
-        <{subject}> <{predicate}> ?entity .
-        FILTER(?entity = <{object_value}>)
-        
-        # Get entity type
-        ?entity a ?type .
-        
-        # First condition: No incoming references from other entities
-        FILTER NOT EXISTS {{
-            ?other ?anyPredicate ?entity .
-            FILTER(?other != <{subject}>)
-        }}
-        
-        # Second condition: Does not reference any entities that are subjects
-        FILTER NOT EXISTS {{
-            # Find any outgoing connections from our entity
-            ?entity ?outgoingPredicate ?connectedEntity .
+    if predicate and object_value:
+        query = f"""
+        SELECT DISTINCT ?entity ?type
+        WHERE {{
+            # The entity we're checking
+            <{subject}> <{predicate}> ?entity .
+            FILTER(?entity = <{object_value}>)
             
-            # Check if the connected entity is a subject in any triple
-            ?connectedEntity ?furtherPredicate ?furtherObject .
+            # Get entity type
+            ?entity a ?type .
+            
+            # First condition: No incoming references from other entities
+            FILTER NOT EXISTS {{
+                ?other ?anyPredicate ?entity .
+                FILTER(?other != <{subject}>)
+            }}
+            
+            # Second condition: Does not reference any entities that are subjects
+            FILTER NOT EXISTS {{
+                # Find any outgoing connections from our entity
+                ?entity ?outgoingPredicate ?connectedEntity .
+                
+                # Check if the connected entity is a subject in any triple
+                ?connectedEntity ?furtherPredicate ?furtherObject .
+            }}
         }}
-    }}
-    """
+        """
+    else:
+        query = f"""
+        SELECT DISTINCT ?entity ?type
+        WHERE {{
+            # Find all entities referenced by the subject being deleted
+            <{subject}> ?p ?entity .
+            
+            # Only consider URIs, not literal values
+            FILTER(isIRI(?entity))
+            
+            # Get entity type
+            ?entity a ?type .
+            
+            # First condition: No incoming references from other entities
+            FILTER NOT EXISTS {{
+                ?other ?anyPredicate ?entity .
+                FILTER(?other != <{subject}>)
+            }}
+            
+            # Second condition: Does not reference any entities that are subjects
+            FILTER NOT EXISTS {{
+                # Find any outgoing connections from our entity
+                ?entity ?outgoingPredicate ?connectedEntity .
+                
+                # Check if the connected entity is a subject in any triple
+                # (excluding the entity being deleted)
+                ?connectedEntity ?furtherPredicate ?furtherObject .
+                FILTER(?connectedEntity != <{subject}>)
+            }}
+        }}
+        """
     
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)

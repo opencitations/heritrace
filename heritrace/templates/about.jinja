@@ -224,46 +224,125 @@
         const optional_values = {{ optional_values|tojson|safe }};
         const shacl = {{ shacl|tojson|safe }};
 
-        function applyChanges(orphanedEntities, deleteOrphans = false) {
-            // Aggiungiamo le informazioni sugli orfani al primo elemento dei pendingChanges
-            if (orphanedEntities && orphanedEntities.length > 0) {
-                pendingChanges[0].orphaned_entities = orphanedEntities;
-                pendingChanges[0].deleteOrphans = deleteOrphans;
+        function handleOrphanedEntities(orphanedEntities, onConfirm, onCancel) {
+            if (!orphanedEntities || orphanedEntities.length === 0) {
+                onConfirm([], false);
+                return;
             }
 
+            const orphanList = orphanedEntities.map(entity => 
+                `<li style="margin-bottom: 0.5rem;">
+                    <i class="bi bi-dash text-muted me-2"></i>
+                    <span>${entity.label}</span>
+                    <small class="text-muted">
+                        (${entity.type})
+                    </small>
+                </li>`
+            ).join('');
+
+            Swal.fire({
+                title: '{{ _("Warning") }}',
+                html: `
+                    <div class="text-start">
+                        <p>{{ _("The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):") }}</p>
+                        <ul class="list-unstyled" style="margin-left: 1rem;">
+                            ${orphanList}
+                        </ul>
+                        <p>{{ _("These resources might become difficult to find and access in the future. Would you like to delete them now?") }}</p>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '{{ _("Yes, delete orphans") }}',
+                cancelButtonText: '{{ _("No, keep orphans") }}',
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    onConfirm(orphanedEntities, true);
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    onCancel ? onCancel(orphanedEntities, false) : onConfirm(orphanedEntities, false);
+                }
+            });
+        }
+
+        function processOrphanCheck(changes, successCallback) {
+            $.ajax({
+                url: '/check_orphans',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(changes),
+                success: function(response) {
+                    if (response.status === 'confirmation_required') {
+                        handleOrphanedEntities(
+                            response.orphaned_entities,
+                            successCallback
+                        );
+                    } else if (response.status === 'success') {
+                        successCallback(response.orphaned_entities, response.should_delete);
+                    }
+                },
+                error: function(jqXHR) {
+                    let response = $.parseJSON(jqXHR.responseText);
+                    let errorMessage = response && response.message ? 
+                        response.message : 
+                        "{{ _('An unexpected error occurred!') }}";
+                    Swal.fire({
+                        icon: 'error',
+                        title: "{{ _('Error') }}",
+                        text: errorMessage,
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            });
+        }
+
+        function applyChangesToEntity(changes, successCallback, errorCallback) {
             $.ajax({
                 url: '/apply_changes',
                 method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify(pendingChanges),
+                data: JSON.stringify(changes),
                 success: function(response) {
                     if (response.status === "success") {
-                        pendingChanges = [];
                         Swal.fire({
                             icon: 'success',
-                            title: 'Success',
+                            title: "{{ _('Success') }}",
                             text: response.message,
                             confirmButtonColor: '#3085d6'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                window.location.href = '{{url_for('about', subject=subject)}}';
+                        }).then(() => {
+                            if (successCallback) {
+                                successCallback(response);
+                            } else {
+                                // Default behavior: reload current page
+                                window.location.reload();
                             }
                         });
+                    } else {
+                        showErrorMessage(response.message);
                     }
                 },
                 error: function(jqXHR) {
-                    pendingChanges = [];
                     let response = $.parseJSON(jqXHR.responseText);
                     let errorMessage = response && response.message ? 
                         response.message : 
-                        "{{_('An unexpected error occurred!')}}";
-                    Swal.fire({
-                        icon: 'error',
-                        title: "{{_('Oops...')}}",
-                        html: errorMessage,
-                        confirmButtonColor: '#d33'
-                    });
+                        "{{ _('An unexpected error occurred!') }}";
+                    
+                    showErrorMessage(errorMessage);
+
+                    if (errorCallback) {
+                        errorCallback(response);
+                    }
                 }
+            });
+        }
+
+        function showErrorMessage(message) {
+            Swal.fire({
+                icon: 'error',
+                title: "{{ _('Error') }}",
+                text: message,
+                confirmButtonColor: '#d33'
             });
         }
 
@@ -560,6 +639,7 @@
 
             storePendingChange('update', subject, predicate, oldObject, newObject, shape);
         });
+
         $(document).on('click', '.delete-button', function() {
             const listItem = $(this).closest('.property-value');
             listItem.addClass('marked-for-deletion');
@@ -592,10 +672,12 @@
                     toggleDateStrike(dateInputGroup, false);
                 });
         });
+
         $(document).on('click', '#deleteEntityBtn', function() {
             Swal.fire({
                 title: "{{ _('Are you sure?') }}",
-                html: "<p>{{ _('This will delete this resource and all its data') }}</p><p>{{ _('You can still restore it later using the Time Machine') }}</p>",                icon: 'warning',
+                html: "<p>{{ _('This will delete this resource and all its data') }}</p><p>{{ _('You can still restore it later using the Time Machine') }}</p>",
+                icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
@@ -603,52 +685,28 @@
                 cancelButtonText: "{{ _('Cancel') }}"
             }).then((result) => {
                 if (result.isConfirmed) {
-                    $.ajax({
-                        url: '/apply_changes',
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify([{
+                    const changes = [{
+                        action: "delete",
+                        subject: '{{ subject }}'
+                    }];
+
+                    processOrphanCheck(changes, function(orphanedEntities, shouldDeleteOrphans) {
+                        const finalChanges = [{
                             action: "delete",
                             subject: '{{ subject }}',
-                            data: null
-                        }]),
-                        success: function(response) {
-                            if (response.status === "success") {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: "{{ _('Deleted!') }}",
-                                    text: response.message,
-                                    confirmButtonColor: '#3085d6'
-                                }).then(() => {
-                                    window.location.href = '{{ url_for('catalogue') }}';
-                                });
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: "{{ _('Error') }}",
-                                    text: response.message,
-                                    confirmButtonColor: '#d33'
-                                });
-                            }
-                        },
-                        error: function(jqXHR) {
-                            let response = $.parseJSON(jqXHR.responseText);
-                            let errorMessage = response && response.message ? 
-                                response.message : 
-                                "{{ _('An unexpected error occurred!') }}";
-                            Swal.fire({
-                                icon: 'error',
-                                title: "{{ _('Error') }}",
-                                text: errorMessage,
-                                confirmButtonColor: '#d33'
-                            });
-                        }
+                            orphaned_entities: orphanedEntities,
+                            deleteOrphans: shouldDeleteOrphans
+                        }];
+
+                        applyChangesToEntity(finalChanges, function() {
+                            window.location.href = '{{ url_for('catalogue') }}';
+                        });
                     });
                 }
             });
         });
 
-        $('#saveChangesBtn').click(function(){
+        $('#saveChangesBtn').click(function() {
             let errors = [];
 
             validateRequiredFields(errors);
@@ -673,66 +731,16 @@
                 return;
             }
 
-            $.ajax({
-                url: '/check_orphans',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(pendingChanges),
-                success: function(response) {
-                    if (response.status === 'confirmation_required') {
-                        // Chiedi conferma per gli orfani
-                        const orphanList = response.orphaned_entities.map(entity => 
-                            `<li style="margin-bottom: 0.5rem;">
-                                <i class="bi bi-dash text-muted me-2"></i>
-                                <span>${entity.label}</span>
-                                <small class="text-muted">
-                                    (${entity.type})
-                                </small>
-                            </li>`
-                        ).join('');                        
-                        Swal.fire({
-                            title: '{{ _("Warning") }}',
-                            html: `
-                                <div class="text-start">
-                                    <p>{{ _("The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):") }}</p>
-                                    <ul class="list-unstyled" style="margin-left: 1rem;">
-                                        ${orphanList}
-                                    </ul>
-                                    <p>{{ _("These resources might become difficult to find and access in the future. Would you like to delete them now?") }}</p>
-                                </div>
-                            `,
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: '{{ _("Yes, delete orphans") }}',
-                            cancelButtonText: '{{ _("No, keep orphans") }}',
-                            confirmButtonColor: '#d33',
-                            cancelButtonColor: '#3085d6'
-                        }).then((result) => {
-                            applyChanges(response.orphaned_entities, result.isConfirmed);
-                        });
-                    } else if (response.status === 'success') {
-                        // Procedi normalmente con le modifiche
-                        if (response.should_delete) {
-                            // Se la strategia è DELETE, passa gli orfani da cancellare
-                            applyChanges(response.orphaned_entities, true);
-                        } else {
-                            // Se la strategia è KEEP, procedi senza orfani
-                            applyChanges();
-                        }
-                    }
-                },
-                error: function(jqXHR) {
-                    let response = $.parseJSON(jqXHR.responseText);
-                    let errorMessage = response && response.message ? 
-                        response.message : 
-                        "{{ _('An unexpected error occurred!') }}";
-                    Swal.fire({
-                        icon: 'error',
-                        title: "{{ _('Error') }}",
-                        text: errorMessage,
-                        confirmButtonColor: '#d33'
-                    });
+            processOrphanCheck(pendingChanges, function(orphanedEntities, shouldDeleteOrphans) {
+                // Add orphan information to first change
+                if (orphanedEntities && orphanedEntities.length > 0) {
+                    pendingChanges[0].orphaned_entities = orphanedEntities;
+                    pendingChanges[0].deleteOrphans = shouldDeleteOrphans;
                 }
+                
+                applyChangesToEntity(pendingChanges, function() {
+                    window.location.href = '{{ url_for('about', subject=subject) }}';
+                });
             });
         });
 
