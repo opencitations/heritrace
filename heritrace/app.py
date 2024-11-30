@@ -1534,6 +1534,7 @@ def entity_history(entity_uri):
     classes = list(context_snapshot.triples((URIRef(entity_uri), RDF.type, None)))
     for triple in classes:
         entity_classes.add(str(triple[2]))
+    entity_classes = [get_highest_priority_class(entity_classes)]
 
     events = []
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
@@ -1702,6 +1703,8 @@ def entity_version(entity_uri, timestamp):
         subject_classes = [o for _, _, o in context_version.triples((URIRef(entity_uri), RDF.type, None))]
     else:
         subject_classes = [o for _, _, o in version.triples((URIRef(entity_uri), RDF.type, None))]
+
+    subject_classes = [get_highest_priority_class(subject_classes)]
 
     relevant_properties = set()
     _, _, _, _, _, _, valid_predicates = get_valid_predicates(triples)
