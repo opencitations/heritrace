@@ -1936,6 +1936,104 @@ def compute_graph_differences(current_graph: Graph|ConjunctiveGraph, historical_
 
     return triples_or_quads_to_delete, triples_or_quads_to_add
 
+def find_appropriate_snapshot(provenance_data: dict, target_time: str) -> Optional[str]:
+    """
+    Find the most appropriate snapshot to use as a source for restoration.
+    
+    Args:
+        provenance_data: Dictionary of snapshots and their metadata for an entity
+        target_time: The target restoration time as ISO format string
+    
+    Returns:
+        The URI of the most appropriate snapshot, or None if no suitable snapshot is found
+    """
+    target_datetime = convert_to_datetime(target_time)
+    
+    # Convert all generation times to datetime for comparison
+    valid_snapshots = []
+    for snapshot_uri, metadata in provenance_data.items():
+        generation_time = convert_to_datetime(metadata['generatedAtTime'])
+        
+        # Skip deletion snapshots (where generation time equals invalidation time)
+        if (metadata.get('invalidatedAtTime') and 
+            metadata['generatedAtTime'] == metadata['invalidatedAtTime']):
+            continue
+            
+        # Only consider snapshots up to our target time
+        if generation_time <= target_datetime:
+            valid_snapshots.append((generation_time, snapshot_uri))
+    
+    if not valid_snapshots:
+        return None
+        
+    # Sort by generation time and take the most recent one
+    valid_snapshots.sort(key=lambda x: x[0])
+    return valid_snapshots[-1][1]
+
+def get_entities_to_restore(triples_or_quads_to_delete: set, triples_or_quads_to_add: set, main_entity_uri: str) -> set:
+    """
+    Identify all entities that need to be restored based on the graph differences.
+    
+    Args:
+        triples_or_quads_to_delete: Set of triples/quads to be deleted
+        triples_or_quads_to_add: Set of triples/quads to be added
+        main_entity_uri: URI of the main entity being restored
+    
+    Returns:
+        Set of entity URIs that need to be restored
+    """
+    entities_to_restore = {main_entity_uri}
+    
+    for item in list(triples_or_quads_to_delete) + list(triples_or_quads_to_add):
+        subject = str(item[0])
+        obj = str(item[2])
+        for uri in [subject, obj]:
+            if uri != main_entity_uri and validators.url(uri):
+                entities_to_restore.add(uri)
+                
+    return entities_to_restore
+
+def prepare_entity_snapshots(entities_to_restore: set, provenance: dict, target_time: str) -> dict:
+    """
+    Prepare snapshot information for all entities that need to be restored.
+    
+    Args:
+        entities_to_restore: Set of entity URIs to process
+        provenance: Dictionary containing provenance data for all entities
+        target_time: Target restoration time
+        
+    Returns:
+        Dictionary mapping entity URIs to their restoration information
+    """
+    entity_snapshots = {}
+    
+    for entity_uri in entities_to_restore:
+        if entity_uri not in provenance:
+            continue
+            
+        # Find the appropriate source snapshot
+        source_snapshot = find_appropriate_snapshot(provenance[entity_uri], target_time)
+        if not source_snapshot:
+            continue
+            
+        # Check if entity is currently deleted by examining its latest snapshot
+        sorted_snapshots = sorted(
+            provenance[entity_uri].items(),
+            key=lambda x: convert_to_datetime(x[1]['generatedAtTime'])
+        )
+        latest_snapshot = sorted_snapshots[-1][1]
+        is_deleted = (
+            latest_snapshot.get('invalidatedAtTime') and
+            latest_snapshot['generatedAtTime'] == latest_snapshot['invalidatedAtTime']
+        )
+        
+        entity_snapshots[entity_uri] = {
+            'source': source_snapshot,
+            'needs_restore': is_deleted
+        }
+        
+    return entity_snapshots
+
 @app.route('/restore-version/<path:entity_uri>/<timestamp>', methods=['POST'])
 @login_required
 def restore_version(entity_uri, timestamp):
@@ -1948,7 +2046,6 @@ def restore_version(entity_uri, timestamp):
         abort(404)
 
     current_graph = fetch_data_graph_recursively(entity_uri)
-    
     is_deleted = current_graph is None or len(current_graph) == 0
     
     if is_deleted:
@@ -1959,18 +2056,22 @@ def restore_version(entity_uri, timestamp):
         current_graph, historical_graph
     )
 
-    snapshot_to_restore = None
-    for se, meta in provenance[entity_uri].items():
-        if meta['generatedAtTime'] == timestamp:
-            snapshot_to_restore = se
-            break
+    # Get all entities that need restoration
+    entities_to_restore = get_entities_to_restore(
+        triples_or_quads_to_delete, 
+        triples_or_quads_to_add,
+        entity_uri
+    )
+    
+    # Prepare snapshot information for all entities
+    entity_snapshots = prepare_entity_snapshots(entities_to_restore, provenance, timestamp)
 
     editor = Editor(
         dataset_endpoint, 
         provenance_endpoint, 
         app.config['COUNTER_HANDLER'], 
         URIRef(f'https://orcid.org/{current_user.orcid}'), 
-        URIRef(snapshot_to_restore),
+        None,
         app.config['DATASET_GENERATION_TIME']
     )
 
@@ -1983,21 +2084,39 @@ def restore_version(entity_uri, timestamp):
 
     editor.preexisting_finished()
 
+    # Apply deletions
     for item in triples_or_quads_to_delete:
         if len(item) == 4:
             editor.delete(item[0], item[1], item[2], item[3])
         else:
             editor.delete(item[0], item[1], item[2])
 
+        subject = str(item[0])
+        if subject in entity_snapshots:
+            entity_info = entity_snapshots[subject]
+            if entity_info['needs_restore']:
+                editor.g_set.mark_as_restored(URIRef(subject))
+            editor.g_set.entity_index[URIRef(subject)]['restoration_source'] = entity_info['source']
+
+    # Apply additions
     for item in triples_or_quads_to_add:
         if len(item) == 4:
             editor.create(item[0], item[1], item[2], item[3])
         else:
             editor.create(item[0], item[1], item[2])
 
-    if is_deleted:
-        editor.g_set.mark_as_restored(URIRef(entity_uri))
+        subject = str(item[0])
+        if subject in entity_snapshots:
+            entity_info = entity_snapshots[subject]
+            if entity_info['needs_restore']:
+                editor.g_set.mark_as_restored(URIRef(subject))
+                editor.g_set.entity_index[URIRef(subject)]['source'] = entity_info['source']
 
+    # Handle main entity restoration
+    if is_deleted and entity_uri in entity_snapshots:
+        editor.g_set.mark_as_restored(URIRef(entity_uri))
+        editor.g_set.entity_index[URIRef(subject)]['source'] = entity_info['source']
+        
     try:
         editor.save()
         flash(gettext('Version restored successfully'), 'success')
