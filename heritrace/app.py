@@ -1031,6 +1031,7 @@ def get_inverse_references(subject_uri):
         sparql.setQuery(type_query)
         type_results = sparql.query().convert()
         types = [t["type"]["value"] for t in type_results["results"]["bindings"]]
+        types = [get_highest_priority_class(types)]
         references.append({
             "subject": subject,
             "predicate": predicate,
@@ -1452,23 +1453,22 @@ def sparql_proxy():
     response = requests.post(dataset_endpoint, data={'query': query}, headers={'Accept': 'application/sparql-results+json'})
     return response.content, response.status_code, {'Content-Type': 'application/sparql-results+json'}
 
-def generate_modification_text(modifications, subject_classes, history=None, entity_uri=None, current_snapshot=None, current_snapshot_timestamp=None, custom_filter=custom_filter):
+def generate_modification_text(modifications, subject_classes, history=None, entity_uri=None, current_snapshot=None, current_snapshot_timestamp=None, custom_filter=custom_filter, form_fields=form_fields_cache):
     """
-    Generate HTML text describing modifications to an entity.
+    Generate HTML text describing modifications to an entity, using form_fields to determine object display format.
 
     Args:
-    modifications (dict): A dictionary of modifications, typically from parse_sparql_update.
-    subject_classes (list): A list of classes for the subject entity.
-    history (dict, optional): A dictionary of historical snapshots, used for deletions.
-    entity_uri (str, optional): The URI of the entity being modified.
-    current_snapshot (Graph, optional): The current snapshot of the entity.
-    current_snapshot_timestamp (str, optional): The timestamp of the current snapshot.
-    custom_filter (object): An object containing filter methods like human_readable_predicate and human_readable_entity.
-
-    Returns:
-    str: HTML formatted string describing the modifications.
+        modifications (dict): Dictionary of modifications from parse_sparql_update
+        subject_classes (list): List of classes for the subject entity
+        history (dict): Historical snapshots dictionary
+        entity_uri (str): URI of the entity being modified
+        current_snapshot (Graph): Current entity snapshot
+        current_snapshot_timestamp (str): Timestamp of current snapshot
+        custom_filter (Filter): Filter instance for formatting
+        form_fields (dict): Form fields configuration from SHACL
     """
     modification_text = "<p><strong>" + gettext("Modifications") + "</strong></p>"
+
     for mod_type, triples in modifications.items():
         modification_text += "<ul class='list-group mb-3'><p>"
         if mod_type == gettext('Additions'):
@@ -1476,29 +1476,33 @@ def generate_modification_text(modifications, subject_classes, history=None, ent
         elif mod_type == gettext('Deletions'):
             modification_text += '<i class="bi bi-dash-circle-fill text-danger"></i>'
         modification_text += ' <em>' + gettext(mod_type) + '</em></p>'
-        for triple in triples:
-            predicate_label = custom_filter.human_readable_predicate(triple[1], subject_classes)
-            object_value = triple[2]
-            if validators.url(object_value):
-                if mod_type == gettext('Deletions') and history and entity_uri and current_snapshot_timestamp:
-                    # For deletions, look in the previous snapshot
-                    sorted_timestamps = sorted(history[entity_uri].keys())
-                    current_index = sorted_timestamps.index(current_snapshot_timestamp)
-                    if current_index > 0:
-                        previous_snapshot = history[entity_uri][sorted_timestamps[current_index - 1]]
-                        object_classes = [str(o) for s, p, o in previous_snapshot.triples((URIRef(object_value), RDF.type, None))]
-                        relevant_snapshot = previous_snapshot
-                    else:
-                        object_classes = []
-                        relevant_snapshot = None
-                else:
-                    # For additions or modifications, use the current snapshot
-                    relevant_snapshot = current_snapshot
-                    object_classes = [str(o) for s, p, o in current_snapshot.triples((URIRef(object_value), RDF.type, None))]
 
-                object_label = custom_filter.human_readable_entity(object_value, object_classes, relevant_snapshot)
+        for triple in triples:
+            predicate = triple[1]
+            predicate_label = custom_filter.human_readable_predicate(predicate, subject_classes)
+            object_value = triple[2]
+
+            # Determine which snapshot to use for context
+            relevant_snapshot = None
+            if mod_type == gettext('Deletions') and history and entity_uri and current_snapshot_timestamp:
+                sorted_timestamps = sorted(history[entity_uri].keys())
+                current_index = sorted_timestamps.index(current_snapshot_timestamp)
+                if current_index > 0:
+                    relevant_snapshot = history[entity_uri][sorted_timestamps[current_index - 1]]
             else:
-                object_label = object_value
+                relevant_snapshot = current_snapshot
+
+            subject_class = get_highest_priority_class(subject_classes)
+
+            object_label = get_object_label(
+                object_value, 
+                predicate,
+                subject_class,
+                form_fields,
+                relevant_snapshot,
+                custom_filter
+            )
+
             modification_text += f"""
                 <li class='d-flex align-items-center'>
                     <span class='flex-grow-1 d-flex flex-column justify-content-center ms-3 mb-2 w-100'>
@@ -1506,8 +1510,49 @@ def generate_modification_text(modifications, subject_classes, history=None, ent
                         <span class="object-value word-wrap">{object_label}</span>
                     </span>
                 </li>"""
+
         modification_text += "</ul>"
     return modification_text
+
+def get_object_label(object_value, predicate, entity_type, form_fields, snapshot, custom_filter: Filter):
+    """
+    Get appropriate display label for an object value based on form fields configuration.
+    """
+    entity_type = str(entity_type)
+    predicate = str(predicate)
+
+    if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+        return custom_filter.human_readable_predicate(object_value, [entity_type]).title()
+    
+    if form_fields and entity_type in form_fields:
+        predicate_fields = form_fields[entity_type].get(predicate, [])
+        for field in predicate_fields:
+            # Check if this is an entity reference
+            if field.get('nodeShape') or field.get('objectClass'):
+                if validators.url(object_value):
+                    # Get types for the referenced entity
+                    object_classes = []
+                    if snapshot:
+                        object_classes = [str(o) for s, p, o in snapshot.triples((URIRef(object_value), RDF.type, None))]
+                    if not object_classes and field.get('objectClass'):
+                        object_classes = [field['objectClass']]
+                    
+                    return custom_filter.human_readable_entity(object_value, object_classes, snapshot)
+
+            # Check for mandatory values
+            if field.get('hasValue') == object_value:
+                return custom_filter.human_readable_predicate(object_value, [entity_type])
+
+            # Check for optional values from a predefined set
+            if object_value in field.get('optionalValues', []):
+                return custom_filter.human_readable_predicate(object_value, [entity_type])
+
+    # Default to simple string representation for literal values
+    if not validators.url(object_value):
+        return object_value
+
+    # For any other URIs, use human_readable_predicate
+    return custom_filter.human_readable_predicate(object_value, [entity_type])
 
 @app.route('/entity-history/<path:entity_uri>')
 @login_required
@@ -1555,7 +1600,9 @@ def entity_history(entity_uri):
                 history=history, 
                 entity_uri=entity_uri, 
                 current_snapshot=snapshot_graph,
-                current_snapshot_timestamp=snapshot_timestamp_str
+                current_snapshot_timestamp=snapshot_timestamp_str,
+                custom_filter=custom_filter,
+                form_fields=form_fields_cache
             )
 
         description = metadata['description'].replace(
@@ -1743,7 +1790,9 @@ def entity_version(entity_uri, timestamp):
             history=history, 
             entity_uri=entity_uri, 
             current_snapshot=version,
-            current_snapshot_timestamp=closest_timestamp
+            current_snapshot_timestamp=closest_timestamp,
+            custom_filter=custom_filter,
+            form_fields=form_fields_cache
         )
     else:
         modifications = ""
