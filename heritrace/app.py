@@ -1982,7 +1982,7 @@ def time_vault():
 def get_deleted_entities():
     """
     API endpoint to retrieve deleted entities with pagination and sorting.
-    Returns entities whose last snapshot is an invalidation snapshot.
+    Only processes and returns entities whose classes are marked as visible.
     """
     selected_class = request.args.get('class')
     page = int(request.args.get('page', 1))
@@ -2006,7 +2006,7 @@ def get_deleted_entities():
         
         ?lastValidSnapshot <http://www.w3.org/ns/prov#generatedAtTime> ?lastValidSnapshotTime .
 
-        OPTIONAL { ?lastSnapshot  <http://www.w3.org/ns/prov#wasAttributedTo> ?agent . }
+        OPTIONAL { ?lastSnapshot <http://www.w3.org/ns/prov#wasAttributedTo> ?agent . }
         
         FILTER NOT EXISTS {
             ?laterSnapshot <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastSnapshot .
@@ -2019,7 +2019,7 @@ def get_deleted_entities():
 
     results_bindings = prov_results["results"]["bindings"]
     if not results_bindings:
-        response = {
+        return jsonify({
             'entities': [],
             'total_pages': 0,
             'current_page': page,
@@ -2029,64 +2029,52 @@ def get_deleted_entities():
             'sort_direction': sort_direction,
             'selected_class': selected_class,
             'available_classes': []
-        }
-        return jsonify(response)
+        })
 
-    # Step 2: Process entities to get types and labels
-    def process_entity(result):
+    # Step 2: Process entities and filter by visible classes early
+    def process_entity_with_type_filtering(result):
         entity_uri = result["entity"]["value"]
-        deletion_time = result["deletionTime"]["value"]
-        deleted_by = result.get("agent", {}).get("value", "")
         last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
 
+        # Get entity state at its last valid time
         agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
-        state, snapshots, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
+        state, _, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
 
         if entity_uri not in state:
             return None
 
         last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
         last_valid_state = state[entity_uri][last_valid_time]
+
+        # Get entity types and filter for visible ones early
         entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
         visible_types = [t for t in entity_types if is_entity_type_visible(t)]
 
-        if not visible_types:
+        if not visible_types or (selected_class and selected_class not in visible_types):
             return None
 
-        highest_priority = None
-        highest_priority_type = None
-        for entity_type in visible_types:
-            for rule in display_rules:
-                if rule['class'] == entity_type:
-                    priority = rule.get('priority', 0)
-                    if highest_priority is None or priority < highest_priority:
-                        highest_priority = priority
-                        highest_priority_type = entity_type
-
-        type_label = custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]) if highest_priority_type else ''
-        label = custom_filter.human_readable_entity(
-            entity_uri,
-            [highest_priority_type],
-            last_valid_state
-        )
+        # Get the highest priority class
+        highest_priority_type = get_highest_priority_class(visible_types)
+        if not highest_priority_type:
+            return None
 
         return {
             "uri": entity_uri,
-            "deletionTime": deletion_time,
-            "deletedBy": custom_filter.format_agent_reference(deleted_by),
+            "deletionTime": result["deletionTime"]["value"],
+            "deletedBy": custom_filter.format_agent_reference(result.get("agent", {}).get("value", "")),
             "lastValidSnapshotTime": last_valid_snapshot_time,
-            "type": type_label,
-            "label": label,
-            "entity_types": entity_types
+            "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
+            "label": custom_filter.human_readable_entity(entity_uri, [highest_priority_type], last_valid_state),
+            "entity_types": visible_types  # Only include visible types
         }
 
-    # Process entities using ThreadPoolExecutor
+    # Process entities with parallel execution for better performance
     deleted_entities = []
     max_workers = max(1, min(32, len(results_bindings)))
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_entity = {
-            executor.submit(process_entity, result): result
+            executor.submit(process_entity_with_type_filtering, result): result
             for result in results_bindings
         }
 
@@ -2095,13 +2083,7 @@ def get_deleted_entities():
             if entity_info is not None:
                 deleted_entities.append(entity_info)
 
-    # Step 3: Apply class filtering
-    if selected_class:
-        deleted_entities = [e for e in deleted_entities if selected_class in e["entity_types"]]
-
-    total_count = len(deleted_entities)
-
-    # Step 4: Sort entities
+    # Step 3: Sort filtered entities
     reverse_sort = (sort_direction.upper() == 'DESC')
     if sort_property == 'deletionTime':
         deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
@@ -2110,30 +2092,29 @@ def get_deleted_entities():
     elif sort_property == 'type':
         deleted_entities.sort(key=lambda e: e["type"].lower(), reverse=reverse_sort)
 
-    # Step 5: Pagination
+    # Step 4: Apply pagination
+    total_count = len(deleted_entities)
     offset = (page - 1) * per_page
     paginated_entities = deleted_entities[offset:offset + per_page]
 
-    # Step 6: Get available classes with counts
+    # Step 5: Calculate class counts from filtered entities
     class_counts = {}
-    for e in deleted_entities:
-        for t in e["entity_types"]:
-            if is_entity_type_visible(t):
-                class_counts[t] = class_counts.get(t, 0) + 1
+    for entity in deleted_entities:
+        for type_uri in entity["entity_types"]:
+            class_counts[type_uri] = class_counts.get(type_uri, 0) + 1
 
-    available_classes = []
-    for class_uri, count in class_counts.items():
-        label = custom_filter.human_readable_predicate(class_uri, [class_uri])
-        available_classes.append({
+    available_classes = [
+        {
             'uri': class_uri,
-            'label': label,
+            'label': custom_filter.human_readable_predicate(class_uri, [class_uri]),
             'count': count
-        })
+        }
+        for class_uri, count in class_counts.items()
+    ]
 
-    # Prepare response
-    response = {
+    return jsonify({
         'entities': paginated_entities,
-        'total_pages': (total_count + per_page -1) // per_page if total_count > 0 else 0,
+        'total_pages': (total_count + per_page - 1) // per_page if total_count > 0 else 0,
         'current_page': page,
         'per_page': per_page,
         'total_count': total_count,
@@ -2141,9 +2122,7 @@ def get_deleted_entities():
         'sort_direction': sort_direction,
         'selected_class': selected_class,
         'available_classes': available_classes
-    }
-
-    return jsonify(response)
+    })
 
 def fetch_data_graph_recursively(subject_uri, max_depth=5, current_depth=0, visited=None):
     """

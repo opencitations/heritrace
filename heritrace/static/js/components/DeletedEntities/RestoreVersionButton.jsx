@@ -34,7 +34,7 @@ function RestoreVersionButton({ entityUri, timestamp }) {
           }
         });
   
-        const response = await fetch(`/restore-version/${encodeURIComponent(entityUri)}/${timestamp}`, {
+        const response = await fetch(`/restore-version/${entityUri}/${timestamp}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -52,7 +52,7 @@ function RestoreVersionButton({ entityUri, timestamp }) {
           confirmButtonText: 'View Entity'
         });
   
-        window.location.href = `/about/${encodeURIComponent(entityUri)}`;
+        window.location.href = `/about/${entityUri}`;
       } catch (error) {
         console.error('Error restoring version:', error);
         await Swal.fire({

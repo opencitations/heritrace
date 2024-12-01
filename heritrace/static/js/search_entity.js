@@ -266,7 +266,7 @@ function createEntityDisplay(entity, container, callback) {
                 <button type="button" class="btn btn-outline-secondary btn-sm change-entity" title="Clear selection">
                     <i class="bi bi-x-lg"></i>
                 </button>
-                <a href="/about/${encodeURIComponent(entity.entity.value)}" 
+                <a href="/about/${entity.entity.value}" 
                    class="btn btn-outline-primary btn-sm redirection-btn" target="_blank">
                     <i class="bi bi-box-arrow-up-right"></i>
                 </a>

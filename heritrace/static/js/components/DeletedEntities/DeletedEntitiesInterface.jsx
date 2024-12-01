@@ -137,7 +137,7 @@ function DeletedEntitiesInterface() {
                   </div>
                   <div className="d-flex flex-column gap-2">
                     <a 
-                      href={`/entity-version/${encodeURIComponent(entity.uri)}/${entity.lastValidSnapshotTime}`}
+                      href={`/entity-version/${entity.uri}/${entity.lastValidSnapshotTime}`}
                       className="btn btn-outline-primary"
                       title="View the entity's state before deletion"
                     >

@@ -1,148 +1,142 @@
 import React, { useState, useEffect } from 'react';
 import { SortAsc } from 'lucide-react';
-import CatalogueControls from './CatalogueControls';
-import RestoreVersionButton from '../DeletedEntities/RestoreVersionButton'; // Ensure this is imported
+import SortControls from './SortControls';
+import PaginationControls from './PaginationControls';
+import RestoreVersionButton from '../DeletedEntities/RestoreVersionButton';
 
 const CatalogueInterface = ({
-  initialClasses,
+  initialClasses = [],
   initialSelectedClass,
-  initialPage,
-  initialPerPage,
-  initialTotalPages,
-  allowedPerPage,
-  sortableProperties: initialSortableProperties,
-  initialSortProperty,
-  initialSortDirection,
+  initialPage = 1,
+  initialPerPage = 10,
+  initialTotalPages = 0,
+  allowedPerPage = [],
+  sortableProperties: initialSortableProperties = [],
+  initialSortProperty = null,
+  initialSortDirection = 'ASC',
   isTimeVault = false
 }) => {
+  // URL params management
   const urlParams = new URLSearchParams(window.location.search);
-  const [classes, setClasses] = useState(initialClasses);
-  const [selectedClass, setSelectedClass] = useState(
-    urlParams.get('class') || initialSelectedClass || (initialClasses.length > 0 ? initialClasses[0].uri : null)
-  );
-  const [filteredClasses, setFilteredClasses] = useState(initialClasses);
-  const [isLoading, setIsLoading] = useState(false);
-  const [entities, setEntities] = useState([]);
-  const [sortDirection, setSortDirection] = useState(urlParams.get('sort_direction') || 'ASC');
-  const [sortableProperties, setSortableProperties] = useState(initialSortableProperties || []);
-
-  const [currentPage, setCurrentPage] = useState(parseInt(urlParams.get('page')) || initialPage);
-  const [currentPerPage, setCurrentPerPage] = useState(parseInt(urlParams.get('per_page')) || initialPerPage);
-  const [sortProperty, setSortProperty] = useState(
-    urlParams.get('sort_property') || initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)
-  );
-  const [totalPages, setTotalPages] = useState(initialTotalPages || 0);
+  const getUrlParam = (key, defaultValue) => {
+    const value = urlParams.get(key);
+    return value === 'None' || value === 'null' ? null : (value || defaultValue);
+  };
+  
+  // State management
+  const [state, setState] = useState({
+    classes: initialClasses,
+    selectedClass: getUrlParam('class', initialSelectedClass || (initialClasses[0]?.uri ?? null)),
+    entities: [],
+    isLoading: false,
+    sortDirection: getUrlParam('sort_direction', initialSortDirection),
+    sortableProperties: initialSortableProperties,
+    currentPage: parseInt(getUrlParam('page', initialPage)),
+    currentPerPage: parseInt(getUrlParam('per_page', initialPerPage)),
+    sortProperty: getUrlParam('sort_property', initialSortProperty),
+    totalPages: initialTotalPages
+  });
 
   const apiEndpoint = isTimeVault ? '/api/time-vault' : '/api/catalogue';
 
-  const fetchEntitiesAndProperties = async () => {
-    if (!selectedClass) return;
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        class: selectedClass,
-        page: currentPage,
-        per_page: currentPerPage,
-        sort_property: sortProperty || initialSortProperty,
-        sort_direction: sortDirection || initialSortDirection,
-      });
-      
-      const response = await fetch(`${apiEndpoint}?${params}`);
-      const data = await response.json();
-      setEntities(data.entities);
-      setSortableProperties(data.sortable_properties || initialSortableProperties);
-      setTotalPages(data.total_pages);
-      setCurrentPage(data.current_page);
-      setCurrentPerPage(data.per_page);
+  // URL update utility
+  const updateUrl = (params) => {
+    const url = new URL(window.location);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        url.searchParams.set(key, value);
+      } else {
+        url.searchParams.delete(key);
+      }
+    });
+    window.history.pushState({}, '', url);
+  };
 
-      // Update URL
-      const url = new URL(window.location);
-      url.searchParams.set('class', selectedClass);
-      url.searchParams.set('page', data.current_page);
-      window.history.pushState({}, '', url);
+  // Data fetching utility
+  const fetchData = async (params = {}) => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    try {
+      const queryParams = new URLSearchParams({
+        class: params.class || state.selectedClass,
+        page: params.page || state.currentPage,
+        per_page: params.perPage || state.currentPerPage,
+        sort_property: params.sortProperty || state.sortProperty,
+        sort_direction: params.sortDirection || state.sortDirection
+      });
+
+      const response = await fetch(`${apiEndpoint}?${queryParams}`);
+      const data = await response.json();
+
+      setState(prev => ({
+        ...prev,
+        entities: data.entities || [],
+        sortableProperties: data.sortable_properties || prev.sortableProperties,
+        totalPages: data.total_pages,
+        currentPage: data.current_page,
+        currentPerPage: data.per_page,
+        sortProperty: data.sort_property || prev.sortProperty,
+        sortDirection: data.sort_direction || prev.sortDirection
+      }));
+
+      updateUrl({
+        class: params.class || state.selectedClass,
+        page: data.current_page,
+        per_page: data.per_page,
+        sort_property: data.sort_property,
+        sort_direction: data.sort_direction
+      });
     } catch (error) {
-      console.error('Error fetching entities:', error);
+      console.error('Error fetching data:', error);
     } finally {
-      setIsLoading(false);
+      setState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
+  // Initial classes fetch
   useEffect(() => {
-    const sorted = [...classes].sort((a, b) => {
-      return sortDirection === 'ASC' 
-        ? a.label.localeCompare(b.label)
-        : b.label.localeCompare(a.label);
-    });
-    
-    setFilteredClasses(sorted);
-  }, [classes, sortDirection]);
-
-  useEffect(() => {
-    const fetchClassesAndEntities = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch available classes if not provided
-        let classesData = initialClasses;
-        if (!initialClasses || initialClasses.length === 0) {
+    const fetchClasses = async () => {
+      if (initialClasses.length === 0) {
+        setState(prev => ({ ...prev, isLoading: true }));
+        try {
           const response = await fetch(`${apiEndpoint}?class=&page=1&per_page=${initialPerPage}`);
           const data = await response.json();
-          classesData = data.available_classes || [];
+          const classesData = data.available_classes || [];
+          setState(prev => ({ 
+            ...prev, 
+            classes: classesData,
+            selectedClass: prev.selectedClass || classesData[0]?.uri
+          }));
+        } catch (error) {
+          console.error('Error fetching classes:', error);
+        } finally {
+          setState(prev => ({ ...prev, isLoading: false }));
         }
-
-        setClasses(classesData);
-
-        if (!selectedClass && classesData.length > 0) {
-          setSelectedClass(classesData[0].uri);
-        }
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
-
-    fetchClassesAndEntities();
+    fetchClasses();
   }, [isTimeVault]);
 
+  // Fetch entities when dependencies change
   useEffect(() => {
-    fetchEntitiesAndProperties();
-  }, [selectedClass, currentPage, currentPerPage, sortProperty, sortDirection]);
-
-  const handleClassClick = async (classUri) => {
-    setIsLoading(true);
-    setSelectedClass(classUri);
-    setCurrentPage(1); // Reset to first page when class changes
-  
-    try {
-      const params = new URLSearchParams({
-        class: classUri,
-        page: '1',
-        per_page: currentPerPage,
-        sort_property: sortProperty || initialSortProperty,
-        sort_direction: sortDirection || initialSortDirection,
-      });
-      const response = await fetch(`${apiEndpoint}?${params}`);
-      const data = await response.json();
-      setEntities(data.entities);
-      setSortableProperties(data.sortable_properties || initialSortableProperties);
-      setTotalPages(data.total_pages);
-      setCurrentPage(data.current_page);
-      setCurrentPerPage(data.per_page);
-  
-      const url = new URL(window.location);
-      url.searchParams.set('class', classUri);
-      url.searchParams.set('page', '1');
-      window.history.pushState({}, '', url);
-    } catch (error) {
-      console.error('Error fetching entities:', error);
-    } finally {
-      setIsLoading(false);
+    if (state.selectedClass) {
+      fetchData();
     }
+  }, [state.selectedClass]);
+
+  const handleClassClick = (classUri) => {
+    setState(prev => ({ ...prev, selectedClass: classUri }));
+    fetchData({ class: classUri, page: 1 });
   };
-  
-  const handleDataUpdate = (data) => {
-    setEntities(data.entities);
-  };
+
+  const sortedClasses = [...state.classes].sort((a, b) => {
+    return state.sortDirection === 'ASC' 
+      ? a.label.localeCompare(b.label)
+      : b.label.localeCompare(a.label);
+  });
+
+  if (!state.selectedClass) {
+    return <div className="alert alert-info">No data available</div>;
+  }
 
   return (
     <div className="row">
@@ -155,32 +149,31 @@ const CatalogueInterface = ({
               <button 
                 className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
                 style={{ width: '32px', height: '32px', padding: 0 }}
-                onClick={() => setSortDirection(prev => prev === 'ASC' ? 'DESC' : 'ASC')}
-                title={`Sort ${sortDirection === 'ASC' ? 'A-Z' : 'Z-A'}`}
+                onClick={() => setState(prev => ({ 
+                  ...prev, 
+                  sortDirection: prev.sortDirection === 'ASC' ? 'DESC' : 'ASC' 
+                }))}
+                title={`Sort ${state.sortDirection === 'ASC' ? 'A-Z' : 'Z-A'}`}
               >
                 <SortAsc 
                   size={16} 
-                  style={{ 
-                    transform: sortDirection === 'DESC' ? 'scaleY(-1)' : 'none'
-                  }} 
+                  style={{ transform: state.sortDirection === 'DESC' ? 'scaleY(-1)' : 'none' }} 
                 />
               </button>
             </div>
           </div>
           <div className="card-body p-0">
             <div className="list-group list-group-flush">
-              {filteredClasses.map((cls) => (
+              {sortedClasses.map((cls) => (
                 <button
                   key={cls.uri}
                   onClick={() => handleClassClick(cls.uri)}
                   className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${
-                    cls.uri === selectedClass ? 'active' : ''
+                    cls.uri === state.selectedClass ? 'active' : ''
                   }`}
                 >
                   <span>{cls.label}</span>
-                  <span className="badge bg-primary rounded-pill">
-                    {cls.count}
-                  </span>
+                  <span className="badge bg-primary rounded-pill">{cls.count}</span>
                 </button>
               ))}
             </div>
@@ -190,63 +183,73 @@ const CatalogueInterface = ({
 
       {/* Entities Panel */}
       <div className="col-md-8">
-        {selectedClass && (
+        <h3 className="mb-3">
+          {isTimeVault ? 'Deleted Resources in category:' : 'Items in category:'} {
+            sortedClasses.find(c => c.uri === state.selectedClass)?.label
+          }
+        </h3>
+        
+        {state.isLoading ? (
+          <div className="d-flex justify-content-center my-3">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        ) : (
           <>
-            <h3 className="mb-3">
-              {isTimeVault ? 'Deleted Resources in category:' : 'Items in category:'} {classes.find(c => c.uri === selectedClass)?.label}
-            </h3>
-            
-            {isLoading ? (
-              <div className="d-flex justify-content-center my-3">
-                <div className="spinner-border text-primary" role="status">
-                  <span className="visually-hidden">Loading...</span>
+            <div className="mb-3">
+              {state.sortableProperties?.length > 0 && (
+                <div className="mb-3">
+                  <SortControls
+                    sortableProperties={state.sortableProperties}
+                    currentProperty={state.sortProperty}
+                    currentDirection={state.sortDirection}
+                    onSortChange={(property, direction) => fetchData({ sortProperty: property, sortDirection: direction })}
+                  />
                 </div>
+              )}
+              
+              <PaginationControls
+                currentPage={state.currentPage}
+                totalPages={state.totalPages}
+                itemsPerPage={state.currentPerPage}
+                allowedPerPage={allowedPerPage}
+                onPageChange={(page) => fetchData({ page })}
+                onPerPageChange={(perPage) => fetchData({ page: 1, perPage })}
+              />
+            </div>
+
+            {state.entities.length > 0 ? (
+              <div className="list-group">
+                {state.entities.map((entity) => (
+                  <div key={entity.uri} className="list-group-item">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <a
+                        href={isTimeVault 
+                          ? `/entity-version/${entity.uri}/${entity.lastValidSnapshotTime}`
+                          : `/about/${entity.uri}`
+                        }
+                        className="text-decoration-none"
+                      >
+                        {entity.label}
+                      </a>
+                      {isTimeVault && (
+                        <RestoreVersionButton 
+                          entityUri={entity.uri}
+                          timestamp={entity.lastValidSnapshotTime}
+                        />
+                      )}
+                    </div>
+                    {isTimeVault && (
+                      <small className="text-muted">
+                        Deleted on: {new Date(entity.deletionTime).toLocaleString()}
+                      </small>
+                    )}
+                  </div>
+                ))}
               </div>
             ) : (
-              <>
-                <CatalogueControls
-                  initialPage={initialPage}
-                  initialPerPage={initialPerPage}
-                  totalPages={initialTotalPages}
-                  allowedPerPage={allowedPerPage}
-                  sortableProperties={sortableProperties}
-                  initialSortProperty={sortableProperties.length > 0 ? sortableProperties[0].property : null}
-                  initialSortDirection={initialSortDirection}
-                  selectedClass={selectedClass}
-                  onDataUpdate={handleDataUpdate}
-                  isTimeVault={isTimeVault}
-                />
-
-                {entities.length > 0 ? (
-                  <div className="list-group">
-                    {entities.map((entity) => (
-                      <div key={entity.uri} className="list-group-item">
-                        <div className="d-flex justify-content-between align-items-center">
-                          <a
-                            href={isTimeVault ? `/entity-version/${encodeURIComponent(entity.uri)}/${entity.lastValidSnapshotTime}` : `/about/${encodeURIComponent(entity.uri)}`}
-                            className="text-decoration-none"
-                          >
-                            {entity.label}
-                          </a>
-                          {isTimeVault && (
-                            <RestoreVersionButton 
-                              entityUri={entity.uri}
-                              timestamp={entity.lastValidSnapshotTime}
-                            />
-                          )}
-                        </div>
-                        {isTimeVault && (
-                          <small className="text-muted">
-                            Deleted on: {new Date(entity.deletionTime).toLocaleString()}
-                          </small>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="alert alert-info">No {isTimeVault ? 'deleted ' : ''}entities found for this class</p>
-                )}
-              </>
+              <p className="alert alert-info">No {isTimeVault ? 'deleted ' : ''}entities found for this class</p>
             )}
           </>
         )}
