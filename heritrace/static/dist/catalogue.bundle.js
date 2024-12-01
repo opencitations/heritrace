@@ -17,7 +17,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/arrow-up-narrow-wide.js");
 /* harmony import */ var _SortControls__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./SortControls */ "./heritrace/static/js/components/Catalogue/SortControls.jsx");
 /* harmony import */ var _PaginationControls__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./PaginationControls */ "./heritrace/static/js/components/Catalogue/PaginationControls.jsx");
-/* harmony import */ var _DeletedEntities_RestoreVersionButton__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../DeletedEntities/RestoreVersionButton */ "./heritrace/static/js/components/DeletedEntities/RestoreVersionButton.jsx");
+/* harmony import */ var _RestoreVersionButton__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./RestoreVersionButton */ "./heritrace/static/js/components/Catalogue/RestoreVersionButton.jsx");
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
 function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
@@ -366,7 +366,7 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", {
       href: isTimeVault ? "/entity-version/".concat(entity.uri, "/").concat(entity.lastValidSnapshotTime) : "/about/".concat(entity.uri),
       className: "text-decoration-none"
-    }, entity.label), isTimeVault && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_DeletedEntities_RestoreVersionButton__WEBPACK_IMPORTED_MODULE_3__["default"], {
+    }, entity.label), isTimeVault && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_RestoreVersionButton__WEBPACK_IMPORTED_MODULE_3__["default"], {
       entityUri: entity.uri,
       timestamp: entity.lastValidSnapshotTime
     })), isTimeVault && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("small", {
@@ -483,79 +483,10 @@ var PaginationControls = function PaginationControls(_ref) {
 
 /***/ }),
 
-/***/ "./heritrace/static/js/components/Catalogue/SortControls.jsx":
-/*!*******************************************************************!*\
-  !*** ./heritrace/static/js/components/Catalogue/SortControls.jsx ***!
-  \*******************************************************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-__webpack_require__.r(__webpack_exports__);
-/* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
-/* harmony export */ });
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
-/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/arrow-up-narrow-wide.js");
-
-
-var SortControls = function SortControls(_ref) {
-  var sortableProperties = _ref.sortableProperties,
-    currentProperty = _ref.currentProperty,
-    currentDirection = _ref.currentDirection,
-    onSortChange = _ref.onSortChange;
-  if (!sortableProperties || sortableProperties.length === 0) {
-    return null;
-  }
-  var handlePropertyChange = function handlePropertyChange(e) {
-    var newProperty = e.target.value;
-    onSortChange(newProperty, currentDirection);
-  };
-  var toggleDirection = function toggleDirection() {
-    var newDirection = currentDirection === 'ASC' ? 'DESC' : 'ASC';
-    onSortChange(currentProperty, newDirection);
-  };
-  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "d-flex align-items-center gap-2"
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
-    htmlFor: "sort_property",
-    className: "form-label mb-0"
-  }, "Sort by:"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
-    id: "sort_property",
-    className: "form-select form-select-sm",
-    style: {
-      width: 'auto'
-    },
-    value: currentProperty || '',
-    onChange: handlePropertyChange
-  }, sortableProperties.map(function (prop) {
-    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
-      key: prop.property,
-      value: prop.property
-    }, prop.displayName);
-  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-    className: "btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center toggleSortDirection",
-    onClick: toggleDirection,
-    title: "Change sort direction",
-    style: {
-      width: '32px',
-      height: '32px',
-      padding: 0
-    }
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_1__["default"], {
-    size: 16,
-    style: {
-      transform: currentDirection === 'DESC' ? 'scaleY(-1)' : 'none'
-    }
-  })));
-};
-/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (SortControls);
-
-/***/ }),
-
-/***/ "./heritrace/static/js/components/DeletedEntities/RestoreVersionButton.jsx":
-/*!*********************************************************************************!*\
-  !*** ./heritrace/static/js/components/DeletedEntities/RestoreVersionButton.jsx ***!
-  \*********************************************************************************/
+/***/ "./heritrace/static/js/components/Catalogue/RestoreVersionButton.jsx":
+/*!***************************************************************************!*\
+  !*** ./heritrace/static/js/components/Catalogue/RestoreVersionButton.jsx ***!
+  \***************************************************************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -681,6 +612,75 @@ function RestoreVersionButton(_ref) {
 }
 ;
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (RestoreVersionButton);
+
+/***/ }),
+
+/***/ "./heritrace/static/js/components/Catalogue/SortControls.jsx":
+/*!*******************************************************************!*\
+  !*** ./heritrace/static/js/components/Catalogue/SortControls.jsx ***!
+  \*******************************************************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var lucide_react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! lucide-react */ "./node_modules/lucide-react/dist/esm/icons/arrow-up-narrow-wide.js");
+
+
+var SortControls = function SortControls(_ref) {
+  var sortableProperties = _ref.sortableProperties,
+    currentProperty = _ref.currentProperty,
+    currentDirection = _ref.currentDirection,
+    onSortChange = _ref.onSortChange;
+  if (!sortableProperties || sortableProperties.length === 0) {
+    return null;
+  }
+  var handlePropertyChange = function handlePropertyChange(e) {
+    var newProperty = e.target.value;
+    onSortChange(newProperty, currentDirection);
+  };
+  var toggleDirection = function toggleDirection() {
+    var newDirection = currentDirection === 'ASC' ? 'DESC' : 'ASC';
+    onSortChange(currentProperty, newDirection);
+  };
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "d-flex align-items-center gap-2"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+    htmlFor: "sort_property",
+    className: "form-label mb-0"
+  }, "Sort by:"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("select", {
+    id: "sort_property",
+    className: "form-select form-select-sm",
+    style: {
+      width: 'auto'
+    },
+    value: currentProperty || '',
+    onChange: handlePropertyChange
+  }, sortableProperties.map(function (prop) {
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("option", {
+      key: prop.property,
+      value: prop.property
+    }, prop.displayName);
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+    className: "btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center toggleSortDirection",
+    onClick: toggleDirection,
+    title: "Change sort direction",
+    style: {
+      width: '32px',
+      height: '32px',
+      padding: 0
+    }
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_1__["default"], {
+    size: 16,
+    style: {
+      transform: currentDirection === 'DESC' ? 'scaleY(-1)' : 'none'
+    }
+  })));
+};
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (SortControls);
 
 /***/ }),
 
@@ -34533,44 +34533,57 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-// Get the catalogue element
-var catalogueElement = document.getElementById('catalogue');
-if (catalogueElement) {
-  // Get data from the page
-  var availableClasses = catalogueElement.dataset.availableClasses ? JSON.parse(catalogueElement.dataset.availableClasses) : [];
-  var _catalogueElement$dat = catalogueElement.dataset,
-    selectedClass = _catalogueElement$dat.selectedClass,
-    initialPage = _catalogueElement$dat.initialPage,
-    initialPerPage = _catalogueElement$dat.initialPerPage,
-    totalPages = _catalogueElement$dat.totalPages,
-    allowedPerPage = _catalogueElement$dat.allowedPerPage,
-    sortableProperties = _catalogueElement$dat.sortableProperties,
-    initialSortProperty = _catalogueElement$dat.initialSortProperty,
-    initialSortDirection = _catalogueElement$dat.initialSortDirection;
-
-  // Parse JSON data
-  var parsedAllowedPerPage = JSON.parse(allowedPerPage);
-  var parsedSortableProperties = JSON.parse(sortableProperties);
-
-  // Convert string attributes to appropriate types
-  var parsedInitialPage = parseInt(initialPage, 10);
-  var parsedInitialPerPage = parseInt(initialPerPage, 10);
-  var parsedTotalPages = parseInt(totalPages, 10);
-
-  // Create root and render
-  var root = react_dom_client__WEBPACK_IMPORTED_MODULE_1__.createRoot(catalogueElement);
-  root.render(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react__WEBPACK_IMPORTED_MODULE_0__.StrictMode, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CatalogueInterface__WEBPACK_IMPORTED_MODULE_2__["default"], {
-    initialClasses: availableClasses,
-    initialSelectedClass: selectedClass,
-    initialPage: parsedInitialPage,
-    initialPerPage: parsedInitialPerPage,
-    initialTotalPages: parsedTotalPages,
-    allowedPerPage: parsedAllowedPerPage,
-    sortableProperties: parsedSortableProperties,
+// Common function to parse dataset attributes
+var parseDatasetAttributes = function parseDatasetAttributes(element) {
+  var _element$dataset = element.dataset,
+    selectedClass = _element$dataset.selectedClass,
+    initialPage = _element$dataset.initialPage,
+    initialPerPage = _element$dataset.initialPerPage,
+    totalPages = _element$dataset.totalPages,
+    allowedPerPage = _element$dataset.allowedPerPage,
+    sortableProperties = _element$dataset.sortableProperties,
+    initialSortProperty = _element$dataset.initialSortProperty,
+    initialSortDirection = _element$dataset.initialSortDirection;
+  return {
+    selectedClass: selectedClass,
+    initialPage: parseInt(initialPage, 10),
+    initialPerPage: parseInt(initialPerPage, 10),
+    totalPages: parseInt(totalPages || '0', 10),
+    allowedPerPage: JSON.parse(allowedPerPage),
+    sortableProperties: JSON.parse(sortableProperties),
     initialSortProperty: initialSortProperty,
-    initialSortDirection: initialSortDirection,
-    isTimeVault: false
-  })));
+    initialSortDirection: initialSortDirection
+  };
+};
+
+// Initialize CatalogueInterface for either catalogue or time vault
+var initializeCatalogue = function initializeCatalogue(elementId) {
+  var isTimeVault = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+  var element = document.getElementById(elementId);
+  if (element) {
+    var parsedAttributes = parseDatasetAttributes(element);
+    var initialClasses = element.dataset.availableClasses ? JSON.parse(element.dataset.availableClasses) : [];
+    var root = react_dom_client__WEBPACK_IMPORTED_MODULE_1__.createRoot(element);
+    root.render(/*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(react__WEBPACK_IMPORTED_MODULE_0__.StrictMode, null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CatalogueInterface__WEBPACK_IMPORTED_MODULE_2__["default"], {
+      initialClasses: initialClasses,
+      initialSelectedClass: parsedAttributes.selectedClass,
+      initialPage: parsedAttributes.initialPage,
+      initialPerPage: parsedAttributes.initialPerPage,
+      initialTotalPages: parsedAttributes.totalPages,
+      allowedPerPage: parsedAttributes.allowedPerPage,
+      sortableProperties: parsedAttributes.sortableProperties,
+      initialSortProperty: parsedAttributes.initialSortProperty,
+      initialSortDirection: parsedAttributes.initialSortDirection,
+      isTimeVault: isTimeVault
+    })));
+  }
+};
+
+// Initialize based on which element is present in the DOM
+if (document.getElementById('catalogue')) {
+  initializeCatalogue('catalogue', false);
+} else if (document.getElementById('time-vault')) {
+  initializeCatalogue('time-vault', true);
 }
 })();
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SortAsc } from 'lucide-react';
 import SortControls from './SortControls';
 import PaginationControls from './PaginationControls';
-import RestoreVersionButton from '../DeletedEntities/RestoreVersionButton';
+import RestoreVersionButton from './RestoreVersionButton';
 
 const CatalogueInterface = ({
   initialClasses = [],

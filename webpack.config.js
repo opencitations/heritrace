@@ -3,7 +3,6 @@ const path = require('path');
 module.exports = {
   entry: {
     catalogue: path.resolve(__dirname, 'heritrace/static/js/components/Catalogue/index.jsx'),
-    deletedEntities: path.resolve(__dirname, 'heritrace/static/js/components/DeletedEntities/index.jsx'),
     timeline: path.resolve(__dirname, 'heritrace/static/js/components/Timeline/index.jsx'),
     navigation: path.resolve(__dirname, 'heritrace/static/js/components/Navigation/index.jsx'),
   },

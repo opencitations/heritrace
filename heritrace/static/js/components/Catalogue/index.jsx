@@ -2,14 +2,8 @@ import React, { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import CatalogueInterface from './CatalogueInterface';
 
-// Get the catalogue element
-const catalogueElement = document.getElementById('catalogue');
-
-if (catalogueElement) {
-  // Get data from the page
-  const availableClasses = catalogueElement.dataset.availableClasses ? 
-    JSON.parse(catalogueElement.dataset.availableClasses) : [];
-  
+// Common function to parse dataset attributes
+const parseDatasetAttributes = (element) => {
   const {
     selectedClass,
     initialPage,
@@ -19,33 +13,52 @@ if (catalogueElement) {
     sortableProperties,
     initialSortProperty,
     initialSortDirection,
-  } = catalogueElement.dataset;
+  } = element.dataset;
 
-  // Parse JSON data
-  const parsedAllowedPerPage = JSON.parse(allowedPerPage);
-  const parsedSortableProperties = JSON.parse(sortableProperties);
+  return {
+    selectedClass,
+    initialPage: parseInt(initialPage, 10),
+    initialPerPage: parseInt(initialPerPage, 10),
+    totalPages: parseInt(totalPages || '0', 10),
+    allowedPerPage: JSON.parse(allowedPerPage),
+    sortableProperties: JSON.parse(sortableProperties),
+    initialSortProperty,
+    initialSortDirection
+  };
+};
 
-  // Convert string attributes to appropriate types
-  const parsedInitialPage = parseInt(initialPage, 10);
-  const parsedInitialPerPage = parseInt(initialPerPage, 10);
-  const parsedTotalPages = parseInt(totalPages, 10);
+// Initialize CatalogueInterface for either catalogue or time vault
+const initializeCatalogue = (elementId, isTimeVault = false) => {
+  const element = document.getElementById(elementId);
+  
+  if (element) {
+    const parsedAttributes = parseDatasetAttributes(element);
+    const initialClasses = element.dataset.availableClasses ? 
+      JSON.parse(element.dataset.availableClasses) : [];
 
-  // Create root and render
-  const root = ReactDOM.createRoot(catalogueElement);
-  root.render(
-    <StrictMode>
-      <CatalogueInterface
-        initialClasses={availableClasses}
-        initialSelectedClass={selectedClass}
-        initialPage={parsedInitialPage}
-        initialPerPage={parsedInitialPerPage}
-        initialTotalPages={parsedTotalPages}
-        allowedPerPage={parsedAllowedPerPage}
-        sortableProperties={parsedSortableProperties}
-        initialSortProperty={initialSortProperty}
-        initialSortDirection={initialSortDirection}
-        isTimeVault={false}
-      />
-    </StrictMode>
-  );
+    const root = ReactDOM.createRoot(element);
+    root.render(
+      <StrictMode>
+        <CatalogueInterface
+          initialClasses={initialClasses}
+          initialSelectedClass={parsedAttributes.selectedClass}
+          initialPage={parsedAttributes.initialPage}
+          initialPerPage={parsedAttributes.initialPerPage}
+          initialTotalPages={parsedAttributes.totalPages}
+          allowedPerPage={parsedAttributes.allowedPerPage}
+          sortableProperties={parsedAttributes.sortableProperties}
+          initialSortProperty={parsedAttributes.initialSortProperty}
+          initialSortDirection={parsedAttributes.initialSortDirection}
+          isTimeVault={isTimeVault}
+        />
+      </StrictMode>
+    );
+  }
+};
+
+// Initialize based on which element is present in the DOM
+if (document.getElementById('catalogue')) {
+  initializeCatalogue('catalogue', false);
+} else if (document.getElementById('time-vault')) {
+  initializeCatalogue('time-vault', true);
 }
