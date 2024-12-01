@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SortAsc } from 'lucide-react';
 import CatalogueControls from './CatalogueControls';
+import RestoreVersionButton from '../DeletedEntities/RestoreVersionButton'; // Ensure this is imported
 
 const CatalogueInterface = ({
   initialClasses,
@@ -11,7 +12,8 @@ const CatalogueInterface = ({
   allowedPerPage,
   sortableProperties: initialSortableProperties,
   initialSortProperty,
-  initialSortDirection
+  initialSortDirection,
+  isTimeVault = false
 }) => {
   const urlParams = new URLSearchParams(window.location.search);
   const [classes, setClasses] = useState(initialClasses);
@@ -24,6 +26,47 @@ const CatalogueInterface = ({
   const [sortDirection, setSortDirection] = useState(urlParams.get('sort_direction') || 'ASC');
   const [sortableProperties, setSortableProperties] = useState(initialSortableProperties || []);
 
+  const [currentPage, setCurrentPage] = useState(parseInt(urlParams.get('page')) || initialPage);
+  const [currentPerPage, setCurrentPerPage] = useState(parseInt(urlParams.get('per_page')) || initialPerPage);
+  const [sortProperty, setSortProperty] = useState(
+    urlParams.get('sort_property') || initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)
+  );
+  const [totalPages, setTotalPages] = useState(initialTotalPages || 0);
+
+  const apiEndpoint = isTimeVault ? '/api/time-vault' : '/api/catalogue';
+
+  const fetchEntitiesAndProperties = async () => {
+    if (!selectedClass) return;
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        class: selectedClass,
+        page: currentPage,
+        per_page: currentPerPage,
+        sort_property: sortProperty || initialSortProperty,
+        sort_direction: sortDirection || initialSortDirection,
+      });
+      
+      const response = await fetch(`${apiEndpoint}?${params}`);
+      const data = await response.json();
+      setEntities(data.entities);
+      setSortableProperties(data.sortable_properties || initialSortableProperties);
+      setTotalPages(data.total_pages);
+      setCurrentPage(data.current_page);
+      setCurrentPerPage(data.per_page);
+
+      // Update URL
+      const url = new URL(window.location);
+      url.searchParams.set('class', selectedClass);
+      url.searchParams.set('page', data.current_page);
+      window.history.pushState({}, '', url);
+    } catch (error) {
+      console.error('Error fetching entities:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const sorted = [...classes].sort((a, b) => {
       return sortDirection === 'ASC' 
@@ -35,47 +78,57 @@ const CatalogueInterface = ({
   }, [classes, sortDirection]);
 
   useEffect(() => {
-    const fetchEntitiesAndProperties = async () => {
-      if (!selectedClass) return;
+    const fetchClassesAndEntities = async () => {
       setIsLoading(true);
       try {
-        const params = new URLSearchParams({
-          class: selectedClass,
-          page: '1',
-          per_page: initialPerPage,
-          sort_property: initialSortProperty || sortableProperties[0]?.property,
-          sort_direction: initialSortDirection || 'ASC'
-        });
-        
-        const response = await fetch(`/api/catalogue?${params}`);
-        const data = await response.json();
-        setEntities(data.entities);
-        setSortableProperties(data.sortable_properties);
+        // Fetch available classes if not provided
+        let classesData = initialClasses;
+        if (!initialClasses || initialClasses.length === 0) {
+          const response = await fetch(`${apiEndpoint}?class=&page=1&per_page=${initialPerPage}`);
+          const data = await response.json();
+          classesData = data.available_classes || [];
+        }
 
-        const url = new URL(window.location);
-        url.searchParams.set('class', selectedClass);
-        url.searchParams.set('page', '1');
-        window.history.pushState({}, '', url);
+        setClasses(classesData);
+
+        if (!selectedClass && classesData.length > 0) {
+          setSelectedClass(classesData[0].uri);
+        }
       } catch (error) {
-        console.error('Error fetching entities:', error);
+        console.error('Error fetching classes:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
+    fetchClassesAndEntities();
+  }, [isTimeVault]);
+
+  useEffect(() => {
     fetchEntitiesAndProperties();
-  }, [selectedClass]);
+  }, [selectedClass, currentPage, currentPerPage, sortProperty, sortDirection]);
 
   const handleClassClick = async (classUri) => {
     setIsLoading(true);
     setSelectedClass(classUri);
-    
+    setCurrentPage(1); // Reset to first page when class changes
+  
     try {
-      const response = await fetch(`/api/catalogue?class=${encodeURIComponent(classUri)}&page=1&per_page=${initialPerPage}`);
+      const params = new URLSearchParams({
+        class: classUri,
+        page: '1',
+        per_page: currentPerPage,
+        sort_property: sortProperty || initialSortProperty,
+        sort_direction: sortDirection || initialSortDirection,
+      });
+      const response = await fetch(`${apiEndpoint}?${params}`);
       const data = await response.json();
       setEntities(data.entities);
-      setSortableProperties(data.sortable_properties);
-      
+      setSortableProperties(data.sortable_properties || initialSortableProperties);
+      setTotalPages(data.total_pages);
+      setCurrentPage(data.current_page);
+      setCurrentPerPage(data.per_page);
+  
       const url = new URL(window.location);
       url.searchParams.set('class', classUri);
       url.searchParams.set('page', '1');
@@ -86,7 +139,7 @@ const CatalogueInterface = ({
       setIsLoading(false);
     }
   };
-
+  
   const handleDataUpdate = (data) => {
     setEntities(data.entities);
   };
@@ -140,7 +193,7 @@ const CatalogueInterface = ({
         {selectedClass && (
           <>
             <h3 className="mb-3">
-              Items in category: {classes.find(c => c.uri === selectedClass)?.label}
+              {isTimeVault ? 'Deleted Resources in category:' : 'Items in category:'} {classes.find(c => c.uri === selectedClass)?.label}
             </h3>
             
             {isLoading ? (
@@ -161,22 +214,37 @@ const CatalogueInterface = ({
                   initialSortDirection={initialSortDirection}
                   selectedClass={selectedClass}
                   onDataUpdate={handleDataUpdate}
+                  isTimeVault={isTimeVault}
                 />
 
                 {entities.length > 0 ? (
                   <div className="list-group">
                     {entities.map((entity) => (
-                      <a
-                        key={entity.uri}
-                        href={`/about/${encodeURIComponent(entity.uri)}`}
-                        className="list-group-item list-group-item-action"
-                      >
-                        {entity.label}
-                      </a>
+                      <div key={entity.uri} className="list-group-item">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <a
+                            href={isTimeVault ? `/entity-version/${encodeURIComponent(entity.uri)}/${entity.lastValidSnapshotTime}` : `/about/${encodeURIComponent(entity.uri)}`}
+                            className="text-decoration-none"
+                          >
+                            {entity.label}
+                          </a>
+                          {isTimeVault && (
+                            <RestoreVersionButton 
+                              entityUri={entity.uri}
+                              timestamp={entity.lastValidSnapshotTime}
+                            />
+                          )}
+                        </div>
+                        {isTimeVault && (
+                          <small className="text-muted">
+                            Deleted on: {new Date(entity.deletionTime).toLocaleString()}
+                          </small>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="alert alert-info">No entities found for this class</p>
+                  <p className="alert alert-info">No {isTimeVault ? 'deleted ' : ''}entities found for this class</p>
                 )}
               </>
             )}

@@ -5,7 +5,7 @@ const SortControls = ({
   sortableProperties, 
   currentProperty, 
   currentDirection, 
-  onSortChange 
+  onSortChange
 }) => {
   if (!sortableProperties || sortableProperties.length === 0) {
     return null;
@@ -19,23 +19,6 @@ const SortControls = ({
   const toggleDirection = () => {
     const newDirection = currentDirection === 'ASC' ? 'DESC' : 'ASC';
     onSortChange(currentProperty, newDirection);
-  };
-
-  const getSortLabel = () => {
-    const currentProp = sortableProperties.find(p => p.property === currentProperty);
-    if (!currentProp) return 'Sort';
-
-    // Se c'è una shape, indica che è una referenza a un'entità (label)
-    if (currentProp.shape) {
-      return 'Sort';
-    }
-    // Controlla il tipo di dato dalla configurazione di sortableBy
-    switch (currentProp.sortType?.toLowerCase()) {
-      case 'date':
-      case 'number':
-      default:
-        return 'Sort';
-    }
   };
 
   return (

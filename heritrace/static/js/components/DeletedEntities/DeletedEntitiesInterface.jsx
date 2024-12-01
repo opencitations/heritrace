@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import RestoreVersionButton from './RestoreVersionButton';
+import SortControls from '../Catalogue/SortControls';
 
 function DeletedEntitiesInterface() {
   const [deletedEntities, setDeletedEntities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sortConfig, setSortConfig] = useState({
+    property: 'deletionTime',
+    direction: 'DESC'
+  });
 
   useEffect(() => {
     fetchDeletedEntities();
@@ -21,6 +26,29 @@ function DeletedEntitiesInterface() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const sortableProperties = [
+    { property: 'deletionTime', displayName: 'Deletion Time' },
+    { property: 'type', displayName: 'Resource Type' },
+    { property: 'label', displayName: 'Label' }
+  ];
+
+  const handleSortChange = (property, direction) => {
+    setSortConfig({ property, direction });
+  };
+
+  const getSortedEntities = () => {
+    const { property, direction } = sortConfig;
+    return [...deletedEntities].sort((a, b) => {
+      let comparison = 0;
+      if (property === 'deletionTime') {
+        comparison = new Date(a.deletionTime) - new Date(b.deletionTime);
+      } else {
+        comparison = a[property].localeCompare(b[property]);
+      }
+      return direction === 'ASC' ? comparison : -comparison;
+    });
   };
 
   const renderDeletedBy = (htmlContent) => {
@@ -46,6 +74,8 @@ function DeletedEntitiesInterface() {
     );
   }
 
+  const sortedEntities = getSortedEntities();
+
   return (
     <>
       <div className="d-flex align-items-center justify-content-between mb-4">
@@ -56,6 +86,14 @@ function DeletedEntitiesInterface() {
             Here you can find and restore deleted resources
           </p>
         </div>
+        {deletedEntities.length > 0 && (
+          <SortControls
+            sortableProperties={sortableProperties}
+            currentProperty={sortConfig.property}
+            currentDirection={sortConfig.direction}
+            onSortChange={handleSortChange}
+          />
+        )}
       </div>
 
       {deletedEntities.length === 0 ? (
@@ -72,7 +110,7 @@ function DeletedEntitiesInterface() {
         </div>
       ) : (
         <div className="row row-cols-1 row-cols-md-2 g-4">
-          {deletedEntities.map((entity) => (
+          {sortedEntities.map((entity) => (
             <div className="col" key={entity.uri}>
               <div className="card h-100 shadow-sm">
                 <div className="card-body">
@@ -119,6 +157,6 @@ function DeletedEntitiesInterface() {
       )}
     </>
   );
-};
+}
 
 export default DeletedEntitiesInterface;

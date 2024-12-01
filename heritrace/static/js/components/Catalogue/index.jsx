@@ -44,6 +44,7 @@ if (catalogueElement) {
         sortableProperties={parsedSortableProperties}
         initialSortProperty={initialSortProperty}
         initialSortDirection={initialSortDirection}
+        isTimeVault={false}
       />
     </StrictMode>
   );

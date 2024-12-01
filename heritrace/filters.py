@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from typing import Tuple
 from urllib.parse import quote, urlparse
 
@@ -19,6 +20,7 @@ class Filter:
         self.display_rules = display_rules
         self.sparql = SPARQLWrapper(sparql_endpoint)
         self.sparql.setReturnFormat(JSON)
+        self._query_lock = threading.Lock()
 
     def human_readable_predicate(self, url: str, entity_classes: list, is_link: bool = True):
         subject_classes = [str(subject_class) for subject_class in entity_classes]
@@ -77,7 +79,8 @@ class Filter:
                     query = rule['fetchUriDisplay'].replace('[[uri]]', f'<{uri}>')
                     if graph is not None:
                         try:
-                            results = graph.query(query)
+                            with self._query_lock:
+                                results = graph.query(query)
                             for row in results:
                                 return str(row[0])
                         except Exception as e:

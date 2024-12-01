@@ -11,7 +11,8 @@ const CatalogueControls = ({
   initialSortProperty = null,
   initialSortDirection = 'ASC',
   selectedClass,
-  onDataUpdate
+  onDataUpdate,
+  isTimeVault = false
 }) => {
   const urlParams = new URLSearchParams(window.location.search);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,6 +23,7 @@ const CatalogueControls = ({
     urlParams.get('sort_property') || initialSortProperty || (sortableProperties.length > 0 ? sortableProperties[0].property : null)
   );
   const [sortDirection, setSortDirection] = useState(urlParams.get('sort_direction') || initialSortDirection);
+  const apiEndpoint = isTimeVault ? '/api/time-vault' : '/api/catalogue';
 
   useEffect(() => {
     fetchData(currentPage, currentPerPage, sortProperty, sortDirection);
@@ -41,7 +43,7 @@ const CatalogueControls = ({
         sort_direction: defaultSortDirection
       });
 
-      const response = await fetch(`/api/catalogue?${params}`);
+      const response = await fetch(`${apiEndpoint}?${params}`);
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       // Update local state

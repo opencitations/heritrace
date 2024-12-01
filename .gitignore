@@ -5,3 +5,5 @@ db_volumes/
 *.pem
 *.db
 node_modules/
+database/
+prov_database/

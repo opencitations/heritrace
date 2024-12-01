@@ -474,7 +474,134 @@ def catalogue():
                          sortable_properties=json.dumps(sortable_properties),
                          current_sort_property=None,
                          current_sort_direction='ASC')
+
+@app.route('/api/catalogue')
+@login_required
+def catalogue_api():
+    """
+    API endpoint per ottenere i dati del catalogo in formato JSON.
+    Supporta paginazione, ordinamento e filtri
+    """
+    selected_class = request.args.get('class')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    sort_property = request.args.get('sort_property')
+
+    if not sort_property or sort_property.lower() == 'null':
+        sort_property = None
+    sort_direction = request.args.get('sort_direction', 'ASC')
     
+    allowed_per_page = [50, 100, 200, 500]
+    if per_page not in allowed_per_page:
+        per_page = 100
+
+    # Query per ottenere tutte le classi e i conteggi
+    if is_virtuoso():
+        classes_query = f"""
+            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
+            WHERE {{
+                GRAPH ?g {{
+                    ?subject a ?class .
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            }}
+            GROUP BY ?class
+            ORDER BY DESC(?count)
+        """
+    else:
+        classes_query = """
+            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
+            WHERE {
+                ?subject a ?class .
+            }
+            GROUP BY ?class
+            ORDER BY DESC(?count)
+        """
+    
+    sparql.setQuery(classes_query)
+    sparql.setReturnFormat(JSON)
+    classes_results = sparql.query().convert()
+
+    entities = []
+    total_count = 0
+
+    if selected_class:
+        # Costruisci la query con clausole di ordinamento opzionali
+        sort_clause = build_sort_clause(sort_property, selected_class, display_rules) if sort_property else ""
+        order_clause = f"ORDER BY {sort_direction}(?sortValue)" if sort_property else "ORDER BY ?subject"
+        offset = (page - 1) * per_page
+
+        if is_virtuoso():
+            entities_query = f"""
+            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
+            WHERE {{
+                GRAPH ?g {{
+                    ?subject a <{selected_class}> .
+                    {sort_clause}
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            }}
+            {order_clause}
+            LIMIT {per_page} 
+            OFFSET {offset}
+            """
+        else:
+            entities_query = f"""
+            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
+            WHERE {{
+                ?subject a <{selected_class}> .
+                {sort_clause}
+            }}
+            {order_clause}
+            LIMIT {per_page} 
+            OFFSET {offset}
+            """
+
+        sparql.setQuery(entities_query)
+        entities_results = sparql.query().convert()
+        
+        entities = []
+        for result in entities_results["results"]["bindings"]:
+            subject_uri = result['subject']['value']
+            # Ottieni direttamente l'etichetta human-readable per l'entità
+            entity_label = custom_filter.human_readable_entity(subject_uri, [selected_class])
+            
+            entities.append({
+                'uri': subject_uri,
+                'label': entity_label
+            })
+
+        # Ottieni il conteggio totale per la paginazione
+        total_count = next(
+            (int(result['count']['value']) 
+             for result in classes_results["results"]["bindings"]
+             if result['class']['value'] == selected_class),
+            0
+        )
+
+    # Aggiungi informazioni sulle proprietà ordinabili
+    if selected_class:
+        sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
+    else:
+        sortable_properties = []
+
+    if not sort_property and sortable_properties:
+        sort_property = sortable_properties[0]['property']
+
+    response = {
+        'entities': entities,
+        'total_pages': (total_count + per_page - 1) // per_page if total_count > 0 else 0,
+        'current_page': page,
+        'per_page': per_page,
+        'total_count': total_count,
+        'sort_property': sort_property,
+        'sort_direction': sort_direction,
+        'sortable_properties': sortable_properties,
+        'selected_class': selected_class
+    }
+
+    return jsonify(response)
+
 def is_entity_type_visible(entity_type):
     for rule in display_rules:
         if rule['class'] == entity_type:
@@ -1822,15 +1949,52 @@ def entity_version(entity_uri, timestamp):
 @login_required
 def time_vault():
     """Render the Time Vault page showing deleted entities."""
-    return render_template('time_vault.jinja')
 
-@app.route('/api/deleted-entities')
+    # Initialize default values
+    initial_page = 1
+    initial_per_page = 50
+    selected_class = request.args.get('class')
+
+    # Since classes are now fetched via the API, we can pass an empty list for now
+    available_classes = []
+
+    # Define allowed per page options
+    allowed_per_page = [50, 100, 200, 500]
+
+    # Define sortable properties
+    sortable_properties = json.dumps([
+        {'property': 'deletionTime', 'displayName': 'Deletion Time'}
+    ])
+
+    return render_template('time_vault.jinja',
+                           available_classes=available_classes,
+                           selected_class=selected_class,
+                           page=initial_page,
+                           total_entity_pages=0,
+                           per_page=initial_per_page,
+                           allowed_per_page=allowed_per_page,
+                           sortable_properties=sortable_properties,
+                           current_sort_property='deletionTime',
+                           current_sort_direction='DESC')
+
+@app.route('/api/time-vault')
 @login_required
 def get_deleted_entities():
     """
-    API endpoint to retrieve deleted entities.
+    API endpoint to retrieve deleted entities with pagination and sorting.
     Returns entities whose last snapshot is an invalidation snapshot.
     """
+    selected_class = request.args.get('class')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    sort_property = request.args.get('sort_property', 'deletionTime')
+    sort_direction = request.args.get('sort_direction', 'DESC')
+
+    allowed_per_page = [50, 100, 200, 500]
+    if per_page not in allowed_per_page:
+        per_page = 100
+
+    # Step 1: Get the list of deleted entities from the provenance graph
     prov_query = """
     SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
     WHERE {
@@ -1848,17 +2012,31 @@ def get_deleted_entities():
             ?laterSnapshot <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastSnapshot .
         }
     }
-    ORDER BY DESC(?deletionTime)
     """
-
     provenance_sparql.setQuery(prov_query)
     provenance_sparql.setReturnFormat(JSON)
     prov_results = provenance_sparql.query().convert()
-    
+
+    results_bindings = prov_results["results"]["bindings"]
+    if not results_bindings:
+        response = {
+            'entities': [],
+            'total_pages': 0,
+            'current_page': page,
+            'per_page': per_page,
+            'total_count': 0,
+            'sort_property': sort_property,
+            'sort_direction': sort_direction,
+            'selected_class': selected_class,
+            'available_classes': []
+        }
+        return jsonify(response)
+
+    # Step 2: Process entities to get types and labels
     def process_entity(result):
         entity_uri = result["entity"]["value"]
         deletion_time = result["deletionTime"]["value"]
-        deleted_by = result["agent"]["value"]
+        deleted_by = result.get("agent", {}).get("value", "")
         last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
 
         agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
@@ -1866,14 +2044,18 @@ def get_deleted_entities():
 
         if entity_uri not in state:
             return None
-            
+
         last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
         last_valid_state = state[entity_uri][last_valid_time]
         entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
+        visible_types = [t for t in entity_types if is_entity_type_visible(t)]
+
+        if not visible_types:
+            return None
 
         highest_priority = None
         highest_priority_type = None
-        for entity_type in entity_types:
+        for entity_type in visible_types:
             for rule in display_rules:
                 if rule['class'] == entity_type:
                     priority = rule.get('priority', 0)
@@ -1881,40 +2063,87 @@ def get_deleted_entities():
                         highest_priority = priority
                         highest_priority_type = entity_type
 
+        type_label = custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]) if highest_priority_type else ''
+        label = custom_filter.human_readable_entity(
+            entity_uri,
+            [highest_priority_type],
+            last_valid_state
+        )
+
         return {
             "uri": entity_uri,
             "deletionTime": deletion_time,
             "deletedBy": custom_filter.format_agent_reference(deleted_by),
             "lastValidSnapshotTime": last_valid_snapshot_time,
-            "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
-            "label": custom_filter.human_readable_entity(
-                entity_uri, 
-                [highest_priority_type],
-                last_valid_state
-            )
+            "type": type_label,
+            "label": label,
+            "entity_types": entity_types
         }
 
+    # Process entities using ThreadPoolExecutor
     deleted_entities = []
-    results_bindings = prov_results["results"]["bindings"]
-
-    if not results_bindings:
-        return jsonify(deleted_entities)
-
-    # Set minimum of 1 worker, maximum of 32 workers
     max_workers = max(1, min(32, len(results_bindings)))
-    
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_entity = {
-            executor.submit(process_entity, result): result 
-            for result in prov_results["results"]["bindings"]
+            executor.submit(process_entity, result): result
+            for result in results_bindings
         }
-        
+
         for future in as_completed(future_to_entity):
             entity_info = future.result()
             if entity_info is not None:
                 deleted_entities.append(entity_info)
 
-    return jsonify(deleted_entities)
+    # Step 3: Apply class filtering
+    if selected_class:
+        deleted_entities = [e for e in deleted_entities if selected_class in e["entity_types"]]
+
+    total_count = len(deleted_entities)
+
+    # Step 4: Sort entities
+    reverse_sort = (sort_direction.upper() == 'DESC')
+    if sort_property == 'deletionTime':
+        deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
+    elif sort_property == 'label':
+        deleted_entities.sort(key=lambda e: e["label"].lower(), reverse=reverse_sort)
+    elif sort_property == 'type':
+        deleted_entities.sort(key=lambda e: e["type"].lower(), reverse=reverse_sort)
+
+    # Step 5: Pagination
+    offset = (page - 1) * per_page
+    paginated_entities = deleted_entities[offset:offset + per_page]
+
+    # Step 6: Get available classes with counts
+    class_counts = {}
+    for e in deleted_entities:
+        for t in e["entity_types"]:
+            if is_entity_type_visible(t):
+                class_counts[t] = class_counts.get(t, 0) + 1
+
+    available_classes = []
+    for class_uri, count in class_counts.items():
+        label = custom_filter.human_readable_predicate(class_uri, [class_uri])
+        available_classes.append({
+            'uri': class_uri,
+            'label': label,
+            'count': count
+        })
+
+    # Prepare response
+    response = {
+        'entities': paginated_entities,
+        'total_pages': (total_count + per_page -1) // per_page if total_count > 0 else 0,
+        'current_page': page,
+        'per_page': per_page,
+        'total_count': total_count,
+        'sort_property': sort_property,
+        'sort_direction': sort_direction,
+        'selected_class': selected_class,
+        'available_classes': available_classes
+    }
+
+    return jsonify(response)
 
 def fetch_data_graph_recursively(subject_uri, max_depth=5, current_depth=0, visited=None):
     """
@@ -2798,133 +3027,6 @@ def get_locale():
     return session.get('lang', 'en')
 
 babel.init_app(app=app, locale_selector=get_locale, default_translation_directories=app.config['BABEL_TRANSLATION_DIRECTORIES'])
-
-@app.route('/api/catalogue')
-@login_required
-def catalogue_api():
-    """
-    API endpoint per ottenere i dati del catalogo in formato JSON.
-    Supporta paginazione, ordinamento e filtri
-    """
-    selected_class = request.args.get('class')
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 50))
-    sort_property = request.args.get('sort_property')
-
-    if not sort_property or sort_property.lower() == 'null':
-        sort_property = None
-    sort_direction = request.args.get('sort_direction', 'ASC')
-    
-    allowed_per_page = [50, 100, 200, 500]
-    if per_page not in allowed_per_page:
-        per_page = 100
-
-    # Query per ottenere tutte le classi e i conteggi
-    if is_virtuoso():
-        classes_query = f"""
-            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
-            WHERE {{
-                GRAPH ?g {{
-                    ?subject a ?class .
-                }}
-                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-            }}
-            GROUP BY ?class
-            ORDER BY DESC(?count)
-        """
-    else:
-        classes_query = """
-            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
-            WHERE {
-                ?subject a ?class .
-            }
-            GROUP BY ?class
-            ORDER BY DESC(?count)
-        """
-    
-    sparql.setQuery(classes_query)
-    sparql.setReturnFormat(JSON)
-    classes_results = sparql.query().convert()
-
-    entities = []
-    total_count = 0
-
-    if selected_class:
-        # Costruisci la query con clausole di ordinamento opzionali
-        sort_clause = build_sort_clause(sort_property, selected_class, display_rules) if sort_property else ""
-        order_clause = f"ORDER BY {sort_direction}(?sortValue)" if sort_property else "ORDER BY ?subject"
-        offset = (page - 1) * per_page
-
-        if is_virtuoso():
-            entities_query = f"""
-            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
-            WHERE {{
-                GRAPH ?g {{
-                    ?subject a <{selected_class}> .
-                    {sort_clause}
-                }}
-                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-            }}
-            {order_clause}
-            LIMIT {per_page} 
-            OFFSET {offset}
-            """
-        else:
-            entities_query = f"""
-            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
-            WHERE {{
-                ?subject a <{selected_class}> .
-                {sort_clause}
-            }}
-            {order_clause}
-            LIMIT {per_page} 
-            OFFSET {offset}
-            """
-
-        sparql.setQuery(entities_query)
-        entities_results = sparql.query().convert()
-        
-        entities = []
-        for result in entities_results["results"]["bindings"]:
-            subject_uri = result['subject']['value']
-            # Ottieni direttamente l'etichetta human-readable per l'entità
-            entity_label = custom_filter.human_readable_entity(subject_uri, [selected_class])
-            
-            entities.append({
-                'uri': subject_uri,
-                'label': entity_label
-            })
-
-        # Ottieni il conteggio totale per la paginazione
-        total_count = next(
-            (int(result['count']['value']) 
-             for result in classes_results["results"]["bindings"]
-             if result['class']['value'] == selected_class),
-            0
-        )
-
-    # Aggiungi informazioni sulle proprietà ordinabili
-    if selected_class:
-        sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
-    else:
-        sortable_properties = []
-
-    if not sort_property and sortable_properties:
-        sort_property = sortable_properties[0]['property']
-
-    response = {
-        'entities': entities,
-        'total_pages': (total_count + per_page - 1) // per_page if total_count > 0 else 0,
-        'current_page': page,
-        'per_page': per_page,
-        'total_count': total_count,
-        'sort_property': sort_property,
-        'sort_direction': sort_direction,
-        'sortable_properties': sortable_properties,
-        'selected_class': selected_class
-    }
-
-    return jsonify(response)
 
 @app.route('/human-readable-entity', methods=['POST'])
 def get_human_readable_entity():

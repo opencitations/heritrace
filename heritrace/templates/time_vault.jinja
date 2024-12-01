@@ -1,7 +1,30 @@
 {% extends "_base.jinja" %}
 
 {% block content %}
-<div id="deleted-entities-root"></div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<h2 class="mb-4">Time Vault</h2>
+
+<div id="time-vault"
+     data-selected-class='{{ selected_class }}'
+     data-initial-page='{{ page }}'
+     data-initial-per-page='{{ per_page }}'
+     data-allowed-per-page='{{ allowed_per_page | tojson }}'
+     data-sortable-properties='{{ sortable_properties | safe }}'
+     data-initial-sort-property='{{ current_sort_property }}'
+     data-initial-sort-direction='{{ current_sort_direction }}'
+></div>
+
 {% endblock %}
 
 {% block react_scripts %}
