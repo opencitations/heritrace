@@ -29,15 +29,16 @@
 {% if available_classes %}
     {% set selected_class = selected_class or (available_classes[0].uri if available_classes|length > 0 else None) %}
     <div id="catalogue" 
-         data-available-classes='{{ available_classes|tojson }}'
-         data-selected-class="{{ selected_class }}"
-         data-initial-page="{{ page }}"
-         data-initial-per-page="{{ per_page }}"
-         data-total-pages="{{ total_entity_pages }}"
-         data-allowed-per-page="{{ allowed_per_page|tojson }}"
-         data-sortable-properties="{{ sortable_properties|e }}"
+        data-available-classes='{{ available_classes|tojson }}'
+        data-selected-class="{{ selected_class }}"
+        data-initial-page="{{ page }}"
+        data-initial-per-page="{{ per_page }}"
+        data-total-pages="{{ total_entity_pages }}"
+        data-allowed-per-page="{{ allowed_per_page|tojson }}"
+        data-sortable-properties="{{ sortable_properties|e }}"
         data-initial-sort-property="{{ current_sort_property if current_sort_property else '' }}"
-         data-initial-sort-direction="{{ current_sort_direction }}"
+        data-initial-sort-direction="{{ current_sort_direction }}"
+        data-initial-entities='{{ initial_entities|tojson|e }}'
     ></div>
 {% else %}
     <div class="alert alert-info">{{_('No data available')}}</div>

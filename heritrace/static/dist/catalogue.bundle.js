@@ -61,6 +61,8 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     initialSortProperty = _ref$initialSortPrope === void 0 ? null : _ref$initialSortPrope,
     _ref$initialSortDirec = _ref.initialSortDirection,
     initialSortDirection = _ref$initialSortDirec === void 0 ? 'ASC' : _ref$initialSortDirec,
+    _ref$initialEntities = _ref.initialEntities,
+    initialEntities = _ref$initialEntities === void 0 ? [] : _ref$initialEntities,
     _ref$isTimeVault = _ref.isTimeVault,
     isTimeVault = _ref$isTimeVault === void 0 ? false : _ref$isTimeVault;
   var urlParams = new URLSearchParams(window.location.search);
@@ -71,7 +73,7 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
   var _useState = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)({
       classes: initialClasses,
       selectedClass: getUrlParam('class', initialSelectedClass || ((_initialClasses$0$uri = (_initialClasses$ = initialClasses[0]) === null || _initialClasses$ === void 0 ? void 0 : _initialClasses$.uri) !== null && _initialClasses$0$uri !== void 0 ? _initialClasses$0$uri : null)),
-      entities: [],
+      entities: initialEntities,
       isLoading: false,
       classesListSortDirection: 'ASC',
       itemsSortDirection: getUrlParam('sort_direction', initialSortDirection),
@@ -173,71 +175,8 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
       return _ref4.apply(this, arguments);
     };
   }();
-  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
-    var fetchClasses = /*#__PURE__*/function () {
-      var _ref5 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
-        var response, data, classesData;
-        return _regeneratorRuntime().wrap(function _callee2$(_context2) {
-          while (1) switch (_context2.prev = _context2.next) {
-            case 0:
-              if (!(initialClasses.length === 0)) {
-                _context2.next = 19;
-                break;
-              }
-              setState(function (prev) {
-                return _objectSpread(_objectSpread({}, prev), {}, {
-                  isLoading: true
-                });
-              });
-              _context2.prev = 2;
-              _context2.next = 5;
-              return fetch("".concat(apiEndpoint, "?class=&page=1&per_page=").concat(initialPerPage));
-            case 5:
-              response = _context2.sent;
-              _context2.next = 8;
-              return response.json();
-            case 8:
-              data = _context2.sent;
-              classesData = data.available_classes || [];
-              setState(function (prev) {
-                var _classesData$;
-                return _objectSpread(_objectSpread({}, prev), {}, {
-                  classes: classesData,
-                  selectedClass: prev.selectedClass || ((_classesData$ = classesData[0]) === null || _classesData$ === void 0 ? void 0 : _classesData$.uri)
-                });
-              });
-              _context2.next = 16;
-              break;
-            case 13:
-              _context2.prev = 13;
-              _context2.t0 = _context2["catch"](2);
-              console.error('Error fetching classes:', _context2.t0);
-            case 16:
-              _context2.prev = 16;
-              setState(function (prev) {
-                return _objectSpread(_objectSpread({}, prev), {}, {
-                  isLoading: false
-                });
-              });
-              return _context2.finish(16);
-            case 19:
-            case "end":
-              return _context2.stop();
-          }
-        }, _callee2, null, [[2, 13, 16, 19]]);
-      }));
-      return function fetchClasses() {
-        return _ref5.apply(this, arguments);
-      };
-    }();
-    fetchClasses();
-  }, [isTimeVault]);
-  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
-    if (state.selectedClass) {
-      fetchData();
-    }
-  }, [state.selectedClass]);
   var handleClassClick = function handleClassClick(classUri) {
+    if (classUri === state.selectedClass) return;
     setState(function (prev) {
       return _objectSpread(_objectSpread({}, prev), {}, {
         selectedClass: classUri
@@ -246,6 +185,26 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     fetchData({
       "class": classUri,
       page: 1
+    });
+  };
+  var handleSortChange = function handleSortChange(property, direction) {
+    if (property === state.sortProperty && direction === state.itemsSortDirection) return;
+    fetchData({
+      sortProperty: property,
+      sortDirection: direction
+    });
+  };
+  var handlePageChange = function handlePageChange(page) {
+    if (page === state.currentPage) return;
+    fetchData({
+      page: page
+    });
+  };
+  var handlePerPageChange = function handlePerPageChange(perPage) {
+    if (perPage === state.currentPerPage) return;
+    fetchData({
+      page: 1,
+      perPage: perPage
     });
   };
   var toggleClassesSort = function toggleClassesSort() {
@@ -263,6 +222,9 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
       className: "alert alert-info"
     }, "No data available");
   }
+  var selectedClassName = (_sortedClasses$find = sortedClasses.find(function (c) {
+    return c.uri === state.selectedClass;
+  })) === null || _sortedClasses$find === void 0 ? void 0 : _sortedClasses$find.label;
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "row"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -307,9 +269,7 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     className: "col-md-8"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("h3", {
     className: "mb-3"
-  }, isTimeVault ? 'Deleted Resources in category:' : 'Items in category:', " ", (_sortedClasses$find = sortedClasses.find(function (c) {
-    return c.uri === state.selectedClass;
-  })) === null || _sortedClasses$find === void 0 ? void 0 : _sortedClasses$find.label), state.isLoading ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, isTimeVault ? 'Deleted Resources in category:' : 'Items in category:', " ", selectedClassName), state.isLoading ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "d-flex justify-content-center my-3"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "spinner-border text-primary",
@@ -324,28 +284,14 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     sortableProperties: state.sortableProperties,
     currentProperty: state.sortProperty,
     currentDirection: state.itemsSortDirection,
-    onSortChange: function onSortChange(property, direction) {
-      return fetchData({
-        sortProperty: property,
-        sortDirection: direction
-      });
-    }
+    onSortChange: handleSortChange
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_PaginationControls__WEBPACK_IMPORTED_MODULE_2__["default"], {
     currentPage: state.currentPage,
     totalPages: state.totalPages,
     itemsPerPage: state.currentPerPage,
     allowedPerPage: allowedPerPage,
-    onPageChange: function onPageChange(page) {
-      return fetchData({
-        page: page
-      });
-    },
-    onPerPageChange: function onPerPageChange(perPage) {
-      return fetchData({
-        page: 1,
-        perPage: perPage
-      });
-    }
+    onPageChange: handlePageChange,
+    onPerPageChange: handlePerPageChange
   })), state.entities.length > 0 ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "list-group"
   }, state.entities.map(function (entity) {
@@ -34534,7 +34480,8 @@ var parseDatasetAttributes = function parseDatasetAttributes(element) {
     allowedPerPage = _element$dataset.allowedPerPage,
     sortableProperties = _element$dataset.sortableProperties,
     initialSortProperty = _element$dataset.initialSortProperty,
-    initialSortDirection = _element$dataset.initialSortDirection;
+    initialSortDirection = _element$dataset.initialSortDirection,
+    initialEntities = _element$dataset.initialEntities;
   return {
     selectedClass: selectedClass,
     initialPage: parseInt(initialPage, 10),
@@ -34543,7 +34490,8 @@ var parseDatasetAttributes = function parseDatasetAttributes(element) {
     allowedPerPage: JSON.parse(allowedPerPage),
     sortableProperties: JSON.parse(sortableProperties),
     initialSortProperty: initialSortProperty,
-    initialSortDirection: initialSortDirection
+    initialSortDirection: initialSortDirection,
+    initialEntities: initialEntities ? JSON.parse(initialEntities) : []
   };
 };
 
@@ -34565,6 +34513,7 @@ var initializeCatalogue = function initializeCatalogue(elementId) {
       sortableProperties: parsedAttributes.sortableProperties,
       initialSortProperty: parsedAttributes.initialSortProperty,
       initialSortDirection: parsedAttributes.initialSortDirection,
+      initialEntities: parsedAttributes.initialEntities,
       isTimeVault: isTimeVault
     })));
   }

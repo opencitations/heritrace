@@ -13,6 +13,7 @@ const parseDatasetAttributes = (element) => {
     sortableProperties,
     initialSortProperty,
     initialSortDirection,
+    initialEntities,
   } = element.dataset;
 
   return {
@@ -23,7 +24,8 @@ const parseDatasetAttributes = (element) => {
     allowedPerPage: JSON.parse(allowedPerPage),
     sortableProperties: JSON.parse(sortableProperties),
     initialSortProperty,
-    initialSortDirection
+    initialSortDirection,
+    initialEntities: initialEntities ? JSON.parse(initialEntities) : []
   };
 };
 
@@ -49,6 +51,7 @@ const initializeCatalogue = (elementId, isTimeVault = false) => {
           sortableProperties={parsedAttributes.sortableProperties}
           initialSortProperty={parsedAttributes.initialSortProperty}
           initialSortDirection={parsedAttributes.initialSortDirection}
+          initialEntities={parsedAttributes.initialEntities}
           isTimeVault={isTimeVault}
         />
       </StrictMode>

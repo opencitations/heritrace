@@ -410,6 +410,96 @@ def get_datatype_label(datatype_uri):
 def index():
     return render_template('index.jinja')
 
+def get_entities_for_class(selected_class, page, per_page, sort_property=None, sort_direction='ASC'):
+    """
+    Retrieve entities for a specific class with pagination and sorting.
+    
+    Args:
+        selected_class (str): URI of the class to fetch entities for
+        page (int): Current page number
+        per_page (int): Number of items per page
+        sort_property (str, optional): Property to sort by
+        sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
+        
+    Returns:
+        tuple: (list of entities, total count)
+    """
+    offset = (page - 1) * per_page
+
+    # Build sort clause if sort property is provided
+    sort_clause = ""
+    order_clause = "ORDER BY ?subject"
+    if sort_property:
+        sort_clause = build_sort_clause(sort_property, selected_class, display_rules)
+        order_clause = f"ORDER BY {sort_direction}(?sortValue)"
+
+    # Build query based on database type
+    if is_virtuoso():
+        entities_query = f"""
+        SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
+        WHERE {{
+            GRAPH ?g {{
+                ?subject a <{selected_class}> .
+                {sort_clause}
+            }}
+            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+        }}
+        {order_clause}
+        LIMIT {per_page} 
+        OFFSET {offset}
+        """
+        
+        # Count query for total number of entities
+        count_query = f"""
+        SELECT (COUNT(DISTINCT ?subject) as ?count)
+        WHERE {{
+            GRAPH ?g {{
+                ?subject a <{selected_class}> .
+            }}
+            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+        }}
+        """
+    else:
+        entities_query = f"""
+        SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
+        WHERE {{
+            ?subject a <{selected_class}> .
+            {sort_clause}
+        }}
+        {order_clause}
+        LIMIT {per_page} 
+        OFFSET {offset}
+        """
+        
+        count_query = f"""
+        SELECT (COUNT(DISTINCT ?subject) as ?count)
+        WHERE {{
+            ?subject a <{selected_class}> .
+        }}
+        """
+
+    # Execute count query
+    sparql.setQuery(count_query)
+    sparql.setReturnFormat(JSON)
+    count_results = sparql.query().convert()
+    total_count = int(count_results["results"]["bindings"][0]["count"]["value"])
+
+    # Execute entities query
+    sparql.setQuery(entities_query)
+    entities_results = sparql.query().convert()
+    
+    entities = []
+    for result in entities_results["results"]["bindings"]:
+        subject_uri = result['subject']['value']
+        entity_label = custom_filter.human_readable_entity(subject_uri, [selected_class])
+        
+        entities.append({
+            'uri': subject_uri,
+            'label': entity_label
+        })
+
+    return entities, total_count
+
 @app.route('/catalogue')
 @login_required
 def catalogue():
@@ -452,17 +542,29 @@ def catalogue():
 
     # Sort classes by label
     available_classes.sort(key=lambda x: x['label'].lower())
+    
     # Initialize default values
     initial_page = 1
     initial_per_page = 50
-    total_pages = 0
     selected_class = request.args.get('class')
     if not selected_class and available_classes:
         selected_class = available_classes[0]['uri']
+        
     sortable_properties = []
+    initial_entities = []
+    total_pages = 0
 
     if selected_class:
+        # Get sortable properties for the class
         sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
+        
+        # Get initial entities
+        initial_entities, total_count = get_entities_for_class(
+            selected_class, 
+            initial_page, 
+            initial_per_page
+        )
+        total_pages = (total_count + initial_per_page - 1) // initial_per_page
 
     return render_template('catalogue.jinja',
                          available_classes=available_classes,
@@ -473,7 +575,8 @@ def catalogue():
                          allowed_per_page=[50, 100, 200, 500],
                          sortable_properties=json.dumps(sortable_properties),
                          current_sort_property=None,
-                         current_sort_direction='ASC')
+                         current_sort_direction='ASC',
+                         initial_entities=initial_entities)
 
 @app.route('/api/catalogue')
 @login_required
@@ -1948,8 +2051,42 @@ def entity_version(entity_uri, timestamp):
 @app.route('/time-vault')
 @login_required
 def time_vault():
-    """Render the Time Vault page showing deleted entities."""
+    def process_entity_with_type_filtering(result):
+        entity_uri = result["entity"]["value"]
+        last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
 
+        # Get entity state at its last valid time
+        agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
+        state, _, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
+
+        if entity_uri not in state:
+            return None
+
+        last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
+        last_valid_state = state[entity_uri][last_valid_time]
+
+        # Get entity types and filter for visible ones early
+        entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
+        visible_types = [t for t in entity_types if is_entity_type_visible(t)]
+
+        if not visible_types:
+            return None
+
+        # Get the highest priority class
+        highest_priority_type = get_highest_priority_class(visible_types)
+        if not highest_priority_type:
+            return None
+
+        return {
+            "uri": entity_uri,
+            "deletionTime": result["deletionTime"]["value"],
+            "deletedBy": custom_filter.format_agent_reference(result.get("agent", {}).get("value", "")),
+            "lastValidSnapshotTime": last_valid_snapshot_time,
+            "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
+            "label": custom_filter.human_readable_entity(entity_uri, [highest_priority_type], last_valid_state),
+            "entity_types": visible_types  # Only include visible types
+        }
+        
     # Initialize default values
     initial_page = 1
     initial_per_page = 50
@@ -1963,7 +2100,7 @@ def time_vault():
         {'property': 'deletionTime', 'displayName': 'Deletion Time'}
     ])
 
-    # Step 1: Get the list of deleted entities from the provenance graph
+    # Get the list of deleted entities from the provenance graph
     prov_query = """
     SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
     WHERE {
@@ -1987,47 +2124,11 @@ def time_vault():
     prov_results = provenance_sparql.query().convert()
 
     results_bindings = prov_results["results"]["bindings"]
-    if not results_bindings:
-        available_classes = []
-    else:
-        # Process entities and filter by visible classes early
-        def process_entity_with_type_filtering(result):
-            entity_uri = result["entity"]["value"]
-            last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
-
-            # Get entity state at its last valid time
-            agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
-            state, _, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
-
-            if entity_uri not in state:
-                return None
-
-            last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
-            last_valid_state = state[entity_uri][last_valid_time]
-
-            # Get entity types and filter for visible ones early
-            entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
-            visible_types = [t for t in entity_types if is_entity_type_visible(t)]
-
-            if not visible_types:
-                return None
-
-            # Get the highest priority class
-            highest_priority_type = get_highest_priority_class(visible_types)
-            if not highest_priority_type:
-                return None
-
-            return {
-                "uri": entity_uri,
-                "deletionTime": result["deletionTime"]["value"],
-                "deletedBy": custom_filter.format_agent_reference(result.get("agent", {}).get("value", "")),
-                "lastValidSnapshotTime": last_valid_snapshot_time,
-                "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
-                "label": custom_filter.human_readable_entity(entity_uri, [highest_priority_type], last_valid_state),
-                "entity_types": visible_types  # Only include visible types
-            }
-
-        # Process entities with parallel execution for better performance
+    available_classes = []
+    initial_entities = []
+    
+    if results_bindings:
+        # Process entities with parallel execution
         deleted_entities = []
         max_workers = max(1, min(32, len(results_bindings)))
 
@@ -2042,12 +2143,13 @@ def time_vault():
                 if entity_info is not None:
                     deleted_entities.append(entity_info)
 
-        # Step 5: Calculate class counts from filtered entities
+        # Calculate class counts
         class_counts = {}
         for entity in deleted_entities:
             for type_uri in entity["entity_types"]:
                 class_counts[type_uri] = class_counts.get(type_uri, 0) + 1
 
+        # Create available_classes list
         available_classes = [
             {
                 'uri': class_uri,
@@ -2056,21 +2158,37 @@ def time_vault():
             }
             for class_uri, count in class_counts.items()
         ]
-
-        # Sort classes by label
         available_classes.sort(key=lambda x: x['label'].lower())
 
-    # Now we can pass available_classes to the template
+        # If no class is selected, use the first available class
+        if not selected_class and available_classes:
+            selected_class = available_classes[0]['uri']
+
+        # Filter and sort initial entities based on selected class
+        if selected_class:
+            initial_entities = [
+                entity for entity in deleted_entities 
+                if selected_class in entity["entity_types"]
+            ]
+            # Sort by deletion time in descending order
+            initial_entities.sort(
+                key=lambda x: x["deletionTime"], 
+                reverse=True
+            )
+            # Apply pagination
+            initial_entities = initial_entities[:initial_per_page]
+
     return render_template('time_vault.jinja',
-                           available_classes=available_classes,
-                           selected_class=available_classes[0]['uri'] if available_classes else '',
-                           page=initial_page,
-                           total_entity_pages=0,
-                           per_page=initial_per_page,
-                           allowed_per_page=allowed_per_page,
-                           sortable_properties=sortable_properties,
-                           current_sort_property='deletionTime',
-                           current_sort_direction='DESC')
+                         available_classes=available_classes,
+                         selected_class=selected_class,
+                         page=initial_page,
+                         total_entity_pages=0,
+                         per_page=initial_per_page,
+                         allowed_per_page=allowed_per_page,
+                         sortable_properties=sortable_properties,
+                         current_sort_property='deletionTime',
+                         current_sort_direction='DESC',
+                         initial_entities=initial_entities)
 
 @app.route('/api/time-vault')
 @login_required

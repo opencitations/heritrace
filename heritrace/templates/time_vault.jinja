@@ -22,6 +22,7 @@
      data-sortable-properties='{{ sortable_properties | safe }}'
      data-initial-sort-property='{{ current_sort_property }}'
      data-initial-sort-direction='{{ current_sort_direction }}'
+     data-initial-entities='{{ initial_entities|tojson|e }}'
 ></div>
 
 {% endblock %}

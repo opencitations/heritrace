@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SortAsc } from 'lucide-react';
 import SortControls from './SortControls';
 import PaginationControls from './PaginationControls';
@@ -14,6 +14,7 @@ const CatalogueInterface = ({
   sortableProperties: initialSortableProperties = [],
   initialSortProperty = null,
   initialSortDirection = 'ASC',
+  initialEntities = [],
   isTimeVault = false
 }) => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -21,11 +22,11 @@ const CatalogueInterface = ({
     const value = urlParams.get(key);
     return value === 'None' || value === 'null' ? null : (value || defaultValue);
   };
-  
+
   const [state, setState] = useState({
     classes: initialClasses,
     selectedClass: getUrlParam('class', initialSelectedClass || (initialClasses[0]?.uri ?? null)),
-    entities: [],
+    entities: initialEntities,
     isLoading: false,
     classesListSortDirection: 'ASC',
     itemsSortDirection: getUrlParam('sort_direction', initialSortDirection),
@@ -89,38 +90,25 @@ const CatalogueInterface = ({
     }
   };
 
-  useEffect(() => {
-    const fetchClasses = async () => {
-      if (initialClasses.length === 0) {
-        setState(prev => ({ ...prev, isLoading: true }));
-        try {
-          const response = await fetch(`${apiEndpoint}?class=&page=1&per_page=${initialPerPage}`);
-          const data = await response.json();
-          const classesData = data.available_classes || [];
-          setState(prev => ({ 
-            ...prev, 
-            classes: classesData,
-            selectedClass: prev.selectedClass || classesData[0]?.uri
-          }));
-        } catch (error) {
-          console.error('Error fetching classes:', error);
-        } finally {
-          setState(prev => ({ ...prev, isLoading: false }));
-        }
-      }
-    };
-    fetchClasses();
-  }, [isTimeVault]);
-
-  useEffect(() => {
-    if (state.selectedClass) {
-      fetchData();
-    }
-  }, [state.selectedClass]);
-
   const handleClassClick = (classUri) => {
+    if (classUri === state.selectedClass) return;
     setState(prev => ({ ...prev, selectedClass: classUri }));
     fetchData({ class: classUri, page: 1 });
+  };
+
+  const handleSortChange = (property, direction) => {
+    if (property === state.sortProperty && direction === state.itemsSortDirection) return;
+    fetchData({ sortProperty: property, sortDirection: direction });
+  };
+
+  const handlePageChange = (page) => {
+    if (page === state.currentPage) return;
+    fetchData({ page });
+  };
+
+  const handlePerPageChange = (perPage) => {
+    if (perPage === state.currentPerPage) return;
+    fetchData({ page: 1, perPage });
   };
 
   const toggleClassesSort = () => {
@@ -139,6 +127,8 @@ const CatalogueInterface = ({
   if (!state.selectedClass) {
     return <div className="alert alert-info">No data available</div>;
   }
+
+  const selectedClassName = sortedClasses.find(c => c.uri === state.selectedClass)?.label;
 
   return (
     <div className="row">
@@ -181,9 +171,7 @@ const CatalogueInterface = ({
 
       <div className="col-md-8">
         <h3 className="mb-3">
-          {isTimeVault ? 'Deleted Resources in category:' : 'Items in category:'} {
-            sortedClasses.find(c => c.uri === state.selectedClass)?.label
-          }
+          {isTimeVault ? 'Deleted Resources in category:' : 'Items in category:'} {selectedClassName}
         </h3>
         
         {state.isLoading ? (
@@ -201,7 +189,7 @@ const CatalogueInterface = ({
                     sortableProperties={state.sortableProperties}
                     currentProperty={state.sortProperty}
                     currentDirection={state.itemsSortDirection}
-                    onSortChange={(property, direction) => fetchData({ sortProperty: property, sortDirection: direction })}
+                    onSortChange={handleSortChange}
                   />
                 </div>
               )}
@@ -211,8 +199,8 @@ const CatalogueInterface = ({
                 totalPages={state.totalPages}
                 itemsPerPage={state.currentPerPage}
                 allowedPerPage={allowedPerPage}
-                onPageChange={(page) => fetchData({ page })}
-                onPerPageChange={(perPage) => fetchData({ page: 1, perPage })}
+                onPageChange={handlePageChange}
+                onPerPageChange={handlePerPageChange}
               />
             </div>
 
