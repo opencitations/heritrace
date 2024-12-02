@@ -1,3 +1,4 @@
+// CatalogueInterface.jsx
 import React, { useState } from 'react';
 import { SortAsc } from 'lucide-react';
 import SortControls from './SortControls';
@@ -207,28 +208,39 @@ const CatalogueInterface = ({
             {state.entities.length > 0 ? (
               <div className="list-group">
                 {state.entities.map((entity) => (
-                  <div key={entity.uri} className="list-group-item">
-                    <div className="d-flex justify-content-between align-items-center">
+                  <div key={entity.uri} className="list-group-item d-flex flex-column">
+                    <div className="mb-3">
                       <a
                         href={isTimeVault 
                           ? `/entity-version/${entity.uri}/${entity.lastValidSnapshotTime}`
                           : `/about/${entity.uri}`
                         }
-                        className="text-decoration-none"
+                        className="text-decoration-none mb-1"
                       >
                         {entity.label}
                       </a>
                       {isTimeVault && (
+                        <div className="mt-1">
+                          <small className="text-muted">
+                            Deleted on: {new Date(entity.deletionTime).toLocaleString()}
+                          </small>
+                        </div>
+                      )}
+                    </div>
+                    {isTimeVault && (
+                      <div className="d-flex gap-2">
+                        <a
+                          href={`/entity-version/${entity.uri}/${entity.lastValidSnapshotTime}`}
+                          className="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center"
+                        >
+                          <i className="bi bi-eye me-2"></i>
+                          View Last Valid Version
+                        </a>
                         <RestoreVersionButton 
                           entityUri={entity.uri}
                           timestamp={entity.lastValidSnapshotTime}
                         />
-                      )}
-                    </div>
-                    {isTimeVault && (
-                      <small className="text-muted">
-                        Deleted on: {new Date(entity.deletionTime).toLocaleString()}
-                      </small>
+                      </div>
                     )}
                   </div>
                 ))}

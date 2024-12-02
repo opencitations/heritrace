@@ -37,6 +37,7 @@ function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) 
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+// CatalogueInterface.jsx
 
 
 
@@ -297,18 +298,27 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
   }, state.entities.map(function (entity) {
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
       key: entity.uri,
-      className: "list-group-item"
+      className: "list-group-item d-flex flex-column"
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-      className: "d-flex justify-content-between align-items-center"
+      className: "mb-3"
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", {
       href: isTimeVault ? "/entity-version/".concat(entity.uri, "/").concat(entity.lastValidSnapshotTime) : "/about/".concat(entity.uri),
-      className: "text-decoration-none"
-    }, entity.label), isTimeVault && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_RestoreVersionButton__WEBPACK_IMPORTED_MODULE_3__["default"], {
+      className: "text-decoration-none mb-1"
+    }, entity.label), isTimeVault && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "mt-1"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("small", {
+      className: "text-muted"
+    }, "Deleted on: ", new Date(entity.deletionTime).toLocaleString()))), isTimeVault && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "d-flex gap-2"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("a", {
+      href: "/entity-version/".concat(entity.uri, "/").concat(entity.lastValidSnapshotTime),
+      className: "btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
+      className: "bi bi-eye me-2"
+    }), "View Last Valid Version"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_RestoreVersionButton__WEBPACK_IMPORTED_MODULE_3__["default"], {
       entityUri: entity.uri,
       timestamp: entity.lastValidSnapshotTime
-    })), isTimeVault && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("small", {
-      className: "text-muted"
-    }, "Deleted on: ", new Date(entity.deletionTime).toLocaleString()));
+    })));
   })) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
     className: "alert alert-info"
   }, "No ", isTimeVault ? 'deleted ' : '', "entities found for this class"))));
@@ -442,6 +452,7 @@ function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) 
 function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
+// RestoreVersionButton.jsx
 
 function RestoreVersionButton(_ref) {
   var entityUri = _ref.entityUri,
@@ -540,14 +551,13 @@ function RestoreVersionButton(_ref) {
   }();
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
     onClick: handleRestore,
-    className: "btn btn-primary",
+    className: "btn btn-outline-warning flex-fill d-flex align-items-center justify-content-center",
     disabled: isRestoring,
     title: "Restore this entity to its last valid state"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("i", {
     className: "bi ".concat(isRestoring ? 'bi-hourglass-split' : 'bi-arrow-counterclockwise', " me-2")
   }), isRestoring ? 'Restoring...' : 'Restore');
 }
-;
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (RestoreVersionButton);
 
 /***/ }),
