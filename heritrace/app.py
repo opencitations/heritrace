@@ -660,6 +660,208 @@ def is_entity_type_visible(entity_type):
             return rule.get('shouldBeDisplayed', True)
     return True
 
+@app.route('/time-vault')
+@login_required
+def time_vault():
+    """
+    Render the Time Vault page, which displays a list of deleted entities.
+    """
+    initial_page = request.args.get('page', 1, type=int)
+    initial_per_page = request.args.get('per_page', 50, type=int)
+    sort_property = request.args.get('sort_property', 'deletionTime')
+    sort_direction = request.args.get('sort_direction', 'DESC')
+    selected_class = request.args.get('class')
+
+    allowed_per_page = [50, 100, 200, 500]
+
+    sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
+    sortable_properties.insert(0, {'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'})
+    sortable_properties_json = json.dumps(sortable_properties)
+
+    initial_entities, available_classes, selected_class = get_deleted_entities_with_filtering(
+        initial_page, initial_per_page, sort_property, sort_direction, selected_class, sortable_properties)
+
+    return render_template('time_vault.jinja',
+                           available_classes=available_classes,
+                           selected_class=selected_class,
+                           page=initial_page,
+                           total_entity_pages=0,
+                           per_page=initial_per_page,
+                           allowed_per_page=allowed_per_page,
+                           sortable_properties=sortable_properties_json,
+                           current_sort_property=sort_property,
+                           current_sort_direction=sort_direction,
+                           initial_entities=initial_entities)
+
+@app.route('/api/time-vault')
+@login_required
+def get_deleted_entities():
+    """
+    API endpoint to retrieve deleted entities with pagination and sorting.
+    Only processes and returns entities whose classes are marked as visible.
+    """
+    selected_class = request.args.get('class')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    sort_property = request.args.get('sort_property', 'deletionTime')
+    sort_direction = request.args.get('sort_direction', 'DESC')
+
+    allowed_per_page = [50, 100, 200, 500]
+    if per_page not in allowed_per_page:
+        per_page = 100
+
+    sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
+    sortable_properties.insert(0, {'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'})
+
+    deleted_entities, available_classes, selected_class = get_deleted_entities_with_filtering(
+        page, per_page, sort_property, sort_direction, selected_class, sortable_properties)
+
+    return jsonify({
+        'entities': deleted_entities,
+        'total_pages': (len(deleted_entities) + per_page - 1) // per_page if deleted_entities else 0,
+        'current_page': page,
+        'per_page': per_page,
+        'total_count': len(deleted_entities),
+        'sort_property': sort_property,
+        'sort_direction': sort_direction,
+        'selected_class': selected_class,
+        'available_classes': available_classes,
+        'sortable_properties': sortable_properties
+    })
+
+def get_deleted_entities_with_filtering(page=1, per_page=50, sort_property='deletionTime', sort_direction='DESC',
+                                        selected_class=None, sortable_properties=None):
+    """
+    Fetch and process deleted entities from the provenance graph, with filtering and sorting.
+    """
+    # Ensure sortable_properties is provided
+    if sortable_properties is None:
+        sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
+        sortable_properties.insert(0, {'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'})
+
+    prov_query = """
+    SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
+    WHERE {
+        ?lastSnapshot a <http://www.w3.org/ns/prov#Entity> ;
+                     <http://www.w3.org/ns/prov#specializationOf> ?entity ;
+                     <http://www.w3.org/ns/prov#generatedAtTime> ?deletionTime ;
+                     <http://www.w3.org/ns/prov#invalidatedAtTime> ?invalidationTime ;
+                     <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastValidSnapshot.
+
+        ?lastValidSnapshot <http://www.w3.org/ns/prov#generatedAtTime> ?lastValidSnapshotTime .
+
+        OPTIONAL { ?lastSnapshot <http://www.w3.org/ns/prov#wasAttributedTo> ?agent . }
+
+        FILTER NOT EXISTS {
+            ?laterSnapshot <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastSnapshot .
+        }
+    }
+    """
+    provenance_sparql.setQuery(prov_query)
+    provenance_sparql.setReturnFormat(JSON)
+    prov_results = provenance_sparql.query().convert()
+
+    results_bindings = prov_results["results"]["bindings"]
+    if not results_bindings:
+        return [], []
+
+    # Process entities with parallel execution
+    deleted_entities = []
+    max_workers = max(1, min(32, len(results_bindings)))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_entity = {
+            executor.submit(process_deleted_entity, result, sortable_properties): result
+            for result in results_bindings
+        }
+        for future in as_completed(future_to_entity):
+            entity_info = future.result()
+            if entity_info is not None:
+                deleted_entities.append(entity_info)
+
+    # Calculate class counts from filtered entities
+    class_counts = {}
+    for entity in deleted_entities:
+        for type_uri in entity["entity_types"]:
+            class_counts[type_uri] = class_counts.get(type_uri, 0) + 1
+
+    available_classes = [
+        {
+            'uri': class_uri,
+            'label': custom_filter.human_readable_predicate(class_uri, [class_uri]),
+            'count': count
+        }
+        for class_uri, count in class_counts.items()
+    ]
+
+    # Determine the sort key based on sort_property
+    reverse_sort = (sort_direction.upper() == 'DESC')
+    if sort_property == 'deletionTime':
+        deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
+    else:
+        deleted_entities.sort(key=lambda e: e['sort_values'].get(sort_property, '').lower(), reverse=reverse_sort)
+
+    # Paginate the results
+    offset = (page - 1) * per_page
+    paginated_entities = deleted_entities[offset:offset + per_page]
+
+    available_classes.sort(key=lambda x: x['label'].lower())
+    if not selected_class and available_classes:
+        selected_class = available_classes[0]['uri']
+
+    if selected_class:
+        paginated_entities = [entity for entity in paginated_entities if selected_class in entity["entity_types"]]
+    else:
+        paginated_entities = []
+
+    return paginated_entities, available_classes, selected_class
+
+def process_deleted_entity(result, sortable_properties):
+    """
+    Process a single deleted entity, filtering by visible classes.
+    """
+    entity_uri = result["entity"]["value"]
+    last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
+
+    # Get entity state at its last valid time
+    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
+    state, _, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
+
+    if entity_uri not in state:
+        return None
+
+    last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
+    last_valid_state: ConjunctiveGraph = state[entity_uri][last_valid_time]
+
+    # Get entity types and filter for visible ones early
+    entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
+    visible_types = [t for t in entity_types if is_entity_type_visible(t)]
+
+    if not visible_types:
+        return None
+
+    # Get the highest priority class
+    highest_priority_type = get_highest_priority_class(visible_types)
+    if not highest_priority_type:
+        return None
+
+    # Extract sort values for sortable properties
+    sort_values = {}
+    for prop in sortable_properties:
+        prop_uri = prop['property']
+        values = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), URIRef(prop_uri), None))]
+        sort_values[prop_uri] = values[0] if values else ''
+
+    return {
+        "uri": entity_uri,
+        "deletionTime": result["deletionTime"]["value"],
+        "deletedBy": custom_filter.format_agent_reference(result.get("agent", {}).get("value", "")),
+        "lastValidSnapshotTime": last_valid_snapshot_time,
+        "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
+        "label": custom_filter.human_readable_entity(entity_uri, [highest_priority_type], last_valid_state),
+        "entity_types": visible_types,
+        "sort_values": sort_values
+    }
+
 @app.route('/create-entity', methods=['GET', 'POST'])
 @login_required
 def create_entity():
@@ -1997,195 +2199,6 @@ def entity_version(entity_uri, timestamp):
         version=context_version
     )
 
-@app.route('/time-vault')
-@login_required
-def time_vault():
-    """
-    Render the Time Vault page, which displays a list of deleted entities.
-    """
-    initial_page = request.args.get('page', 1, type=int)
-    initial_per_page = request.args.get('per_page', 50, type=int)
-    sort_property = request.args.get('sort_property', 'deletionTime')
-    sort_direction = request.args.get('sort_direction', 'DESC')
-    selected_class = request.args.get('class')
-
-    # Define allowed per page options
-    allowed_per_page = [50, 100, 200, 500]
-
-    # Define sortable properties
-    sortable_properties = json.dumps([
-        {'property': 'deletionTime', 'displayName': 'Deletion Time'}
-    ])
-
-    deleted_entities, available_classes = get_deleted_entities_with_filtering(initial_page, initial_per_page, sort_property, sort_direction)
-
-    available_classes.sort(key=lambda x: x['label'].lower())
-    if not selected_class and available_classes:
-        selected_class = available_classes[0]['uri']
-
-    # Filter and sort initial entities based on selected class
-    if selected_class:
-        initial_entities = [entity for entity in deleted_entities if selected_class in entity["entity_types"]]
-        initial_entities.sort(key=lambda x: x["deletionTime"], reverse=True)
-        initial_entities = initial_entities[:initial_per_page]
-    else:
-        initial_entities = []
-
-    return render_template('time_vault.jinja',
-                         available_classes=available_classes,
-                         selected_class=selected_class,
-                         page=initial_page,
-                         total_entity_pages=0,
-                         per_page=initial_per_page,
-                         allowed_per_page=allowed_per_page,
-                         sortable_properties=sortable_properties,
-                         current_sort_property=sort_property,
-                         current_sort_direction=sort_direction,
-                         initial_entities=initial_entities)
-
-@app.route('/api/time-vault')
-@login_required
-def get_deleted_entities():
-    """
-    API endpoint to retrieve deleted entities with pagination and sorting.
-    Only processes and returns entities whose classes are marked as visible.
-    """
-    selected_class = request.args.get('class')
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 50))
-    sort_property = request.args.get('sort_property', 'deletionTime')
-    sort_direction = request.args.get('sort_direction', 'DESC')
-
-    allowed_per_page = [50, 100, 200, 500]
-    if per_page not in allowed_per_page:
-        per_page = 100
-
-    deleted_entities, available_classes = get_deleted_entities_with_filtering(page, per_page, sort_property, sort_direction)
-
-    deleted_entities = [entity for entity in deleted_entities if selected_class in entity["entity_types"]]
-
-    return jsonify({
-        'entities': deleted_entities,
-        'total_pages': (len(deleted_entities) + per_page - 1) // per_page if deleted_entities else 0,
-        'current_page': page,
-        'per_page': per_page,
-        'total_count': len(deleted_entities),
-        'sort_property': sort_property,
-        'sort_direction': sort_direction,
-        'selected_class': selected_class,
-        'available_classes': available_classes
-    })
-
-def get_deleted_entities_with_filtering(page=1, per_page=50, sort_property='deletionTime', sort_direction='DESC'):
-    """
-    Fetch and process deleted entities from the provenance graph, with filtering and sorting.
-    """
-    prov_query = """
-    SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
-    WHERE {
-        ?lastSnapshot a <http://www.w3.org/ns/prov#Entity> ;
-                     <http://www.w3.org/ns/prov#specializationOf> ?entity ;
-                     <http://www.w3.org/ns/prov#generatedAtTime> ?deletionTime ;
-                     <http://www.w3.org/ns/prov#invalidatedAtTime> ?invalidationTime ;
-                     <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastValidSnapshot.
-
-        ?lastValidSnapshot <http://www.w3.org/ns/prov#generatedAtTime> ?lastValidSnapshotTime .
-
-        OPTIONAL { ?lastSnapshot <http://www.w3.org/ns/prov#wasAttributedTo> ?agent . }
-
-        FILTER NOT EXISTS {
-            ?laterSnapshot <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastSnapshot .
-        }
-    }
-    """
-    provenance_sparql.setQuery(prov_query)
-    provenance_sparql.setReturnFormat(JSON)
-    prov_results = provenance_sparql.query().convert()
-
-    results_bindings = prov_results["results"]["bindings"]
-    if not results_bindings:
-        return [], []
-
-    # Process entities with parallel execution for better performance
-    deleted_entities = []
-    max_workers = max(1, min(32, len(results_bindings)))
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_entity = {
-            executor.submit(process_deleted_entity, result): result
-            for result in results_bindings
-        }
-        for future in as_completed(future_to_entity):
-            entity_info = future.result()
-            if entity_info is not None:
-                deleted_entities.append(entity_info)
-
-    # Calculate class counts from filtered entities
-    class_counts = {}
-    for entity in deleted_entities:
-        for type_uri in entity["entity_types"]:
-            class_counts[type_uri] = class_counts.get(type_uri, 0) + 1
-
-    available_classes = [
-        {
-            'uri': class_uri,
-            'label': custom_filter.human_readable_predicate(class_uri, [class_uri]),
-            'count': count
-        }
-        for class_uri, count in class_counts.items()
-    ]
-
-    # Sort and paginate the filtered entities
-    reverse_sort = (sort_direction.upper() == 'DESC')
-    if sort_property == 'deletionTime':
-        deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
-    elif sort_property == 'label':
-        deleted_entities.sort(key=lambda e: e["label"].lower(), reverse=reverse_sort)
-    elif sort_property == 'type':
-        deleted_entities.sort(key=lambda e: e["type"].lower(), reverse=reverse_sort)
-
-    offset = (page - 1) * per_page
-    paginated_entities = deleted_entities[offset:offset + per_page]
-
-    return paginated_entities, available_classes
-
-def process_deleted_entity(result):
-    """
-    Process a single deleted entity, filtering by visible classes.
-    """
-    entity_uri = result["entity"]["value"]
-    last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
-
-    # Get entity state at its last valid time
-    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
-    state, _, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
-
-    if entity_uri not in state:
-        return None
-
-    last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
-    last_valid_state: ConjunctiveGraph = state[entity_uri][last_valid_time]
-
-    # Get entity types and filter for visible ones early
-    entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
-    visible_types = [t for t in entity_types if is_entity_type_visible(t)]
-
-    if not visible_types:
-        return None
-
-    # Get the highest priority class
-    highest_priority_type = get_highest_priority_class(visible_types)
-    if not highest_priority_type:
-        return None
-
-    return {
-        "uri": entity_uri,
-        "deletionTime": result["deletionTime"]["value"],
-        "deletedBy": custom_filter.format_agent_reference(result.get("agent", {}).get("value", "")),
-        "lastValidSnapshotTime": last_valid_snapshot_time,
-        "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
-        "label": custom_filter.human_readable_entity(entity_uri, [highest_priority_type], last_valid_state),
-        "entity_types": visible_types
-    }
 
 def fetch_data_graph_recursively(subject_uri, max_depth=5, current_depth=0, visited=None):
     """
