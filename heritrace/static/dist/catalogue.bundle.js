@@ -63,20 +63,18 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     initialSortDirection = _ref$initialSortDirec === void 0 ? 'ASC' : _ref$initialSortDirec,
     _ref$isTimeVault = _ref.isTimeVault,
     isTimeVault = _ref$isTimeVault === void 0 ? false : _ref$isTimeVault;
-  // URL params management
   var urlParams = new URLSearchParams(window.location.search);
   var getUrlParam = function getUrlParam(key, defaultValue) {
     var value = urlParams.get(key);
     return value === 'None' || value === 'null' ? null : value || defaultValue;
   };
-
-  // State management
   var _useState = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)({
       classes: initialClasses,
       selectedClass: getUrlParam('class', initialSelectedClass || ((_initialClasses$0$uri = (_initialClasses$ = initialClasses[0]) === null || _initialClasses$ === void 0 ? void 0 : _initialClasses$.uri) !== null && _initialClasses$0$uri !== void 0 ? _initialClasses$0$uri : null)),
       entities: [],
       isLoading: false,
-      sortDirection: getUrlParam('sort_direction', initialSortDirection),
+      classesListSortDirection: 'ASC',
+      itemsSortDirection: getUrlParam('sort_direction', initialSortDirection),
       sortableProperties: initialSortableProperties,
       currentPage: parseInt(getUrlParam('page', initialPage)),
       currentPerPage: parseInt(getUrlParam('per_page', initialPerPage)),
@@ -87,8 +85,6 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     state = _useState2[0],
     setState = _useState2[1];
   var apiEndpoint = isTimeVault ? '/api/time-vault' : '/api/catalogue';
-
-  // URL update utility
   var updateUrl = function updateUrl(params) {
     var url = new URL(window.location);
     Object.entries(params).forEach(function (_ref2) {
@@ -103,8 +99,6 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     });
     window.history.pushState({}, '', url);
   };
-
-  // Data fetching utility
   var fetchData = /*#__PURE__*/function () {
     var _ref4 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
       var params,
@@ -127,7 +121,7 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
               page: params.page || state.currentPage,
               per_page: params.perPage || state.currentPerPage,
               sort_property: params.sortProperty || state.sortProperty,
-              sort_direction: params.sortDirection || state.sortDirection
+              sort_direction: params.sortDirection || state.itemsSortDirection
             });
             _context.next = 6;
             return fetch("".concat(apiEndpoint, "?").concat(queryParams));
@@ -145,7 +139,7 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
                 currentPage: data.current_page,
                 currentPerPage: data.per_page,
                 sortProperty: data.sort_property || prev.sortProperty,
-                sortDirection: data.sort_direction || prev.sortDirection
+                itemsSortDirection: data.sort_direction || prev.itemsSortDirection
               });
             });
             updateUrl({
@@ -179,8 +173,6 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
       return _ref4.apply(this, arguments);
     };
   }();
-
-  // Initial classes fetch
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
     var fetchClasses = /*#__PURE__*/function () {
       var _ref5 = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
@@ -240,8 +232,6 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
     }();
     fetchClasses();
   }, [isTimeVault]);
-
-  // Fetch entities when dependencies change
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function () {
     if (state.selectedClass) {
       fetchData();
@@ -258,8 +248,15 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
       page: 1
     });
   };
+  var toggleClassesSort = function toggleClassesSort() {
+    setState(function (prev) {
+      return _objectSpread(_objectSpread({}, prev), {}, {
+        classesListSortDirection: prev.classesListSortDirection === 'ASC' ? 'DESC' : 'ASC'
+      });
+    });
+  };
   var sortedClasses = _toConsumableArray(state.classes).sort(function (a, b) {
-    return state.sortDirection === 'ASC' ? a.label.localeCompare(b.label) : b.label.localeCompare(a.label);
+    return state.classesListSortDirection === 'ASC' ? a.label.localeCompare(b.label) : b.label.localeCompare(a.label);
   });
   if (!state.selectedClass) {
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -285,18 +282,12 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
       height: '32px',
       padding: 0
     },
-    onClick: function onClick() {
-      return setState(function (prev) {
-        return _objectSpread(_objectSpread({}, prev), {}, {
-          sortDirection: prev.sortDirection === 'ASC' ? 'DESC' : 'ASC'
-        });
-      });
-    },
-    title: "Sort ".concat(state.sortDirection === 'ASC' ? 'A-Z' : 'Z-A')
+    onClick: toggleClassesSort,
+    title: "Sort ".concat(state.classesListSortDirection === 'ASC' ? 'A-Z' : 'Z-A')
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(lucide_react__WEBPACK_IMPORTED_MODULE_4__["default"], {
     size: 16,
     style: {
-      transform: state.sortDirection === 'DESC' ? 'scaleY(-1)' : 'none'
+      transform: state.classesListSortDirection === 'DESC' ? 'scaleY(-1)' : 'none'
     }
   })))), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "card-body p-0"
@@ -332,7 +323,7 @@ var CatalogueInterface = function CatalogueInterface(_ref) {
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_SortControls__WEBPACK_IMPORTED_MODULE_1__["default"], {
     sortableProperties: state.sortableProperties,
     currentProperty: state.sortProperty,
-    currentDirection: state.sortDirection,
+    currentDirection: state.itemsSortDirection,
     onSortChange: function onSortChange(property, direction) {
       return fetchData({
         sortProperty: property,

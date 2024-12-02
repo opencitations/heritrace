@@ -1955,9 +1955,6 @@ def time_vault():
     initial_per_page = 50
     selected_class = request.args.get('class')
 
-    # Since classes are now fetched via the API, we can pass an empty list for now
-    available_classes = []
-
     # Define allowed per page options
     allowed_per_page = [50, 100, 200, 500]
 
@@ -1966,9 +1963,107 @@ def time_vault():
         {'property': 'deletionTime', 'displayName': 'Deletion Time'}
     ])
 
+    # Step 1: Get the list of deleted entities from the provenance graph
+    prov_query = """
+    SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
+    WHERE {
+        ?lastSnapshot a <http://www.w3.org/ns/prov#Entity> ;
+                     <http://www.w3.org/ns/prov#specializationOf> ?entity ;
+                     <http://www.w3.org/ns/prov#generatedAtTime> ?deletionTime ;
+                     <http://www.w3.org/ns/prov#invalidatedAtTime> ?invalidationTime ;
+                     <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastValidSnapshot.
+
+        ?lastValidSnapshot <http://www.w3.org/ns/prov#generatedAtTime> ?lastValidSnapshotTime .
+
+        OPTIONAL { ?lastSnapshot <http://www.w3.org/ns/prov#wasAttributedTo> ?agent . }
+
+        FILTER NOT EXISTS {
+            ?laterSnapshot <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastSnapshot .
+        }
+    }
+    """
+    provenance_sparql.setQuery(prov_query)
+    provenance_sparql.setReturnFormat(JSON)
+    prov_results = provenance_sparql.query().convert()
+
+    results_bindings = prov_results["results"]["bindings"]
+    if not results_bindings:
+        available_classes = []
+    else:
+        # Process entities and filter by visible classes early
+        def process_entity_with_type_filtering(result):
+            entity_uri = result["entity"]["value"]
+            last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
+
+            # Get entity state at its last valid time
+            agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
+            state, _, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
+
+            if entity_uri not in state:
+                return None
+
+            last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
+            last_valid_state = state[entity_uri][last_valid_time]
+
+            # Get entity types and filter for visible ones early
+            entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
+            visible_types = [t for t in entity_types if is_entity_type_visible(t)]
+
+            if not visible_types:
+                return None
+
+            # Get the highest priority class
+            highest_priority_type = get_highest_priority_class(visible_types)
+            if not highest_priority_type:
+                return None
+
+            return {
+                "uri": entity_uri,
+                "deletionTime": result["deletionTime"]["value"],
+                "deletedBy": custom_filter.format_agent_reference(result.get("agent", {}).get("value", "")),
+                "lastValidSnapshotTime": last_valid_snapshot_time,
+                "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
+                "label": custom_filter.human_readable_entity(entity_uri, [highest_priority_type], last_valid_state),
+                "entity_types": visible_types  # Only include visible types
+            }
+
+        # Process entities with parallel execution for better performance
+        deleted_entities = []
+        max_workers = max(1, min(32, len(results_bindings)))
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_entity = {
+                executor.submit(process_entity_with_type_filtering, result): result
+                for result in results_bindings
+            }
+
+            for future in as_completed(future_to_entity):
+                entity_info = future.result()
+                if entity_info is not None:
+                    deleted_entities.append(entity_info)
+
+        # Step 5: Calculate class counts from filtered entities
+        class_counts = {}
+        for entity in deleted_entities:
+            for type_uri in entity["entity_types"]:
+                class_counts[type_uri] = class_counts.get(type_uri, 0) + 1
+
+        available_classes = [
+            {
+                'uri': class_uri,
+                'label': custom_filter.human_readable_predicate(class_uri, [class_uri]),
+                'count': count
+            }
+            for class_uri, count in class_counts.items()
+        ]
+
+        # Sort classes by label
+        available_classes.sort(key=lambda x: x['label'].lower())
+
+    # Now we can pass available_classes to the template
     return render_template('time_vault.jinja',
                            available_classes=available_classes,
-                           selected_class=selected_class,
+                           selected_class=available_classes[0]['uri'] if available_classes else '',
                            page=initial_page,
                            total_entity_pages=0,
                            per_page=initial_per_page,

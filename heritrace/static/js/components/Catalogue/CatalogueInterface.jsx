@@ -16,20 +16,19 @@ const CatalogueInterface = ({
   initialSortDirection = 'ASC',
   isTimeVault = false
 }) => {
-  // URL params management
   const urlParams = new URLSearchParams(window.location.search);
   const getUrlParam = (key, defaultValue) => {
     const value = urlParams.get(key);
     return value === 'None' || value === 'null' ? null : (value || defaultValue);
   };
   
-  // State management
   const [state, setState] = useState({
     classes: initialClasses,
     selectedClass: getUrlParam('class', initialSelectedClass || (initialClasses[0]?.uri ?? null)),
     entities: [],
     isLoading: false,
-    sortDirection: getUrlParam('sort_direction', initialSortDirection),
+    classesListSortDirection: 'ASC',
+    itemsSortDirection: getUrlParam('sort_direction', initialSortDirection),
     sortableProperties: initialSortableProperties,
     currentPage: parseInt(getUrlParam('page', initialPage)),
     currentPerPage: parseInt(getUrlParam('per_page', initialPerPage)),
@@ -39,7 +38,6 @@ const CatalogueInterface = ({
 
   const apiEndpoint = isTimeVault ? '/api/time-vault' : '/api/catalogue';
 
-  // URL update utility
   const updateUrl = (params) => {
     const url = new URL(window.location);
     Object.entries(params).forEach(([key, value]) => {
@@ -52,7 +50,6 @@ const CatalogueInterface = ({
     window.history.pushState({}, '', url);
   };
 
-  // Data fetching utility
   const fetchData = async (params = {}) => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
@@ -61,7 +58,7 @@ const CatalogueInterface = ({
         page: params.page || state.currentPage,
         per_page: params.perPage || state.currentPerPage,
         sort_property: params.sortProperty || state.sortProperty,
-        sort_direction: params.sortDirection || state.sortDirection
+        sort_direction: params.sortDirection || state.itemsSortDirection
       });
 
       const response = await fetch(`${apiEndpoint}?${queryParams}`);
@@ -75,7 +72,7 @@ const CatalogueInterface = ({
         currentPage: data.current_page,
         currentPerPage: data.per_page,
         sortProperty: data.sort_property || prev.sortProperty,
-        sortDirection: data.sort_direction || prev.sortDirection
+        itemsSortDirection: data.sort_direction || prev.itemsSortDirection
       }));
 
       updateUrl({
@@ -92,7 +89,6 @@ const CatalogueInterface = ({
     }
   };
 
-  // Initial classes fetch
   useEffect(() => {
     const fetchClasses = async () => {
       if (initialClasses.length === 0) {
@@ -116,7 +112,6 @@ const CatalogueInterface = ({
     fetchClasses();
   }, [isTimeVault]);
 
-  // Fetch entities when dependencies change
   useEffect(() => {
     if (state.selectedClass) {
       fetchData();
@@ -128,8 +123,15 @@ const CatalogueInterface = ({
     fetchData({ class: classUri, page: 1 });
   };
 
+  const toggleClassesSort = () => {
+    setState(prev => ({
+      ...prev,
+      classesListSortDirection: prev.classesListSortDirection === 'ASC' ? 'DESC' : 'ASC'
+    }));
+  };
+
   const sortedClasses = [...state.classes].sort((a, b) => {
-    return state.sortDirection === 'ASC' 
+    return state.classesListSortDirection === 'ASC' 
       ? a.label.localeCompare(b.label)
       : b.label.localeCompare(a.label);
   });
@@ -140,7 +142,6 @@ const CatalogueInterface = ({
 
   return (
     <div className="row">
-      {/* Classes Panel */}
       <div className="col-md-4">
         <div className="card mb-4">
           <div className="card-header bg-light">
@@ -149,15 +150,12 @@ const CatalogueInterface = ({
               <button 
                 className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center"
                 style={{ width: '32px', height: '32px', padding: 0 }}
-                onClick={() => setState(prev => ({ 
-                  ...prev, 
-                  sortDirection: prev.sortDirection === 'ASC' ? 'DESC' : 'ASC' 
-                }))}
-                title={`Sort ${state.sortDirection === 'ASC' ? 'A-Z' : 'Z-A'}`}
+                onClick={toggleClassesSort}
+                title={`Sort ${state.classesListSortDirection === 'ASC' ? 'A-Z' : 'Z-A'}`}
               >
                 <SortAsc 
                   size={16} 
-                  style={{ transform: state.sortDirection === 'DESC' ? 'scaleY(-1)' : 'none' }} 
+                  style={{ transform: state.classesListSortDirection === 'DESC' ? 'scaleY(-1)' : 'none' }} 
                 />
               </button>
             </div>
@@ -181,7 +179,6 @@ const CatalogueInterface = ({
         </div>
       </div>
 
-      {/* Entities Panel */}
       <div className="col-md-8">
         <h3 className="mb-3">
           {isTimeVault ? 'Deleted Resources in category:' : 'Items in category:'} {
@@ -203,7 +200,7 @@ const CatalogueInterface = ({
                   <SortControls
                     sortableProperties={state.sortableProperties}
                     currentProperty={state.sortProperty}
-                    currentDirection={state.sortDirection}
+                    currentDirection={state.itemsSortDirection}
                     onSortChange={(property, direction) => fetchData({ sortProperty: property, sortDirection: direction })}
                   />
                 </div>
