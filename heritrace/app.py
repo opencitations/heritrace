@@ -500,10 +500,13 @@ def get_entities_for_class(selected_class, page, per_page, sort_property=None, s
 
     return entities, total_count
 
-@app.route('/catalogue')
-@login_required
-def catalogue():
-    # Query to get all available classes
+def get_available_classes():
+    """
+    Fetch and format all available entity classes from the triplestore.
+    
+    Returns:
+        list: List of dictionaries containing class information
+    """
     if is_virtuoso():
         classes_query = f"""
             SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
@@ -542,156 +545,42 @@ def catalogue():
 
     # Sort classes by label
     available_classes.sort(key=lambda x: x['label'].lower())
-    
-    # Initialize default values
-    initial_page = 1
-    initial_per_page = 50
-    selected_class = request.args.get('class')
-    if not selected_class and available_classes:
-        selected_class = available_classes[0]['uri']
-        
-    sortable_properties = []
-    initial_entities = []
-    total_pages = 0
+    return available_classes
 
-    if selected_class:
-        # Get sortable properties for the class
-        sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
-        
-        # Get initial entities
-        initial_entities, total_count = get_entities_for_class(
-            selected_class, 
-            initial_page, 
-            initial_per_page
-        )
-        total_pages = (total_count + initial_per_page - 1) // initial_per_page
-
-    return render_template('catalogue.jinja',
-                         available_classes=available_classes,
-                         selected_class=selected_class,
-                         page=initial_page,
-                         total_entity_pages=total_pages,
-                         per_page=initial_per_page,
-                         allowed_per_page=[50, 100, 200, 500],
-                         sortable_properties=json.dumps(sortable_properties),
-                         current_sort_property=None,
-                         current_sort_direction='ASC',
-                         initial_entities=initial_entities)
-
-@app.route('/api/catalogue')
-@login_required
-def catalogue_api():
+def get_catalog_data(selected_class, page, per_page, sort_property=None, sort_direction='ASC'):
     """
-    API endpoint per ottenere i dati del catalogo in formato JSON.
-    Supporta paginazione, ordinamento e filtri
+    Get catalog data with pagination and sorting.
+    
+    Args:
+        selected_class (str): Selected class URI
+        page (int): Current page number
+        per_page (int): Items per page
+        sort_property (str, optional): Property to sort by
+        sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
+        
+    Returns:
+        dict: Catalog data including entities, pagination info, and sort settings
     """
-    selected_class = request.args.get('class')
-    page = int(request.args.get('page', 1))
-    per_page = int(request.args.get('per_page', 50))
-    sort_property = request.args.get('sort_property')
-
-    if not sort_property or sort_property.lower() == 'null':
-        sort_property = None
-    sort_direction = request.args.get('sort_direction', 'ASC')
-    
-    allowed_per_page = [50, 100, 200, 500]
-    if per_page not in allowed_per_page:
-        per_page = 100
-
-    # Query per ottenere tutte le classi e i conteggi
-    if is_virtuoso():
-        classes_query = f"""
-            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
-            WHERE {{
-                GRAPH ?g {{
-                    ?subject a ?class .
-                }}
-                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-            }}
-            GROUP BY ?class
-            ORDER BY DESC(?count)
-        """
-    else:
-        classes_query = """
-            SELECT DISTINCT ?class (COUNT(DISTINCT ?subject) as ?count)
-            WHERE {
-                ?subject a ?class .
-            }
-            GROUP BY ?class
-            ORDER BY DESC(?count)
-        """
-    
-    sparql.setQuery(classes_query)
-    sparql.setReturnFormat(JSON)
-    classes_results = sparql.query().convert()
-
     entities = []
     total_count = 0
+    sortable_properties = []
 
     if selected_class:
-        # Costruisci la query con clausole di ordinamento opzionali
-        sort_clause = build_sort_clause(sort_property, selected_class, display_rules) if sort_property else ""
-        order_clause = f"ORDER BY {sort_direction}(?sortValue)" if sort_property else "ORDER BY ?subject"
-        offset = (page - 1) * per_page
-
-        if is_virtuoso():
-            entities_query = f"""
-            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
-            WHERE {{
-                GRAPH ?g {{
-                    ?subject a <{selected_class}> .
-                    {sort_clause}
-                }}
-                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-            }}
-            {order_clause}
-            LIMIT {per_page} 
-            OFFSET {offset}
-            """
-        else:
-            entities_query = f"""
-            SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
-            WHERE {{
-                ?subject a <{selected_class}> .
-                {sort_clause}
-            }}
-            {order_clause}
-            LIMIT {per_page} 
-            OFFSET {offset}
-            """
-
-        sparql.setQuery(entities_query)
-        entities_results = sparql.query().convert()
-        
-        entities = []
-        for result in entities_results["results"]["bindings"]:
-            subject_uri = result['subject']['value']
-            # Ottieni direttamente l'etichetta human-readable per l'entità
-            entity_label = custom_filter.human_readable_entity(subject_uri, [selected_class])
-            
-            entities.append({
-                'uri': subject_uri,
-                'label': entity_label
-            })
-
-        # Ottieni il conteggio totale per la paginazione
-        total_count = next(
-            (int(result['count']['value']) 
-             for result in classes_results["results"]["bindings"]
-             if result['class']['value'] == selected_class),
-            0
+        entities, total_count = get_entities_for_class(
+            selected_class, 
+            page, 
+            per_page,
+            sort_property,
+            sort_direction
         )
-
-    # Aggiungi informazioni sulle proprietà ordinabili
-    if selected_class:
+        
+        # Get sortable properties for the class
         sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
-    else:
-        sortable_properties = []
 
     if not sort_property and sortable_properties:
         sort_property = sortable_properties[0]['property']
 
-    response = {
+    return {
         'entities': entities,
         'total_pages': (total_count + per_page - 1) // per_page if total_count > 0 else 0,
         'current_page': page,
@@ -703,7 +592,67 @@ def catalogue_api():
         'selected_class': selected_class
     }
 
-    return jsonify(response)
+@app.route('/catalogue')
+@login_required
+def catalogue():
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    selected_class = request.args.get('class')
+    sort_property = request.args.get('sort_property')
+    sort_direction = request.args.get('sort_direction', 'ASC')
+
+    available_classes = get_available_classes()
+    
+    if not selected_class and available_classes:
+        selected_class = available_classes[0]['uri']
+    
+    catalog_data = get_catalog_data(
+        selected_class,
+        page,
+        per_page,
+        sort_property,
+        sort_direction
+    )
+
+    return render_template('catalogue.jinja',
+                         available_classes=available_classes,
+                         selected_class=selected_class,
+                         page=page,
+                         total_entity_pages=catalog_data['total_pages'],
+                         per_page=per_page,
+                         allowed_per_page=[50, 100, 200, 500],
+                         sortable_properties=json.dumps(catalog_data['sortable_properties']),
+                         current_sort_property=None,
+                         current_sort_direction='ASC',
+                         initial_entities=catalog_data['entities'])
+
+@app.route('/api/catalogue')
+@login_required
+def catalogue_api():
+    selected_class = request.args.get('class')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
+    sort_property = request.args.get('sort_property')
+    sort_direction = request.args.get('sort_direction', 'ASC')
+    
+    allowed_per_page = [50, 100, 200, 500]
+    if per_page not in allowed_per_page:
+        per_page = 100
+
+    if not sort_property or sort_property.lower() == 'null':
+        sort_property = None
+
+    catalog_data = get_catalog_data(
+        selected_class,
+        page,
+        per_page,
+        sort_property,
+        sort_direction
+    )
+    
+    catalog_data['available_classes'] = get_available_classes()
+    
+    return jsonify(catalog_data)
 
 def is_entity_type_visible(entity_type):
     for rule in display_rules:
