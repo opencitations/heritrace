@@ -267,6 +267,16 @@ div.books:after {
     transform: scale(1.05);
     box-shadow: 0 0 20px rgba(0, 123, 255, 0.7);  /* Increased glow on hover */
 }
+
+.alert {
+    position: fixed;
+    top: 12vh;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 80%;
+}
 </style>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
