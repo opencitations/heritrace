@@ -674,12 +674,13 @@ def time_vault():
 
     allowed_per_page = [50, 100, 200, 500]
 
-    sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
-    sortable_properties.insert(0, {'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'})
-    sortable_properties_json = json.dumps(sortable_properties)
 
-    initial_entities, available_classes, selected_class = get_deleted_entities_with_filtering(
-        initial_page, initial_per_page, sort_property, sort_direction, selected_class, sortable_properties)
+    initial_entities, available_classes, selected_class, _ = get_deleted_entities_with_filtering(
+        initial_page, initial_per_page, sort_property, sort_direction, selected_class)
+
+    sortable_properties = [{'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'}]
+    sortable_properties.extend(get_sortable_properties(selected_class, display_rules, form_fields_cache))
+    sortable_properties = json.dumps(sortable_properties)
 
     return render_template('time_vault.jinja',
                            available_classes=available_classes,
@@ -688,7 +689,7 @@ def time_vault():
                            total_entity_pages=0,
                            per_page=initial_per_page,
                            allowed_per_page=allowed_per_page,
-                           sortable_properties=sortable_properties_json,
+                           sortable_properties=sortable_properties,
                            current_sort_property=sort_property,
                            current_sort_direction=sort_direction,
                            initial_entities=initial_entities)
@@ -710,11 +711,8 @@ def get_deleted_entities():
     if per_page not in allowed_per_page:
         per_page = 100
 
-    sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
-    sortable_properties.insert(0, {'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'})
-
-    deleted_entities, available_classes, selected_class = get_deleted_entities_with_filtering(
-        page, per_page, sort_property, sort_direction, selected_class, sortable_properties)
+    deleted_entities, available_classes, selected_class, sortable_properties = get_deleted_entities_with_filtering(
+        page, per_page, sort_property, sort_direction, selected_class)
 
     return jsonify({
         'entities': deleted_entities,
@@ -730,14 +728,14 @@ def get_deleted_entities():
     })
 
 def get_deleted_entities_with_filtering(page=1, per_page=50, sort_property='deletionTime', sort_direction='DESC',
-                                        selected_class=None, sortable_properties=None):
+                                        selected_class=None):
     """
     Fetch and process deleted entities from the provenance graph, with filtering and sorting.
     """
-    # Ensure sortable_properties is provided
-    if sortable_properties is None:
-        sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
-        sortable_properties.insert(0, {'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'})
+    sortable_properties = [{'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'}]
+
+    if selected_class:
+        sortable_properties.extend(get_sortable_properties(selected_class, display_rules, form_fields_cache))
 
     prov_query = """
     SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
@@ -813,7 +811,7 @@ def get_deleted_entities_with_filtering(page=1, per_page=50, sort_property='dele
     else:
         paginated_entities = []
 
-    return paginated_entities, available_classes, selected_class
+    return paginated_entities, available_classes, selected_class, sortable_properties
 
 def process_deleted_entity(result, sortable_properties):
     """
