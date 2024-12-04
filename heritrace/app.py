@@ -8,7 +8,7 @@ from collections import OrderedDict, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlparse, urlunparse
 
 import click
 import docker
@@ -38,6 +38,7 @@ from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON, XML, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 from time_agnostic_library.prov_entity import ProvEntity
+from time_agnostic_library.support import generate_config_file
 
 app = Flask(__name__)
 
@@ -61,11 +62,6 @@ if display_rules:
         cls = rule['class']
         priority = rule.get('priority', 0)
         class_priorities[cls] = priority
-
-change_tracking_config = app.config["CHANGE_TRACKING_CONFIG"]
-if change_tracking_config:
-    with open(change_tracking_config, 'r', encoding='utf8') as f:
-        change_tracking_config = json.load(f)
 
 shacl_path = app.config["SHACL_PATH"]
 shacl = None
@@ -207,6 +203,44 @@ def update_cache():
     with open(CACHE_FILE, 'w', encoding='utf8') as f:
         json.dump(cache, f, ensure_ascii=False, indent=4)
 
+def running_in_docker():
+    return os.path.exists('/.dockerenv')
+
+def adjust_endpoint_url(url):
+    """
+    Adjust endpoint URLs to work properly within Docker containers by replacing local address patterns
+    with host.docker.internal.
+    
+    Args:
+        url (str): The endpoint URL to adjust
+        
+    Returns:
+        str: The adjusted URL if running in Docker, original URL otherwise
+    """
+    if not running_in_docker():
+        return url
+        
+    local_patterns = [
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0'
+    ]
+    
+    parsed_url = urlparse(url)
+    
+    if any(pattern in parsed_url.netloc for pattern in local_patterns):
+        netloc_parts = parsed_url.netloc.split(':')
+        if len(netloc_parts) > 1:
+            new_netloc = f'host.docker.internal:{netloc_parts[1]}'
+        else:
+            new_netloc = 'host.docker.internal'
+            
+        url_parts = list(parsed_url)
+        url_parts[1] = new_netloc
+        return urlunparse(url_parts)
+        
+    return url
+
 def is_virtuoso():
     return Config.DATASET_DB_TRIPLESTORE.lower() == 'virtuoso'
 
@@ -274,31 +308,111 @@ def get_cached_form_fields():
         initialize_form_fields()
     return form_fields_cache
 
+def initialize_change_tracking_config(adjusted_dataset_endpoint=None, adjusted_provenance_endpoint=None):
+    """
+    Initialize and return the change tracking configuration JSON.
+    Uses pre-adjusted endpoints if provided to avoid redundant adjustments.
+    
+    Args:
+        adjusted_dataset_endpoint: Dataset endpoint URL already adjusted for Docker
+        adjusted_provenance_endpoint: Provenance endpoint URL already adjusted for Docker
+    
+    Returns:
+        dict: The loaded configuration dictionary
+    """
+    config_needs_generation = False
+    config_path = None
+    config = None
+
+    # Check if we have a config path in app.config
+    if 'CHANGE_TRACKING_CONFIG' in app.config:
+        config_path = app.config['CHANGE_TRACKING_CONFIG']
+        if not os.path.exists(config_path):
+            app.logger.warning(f"Change tracking configuration file not found at specified path: {config_path}")
+            config_needs_generation = True
+    else:
+        config_needs_generation = True
+        config_path = os.path.join(app.instance_path, 'change_tracking_config.json')
+        os.makedirs(app.instance_path, exist_ok=True)
+
+    if config_needs_generation:
+        # Usa gli endpoint già aggiustati se disponibili
+        dataset_urls = [adjusted_dataset_endpoint] if adjusted_dataset_endpoint else []
+        provenance_urls = [adjusted_provenance_endpoint] if adjusted_provenance_endpoint else []
+        
+        # Aggiusta solo gli endpoint della cache dato che gli altri sono già stati aggiustati
+        cache_endpoint = adjust_endpoint_url(app.config.get('CACHE_ENDPOINT', ''))
+        cache_update_endpoint = adjust_endpoint_url(app.config.get('CACHE_UPDATE_ENDPOINT', ''))
+        
+        db_triplestore = app.config.get('DATASET_DB_TRIPLESTORE', '').lower()
+        text_index_enabled = app.config.get('DATASET_DB_TEXT_INDEX_ENABLED', False)
+        
+        blazegraph_search = db_triplestore == 'blazegraph' and text_index_enabled
+        fuseki_search = db_triplestore == 'fuseki' and text_index_enabled
+        virtuoso_search = db_triplestore == 'virtuoso' and text_index_enabled
+        
+        graphdb_connector = ''
+        if db_triplestore == 'graphdb' and text_index_enabled:
+            graphdb_connector = app.config.get('GRAPHDB_CONNECTOR_NAME', '')
+        
+        try:
+            config = generate_config_file(
+                config_path=config_path,
+                dataset_urls=dataset_urls,
+                dataset_dirs=app.config.get('DATASET_DIRS', []),
+                dataset_is_quadstore=app.config.get('DATASET_IS_QUADSTORE', False),
+                provenance_urls=provenance_urls,
+                provenance_is_quadstore=app.config.get('PROVENANCE_IS_QUADSTORE', False),
+                provenance_dirs=app.config.get('PROVENANCE_DIRS', []),
+                blazegraph_full_text_search=blazegraph_search,
+                fuseki_full_text_search=fuseki_search,
+                virtuoso_full_text_search=virtuoso_search,
+                graphdb_connector_name=graphdb_connector,
+                cache_endpoint=cache_endpoint,
+                cache_update_endpoint=cache_update_endpoint
+            )
+            app.logger.info(f"Generated new change tracking configuration at: {config_path}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate change tracking configuration: {str(e)}")
+
+    # Load and validate the configuration
+    try:
+        if not config:
+            with open(config_path, 'r', encoding='utf8') as f:
+                config = json.load(f)
+            
+        # Aggiusta solo gli URL della cache nel config caricato se necessario
+        if config['cache_triplestore_url'].get('endpoint'):
+            config['cache_triplestore_url']['endpoint'] = adjust_endpoint_url(
+                config['cache_triplestore_url']['endpoint']
+            )
+            
+        if config['cache_triplestore_url'].get('update_endpoint'):
+            config['cache_triplestore_url']['update_endpoint'] = adjust_endpoint_url(
+                config['cache_triplestore_url']['update_endpoint']
+            )
+            
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Invalid change tracking configuration JSON at {config_path}: {str(e)}")
+    except Exception as e:
+        raise RuntimeError(f"Error reading change tracking configuration at {config_path}: {str(e)}")
+
+    # Update app config with the path
+    app.config['CHANGE_TRACKING_CONFIG'] = config_path
+    return config
+
 def initialize_app():
-    global initialization_done
+    global initialization_done, dataset_endpoint, provenance_endpoint, sparql, provenance_sparql, change_tracking_config
+    
     if not initialization_done:
-        # Setup database connections
-        global dataset_endpoint, provenance_endpoint, sparql, provenance_sparql
-        dataset_endpoint = setup_database(
-            Config.DATASET_DB_TYPE,
-            Config.DATASET_DB_TRIPLESTORE,
-            Config.DATASET_DB_URL,
-            Config.DATASET_DB_DOCKER_IMAGE,
-            Config.DATASET_DB_DOCKER_PORT,
-            Config.DATASET_DB_DOCKER_ISQL_PORT,
-            Config.DATASET_DB_VOLUME_PATH
+        dataset_endpoint = adjust_endpoint_url(Config.DATASET_DB_URL)
+        provenance_endpoint = adjust_endpoint_url(Config.PROVENANCE_DB_URL)
+        
+        change_tracking_config = initialize_change_tracking_config(
+            adjusted_dataset_endpoint=dataset_endpoint,
+            adjusted_provenance_endpoint=provenance_endpoint
         )
-
-        provenance_endpoint = setup_database(
-            Config.PROVENANCE_DB_TYPE,
-            Config.PROVENANCE_DB_TRIPLESTORE,
-            Config.PROVENANCE_DB_URL,
-            Config.PROVENANCE_DB_DOCKER_IMAGE,
-            Config.PROVENANCE_DB_DOCKER_PORT,
-            Config.PROVENANCE_DB_DOCKER_ISQL_PORT,
-            Config.PROVENANCE_DB_VOLUME_PATH
-        )
-
+        
         sparql = SPARQLWrapper(dataset_endpoint)
         provenance_sparql = SPARQLWrapper(provenance_endpoint)
 
@@ -323,7 +437,6 @@ login_manager.init_app(app)
 login_manager.login_view = 'login_page'
 
 def unauthorized_callback():
-    flash(gettext('Please log in to access this page'), 'info')
     return redirect(url_for('login_page'))
 
 login_manager.unauthorized_handler(unauthorized_callback)
@@ -345,9 +458,13 @@ def login():
     orcid = OAuth2Session(
         app.config['ORCID_CLIENT_ID'],
         redirect_uri=callback_url,
-        scope=app.config['ORCID_SCOPE']
+        scope=[app.config['ORCID_SCOPE'], 'openid']
     )
-    authorization_url, state = orcid.authorization_url(app.config['ORCID_AUTHORIZE_URL'])
+    authorization_url, state = orcid.authorization_url(
+        app.config['ORCID_AUTHORIZE_URL'],
+        prompt='login',  # Forza il re-login
+        nonce=os.urandom(16).hex()  # Aggiungiamo un nonce per sicurezza
+    )
     session['oauth_state'] = state
     return redirect(authorization_url)
 

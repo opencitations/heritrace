@@ -5,7 +5,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch",
-    "flask": "python app.py",
+    "flask": "poetry run python app.py",
     "dev": "concurrently \"npm run watch\" \"npm run flask\""
   },
   "repository": {
