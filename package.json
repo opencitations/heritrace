@@ -6,7 +6,8 @@
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch",
     "flask": "poetry run python app.py",
-    "dev": "concurrently \"npm run watch\" \"npm run flask\""
+    "dev": "concurrently \"npm run watch\" \"npm run flask\"",
+    "start": "npm run build && npm run flask"
   },
   "repository": {
     "type": "git",

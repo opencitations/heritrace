@@ -102,84 +102,6 @@ def stop_containers():
         except Exception as e:
             print(f"Error stopping container {container_name}: {str(e)}")
 
-# def signal_handler(sig, frame):
-#     print("Shutting down...")
-#     stop_containers()
-#     sys.exit(0)
-
-# signal.signal(signal.SIGINT, signal_handler)
-# signal.signal(signal.SIGTERM, signal_handler)
-
-# atexit.register(stop_containers)
-
-def setup_database(db_type, db_triplestore, db_url, docker_image, docker_port, docker_isql_port, volume_path):
-    global containers
-    if db_type == 'docker':
-        client = docker.from_env()
-        container_name = f"{db_triplestore}_container_{docker_port}"
-        
-        # Ensure the volume directory exists
-        os.makedirs(volume_path, exist_ok=True)
-        
-        try:
-            # Check for an existing container with the same name
-            container = client.containers.get(container_name)
-            if container.status != "running":
-                print(f"Starting existing container: {container_name}")
-                container.start()
-                # Wait for the container to be ready only if it was just started
-                time.sleep(5)
-            else:
-                print(f"Container {container_name} is already running")
-                
-        except docker.errors.NotFound:
-            print(f"Creating a new container: {container_name}")
-            # If the container doesn't exist, create a new one
-            if db_triplestore == 'virtuoso':
-                ports = {
-                    f'{docker_port}/tcp': docker_port,
-                    f'{docker_isql_port}/tcp': docker_isql_port,
-                }
-                environment = {
-                    'DBA_PASSWORD': 'dba',  # Set a secure password in production
-                    'SPARQL_UPDATE': 'true',
-                }
-                volumes = {
-                    volume_path: {'bind': '/database', 'mode': 'rw'}
-                }
-            elif db_triplestore == 'blazegraph':
-                ports = {
-                    f'{docker_port}/tcp': docker_port,
-                }
-                environment = {}  # Blazegraph doesn't need special environment variables
-                volumes = {
-                    volume_path: {'bind': '/data', 'mode': 'rw'}
-                }
-            else:
-                raise ValueError(f"Unsupported triplestore: {db_triplestore}")
-
-            container = client.containers.run(
-                docker_image,
-                name=container_name,
-                detach=True,
-                ports=ports,
-                environment=environment,
-                volumes=volumes
-            )
-            # Wait for the new container to be ready
-            time.sleep(5)
-        
-        # Add the container name to the global list only if it's not already there
-        if container_name not in containers:
-            containers.append(container_name)
-        
-        if db_triplestore == 'virtuoso':
-            return f"http://localhost:{docker_port}/sparql"
-        elif db_triplestore == 'blazegraph':
-            return f"http://localhost:{docker_port}/bigdata/sparql"
-    else:
-        return db_url
-
 def need_initialization():
     uri_generator: URIGenerator = app.config['URI_GENERATOR']
 
@@ -407,7 +329,7 @@ def initialize_app():
     if not initialization_done:
         dataset_endpoint = adjust_endpoint_url(Config.DATASET_DB_URL)
         provenance_endpoint = adjust_endpoint_url(Config.PROVENANCE_DB_URL)
-        
+
         change_tracking_config = initialize_change_tracking_config(
             adjusted_dataset_endpoint=dataset_endpoint,
             adjusted_provenance_endpoint=provenance_endpoint
@@ -878,7 +800,7 @@ def get_deleted_entities_with_filtering(page=1, per_page=50, sort_property='dele
 
     results_bindings = prov_results["results"]["bindings"]
     if not results_bindings:
-        return [], []
+        return [], [], None, []
 
     # Process entities with parallel execution
     deleted_entities = []

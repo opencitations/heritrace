@@ -1,4 +1,3 @@
-// CatalogueInterface.jsx
 import React, { useState } from 'react';
 import { SortAsc } from 'lucide-react';
 import SortControls from './SortControls';
@@ -37,6 +36,22 @@ const CatalogueInterface = ({
     sortProperty: getUrlParam('sort_property', initialSortProperty),
     totalPages: initialTotalPages
   });
+
+  // If there are no classes at all, show a context-specific empty state message
+  if (state.classes.length === 0) {
+    return (
+      <div className="alert alert-info text-center p-4">
+        <h4 className="alert-heading mb-3">
+          {isTimeVault ? 'No Deleted Resources' : 'No Resources Available'}
+        </h4>
+        <p className="mb-0">
+          {isTimeVault
+            ? 'There are currently no deleted resources in the Time Vault'
+            : 'There are currently no resources available in the catalogue'}
+        </p>
+      </div>
+    );
+  }
 
   const apiEndpoint = isTimeVault ? '/api/time-vault' : '/api/catalogue';
 
@@ -126,7 +141,12 @@ const CatalogueInterface = ({
   });
 
   if (!state.selectedClass) {
-    return <div className="alert alert-info">No data available</div>;
+    return (
+      <div className="alert alert-info text-center p-4">
+        <h4 className="alert-heading mb-3">No Category Selected</h4>
+        <p className="mb-0">Please select a category to view its contents</p>
+      </div>
+    );
   }
 
   const selectedClassName = sortedClasses.find(c => c.uri === state.selectedClass)?.label;
@@ -246,7 +266,18 @@ const CatalogueInterface = ({
                 ))}
               </div>
             ) : (
-              <p className="alert alert-info">No {isTimeVault ? 'deleted ' : ''}entities found for this class</p>
+              <div className="alert alert-info">
+                <h4 className="alert-heading mb-3">
+                  {isTimeVault 
+                    ? 'No Deleted Resources Found'
+                    : 'No Items Found'}
+                </h4>
+                <p className="mb-0">
+                  {isTimeVault
+                    ? `There are no deleted resources in the category "${selectedClassName}"`
+                    : `There are no items in the category "${selectedClassName}"`}
+                </p>
+              </div>
             )}
           </>
         )}

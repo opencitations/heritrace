@@ -5,11 +5,10 @@ services:
       - "5000:5000"
     environment:
       - REDIS_HOST=redis
+      - FLASK_ENV=development
     volumes:
       - .:/app
       - /app/node_modules
-      - ./cert.pem:/app/cert.pem
-      - ./key.pem:/app/key.pem
     depends_on:
       redis:
         condition: service_started

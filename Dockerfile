@@ -13,8 +13,5 @@ RUN npm install
 RUN npm run build
 
 ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
-
-RUN chmod 600 cert.pem key.pem
 
 EXPOSE 5000
