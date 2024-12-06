@@ -1,7 +1,6 @@
 import copy
 import json
 import os
-import time
 import traceback
 import urllib
 from collections import OrderedDict, defaultdict
@@ -16,7 +15,7 @@ import requests
 import validators
 import yaml
 from config import Config, OrphanHandlingStrategy
-from flask import (Flask, abort, flash, jsonify, redirect, render_template,
+from flask import (Flask, abort, flash, g, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_babel import Babel, gettext, refresh
 from flask_login import (LoginManager, current_user, login_required,
@@ -27,12 +26,14 @@ from heritrace.filters import *
 from heritrace.forms import *
 from heritrace.get_info_from_shacl import get_form_fields_from_shacl
 from heritrace.models import User
+from heritrace.resource_lock_manager import LockStatus, ResourceLockManager
 from heritrace.uri_generator.uri_generator import *
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.namespace import XSD
 from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.algebra import translateQuery, translateUpdate
 from rdflib.plugins.sparql.parser import parseQuery, parseUpdate
+from redis import Redis
 from requests_oauthlib import OAuth2Session
 from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON, XML, SPARQLWrapper
@@ -365,11 +366,14 @@ login_manager.unauthorized_handler(unauthorized_callback)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User(id=user_id, name="Test User", orcid=user_id)
+    user_name = session.get('user_name', 'Unknown User')
+    return User(id=user_id, name=user_name, orcid=user_id)
 
 @user_loaded_from_cookie.connect
 def rotate_session_token(sender, user):
     session.modified = True
+
+redis_client = Redis.from_url('redis://redis:6379', decode_responses=True)
 
 @app.route('/login')
 def login():
@@ -409,6 +413,7 @@ def callback():
     if orcid_id not in app.config['ORCID_WHITELIST']:
         flash(gettext('Your ORCID is not authorized to access this application'), 'danger')
         return redirect(url_for('login'))
+    session['user_name'] = token['name']
     user = User(id=orcid_id, name=token['name'], orcid=orcid_id)
     session.permanent = True
     app.permanent_session_lifetime = timedelta(days=30)
@@ -1457,6 +1462,149 @@ def get_inverse_references(subject_uri):
         })
     
     return references
+
+@app.before_request
+def initialize_lock_manager():
+    """Initialize the resource lock manager for each request."""
+    if not hasattr(g, 'resource_lock'):
+        g.resource_lock = ResourceLockManager(redis_client)
+
+@app.teardown_appcontext
+def close_redis_connection(error):
+    """Close Redis connection when the request context ends."""
+    if hasattr(g, 'resource_lock'):
+        del g.resource_lock
+
+@app.route('/api/check-lock', methods=['POST'])
+@login_required
+def check_lock():
+    try:
+        data = request.get_json()
+        resource_uri = data.get('resource_uri')
+        if not resource_uri:
+            return jsonify({
+                'status': 'error',
+                'title': gettext('Error'),
+                'message': gettext('No resource URI provided')
+            }), 400
+            
+        status, lock_info = g.resource_lock.check_lock_status(resource_uri)
+        if status == LockStatus.ERROR:
+            return jsonify({
+                'status': 'error',
+                'title': gettext('Error'),
+                'message': gettext('Error checking lock status')
+            }), 500
+            
+        if status == LockStatus.LOCKED:
+            return jsonify({
+                'status': 'locked',
+                'title': gettext('Resource Locked'),
+                'message': gettext('This resource is currently being edited by %(user)s [orcid:%(orcid)s]. Please try again later', user=lock_info.user_name, orcid=lock_info.user_id)
+            }), 423
+            
+        return jsonify({'status': 'unlocked'})
+        
+    except Exception as e:
+        app.logger.error(f"Error in check_lock: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'title': gettext('Error'),
+            'message': gettext('An unexpected error occurred')
+        }), 500
+
+@app.route('/api/acquire-lock', methods=['POST'])
+@login_required
+def acquire_lock():
+    """Try to acquire a lock on a resource."""
+    try:
+        data = request.get_json()
+        resource_uri = data.get('resource_uri')
+        
+        if not resource_uri:
+            return jsonify({
+                'status': 'error',
+                'message': gettext('No resource URI provided')
+            }), 400
+            
+        success = g.resource_lock.acquire_lock(resource_uri)
+        
+        if success:
+            return jsonify({'status': 'success'})
+            
+        return jsonify({
+            'status': 'error',
+            'message': gettext('Resource is locked by another user')
+        }), 423
+        
+    except Exception as e:
+        app.logger.error(f"Error in acquire_lock: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': gettext('An unexpected error occurred')
+        }), 500
+
+@app.route('/api/release-lock', methods=['POST'])
+@login_required
+def release_lock():
+    """Release a lock on a resource."""
+    try:
+        data = request.get_json()
+        resource_uri = data.get('resource_uri')
+        
+        if not resource_uri:
+            return jsonify({
+                'status': 'error',
+                'message': gettext('No resource URI provided')
+            }), 400
+            
+        success = g.resource_lock.release_lock(resource_uri)
+        
+        if success:
+            return jsonify({'status': 'success'})
+            
+        return jsonify({
+            'status': 'error',
+            'message': gettext('Unable to release lock')
+        }), 400
+        
+    except Exception as e:
+        app.logger.error(f"Error in release_lock: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': gettext('An unexpected error occurred')
+        }), 500
+
+@app.route('/api/renew-lock', methods=['POST'])
+@login_required
+def renew_lock():
+    """Renew an existing lock on a resource."""
+    try:
+        data = request.get_json()
+        resource_uri = data.get('resource_uri')
+        
+        if not resource_uri:
+            return jsonify({
+                'status': 'error',
+                'message': gettext('No resource URI provided')
+            }), 400
+            
+        success = g.resource_lock.acquire_lock(resource_uri)
+        
+        if success:
+            return jsonify({'status': 'success'})
+            
+        return jsonify({
+            'status': 'error',
+            'message': gettext('Unable to renew lock')
+        }), 423
+        
+    except Exception as e:
+        app.logger.error(f"Error in renew_lock: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': gettext('An unexpected error occurred')
+        }), 500
 
 # Funzione per la validazione dinamica dei valori con suggerimento di datatypes
 @app.route('/validate-literal', methods=['POST'])

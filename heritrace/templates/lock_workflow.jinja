@@ -1,0 +1,212 @@
+<script>
+    var isInEditMode = false;
+
+    function startEditMode() {
+        // Salva lo stato iniziale per eventuali rollback
+        updateOrderedElementsNumbering();
+        $('.editable-field, .editable-select, .date-type-selector, .date-input').each(function() {
+            $(this).data('original-value', $(this).val());
+        });
+        
+        // Salva l'ordine originale degli elementi ordinabili
+        $('[data-repeater-list][data-ordered-by]').each(function() {
+            var list = $(this);
+            var listId = list.data('repeater-list');
+            originalOrder[listId] = [];
+
+            list.find('[data-repeater-item].draggable').not('.repeater-template').each(function() {
+                var item = $(this);
+                var itemId = item.data('old-object-id');
+                originalOrder[listId].push(itemId);
+            });
+        });
+
+        // Abilita tutti i campi editabili
+        $(".editable-field").prop('readonly', false);
+        $('.editable-select').removeClass('d-none');
+        $('.select-value-display').addClass('d-none');
+        $(".textarea-input-container").removeClass('d-none');
+        $(".textarea-display-container").addClass('d-none');
+
+        // Mostra i controlli di editing
+        $(".delete-button").show();
+        $(".text-info").removeClass('d-none');
+        $(".drag-handle").children().removeClass('d-none');
+        $("#saveChangesBtn").show();
+        $("#cancelChangesBtn").show();
+
+        // Gestione dei campi data
+        $(".date-type-selector-container").removeClass('d-none');
+        $(".date-input-container").show();
+        $('.date-type-selector').each(function() {
+            showAppropriateDateInput($(this));
+        });
+        $(".date-display-container").hide();
+
+        // Abilita i repeater per l'aggiunta di nuovi elementi
+        $("[data-repeater-create]").removeClass('d-none');
+
+        // Aggiorna lo stato del pulsante di modifica
+        $('#editEntityBtn')
+            .addClass('edit-mode')
+            .html('<i class="bi bi-x-lg me-2"></i>' + "{{_('Cancel Editing')}}");
+
+        // Imposta flag di modalità editing
+        isInEditMode = true;
+    }
+
+    function exitEditMode() {
+        if (pendingChanges.length > 0) {
+            return Swal.fire({
+                title: '{{ _("Unsaved Changes") }}',
+                text: '{{ _("You have unsaved changes. Are you sure you want to exit edit mode?") }}',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: '{{ _("Yes, discard changes") }}',
+                cancelButtonText: '{{ _("No, keep editing") }}'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    performExitEditMode();
+                }
+            });
+        }
+        
+        performExitEditMode();
+    }
+
+    function performExitEditMode() {
+        $.ajax({
+            url: '/api/release-lock',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ resource_uri: subject }),
+            complete: function() {
+                if (window.lockRenewalTimer) {
+                    clearInterval(window.lockRenewalTimer);
+                }
+
+                restoreOriginalValues();
+
+                $(".editable-field").prop('readonly', true);
+                $('.editable-select').addClass('d-none');
+                $('.select-value-display').removeClass('d-none');
+                $(".textarea-input-container").addClass('d-none');
+                $(".textarea-display-container").removeClass('d-none');
+
+                $(".delete-button").hide();
+                $(".text-info").addClass('d-none');
+                $(".drag-handle").children().addClass('d-none');
+                $("#saveChangesBtn").hide();
+                $("#cancelChangesBtn").hide();
+
+                $(".date-type-selector-container").addClass('d-none');
+                $(".date-input-container").hide();
+                $(".date-display-container").show();
+
+                $("[data-repeater-create]").addClass('d-none');
+
+                $('#editEntityBtn')
+                    .removeClass('edit-mode')
+                    .html('<i class="bi bi-pencil me-2"></i>' + '{{ _("Edit") }}');
+
+                isInEditMode = false;
+                pendingChanges = [];
+
+                $('[data-repeater-list]').each(function() {
+                    updateButtons($(this));
+                });
+            }
+        });
+    }
+
+    function renewLock(resourceUri) {
+        $.ajax({
+            url: '/api/renew-lock',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ resource_uri: resourceUri }),
+            error: function(xhr) {
+                if (xhr.status === 423) {
+                    Swal.fire({
+                        title: '{{ _("Lock Lost") }}',
+                        text: '{{ _("Your editing session has expired. Any changes will be lost") }}',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
+                        exitEditMode();
+                        window.location.reload();
+                    });
+                }
+            }
+        });
+    }
+
+    function handleLockError(xhr) {
+        if (window.lockRenewalTimer) {
+            clearInterval(window.lockRenewalTimer);
+        }
+
+        if (isInEditMode) {
+            performExitEditMode();
+        }
+
+        const response = xhr.responseJSON || {};
+        
+        Swal.fire({
+            title: response.title || 'Error',
+            text: response.message,
+            icon: 'error',
+            confirmButtonColor: '#d33'
+        }).then(() => {
+            window.location.reload();
+        });
+    }
+
+    $(document).ready(function() {
+        $(document).on('click', '#editEntityBtn', function(e) {
+            if (!$(this).hasClass('edit-mode')) {
+                e.preventDefault();
+                
+                $.ajax({
+                    url: '/api/check-lock',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ resource_uri: subject }),
+                    success: function(checkResponse) {
+                        if (checkResponse.status === 'locked') {
+                            Swal.fire({
+                                title: checkResponse.title,
+                                text: checkResponse.message,
+                                icon: 'warning',
+                                confirmButtonColor: '#3085d6'
+                            });
+                            return;
+                        }
+                        
+                        $.ajax({
+                            url: '/api/acquire-lock',
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ resource_uri: subject }),
+                            success: function(acquireResponse) {
+                                if (acquireResponse.status === 'success') {
+                                    startEditMode();
+                                    
+                                    window.lockRenewalTimer = setInterval(function() {
+                                        renewLock(subject);
+                                    }, 240000);
+                                }
+                            },
+                            error: handleLockError
+                        });
+                    },
+                    error: handleLockError
+                });
+            } else {
+                exitEditMode();
+            }
+        });
+    });
+</script>

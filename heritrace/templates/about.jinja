@@ -199,339 +199,335 @@
 </div>
 
 <script>
+    let originalOrder = {};
+    const optional_values = {{ optional_values|tojson|safe }};
+    const shacl = {{ shacl|tojson|safe }};
+
     var entity_type = "{{ entity_type }}";
     var subject = "{{ subject }}";
-</script>
 
-{% include 'validation.jinja' %}
-
-<script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
-<script>
     window.dataset_db_triplestore = {{ dataset_db_triplestore | tojson | safe }};
     window.dataset_db_text_index_enabled = {{ dataset_db_text_index_enabled | tojson | safe }};
 </script>
+
+{% include 'validation.jinja' %}
+{% include 'lock_workflow.jinja' with context %}
+
+<script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
 <script src="{{ url_for('static', filename='js/search_entity.js') }}"></script>
 
 <script>
-    $(document).ready(function () {
+    function handleOrphanedEntities(orphanedEntities, onConfirm, onCancel) {
+        if (!orphanedEntities || orphanedEntities.length === 0) {
+            onConfirm([], false);
+            return;
+        }
 
-        var isInEditMode = false;
+        const orphanList = orphanedEntities.map(entity => 
+            `<li style="margin-bottom: 0.5rem;">
+                <i class="bi bi-dash text-muted me-2"></i>
+                <span>${entity.label}</span>
+                <small class="text-muted">
+                    (${entity.type})
+                </small>
+            </li>`
+        ).join('');
 
-        var originalOrder = {};
-
-        $('[data-repeater-create]').addClass('d-none');         
-
-        const optional_values = {{ optional_values|tojson|safe }};
-        const shacl = {{ shacl|tojson|safe }};
-
-        function handleOrphanedEntities(orphanedEntities, onConfirm, onCancel) {
-            if (!orphanedEntities || orphanedEntities.length === 0) {
-                onConfirm([], false);
-                return;
+        Swal.fire({
+            title: '{{ _("Warning") }}',
+            html: `
+                <div class="text-start">
+                    <p>{{ _("The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):") }}</p>
+                    <ul class="list-unstyled" style="margin-left: 1rem;">
+                        ${orphanList}
+                    </ul>
+                    <p>{{ _("These resources might become difficult to find and access in the future. Would you like to delete them now?") }}</p>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '{{ _("Yes, delete orphans") }}',
+            cancelButtonText: '{{ _("No, keep orphans") }}',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                onConfirm(orphanedEntities, true);
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                onCancel ? onCancel(orphanedEntities, false) : onConfirm(orphanedEntities, false);
             }
+        });
+    }
 
-            const orphanList = orphanedEntities.map(entity => 
-                `<li style="margin-bottom: 0.5rem;">
-                    <i class="bi bi-dash text-muted me-2"></i>
-                    <span>${entity.label}</span>
-                    <small class="text-muted">
-                        (${entity.type})
-                    </small>
-                </li>`
-            ).join('');
-
-            Swal.fire({
-                title: '{{ _("Warning") }}',
-                html: `
-                    <div class="text-start">
-                        <p>{{ _("The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):") }}</p>
-                        <ul class="list-unstyled" style="margin-left: 1rem;">
-                            ${orphanList}
-                        </ul>
-                        <p>{{ _("These resources might become difficult to find and access in the future. Would you like to delete them now?") }}</p>
-                    </div>
-                `,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: '{{ _("Yes, delete orphans") }}',
-                cancelButtonText: '{{ _("No, keep orphans") }}',
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    onConfirm(orphanedEntities, true);
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    onCancel ? onCancel(orphanedEntities, false) : onConfirm(orphanedEntities, false);
+    function processOrphanCheck(changes, successCallback) {
+        $.ajax({
+            url: '/check_orphans',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(changes),
+            success: function(response) {
+                if (response.status === 'confirmation_required') {
+                    handleOrphanedEntities(
+                        response.orphaned_entities,
+                        successCallback
+                    );
+                } else if (response.status === 'success') {
+                    successCallback(response.orphaned_entities, response.should_delete);
                 }
-            });
-        }
+            },
+            error: function(jqXHR) {
+                let response = $.parseJSON(jqXHR.responseText);
+                let errorMessage = response && response.message ? 
+                    response.message : 
+                    "{{ _('An unexpected error occurred!') }}";
+                Swal.fire({
+                    icon: 'error',
+                    title: "{{ _('Error') }}",
+                    text: errorMessage,
+                    confirmButtonColor: '#d33'
+                });
+            }
+        });
+    }
 
-        function processOrphanCheck(changes, successCallback) {
-            $.ajax({
-                url: '/check_orphans',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(changes),
-                success: function(response) {
-                    if (response.status === 'confirmation_required') {
-                        handleOrphanedEntities(
-                            response.orphaned_entities,
-                            successCallback
-                        );
-                    } else if (response.status === 'success') {
-                        successCallback(response.orphaned_entities, response.should_delete);
-                    }
-                },
-                error: function(jqXHR) {
-                    let response = $.parseJSON(jqXHR.responseText);
-                    let errorMessage = response && response.message ? 
-                        response.message : 
-                        "{{ _('An unexpected error occurred!') }}";
+    function applyChangesToEntity(changes, successCallback, errorCallback) {
+        $.ajax({
+            url: '/apply_changes',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(changes),
+            success: function(response) {
+                if (response.status === "success") {
                     Swal.fire({
-                        icon: 'error',
-                        title: "{{ _('Error') }}",
-                        text: errorMessage,
-                        confirmButtonColor: '#d33'
-                    });
-                }
-            });
-        }
-
-        function applyChangesToEntity(changes, successCallback, errorCallback) {
-            $.ajax({
-                url: '/apply_changes',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(changes),
-                success: function(response) {
-                    if (response.status === "success") {
-                        Swal.fire({
-                            icon: 'success',
-                            title: "{{ _('Success') }}",
-                            text: response.message,
-                            confirmButtonColor: '#3085d6'
-                        }).then(() => {
-                            if (successCallback) {
-                                successCallback(response);
-                            } else {
-                                // Default behavior: reload current page
-                                window.location.reload();
-                            }
-                        });
-                    } else {
-                        showErrorMessage(response.message);
-                    }
-                },
-                error: function(jqXHR) {
-                    let response = $.parseJSON(jqXHR.responseText);
-                    let errorMessage = response && response.message ? 
-                        response.message : 
-                        "{{ _('An unexpected error occurred!') }}";
-                    
-                    showErrorMessage(errorMessage);
-
-                    if (errorCallback) {
-                        errorCallback(response);
-                    }
-                }
-            });
-        }
-
-        function showErrorMessage(message) {
-            Swal.fire({
-                icon: 'error',
-                title: "{{ _('Error') }}",
-                text: message,
-                confirmButtonColor: '#d33'
-            });
-        }
-
-        function toggleEditForm(listItem) {
-            const form = listItem.find('.edit-form');
-            const valueSpan = listItem.find('.object-value');
-            form.toggleClass('d-none');
-            valueSpan.toggleClass('d-none');
-        }
-
-        function showAddFormOrAlert() {
-            can_be_added = {{ can_be_added|tojson|safe }}
-            if (can_be_added == null) {
-                $(`.add-form`).toggleClass('d-none');
-            } else {
-                if (can_be_added.length == 0) {
-                    Swal.fire({
-                        title: "{{ _('Warning') }}",
-                        text: "{{ _('You cannot add more properties; the limit for each property has been reached') }}",
-                        icon: 'warning',
+                        icon: 'success',
+                        title: "{{ _('Success') }}",
+                        text: response.message,
                         confirmButtonColor: '#3085d6'
+                    }).then(() => {
+                        if (successCallback) {
+                            successCallback(response);
+                        } else {
+                            // Default behavior: reload current page
+                            window.location.reload();
+                        }
                     });
                 } else {
-                    $(`.add-form`).toggleClass('d-none');
+                    showErrorMessage(response.message);
+                }
+            },
+            error: function(jqXHR) {
+                let response = $.parseJSON(jqXHR.responseText);
+                let errorMessage = response && response.message ? 
+                    response.message : 
+                    "{{ _('An unexpected error occurred!') }}";
+                
+                showErrorMessage(errorMessage);
+
+                if (errorCallback) {
+                    errorCallback(response);
                 }
             }
-        }
+        });
+    }
 
-        function updateObjectInput() {
-            if (!shacl) {
-                $('.object-input-text').show();
-                $('.object-input').prop('disabled', true);
-                return
-            }
-            const selectedPredicate = $('.predicate-select').val();
-            if (optional_values[selectedPredicate] && optional_values[selectedPredicate].length > 0) {
-                $('.object-input-text').hide().prop('disabled', true);
-                $('.object-input').show().prop('disabled', false).find('option').hide().filter(`[data-predicate="${selectedPredicate}"]`).show();
+    function showErrorMessage(message) {
+        Swal.fire({
+            icon: 'error',
+            title: "{{ _('Error') }}",
+            text: message,
+            confirmButtonColor: '#d33'
+        });
+    }
+
+    function toggleEditForm(listItem) {
+        const form = listItem.find('.edit-form');
+        const valueSpan = listItem.find('.object-value');
+        form.toggleClass('d-none');
+        valueSpan.toggleClass('d-none');
+    }
+
+    function showAddFormOrAlert() {
+        can_be_added = {{ can_be_added|tojson|safe }}
+        if (can_be_added == null) {
+            $(`.add-form`).toggleClass('d-none');
+        } else {
+            if (can_be_added.length == 0) {
+                Swal.fire({
+                    title: "{{ _('Warning') }}",
+                    text: "{{ _('You cannot add more properties; the limit for each property has been reached') }}",
+                    icon: 'warning',
+                    confirmButtonColor: '#3085d6'
+                });
             } else {
-                $('.object-input').hide().prop('disabled', true);
-                $('.object-input-text').show().prop('disabled', false);
+                $(`.add-form`).toggleClass('d-none');
             }
         }
+    }
 
-        function restoreOriginalValues() {
-            $('.editable-field, .editable-select, .date-type-selector, .date-input').each(function() {
-                var originalValue = $(this).data('original-value');
-                if (originalValue !== undefined) {
-                    $(this).val(originalValue);
-                }
-            });
-
-            // Aggiorna la visualizzazione dei campi data
-            $('.date-input-group').each(function() {
-                var dateInputGroup = $(this);
-                var dateTypeSelector = dateInputGroup.find('.date-type-selector');
-                var selectedDateType = dateTypeSelector.val();
-
-                // Mostra l'input data appropriato
-                showAppropriateDateInput(dateTypeSelector);
-
-                // Aggiorna la visualizzazione della data
-                var dateInput = dateInputGroup.find(`.date-input[data-date-type="${selectedDateType}"]`);
-                var dateDisplay = dateInputGroup.find('.date-display');
-                dateDisplay.text(dateInput.val());
-            });
-
-            // Rimuovi gli elementi aggiunti durante la modalità di modifica
-            $('.added-in-edit-mode').remove();
-
-            // Ripristina l'ordine originale degli elementi
-            $('[data-repeater-list][data-ordered-by]').each(function() {
-                var list = $(this);
-                var listId = list.data('repeater-list');
-                var originalListOrder = originalOrder[listId];
-
-                if (originalListOrder) {
-                    var addButton = list.children('[data-repeater-create]').detach();
-
-                    var items = list.find('[data-repeater-item].draggable').not('.repeater-template');
-                    items.sort(function(a, b) {
-                        var aId = $(a).data('old-object-id');
-                        var bId = $(b).data('old-object-id');
-                        return originalListOrder.indexOf(aId) - originalListOrder.indexOf(bId);
-                    });
-                    list.append(items);
-                    list.append(addButton);
-                }
-            });
-
-            originalOrder = {};
-
-            // Ripristina gli elementi contrassegnati per la cancellazione
-            $('.marked-for-deletion').each(function() {
-                var listItem = $(this);
-                listItem.find('.tripleObject').removeClass('striked');
-                listItem.find('.editable-field').prop('readonly', false);
-                listItem.find('.editable-select').prop('disabled', false);
-                listItem.find('.undo-delete-button').remove();
-                listItem.find('.delete-button').show();
-                listItem.removeClass('marked-for-deletion');
-
-                // Ripristina il dateInputGroup se applicabile
-                const dateInputGroup = listItem.find('.date-input-group');
-                toggleDateStrike(dateInputGroup, false);
-            });
+    function updateObjectInput() {
+        if (!{{shacl|tojson|safe}}) {
+            $('.object-input-text').show();
+            $('.object-input').prop('disabled', true);
+            return
         }
+        const selectedPredicate = $('.predicate-select').val();
+        if (optional_values[selectedPredicate] && optional_values[selectedPredicate].length > 0) {
+            $('.object-input-text').hide().prop('disabled', true);
+            $('.object-input').show().prop('disabled', false).find('option').hide().filter(`[data-predicate="${selectedPredicate}"]`).show();
+        } else {
+            $('.object-input').hide().prop('disabled', true);
+            $('.object-input-text').show().prop('disabled', false);
+        }
+    }
 
-        function toggleDateStrike(dateInputGroup, isStriked) {
-            const dateDisplayContainer = dateInputGroup.find('.date-display-container');
-            const dateInputContainer = dateInputGroup.find('.date-input-container');
-            const dateTypeSelectorContainer = dateInputGroup.find('.date-type-selector-container');
-
-            if (isStriked) {
-                // Nascondi gli input della data e il selettore del tipo di data
-                dateInputContainer.hide();
-                dateTypeSelectorContainer.hide();
-
-                // Mostra il date-display-container e applica la classe 'striked'
-                dateDisplayContainer.show();
-                dateDisplayContainer.find('.date-display').addClass('striked');
-            } else {
-                // Mostra gli input della data e il selettore del tipo di data
-                dateInputContainer.show();
-                dateTypeSelectorContainer.show();
-
-                // Nascondi il date-display-container e rimuovi la classe 'striked'
-                dateDisplayContainer.hide();
-                dateDisplayContainer.find('.date-display').removeClass('striked');
+    function restoreOriginalValues() {
+        $('.editable-field, .editable-select, .date-type-selector, .date-input').each(function() {
+            var originalValue = $(this).data('original-value');
+            if (originalValue !== undefined) {
+                $(this).val(originalValue);
             }
+        });
+
+        // Aggiorna la visualizzazione dei campi data
+        $('.date-input-group').each(function() {
+            var dateInputGroup = $(this);
+            var dateTypeSelector = dateInputGroup.find('.date-type-selector');
+            var selectedDateType = dateTypeSelector.val();
+
+            // Mostra l'input data appropriato
+            showAppropriateDateInput(dateTypeSelector);
+
+            // Aggiorna la visualizzazione della data
+            var dateInput = dateInputGroup.find(`.date-input[data-date-type="${selectedDateType}"]`);
+            var dateDisplay = dateInputGroup.find('.date-display');
+            dateDisplay.text(dateInput.val());
+        });
+
+        // Rimuovi gli elementi aggiunti durante la modalità di modifica
+        $('.added-in-edit-mode').remove();
+
+        // Ripristina l'ordine originale degli elementi
+        $('[data-repeater-list][data-ordered-by]').each(function() {
+            var list = $(this);
+            var listId = list.data('repeater-list');
+            var originalListOrder = originalOrder[listId];
+
+            if (originalListOrder) {
+                var addButton = list.children('[data-repeater-create]').detach();
+
+                var items = list.find('[data-repeater-item].draggable').not('.repeater-template');
+                items.sort(function(a, b) {
+                    var aId = $(a).data('old-object-id');
+                    var bId = $(b).data('old-object-id');
+                    return originalListOrder.indexOf(aId) - originalListOrder.indexOf(bId);
+                });
+                list.append(items);
+                list.append(addButton);
+            }
+        });
+
+        originalOrder = {};
+
+        // Ripristina gli elementi contrassegnati per la cancellazione
+        $('.marked-for-deletion').each(function() {
+            var listItem = $(this);
+            listItem.find('.tripleObject').removeClass('striked');
+            listItem.find('.editable-field').prop('readonly', false);
+            listItem.find('.editable-select').prop('disabled', false);
+            listItem.find('.undo-delete-button').remove();
+            listItem.find('.delete-button').show();
+            listItem.removeClass('marked-for-deletion');
+
+            // Ripristina il dateInputGroup se applicabile
+            const dateInputGroup = listItem.find('.date-input-group');
+            toggleDateStrike(dateInputGroup, false);
+        });
+    }
+
+    function toggleDateStrike(dateInputGroup, isStriked) {
+        const dateDisplayContainer = dateInputGroup.find('.date-display-container');
+        const dateInputContainer = dateInputGroup.find('.date-input-container');
+        const dateTypeSelectorContainer = dateInputGroup.find('.date-type-selector-container');
+
+        if (isStriked) {
+            // Nascondi gli input della data e il selettore del tipo di data
+            dateInputContainer.hide();
+            dateTypeSelectorContainer.hide();
+
+            // Mostra il date-display-container e applica la classe 'striked'
+            dateDisplayContainer.show();
+            dateDisplayContainer.find('.date-display').addClass('striked');
+        } else {
+            // Mostra gli input della data e il selettore del tipo di data
+            dateInputContainer.show();
+            dateTypeSelectorContainer.show();
+
+            // Nascondi il date-display-container e rimuovi la classe 'striked'
+            dateDisplayContainer.hide();
+            dateDisplayContainer.find('.date-display').removeClass('striked');
         }
+    }
 
-        function collectNewProperties() {
-            var subject = '{{ subject }}';
+    function collectNewProperties() {
+        var subject = '{{ subject }}';
 
-            var structuredData = {
-                entity_type: '{{ entity_type }}',
-                properties: {}
-            };
+        var structuredData = {
+            entity_type: '{{ entity_type }}',
+            properties: {}
+        };
 
-            collectFormData($('.triples'), structuredData.properties, shacl, 0);
+        collectFormData($('.triples'), structuredData.properties, shacl, 0);
 
-            Object.keys(structuredData.properties).forEach(function (predicate) {
-                structuredData.properties[predicate].forEach(function (property) {
-                    if (property.orderedBy) {
-                        // Create the new order array
-                        var newOrder = [];
-                        var shape = property.shape || '';
+        Object.keys(structuredData.properties).forEach(function (predicate) {
+            structuredData.properties[predicate].forEach(function (property) {
+                if (property.orderedBy) {
+                    // Create the new order array
+                    var newOrder = [];
+                    var shape = property.shape || '';
 
-                        // Iterate through the elements in the repeater list and collect their IDs or values
-                        $('[data-repeater-list]').find('[data-repeater-item]').each(function () {
-                            $item = $(this)
-                            if ($item.data('shape') == shape) {
-                                var objectId = $item.data('old-object-id');
-                                var tempId = $item.data('temp-id');
-                                if (objectId) {
-                                    newOrder.push(objectId);
-                                } else if (tempId) {
-                                    newOrder.push(tempId);
-                                }
+                    // Iterate through the elements in the repeater list and collect their IDs or values
+                    $('[data-repeater-list]').find('[data-repeater-item]').each(function () {
+                        $item = $(this)
+                        if ($item.data('shape') == shape) {
+                            var objectId = $item.data('old-object-id');
+                            var tempId = $item.data('temp-id');
+                            if (objectId) {
+                                newOrder.push(objectId);
+                            } else if (tempId) {
+                                newOrder.push(tempId);
                             }
-                        });
-
-                        var existingOrderIndex = pendingChanges.findIndex(function(change) {
-                            return change.action === 'order' && 
-                                change.subject === subject && 
-                                change.predicate === predicate &&
-                                change.shape === shape;
-                        });
-
-                        if (existingOrderIndex !== -1) {
-                            // Update the existing order action
-                            pendingChanges[existingOrderIndex].object = newOrder;
-                        } else {
-                            // Add a new order action
-                            storePendingChange('order', subject, predicate, newOrder, property.orderedBy, shape);
                         }
-                    }
-                });
-            });
+                    });
 
-            if (Object.keys(structuredData.properties).length > 0) {
-                pendingChanges.push({
-                    action: 'create',
-                    subject: subject,
-                    data: structuredData
-                });
-            }
+                    var existingOrderIndex = pendingChanges.findIndex(function(change) {
+                        return change.action === 'order' && 
+                            change.subject === subject && 
+                            change.predicate === predicate &&
+                            change.shape === shape;
+                    });
+
+                    if (existingOrderIndex !== -1) {
+                        // Update the existing order action
+                        pendingChanges[existingOrderIndex].object = newOrder;
+                    } else {
+                        // Add a new order action
+                        storePendingChange('order', subject, predicate, newOrder, property.orderedBy, shape);
+                    }
+                }
+            });
+        });
+
+        if (Object.keys(structuredData.properties).length > 0) {
+            pendingChanges.push({
+                action: 'create',
+                subject: subject,
+                data: structuredData
+            });
         }
+    }
+
+    $(document).ready(function () {
+        $('[data-repeater-create]').addClass('d-none');         
 
         $('.edit-button').click(function () {
             const isRedirect = $(this).find('i').hasClass('bi-arrow-right-square');
@@ -555,72 +551,10 @@
         });
         $('.predicate-select').change(updateObjectInput);
 
-        $('#editEntityBtn').click(function(){
-            if (isInEditMode) {
-                restoreOriginalValues();
-                $(".editable-field").prop('readonly', true);
-                $('.editable-select').addClass('d-none');
-                $('.select-value-display').removeClass('d-none');
-                $(".textarea-input-container").addClass('d-none');
-                $(".textarea-display-container").removeClass('d-none');
-                $(".delete-button").hide();
-                $(".text-info").addClass('d-none');
-                $(".drag-handle").children().addClass('d-none');
-                $("#saveChangesBtn").hide();
-                $("#cancelChangesBtn").hide();
-                $(".date-type-selector-container").addClass('d-none');
-                $(".date-input-container").hide();
-                $(".date-display-container").show();
-                $("[data-repeater-create]").addClass('d-none');
-                $(this).removeClass('edit-mode');
-                isInEditMode = false;
-                pendingChanges = [];
-
-                // Aggiorna lo stato dei pulsanti dopo la rimozione
-                $('[data-repeater-list]').each(function() {
-                    updateButtons($(this));
-                });
-            } else {
-                updateOrderedElementsNumbering();
-                $('.editable-field, .editable-select, .date-type-selector, .date-input').each(function() {
-                    $(this).data('original-value', $(this).val());
-                });
-                // Salva l'ordine originale degli elementi
-                $('[data-repeater-list][data-ordered-by]').each(function() {
-                    var list = $(this);
-                    var listId = list.data('repeater-list');
-                    originalOrder[listId] = [];
-
-                    list.find('[data-repeater-item].draggable').not('.repeater-template').each(function() {
-                        var item = $(this);
-                        var itemId = item.data('old-object-id');
-                        originalOrder[listId].push(itemId);
-                    });
-                });
-                $(".editable-field").prop('readonly', false);
-                $('.editable-select').removeClass('d-none');
-                $('.select-value-display').addClass('d-none');
-                $(".textarea-input-container").removeClass('d-none');
-                $(".textarea-display-container").addClass('d-none');
-                $(".delete-button").show();
-                $(".text-info").removeClass('d-none');
-                $(".drag-handle").children().removeClass('d-none');
-                $("#saveChangesBtn").show();
-                $("#cancelChangesBtn").show();
-                $(".date-type-selector-container").removeClass('d-none');
-                $(".date-input-container").show();
-                $('.date-type-selector').each(function() {
-                    showAppropriateDateInput($(this));
-                });
-                $(".date-display-container").hide();
-                $("[data-repeater-create]").removeClass('d-none');
-                $(this).addClass('edit-mode');
-                isInEditMode = true;
-            }
-        });
         $('#cancelChangesBtn').click(function(){
             $('#editEntityBtn').click();
         });
+
         $(document).on('change', '.editable-field[id^="new_value_"], .editable-select, .date-type-selector', function() {
             const listItem = $(this).closest('.property-value');
             const subject = listItem.data('subject-id');
