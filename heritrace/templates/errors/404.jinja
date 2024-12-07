@@ -193,14 +193,14 @@
 
 <div class="shelfContainer">
     <nav class="shelf">
-    <a class="book home-page" href="{{ url_for('index') }}" alt="{{_('Go to the home')}}">Home</a>
-    <a class="book about-us" href="{{ url_for('catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
-    <a class="book contact" href="{{ url_for('create_entity') }}" alt="{{_('New Record')}}">{{_('New Record')}}</a>
+    <a class="book home-page" href="{{ url_for('main.index') }}" alt="{{_('Go to the home')}}">Home</a>
+    <a class="book about-us" href="{{ url_for('main.catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
+    <a class="book contact" href="{{ url_for('entity.create_entity') }}" alt="{{_('New Record')}}">{{_('New Record')}}</a>
 
         {% if current_user.is_authenticated %}
-            <a class="book faq" href="{{ url_for('logout') }}">{{ _('Logout') }}</a>
+            <a class="book faq" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a>
         {% else %}
-            <a class="book faq" href="{{ url_for('login_page') }}">{{ _('Login') }}</a>
+            <a class="book faq" href="{{ url_for('auth.login') }}">{{ _('Login') }}</a>
         {% endif %}
     
     <span class="book not-found"></span>

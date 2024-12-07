@@ -64,7 +64,7 @@
         </button>
     {% endif %}
     {% if history[subject] %}
-        <a id="historyBtn" href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary" title="{{ _('Time Machine') }}" type="button">
+        <a id="historyBtn" href="{{ url_for('entity.entity_history', entity_uri=subject) }}" class="btn btn-outline-primary" title="{{ _('Time Machine') }}" type="button">
             <i class="bi bi-clock-history me-2"></i>{{ _('Time Machine') }}
         </a>
     {% endif %}
@@ -171,7 +171,7 @@
             <div class="list-group-item">
                 <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
                     <div class="d-flex flex-wrap flex-grow-1 align-items-baseline gap-2 me-2">
-                        <a href="{{ url_for('about', subject=ref.subject) }}" class="text-primary text-break">
+                        <a href="{{ url_for('entity.about', subject=ref.subject) }}" class="text-primary text-break">
                             {{ ref.subject | human_readable_entity(ref.types) }}
                         </a>
                         <div class="d-flex align-items-center gap-2">
@@ -179,7 +179,7 @@
                             <span class="text-muted text-break">{{ ref.predicate | human_readable_predicate(ref.types) }}</span>
                         </div>
                     </div>
-                    <a href="{{ url_for('about', subject=ref.subject) }}" 
+                    <a href="{{ url_for('entity.about', subject=ref.subject) }}" 
                        class="btn btn-sm btn-outline-primary redirection-btn" 
                        title="{{ _('View entity') }}">
                         <i class="bi bi-arrow-right-square"></i>
@@ -261,7 +261,7 @@
 
     function processOrphanCheck(changes, successCallback) {
         $.ajax({
-            url: '/check_orphans',
+            url: "{{ url_for('api.check_orphans') }}",
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(changes),
@@ -292,7 +292,7 @@
 
     function applyChangesToEntity(changes, successCallback, errorCallback) {
         $.ajax({
-            url: '/apply_changes',
+            url: "{{ url_for('api.apply_changes') }}",
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(changes),
@@ -633,7 +633,7 @@
                         }];
 
                         applyChangesToEntity(finalChanges, function() {
-                            window.location.href = '{{ url_for('catalogue') }}';
+                            window.location.href = '{{ url_for('main.catalogue') }}';
                         });
                     });
                 }
@@ -673,7 +673,7 @@
                 }
                 
                 applyChangesToEntity(pendingChanges, function() {
-                    window.location.href = '{{ url_for('about', subject=subject) }}';
+                    window.location.href = '{{ url_for('entity.about', subject=subject) }}';
                 });
             });
         });

@@ -1,6 +1,6 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-5">
     <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}" alt="Go to the home">
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}" alt="Go to the home">
             <img src="{{ url_for('static', filename='images/logo.png') }}" 
                  alt="HERITRACE Logo" 
                  height="30" 
@@ -13,28 +13,28 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" id="catalogue-link" aria-current="page" href="{{ url_for('catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
+                    <a class="nav-link" id="catalogue-link" aria-current="page" href="{{ url_for('main.catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="create-entity-link" aria-current="page" href="{{ url_for('create_entity') }}" alt="{{_('New Record')}}">{{_('New Record')}}</a>
+                    <a class="nav-link" id="create-entity-link" aria-current="page" href="{{ url_for('entity.create_entity') }}" alt="{{_('New Record')}}">{{_('New Record')}}</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" id="time-vault-link" href="{{ url_for('time_vault') }}" 
+                    <a class="nav-link" id="time-vault-link" href="{{ url_for('main.time_vault') }}" 
                     title="Access and restore deleted entities">
                         {{_('Time Vault')}}
                     </a>
                 </li>
                 {% if current_user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" id="logout-link" href="{{ url_for('logout') }}">{{ _('Logout') }}</a>
+                        <a class="nav-link" id="logout-link" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a>
                     </li>
                 {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" id="login-link" href="{{ url_for('login') }}">{{ _('Login') }}</a>
+                        <a class="nav-link" id="login-link" href="{{ url_for('auth.login') }}">{{ _('Login') }}</a>
                     </li>
                 {% endif %}
             </ul>
-            <form class="d-flex" action="{{ url_for('search') }}" method="GET" role="search">
+            <form class="d-flex" action="{{ url_for('main.search') }}" method="GET" role="search">
                 <input class="form-control me-2" type="search" placeholder="{{_('Search')}}" aria-label="Search" name="q">
                 <button class="btn btn-outline-success" type="submit">{{_('Search')}}</button>
             </form> 

@@ -19,7 +19,7 @@
 {% endif %}
 {% endwith %}
 
-<form action="{{ url_for('create_entity') }}" method="post" id="entityForm">
+<form action="{{ url_for('entity.create_entity') }}" method="post" id="entityForm">
     <input type="hidden" name="structured_data" id="structured_data">
     {% if shacl %}
         <div class="form-floating mb-3">
@@ -111,7 +111,7 @@
             }
 
             $.ajax({
-                url: '{{ url_for("validate_literal") }}',
+                url: '{{ url_for("api.validate_literal") }}',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ value: value }),
@@ -421,7 +421,7 @@
             showLoadingIndicator();
 
             $.ajax({
-                url: '{{ url_for("create_entity") }}',
+                url: '{{ url_for("entity.create_entity") }}',
                 type: 'POST',
                 data: {
                     structured_data: JSON.stringify(structuredData)

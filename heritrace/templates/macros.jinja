@@ -315,7 +315,7 @@
                         </div>
                         <span style="margin-left: .75rem;">
                             {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                            <a href="{{url_for('about', subject=externalEntity)}}" 
+                            <a href="{{url_for('entity.about', subject=externalEntity)}}" 
                             data-bs-toggle="tooltip" 
                             data-bs-placement="top" 
                             title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity(entity_classes))}}">
@@ -326,7 +326,7 @@
                 {% else %}
                     <span style="margin-left: .75rem;">
                         {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                        <a href="{{url_for('about', subject=externalEntity)}}"
+                        <a href="{{url_for('entity.about', subject=externalEntity)}}"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top" 
                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity(entity_classes))}}">
@@ -443,7 +443,7 @@
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity(entity_classes))}}"
-                            href="{{url_for('about', subject=externalEntity)}}">
+                            href="{{url_for('entity.about', subject=externalEntity)}}">
                                 <i class="bi bi-arrow-right-square"></i>
                             </a>
                         </div>

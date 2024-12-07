@@ -1,8 +1,14 @@
 from collections import OrderedDict, defaultdict
 from typing import List
 
-from rdflib import Graph, URIRef
+import validators
+from flask_babel import gettext
+from heritrace.extensions import get_custom_filter, get_shacl_graph
+from heritrace.utils.display_rules_utils import get_highest_priority_class
+from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
+from rdflib import RDF, XSD, Graph, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
+from resources.datatypes import DATATYPE_MAPPING
 
 COMMON_SPARQL_QUERY = prepareQuery("""
     SELECT ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
@@ -674,3 +680,232 @@ def order_form_fields(form_fields, display_rules):
     else:
         ordered_form_fields = form_fields
     return ordered_form_fields
+
+def get_valid_predicates(triples):
+    shacl = get_shacl_graph()
+
+    existing_predicates = [triple[1] for triple in triples]
+    predicate_counts = {str(predicate): existing_predicates.count(predicate) for predicate in set(existing_predicates)}
+    default_datatypes = {str(predicate): XSD.string for predicate in existing_predicates}
+    s_types = [triple[2] for triple in triples if triple[1] == RDF.type]
+
+    valid_predicates = [{str(predicate): {"min": None, "max": None, "hasValue": None, "optionalValues": []}} for predicate in set(existing_predicates)]
+    if not s_types:
+        return existing_predicates, existing_predicates, default_datatypes, dict(), dict(), [], [str(predicate) for predicate in existing_predicates]
+    if not shacl:
+        return existing_predicates, existing_predicates, default_datatypes, dict(), dict(), s_types, [str(predicate) for predicate in existing_predicates]
+
+    highest_priority_class = get_highest_priority_class(s_types)
+    s_types = [highest_priority_class] if highest_priority_class else s_types
+
+    query = prepareQuery(f"""
+        SELECT ?predicate ?datatype ?maxCount ?minCount ?hasValue (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
+            ?shape sh:targetClass ?type ;
+                   sh:property ?property .
+            VALUES ?type {{<{'> <'.join(s_types)}>}}
+            ?property sh:path ?predicate .
+            OPTIONAL {{?property sh:datatype ?datatype .}}
+            OPTIONAL {{?property sh:maxCount ?maxCount .}}
+            OPTIONAL {{?property sh:minCount ?minCount .}}
+            OPTIONAL {{?property sh:hasValue ?hasValue .}}
+            OPTIONAL {{
+                ?property sh:in ?list .
+                ?list rdf:rest*/rdf:first ?optionalValue .
+            }}
+            OPTIONAL {{
+                ?property sh:or ?orList .
+                ?orList rdf:rest*/rdf:first ?orConstraint .
+                ?orConstraint sh:datatype ?datatype .
+            }}
+            FILTER (isURI(?predicate))
+        }}
+        GROUP BY ?predicate ?datatype ?maxCount ?minCount ?hasValue
+    """, initNs={"sh": "http://www.w3.org/ns/shacl#", "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"})
+    results = shacl.query(query)
+    valid_predicates = [{
+        str(row.predicate): {
+            "min": 0 if row.minCount is None else int(row.minCount), 
+            "max": None if row.maxCount is None else str(row.maxCount),
+            "hasValue": row.hasValue,
+            "optionalValues": row.optionalValues.split(",") if row.optionalValues else []
+        }
+    } for row in results]
+
+    can_be_added = set()
+    can_be_deleted = set()
+    mandatory_values = defaultdict(list)
+    for valid_predicate in valid_predicates:
+        for predicate, ranges in valid_predicate.items():
+            if ranges["hasValue"]:
+                mandatory_value_present = any(triple[2] == ranges["hasValue"] for triple in triples)
+                mandatory_values[str(predicate)].append(str(ranges["hasValue"]))
+            else:
+                max_reached = (ranges["max"] is not None and int(ranges["max"]) <= predicate_counts.get(predicate, 0))
+
+                if not max_reached:
+                    can_be_added.add(predicate)
+                if not (ranges["min"] is not None and int(ranges["min"]) == predicate_counts.get(predicate, 0)):
+                    can_be_deleted.add(predicate)
+
+    datatypes = defaultdict(list)
+    for row in results:
+        if row.datatype:
+            datatypes[str(row.predicate)].append(str(row.datatype))
+        else:
+            datatypes[str(row.predicate)].append(str(XSD.string))
+
+    optional_values = dict()
+    for valid_predicate in valid_predicates:
+        for predicate, ranges in valid_predicate.items():
+            if "optionalValues" in ranges:
+                optional_values.setdefault(str(predicate), list()).extend(ranges["optionalValues"])
+    return list(can_be_added), list(can_be_deleted), dict(datatypes), mandatory_values, optional_values, s_types, {list(predicate_data.keys())[0] for predicate_data in valid_predicates}
+
+def validate_new_triple(subject, predicate, new_value, action: str, old_value = None):
+    data_graph = fetch_data_graph_for_subject(subject)
+    if old_value is not None:
+        old_value = [triple[2] for triple in data_graph.triples((URIRef(subject), URIRef(predicate), None)) if str(triple[2]) == str(old_value)][0]
+    if len(get_shacl_graph()):
+        # Se non c'è SHACL, accettiamo qualsiasi valore
+        if validators.url(new_value):
+            return URIRef(new_value), old_value, ''
+        else:
+            return Literal(new_value), old_value, ''
+    
+    s_types = [triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))]
+    query = f"""
+        PREFIX sh: <http://www.w3.org/ns/shacl#>
+        SELECT DISTINCT ?path ?datatype ?a_class ?classIn ?maxCount ?minCount (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
+        WHERE {{
+            ?shape sh:targetClass ?type ;
+                sh:property ?propertyShape .
+            ?propertyShape sh:path ?path .
+            FILTER(?path = <{predicate}>)
+            VALUES ?type {{<{'> <'.join(s_types)}>}}
+            OPTIONAL {{?propertyShape sh:datatype ?datatype .}}
+            OPTIONAL {{?propertyShape sh:maxCount ?maxCount .}}
+            OPTIONAL {{?propertyShape sh:minCount ?minCount .}}
+            OPTIONAL {{?propertyShape sh:class ?a_class .}}
+            OPTIONAL {{
+                ?propertyShape sh:or ?orList .
+                ?orList rdf:rest*/rdf:first ?orConstraint .
+                ?orConstraint sh:datatype ?datatype .
+                OPTIONAL {{?orConstraint sh:class ?class .}}
+            }}
+            OPTIONAL {{
+                ?propertyShape  sh:classIn ?classInList .
+                ?classInList rdf:rest*/rdf:first ?classIn .
+            }}
+            OPTIONAL {{
+                ?propertyShape sh:in ?list .
+                ?list rdf:rest*/rdf:first ?optionalValue .
+            }}
+        }}
+        GROUP BY ?path ?datatype ?a_class ?classIn ?maxCount ?minCount
+    """
+    shacl = get_shacl_graph()
+    custom_filter = get_custom_filter()
+
+    results = shacl.query(query)
+    property_exists = [row.path for row in results]
+    if not property_exists:
+        return None, old_value, gettext('The property %(predicate)s is not allowed for resources of type %(s_type)s', predicate=custom_filter.human_readable_predicate(predicate, s_types), s_type=custom_filter.human_readable_predicate(s_types[0], s_types))
+    datatypes = [row.datatype for row in results if row.datatype is not None]
+    classes = [row.a_class for row in results if row.a_class]
+    classes.extend([row.classIn for row in results if row.classIn])
+    optional_values_str = [row.optionalValues for row in results if row.optionalValues]
+    optional_values_str = optional_values_str[0] if optional_values_str else ''
+    optional_values = [value for value in optional_values_str.split(',') if value]
+
+    max_count = [row.maxCount for row in results if row.maxCount]
+    min_count = [row.minCount for row in results if row.minCount]
+    max_count = int(max_count[0]) if max_count else None
+    min_count = int(min_count[0]) if min_count else None
+
+    current_values = list(data_graph.triples((URIRef(subject), URIRef(predicate), None)))
+    current_count = len(current_values)
+
+    if action == 'create':
+        new_count = current_count + 1
+    elif action == 'delete':
+        new_count = current_count - 1
+    else:  # update
+        new_count = current_count
+
+    if max_count is not None and new_count > max_count:
+        value = gettext('value') if max_count == 1 else gettext('values')
+        return None, old_value, gettext(
+            'The property %(predicate)s allows at most %(max_count)s %(value)s',
+            predicate=custom_filter.human_readable_predicate(predicate, s_types),
+            max_count=max_count,
+            value=value
+        )
+    if min_count is not None and new_count < min_count:
+        value = gettext('value') if min_count == 1 else gettext('values')
+        return None, old_value, gettext(
+            'The property %(predicate)s requires at least %(min_count)s %(value)s',
+            predicate=custom_filter.human_readable_predicate(predicate, s_types),
+            min_count=min_count,
+            value=value
+        )
+
+    if optional_values and new_value not in optional_values:
+        optional_value_labels = [custom_filter.human_readable_predicate(value, s_types) for value in optional_values]
+        return None, old_value, gettext(
+            '<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s',
+            new_value=custom_filter.human_readable_predicate(new_value, s_types),
+            property=custom_filter.human_readable_predicate(predicate, s_types),
+            o_values=', '.join([f'<code>{label}</code>' for label in optional_value_labels])
+        )
+    if classes:
+        if not validators.url(new_value):
+            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{custom_filter.human_readable_predicate(o_class, s_types)}</code>' for o_class in classes]))
+        valid_value = convert_to_matching_class(new_value, classes)
+        if valid_value is None:
+            return None, old_value, gettext('<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s', new_value=custom_filter.human_readable_predicate(new_value, s_types), property=custom_filter.human_readable_predicate(predicate, s_types), o_types=', '.join([f'<code>{custom_filter.human_readable_predicate(o_class, s_types)}</code>' for o_class in classes]))
+        return valid_value, old_value, ''
+    elif datatypes:
+        valid_value = convert_to_matching_literal(new_value, datatypes)
+        if valid_value is None:
+            datatype_labels = [get_datatype_label(datatype) for datatype in datatypes]
+            return None, old_value, gettext(
+                '<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s',
+                new_value=custom_filter.human_readable_predicate(new_value, s_types),
+                property=custom_filter.human_readable_predicate(predicate, s_types),
+                o_types=', '.join([f'<code>{label}</code>' for label in datatype_labels])
+            )
+        return valid_value, old_value, ''
+    # Se non ci sono datatypes o classes specificati, determiniamo il tipo in base a old_value e new_value
+    if isinstance(old_value, Literal):
+        if old_value.datatype:
+            valid_value = Literal(new_value, datatype=old_value.datatype)
+        else:
+            valid_value = Literal(new_value, datatype=XSD.string)
+    elif isinstance(old_value, URIRef) or validators.url(new_value):
+        valid_value = URIRef(new_value)
+    else:
+        valid_value = Literal(new_value, datatype=XSD.string)
+    return valid_value, old_value, ''
+
+def convert_to_matching_class(object_value, classes):
+    data_graph = fetch_data_graph_for_subject(object_value)
+    o_types = {c[2] for c in data_graph.triples((URIRef(object_value), RDF.type, None))}
+    if o_types.intersection(classes):
+        return URIRef(object_value)
+    
+def convert_to_matching_literal(object_value, datatypes):
+    for datatype in datatypes:
+        validation_func = next((d[1] for d in DATATYPE_MAPPING if d[0] == datatype), None)
+        if validation_func is None:
+            return Literal(object_value, datatype=XSD.string)
+        is_valid_datatype = validation_func(object_value)
+        if is_valid_datatype:
+            return Literal(object_value, datatype=datatype)
+
+def get_datatype_label(datatype_uri):
+    custom_filter = get_custom_filter()
+    
+    for dt_uri, _, dt_label in DATATYPE_MAPPING:
+        if str(dt_uri) == str(datatype_uri):
+            return dt_label
+    return custom_filter.human_readable_predicate(datatype_uri, [])

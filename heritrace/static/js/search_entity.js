@@ -281,7 +281,7 @@ function createEntityDisplay(entity, container, callback) {
     } else {
         // Fetch the human-readable version if not already fetched
         $.ajax({
-            url: '/human-readable-entity',
+            url: '/api/human-readable-entity',
             method: 'POST',
             data: {
                 uri: entity.entity.value,
@@ -342,7 +342,7 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
 
         results.forEach(entity => {
             $.ajax({
-                url: '/human-readable-entity',
+                url: '/api/human-readable-entity',
                 method: 'POST',
                 data: {
                     uri: entity.entity.value,

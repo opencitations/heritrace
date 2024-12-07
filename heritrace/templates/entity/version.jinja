@@ -25,8 +25,8 @@
 
 <nav aria-label="breadcrumb">
 <ol class="breadcrumb">
-    <li class="breadcrumb-item"><a href="{{ url_for('about', subject=subject) }}"><em>{{subject | human_readable_entity(subject_classes, version)}}</em></a></li>
-    <li class="breadcrumb-item"><a href="{{ url_for('entity_history', entity_uri=subject) }}">{{_('History of <em>%(subject)s</em>', subject=subject | human_readable_entity(subject_classes, version))}}</a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('entity.about', subject=subject) }}"><em>{{subject | human_readable_entity(subject_classes, version)}}</em></a></li>
+    <li class="breadcrumb-item"><a href="{{ url_for('entity.entity_history', entity_uri=subject) }}">{{_('History of <em>%(subject)s</em>', subject=subject | human_readable_entity(subject_classes, version))}}</a></li>
     <li class="breadcrumb-item active" aria-current="page">{{_('Version %(version_number)s of <em>%(subject)s</em>', version_number=version_number, subject=subject | human_readable_entity(subject_classes, version))}}</li>
 </ol>
 </nav>
@@ -35,14 +35,14 @@
 
 <div class="row g-3 mb-4">
     <div class="col-6">
-        <a href="{{ url_for('entity_history', entity_uri=subject) }}" class="btn btn-outline-primary w-100" id="historyBtn">
+        <a href="{{ url_for('entity.entity_history', entity_uri=subject) }}" class="btn btn-outline-primary w-100" id="historyBtn">
             <i class="bi bi-clock-history me-2"></i> {{_('Time Machine')}}
         </a>    
     </div>
     
     <div class="col-6">
         {% if next_snapshot_timestamp %}
-            <form action="{{ url_for('restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post" id="restoreVersionBtn">
+            <form action="{{ url_for('entity.restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post" id="restoreVersionBtn">
                 <button type="submit" class="btn btn-outline-warning w-100">
                     <i class="bi bi-arrow-counterclockwise me-2"></i> {{ _('Restore this Version') }}
                 </button>
@@ -56,7 +56,7 @@
     <div class="row g-3 mb-4">
         <div class="col-6">
             {% if prev_snapshot_timestamp %}
-                <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" 
+                <a href="{{ url_for('entity.entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" 
                    class="btn btn-outline-primary w-100 prevVersionBtn">
                     <i class="bi bi-arrow-left me-2"></i> {{ _('Previous version') }}
                 </a>
@@ -71,7 +71,7 @@
         
         <div class="col-6">
             {% if next_snapshot_timestamp %}
-                <a href="{{ url_for('entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" 
+                <a href="{{ url_for('entity.entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" 
                    class="btn btn-outline-primary w-100 nextVersionBtn">
                     {{ _('Next version') }} <i class="bi bi-arrow-right ms-2"></i>
                 </a>
