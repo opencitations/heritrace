@@ -20,6 +20,7 @@ from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (class_priorities,
                                                  get_grouped_triples,
                                                  get_highest_priority_class,
+                                                 get_property_order_from_rules,
                                                  is_entity_type_visible)
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_utils import get_valid_predicates
@@ -1164,9 +1165,11 @@ def get_inverse_references(subject_uri: str) -> List[Dict]:
     
     return references
 
-def generate_modification_text(modifications, subject_classes, history, entity_uri, current_snapshot, current_snapshot_timestamp, custom_filter: Filter, form_fields):
+def generate_modification_text(modifications, subject_classes, history, entity_uri, 
+                             current_snapshot, current_snapshot_timestamp, 
+                             custom_filter: Filter, form_fields):
     """
-    Generate HTML text describing modifications to an entity, using form_fields to determine object display format.
+    Generate HTML text describing modifications to an entity, using display rules for property ordering.
 
     Args:
         modifications (dict): Dictionary of modifications from parse_sparql_update
@@ -1179,6 +1182,10 @@ def generate_modification_text(modifications, subject_classes, history, entity_u
         form_fields (dict): Form fields configuration from SHACL
     """
     modification_text = "<p><strong>" + gettext("Modifications") + "</strong></p>"
+    
+    # Get display rules and property order
+    display_rules = get_display_rules()
+    ordered_properties = get_property_order_from_rules(subject_classes, display_rules)
 
     for mod_type, triples in modifications.items():
         modification_text += "<ul class='list-group mb-3'><p>"
@@ -1188,42 +1195,94 @@ def generate_modification_text(modifications, subject_classes, history, entity_u
             modification_text += '<i class="bi bi-dash-circle-fill text-danger"></i>'
         modification_text += ' <em>' + gettext(mod_type) + '</em></p>'
 
+        # Group triples by predicate
+        predicate_groups = {}
         for triple in triples:
-            predicate = triple[1]
-            predicate_label = custom_filter.human_readable_predicate(predicate, subject_classes)
-            object_value = triple[2]
+            predicate = str(triple[1])
+            if predicate not in predicate_groups:
+                predicate_groups[predicate] = []
+            predicate_groups[predicate].append(triple)
 
-            # Determine which snapshot to use for context
-            relevant_snapshot = None
-            if mod_type == gettext('Deletions') and history and entity_uri and current_snapshot_timestamp:
-                sorted_timestamps = sorted(history[entity_uri].keys())
-                current_index = sorted_timestamps.index(current_snapshot_timestamp)
-                if current_index > 0:
-                    relevant_snapshot = history[entity_uri][sorted_timestamps[current_index - 1]]
-            else:
-                relevant_snapshot = current_snapshot
+        # Process predicates in order from display rules
+        processed_predicates = set()
 
-            subject_class = get_highest_priority_class(subject_classes)
+        # First handle predicates that are in the ordered list
+        for predicate in ordered_properties:
+            if predicate in predicate_groups:
+                processed_predicates.add(predicate)
+                for triple in predicate_groups[predicate]:
+                    modification_text += format_triple_modification(
+                        triple, subject_classes, mod_type, history, 
+                        entity_uri, current_snapshot, current_snapshot_timestamp,
+                        custom_filter, form_fields
+                    )
 
-            object_label = get_object_label(
-                object_value, 
-                predicate,
-                subject_class,
-                form_fields,
-                relevant_snapshot,
-                custom_filter
-            )
-
-            modification_text += f"""
-                <li class='d-flex align-items-center'>
-                    <span class='flex-grow-1 d-flex flex-column justify-content-center ms-3 mb-2 w-100'>
-                        <strong>{predicate_label}</strong>
-                        <span class="object-value word-wrap">{object_label}</span>
-                    </span>
-                </li>"""
+        # Then handle any remaining predicates not in the ordered list
+        for predicate, triples in predicate_groups.items():
+            if predicate not in processed_predicates:
+                for triple in triples:
+                    modification_text += format_triple_modification(
+                        triple, subject_classes, mod_type, history,
+                        entity_uri, current_snapshot, current_snapshot_timestamp,
+                        custom_filter, form_fields
+                    )
 
         modification_text += "</ul>"
+    
     return modification_text
+
+def format_triple_modification(triple, subject_classes, mod_type, history,
+                             entity_uri, current_snapshot, current_snapshot_timestamp,
+                             custom_filter: Filter, form_fields):
+    """
+    Format a single triple modification as HTML.
+    
+    Args:
+        triple: The RDF triple being modified
+        subject_classes: List of classes for the subject entity
+        mod_type: Type of modification (addition/deletion)
+        history: Historical snapshots dictionary
+        entity_uri: URI of the entity being modified
+        current_snapshot: Current entity snapshot
+        current_snapshot_timestamp: Timestamp of current snapshot
+        custom_filter: Filter instance for formatting
+        form_fields: Form fields configuration from SHACL
+        
+    Returns:
+        HTML string representing the triple modification
+    """
+    predicate = triple[1]
+    predicate_label = custom_filter.human_readable_predicate(predicate, subject_classes)
+    object_value = triple[2]
+
+    # Determine which snapshot to use for context
+    relevant_snapshot = None
+    if mod_type == gettext('Deletions') and history and entity_uri and current_snapshot_timestamp:
+        sorted_timestamps = sorted(history[entity_uri].keys())
+        current_index = sorted_timestamps.index(current_snapshot_timestamp)
+        if current_index > 0:
+            relevant_snapshot = history[entity_uri][sorted_timestamps[current_index - 1]]
+    else:
+        relevant_snapshot = current_snapshot
+
+    subject_class = get_highest_priority_class(subject_classes)
+
+    object_label = get_object_label(
+        object_value, 
+        predicate,
+        subject_class,
+        form_fields,
+        relevant_snapshot,
+        custom_filter
+    )
+
+    return f"""
+        <li class='d-flex align-items-center'>
+            <span class='flex-grow-1 d-flex flex-column justify-content-center ms-3 mb-2 w-100'>
+                <strong>{predicate_label}</strong>
+                <span class="object-value word-wrap">{object_label}</span>
+            </span>
+        </li>"""
 
 def get_object_label(object_value: str, predicate: str, entity_type: str, 
                     form_fields: dict, snapshot: Optional[Graph], 

@@ -1905,10 +1905,7 @@ classes:
         [[uri]] a fabio:Manifestation .
         OPTIONAL { [[uri]] prism:startingPage ?start . }
         OPTIONAL { [[uri]] prism:endingPage ?end . }
-        
-        ?biblioResource frbr:embodiment [[uri]] .
-        OPTIONAL { ?biblioResource dcterms:title ?resourceTitle . }
-        
+                
         BIND(
           IF(BOUND(?start) && BOUND(?end), 
             CONCAT("Pages ", ?start, "-", ?end),
@@ -1917,12 +1914,6 @@ classes:
                 IF(BOUND(?end), 
                   CONCAT("Page ", ?end),
                   "Unknown page")))
-          AS ?pageInfo)
-        
-        BIND(
-          IF(BOUND(?resourceTitle),
-            CONCAT(?pageInfo, " of '", ?resourceTitle, "'"),
-            ?pageInfo)
           AS ?display)
       }
     displayProperties:
@@ -1952,10 +1943,6 @@ classes:
         OPTIONAL { ?agent foaf:name ?name. }
         OPTIONAL { ?agent foaf:familyName ?familyName. }
         OPTIONAL { ?agent foaf:givenName ?givenName. }
-        OPTIONAL {
-          ?document pro:isDocumentContextFor [[uri]] ;
-                    dcterms:title ?documentTitle .
-        }
         BIND(
             IF(BOUND(?name), ?name,
                 IF(BOUND(?familyName) && BOUND(?givenName), 
@@ -1967,10 +1954,7 @@ classes:
             ) AS ?agentDisplay
         )
         BIND(
-          IF(BOUND(?documentTitle),
-            CONCAT(STRAFTER(STR(?role), "pro/"), " role for ", ?agentDisplay, " in '", ?documentTitle, "'"),
-            CONCAT(STRAFTER(STR(?role), "pro/"), " role for ", ?agentDisplay)
-          ) AS ?display
+          CONCAT(STRAFTER(STR(?role), "pro/"), ": ", ?agentDisplay) AS ?display
         )
       }
     displayProperties:

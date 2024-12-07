@@ -301,3 +301,29 @@ def execute_historical_query(query: str, subject: str, value: str, historical_sn
         for result in results:
             return (str(result[0]), str(result[1]))
     return None, None
+
+def get_property_order_from_rules(subject_classes: list, display_rules: list) -> list:
+    """
+    Extract ordered list of properties from display rules for given entity classes.
+    
+    Args:
+        subject_classes: List of class URIs for the entity
+        display_rules: List of display rule configurations
+    
+    Returns:
+        List of property URIs in the order specified by display rules
+    """
+    ordered_properties = []
+    highest_priority_class = get_highest_priority_class(subject_classes)
+    
+    if display_rules and highest_priority_class:
+        # Find matching rule for the entity's highest priority class
+        for rule in display_rules:
+            if rule['class'] == str(highest_priority_class):
+                # Extract properties in order from displayProperties
+                for prop in rule.get('displayProperties', []):
+                    if isinstance(prop, dict) and 'property' in prop:
+                        ordered_properties.append(prop['property'])
+                break
+                
+    return ordered_properties
