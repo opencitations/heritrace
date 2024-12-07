@@ -264,9 +264,9 @@ def fetch_data_graph_for_subject(subject: str) -> Graph:
     
     for triple in triples:
         value = (Literal(triple['object']['value'], datatype=URIRef(triple['object']['datatype'])) 
-                if triple['object']['type'] == 'literal' and 'datatype' in triple['object'] 
+                if triple['object']['type'] in {'literal', 'typed-literal'} and 'datatype' in triple['object'] 
                 else Literal(triple['object']['value'], datatype=XSD.string) 
-                if triple['object']['type'] == 'literal' 
+                if triple['object']['type'] in {'literal', 'typed-literal'} 
                 else URIRef(triple['object']['value']))
         g.add((URIRef(subject), URIRef(triple['predicate']['value']), value))
     
