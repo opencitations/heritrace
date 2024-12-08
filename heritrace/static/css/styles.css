@@ -2,6 +2,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 main {
@@ -49,16 +50,23 @@ a {
     border-color: #0d6efd;
 }
 
-input[readonly], select[disabled], input[disabled] {
+input[readonly],
+select[disabled],
+input[disabled] {
     background-color: transparent !important;
-    border: none;                 
-    outline: none;              
-    box-shadow: none;     
-    cursor: default;           
-    color: inherit;            
+    border: none;
+    outline: none;
+    box-shadow: none;
+    cursor: default;
+    color: inherit;
 }
 
-input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[disabled]:focus, input[disabled]:hover, input[disabled]:focus {
+input[readonly]:hover,
+select[disabled]:hover,
+input[readonly]:focus,
+select[disabled]:focus,
+input[disabled]:hover,
+input[disabled]:focus {
     border: none;
     outline: none;
     box-shadow: none;
@@ -69,7 +77,8 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     color: gray;
 }
 
-.navbar, footer.bg-dark  {
+.navbar,
+footer.bg-dark {
     background-color: black !important;
 }
 
@@ -79,7 +88,12 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     position: relative;
 }
 
-.repeater-delete-btn, .delete-button, .redirection-btn, .collapse-btn, .undo-delete-button, .change-entity {
+.repeater-delete-btn,
+.delete-button,
+.redirection-btn,
+.collapse-btn,
+.undo-delete-button,
+.change-entity {
     font-size: 1rem;
     position: absolute;
     top: 0;
@@ -106,7 +120,8 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     transform: rotate(90deg);
 }
 
-[data-repeater-list], #entity_type {
+[data-repeater-list],
+#entity_type {
     margin-bottom: 2rem;
 }
 
@@ -121,21 +136,26 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     border-radius: 0.25rem;
     transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
 }
+
 .add-button:hover {
     color: #fff;
     background-color: #6c757d;
 }
+
 .add-button i {
     margin-right: 0.25rem;
 }
+
 .is-invalid {
     border-color: #dc3545;
 }
+
 .invalid-feedback {
     display: none;
     color: #dc3545;
 }
-.is-invalid + .invalid-feedback {
+
+.is-invalid+.invalid-feedback {
     display: block;
 }
 
@@ -166,7 +186,7 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     column-gap: 1rem;
 }
 
-.btn-flex #editEntityBtn, 
+.btn-flex #editEntityBtn,
 .btn-flex #historyBtn,
 .btn-flex #saveChangesBtn,
 .btn-flex #cancelChangesBtn,
@@ -175,11 +195,14 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     flex: 1 1 0;
 }
 
-[data-repeater-item]:not(:last-child), .item-label, .form-label {
+[data-repeater-item]:not(:last-child),
+.item-label,
+.form-label {
     margin-bottom: 1rem;
 }
 
-.textarea-display-container, .date-display-container {
+.textarea-display-container,
+.date-display-container {
     margin-left: .75rem;
 }
 
@@ -193,13 +216,11 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     position: absolute;
     inset: 0;
     z-index: 1;
-    background: radial-gradient(
-        circle,
-        rgba(220, 53, 69, 0.1) 0%,
-        rgba(220, 53, 69, 0.05) 55%,
-        rgba(220, 53, 69, 0.02) 100%,
-        transparent 100%
-    );
+    background: radial-gradient(circle,
+            rgba(220, 53, 69, 0.1) 0%,
+            rgba(220, 53, 69, 0.05) 55%,
+            rgba(220, 53, 69, 0.02) 100%,
+            transparent 100%);
     opacity: 0;
     animation: deleteWarningPulse 2s ease-out infinite;
 }
@@ -218,10 +239,12 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
         opacity: 0;
         transform: scale(0.95);
     }
+
     50% {
         opacity: 1;
         transform: scale(1);
     }
+
     100% {
         opacity: 0;
         transform: scale(0.95);
@@ -232,10 +255,153 @@ input[readonly]:hover, select[disabled]:hover, input[readonly]:focus, select[dis
     0% {
         border-color: rgba(220, 53, 69, 0);
     }
+
     50% {
         border-color: rgba(220, 53, 69, 0.3);
     }
+
     100% {
         border-color: rgba(220, 53, 69, 0);
     }
+}
+
+#Christmas_Lights {
+    height: 60vh;
+    margin: 0;
+    position: absolute;
+    width: 100vw;
+    z-index: 1000;
+    pointer-events: none;
+    margin-top: 7vh;
+    overflow: hidden;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.light_cord {
+    fill: none;
+    stroke: #174700;
+}
+
+.light_fixture {
+    fill: #134413;
+}
+
+.red_bulb {
+    fill: #CA2128;
+    stroke: #6D6D6D;
+    stroke-miterlimit: 10;
+}
+
+.green_bulb {
+    fill: #2D754A;
+    stroke: #6D6D6D;
+    stroke-miterlimit: 10;
+}
+
+.blue_bulb {
+    fill: #2C3EA8;
+    stroke: #6D6D6D;
+    stroke-miterlimit: 10;
+}
+
+.white_bulb {
+    fill: #F5EED7;
+    stroke: #6D6D6D;
+    stroke-miterlimit: 10;
+}
+
+.gold_bulb {
+    fill: #ffcc5e;
+    stroke: #6D6D6D;
+    stroke-miterlimit: 10;
+}
+
+
+/* Simply changing the opacity of the SVG fill to create the glow effect for the bulbs */
+
+.bulb {
+    -webkit-animation-duration: 0.5s;
+    -webkit-animation-name: glow;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-animation-timing-function: ease-in-out;
+    -webkit-animation-direction: alternate;
+    animation-name: glow;
+    animation-duration: 0.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+    animation-direction: alternate;
+}
+
+@-webkit-keyframes glow {
+    0% {
+        fill-opacity: 0.25;
+    }
+
+    100% {
+        fill-opacity: 1
+    }
+}
+
+@keyframes glow {
+    0% {
+        fill-opacity: 0.25;
+    }
+
+    100% {
+        fill-opacity: 1.0
+    }
+}
+
+
+/* Made a set of ten animation delays to create a more random effect of lights blinking.  Simplest way without jumping through SVG hoops. */
+
+.blink-1 {
+    -webkit-animation-delay: 0.6s;
+    animation-delay: 0.6s;
+}
+
+.blink-2 {
+    -webkit-animation-delay: 2s;
+    animation-delay: 2s;
+}
+
+.blink-3 {
+    -webkit-animation-delay: 2s;
+    animation-delay: 2s;
+}
+
+.blink-4 {
+    -webkit-animation-delay: 6s;
+    animation-delay: 6s;
+}
+
+.blink-5 {
+    -webkit-animation-delay: 2.5s;
+    animation-delay: 2.5s;
+}
+
+.blink-6 {
+    -webkit-animation-delay: .3s;
+    animation-delay: .3s;
+}
+
+.blink-7 {
+    -webkit-animation-delay: 2s;
+    animation-delay: 2s;
+}
+
+.blink-8 {
+    -webkit-animation-delay: .2s;
+    animation-delay: .2s;
+}
+
+.blink-9 {
+    -webkit-animation-delay: 0.95s;
+    animation-delay: 0.95s;
+}
+
+.blink-10 {
+    -webkit-animation-delay: 1.2s;
+    animation-delay: 1.2s;
 }
