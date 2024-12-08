@@ -238,13 +238,24 @@ def get_catalog_data(selected_class, page, per_page, sort_property=None, sort_di
         'selected_class': selected_class
     }
 
-def fetch_data_graph_for_subject(subject: str) -> Graph:
-    g = Graph()
+def fetch_data_graph_for_subject(subject: str) -> Graph|ConjunctiveGraph:
+    """
+    Fetch all triples/quads associated with a subject from the dataset.
+    Handles both triplestore and quadstore cases appropriately.
+
+    Args:
+        subject (str): The URI of the subject to fetch data for
+
+    Returns:
+        Graph|ConjunctiveGraph: A graph containing all triples/quads for the subject
+    """
+    g = ConjunctiveGraph() if get_dataset_is_quadstore() else Graph()
     sparql = get_sparql()
 
     if is_virtuoso():
+        # For virtuoso we need to explicitly query the graph
         query = f"""
-        SELECT ?predicate ?object WHERE {{
+        SELECT ?predicate ?object ?g WHERE {{
             GRAPH ?g {{
                 <{subject}> ?predicate ?object.
             }}
@@ -252,23 +263,44 @@ def fetch_data_graph_for_subject(subject: str) -> Graph:
         }}
         """
     else:
-        query = f"""
-        SELECT ?predicate ?object WHERE {{
-            <{subject}> ?predicate ?object.
-        }}
-        """
+        if get_dataset_is_quadstore():
+            # For non-virtuoso quadstore
+            query = f"""
+            SELECT ?predicate ?object ?g WHERE {{
+                GRAPH ?g {{
+                    <{subject}> ?predicate ?object.
+                }}
+            }}
+            """
+        else:
+            # For regular triplestore
+            query = f"""
+            SELECT ?predicate ?object WHERE {{
+                <{subject}> ?predicate ?object.
+            }}
+            """
 
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
-    triples = sparql.query().convert().get("results", {}).get("bindings", [])
+    results = sparql.query().convert().get("results", {}).get("bindings", [])
     
-    for triple in triples:
-        value = (Literal(triple['object']['value'], datatype=URIRef(triple['object']['datatype'])) 
-                if triple['object']['type'] in {'literal', 'typed-literal'} and 'datatype' in triple['object'] 
-                else Literal(triple['object']['value'], datatype=XSD.string) 
-                if triple['object']['type'] in {'literal', 'typed-literal'} 
-                else URIRef(triple['object']['value']))
-        g.add((URIRef(subject), URIRef(triple['predicate']['value']), value))
+    for result in results:
+        # Create the appropriate value (Literal or URIRef)
+        obj_data = result['object']
+        if obj_data['type'] in {'literal', 'typed-literal'}:
+            if 'datatype' in obj_data:
+                value = Literal(obj_data['value'], datatype=URIRef(obj_data['datatype']))
+            else:
+                value = Literal(obj_data['value'], datatype=XSD.string)
+        else:
+            value = URIRef(obj_data['value'])
+
+        # Add triple/quad based on store type
+        if get_dataset_is_quadstore():
+            graph_uri = URIRef(result['g']['value'])
+            g.add((URIRef(subject), URIRef(result['predicate']['value']), value, graph_uri))
+        else:
+            g.add((URIRef(subject), URIRef(result['predicate']['value']), value))
     
     return g
 
@@ -306,90 +338,30 @@ def parse_sparql_update(query) -> dict:
 
     return modifications
 
-def fetch_data_graph_recursively(subject_uri, max_depth=5, current_depth=0, visited=None):
+def fetch_current_state_with_related_entities(provenance: dict) -> Graph|ConjunctiveGraph:
     """
-    Recursively fetch all quads associated with a subject and its connected entities.
-
+    Fetch the current state of an entity and all its related entities known from provenance.
+    
     Args:
-        subject_uri (str): The URI of the subject to fetch.
-        max_depth (int): Maximum depth of recursion.
-        current_depth (int): Current depth in recursion.
-        visited (set): Set of visited URIs to avoid cycles.
-
+        provenance (dict): Dictionary containing provenance metadata for main entity and related entities
+        
     Returns:
-        ConjunctiveGraph: A graph containing all fetched quads.
+        ConjunctiveGraph: A graph containing the current state of all entities
     """
-    dataset_is_quadstore = get_dataset_is_quadstore()
-    sparql = get_sparql()
-
-    if visited is None:
-        visited = set()
-    if current_depth > max_depth or subject_uri in visited:
-        return ConjunctiveGraph()
-
-    visited.add(subject_uri)
-    g = ConjunctiveGraph()
-
-    # Fetch all quads where the subject is involved
-    if dataset_is_quadstore:
-        query = f"""
-        SELECT ?s ?p ?o ?g
-        WHERE {{
-            GRAPH ?g {{
-                ?s ?p ?o .
-                VALUES (?s) {{(<{subject_uri}>)}}
-            }}
-        }}
-        """
-    else:
-        query = f"""
-        CONSTRUCT {{
-            <{subject_uri}> ?p ?o .
-        }}
-        WHERE {{
-            <{subject_uri}> ?p ?o .
-        }}
-        """
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON if dataset_is_quadstore else XML)
-    results = sparql.query().convert()
-
-    if dataset_is_quadstore:
-        for result in results["results"]["bindings"]:
-            s = URIRef(result["s"]["value"])
-            p = URIRef(result["p"]["value"])
-            o = result["o"]
-            g_context = URIRef(result["g"]["value"])
-
-            if o["type"] == "uri":
-                o_node = URIRef(o["value"])
-            else:
-                value = o["value"]
-                lang = result.get("lang", {}).get("value")
-                datatype = o.get("datatype")
+    combined_graph = ConjunctiveGraph() if get_dataset_is_quadstore() else Graph()
+    
+    # Fetch state for all entities mentioned in provenance
+    for entity_uri in provenance.keys():
+        current_graph = fetch_data_graph_for_subject(entity_uri)
+        
+        if get_dataset_is_quadstore():
+            for quad in current_graph.quads():
+                combined_graph.add(quad)
+        else:
+            for triple in current_graph:
+                combined_graph.add(triple)
                 
-                if lang:
-                    o_node = Literal(value, lang=lang)
-                elif datatype:
-                    o_node = Literal(value, datatype=URIRef(datatype))
-                else:
-                    o_node = Literal(value, datatype=XSD.string)
-            g.add((s, p, o_node, g_context))
-    else:
-        for triple in results:
-            g.add(triple)
-
-    # Recursively fetch connected entities
-    for triple in g.quads((URIRef(subject_uri), None, None, None)):
-        o = triple[2]
-        if isinstance(o, URIRef) and o not in visited:
-            if dataset_is_quadstore:
-                for quad in fetch_data_graph_recursively(str(o), max_depth, current_depth + 1, visited).quads():
-                    g.add(quad)
-            else:
-                for triple in fetch_data_graph_recursively(str(o), max_depth, current_depth + 1, visited):
-                    g.add(triple)
-    return g
+    return combined_graph
 
 def get_deleted_entities_with_filtering(page=1, per_page=50, sort_property='deletionTime', sort_direction='DESC',
                                         selected_class=None):

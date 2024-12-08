@@ -24,9 +24,9 @@ from heritrace.utils.display_rules_utils import (class_priorities,
                                                  is_entity_type_visible)
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_utils import get_valid_predicates
-from heritrace.utils.sparql_utils import (fetch_data_graph_for_subject,
-                                          fetch_data_graph_recursively,
-                                          parse_sparql_update)
+from heritrace.utils.sparql_utils import (
+    fetch_current_state_with_related_entities, fetch_data_graph_for_subject,
+    parse_sparql_update)
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
@@ -905,8 +905,9 @@ def restore_version(entity_uri, timestamp):
     if historical_graph is None:
         abort(404)
 
-    current_graph = fetch_data_graph_recursively(entity_uri)
-    is_deleted = not current_graph or len(current_graph) == 0
+    current_graph = fetch_current_state_with_related_entities(provenance)
+
+    is_deleted = len(list(current_graph.triples((URIRef(entity_uri), None, None)))) == 0
     
     # Calculate differences between current and historical state
     triples_to_delete = set()
@@ -915,7 +916,7 @@ def restore_version(entity_uri, timestamp):
     triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(
         current_graph, historical_graph
     )
-    
+
     # Get all entities that need restoration
     entities_to_restore = get_entities_to_restore(
         triples_to_delete, 
