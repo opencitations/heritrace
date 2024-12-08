@@ -7,7 +7,8 @@ from heritrace.editor import Editor
 from heritrace.extensions import (display_rules, form_fields_cache,
                                   get_change_tracking_config,
                                   get_custom_filter, get_dataset_is_quadstore,
-                                  get_provenance_sparql, get_sparql)
+                                  get_display_rules, get_provenance_sparql,
+                                  get_sparql)
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (get_highest_priority_class,
                                                  get_sortable_properties,
@@ -501,93 +502,106 @@ def process_deleted_entity(result, sortable_properties):
         "sort_values": sort_values
     }
 
-def find_orphaned_entities(subject, predicate=None, object_value=None):
+def find_orphaned_entities(subject, entity_type, predicate=None, object_value=None):
     """
-    Find entities that would become orphaned after deleting a triple or an entire entity.
+    Find entities that would become orphaned after deleting a triple or an entire entity,
+    including intermediate relation entities.
+    
     An entity is considered orphaned if:
     1. It has no incoming references from other entities (except from the entity being deleted)
     2. It does not reference any entities that are subjects of other triples
     
+    For intermediate relations, an entity is also considered orphaned if:
+    1. It connects to the entity being deleted
+    2. It has no other valid connections after the deletion
+    
     Args:
         subject (str): The URI of the subject being deleted
-        predicate (str, optional): The predicate being deleted. If None, entire entity is being deleted
-        object_value (str, optional): The object value being deleted. If None, entire entity is being deleted
+        predicate (str, optional): The predicate being deleted
+        object_value (str, optional): The object value being deleted
         
     Returns:
-        list: A list of dictionaries containing URIs and types of orphaned entities
+        tuple: Lists of (orphaned_entities, intermediate_orphans)
     """
     sparql = get_sparql()
+    display_rules = get_display_rules()
     
-    if predicate and object_value:
-        query = f"""
-        SELECT DISTINCT ?entity ?type
-        WHERE {{
-            # The entity we're checking
-            <{subject}> <{predicate}> ?entity .
-            FILTER(?entity = <{object_value}>)
-            
-            # Get entity type
-            ?entity a ?type .
-            
-            # First condition: No incoming references from other entities
-            FILTER NOT EXISTS {{
-                ?other ?anyPredicate ?entity .
-                FILTER(?other != <{subject}>)
-            }}
-            
-            # Second condition: Does not reference any entities that are subjects
-            FILTER NOT EXISTS {{
-                # Find any outgoing connections from our entity
-                ?entity ?outgoingPredicate ?connectedEntity .
-                
-                # Check if the connected entity is a subject in any triple
-                ?connectedEntity ?furtherPredicate ?furtherObject .
-            }}
+    # Extract intermediate relation classes from display rules
+    intermediate_classes = set()
+
+    for rule in display_rules:
+        if rule['class'] == entity_type:
+            for prop in rule.get('displayProperties', []):
+                if 'intermediateRelation' in prop:
+                    intermediate_classes.add(prop['intermediateRelation']['class'])
+    
+    # Query to find regular orphans
+    orphan_query = f"""
+    SELECT DISTINCT ?entity ?type
+    WHERE {{
+        {f"<{subject}> <{predicate}> ?entity ." if predicate and object_value else ""}
+        {f"FILTER(?entity = <{object_value}>)" if predicate and object_value else ""}
+        
+        # If no specific predicate, get all connected entities
+        {f"<{subject}> ?p ?entity ." if not predicate else ""}
+        
+        FILTER(isIRI(?entity))
+        ?entity a ?type .
+        
+        # No incoming references from other entities
+        FILTER NOT EXISTS {{
+            ?other ?anyPredicate ?entity .
+            FILTER(?other != <{subject}>)
         }}
-        """
-    else:
-        query = f"""
-        SELECT DISTINCT ?entity ?type
-        WHERE {{
-            # Find all entities referenced by the subject being deleted
+        
+        # No outgoing references to active entities
+        FILTER NOT EXISTS {{
+            ?entity ?outgoingPredicate ?connectedEntity .
+            ?connectedEntity ?furtherPredicate ?furtherObject .
+            {f"FILTER(?connectedEntity != <{subject}>)" if not predicate else ""}
+        }}
+        
+        # Exclude intermediate relation entities
+        FILTER(?type NOT IN (<{f">, <".join(intermediate_classes)}>))
+    }}
+    """
+
+    # Query to find orphaned intermediate relations
+    intermediate_query = f"""
+    SELECT DISTINCT ?entity ?type
+    WHERE {{
+        # Find intermediate relations connected to the entity being deleted
+        {{
             <{subject}> ?p ?entity .
-            
-            # Only consider URIs, not literal values
-            FILTER(isIRI(?entity))
-            
-            # Get entity type
             ?entity a ?type .
-            
-            # First condition: No incoming references from other entities
-            FILTER NOT EXISTS {{
-                ?other ?anyPredicate ?entity .
-                FILTER(?other != <{subject}>)
-            }}
-            
-            # Second condition: Does not reference any entities that are subjects
-            FILTER NOT EXISTS {{
-                # Find any outgoing connections from our entity
-                ?entity ?outgoingPredicate ?connectedEntity .
-                
-                # Check if the connected entity is a subject in any triple
-                # (excluding the entity being deleted)
-                ?connectedEntity ?furtherPredicate ?furtherObject .
-                FILTER(?connectedEntity != <{subject}>)
-            }}
-        }}
-        """
+            FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
+        }} UNION {{
+            ?entity ?p <{subject}> .
+            ?entity a ?type .
+            FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
+        }}        
+    }}
+    """
     
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-    orphaned_entities = []
-    for result in results["results"]["bindings"]:
-        orphaned_entities.append({
-            'uri': result["entity"]["value"],
-            'type': result["type"]["value"]
-        })
+    orphaned = []
+    intermediate_orphans = []
     
-    return orphaned_entities
+    # Execute queries and process results
+    for query, result_list in [
+        (orphan_query, orphaned),
+        (intermediate_query, intermediate_orphans)
+    ]:
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
+        
+        for result in results["results"]["bindings"]:
+            result_list.append({
+                'uri': result["entity"]["value"],
+                'type': result["type"]["value"]
+            })
+    
+    return orphaned, intermediate_orphans
 
 def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5):
     """

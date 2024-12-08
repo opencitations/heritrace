@@ -240,52 +240,67 @@ def validate_literal():
 @api_bp.route('/check_orphans', methods=['POST'])
 @login_required
 def check_orphans():
+    """
+    Check for orphaned entities and intermediate relations that would result from the requested changes.
+    """
     strategy = current_app.config.get('ORPHAN_HANDLING_STRATEGY', OrphanHandlingStrategy.KEEP)
-    changes = request.json
-    potential_orphans = []
+    data = request.json
+    changes = data.get('changes', [])
+    entity_type = data.get('entity_type')
     custom_filter = get_custom_filter()
-    current_app.logger.info(strategy, changes, custom_filter)
-
+    
+    orphans = []
+    intermediate_orphans = []
+    
     if strategy in (OrphanHandlingStrategy.DELETE, OrphanHandlingStrategy.ASK):
         for change in changes:
             if change['action'] == 'delete':
-                orphans = find_orphaned_entities(
+                found_orphans, found_intermediates = find_orphaned_entities(
                     change['subject'],
+                    entity_type,
                     change.get('predicate'),
-                    change.get('object')
+                    change.get('object'),
                 )
-                potential_orphans.extend(orphans)
+                orphans.extend(found_orphans)
+                intermediate_orphans.extend(found_intermediates)
 
-    # If we're keeping orphans or none were found, return empty list
-    if strategy == OrphanHandlingStrategy.KEEP or not potential_orphans:
-        return jsonify({'status': 'success', 'orphaned_entities': []})
+    # Keep strategy or no orphans found
+    if strategy == OrphanHandlingStrategy.KEEP or (not orphans and not intermediate_orphans):
+        return jsonify({'status': 'success', 'affected_entities': []})
 
-    # Prepare orphan information for frontend
-    orphan_info = [{
-        'uri': entity['uri'],
-        'label': custom_filter.human_readable_entity(
-            entity['uri'], 
-            [entity['type']]
-        ),
-        'type': custom_filter.human_readable_predicate(
-            entity['type'], 
-            [entity['type']]
-        )
-    } for entity in potential_orphans]
+    # Format entities for display
+    def format_entities(entities, is_intermediate=False):
+        return [{
+            'uri': entity['uri'],
+            'label': custom_filter.human_readable_entity(
+                entity['uri'], 
+                [entity['type']]
+            ),
+            'type': custom_filter.human_readable_predicate(
+                entity['type'], 
+                [entity['type']]
+            ),
+            'is_intermediate': is_intermediate
+        } for entity in entities]
 
-    # For DELETE strategy, return orphans with should_delete flag
+    affected_entities = (
+        format_entities(orphans) + 
+        format_entities(intermediate_orphans, is_intermediate=True)
+    )
+
+    # DELETE strategy
     if strategy == OrphanHandlingStrategy.DELETE:
         return jsonify({
             'status': 'success',
-            'orphaned_entities': orphan_info,
+            'affected_entities': affected_entities,
             'should_delete': True
         })
 
-    # For ASK strategy, return orphans with confirmation required
+    # ASK strategy
     return jsonify({
         'status': 'confirmation_required',
-        'orphaned_entities': orphan_info,
-        'message': gettext('The following entities will become orphaned. Do you want to delete them?')
+        'affected_entities': affected_entities,
+        'message': gettext('The following entities will be affected by this deletion.')
     })
 
 @api_bp.route('/apply_changes', methods=['POST'])
@@ -294,9 +309,8 @@ def apply_changes():
     try:
         changes = request.json
         subject = changes[0]["subject"]
-        orphaned_entities = changes[0].get("orphaned_entities", [])
-        delete_orphans = changes[0].get("deleteOrphans", False)
-        
+        affected_entities = changes[0].get("affected_entities", [])
+        delete_affected = changes[0].get("delete_affected", False)
         editor = Editor(
             get_dataset_endpoint(), 
             get_provenance_endpoint(), 
@@ -330,9 +344,9 @@ def apply_changes():
                 delete_logic(editor, change["subject"], change.get('predicate'), change.get('object'), graph_uri)
                 
                 if strategy == OrphanHandlingStrategy.DELETE or (
-                    strategy == OrphanHandlingStrategy.ASK and delete_orphans
+                    strategy == OrphanHandlingStrategy.ASK and delete_affected
                 ):
-                    for orphan in orphaned_entities:
+                    for orphan in affected_entities:
                         editor.delete(orphan['uri'])
                         
                 

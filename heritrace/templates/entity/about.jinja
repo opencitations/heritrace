@@ -203,8 +203,8 @@
     const optional_values = {{ optional_values|tojson|safe }};
     const shacl = {{ shacl|tojson|safe }};
 
-    var entity_type = "{{ entity_type }}";
-    var subject = "{{ subject }}";
+    const entity_type = "{{ entity_type }}";
+    const subject = "{{ subject }}";
 
     window.dataset_db_triplestore = {{ dataset_db_triplestore | tojson | safe }};
     window.dataset_db_text_index_enabled = {{ dataset_db_text_index_enabled | tojson | safe }};
@@ -217,72 +217,95 @@
 <script src="{{ url_for('static', filename='js/search_entity.js') }}"></script>
 
 <script>
-    function handleOrphanedEntities(orphanedEntities, onConfirm, onCancel) {
-        if (!orphanedEntities || orphanedEntities.length === 0) {
+    function handleAffectedEntities(affectedEntities, onConfirm, onCancel) {
+        if (!affectedEntities || affectedEntities.length === 0) {
             onConfirm([], false);
             return;
         }
 
-        const orphanList = orphanedEntities.map(entity => 
-            `<li style="margin-bottom: 0.5rem;">
-                <i class="bi bi-dash text-muted me-2"></i>
-                <span>${entity.label}</span>
-                <small class="text-muted">
-                    (${entity.type})
-                </small>
-            </li>`
-        ).join('');
+        // Separa le entità per tipo
+        const orphans = affectedEntities.filter(entity => !entity.is_intermediate);
+        const intermediates = affectedEntities.filter(entity => entity.is_intermediate);
+
+        let messageContent = '<div class="text-start">';
+
+        // Aggiungi sezione per gli orfani se presenti
+        if (orphans.length > 0) {
+            messageContent += `
+                <p>{{_("The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):")}}</p>
+                <ul class="list-unstyled mb-4" style="margin-left: 1rem;">
+                    ${orphans.map(entity => `
+                        <li style="margin-bottom: 0.5rem;">
+                            <i class="bi bi-dash-circle text-danger me-2"></i>
+                            <span>${entity.label}</span>
+                            <small class="text-muted">(${entity.type})</small>
+                        </li>
+                    `).join('')}
+                </ul>`;
+        }
+
+        // Aggiungi sezione per le relazioni intermedie se presenti
+        if (intermediates.length > 0) {
+            messageContent += `
+                <p>{{_("The following intermediate relationships will also be removed:")}}</p>
+                <ul class="list-unstyled mb-4" style="margin-left: 1rem;">
+                    ${intermediates.map(entity => `
+                        <li style="margin-bottom: 0.5rem;">
+                            <i class="bi bi-link-45deg text-warning me-2"></i>
+                            <span>${entity.label}</span>
+                            <small class="text-muted">(${entity.type})</small>
+                        </li>
+                    `).join('')}
+                </ul>`;
+        }
+
+        messageContent += `<p>{{_("Would you like to delete all these entities now?")}}</p></div>`;
 
         Swal.fire({
-            title: '{{ _("Warning") }}',
-            html: `
-                <div class="text-start">
-                    <p>{{ _("The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):") }}</p>
-                    <ul class="list-unstyled" style="margin-left: 1rem;">
-                        ${orphanList}
-                    </ul>
-                    <p>{{ _("These resources might become difficult to find and access in the future. Would you like to delete them now?") }}</p>
-                </div>
-            `,
+            title: "{{_('Warning')}}",
+            html: messageContent,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: '{{ _("Yes, delete orphans") }}',
-            cancelButtonText: '{{ _("No, keep orphans") }}',
+            confirmButtonText:  "{{_('Yes, delete affected entities')}}",
+            cancelButtonText:  "{{_('No, keep affected entities')}}",
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6'
         }).then((result) => {
             if (result.isConfirmed) {
-                onConfirm(orphanedEntities, true);
+                onConfirm(affectedEntities, true);
             } else if (result.dismiss === Swal.DismissReason.cancel) {
-                onCancel ? onCancel(orphanedEntities, false) : onConfirm(orphanedEntities, false);
+                onCancel ? onCancel(affectedEntities, false) : onConfirm(affectedEntities, false);
             }
         });
     }
 
-    function processOrphanCheck(changes, successCallback) {
+    function processOrphanCheck(changes, entity_type, successCallback) {
         $.ajax({
             url: "{{ url_for('api.check_orphans') }}",
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify(changes),
+            data: JSON.stringify({
+                'changes': changes,
+                'entity_type': entity_type
+            }),
             success: function(response) {
                 if (response.status === 'confirmation_required') {
-                    handleOrphanedEntities(
-                        response.orphaned_entities,
+                    handleAffectedEntities(
+                        response.affected_entities,
                         successCallback
                     );
                 } else if (response.status === 'success') {
-                    successCallback(response.orphaned_entities, response.should_delete);
+                    successCallback(response.affected_entities, response.should_delete);
                 }
             },
             error: function(jqXHR) {
                 let response = $.parseJSON(jqXHR.responseText);
                 let errorMessage = response && response.message ? 
                     response.message : 
-                    "{{ _('An unexpected error occurred!') }}";
+                     "{{_('An unexpected error occurred!')}}";
                 Swal.fire({
                     icon: 'error',
-                    title: "{{ _('Error') }}",
+                    title:  "{{_('Error')}}",
                     text: errorMessage,
                     confirmButtonColor: '#d33'
                 });
@@ -609,31 +632,32 @@
 
         $(document).on('click', '#deleteEntityBtn', function() {
             Swal.fire({
-                title: "{{ _('Are you sure?') }}",
-                html: "<p>{{ _('This will delete this resource and all its data') }}</p><p>{{ _('You can still restore it later using the Time Machine') }}</p>",
+                title: "{{_('Are you sure?')}}",
+                html: `<p>{{_('This will delete this resource and all its data')}}</p>
+                    <p>{{_('You can still restore it later using the Time Machine')}}</p>`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
                 cancelButtonColor: '#3085d6',
-                confirmButtonText: "{{ _('Yes, delete it!') }}",
-                cancelButtonText: "{{ _('Cancel') }}"
+                confirmButtonText: "{{_('Yes, delete it!')}}",
+                cancelButtonText: "{{_('Cancel')}}"
             }).then((result) => {
                 if (result.isConfirmed) {
                     const changes = [{
                         action: "delete",
-                        subject: '{{ subject }}'
+                        subject: subject
                     }];
 
-                    processOrphanCheck(changes, function(orphanedEntities, shouldDeleteOrphans) {
+                    processOrphanCheck(changes, entity_type, function(affectedEntities, shouldDelete) {
                         const finalChanges = [{
                             action: "delete",
-                            subject: '{{ subject }}',
-                            orphaned_entities: orphanedEntities,
-                            deleteOrphans: shouldDeleteOrphans
+                            subject: subject,
+                            affected_entities: affectedEntities,
+                            delete_affected: shouldDelete
                         }];
 
                         applyChangesToEntity(finalChanges, function() {
-                            window.location.href = '{{ url_for('main.catalogue') }}';
+                            window.location.href = "{{ url_for('main.catalogue') }}";
                         });
                     });
                 }
@@ -658,22 +682,21 @@
             if (pendingChanges.length === 0) {
                 Swal.fire({
                     icon: 'warning',
-                    title: '{{ _("No Changes Detected") }}',
-                    text: '{{ _("Oops! It looks like you have not made any changes yet. Try updating a field first") }}',
+                    title: "{{_('No Changes Detected')}}",
+                    text: "{{_('Oops! It looks like you have not made any changes yet. Try updating a field first')}}",
                     confirmButtonColor: '#3085d6'
                 });
                 return;
             }
 
-            processOrphanCheck(pendingChanges, function(orphanedEntities, shouldDeleteOrphans) {
-                // Add orphan information to first change
-                if (orphanedEntities && orphanedEntities.length > 0) {
-                    pendingChanges[0].orphaned_entities = orphanedEntities;
-                    pendingChanges[0].deleteOrphans = shouldDeleteOrphans;
+            processOrphanCheck(pendingChanges, entity_type, function(affectedEntities, shouldDelete) {
+                if (affectedEntities && affectedEntities.length > 0) {
+                    pendingChanges[0].affected_entities = affectedEntities;
+                    pendingChanges[0].deleteAffected = shouldDelete;
                 }
                 
                 applyChangesToEntity(pendingChanges, function() {
-                    window.location.href = '{{ url_for('entity.about', subject=subject) }}';
+                    window.location.href = "{{ url_for('entity.about', subject=subject) }}";
                 });
             });
         });

@@ -908,25 +908,21 @@ def restore_version(entity_uri, timestamp):
     current_graph = fetch_current_state_with_related_entities(provenance)
 
     is_deleted = len(list(current_graph.triples((URIRef(entity_uri), None, None)))) == 0
-    
-    # Calculate differences between current and historical state
-    triples_to_delete = set()
-    triples_to_add = set()
-    
+        
     triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(
         current_graph, historical_graph
     )
 
     # Get all entities that need restoration
     entities_to_restore = get_entities_to_restore(
-        triples_to_delete, 
-        triples_to_add,
+        triples_or_quads_to_delete, 
+        triples_or_quads_to_add,
         entity_uri
     )
-    
+
     # Prepare snapshot information for all entities
     entity_snapshots = prepare_entity_snapshots(entities_to_restore, provenance, timestamp)
-    
+
     # Create editor instance
     editor = Editor(
         get_dataset_endpoint(),
@@ -1017,7 +1013,7 @@ def get_entities_to_restore(triples_or_quads_to_delete: set, triples_or_quads_to
         Set of entity URIs that need to be restored
     """
     entities_to_restore = {main_entity_uri}
-    
+
     for item in list(triples_or_quads_to_delete) + list(triples_or_quads_to_add):
         predicate = str(item[1])
         if predicate == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type':
