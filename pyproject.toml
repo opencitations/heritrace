@@ -24,6 +24,7 @@ docker = "^7.1.0"
 requests-oauthlib = "^2.0.0"
 flask-login = "^0.6.3"
 rdflib-ocdm = "^0.4.1"
+pyopenssl = "^24.3.0"
 
 
 [build-system]

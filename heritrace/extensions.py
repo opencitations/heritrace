@@ -226,7 +226,7 @@ def initialize_counter_handler(app: Flask):
     counter_handler = uri_generator.counter_handler
 
     # Query per ottenere tutti i tipi di entità e il loro conteggio
-    if is_virtuoso():
+    if is_virtuoso(app):
         query = f"""
             SELECT ?type (COUNT(DISTINCT ?s) as ?count)
             WHERE {{

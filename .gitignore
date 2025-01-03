@@ -7,3 +7,5 @@ db_volumes/
 node_modules/
 database/
 prov_database/
+cache.json
+heritrace/static/dist/

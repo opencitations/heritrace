@@ -10,6 +10,17 @@ VIRTUOSO_EXCLUDED_GRAPHS = [
     "urn:core:services:sparql"
 ]
 
-def is_virtuoso():
-    """Check if the current triplestore is Virtuoso."""
-    return current_app.config['DATASET_DB_TRIPLESTORE'].lower() == 'virtuoso'
+def is_virtuoso(app=None):
+    """
+    Check if the triplestore is Virtuoso.
+    
+    Args:
+        app: Flask application object (optional)
+        
+    Returns:
+        bool: True if triplestore is Virtuoso, False otherwise
+    """
+    if app is None:
+        from flask import current_app
+        app = current_app
+    return app.config['DATASET_DB_TRIPLESTORE'].lower() == 'virtuoso'
