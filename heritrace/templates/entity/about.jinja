@@ -110,7 +110,7 @@
                         {% if data['property'] in can_be_added %}
                             {% for details in form_fields[entity_type][predicate] %}
                                 {% set shape = details.get('nodeShape') %}
-                                {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') %}
+                                {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') or details.get('or') %}
                                     {% set key = (predicate, entity_type, shape) %}
                                     {% if key in predicate_details_map %}
                                         {% set unique_id_base = (entity_type | human_readable_predicate(entitytypes, False) | replace(" ", "") + "_" + predicate | human_readable_predicate(entitytypes, False) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
@@ -130,7 +130,7 @@
                             {% set predicate = data['property'] %}
                             {% for details in form_fields[entity_type][predicate] %}
                                 {% set shape = details.get('nodeShape') %}
-                                {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') %}
+                                {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') or details.get('or') %}
                                     {% set key = (predicate, entity_type, shape) %}
                                     {% if key in predicate_details_map %}
                                         {% set unique_id_base = (entity_type | human_readable_predicate(entitytypes, False) | replace(" ", "") + "_" + predicate | human_readable_predicate(entitytypes, False) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}

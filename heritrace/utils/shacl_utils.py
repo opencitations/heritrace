@@ -810,8 +810,7 @@ def get_valid_predicates(triples):
     highest_priority_class = get_highest_priority_class(s_types)
     s_types = [highest_priority_class] if highest_priority_class else s_types
 
-    query = prepareQuery(
-        f"""
+    query_string = f"""
         SELECT ?predicate ?datatype ?maxCount ?minCount ?hasValue (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
@@ -833,7 +832,10 @@ def get_valid_predicates(triples):
             FILTER (isURI(?predicate))
         }}
         GROUP BY ?predicate ?datatype ?maxCount ?minCount ?hasValue
-    """,
+    """
+
+    query = prepareQuery(
+        query_string,
         initNs={
             "sh": "http://www.w3.org/ns/shacl#",
             "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",

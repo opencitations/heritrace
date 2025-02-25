@@ -489,28 +489,106 @@ common_properties:
   issue_volume_journal_container_property: &issue_volume_journal_container_property
     property: "http://purl.org/vocab/frbr/core#partOf"
     displayName: "Container"
-    displayRules:
-      - shape: "http://schema.org/IssueShape"
-        displayName: "Issue"
-        fetchValueFromQuery: *issue_query
-      - shape: "http://schema.org/VolumeShape"
-        displayName: "Volume"
-        fetchValueFromQuery: *volume_query
-      - shape: "http://schema.org/JournalShape"
-        displayName: "Journal"
-        fetchValueFromQuery: *journal_query
-
-  volume_journal_container_property: &volume_journal_container_property
-    property: "http://purl.org/vocab/frbr/core#partOf"
-    displayName: "Container"
-    shouldBeDisplayed: true
-    displayRules:
-      - shape: "http://schema.org/VolumeShape"
-        displayName: "Volume"
-        fetchValueFromQuery: *volume_query
-      - shape: "http://schema.org/JournalShape"
-        displayName: "Journal"
-        fetchValueFromQuery: *journal_query
+    fetchValueFromQuery: |
+      PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+      SELECT ?display ?container
+      WHERE {
+        # Try to find the most specific container (Issue > Volume > Journal)
+        {
+          # First try to find an Issue
+          SELECT ?display ?container
+          WHERE {
+            [[subject]] frbr:partOf ?container .
+            ?container a fabio:JournalIssue .
+            
+            # Get issue number
+            OPTIONAL { ?container fabio:hasSequenceIdentifier ?issueNumber . }
+            
+            # Get volume information
+            OPTIONAL {
+              ?container frbr:partOf ?volume .
+              ?volume a fabio:JournalVolume .
+              OPTIONAL { ?volume fabio:hasSequenceIdentifier ?volumeNumber . }
+              
+              # Get journal information
+              OPTIONAL {
+                ?volume frbr:partOf ?journal .
+                ?journal a fabio:Journal .
+                OPTIONAL { ?journal dcterms:title ?journalTitle . }
+              }
+            }
+            
+            # Build a display string with all available information
+            BIND(CONCAT(
+              IF(BOUND(?issueNumber), CONCAT("Issue ", ?issueNumber), ""),
+              IF(BOUND(?volumeNumber), CONCAT(IF(BOUND(?issueNumber), ", ", ""), "Vol. ", ?volumeNumber), ""),
+              IF(BOUND(?journalTitle), CONCAT(IF(BOUND(?issueNumber) || BOUND(?volumeNumber), ", ", ""), ?journalTitle), "")
+            ) AS ?display)
+          }
+          LIMIT 1
+        }
+        UNION
+        {
+          # If no Issue found, try to find a Volume
+          SELECT ?display ?container
+          WHERE {
+            [[subject]] frbr:partOf ?container .
+            ?container a fabio:JournalVolume .
+            
+            # Get volume number
+            OPTIONAL { ?container fabio:hasSequenceIdentifier ?volumeNumber . }
+            
+            # Get journal information
+            OPTIONAL {
+              ?container frbr:partOf ?journal .
+              ?journal a fabio:Journal .
+              OPTIONAL { ?journal dcterms:title ?journalTitle . }
+            }
+            
+            # Build a display string with all available information
+            BIND(CONCAT(
+              IF(BOUND(?volumeNumber), CONCAT("Vol. ", ?volumeNumber), ""),
+              IF(BOUND(?journalTitle), CONCAT(IF(BOUND(?volumeNumber), ", ", ""), ?journalTitle), "")
+            ) AS ?display)
+            
+            # Only include this if there's no Issue
+            FILTER NOT EXISTS {
+              [[subject]] frbr:partOf ?issue .
+              ?issue a fabio:JournalIssue .
+            }
+          }
+          LIMIT 1
+        }
+        UNION
+        {
+          # If no Issue or Volume found, try to find a Journal
+          SELECT ?display ?container
+          WHERE {
+            [[subject]] frbr:partOf ?container .
+            ?container a fabio:Journal .
+            
+            # Get journal title
+            OPTIONAL { ?container dcterms:title ?journalTitle . }
+            
+            # Use the journal title as display
+            BIND(COALESCE(?journalTitle, "Untitled Journal") AS ?display)
+            
+            # Only include this if there's no Issue or Volume
+            FILTER NOT EXISTS {
+              [[subject]] frbr:partOf ?issue .
+              ?issue a fabio:JournalIssue .
+            }
+            FILTER NOT EXISTS {
+              [[subject]] frbr:partOf ?volume .
+              ?volume a fabio:JournalVolume .
+            }
+          }
+          LIMIT 1
+        }
+      }
 
   book_container_property: &book_container_property
     property: "http://purl.org/vocab/frbr/core#partOf"
