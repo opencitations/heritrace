@@ -217,7 +217,7 @@
 <script src="{{ url_for('static', filename='js/search_entity.js') }}"></script>
 
 <script>
-    function handleAffectedEntities(affectedEntities, onConfirm, onCancel) {
+    function handleAffectedEntities(affectedEntities, orphanStrategy, proxyStrategy, onConfirm, onCancel) {
         if (!affectedEntities || affectedEntities.length === 0) {
             onConfirm([], false);
             return;
@@ -227,10 +227,23 @@
         const orphans = affectedEntities.filter(entity => !entity.is_intermediate);
         const intermediates = affectedEntities.filter(entity => entity.is_intermediate);
 
+        // Verifica se ci sono entità da mostrare in base alle strategie
+        const showOrphans = orphans.length > 0 && orphanStrategy !== 'delete';
+        const showProxies = intermediates.length > 0 && proxyStrategy !== 'delete';
+
+        // Se non c'è nulla da mostrare, procedi senza conferma
+        if (!showOrphans && !showProxies) {
+            // Determina se eliminare automaticamente in base alle strategie
+            const shouldDeleteOrphans = orphanStrategy === 'delete' && orphans.length > 0;
+            const shouldDeleteProxies = proxyStrategy === 'delete' && intermediates.length > 0;
+            onConfirm(affectedEntities, shouldDeleteOrphans || shouldDeleteProxies);
+            return;
+        }
+
         let messageContent = '<div class="text-start">';
 
-        // Aggiungi sezione per gli orfani se presenti
-        if (orphans.length > 0) {
+        // Aggiungi sezione per gli orfani se presenti e la strategia non è DELETE
+        if (showOrphans) {
             messageContent += `
                 <p>{{_("The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):")}}</p>
                 <ul class="list-unstyled mb-4" style="margin-left: 1rem;">
@@ -244,10 +257,10 @@
                 </ul>`;
         }
 
-        // Aggiungi sezione per le relazioni intermedie se presenti
-        if (intermediates.length > 0) {
+        // Aggiungi sezione per le relazioni intermedie se presenti e la strategia non è DELETE
+        if (showProxies) {
             messageContent += `
-                <p>{{_("The following intermediate relationships will also be removed:")}}</p>
+                <p>{{_("The following intermediate relationships (proxies) will also be removed:")}}</p>
                 <ul class="list-unstyled mb-4" style="margin-left: 1rem;">
                     ${intermediates.map(entity => `
                         <li style="margin-bottom: 0.5rem;">
@@ -289,13 +302,19 @@
                 'entity_type': entity_type
             }),
             success: function(response) {
-                if (response.status === 'confirmation_required') {
-                    handleAffectedEntities(
-                        response.affected_entities,
-                        successCallback
-                    );
-                } else if (response.status === 'success') {
-                    successCallback(response.affected_entities, response.should_delete);
+                if (response.status === 'success') {
+                    // Se ci sono entità affette e almeno una strategia è ASK
+                    if (response.affected_entities.length > 0 && !response.should_delete) {
+                        handleAffectedEntities(
+                            response.affected_entities,
+                            response.orphan_strategy,
+                            response.proxy_strategy,
+                            successCallback
+                        );
+                    } else {
+                        // Altrimenti procedi direttamente
+                        successCallback(response.affected_entities, response.should_delete);
+                    }
                 }
             },
             error: function(jqXHR) {
@@ -539,7 +558,6 @@
                 }
             });
         });
-
         if (Object.keys(structuredData.properties).length > 0) {
             pendingChanges.push({
                 action: 'create',
@@ -688,11 +706,11 @@
                 });
                 return;
             }
-
             processOrphanCheck(pendingChanges, entity_type, function(affectedEntities, shouldDelete) {
+                // Aggiorna il primo elemento di pendingChanges con le informazioni sulle entità affette
                 if (affectedEntities && affectedEntities.length > 0) {
                     pendingChanges[0].affected_entities = affectedEntities;
-                    pendingChanges[0].deleteAffected = shouldDelete;
+                    pendingChanges[0].delete_affected = shouldDelete;
                 }
                 
                 applyChangesToEntity(pendingChanges, function() {

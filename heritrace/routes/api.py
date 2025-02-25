@@ -4,7 +4,7 @@ import traceback
 from typing import Dict, Optional
 
 import validators
-from config import OrphanHandlingStrategy
+from config import OrphanHandlingStrategy, ProxyHandlingStrategy
 from flask import Blueprint, current_app, g, jsonify, request
 from flask_babel import gettext
 from flask_login import current_user, login_required
@@ -299,11 +299,17 @@ def validate_literal():
 @login_required
 def check_orphans():
     """
-    Check for orphaned entities and intermediate relations that would result from the requested changes.
+    Check for orphaned entities and intermediate relations (proxies) that would result from the requested changes.
+    Applies separate handling strategies for orphans and proxies, but returns a unified report.
     """
-    strategy = current_app.config.get(
+    # Get strategies from configuration
+    orphan_strategy = current_app.config.get(
         "ORPHAN_HANDLING_STRATEGY", OrphanHandlingStrategy.KEEP
     )
+    proxy_strategy = current_app.config.get(
+        "PROXY_HANDLING_STRATEGY", ProxyHandlingStrategy.KEEP
+    )
+
     data = request.json
     changes = data.get("changes", [])
     entity_type = data.get("entity_type")
@@ -312,7 +318,17 @@ def check_orphans():
     orphans = []
     intermediate_orphans = []
 
-    if strategy in (OrphanHandlingStrategy.DELETE, OrphanHandlingStrategy.ASK):
+    # Check for orphans and proxies based on their respective strategies
+    check_for_orphans = orphan_strategy in (
+        OrphanHandlingStrategy.DELETE,
+        OrphanHandlingStrategy.ASK,
+    )
+    check_for_proxies = proxy_strategy in (
+        ProxyHandlingStrategy.DELETE,
+        ProxyHandlingStrategy.ASK,
+    )
+
+    if check_for_orphans or check_for_proxies:
         for change in changes:
             if change["action"] == "delete":
                 found_orphans, found_intermediates = find_orphaned_entities(
@@ -321,12 +337,18 @@ def check_orphans():
                     change.get("predicate"),
                     change.get("object"),
                 )
-                orphans.extend(found_orphans)
-                intermediate_orphans.extend(found_intermediates)
 
-    # Keep strategy or no orphans found
-    if strategy == OrphanHandlingStrategy.KEEP or (
-        not orphans and not intermediate_orphans
+                # Only collect orphans if we need to handle them
+                if check_for_orphans:
+                    orphans.extend(found_orphans)
+
+                # Only collect proxies if we need to handle them
+                if check_for_proxies:
+                    intermediate_orphans.extend(found_intermediates)
+
+    # If both strategies are KEEP or no entities found, return empty result
+    if (orphan_strategy == OrphanHandlingStrategy.KEEP or not orphans) and (
+        proxy_strategy == ProxyHandlingStrategy.KEEP or not intermediate_orphans
     ):
         return jsonify({"status": "success", "affected_entities": []})
 
@@ -346,28 +368,35 @@ def check_orphans():
             for entity in entities
         ]
 
+    # Create a unified list of affected entities
     affected_entities = format_entities(orphans) + format_entities(
         intermediate_orphans, is_intermediate=True
     )
 
-    # DELETE strategy
-    if strategy == OrphanHandlingStrategy.DELETE:
+    # Determine if we should automatically delete entities
+    should_delete_orphans = orphan_strategy == OrphanHandlingStrategy.DELETE
+    should_delete_proxies = proxy_strategy == ProxyHandlingStrategy.DELETE
+
+    # If both strategies are DELETE, we can automatically delete everything
+    if should_delete_orphans and should_delete_proxies:
         return jsonify(
             {
                 "status": "success",
                 "affected_entities": affected_entities,
                 "should_delete": True,
+                "orphan_strategy": orphan_strategy.value,
+                "proxy_strategy": proxy_strategy.value,
             }
         )
 
-    # ASK strategy
+    # If at least one strategy is ASK, we need to ask the user
     return jsonify(
         {
-            "status": "confirmation_required",
+            "status": "success",
             "affected_entities": affected_entities,
-            "message": gettext(
-                "The following entities will be affected by this deletion."
-            ),
+            "should_delete": False,
+            "orphan_strategy": orphan_strategy.value,
+            "proxy_strategy": proxy_strategy.value,
         }
     )
 
@@ -380,6 +409,7 @@ def apply_changes():
         subject = changes[0]["subject"]
         affected_entities = changes[0].get("affected_entities", [])
         delete_affected = changes[0].get("delete_affected", False)
+
         editor = Editor(
             get_dataset_endpoint(),
             get_provenance_endpoint(),
@@ -408,8 +438,11 @@ def apply_changes():
                     )
 
         # Poi gestisci le altre modifiche
-        strategy = current_app.config.get(
+        orphan_strategy = current_app.config.get(
             "ORPHAN_HANDLING_STRATEGY", OrphanHandlingStrategy.KEEP
+        )
+        proxy_strategy = current_app.config.get(
+            "PROXY_HANDLING_STRATEGY", ProxyHandlingStrategy.KEEP
         )
 
         for change in changes:
@@ -422,11 +455,43 @@ def apply_changes():
                     graph_uri,
                 )
 
-                if strategy == OrphanHandlingStrategy.DELETE or (
-                    strategy == OrphanHandlingStrategy.ASK and delete_affected
-                ):
-                    for orphan in affected_entities:
-                        editor.delete(orphan["uri"])
+                # Gestione separata per orfani e proxy
+                if affected_entities:
+                    # Separa gli orfani dalle entità proxy
+                    orphans = [
+                        entity
+                        for entity in affected_entities
+                        if not entity.get("is_intermediate")
+                    ]
+                    proxies = [
+                        entity
+                        for entity in affected_entities
+                        if entity.get("is_intermediate")
+                    ]
+
+                    # Gestione degli orfani secondo la strategia per gli orfani
+                    should_delete_orphans = (
+                        orphan_strategy == OrphanHandlingStrategy.DELETE
+                        or (
+                            orphan_strategy == OrphanHandlingStrategy.ASK
+                            and delete_affected
+                        )
+                    )
+                    if should_delete_orphans and orphans:
+                        for orphan in orphans:
+                            editor.delete(orphan["uri"])
+
+                    # Gestione dei proxy secondo la strategia per i proxy
+                    should_delete_proxies = (
+                        proxy_strategy == ProxyHandlingStrategy.DELETE
+                        or (
+                            proxy_strategy == ProxyHandlingStrategy.ASK
+                            and delete_affected
+                        )
+                    )
+                    if should_delete_proxies and proxies:
+                        for proxy in proxies:
+                            editor.delete(proxy["uri"])
 
             elif change["action"] == "update":
                 update_logic(

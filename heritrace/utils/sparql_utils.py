@@ -577,9 +577,11 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
     For intermediate relations, an entity is also considered orphaned if:
     1. It connects to the entity being deleted
     2. It has no other valid connections after the deletion
+    3. It is directly involved in the deletion operation (if predicate and object_value are specified)
 
     Args:
         subject (str): The URI of the subject being deleted
+        entity_type (str): The type of the entity being deleted
         predicate (str, optional): The predicate being deleted
         object_value (str, optional): The object value being deleted
 
@@ -630,21 +632,53 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
     """
 
     # Query to find orphaned intermediate relations
-    intermediate_query = f"""
-    SELECT DISTINCT ?entity ?type
-    WHERE {{
-        # Find intermediate relations connected to the entity being deleted
-        {{
-            <{subject}> ?p ?entity .
-            ?entity a ?type .
+    # Se stiamo cancellando una tripla specifica (predicate e object_value specificati)
+    if predicate and object_value:
+        # Verifica se l'object_value è un'entità intermedia
+        intermediate_query = f"""
+        SELECT DISTINCT ?entity ?type
+        WHERE {{
+            <{object_value}> a ?type .
             FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
-        }} UNION {{
-            ?entity ?p <{subject}> .
-            ?entity a ?type .
-            FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
-        }}        
-    }}
-    """
+            
+            # Considera l'entità intermedia come orfana se non ha altre connessioni
+            FILTER NOT EXISTS {{
+                ?other ?anyPredicate <{object_value}> .
+                FILTER(?other != <{subject}>)
+            }}
+            
+            BIND(<{object_value}> AS ?entity)
+        }}
+        """
+    else:
+        # Se stiamo cancellando l'intera entità, trova tutte le entità intermedie collegate
+        intermediate_query = f"""
+        SELECT DISTINCT ?entity ?type
+        WHERE {{
+            # Find intermediate relations connected to the entity being deleted
+            {{
+                <{subject}> ?p ?entity .
+                ?entity a ?type .
+                FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
+                
+                # Considera l'entità intermedia come orfana se non ha altre connessioni
+                FILTER NOT EXISTS {{
+                    ?other ?anyPredicate ?entity .
+                    FILTER(?other != <{subject}>)
+                }}
+            }} UNION {{
+                ?entity ?p <{subject}> .
+                ?entity a ?type .
+                FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
+                
+                # Considera l'entità intermedia come orfana se non ha altre connessioni
+                FILTER NOT EXISTS {{
+                    ?entity ?anyPredicate ?other .
+                    FILTER(?other != <{subject}>)
+                }}
+            }}        
+        }}
+        """
 
     orphaned = []
     intermediate_orphans = []

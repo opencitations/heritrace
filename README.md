@@ -83,6 +83,14 @@ class Config(object):
 * ORPHAN_HANDLING_STRATEGY: Strategy for handling orphaned entities (ASK = prompt user).
 * PROXY_HANDLING_STRATEGY: Strategy for handling proxy entities (DELETE = automatic removal).
 
+Both ORPHAN_HANDLING_STRATEGY and PROXY_HANDLING_STRATEGY can be set to one of three values:
+  - DELETE: Automatically delete the entities without asking
+  - ASK: Prompt the user before deleting
+  - KEEP: Keep the entities (do nothing)
+
+Orphaned entities are resources that would no longer be connected to any other resource in the dataset after a deletion.
+Proxy entities are intermediate relationships that connect resources together.
+
 ## SHACL File
 
 The SHACL (Shapes Constraint Language) file is crucial for defining the data model in HERITRACE. It specifies classes, properties, and constraints for each property in the RDF graph. For instance, the provided SHACL example outlines a `BibliographicResourceShape`, targeting the class `fabio:Expression` and defining properties like `datacite:hasIdentifier`, `dcterms:title`, and relationships such as `frbr:partOf`. These specifications ensure that the metadata adheres to the defined structure and constraints.
