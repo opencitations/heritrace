@@ -279,10 +279,59 @@
         });
     }
 
+    // Function to validate the cardinality (min and max) of properties
+    function validateCardinality(errors) {
+        $('[data-repeater-list]:visible').each(function() {
+            const repeaterList = $(this);
+            const maxItems = parseInt(repeaterList.data('max-items')) || Infinity;
+            const minItems = parseInt(repeaterList.data('min-items')) || 0;
+            
+            // Count visible items that are not templates
+            const allItems = repeaterList.children('[data-repeater-item]:visible').not('.repeater-template');
+            
+            // Identify predefined values (hasValue items) that have data-mandatory-value="true"
+            const predefinedItems = allItems.filter(function() {
+                return $(this).find('[data-mandatory-value="true"]').length > 0;
+            });
+            
+            // Count only user-added items (excluding predefined values)
+            const userAddedItems = allItems.not(function() {
+                return $(this).find('[data-mandatory-value="true"]').length > 0;
+            });
+            
+            // For min count, we consider all items
+            const totalItemCount = allItems.length;
+            
+            // For max count, we only consider user-added items
+            const userAddedItemCount = userAddedItems.length;
+            
+            // Get the property name for error messages
+            const predicateUri = repeaterList.data('uri');
+            const displayName = repeaterList.data('repeater-list').replace(/_/g, ' ') || 
+                               predicateUri || 
+                               '{{ _("Unknown property") }}';
+            
+            // Check maximum constraint - only count user-added items against maxItems
+            if (maxItems !== Infinity && userAddedItemCount > maxItems) {
+                errors.push({
+                    field: repeaterList,
+                    message: `{{ _("The property") }} "${displayName}" {{ _("has too many values") }} (${userAddedItemCount}). {{ _("Maximum allowed is") }} ${maxItems}.`
+                });
+            }
+            
+            // Check minimum constraint - consider all items including predefined values
+            if (totalItemCount < minItems) {
+                errors.push({
+                    field: repeaterList,
+                    message: `{{ _("The property") }} "${displayName}" {{ _("has too few values") }} (${totalItemCount}). {{ _("Minimum required is") }} ${minItems}.`
+                });
+            }
+        });
+    }
+
     function displayValidationErrors(errors) {
         let errorMessages = errors.map(error => error.message);
-        let errorMessage = `
-            <ul style="list-style-type: none; padding-left: 0;">
+        let errorMessage = `            <ul style="list-style-type: none; padding-left: 0;">
                 ${errorMessages.map(error => `
                     <li style="margin-bottom: 8px; display: flex; align-items: flex-start; text-align: left">
                         <span style="color: #d32f2f; margin-right: 8px;">&#9888;</span>

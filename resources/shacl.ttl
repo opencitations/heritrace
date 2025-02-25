@@ -1293,7 +1293,11 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:node schema:JournalShape ;
+    sh:or (
+      [ sh:node schema:IssueShape ]
+      [ sh:node schema:VolumeShape ]
+      [ sh:node schema:JournalShape ]
+    ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;

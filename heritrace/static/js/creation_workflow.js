@@ -308,6 +308,12 @@ function collectFormData(container, data, shacl, depth) {
             let orderedBy = repeaterList.data('ordered-by');
             repeaterList.children('[data-repeater-item]:visible').each(function(index) {
                 let repeaterItem = $(this);
+                
+                // Salta gli elementi marcati con data-skip-collect="true"
+                if (repeaterItem.data('skip-collect')) {
+                    return;
+                }
+                
                 let itemDepth = parseInt(repeaterItem.data('depth'));
                 let objectClass = repeaterItem.find('[data-class]:visible').first().data('class');
                 let tempId = repeaterItem.data('temp-id');
@@ -645,7 +651,10 @@ $(document).ready(function() {
         const selectedShape = $selectedOption.val();
         const $containerForms = $container.find('.container-forms');
         $container.find('.container-form').addClass('d-none');
+        
+        // Imposta l'attributo data-skip-collect="true" quando viene selezionato un valore
         if (selectedShape) {
+            $container.attr('data-skip-collect', 'true');
             $containerForms.removeClass('d-none');
             const $selectedForm = $container.find(`.container-form[data-shape="${selectedShape}"]`);
             $selectedForm.removeClass('d-none');
@@ -674,6 +683,7 @@ $(document).ready(function() {
             initializeMandatoryElements($selectedForm);
         } else {
             // Se nessuna opzione è selezionata, nascondi il contenitore dei form
+            $container.removeAttr('data-skip-collect');
             $containerForms.addClass('d-none');
         }
     });

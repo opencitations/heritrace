@@ -360,6 +360,7 @@
             validateUrls(errors);
             validateDatatypes(errors);
             validateConditions(errors);
+            validateCardinality(errors);
 
             // Verifica che almeno una proprietà sia specificata
             if ('{{shacl}}' !== 'True') {

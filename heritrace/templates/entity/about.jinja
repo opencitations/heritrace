@@ -518,6 +518,9 @@
             properties: {}
         };
 
+        // Clear pendingChanges before collecting new properties to avoid duplications
+        pendingChanges = pendingChanges.filter(change => change.action !== 'create');
+        
         collectFormData($('.triples'), structuredData.properties, shacl, 0);
 
         Object.keys(structuredData.properties).forEach(function (predicate) {
@@ -558,6 +561,7 @@
                 }
             });
         });
+        
         if (Object.keys(structuredData.properties).length > 0) {
             pendingChanges.push({
                 action: 'create',
@@ -689,6 +693,7 @@
             validateUrls(errors);
             validateDatatypes(errors);
             validateConditions(errors);
+            validateCardinality(errors);
 
             if (errors.length > 0) {
                 displayValidationErrors(errors);                
@@ -712,7 +717,6 @@
                     pendingChanges[0].affected_entities = affectedEntities;
                     pendingChanges[0].delete_affected = shouldDelete;
                 }
-                
                 applyChangesToEntity(pendingChanges, function() {
                     window.location.href = "{{ url_for('entity.about', subject=subject) }}";
                 });
