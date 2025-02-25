@@ -734,6 +734,9 @@ common_properties:
       - shape: "http://schema.org/PublisherShape"
         displayName: "Publisher"
         fetchValueFromQuery: *publisher_query
+      - shape: "http://schema.org/CollaboratorShape"
+        displayName: "Collaborator"
+        fetchValueFromQuery: *collaborator_query
 
   publication_date_property: &publication_date_property
     property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
@@ -1114,6 +1117,7 @@ classes:
         {
           SELECT ?title ?pubDate ?publisher
                 (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
+                (GROUP_CONCAT(?collabName; SEPARATOR = ", ") AS ?collabList)
           WHERE {
             [[uri]] a fabio:Series .
             OPTIONAL { [[uri]] dcterms:title ?title . }
@@ -1131,6 +1135,22 @@ classes:
                   ?familyName,
                   COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
                 ) AS ?editorName)
+              }
+            }
+            
+            # Get collaborator information
+            OPTIONAL {
+              [[uri]] pro:isDocumentContextFor ?collabRole .
+              ?collabRole pro:withRole pro:contributor ;
+                          pro:isHeldBy ?collab .
+              OPTIONAL { ?collab foaf:name ?collabName . }
+              OPTIONAL {
+                ?collab foaf:familyName ?familyName .
+                OPTIONAL { ?collab foaf:givenName ?givenName . }
+                BIND(CONCAT(
+                  ?familyName,
+                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                ) AS ?collabName)
               }
             }
             
@@ -1160,6 +1180,9 @@ classes:
           IF(BOUND(?editorList) && STRLEN(?editorList) > 0, 
             CONCAT(" (", ?editorList, ", Ed.)"), 
             ""),
+          IF(BOUND(?collabList) && STRLEN(?collabList) > 0, 
+            CONCAT(" (", ?collabList, ", Collab.)"), 
+            ""),
           IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
           IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
           "."
@@ -1173,6 +1196,8 @@ classes:
       - *identifier_property
       - *title_property
       - *description_property
+      - *abstract_property
+      - *keyword_property
       - *document_context_property_container
       - *publication_date_property
     sortableBy:
@@ -1703,10 +1728,28 @@ classes:
             }
           }
         }
+        OPTIONAL {
+          SELECT (GROUP_CONCAT(?collabName; SEPARATOR = ", ") AS ?collabList)
+          WHERE {
+            [[uri]] pro:isDocumentContextFor ?collabRole .
+            ?collabRole pro:withRole pro:contributor ;
+                        pro:isHeldBy ?collab .
+            OPTIONAL { ?collab foaf:name ?collabName . }
+            OPTIONAL {
+              ?collab foaf:familyName ?familyName .
+              OPTIONAL { ?collab foaf:givenName ?givenName . }
+              BIND(CONCAT(
+                ?familyName,
+                COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+              ) AS ?collabName)
+            }
+          }
+        }
         
         BIND(CONCAT(
           ?title,
           IF(BOUND(?editorList), CONCAT(". ", ?editorList, " (Ed.)"), ""),
+          IF(BOUND(?collabList), CONCAT(". ", ?collabList, " (Collab.)"), ""),
           IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
           "."
         ) AS ?displayWithDot)
@@ -1719,6 +1762,8 @@ classes:
       - *identifier_property
       - *title_property
       - *description_property
+      - *abstract_property
+      - *keyword_property
       - *document_context_property_container
       - *publication_date_property
     sortableBy:

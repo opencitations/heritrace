@@ -35,9 +35,19 @@ schema:IdentifierShape
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
     sh:in (
-      datacite:doi datacite:pmid datacite:pmcid datacite:orcid
-      datacite:isbn datacite:issn datacite:viaf datacite:crossref datacite:datacite
-      datacite:wikidata datacite:wikipedia datacite:openalex datacite:jid      
+      datacite:crossref
+      datacite:datacite
+      datacite:doi
+      datacite:isbn
+      datacite:issn
+      datacite:jid
+      datacite:openalex
+      datacite:orcid
+      datacite:pmcid
+      datacite:pmid
+      datacite:viaf
+      datacite:wikidata
+      datacite:wikipedia
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -65,9 +75,9 @@ schema:JournalArticleIdentifierShape
     sh:maxCount 1 ;
     sh:in (
       datacite:doi
-      datacite:pmid
-      datacite:pmcid
       datacite:openalex
+      datacite:pmcid
+      datacite:pmid
     ) ;
   ] ;
   sh:property [
@@ -137,10 +147,10 @@ schema:JournalIdentifierShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:in (
+      datacite:doi
       datacite:issn
+      datacite:jid
       datacite:openalex
-      datacite:jid      
-      datacite:doi 
     ) ;
   ] ;
   sh:property [
@@ -196,6 +206,95 @@ schema:JournalIdentifierShape
     sh:node schema:JournalShape ;
   ] .
 
+schema:SeriesAndProceedingsIdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      datacite:doi
+      datacite:isbn
+      datacite:issn
+      datacite:jid      
+      datacite:openalex
+    ) ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:issn ;
+    ] ;
+    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
+    sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:jid ;
+    ] ;
+    sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
+    sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
+  ] ;  
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:openalex ;
+    ] ;
+    sh:pattern "^S\\d+$" ;
+    sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 " ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:isbn ;
+    ] ;
+    sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
+    sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
+  ] ;
+  sh:property [
+    sh:path [sh:inversePath datacite:hasIdentifier] ;
+    sh:or (
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SeriesShape ]
+    ) ;
+  ] .
+
 schema:BookIdentifierShape
   a sh:NodeShape ;
   sh:targetClass datacite:Identifier ;
@@ -208,7 +307,11 @@ schema:BookIdentifierShape
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
     sh:in (
-      datacite:doi datacite:pmid datacite:pmcid datacite:isbn datacite:openalex     
+      datacite:doi
+      datacite:isbn
+      datacite:openalex
+      datacite:pmcid
+      datacite:pmid
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -296,12 +399,12 @@ schema:AgentIdentifierShape
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
     sh:in (
-      datacite:orcid
-      datacite:viaf 
       datacite:crossref
-      datacite:wikidata 
+      datacite:orcid
+      datacite:ror
+      datacite:viaf
+      datacite:wikidata
       datacite:wikipedia
-      datacite:ror 
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -970,6 +1073,17 @@ schema:ProceedingsShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -995,8 +1109,13 @@ schema:ProceedingsShape
     sh:minCount 0 ;
   ] ;
   sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path datacite:hasIdentifier ;
-    sh:node schema:JournalIdentifierShape ;
+    sh:node schema:SeriesAndProceedingsIdentifierShape ;
     sh:minCount 0 ;
   ] .
 
@@ -1449,6 +1568,17 @@ schema:SeriesShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:keyword ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -1474,8 +1604,13 @@ schema:SeriesShape
     sh:minCount 0 ;
   ] ;
   sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:CollaboratorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path datacite:hasIdentifier ;
-    sh:node schema:JournalIdentifierShape ;
+    sh:node schema:SeriesAndProceedingsIdentifierShape ;
     sh:minCount 0 ;
   ] .
 
