@@ -6,36 +6,82 @@ This system facilitates non-technical domain experts in enriching and editing me
 
 ## Configuration
 
+A template configuration file is provided as `config.example.py`. To get started:
+1. Copy `config.example.py` to `config.py`
+2. Update the configuration values according to your needs
+3. Make sure to change sensitive values like `SECRET_KEY` and ORCID credentials
+
 Before using HERITRACE, configure the application by editing the `config.py` file. The configuration settings are as follows:
 
 ```python
 class Config(object):
-    SECRET_KEY = 'aesoiuhaoiuafe'
-    DATASET_ENDPOINT = 'http://127.0.0.1:9999/blazegraph/sparql'
-    PROVENANCE_ENDPOINT = 'http://127.0.0.1:19999/blazegraph/sparql'
-    DATASET_GENERATION_TIME = '2023-09-20T10:23:11+02:00'
-    COUNTER_HANDLER = SqliteCounterHandler(os.path.join(BASE_DIR, 'meta_counter_handler.db'))
+    APP_TITLE = 'Your App Title'
+    APP_SUBTITLE = 'Your App Subtitle'
+    
+    SECRET_KEY = 'your-secret-key-here'  # Change this to a secure random string
+    CACHE_FILE = 'cache.json'
+    CACHE_VALIDITY_DAYS = 7
+
+    DATASET_DB_TRIPLESTORE = 'virtuoso'  # virtuoso or blazegraph
+    DATASET_DB_TEXT_INDEX_ENABLED = True
+    PROVENANCE_DB_TRIPLESTORE = 'virtuoso'  # virtuoso or blazegraph
+    
+    DATASET_DB_URL = 'http://localhost:8999/sparql'
+    PROVENANCE_DB_URL = 'http://localhost:8998/sparql'
+    
+    DATASET_IS_QUADSTORE = True
+    PROVENANCE_IS_QUADSTORE = True
+    
+    DATASET_GENERATION_TIME = '2024-09-16T00:00:00+02:00'
+    URI_GENERATOR = meta_uri_generator
+    COUNTER_HANDLER = counter_handler
     LANGUAGES = ['en', 'it']
-    BABEL_TRANSLATION_DIRECTORIES = os.path.join(BASE_DIR, 'babel', 'translations')
-    CHANGE_TRACKING_CONFIG = os.path.join(BASE_DIR, 'change_tracking.json')
-    RESPONSIBLE_AGENT = URIRef('https://orcid.org/0000-0002-8420-0696')
-    PRIMARY_SOURCE = None
-    SHACL_PATH = os.path.join(BASE_DIR, 'resources', 'shacl.ttl')
-    DISPLAY_RULES_PATH = os.path.join(BASE_DIR, 'display_rules.yaml')
+    BABEL_TRANSLATION_DIRECTORIES = os.path.join(BASE_HERITRACE_DIR, 'babel', 'translations')
+    CHANGE_TRACKING_CONFIG = os.path.join(BASE_HERITRACE_DIR, 'change_tracking.json')
+    PRIMARY_SOURCE = 'https://doi.org/your-doi'
+    SHACL_PATH = shacl_path
+    DISPLAY_RULES_PATH = display_rules_path
+
+    # ORCID Integration Settings
+    ORCID_CLIENT_ID = 'your-client-id'
+    ORCID_CLIENT_SECRET = 'your-client-secret'
+    ORCID_AUTHORIZE_URL = 'https://orcid.org/oauth/authorize'
+    ORCID_TOKEN_URL = 'https://orcid.org/oauth/token'
+    ORCID_API_URL = 'https://pub.orcid.org/v2.1'
+    ORCID_SCOPE = '/authenticate'
+    ORCID_WHITELIST = [
+        'your-allowed-orcid-1',
+        'your-allowed-orcid-2'
+    ]
+
+    ORPHAN_HANDLING_STRATEGY = OrphanHandlingStrategy.ASK
+    PROXY_HANDLING_STRATEGY = ProxyHandlingStrategy.DELETE
 ```
 
+* APP_TITLE: The title of the application shown in the interface.
+* APP_SUBTITLE: The subtitle of the application shown in the interface.
 * SECRET_KEY: A secret key for the application security.
-* DATASET_ENDPOINT: SPARQL endpoint URL for the dataset.
-* PROVENANCE_ENDPOINT: SPARQL endpoint URL for provenance data.
+* CACHE_FILE: The name of the file used for caching.
+* CACHE_VALIDITY_DAYS: Number of days the cache remains valid.
+* DATASET_DB_TRIPLESTORE: The type of triplestore used for the dataset ('virtuoso' or 'blazegraph').
+* DATASET_DB_TEXT_INDEX_ENABLED: Whether text indexing is enabled for the dataset.
+* PROVENANCE_DB_TRIPLESTORE: The type of triplestore used for provenance data.
+* DATASET_DB_URL: SPARQL endpoint URL for the dataset.
+* PROVENANCE_DB_URL: SPARQL endpoint URL for provenance data.
+* DATASET_IS_QUADSTORE: Whether the dataset uses a quadstore.
+* PROVENANCE_IS_QUADSTORE: Whether the provenance data uses a quadstore.
 * DATASET_GENERATION_TIME: Timestamp for dataset generation.
-* COUNTER_HANDLER: Handles counters using SQLite. Can be left as default.
-* LANGUAGES: Supported languages. Can be left as default.
-* BABEL_TRANSLATION_DIRECTORIES: Translation directories for Babel. Can be left as default.
+* URI_GENERATOR: The generator for URIs (configured as meta_uri_generator).
+* COUNTER_HANDLER: Handles counters using SQLite.
+* LANGUAGES: Supported languages.
+* BABEL_TRANSLATION_DIRECTORIES: Translation directories for Babel.
 * CHANGE_TRACKING_CONFIG: Path to the change tracking configuration file.
-* RESPONSIBLE_AGENT: URIRef for the responsible agent (e.g., a curator's ORCID).
-* PRIMARY_SOURCE: Primary source of data, if applicable.
+* PRIMARY_SOURCE: Primary source of data (DOI reference).
 * SHACL_PATH: Path to the SHACL file for data model customization.
 * DISPLAY_RULES_PATH: Path to the YAML file for interface customization.
+* ORCID_*: ORCID integration settings for authentication.
+* ORPHAN_HANDLING_STRATEGY: Strategy for handling orphaned entities (ASK = prompt user).
+* PROXY_HANDLING_STRATEGY: Strategy for handling proxy entities (DELETE = automatic removal).
 
 ## SHACL File
 
@@ -162,52 +208,55 @@ schema:BibliographicResourceShape
 
 ## YAML Display Rules File
 
-The YAML file for display rules allows for presentation customizations of the data model. It defines user-friendly names for classes and properties and specifies how properties should be displayed. This includes configuring SPARQL queries for fetching specific values and setting the order of properties. The provided example demonstrates how different properties of a bibliographic resource, like title, subtitle, and author, are configured for display in the user interface.
+The YAML file for display rules allows for presentation customizations of the data model. It defines how properties should be displayed and handled in the user interface. Here's an example configuration for a Journal Article:
 
 ```yaml
-- class: "http://purl.org/spar/fabio/Expression"
-  displayName: "Bibliographic Resource"
+- class: "http://purl.org/spar/fabio/JournalArticle"
+  displayName: "Journal Article"
   displayProperties:
-    - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    - property: "http://purl.org/dc/terms/title"
       values:
-      - displayName: "Type"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+        - displayName: "Title"
+          shouldBeDisplayed: true
+          inputType: "text"
+          required: true
+
+    - property: "http://purl.org/spar/fabio/hasSubtitle"
+      values:
+        - displayName: "Subtitle"
+          shouldBeDisplayed: true
+          inputType: "text"
+
+    - property: "http://purl.org/dc/terms/description"
+      values:
+        - displayName: "Abstract"
+          shouldBeDisplayed: true
+          inputType: "textarea"
+
     - property: "http://purl.org/spar/datacite/hasIdentifier"
       values:
-      - displayName: "Identifier"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+        - displayName: "Identifier"
+          shouldBeDisplayed: true
+          fetchValueFromQuery: |
             PREFIX datacite: <http://purl.org/spar/datacite/>
             PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-            SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
+            SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id)
             WHERE {
                 [[subject]] datacite:hasIdentifier ?identifier.
                 ?identifier datacite:usesIdentifierScheme ?scheme;
-                            literal:hasLiteralValue ?literal.
+                          literal:hasLiteralValue ?literal.
             }
-      orderedBy: null
-    - property: "http://purl.org/dc/terms/title"
-      values:
-      - displayName: "Title"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
-    - property: "http://purl.org/spar/fabio/hasSubtitle"
-      values:
-      - displayName: "Subtitle"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
+
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
+      orderedBy: "https://w3id.org/oc/ontology/hasNext"
       values:
-      - displayName: "Author"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+        - displayName: "Author"
+          shouldBeDisplayed: true
+          fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>
             PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            SELECT DISTINCT ?formattedName ?ra WHERE {
+            SELECT DISTINCT ?formattedName ?ra
+            WHERE {
                 [[value]] pro:isHeldBy ?ra;
                     pro:withRole pro:author.
                 OPTIONAL { ?ra foaf:name ?name. }
@@ -215,116 +264,25 @@ The YAML file for display rules allows for presentation customizations of the da
                 OPTIONAL { ?ra foaf:givenName ?givenName. }
                 BIND(
                     IF(BOUND(?name), ?name,
-                        IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                            IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                                IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                            )
+                        IF(BOUND(?familyName) && BOUND(?givenName), 
+                            CONCAT(?familyName, ", ", ?givenName),
+                            IF(BOUND(?familyName), ?familyName, ?givenName)
                         )
                     ) AS ?formattedName
                 )
             }
-      - displayName: "Publisher"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-            PREFIX pro: <http://purl.org/spar/pro/>
-            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            SELECT DISTINCT ?formattedName ?ra WHERE {
-                [[value]] pro:isHeldBy ?ra;
-                    pro:withRole pro:publisher.
-                OPTIONAL { ?ra foaf:name ?name. }
-                OPTIONAL { ?ra foaf:familyName ?familyName. }
-                OPTIONAL { ?ra foaf:givenName ?givenName. }
-                BIND(
-                    IF(BOUND(?name), ?name,
-                        IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                            IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                                IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                            )
-                        )
-                    ) AS ?formattedName
-                )
-            }
-      - displayName: "Editor"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-            PREFIX pro: <http://purl.org/spar/pro/>
-            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            SELECT DISTINCT ?formattedName ?ra WHERE {
-                [[value]] pro:isHeldBy ?ra;
-                    pro:withRole pro:editor.
-                OPTIONAL { ?ra foaf:name ?name. }
-                OPTIONAL { ?ra foaf:familyName ?familyName. }
-                OPTIONAL { ?ra foaf:givenName ?givenName. }
-                BIND(
-                    IF(BOUND(?name), ?name,
-                        IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                            IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                                IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                            )
-                        )
-                    ) AS ?formattedName
-                )
-            }
-      orderedBy: "https://w3id.org/oc/ontology/hasNext"
+
     - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
       values:
-      - displayName: "Publication Date"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: null
-      orderedBy: null
-    - property: "http://purl.org/vocab/frbr/core#embodiment"
-      values:
-      - displayName: "Page"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-          PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-          PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-          SELECT 
-              (IF(BOUND(?startingPage) && BOUND(?endingPage), 
-                  CONCAT(STR(?startingPage), "-", STR(?endingPage)), 
-                  IF(BOUND(?startingPage), STR(?startingPage), 
-                  IF(BOUND(?endingPage), STR(?endingPage), ""))) AS ?page) 
-            ?re
-          WHERE {
-              [[subject]] frbr:embodiment ?re.
-              OPTIONAL { ?re prism:startingPage ?startingPage. }
-              OPTIONAL { ?re prism:endingPage ?endingPage. }
-          }
-      orderedBy: null
+        - displayName: "Publication Date"
+          shouldBeDisplayed: true
+          inputType: "date"
+
     - property: "http://purl.org/vocab/frbr/core#partOf"
       values:
-      - displayName: "Issue"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-            PREFIX fabio: <http://purl.org/spar/fabio/>
-            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-            SELECT ?issueNumber ?issue
-            WHERE {
-                [[subject]] frbr:partOf ?issue.
-                ?issue a fabio:JournalIssue;
-                    fabio:hasSequenceIdentifier ?issueNumber.
-            }
-      orderedBy: null
-    - property: "http://purl.org/vocab/frbr/core#partOf"
-      values:
-      - displayName: "Volume"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-            PREFIX fabio: <http://purl.org/spar/fabio/>
-            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-            PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            SELECT ?volumeNumber ?volume
-            WHERE {
-                [[subject]] frbr:partOf+ ?volume.
-                ?volume a fabio:JournalVolume;
-                    fabio:hasSequenceIdentifier ?volumeNumber.
-            }
-      orderedBy: null
-    - property: "http://purl.org/vocab/frbr/core#partOf"
-      values:
-      - displayName: "Journal"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
+        - displayName: "Journal"
+          shouldBeDisplayed: true
+          fetchValueFromQuery: |
             PREFIX fabio: <http://purl.org/spar/fabio/>
             PREFIX frbr: <http://purl.org/vocab/frbr/core#>
             PREFIX dcterms: <http://purl.org/dc/terms/>
@@ -334,14 +292,104 @@ The YAML file for display rules allows for presentation customizations of the da
                 ?journal a fabio:Journal;
                     dcterms:title ?journalName.
             }
-      orderedBy: null
+
+        - displayName: "Volume"
+          shouldBeDisplayed: true
+          fetchValueFromQuery: |
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+            SELECT ?volumeNumber ?volume
+            WHERE {
+                [[subject]] frbr:partOf+ ?volume.
+                ?volume a fabio:JournalVolume;
+                    fabio:hasSequenceIdentifier ?volumeNumber.
+            }
+
+        - displayName: "Issue"
+          shouldBeDisplayed: true
+          fetchValueFromQuery: |
+            PREFIX fabio: <http://purl.org/spar/fabio/>
+            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+            SELECT ?issueNumber ?issue
+            WHERE {
+                [[subject]] frbr:partOf ?issue.
+                ?issue a fabio:JournalIssue;
+                    fabio:hasSequenceIdentifier ?issueNumber.
+            }
+
+    - property: "http://purl.org/vocab/frbr/core#embodiment"
+      values:
+        - displayName: "Page Range"
+          shouldBeDisplayed: true
+          fetchValueFromQuery: |
+            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+            PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+            SELECT 
+                (IF(BOUND(?startingPage) && BOUND(?endingPage), 
+                    CONCAT(STR(?startingPage), "-", STR(?endingPage)), 
+                    IF(BOUND(?startingPage), STR(?startingPage), 
+                    IF(BOUND(?endingPage), STR(?endingPage), ""))) AS ?page) 
+                ?re
+            WHERE {
+                [[subject]] frbr:embodiment ?re.
+                OPTIONAL { ?re prism:startingPage ?startingPage. }
+                OPTIONAL { ?re prism:endingPage ?endingPage. }
+            }
 ```
+
+Key configuration elements:
+
+* `class`: The RDF class being configured (e.g., fabio:JournalArticle)
+* `displayName`: Human-readable name for the class
+* `displayProperties`: List of properties to display for this class
+  * `property`: The RDF property URI
+  * `values`: Configuration for how to display/handle the property values
+    * `displayName`: Label shown in the interface
+    * `shouldBeDisplayed`: Whether to show the property
+    * `inputType`: Type of input field ("text", "textarea", "date", etc.)
+    * `required`: Whether the property is required
+    * `fetchValueFromQuery`: SPARQL query for retrieving values
+  * `orderedBy`: Property used for ordering multiple values (e.g., author order)
+
+## Database Setup
+
+HERITRACE requires two databases: one for the dataset and one for provenance data. You have two options:
+
+1. **Use existing databases**: Configure the endpoints in `config.py`:
+   ```python
+   DATASET_DB_URL = 'http://localhost:8999/sparql'    # Your dataset endpoint
+   PROVENANCE_DB_URL = 'http://localhost:8998/sparql' # Your provenance endpoint
+   ```
+
+2. **Start fresh databases using Docker**: 
+   - Ensure Docker is installed on your system
+   - For Unix/Linux/MacOS, use the provided scripts:
+     ```bash
+     ./start-databases.sh  # Start the databases
+     ./stop-databases.sh   # Stop the databases when done
+     ```
+   - For Windows, use the PowerShell scripts:
+     ```powershell
+     .\Start-Databases.ps1  # Start the databases
+     .\Stop-Databases.ps1   # Stop the databases when done
+     ```
+   
+   This will start two Virtuoso instances:
+   - Dataset database on port 8999
+   - Provenance database on port 8998
 
 ## Launching the Application
 
-To launch HERITRACE, use the following commands depending on your operating system:
+HERITRACE can be launched using Docker Compose:
 
-On Windows: `python app.py`
-On Linux and MacOS: `python3 app.py`
+1. **Development mode**:
+   ```bash
+   docker-compose -f docker-compose.dev.yaml up
+   ```
 
-This command starts the Flask application, making HERITRACE accessible for use.
+2. **Production mode**:
+   ```bash
+   docker-compose up
+   ```
+
+The application will be available at `https://localhost:5000`
