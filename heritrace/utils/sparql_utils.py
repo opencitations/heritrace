@@ -1,20 +1,25 @@
-
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask_babel import gettext
 from heritrace.editor import Editor
-from heritrace.extensions import (display_rules, form_fields_cache,
-                                  get_change_tracking_config,
-                                  get_custom_filter, get_dataset_is_quadstore,
-                                  get_display_rules, get_provenance_sparql,
-                                  get_sparql)
+from heritrace.extensions import (
+    display_rules,
+    form_fields_cache,
+    get_change_tracking_config,
+    get_custom_filter,
+    get_dataset_is_quadstore,
+    get_display_rules,
+    get_provenance_sparql,
+    get_sparql,
+)
 from heritrace.utils.converters import convert_to_datetime
-from heritrace.utils.display_rules_utils import (get_highest_priority_class,
-                                                 get_sortable_properties,
-                                                 is_entity_type_visible)
-from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
-                                            is_virtuoso)
+from heritrace.utils.display_rules_utils import (
+    get_highest_priority_class,
+    get_sortable_properties,
+    is_entity_type_visible,
+)
+from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
@@ -25,7 +30,7 @@ from time_agnostic_library.agnostic_entity import AgnosticEntity
 def get_available_classes():
     """
     Fetch and format all available entity classes from the triplestore.
-    
+
     Returns:
         list: List of dictionaries containing class information
     """
@@ -53,65 +58,70 @@ def get_available_classes():
             GROUP BY ?class
             ORDER BY DESC(?count)
         """
-    
+
     sparql.setQuery(classes_query)
     sparql.setReturnFormat(JSON)
     classes_results = sparql.query().convert()
 
     available_classes = [
         {
-            'uri': result['class']['value'],
-            'label': custom_filter.human_readable_predicate(result['class']['value'], [result['class']['value']]),
-            'count': int(result['count']['value'])
+            "uri": result["class"]["value"],
+            "label": custom_filter.human_readable_predicate(
+                result["class"]["value"], [result["class"]["value"]]
+            ),
+            "count": int(result["count"]["value"]),
         }
         for result in classes_results["results"]["bindings"]
-        if is_entity_type_visible(result['class']['value'])
+        if is_entity_type_visible(result["class"]["value"])
     ]
 
     # Sort classes by label
-    available_classes.sort(key=lambda x: x['label'].lower())
+    available_classes.sort(key=lambda x: x["label"].lower())
     return available_classes
+
 
 def build_sort_clause(sort_property: str, entity_type: str, display_rules) -> str:
     """
     Costruisce la clausola di ordinamento SPARQL in base alla configurazione sortableBy.
-    
+
     Args:
         sort_property: La proprietà su cui ordinare
         entity_type: Il tipo di entità
-        
+
     Returns:
         Clausola SPARQL per l'ordinamento o stringa vuota
     """
     if not display_rules or not sort_property:
         return ""
-        
+
     # Trova la configurazione di ordinamento
     sort_config = None
     for rule in display_rules:
-        if rule['class'] == entity_type and 'sortableBy' in rule:
+        if rule["class"] == entity_type and "sortableBy" in rule:
             sort_config = next(
-                (s for s in rule['sortableBy'] if s['property'] == sort_property), 
-                None
+                (s for s in rule["sortableBy"] if s["property"] == sort_property), None
             )
             break
-    
+
     if not sort_config:
         return ""
-            
+
     return f"OPTIONAL {{ ?subject <{sort_property}> ?sortValue }}"
 
-def get_entities_for_class(selected_class, page, per_page, sort_property=None, sort_direction='ASC'):
+
+def get_entities_for_class(
+    selected_class, page, per_page, sort_property=None, sort_direction="ASC"
+):
     """
     Retrieve entities for a specific class with pagination and sorting.
-    
+
     Args:
         selected_class (str): URI of the class to fetch entities for
         page (int): Current page number
         per_page (int): Number of items per page
         sort_property (str, optional): Property to sort by
         sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
-        
+
     Returns:
         tuple: (list of entities, total count)
     """
@@ -142,7 +152,7 @@ def get_entities_for_class(selected_class, page, per_page, sort_property=None, s
         LIMIT {per_page} 
         OFFSET {offset}
         """
-        
+
         # Count query for total number of entities
         count_query = f"""
         SELECT (COUNT(DISTINCT ?subject) as ?count)
@@ -164,7 +174,7 @@ def get_entities_for_class(selected_class, page, per_page, sort_property=None, s
         LIMIT {per_page} 
         OFFSET {offset}
         """
-        
+
         count_query = f"""
         SELECT (COUNT(DISTINCT ?subject) as ?count)
         WHERE {{
@@ -181,30 +191,32 @@ def get_entities_for_class(selected_class, page, per_page, sort_property=None, s
     # Execute entities query
     sparql.setQuery(entities_query)
     entities_results = sparql.query().convert()
-    
+
     entities = []
     for result in entities_results["results"]["bindings"]:
-        subject_uri = result['subject']['value']
-        entity_label = custom_filter.human_readable_entity(subject_uri, [selected_class])
-        
-        entities.append({
-            'uri': subject_uri,
-            'label': entity_label
-        })
+        subject_uri = result["subject"]["value"]
+        entity_label = custom_filter.human_readable_entity(
+            subject_uri, [selected_class]
+        )
+
+        entities.append({"uri": subject_uri, "label": entity_label})
 
     return entities, total_count
 
-def get_catalog_data(selected_class, page, per_page, sort_property=None, sort_direction='ASC'):
+
+def get_catalog_data(
+    selected_class, page, per_page, sort_property=None, sort_direction="ASC"
+):
     """
     Get catalog data with pagination and sorting.
-    
+
     Args:
         selected_class (str): Selected class URI
         page (int): Current page number
         per_page (int): Items per page
         sort_property (str, optional): Property to sort by
         sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
-        
+
     Returns:
         dict: Catalog data including entities, pagination info, and sort settings
     """
@@ -214,32 +226,33 @@ def get_catalog_data(selected_class, page, per_page, sort_property=None, sort_di
 
     if selected_class:
         entities, total_count = get_entities_for_class(
-            selected_class, 
-            page, 
-            per_page,
-            sort_property,
-            sort_direction
+            selected_class, page, per_page, sort_property, sort_direction
         )
-        
+
         # Get sortable properties for the class
-        sortable_properties = get_sortable_properties(selected_class, display_rules, form_fields_cache)
+        sortable_properties = get_sortable_properties(
+            selected_class, display_rules, form_fields_cache
+        )
 
     if not sort_property and sortable_properties:
-        sort_property = sortable_properties[0]['property']
+        sort_property = sortable_properties[0]["property"]
 
     return {
-        'entities': entities,
-        'total_pages': (total_count + per_page - 1) // per_page if total_count > 0 else 0,
-        'current_page': page,
-        'per_page': per_page,
-        'total_count': total_count,
-        'sort_property': sort_property,
-        'sort_direction': sort_direction,
-        'sortable_properties': sortable_properties,
-        'selected_class': selected_class
+        "entities": entities,
+        "total_pages": (
+            (total_count + per_page - 1) // per_page if total_count > 0 else 0
+        ),
+        "current_page": page,
+        "per_page": per_page,
+        "total_count": total_count,
+        "sort_property": sort_property,
+        "sort_direction": sort_direction,
+        "sortable_properties": sortable_properties,
+        "selected_class": selected_class,
     }
 
-def fetch_data_graph_for_subject(subject: str) -> Graph|ConjunctiveGraph:
+
+def fetch_data_graph_for_subject(subject: str) -> Graph | ConjunctiveGraph:
     """
     Fetch all triples/quads associated with a subject from the dataset.
     Handles both triplestore and quadstore cases appropriately.
@@ -284,26 +297,36 @@ def fetch_data_graph_for_subject(subject: str) -> Graph|ConjunctiveGraph:
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
     results = sparql.query().convert().get("results", {}).get("bindings", [])
-    
+
     for result in results:
         # Create the appropriate value (Literal or URIRef)
-        obj_data = result['object']
-        if obj_data['type'] in {'literal', 'typed-literal'}:
-            if 'datatype' in obj_data:
-                value = Literal(obj_data['value'], datatype=URIRef(obj_data['datatype']))
+        obj_data = result["object"]
+        if obj_data["type"] in {"literal", "typed-literal"}:
+            if "datatype" in obj_data:
+                value = Literal(
+                    obj_data["value"], datatype=URIRef(obj_data["datatype"])
+                )
             else:
-                value = Literal(obj_data['value'], datatype=XSD.string)
+                value = Literal(obj_data["value"], datatype=XSD.string)
         else:
-            value = URIRef(obj_data['value'])
+            value = URIRef(obj_data["value"])
 
         # Add triple/quad based on store type
         if get_dataset_is_quadstore():
-            graph_uri = URIRef(result['g']['value'])
-            g.add((URIRef(subject), URIRef(result['predicate']['value']), value, graph_uri))
+            graph_uri = URIRef(result["g"]["value"])
+            g.add(
+                (
+                    URIRef(subject),
+                    URIRef(result["predicate"]["value"]),
+                    value,
+                    graph_uri,
+                )
+            )
         else:
-            g.add((URIRef(subject), URIRef(result['predicate']['value']), value))
-    
+            g.add((URIRef(subject), URIRef(result["predicate"]["value"]), value))
+
     return g
+
 
 def parse_sparql_update(query) -> dict:
     parsed = parseUpdate(query)
@@ -323,58 +346,71 @@ def parse_sparql_update(query) -> dict:
 
     for operation in translated:
         if operation.name == "DeleteData":
-            if hasattr(operation, 'quads'):
+            if hasattr(operation, "quads"):
                 deletions = extract_quads(operation.quads)
             else:
                 deletions = operation.triples
             if deletions:
-                modifications.setdefault(gettext('Deletions'), list()).extend(deletions)
+                modifications.setdefault(gettext("Deletions"), list()).extend(deletions)
         elif operation.name == "InsertData":
-            if hasattr(operation, 'quads'):
+            if hasattr(operation, "quads"):
                 additions = extract_quads(operation.quads)
             else:
                 additions = extract_quads(operation.quads)
             if additions:
-                modifications.setdefault(gettext('Additions'), list()).extend(additions)
+                modifications.setdefault(gettext("Additions"), list()).extend(additions)
 
     return modifications
 
-def fetch_current_state_with_related_entities(provenance: dict) -> Graph|ConjunctiveGraph:
+
+def fetch_current_state_with_related_entities(
+    provenance: dict,
+) -> Graph | ConjunctiveGraph:
     """
     Fetch the current state of an entity and all its related entities known from provenance.
-    
+
     Args:
         provenance (dict): Dictionary containing provenance metadata for main entity and related entities
-        
+
     Returns:
         ConjunctiveGraph: A graph containing the current state of all entities
     """
     combined_graph = ConjunctiveGraph() if get_dataset_is_quadstore() else Graph()
-    
+
     # Fetch state for all entities mentioned in provenance
     for entity_uri in provenance.keys():
         current_graph = fetch_data_graph_for_subject(entity_uri)
-        
+
         if get_dataset_is_quadstore():
             for quad in current_graph.quads():
                 combined_graph.add(quad)
         else:
             for triple in current_graph:
                 combined_graph.add(triple)
-                
+
     return combined_graph
 
-def get_deleted_entities_with_filtering(page=1, per_page=50, sort_property='deletionTime', sort_direction='DESC',
-                                        selected_class=None):
+
+def get_deleted_entities_with_filtering(
+    page=1,
+    per_page=50,
+    sort_property="deletionTime",
+    sort_direction="DESC",
+    selected_class=None,
+):
     """
     Fetch and process deleted entities from the provenance graph, with filtering and sorting.
     """
-    sortable_properties = [{'property': 'deletionTime', 'displayName': 'Deletion Time', 'sortType': 'date'}]
+    sortable_properties = [
+        {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
+    ]
     provenance_sparql = get_provenance_sparql()
     custom_filter = get_custom_filter()
 
     if selected_class:
-        sortable_properties.extend(get_sortable_properties(selected_class, display_rules, form_fields_cache))
+        sortable_properties.extend(
+            get_sortable_properties(selected_class, display_rules, form_fields_cache)
+        )
 
     prov_query = """
     SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
@@ -423,34 +459,42 @@ def get_deleted_entities_with_filtering(page=1, per_page=50, sort_property='dele
 
     available_classes = [
         {
-            'uri': class_uri,
-            'label': custom_filter.human_readable_predicate(class_uri, [class_uri]),
-            'count': count
+            "uri": class_uri,
+            "label": custom_filter.human_readable_predicate(class_uri, [class_uri]),
+            "count": count,
         }
         for class_uri, count in class_counts.items()
     ]
 
     # Determine the sort key based on sort_property
-    reverse_sort = (sort_direction.upper() == 'DESC')
-    if sort_property == 'deletionTime':
+    reverse_sort = sort_direction.upper() == "DESC"
+    if sort_property == "deletionTime":
         deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
     else:
-        deleted_entities.sort(key=lambda e: e['sort_values'].get(sort_property, '').lower(), reverse=reverse_sort)
+        deleted_entities.sort(
+            key=lambda e: e["sort_values"].get(sort_property, "").lower(),
+            reverse=reverse_sort,
+        )
 
     # Paginate the results
     offset = (page - 1) * per_page
-    paginated_entities = deleted_entities[offset:offset + per_page]
+    paginated_entities = deleted_entities[offset : offset + per_page]
 
-    available_classes.sort(key=lambda x: x['label'].lower())
+    available_classes.sort(key=lambda x: x["label"].lower())
     if not selected_class and available_classes:
-        selected_class = available_classes[0]['uri']
+        selected_class = available_classes[0]["uri"]
 
     if selected_class:
-        paginated_entities = [entity for entity in paginated_entities if selected_class in entity["entity_types"]]
+        paginated_entities = [
+            entity
+            for entity in paginated_entities
+            if selected_class in entity["entity_types"]
+        ]
     else:
         paginated_entities = []
 
     return paginated_entities, available_classes, selected_class, sortable_properties
+
 
 def process_deleted_entity(result, sortable_properties):
     """
@@ -463,8 +507,12 @@ def process_deleted_entity(result, sortable_properties):
     last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
 
     # Get entity state at its last valid time
-    agnostic_entity = AgnosticEntity(res=entity_uri, config=change_tracking_config, related_entities_history=True)
-    state, _, _ = agnostic_entity.get_state_at_time((last_valid_snapshot_time, last_valid_snapshot_time))
+    agnostic_entity = AgnosticEntity(
+        res=entity_uri, config=change_tracking_config, related_entities_history=True
+    )
+    state, _, _ = agnostic_entity.get_state_at_time(
+        (last_valid_snapshot_time, last_valid_snapshot_time)
+    )
 
     if entity_uri not in state:
         return None
@@ -473,7 +521,10 @@ def process_deleted_entity(result, sortable_properties):
     last_valid_state: ConjunctiveGraph = state[entity_uri][last_valid_time]
 
     # Get entity types and filter for visible ones early
-    entity_types = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))]
+    entity_types = [
+        str(o)
+        for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))
+    ]
     visible_types = [t for t in entity_types if is_entity_type_visible(t)]
 
     if not visible_types:
@@ -487,54 +538,66 @@ def process_deleted_entity(result, sortable_properties):
     # Extract sort values for sortable properties
     sort_values = {}
     for prop in sortable_properties:
-        prop_uri = prop['property']
-        values = [str(o) for s, p, o in last_valid_state.triples((URIRef(entity_uri), URIRef(prop_uri), None))]
-        sort_values[prop_uri] = values[0] if values else ''
+        prop_uri = prop["property"]
+        values = [
+            str(o)
+            for s, p, o in last_valid_state.triples(
+                (URIRef(entity_uri), URIRef(prop_uri), None)
+            )
+        ]
+        sort_values[prop_uri] = values[0] if values else ""
 
     return {
         "uri": entity_uri,
         "deletionTime": result["deletionTime"]["value"],
-        "deletedBy": custom_filter.format_agent_reference(result.get("agent", {}).get("value", "")),
+        "deletedBy": custom_filter.format_agent_reference(
+            result.get("agent", {}).get("value", "")
+        ),
         "lastValidSnapshotTime": last_valid_snapshot_time,
-        "type": custom_filter.human_readable_predicate(highest_priority_type, [highest_priority_type]),
-        "label": custom_filter.human_readable_entity(entity_uri, [highest_priority_type], last_valid_state),
+        "type": custom_filter.human_readable_predicate(
+            highest_priority_type, [highest_priority_type]
+        ),
+        "label": custom_filter.human_readable_entity(
+            entity_uri, [highest_priority_type], last_valid_state
+        ),
         "entity_types": visible_types,
-        "sort_values": sort_values
+        "sort_values": sort_values,
     }
+
 
 def find_orphaned_entities(subject, entity_type, predicate=None, object_value=None):
     """
     Find entities that would become orphaned after deleting a triple or an entire entity,
     including intermediate relation entities.
-    
+
     An entity is considered orphaned if:
     1. It has no incoming references from other entities (except from the entity being deleted)
     2. It does not reference any entities that are subjects of other triples
-    
+
     For intermediate relations, an entity is also considered orphaned if:
     1. It connects to the entity being deleted
     2. It has no other valid connections after the deletion
-    
+
     Args:
         subject (str): The URI of the subject being deleted
         predicate (str, optional): The predicate being deleted
         object_value (str, optional): The object value being deleted
-        
+
     Returns:
         tuple: Lists of (orphaned_entities, intermediate_orphans)
     """
     sparql = get_sparql()
     display_rules = get_display_rules()
-    
+
     # Extract intermediate relation classes from display rules
     intermediate_classes = set()
 
     for rule in display_rules:
-        if rule['class'] == entity_type:
-            for prop in rule.get('displayProperties', []):
-                if 'intermediateRelation' in prop:
-                    intermediate_classes.add(prop['intermediateRelation']['class'])
-    
+        if rule["class"] == entity_type:
+            for prop in rule.get("displayProperties", []):
+                if "intermediateRelation" in prop:
+                    intermediate_classes.add(prop["intermediateRelation"]["class"])
+
     # Query to find regular orphans
     orphan_query = f"""
     SELECT DISTINCT ?entity ?type
@@ -582,26 +645,26 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
         }}        
     }}
     """
-    
+
     orphaned = []
     intermediate_orphans = []
-    
+
     # Execute queries and process results
     for query, result_list in [
         (orphan_query, orphaned),
-        (intermediate_query, intermediate_orphans)
+        (intermediate_query, intermediate_orphans),
     ]:
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
-        
+
         for result in results["results"]["bindings"]:
-            result_list.append({
-                'uri': result["entity"]["value"],
-                'type': result["type"]["value"]
-            })
-    
+            result_list.append(
+                {"uri": result["entity"]["value"], "type": result["type"]["value"]}
+            )
+
     return orphaned, intermediate_orphans
+
 
 def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5):
     """
@@ -635,7 +698,7 @@ def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5):
                 FILTER(isIRI(?o))
             }}
         """
-        
+
         sparql = SPARQLWrapper(editor.dataset_endpoint)
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)

@@ -22,22 +22,26 @@ class Filter:
         self.sparql.setReturnFormat(JSON)
         self._query_lock = threading.Lock()
 
-    def human_readable_predicate(self, url: str, entity_classes: list, is_link: bool = True):
+    def human_readable_predicate(
+        self, url: str, entity_classes: list, is_link: bool = True
+    ):
         subject_classes = [str(subject_class) for subject_class in entity_classes]
         if self.display_rules:
             for display_rule in self.display_rules:
                 for subject_class in subject_classes:
-                    if subject_class == display_rule['class']:
+                    if subject_class == display_rule["class"]:
                         if url == subject_class:
-                            return display_rule['displayName']
-                        for display_property in display_rule['displayProperties']:
-                            if display_property['property'] == str(url):
-                                if 'displayRules' in display_property:
+                            return display_rule["displayName"]
+                        for display_property in display_rule["displayProperties"]:
+                            if display_property["property"] == str(url):
+                                if "displayRules" in display_property:
                                     # Se ci sono displayRules, restituisci il primo displayName trovato
-                                    return display_property['displayRules'][0]['displayName']
-                                elif 'displayName' in display_property:
+                                    return display_property["displayRules"][0][
+                                        "displayName"
+                                    ]
+                                elif "displayName" in display_property:
                                     # Se non ci sono displayRules ma c'è un displayName, restituiscilo
-                                    return display_property['displayName']
+                                    return display_property["displayName"]
 
         # Se non è stato trovato un displayName nelle regole di visualizzazione,
         # procedi con la logica originale
@@ -61,7 +65,9 @@ class Filter:
         else:
             return url
 
-    def human_readable_entity(self, uri: str, entity_classes: list, graph: Graph|ConjunctiveGraph = None) -> str:
+    def human_readable_entity(
+        self, uri: str, entity_classes: list, graph: Graph | ConjunctiveGraph = None
+    ) -> str:
         subject_classes = [str(subject_class) for subject_class in entity_classes]
 
         # Cerca prima una configurazione fetchUriDisplay
@@ -72,11 +78,13 @@ class Filter:
         # Se non trova nulla, restituisce l'URI originale
         return uri
 
-    def get_fetch_uri_display(self, uri: str, entity_classes: list, graph: Graph|ConjunctiveGraph = None) -> str | None:
+    def get_fetch_uri_display(
+        self, uri: str, entity_classes: list, graph: Graph | ConjunctiveGraph = None
+    ) -> str | None:
         for entity_class in entity_classes:
             for rule in self.display_rules:
-                if rule['class'] == entity_class and 'fetchUriDisplay' in rule:
-                    query = rule['fetchUriDisplay'].replace('[[uri]]', f'<{uri}>')
+                if rule["class"] == entity_class and "fetchUriDisplay" in rule:
+                    query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri}>")
                     if graph is not None:
                         try:
                             with self._query_lock:
@@ -84,40 +92,54 @@ class Filter:
                             for row in results:
                                 return str(row[0])
                         except Exception as e:
-                            print(f"Error executing fetchUriDisplay query: {e}. {query}")
+                            print(
+                                f"Error executing fetchUriDisplay query: {e}. {query}"
+                            )
                     else:
                         self.sparql.setQuery(query)
                         try:
                             results = self.sparql.query().convert()
-                            if results['results']['bindings']:
+                            if results["results"]["bindings"]:
                                 # Prendi il primo binding e il primo (e unico) valore
-                                first_binding = results['results']['bindings'][0]
+                                first_binding = results["results"]["bindings"][0]
                                 first_key = list(first_binding.keys())[0]
-                                return first_binding[first_key]['value']
+                                return first_binding[first_key]["value"]
                         except Exception as e:
                             print(f"Error executing fetchUriDisplay query: {e}")
         return None
 
     def human_readable_datetime(self, dt_str):
         dt = dateutil.parser.parse(dt_str)
-        return format_datetime(dt, format='long')
+        return format_datetime(dt, format="long")
 
     def split_ns(self, ns: str) -> Tuple[str, str]:
         parsed = urlparse(ns)
         if parsed.fragment:
-            first_part = parsed.scheme + '://' + parsed.netloc + parsed.path + '#'
+            first_part = parsed.scheme + "://" + parsed.netloc + parsed.path + "#"
             last_part = parsed.fragment
         else:
-            first_part = parsed.scheme + '://' + parsed.netloc + '/'.join(parsed.path.split('/')[:-1]) + '/'
-            last_part = parsed.path.split('/')[-1]
+            first_part = (
+                parsed.scheme
+                + "://"
+                + parsed.netloc
+                + "/".join(parsed.path.split("/")[:-1])
+                + "/"
+            )
+            last_part = parsed.path.split("/")[-1]
         return first_part, last_part
-    
-    def human_readable_primary_source(self, primary_source: str|None) -> str:
+
+    def human_readable_primary_source(self, primary_source: str | None) -> str:
         if primary_source is None:
-            return lazy_gettext('Unknown')
-        if '/prov/se' in primary_source:
+            return lazy_gettext("Unknown")
+        if "/prov/se" in primary_source:
             version_url = f"/entity-version/{primary_source.replace('/prov/se', '')}"
-            return f"<a href='{version_url}' alt='{lazy_gettext('Link to the primary source description')}'>" + lazy_gettext('Version') + ' ' + primary_source.split('/prov/se/')[-1] + '</a>'
+            return (
+                f"<a href='{version_url}' alt='{lazy_gettext('Link to the primary source description')}'>"
+                + lazy_gettext("Version")
+                + " "
+                + primary_source.split("/prov/se/")[-1]
+                + "</a>"
+            )
         else:
             if validators.url(primary_source):
                 return f"<a href='{primary_source}' alt='{lazy_gettext('Link to the primary source description')} target='_blank'>{primary_source}</a>"
@@ -127,43 +149,43 @@ class Filter:
     def format_source_reference(self, url: str) -> str:
         """
         Format a source reference for display, handling various URL types including Zenodo DOIs and generic URLs.
-        
+
         Args:
             url (str): The source URL or identifier to format
             human_readable_primary_source (callable): Function to handle generic/unknown source types
-            
+
         Returns:
             str: Formatted HTML string representing the source
         """
         if not url:
             return "Unknown"
-            
+
         # First check if it's a Zenodo DOI since this is more specific than a generic URL
         if is_zenodo_url(url):
             return format_zenodo_source(url)
-        
+
         # If not Zenodo, use the provided generic handler
         return self.human_readable_primary_source(url)
 
     def format_agent_reference(self, url: str) -> str:
         """
         Format an agent reference for display, handling various URL types including ORCID and others.
-        
+
         Args:
             url (str): The agent URL or identifier to format
-            
+
         Returns:
             str: Formatted HTML string representing the agent
         """
         if not url:
             return "Unknown"
-            
+
         if is_orcid_url(url):
             return format_orcid_attribution(url)
-        
+
         # For now, just return a simple linked version for other URLs
         if validators.url(url):
             return f'<a href="{url}" target="_blank">{url}</a>'
-        
+
         # If it's not a URL at all, just return the raw value
         return url

@@ -11,6 +11,6 @@ def register_blueprints(app: Flask):
 
     app.register_blueprint(main_bp)
     app.register_blueprint(entity_bp)
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(api_bp, url_prefix='/api')
-    app.register_blueprint(errors_bp, url_prefix='/errors')
+    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(errors_bp, url_prefix="/errors")

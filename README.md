@@ -384,12 +384,12 @@ HERITRACE can be launched using Docker Compose:
 
 1. **Development mode**:
    ```bash
-   docker-compose -f docker-compose.dev.yaml up
+   docker compose -f docker-compose.dev.yaml up
    ```
 
 2. **Production mode**:
    ```bash
-   docker-compose up
+   docker compose up
    ```
 
 The application will be available at `https://localhost:5000`
