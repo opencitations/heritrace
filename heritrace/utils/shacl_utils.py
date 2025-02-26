@@ -1034,6 +1034,11 @@ def validate_new_triple(
             ),
         )
 
+    # For delete operations, we only need to validate cardinality constraints (which we've already done)
+    # No need to validate the datatype or class of the value being deleted
+    if action == "delete":
+        return None, old_value, ""
+
     if optional_values and new_value not in optional_values:
         optional_value_labels = [
             custom_filter.human_readable_predicate(value, s_types)
