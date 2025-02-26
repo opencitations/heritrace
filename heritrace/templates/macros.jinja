@@ -346,7 +346,8 @@
                             name="mandatory_value_{{ unique_id }}" 
                             data-value="{{ triple[2]|safe }}"
                             data-predicate-uri="{{ triple[1] }}"
-                            data-mandatory-value="true">
+                            data-mandatory-value="true"
+                            data-skip-collect="true">
                     </div>
                 {% elif shacl and optional_values[triple[1]] %}
                     <div class="w-75">

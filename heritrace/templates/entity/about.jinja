@@ -106,7 +106,8 @@
                         data-uri="{{ data['property'] }}"
                         data-object-class="{{ objectClass.value }}"
                         {% if max_items.value %}data-max-items="{{ max_items.value }}"{% endif %}
-                        {% if min_items.value %}data-min-items="{{ min_items.value }}"{% endif %}>
+                        {% if min_items.value %}data-min-items="{{ min_items.value }}"{% endif %}
+                        {% if data['property'] in mandatory_values %}data-skip-collect="true"{% endif %}>
                         {% if data['property'] in can_be_added %}
                             {% for details in form_fields[entity_type][predicate] %}
                                 {% set shape = details.get('nodeShape') %}
@@ -322,12 +323,7 @@
                 let errorMessage = response && response.message ? 
                     response.message : 
                      "{{_('An unexpected error occurred!')}}";
-                Swal.fire({
-                    icon: 'error',
-                    title:  "{{_('Error')}}",
-                    text: errorMessage,
-                    confirmButtonColor: '#d33'
-                });
+                showErrorMessage(errorMessage, response.error_type);
             }
         });
     }
@@ -354,7 +350,7 @@
                         }
                     });
                 } else {
-                    showErrorMessage(response.message);
+                    showErrorMessage(response.message, response.error_type);
                 }
             },
             error: function(jqXHR) {
@@ -363,7 +359,7 @@
                     response.message : 
                     "{{ _('An unexpected error occurred!') }}";
                 
-                showErrorMessage(errorMessage);
+                showErrorMessage(errorMessage, response.error_type);
 
                 if (errorCallback) {
                     errorCallback(response);
@@ -372,13 +368,24 @@
         });
     }
 
-    function showErrorMessage(message) {
-        Swal.fire({
-            icon: 'error',
-            title: "{{ _('Error') }}",
-            text: message,
-            confirmButtonColor: '#d33'
-        });
+    function showErrorMessage(message, errorType) {
+        if (errorType === 'validation') {
+            // For validation errors, use html option to properly render HTML tags
+            Swal.fire({
+                icon: 'error',
+                title: "{{ _('Validation Error') }}",
+                html: message,
+                confirmButtonColor: '#d33'
+            });
+        } else {
+            // For system errors or unspecified errors, use text option
+            Swal.fire({
+                icon: 'error',
+                title: "{{ _('Error') }}",
+                text: message,
+                confirmButtonColor: '#d33'
+            });
+        }
     }
 
     function toggleEditForm(listItem) {

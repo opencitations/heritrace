@@ -904,7 +904,9 @@ def get_valid_predicates(triples):
     )
 
 
-def validate_new_triple(subject, predicate, new_value, action: str, old_value=None):
+def validate_new_triple(
+    subject, predicate, new_value, action: str, old_value=None, entity_types=None
+):
     data_graph = fetch_data_graph_for_subject(subject)
     if old_value is not None:
         old_value = [
@@ -912,16 +914,33 @@ def validate_new_triple(subject, predicate, new_value, action: str, old_value=No
             for triple in data_graph.triples((URIRef(subject), URIRef(predicate), None))
             if str(triple[2]) == str(old_value)
         ][0]
-    if len(get_shacl_graph()):
-        # Se non c'è SHACL, accettiamo qualsiasi valore
+    if not len(get_shacl_graph()):
+        # If there's no SHACL, we accept any value but preserve datatype if available
         if validators.url(new_value):
             return URIRef(new_value), old_value, ""
         else:
-            return Literal(new_value), old_value, ""
+            # Preserve the datatype of the old value if it's a Literal
+            if (
+                old_value is not None
+                and isinstance(old_value, Literal)
+                and old_value.datatype
+            ):
+                return Literal(new_value, datatype=old_value.datatype), old_value, ""
+            else:
+                return Literal(new_value), old_value, ""
 
+    # Get entity types from the data graph
     s_types = [
         triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))
     ]
+
+    # If entity_types is provided, use it (useful for nested entities being created)
+    if entity_types and not s_types:
+        if isinstance(entity_types, list):
+            s_types = entity_types
+        else:
+            s_types = [entity_types]
+
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
         SELECT DISTINCT ?path ?datatype ?a_class ?classIn ?maxCount ?minCount (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
@@ -954,7 +973,6 @@ def validate_new_triple(subject, predicate, new_value, action: str, old_value=No
     """
     shacl = get_shacl_graph()
     custom_filter = get_custom_filter()
-
     results = shacl.query(query)
     property_exists = [row.path for row in results]
     if not property_exists:
@@ -1052,7 +1070,9 @@ def validate_new_triple(subject, predicate, new_value, action: str, old_value=No
                     ),
                 ),
             )
-        valid_value = convert_to_matching_class(new_value, classes)
+        valid_value = convert_to_matching_class(
+            new_value, classes, entity_types=s_types
+        )
         if valid_value is None:
             return (
                 None,
@@ -1104,9 +1124,17 @@ def validate_new_triple(subject, predicate, new_value, action: str, old_value=No
     return valid_value, old_value, ""
 
 
-def convert_to_matching_class(object_value, classes):
+def convert_to_matching_class(object_value, classes, entity_types=None):
     data_graph = fetch_data_graph_for_subject(object_value)
     o_types = {c[2] for c in data_graph.triples((URIRef(object_value), RDF.type, None))}
+
+    # If entity_types is provided and o_types is empty, use entity_types
+    if entity_types and not o_types:
+        if isinstance(entity_types, list):
+            o_types = set(entity_types)
+        else:
+            o_types = {entity_types}
+
     if o_types.intersection(classes):
         return URIRef(object_value)
 

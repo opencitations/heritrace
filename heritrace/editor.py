@@ -13,7 +13,15 @@ from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 
 
 class Editor:
-    def __init__(self, dataset_endpoint: str, provenance_endpoint:str, counter_handler: CounterHandler, resp_agent: URIRef, source: URIRef = None, c_time: datetime|None = None):
+    def __init__(
+        self,
+        dataset_endpoint: str,
+        provenance_endpoint: str,
+        counter_handler: CounterHandler,
+        resp_agent: URIRef,
+        source: URIRef = None,
+        c_time: datetime | None = None,
+    ):
         self.dataset_endpoint = dataset_endpoint
         self.provenance_endpoint = provenance_endpoint
         self.counter_handler = counter_handler
@@ -21,28 +29,79 @@ class Editor:
         self.source = source
         self.c_time = self.to_posix_timestamp(c_time)
         self.dataset_is_quadstore = Config.DATASET_IS_QUADSTORE
-        self.g_set = OCDMConjunctiveGraph(self.counter_handler) if self.dataset_is_quadstore else OCDMGraph(self.counter_handler)
-    
-    def create(self, subject: URIRef, predicate: URIRef, value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
-        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
-        if self.dataset_is_quadstore and graph:
-            self.g_set.add((subject, predicate, value, graph), resp_agent=self.resp_agent, primary_source=self.source)
-        else:
-            self.g_set.add((subject, predicate, value), resp_agent=self.resp_agent, primary_source=self.source)
+        self.g_set = (
+            OCDMConjunctiveGraph(self.counter_handler)
+            if self.dataset_is_quadstore
+            else OCDMGraph(self.counter_handler)
+        )
 
-    def update(self, subject: URIRef, predicate: URIRef, old_value: Literal|URIRef, new_value: Literal|URIRef, graph: URIRef|Graph|str = None) -> None:
-        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
+    def create(
+        self,
+        subject: URIRef,
+        predicate: URIRef,
+        value: Literal | URIRef,
+        graph: URIRef | Graph | str = None,
+    ) -> None:
+        graph = (
+            graph.identifier
+            if isinstance(graph, Graph)
+            else URIRef(graph) if graph else None
+        )
+        if self.dataset_is_quadstore and graph:
+            self.g_set.add(
+                (subject, predicate, value, graph),
+                resp_agent=self.resp_agent,
+                primary_source=self.source,
+            )
+        else:
+            self.g_set.add(
+                (subject, predicate, value),
+                resp_agent=self.resp_agent,
+                primary_source=self.source,
+            )
+
+    def update(
+        self,
+        subject: URIRef,
+        predicate: URIRef,
+        old_value: Literal | URIRef,
+        new_value: Literal | URIRef,
+        graph: URIRef | Graph | str = None,
+    ) -> None:
+        graph = (
+            graph.identifier
+            if isinstance(graph, Graph)
+            else URIRef(graph) if graph else None
+        )
         if self.dataset_is_quadstore and graph:
             self.g_set.remove((subject, predicate, old_value, graph))
-            self.g_set.add((subject, predicate, new_value, graph), resp_agent=self.resp_agent, primary_source=self.source)
+            self.g_set.add(
+                (subject, predicate, new_value, graph),
+                resp_agent=self.resp_agent,
+                primary_source=self.source,
+            )
         else:
             self.g_set.remove((subject, predicate, old_value))
-            self.g_set.add((subject, predicate, new_value), resp_agent=self.resp_agent, primary_source=self.source)
+            self.g_set.add(
+                (subject, predicate, new_value),
+                resp_agent=self.resp_agent,
+                primary_source=self.source,
+            )
 
-    def delete(self, subject: str, predicate: str = None, value: str = None, graph: URIRef|Graph|str = None) -> None:
+    def delete(
+        self,
+        subject: str,
+        predicate: str = None,
+        value: str = None,
+        graph: URIRef | Graph | str = None,
+    ) -> None:
         subject = URIRef(subject)
         predicate = URIRef(predicate) if predicate else None
-        graph = graph.identifier if isinstance(graph, Graph) else URIRef(graph) if graph else None
+        graph = (
+            graph.identifier
+            if isinstance(graph, Graph)
+            else URIRef(graph) if graph else None
+        )
 
         if predicate is None:
             # Delete the entire entity
@@ -56,18 +115,17 @@ class Editor:
             self.g_set.mark_as_deleted(subject)
         else:
             if value:
+                # Remove the specific triple/quad directly
                 if self.dataset_is_quadstore and graph:
-                    for quad in self.g_set.quads((subject, predicate, None, graph)):
-                        if str(value) == str(quad[2]):
-                            self.g_set.remove(quad)
+                    self.g_set.remove((subject, predicate, value, graph))
                 else:
-                    for triple in self.g_set.triples((subject, predicate, None)):
-                        if str(value) == str(triple[2]):
-                            self.g_set.remove(triple)
+                    self.g_set.remove((subject, predicate, value))
             else:
                 # Remove all triples with the given subject and predicate
                 if self.dataset_is_quadstore and graph:
-                    for quad in list(self.g_set.quads((subject, predicate, None, graph))):
+                    for quad in list(
+                        self.g_set.quads((subject, predicate, None, graph))
+                    ):
                         self.g_set.remove(quad)
                 else:
                     for triple in list(self.g_set.triples((subject, predicate, None))):
@@ -80,23 +138,27 @@ class Editor:
     def import_entity_from_triplestore(self, res_list: list):
         sparql: SPARQLWrapper = SPARQLWrapper(self.dataset_endpoint)
         if self.dataset_is_quadstore:
-            query: str = f'''
+            query: str = f"""
                 SELECT ?g ?s ?p ?o (LANG(?o) AS ?lang)
                 WHERE {{
                     GRAPH ?g {{?s ?p ?o}}.
                     VALUES ?s {{<{'> <'.join(res_list)}>}}
-                }}'''
+                }}"""
             sparql.setQuery(query)
             sparql.setMethod(POST)
             sparql.setReturnFormat(JSON)
             results = sparql.queryAndConvert()
 
-            if results is not None and 'results' in results and 'bindings' in results['results']:
+            if (
+                results is not None
+                and "results" in results
+                and "bindings" in results["results"]
+            ):
                 for result in results["results"]["bindings"]:
                     s = URIRef(result["s"]["value"])
                     p = URIRef(result["p"]["value"])
                     g = URIRef(result["g"]["value"])
-                    
+
                     obj_data = result["o"]
                     if obj_data["type"] == "uri":
                         o = URIRef(obj_data["value"])
@@ -104,7 +166,7 @@ class Editor:
                         value = obj_data["value"]
                         lang = result.get("lang", {}).get("value")
                         datatype = obj_data.get("datatype")
-                        
+
                         if lang:
                             o = Literal(value, lang=lang)
                         elif datatype:
@@ -112,16 +174,20 @@ class Editor:
                         else:
                             o = Literal(value, datatype=XSD.string)
 
-                    self.g_set.add((s, p, o, g), resp_agent=self.resp_agent, primary_source=self.source)
+                    self.g_set.add(
+                        (s, p, o, g),
+                        resp_agent=self.resp_agent,
+                        primary_source=self.source,
+                    )
         else:
-            query: str = f'''
+            query: str = f"""
                 CONSTRUCT {{
                     ?s ?p ?o
                 }}
                 WHERE {{
                     ?s ?p ?o.
                     VALUES ?s {{<{'> <'.join(res_list)}>}}
-                }}'''
+                }}"""
             sparql.setQuery(query)
             sparql.setMethod(POST)
             sparql.setReturnFormat(XML)
@@ -129,7 +195,9 @@ class Editor:
 
             if result is not None:
                 for triple in result:
-                    self.g_set.add(triple, resp_agent=self.resp_agent, primary_source=self.source)
+                    self.g_set.add(
+                        triple, resp_agent=self.resp_agent, primary_source=self.source
+                    )
 
     def execute(self, sparql_query: str) -> None:
         parsed = parseUpdate(sparql_query)
@@ -137,7 +205,7 @@ class Editor:
         entities_added = set()
 
         def extract_entities(operation):
-            if hasattr(operation, 'quads') and isinstance(operation.quads, defaultdict):
+            if hasattr(operation, "quads") and isinstance(operation.quads, defaultdict):
                 for graph, triples in operation.quads.items():
                     for triple in triples:
                         yield triple[0]
@@ -148,14 +216,18 @@ class Editor:
         for operation in translated:
             for entity in extract_entities(operation):
                 if entity not in entities_added:
-                    Reader.import_entities_from_triplestore(self.g_set, self.dataset_endpoint, [entity])
+                    Reader.import_entities_from_triplestore(
+                        self.g_set, self.dataset_endpoint, [entity]
+                    )
                     entities_added.add(entity)
 
         self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)
 
         for operation in translated:
             if operation.name == "DeleteData":
-                if hasattr(operation, 'quads') and isinstance(operation.quads, defaultdict):
+                if hasattr(operation, "quads") and isinstance(
+                    operation.quads, defaultdict
+                ):
                     for graph, triples in operation.quads.items():
                         for triple in triples:
                             self.g_set.remove((triple[0], triple[1], triple[2], graph))
@@ -163,7 +235,9 @@ class Editor:
                     for triple in operation.triples:
                         self.g_set.remove(triple)
             elif operation.name == "InsertData":
-                if hasattr(operation, 'quads') and isinstance(operation.quads, defaultdict):
+                if hasattr(operation, "quads") and isinstance(
+                    operation.quads, defaultdict
+                ):
                     for graph, triples in operation.quads.items():
                         for triple in triples:
                             self.g_set.add((triple[0], triple[1], triple[2], graph))
@@ -181,11 +255,13 @@ class Editor:
                     self.g_set.mark_as_deleted(subject)
 
     def import_entity(self, subject):
-        Reader.import_entities_from_triplestore(self.g_set, self.dataset_endpoint, [subject])
-    
+        Reader.import_entities_from_triplestore(
+            self.g_set, self.dataset_endpoint, [subject]
+        )
+
     def preexisting_finished(self):
         self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)
-    
+
     def save(self):
         self.g_set.generate_provenance()
         dataset_storer = Storer(self.g_set)
@@ -194,7 +270,7 @@ class Editor:
         prov_storer.upload_all(self.provenance_endpoint)
         self.g_set.commit_changes()
 
-    def to_posix_timestamp(self, value: str|datetime|None) -> float|None:
+    def to_posix_timestamp(self, value: str | datetime | None) -> float | None:
         if isinstance(value, datetime):
             return value.timestamp()
         elif isinstance(value, str):

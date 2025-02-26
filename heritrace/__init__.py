@@ -3,6 +3,7 @@ from flask_babel import Babel
 from flask_login import LoginManager
 from heritrace.cli import register_cli_commands
 from redis import Redis
+import logging
 
 
 def create_app(config_object=None):
@@ -10,6 +11,14 @@ def create_app(config_object=None):
 
     if config_object:
         app.config.from_object(config_object)
+
+    # Configurazione esplicita del logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    # Imposta il livello di log per l'app Flask
+    app.logger.setLevel(logging.INFO)
 
     # Initialize extensions
     babel = Babel()

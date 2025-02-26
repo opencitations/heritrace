@@ -302,109 +302,145 @@ def check_orphans():
     Check for orphaned entities and intermediate relations (proxies) that would result from the requested changes.
     Applies separate handling strategies for orphans and proxies, but returns a unified report.
     """
-    # Get strategies from configuration
-    orphan_strategy = current_app.config.get(
-        "ORPHAN_HANDLING_STRATEGY", OrphanHandlingStrategy.KEEP
-    )
-    proxy_strategy = current_app.config.get(
-        "PROXY_HANDLING_STRATEGY", ProxyHandlingStrategy.KEEP
-    )
+    try:
+        # Get strategies from configuration
+        orphan_strategy = current_app.config.get(
+            "ORPHAN_HANDLING_STRATEGY", OrphanHandlingStrategy.KEEP
+        )
+        proxy_strategy = current_app.config.get(
+            "PROXY_HANDLING_STRATEGY", ProxyHandlingStrategy.KEEP
+        )
 
-    data = request.json
-    changes = data.get("changes", [])
-    entity_type = data.get("entity_type")
-    custom_filter = get_custom_filter()
+        data = request.json
+        changes = data.get("changes", [])
+        entity_type = data.get("entity_type")
+        custom_filter = get_custom_filter()
 
-    orphans = []
-    intermediate_orphans = []
+        orphans = []
+        intermediate_orphans = []
 
-    # Check for orphans and proxies based on their respective strategies
-    check_for_orphans = orphan_strategy in (
-        OrphanHandlingStrategy.DELETE,
-        OrphanHandlingStrategy.ASK,
-    )
-    check_for_proxies = proxy_strategy in (
-        ProxyHandlingStrategy.DELETE,
-        ProxyHandlingStrategy.ASK,
-    )
+        # Check for orphans and proxies based on their respective strategies
+        check_for_orphans = orphan_strategy in (
+            OrphanHandlingStrategy.DELETE,
+            OrphanHandlingStrategy.ASK,
+        )
+        check_for_proxies = proxy_strategy in (
+            ProxyHandlingStrategy.DELETE,
+            ProxyHandlingStrategy.ASK,
+        )
 
-    if check_for_orphans or check_for_proxies:
-        for change in changes:
-            if change["action"] == "delete":
-                found_orphans, found_intermediates = find_orphaned_entities(
-                    change["subject"],
-                    entity_type,
-                    change.get("predicate"),
-                    change.get("object"),
-                )
+        if check_for_orphans or check_for_proxies:
+            for change in changes:
+                if change["action"] == "delete":
+                    found_orphans, found_intermediates = find_orphaned_entities(
+                        change["subject"],
+                        entity_type,
+                        change.get("predicate"),
+                        change.get("object"),
+                    )
 
-                # Only collect orphans if we need to handle them
-                if check_for_orphans:
-                    orphans.extend(found_orphans)
+                    # Only collect orphans if we need to handle them
+                    if check_for_orphans:
+                        orphans.extend(found_orphans)
 
-                # Only collect proxies if we need to handle them
-                if check_for_proxies:
-                    intermediate_orphans.extend(found_intermediates)
+                    # Only collect proxies if we need to handle them
+                    if check_for_proxies:
+                        intermediate_orphans.extend(found_intermediates)
 
-    # If both strategies are KEEP or no entities found, return empty result
-    if (orphan_strategy == OrphanHandlingStrategy.KEEP or not orphans) and (
-        proxy_strategy == ProxyHandlingStrategy.KEEP or not intermediate_orphans
-    ):
-        return jsonify({"status": "success", "affected_entities": []})
+        # If both strategies are KEEP or no entities found, return empty result
+        if (orphan_strategy == OrphanHandlingStrategy.KEEP or not orphans) and (
+            proxy_strategy == ProxyHandlingStrategy.KEEP or not intermediate_orphans
+        ):
+            return jsonify({"status": "success", "affected_entities": []})
 
-    # Format entities for display
-    def format_entities(entities, is_intermediate=False):
-        return [
-            {
-                "uri": entity["uri"],
-                "label": custom_filter.human_readable_entity(
-                    entity["uri"], [entity["type"]]
-                ),
-                "type": custom_filter.human_readable_predicate(
-                    entity["type"], [entity["type"]]
-                ),
-                "is_intermediate": is_intermediate,
-            }
-            for entity in entities
-        ]
+        # Format entities for display
+        def format_entities(entities, is_intermediate=False):
+            return [
+                {
+                    "uri": entity["uri"],
+                    "label": custom_filter.human_readable_entity(
+                        entity["uri"], [entity["type"]]
+                    ),
+                    "type": custom_filter.human_readable_predicate(
+                        entity["type"], [entity["type"]]
+                    ),
+                    "is_intermediate": is_intermediate,
+                }
+                for entity in entities
+            ]
 
-    # Create a unified list of affected entities
-    affected_entities = format_entities(orphans) + format_entities(
-        intermediate_orphans, is_intermediate=True
-    )
+        # Create a unified list of affected entities
+        affected_entities = format_entities(orphans) + format_entities(
+            intermediate_orphans, is_intermediate=True
+        )
 
-    # Determine if we should automatically delete entities
-    should_delete_orphans = orphan_strategy == OrphanHandlingStrategy.DELETE
-    should_delete_proxies = proxy_strategy == ProxyHandlingStrategy.DELETE
+        # Determine if we should automatically delete entities
+        should_delete_orphans = orphan_strategy == OrphanHandlingStrategy.DELETE
+        should_delete_proxies = proxy_strategy == ProxyHandlingStrategy.DELETE
 
-    # If both strategies are DELETE, we can automatically delete everything
-    if should_delete_orphans and should_delete_proxies:
+        # If both strategies are DELETE, we can automatically delete everything
+        if should_delete_orphans and should_delete_proxies:
+            return jsonify(
+                {
+                    "status": "success",
+                    "affected_entities": affected_entities,
+                    "should_delete": True,
+                    "orphan_strategy": orphan_strategy.value,
+                    "proxy_strategy": proxy_strategy.value,
+                }
+            )
+
+        # If at least one strategy is ASK, we need to ask the user
         return jsonify(
             {
                 "status": "success",
                 "affected_entities": affected_entities,
-                "should_delete": True,
+                "should_delete": False,
                 "orphan_strategy": orphan_strategy.value,
                 "proxy_strategy": proxy_strategy.value,
             }
         )
-
-    # If at least one strategy is ASK, we need to ask the user
-    return jsonify(
-        {
-            "status": "success",
-            "affected_entities": affected_entities,
-            "should_delete": False,
-            "orphan_strategy": orphan_strategy.value,
-            "proxy_strategy": proxy_strategy.value,
-        }
-    )
+    except ValueError as e:
+        # Handle validation errors specifically
+        error_message = str(e)
+        current_app.logger.warning(
+            f"Validation error in check_orphans: {error_message}"
+        )
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "error_type": "validation",
+                    "message": gettext(
+                        "An error occurred while checking for orphaned entities"
+                    ),
+                }
+            ),
+            400,
+        )
+    except Exception as e:
+        # Handle other errors
+        error_message = f"Error checking orphans: {str(e)}"
+        current_app.logger.error(f"{error_message}\n{traceback.format_exc()}")
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "error_type": "system",
+                    "message": gettext(
+                        "An error occurred while checking for orphaned entities"
+                    ),
+                }
+            ),
+            500,
+        )
 
 
 @api_bp.route("/apply_changes", methods=["POST"])
 @login_required
 def apply_changes():
     try:
+        # Remove all debug logging statements
         changes = request.json
         subject = changes[0]["subject"]
         affected_entities = changes[0].get("affected_entities", [])
@@ -434,7 +470,12 @@ def apply_changes():
                 data = change.get("data")
                 if data:
                     subject = create_logic(
-                        editor, data, subject, graph_uri, temp_id_to_uri=temp_id_to_uri
+                        editor,
+                        data,
+                        subject,
+                        graph_uri,
+                        temp_id_to_uri=temp_id_to_uri,
+                        parent_entity_type=None,
                     )
 
         # Poi gestisci le altre modifiche
@@ -453,6 +494,7 @@ def apply_changes():
                     change.get("predicate"),
                     change.get("object"),
                     graph_uri,
+                    change.get("entity_type"),
                 )
 
                 # Gestione separata per orfani e proxy
@@ -501,6 +543,7 @@ def apply_changes():
                     change["object"],
                     change["newObject"],
                     graph_uri,
+                    change.get("entity_type"),
                 )
             elif change["action"] == "order":
                 order_logic(
@@ -524,7 +567,22 @@ def apply_changes():
             200,
         )
 
+    except ValueError as e:
+        # Handle validation errors specifically
+        error_message = str(e)
+        current_app.logger.warning(f"Validation error: {error_message}")
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "error_type": "validation",
+                    "message": error_message,
+                }
+            ),
+            400,
+        )
     except Exception as e:
+        # Handle other errors
         error_message = (
             f"Error while applying changes: {str(e)}\n{traceback.format_exc()}"
         )
@@ -533,6 +591,7 @@ def apply_changes():
             jsonify(
                 {
                     "status": "error",
+                    "error_type": "system",
                     "message": gettext("An error occurred while applying changes"),
                 }
             ),
@@ -569,6 +628,7 @@ def create_logic(
     parent_subject=None,
     parent_predicate=None,
     temp_id_to_uri=None,
+    parent_entity_type=None,
 ):
     entity_type = data.get("entity_type")
     properties = data.get("properties", {})
@@ -580,21 +640,45 @@ def create_logic(
     if temp_id and temp_id_to_uri is not None:
         temp_id_to_uri[temp_id] = str(subject)
 
+    # Create the entity type using validate_new_triple
     if parent_subject is not None:
-        editor.create(URIRef(subject), RDF.type, URIRef(entity_type), graph_uri)
-
-    if parent_subject and parent_predicate:
-        editor.create(
-            URIRef(parent_subject), URIRef(parent_predicate), URIRef(subject), graph_uri
+        type_value, _, error_message = validate_new_triple(
+            subject, RDF.type, entity_type, "create", entity_types=entity_type
         )
+        if error_message:
+            raise ValueError(error_message)
 
-    form_fields = get_form_fields()
+        if type_value is not None:
+            editor.create(URIRef(subject), RDF.type, type_value, graph_uri)
+
+    # Create the relationship to the parent using validate_new_triple
+    if parent_subject and parent_predicate:
+        # When creating a relationship, we need to validate that the parent can have this relationship
+        # with an entity of our type. Pass our entity_type as the object_entity_type for validation
+        parent_value, _, error_message = validate_new_triple(
+            parent_subject,
+            parent_predicate,
+            subject,
+            "create",
+            entity_types=parent_entity_type,
+        )
+        if error_message:
+            raise ValueError(error_message)
+
+        if parent_value is not None:
+            editor.create(
+                URIRef(parent_subject),
+                URIRef(parent_predicate),
+                parent_value,
+                graph_uri,
+            )
 
     for predicate, values in properties.items():
         if not isinstance(values, list):
             values = [values]
         for value in values:
             if isinstance(value, dict) and "entity_type" in value:
+                # For nested entities, create them first
                 nested_subject = generate_unique_uri(value["entity_type"])
                 create_logic(
                     editor,
@@ -604,65 +688,64 @@ def create_logic(
                     subject,
                     predicate,
                     temp_id_to_uri,
+                    parent_entity_type=entity_type,  # Pass the current entity type as parent_entity_type
                 )
             else:
-                if form_fields and entity_type in form_fields:
-                    # Get the field definitions for this predicate
-                    field_definitions = form_fields[entity_type].get(predicate, [])
-                    datatype_uris = []
-                    if field_definitions:
-                        datatype_uris = field_definitions[0].get("datatypes", [])
-                    # Determine appropriate datatype
-                    datatype = determine_datatype(value, datatype_uris)
-                    object_value = (
-                        URIRef(value)
-                        if validators.url(value)
-                        else Literal(value, datatype=datatype)
-                    )
-                else:
-                    # Default behavior when no SHACL validation is present
-                    object_value = (
-                        URIRef(value) if validators.url(value) else Literal(value)
-                    )
-
-                editor.create(
-                    URIRef(subject), URIRef(predicate), object_value, graph_uri
+                # Use validate_new_triple to validate and get the correctly typed value
+                object_value, _, error_message = validate_new_triple(
+                    subject, predicate, value, "create", entity_types=entity_type
                 )
+                if error_message:
+                    raise ValueError(error_message)
+
+                if object_value is not None:
+                    editor.create(
+                        URIRef(subject), URIRef(predicate), object_value, graph_uri
+                    )
 
     return subject
 
 
 def update_logic(
-    editor: Editor, subject, predicate, old_value, new_value, graph_uri=None
+    editor: Editor,
+    subject,
+    predicate,
+    old_value,
+    new_value,
+    graph_uri=None,
+    entity_type=None,
 ):
-    new_value, old_value, report_text = validate_new_triple(
-        subject, predicate, new_value, old_value
+    new_value, old_value, error_message = validate_new_triple(
+        subject, predicate, new_value, "update", old_value, entity_types=entity_type
     )
-    if len(get_shacl_graph()):
-        if new_value is None:
-            raise ValueError(report_text)
-    else:
-        new_value = (
-            Literal(new_value, datatype=old_value.datatype)
-            if old_value.datatype and isinstance(old_value, Literal)
-            else (
-                Literal(new_value, datatype=XSD.string)
-                if isinstance(old_value, Literal)
-                else URIRef(new_value)
-            )
-        )
+    if error_message:
+        raise ValueError(error_message)
+
     editor.update(URIRef(subject), URIRef(predicate), old_value, new_value, graph_uri)
 
 
-def delete_logic(editor: Editor, subject, predicate, object_value, graph_uri=None):
-    if len(get_shacl_graph()):
-        data_graph = fetch_data_graph_for_subject(subject)
-        _, can_be_deleted, _, _, _, _, _ = get_valid_predicates(
-            list(data_graph.triples((URIRef(subject), None, None)))
+def delete_logic(
+    editor: Editor,
+    subject,
+    predicate=None,
+    object_value=None,
+    graph_uri=None,
+    entity_type=None,
+):
+    # Ensure we have the correct data types for all values
+    subject_uri = URIRef(subject)
+    predicate_uri = URIRef(predicate) if predicate else None
+
+    # Validate and get correctly typed object value if we have a predicate
+    if predicate and object_value:
+        # Use validate_new_triple to validate the deletion and get the correctly typed object
+        _, object_value, error_message = validate_new_triple(
+            subject, predicate, None, "delete", object_value, entity_types=entity_type
         )
-        if predicate and predicate not in can_be_deleted:
-            raise ValueError(gettext("This property cannot be deleted"))
-    editor.delete(subject, predicate, object_value, graph_uri)
+        if error_message:
+            raise ValueError(error_message)
+
+    editor.delete(subject_uri, predicate_uri, object_value, graph_uri)
 
 
 def order_logic(
