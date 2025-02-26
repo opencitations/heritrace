@@ -1117,7 +1117,12 @@ def validate_new_triple(
             valid_value = Literal(new_value, datatype=old_value.datatype)
         else:
             valid_value = Literal(new_value, datatype=XSD.string)
-    elif isinstance(old_value, URIRef) or validators.url(new_value):
+    elif isinstance(old_value, URIRef):
+        # Se old_value è un URIRef ma new_value è None, restituiamo old_value
+        if new_value is None:
+            return old_value, old_value, ""
+        valid_value = URIRef(new_value)
+    elif new_value is not None and validators.url(new_value):
         valid_value = URIRef(new_value)
     else:
         valid_value = Literal(new_value, datatype=XSD.string)

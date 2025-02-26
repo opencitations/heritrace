@@ -294,12 +294,34 @@
     }
 
     function processOrphanCheck(changes, entity_type, successCallback) {
+        // Filter out changes that involve literals - only process delete operations that involve entities
+        const entityChanges = changes.filter(change => {
+            // Only process delete operations
+            if (change.action !== "delete") {
+                return false;
+            }
+            
+            // Always include entity deletions (no predicate)
+            if (!change.predicate) {
+                return true;
+            }
+            
+            // For property deletions, we need to determine if the object is an entity or a literal
+            // We can do this by checking if the object value is a URI
+            const objectValue = change.object;
+            if (!objectValue) {
+                return false;
+            }
+            
+            // Use the existing validateUrl function from validation.jinja
+            return validateUrl(objectValue);
+        });
         $.ajax({
             url: "{{ url_for('api.check_orphans') }}",
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                'changes': changes,
+                'changes': entityChanges,
                 'entity_type': entity_type
             }),
             success: function(response) {
