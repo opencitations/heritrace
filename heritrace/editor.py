@@ -1,7 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
 
-from config import Config
 from rdflib import XSD, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
@@ -21,6 +20,7 @@ class Editor:
         resp_agent: URIRef,
         source: URIRef = None,
         c_time: datetime | None = None,
+        dataset_is_quadstore: bool = True,
     ):
         self.dataset_endpoint = dataset_endpoint
         self.provenance_endpoint = provenance_endpoint
@@ -28,7 +28,7 @@ class Editor:
         self.resp_agent = resp_agent
         self.source = source
         self.c_time = self.to_posix_timestamp(c_time)
-        self.dataset_is_quadstore = Config.DATASET_IS_QUADSTORE
+        self.dataset_is_quadstore = dataset_is_quadstore
         self.g_set = (
             OCDMConjunctiveGraph(self.counter_handler)
             if self.dataset_is_quadstore

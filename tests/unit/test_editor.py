@@ -33,6 +33,7 @@ def editor(mock_counter_handler):
             provenance_endpoint=provenance_endpoint,
             counter_handler=mock_counter_handler,
             resp_agent=resp_agent,
+            dataset_is_quadstore=True,
         )
         return editor
 

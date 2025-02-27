@@ -453,6 +453,7 @@ def apply_changes():
             URIRef(f"https://orcid.org/{current_user.orcid}"),
             current_app.config["PRIMARY_SOURCE"],
             current_app.config["DATASET_GENERATION_TIME"],
+            dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
         editor = import_entity_graph(editor, subject)
         editor.preexisting_finished()

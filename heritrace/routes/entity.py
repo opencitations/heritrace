@@ -259,6 +259,7 @@ def create_entity():
             URIRef(f"https://orcid.org/{current_user.orcid}"),
             current_app.config["PRIMARY_SOURCE"],
             current_app.config["DATASET_GENERATION_TIME"],
+            dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
 
         if get_form_fields():
@@ -1084,6 +1085,7 @@ def restore_version(entity_uri, timestamp):
         URIRef(f"https://orcid.org/{current_user.orcid}"),
         None if is_deleted else entity_snapshots[entity_uri]["source"],
         current_app.config["DATASET_GENERATION_TIME"],
+        dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
     )
 
     # Import current state into editor
