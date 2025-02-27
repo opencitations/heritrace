@@ -21,3 +21,7 @@ coverage.xml
 *.cover
 .hypothesis/
 nosetests.xml
+
+# Virtuoso lock files
+tests/test_dataset_db/virtuoso.lck
+tests/test_provenance_db/virtuoso.lck
