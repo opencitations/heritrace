@@ -25,5 +25,21 @@ docker run -d --name test-provenance-db \
 echo "Waiting for test databases to start..."
 sleep 30
 echo "Test databases should be ready now."
+
+# Set permissions for the 'nobody' user in both databases
+echo "Setting permissions for the 'nobody' user in the dataset database..."
+docker exec test-dataset-db /opt/virtuoso-opensource/bin/isql -U dba -P dba exec="DB.DBA.RDF_DEFAULT_USER_PERMS_SET ('nobody', 7);"
+
+echo "Setting permissions for the 'nobody' user in the provenance database..."
+docker exec test-provenance-db /opt/virtuoso-opensource/bin/isql -U dba -P dba exec="DB.DBA.RDF_DEFAULT_USER_PERMS_SET ('nobody', 7);"
+
+# Assign SPARQL_SELECT and SPARQL_UPDATE roles to the SPARQL account
+echo "Assigning SPARQL_SELECT and SPARQL_UPDATE roles to the SPARQL account in the dataset database..."
+docker exec test-dataset-db /opt/virtuoso-opensource/bin/isql -U dba -P dba exec="DB.DBA.USER_GRANT_ROLE ('SPARQL', 'SPARQL_UPDATE');"
+
+echo "Assigning SPARQL_SELECT and SPARQL_UPDATE roles to the SPARQL account in the provenance database..."
+docker exec test-provenance-db /opt/virtuoso-opensource/bin/isql -U dba -P dba exec="DB.DBA.USER_GRANT_ROLE ('SPARQL', 'SPARQL_UPDATE');"
+
+echo "Permissions set successfully."
 echo "Dataset DB: http://localhost:9999/sparql"
 echo "Provenance DB: http://localhost:9998/sparql" 
