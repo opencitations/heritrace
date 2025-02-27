@@ -100,13 +100,11 @@ class Editor:
 
     def delete(
         self,
-        subject: str,
-        predicate: str = None,
-        value: str = None,
+        subject: URIRef,
+        predicate: URIRef = None,
+        value=None,
         graph: URIRef | Graph | str = None,
     ) -> None:
-        subject = URIRef(subject)
-        predicate = URIRef(predicate) if predicate else None
         graph = (
             graph.identifier
             if isinstance(graph, Graph)
@@ -142,7 +140,6 @@ class Editor:
         else:
             if value:
                 # Check if the specific triple/quad exists before removing it
-                value = URIRef(value) if isinstance(value, str) else value
                 if self.dataset_is_quadstore and graph:
                     if not (subject, predicate, value, graph) in self.g_set:
                         raise Exception(
