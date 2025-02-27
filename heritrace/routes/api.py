@@ -3,8 +3,6 @@
 import traceback
 from typing import Dict, Optional
 
-import validators
-from config import OrphanHandlingStrategy, ProxyHandlingStrategy
 from flask import Blueprint, current_app, g, jsonify, request
 from flask_babel import gettext
 from flask_login import current_user, login_required
@@ -12,21 +10,19 @@ from heritrace.editor import Editor
 from heritrace.extensions import (
     get_custom_filter,
     get_dataset_endpoint,
-    get_form_fields,
     get_provenance_endpoint,
-    get_shacl_graph,
 )
 from heritrace.services.resource_lock_manager import LockStatus
-from heritrace.utils.shacl_utils import get_valid_predicates, validate_new_triple
+from heritrace.utils.shacl_utils import validate_new_triple
 from heritrace.utils.sparql_utils import (
-    fetch_data_graph_for_subject,
     find_orphaned_entities,
     get_available_classes,
     get_catalog_data,
     get_deleted_entities_with_filtering,
     import_entity_graph,
 )
-from rdflib import RDF, XSD, Literal, URIRef
+from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
+from rdflib import RDF, XSD, URIRef
 from resources.datatypes import DATATYPE_MAPPING
 
 api_bp = Blueprint("api", __name__)

@@ -3,13 +3,11 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import validators
-from config import Config
 from flask import (
     Blueprint,
     abort,
     current_app,
     flash,
-    g,
     jsonify,
     redirect,
     render_template,
@@ -528,9 +526,11 @@ def determine_datatype(value, datatype_uris):
 
 def generate_unique_uri(entity_type: URIRef | str = None):
     entity_type = str(entity_type)
-    uri = Config.URI_GENERATOR.generate_uri(entity_type)
-    if hasattr(Config.URI_GENERATOR, "counter_handler"):
-        Config.URI_GENERATOR.counter_handler.increment_counter(entity_type)
+    uri = current_app.config["URI_GENERATOR"].generate_uri(entity_type)
+    if hasattr(current_app.config["URI_GENERATOR"], "counter_handler"):
+        current_app.config["URI_GENERATOR"].counter_handler.increment_counter(
+            entity_type
+        )
     return URIRef(uri)
 
 

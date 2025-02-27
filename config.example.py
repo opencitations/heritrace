@@ -1,8 +1,8 @@
 import os
-from enum import Enum
 
 from heritrace.meta_counter_handler import MetaCounterHandler
 from heritrace.uri_generator import DefaultURIGenerator, MetaURIGenerator
+from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
 
 # Base directory for the application
 BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -21,19 +21,6 @@ meta_uri_generator = MetaURIGenerator(
 # Paths to resource files
 shacl_path = os.path.join(BASE_HERITRACE_DIR, "resources", "shacl.ttl")
 display_rules_path = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
-
-
-# Entity handling strategies
-class OrphanHandlingStrategy(Enum):
-    DELETE = "delete"  # Automatically delete orphaned entities
-    ASK = "ask"  # Ask the user before deleting orphaned entities
-    KEEP = "keep"  # Keep orphaned entities (do nothing)
-
-
-class ProxyHandlingStrategy(Enum):
-    DELETE = "delete"  # Automatically delete proxy entities
-    ASK = "ask"  # Ask the user before deleting proxy entities
-    KEEP = "keep"  # Keep proxy entities (do nothing)
 
 
 class Config(object):
