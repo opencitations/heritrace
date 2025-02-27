@@ -1,7 +1,7 @@
 # HERITRACE
 
 [<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
-[![Tests](https://github.com/arcangelo7/heritrace/actions/workflows/python-tests.yml/badge.svg)](https://github.com/arcangelo7/heritrace/actions/workflows/python-tests.yml)
+[![Tests](https://github.com/opencitations/heritrace/actions/workflows/python-tests.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/python-tests.yml)
 ![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-heritrace-coverage-main)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/arcangelo7/heritrace)
 [![Flask](https://img.shields.io/badge/Flask-2.3.3-red)](https://flask.palletsprojects.com/)
