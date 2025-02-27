@@ -2,92 +2,101 @@
 Tests for the routes.
 """
 
-import pytest
-from flask import url_for
+from flask import Flask
+from flask.testing import FlaskClient
 
 
-def test_main_routes_exist(app):
+def test_main_routes_exist(app: Flask) -> None:
     """Test that the main routes exist."""
     # Get all registered routes
     routes = [rule.endpoint for rule in app.url_map.iter_rules()]
 
     # Check for main routes
-    # Adjust these based on your actual route names
     expected_routes = [
         "static",  # Flask's static route
-        # Add your expected routes here
-        # 'main.index',
-        # 'main.about',
+        "main.index",
+        "main.catalogue",
+        "main.time_vault",
+        "main.sparql_proxy",
+        "main.endpoint",
+        "main.search",
     ]
 
     for route in expected_routes:
         assert route in routes
 
 
-def test_auth_routes_exist(app):
+def test_auth_routes_exist(app: Flask) -> None:
     """Test that the authentication routes exist."""
     # Get all registered routes
     routes = [rule.endpoint for rule in app.url_map.iter_rules()]
 
     # Check for auth routes
-    # Adjust these based on your actual route names
-    expected_routes = [
-        # 'auth.login',
-        # 'auth.logout',
-        # 'auth.register',
-    ]
+    expected_routes = ["auth.login", "auth.callback", "auth.logout"]
 
     for route in expected_routes:
         assert route in routes
 
 
-def test_api_routes_exist(app):
+def test_api_routes_exist(app: Flask) -> None:
     """Test that the API routes exist."""
     # Get all registered routes
     routes = [rule.endpoint for rule in app.url_map.iter_rules()]
 
     # Check for API routes
-    # Adjust these based on your actual route names
     expected_routes = [
-        # 'api.get_entities',
-        # 'api.create_entity',
-        # 'api.update_entity',
-        # 'api.delete_entity',
+        "api.catalogue_api",
+        "api.get_deleted_entities_api",
+        "api.check_lock",
+        "api.acquire_lock",
+        "api.release_lock",
+        "api.renew_lock",
+        "api.validate_literal",
+        "api.check_orphans",
+        "api.apply_changes",
+        "api.get_human_readable_entity",
     ]
 
     for route in expected_routes:
         assert route in routes
 
 
-def test_home_page(client):
+def test_entity_routes_exist(app: Flask) -> None:
+    """Test that the entity routes exist."""
+    # Get all registered routes
+    routes = [rule.endpoint for rule in app.url_map.iter_rules()]
+
+    # Check for entity routes
+    expected_routes = [
+        "entity.about",
+        "entity.create_entity",
+        "entity.entity_history",
+        "entity.entity_version",
+        "entity.restore_version",
+    ]
+
+    for route in expected_routes:
+        assert route in routes
+
+
+def test_home_page(client: FlaskClient) -> None:
     """Test that the home page returns a 200 status code."""
-    # Adjust the URL based on your actual route
-    # response = client.get(url_for('main.index'))
-    # assert response.status_code == 200
-
-    # If you don't have a main.index route, you can test another route
-    # or comment this test out
-    pass
+    response = client.get("/")  # Assuming the index route is at the root path
+    assert response.status_code == 200
 
 
-def test_login_page(client):
-    """Test that the login page returns a 200 status code."""
-    # Adjust the URL based on your actual route
-    # response = client.get(url_for('auth.login'))
-    # assert response.status_code == 200
-
-    # If you don't have an auth.login route, you can test another route
-    # or comment this test out
-    pass
+def test_login_page(client: FlaskClient) -> None:
+    """Test that the login page returns a redirect status code when not authenticated."""
+    response = client.get("/auth/login")  # Assuming the login route is at /auth/login
+    assert (
+        response.status_code == 302
+    )  # Expecting a redirect to authentication provider
 
 
-def test_api_endpoint(client):
-    """Test that an API endpoint returns the expected response."""
-    # Adjust the URL and expected response based on your actual API
-    # response = client.get(url_for('api.get_entities'))
-    # assert response.status_code == 200
-    # assert response.json is not None
-
-    # If you don't have this API endpoint, you can test another one
-    # or comment this test out
-    pass
+def test_api_endpoint(client: FlaskClient) -> None:
+    """Test that an API endpoint returns a redirect when not authenticated."""
+    response = client.get(
+        "/api/catalogue"
+    )  # Assuming the catalogue API is at /api/catalogue
+    assert response.status_code == 302  # Expecting a redirect to login page
+    # We can't check response.json since it's a redirect

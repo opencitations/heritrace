@@ -3,15 +3,17 @@ Configuration file for pytest.
 This file contains fixtures and configuration for the test suite.
 """
 
-import os
+from typing import Generator
+
 import pytest
 from flask import Flask
-from tests.test_config import TestConfig
+from flask.testing import FlaskClient, FlaskCliRunner
 from heritrace import create_app
+from tests.test_config import TestConfig
 
 
 @pytest.fixture
-def app():
+def app() -> Generator[Flask, None, None]:
     """Create and configure a Flask application for testing."""
     app = create_app(TestConfig)
 
@@ -21,12 +23,12 @@ def app():
 
 
 @pytest.fixture
-def client(app):
+def client(app: Flask) -> FlaskClient:
     """A test client for the app."""
     return app.test_client()
 
 
 @pytest.fixture
-def runner(app):
+def runner(app: Flask) -> FlaskCliRunner:
     """A test CLI runner for the app."""
     return app.test_cli_runner()

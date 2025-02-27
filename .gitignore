@@ -9,6 +9,7 @@ database/
 prov_database/
 cache.json
 heritrace/static/dist/
+.vscode/
 
 # Unit test / coverage reports
 .coverage

@@ -73,7 +73,13 @@ class Editor:
             if isinstance(graph, Graph)
             else URIRef(graph) if graph else None
         )
+
+        # Check if the triple exists before updating
         if self.dataset_is_quadstore and graph:
+            if not (subject, predicate, old_value, graph) in self.g_set:
+                raise Exception(
+                    f"Triple ({subject}, {predicate}, {old_value}, {graph}) does not exist"
+                )
             self.g_set.remove((subject, predicate, old_value, graph))
             self.g_set.add(
                 (subject, predicate, new_value, graph),
@@ -81,6 +87,10 @@ class Editor:
                 primary_source=self.source,
             )
         else:
+            if not (subject, predicate, old_value) in self.g_set:
+                raise Exception(
+                    f"Triple ({subject}, {predicate}, {old_value}) does not exist"
+                )
             self.g_set.remove((subject, predicate, old_value))
             self.g_set.add(
                 (subject, predicate, new_value),
@@ -105,30 +115,63 @@ class Editor:
 
         if predicate is None:
             # Delete the entire entity
+            # Check if the entity exists
             if self.dataset_is_quadstore:
-                for quad in list(self.g_set.quads((subject, None, None, None))):
+                quads = list(self.g_set.quads((subject, None, None, None)))
+                if not quads:
+                    raise Exception(f"Entity {subject} does not exist")
+                for quad in quads:
+                    self.g_set.remove(quad)
+
+                # Also remove any triples where this entity is the object
+                object_quads = list(self.g_set.quads((None, None, subject, None)))
+                for quad in object_quads:
                     self.g_set.remove(quad)
             else:
-                for triple in list(self.g_set.triples((subject, None, None))):
+                triples = list(self.g_set.triples((subject, None, None)))
+                if not triples:
+                    raise Exception(f"Entity {subject} does not exist")
+                for triple in triples:
                     self.g_set.remove(triple)
-            # Mark the entity as deleted
+
+                # Also remove any triples where this entity is the object
+                object_triples = list(self.g_set.triples((None, None, subject)))
+                for triple in object_triples:
+                    self.g_set.remove(triple)
             self.g_set.mark_as_deleted(subject)
         else:
             if value:
-                # Remove the specific triple/quad directly
+                # Check if the specific triple/quad exists before removing it
+                value = URIRef(value) if isinstance(value, str) else value
                 if self.dataset_is_quadstore and graph:
+                    if not (subject, predicate, value, graph) in self.g_set:
+                        raise Exception(
+                            f"Triple ({subject}, {predicate}, {value}, {graph}) does not exist"
+                        )
                     self.g_set.remove((subject, predicate, value, graph))
                 else:
+                    if not (subject, predicate, value) in self.g_set:
+                        raise Exception(
+                            f"Triple ({subject}, {predicate}, {value}) does not exist"
+                        )
                     self.g_set.remove((subject, predicate, value))
             else:
-                # Remove all triples with the given subject and predicate
+                # Check if any triples with the given subject and predicate exist
                 if self.dataset_is_quadstore and graph:
-                    for quad in list(
-                        self.g_set.quads((subject, predicate, None, graph))
-                    ):
+                    quads = list(self.g_set.quads((subject, predicate, None, graph)))
+                    if not quads:
+                        raise Exception(
+                            f"No triples found with subject {subject} and predicate {predicate} in graph {graph}"
+                        )
+                    for quad in quads:
                         self.g_set.remove(quad)
                 else:
-                    for triple in list(self.g_set.triples((subject, predicate, None))):
+                    triples = list(self.g_set.triples((subject, predicate, None)))
+                    if not triples:
+                        raise Exception(
+                            f"No triples found with subject {subject} and predicate {predicate}"
+                        )
+                    for triple in triples:
                         self.g_set.remove(triple)
 
         # Check if the entity is now empty and mark it as deleted if so
@@ -198,61 +241,6 @@ class Editor:
                     self.g_set.add(
                         triple, resp_agent=self.resp_agent, primary_source=self.source
                     )
-
-    def execute(self, sparql_query: str) -> None:
-        parsed = parseUpdate(sparql_query)
-        translated = translateUpdate(parsed).algebra
-        entities_added = set()
-
-        def extract_entities(operation):
-            if hasattr(operation, "quads") and isinstance(operation.quads, defaultdict):
-                for graph, triples in operation.quads.items():
-                    for triple in triples:
-                        yield triple[0]
-            else:
-                for triple in operation.triples:
-                    yield triple[0]
-
-        for operation in translated:
-            for entity in extract_entities(operation):
-                if entity not in entities_added:
-                    Reader.import_entities_from_triplestore(
-                        self.g_set, self.dataset_endpoint, [entity]
-                    )
-                    entities_added.add(entity)
-
-        self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)
-
-        for operation in translated:
-            if operation.name == "DeleteData":
-                if hasattr(operation, "quads") and isinstance(
-                    operation.quads, defaultdict
-                ):
-                    for graph, triples in operation.quads.items():
-                        for triple in triples:
-                            self.g_set.remove((triple[0], triple[1], triple[2], graph))
-                else:
-                    for triple in operation.triples:
-                        self.g_set.remove(triple)
-            elif operation.name == "InsertData":
-                if hasattr(operation, "quads") and isinstance(
-                    operation.quads, defaultdict
-                ):
-                    for graph, triples in operation.quads.items():
-                        for triple in triples:
-                            self.g_set.add((triple[0], triple[1], triple[2], graph))
-                else:
-                    for triple in operation.triples:
-                        self.g_set.add(triple)
-
-        if isinstance(self.g_set, OCDMConjunctiveGraph):
-            for subject in self.g_set.subjects(unique=True):
-                if len(list(self.g_set.quads((subject, None, None, None)))) == 0:
-                    self.g_set.mark_as_deleted(subject)
-        else:
-            for subject in self.g_set.subjects(unique=True):
-                if len(list(self.g_set.triples((subject, None, None)))) == 0:
-                    self.g_set.mark_as_deleted(subject)
 
     def import_entity(self, subject):
         Reader.import_entities_from_triplestore(

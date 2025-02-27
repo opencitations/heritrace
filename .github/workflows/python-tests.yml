@@ -73,12 +73,33 @@ jobs:
         
     - name: Generate coverage badge
       if: matrix.python-version == '3.10'
+      run: |
+        # Extract coverage percentage as a number
+        COVERAGE_NUM=$(echo ${{ env.COVERAGE }} | sed 's/%//')
+        
+        # Determine color based on coverage
+        if (( $(echo "$COVERAGE_NUM >= 90" | bc -l) )); then
+          COLOR="brightgreen"
+        elif (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then
+          COLOR="green"
+        elif (( $(echo "$COVERAGE_NUM >= 70" | bc -l) )); then
+          COLOR="yellowgreen"
+        elif (( $(echo "$COVERAGE_NUM >= 60" | bc -l) )); then
+          COLOR="yellow"
+        else
+          COLOR="red"
+        fi
+        
+        echo "BADGE_COLOR=$COLOR" >> $GITHUB_ENV
+      
+    - name: Create badge
+      if: matrix.python-version == '3.10'
       uses: RubbaBoy/BYOB@v1.3.0
       with:
         name: opencitations-heritrace-coverage-${{ github.ref_name }}
         label: "Coverage"
-        status: "${{ env.COVERAGE }}%"
-        color: green
+        status: "${{ env.COVERAGE }}"
+        color: ${{ env.BADGE_COLOR }}
         github_token: ${{ secrets.GIST_PAT }}
         repository: arcangelo7/badges
-        actor: arcangelo7 
+        actor: arcangelo7

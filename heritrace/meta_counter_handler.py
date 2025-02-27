@@ -1,6 +1,7 @@
 import sqlite3
 import urllib.parse
 
+
 class MetaCounterHandler:
     def __init__(self, database: str) -> None:
         """
@@ -18,34 +19,38 @@ class MetaCounterHandler:
         self.supplier_prefix = "060"
 
         self.entity_type_abbr = {
-            'http://purl.org/spar/fabio/Expression': 'br',
-            'http://purl.org/spar/fabio/Article': 'br',
-            'http://purl.org/spar/fabio/JournalArticle': 'br',
-            'http://purl.org/spar/fabio/Book': 'br',
-            'http://purl.org/spar/fabio/BookChapter': 'br',
-            'http://purl.org/spar/fabio/JournalIssue': 'br',
-            'http://purl.org/spar/fabio/JournalVolume': 'br',
-            'http://purl.org/spar/fabio/Journal': 'br',
-            'http://purl.org/spar/fabio/AcademicProceedings': 'br',
-            'http://purl.org/spar/fabio/ProceedingsPaper': 'br',
-            'http://purl.org/spar/fabio/ReferenceBook': 'br',
-            'http://purl.org/spar/fabio/Review': 'br',
-            'http://purl.org/spar/fabio/ReviewArticle': 'br',
-            'http://purl.org/spar/fabio/Series': 'br',
-            'http://purl.org/spar/fabio/Thesis': 'br',
-            'http://purl.org/spar/pro/RoleInTime': 'ar',
-            'http://purl.org/spar/fabio/Manifestation': 're',
-            'http://xmlns.com/foaf/0.1/Agent': 'ra',
-            'http://purl.org/spar/datacite/Identifier': 'id'
+            "http://purl.org/spar/fabio/Expression": "br",
+            "http://purl.org/spar/fabio/Article": "br",
+            "http://purl.org/spar/fabio/JournalArticle": "br",
+            "http://purl.org/spar/fabio/Book": "br",
+            "http://purl.org/spar/fabio/BookChapter": "br",
+            "http://purl.org/spar/fabio/JournalIssue": "br",
+            "http://purl.org/spar/fabio/JournalVolume": "br",
+            "http://purl.org/spar/fabio/Journal": "br",
+            "http://purl.org/spar/fabio/AcademicProceedings": "br",
+            "http://purl.org/spar/fabio/ProceedingsPaper": "br",
+            "http://purl.org/spar/fabio/ReferenceBook": "br",
+            "http://purl.org/spar/fabio/Review": "br",
+            "http://purl.org/spar/fabio/ReviewArticle": "br",
+            "http://purl.org/spar/fabio/Series": "br",
+            "http://purl.org/spar/fabio/Thesis": "br",
+            "http://purl.org/spar/pro/RoleInTime": "ar",
+            "http://purl.org/spar/fabio/Manifestation": "re",
+            "http://xmlns.com/foaf/0.1/Agent": "ra",
+            "http://purl.org/spar/datacite/Identifier": "id",
         }
 
         # Create tables
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS data_counters(
+        self.cur.execute(
+            """CREATE TABLE IF NOT EXISTS data_counters(
             entity TEXT PRIMARY KEY, 
-            count INTEGER)""")
-        self.cur.execute("""CREATE TABLE IF NOT EXISTS prov_counters(
+            count INTEGER)"""
+        )
+        self.cur.execute(
+            """CREATE TABLE IF NOT EXISTS prov_counters(
             entity TEXT PRIMARY KEY, 
-            count INTEGER)""")
+            count INTEGER)"""
+        )
         self.con.commit()
 
     def _process_entity_name(self, entity_name: str) -> tuple:
@@ -59,9 +64,9 @@ class MetaCounterHandler:
         """
         entity_name_str = str(entity_name)
         if entity_name_str in self.entity_type_abbr:
-            return ('data_counters', self.entity_type_abbr[entity_name_str])
+            return ("data_counters", self.entity_type_abbr[entity_name_str])
         else:
-            return ('prov_counters', urllib.parse.quote(entity_name_str))
+            return ("prov_counters", urllib.parse.quote(entity_name_str))
 
     def set_counter(self, new_value: int, entity_name: str) -> None:
         """
@@ -76,10 +81,12 @@ class MetaCounterHandler:
         """
         if new_value < 0:
             raise ValueError("new_value must be a non negative integer!")
-        
+
         table, processed_entity_name = self._process_entity_name(entity_name)
-        self.cur.execute(f"INSERT OR REPLACE INTO {table} (entity, count) VALUES (?, ?)", 
-                        (processed_entity_name, new_value))
+        self.cur.execute(
+            f"INSERT OR REPLACE INTO {table} (entity, count) VALUES (?, ?)",
+            (processed_entity_name, new_value),
+        )
         self.con.commit()
 
     def read_counter(self, entity_name: str) -> int:
@@ -91,9 +98,11 @@ class MetaCounterHandler:
         :return: The requested counter value.
         """
         table, processed_entity_name = self._process_entity_name(entity_name)
-        self.cur.execute(f"SELECT count FROM {table} WHERE entity=?", (processed_entity_name,))
+        self.cur.execute(
+            f"SELECT count FROM {table} WHERE entity=?", (processed_entity_name,)
+        )
         result = self.cur.fetchone()
-        
+
         if result:
             return result[0]
         else:
