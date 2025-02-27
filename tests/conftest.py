@@ -6,21 +6,8 @@ This file contains fixtures and configuration for the test suite.
 import os
 import pytest
 from flask import Flask
-from config import Config
+from tests.test_config import TestConfig
 from heritrace import create_app
-
-
-class TestConfig(Config):
-    """Test configuration that overrides production settings."""
-
-    TESTING = True
-    # Use in-memory SQLite for testing if you have a database
-    # SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    # Disable CSRF protection in tests
-    WTF_CSRF_ENABLED = False
-    # Use a test Redis instance or mock it
-    # REDIS_URL = "redis://localhost:6379/1"
-    # Add other test-specific configuration here
 
 
 @pytest.fixture

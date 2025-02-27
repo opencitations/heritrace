@@ -35,9 +35,15 @@ jobs:
       run: |
         poetry install --with dev
         
-    - name: Create config.py from example
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v3
+        
+    - name: Start test databases
       run: |
-        cp config.example.py config.py
+        # Make the script executable
+        chmod +x ./tests/start-test-databases.sh
+        # Run the script
+        ./tests/start-test-databases.sh
         
     - name: Run tests with coverage
       run: |
@@ -45,6 +51,14 @@ jobs:
         echo "=== Coverage Report ==="
         poetry run coverage report
         echo "COVERAGE=$(poetry run coverage report | grep TOTAL | awk '{print $4}')" >> $GITHUB_ENV
+        
+    - name: Stop test databases
+      if: always()
+      run: |
+        # Make the script executable
+        chmod +x ./tests/stop-test-databases.sh
+        # Run the script
+        ./tests/stop-test-databases.sh
         
     - name: Generate HTML coverage report
       run: |

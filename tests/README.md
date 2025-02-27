@@ -5,17 +5,64 @@ This directory contains tests for the Heritrace application.
 ## Test Structure
 
 - `conftest.py`: Contains pytest fixtures and configuration
+- `test_config.py`: Contains test-specific configuration settings
 - `unit/`: Contains unit tests for individual components
   - `test_app.py`: Tests for application initialization
   - `test_extensions.py`: Tests for the extensions module
   - `test_routes.py`: Tests for the routes
   - `test_editor.py`: Tests for the editor module
 
+## Test Database Setup
+
+Before running tests, you need to set up the test databases. The tests use separate database instances running on different ports than the main application:
+
+- Test Dataset database on port 9999
+- Test Provenance database on port 9998
+
+### Starting Test Databases
+
+Use the provided scripts to start the test databases:
+
+For Unix/Linux/MacOS:
+```bash
+# Make the script executable if needed
+chmod +x ./tests/start-test-databases.sh
+
+# Start the test databases
+./tests/start-test-databases.sh
+```
+
+For Windows (PowerShell):
+```powershell
+# Start the test databases
+.\tests\Start-TestDatabases.ps1
+```
+
+### Stopping Test Databases
+
+After running tests, stop the test databases:
+
+For Unix/Linux/MacOS:
+```bash
+# Make the script executable if needed
+chmod +x ./tests/stop-test-databases.sh
+
+# Stop the test databases
+./tests/stop-test-databases.sh
+```
+
+For Windows (PowerShell):
+```powershell
+# Stop the test databases
+.\tests\Stop-TestDatabases.ps1
+```
+
 ## Running Tests
 
 To run all tests:
 
 ```bash
+# Make sure test databases are running first
 pytest
 ```
 

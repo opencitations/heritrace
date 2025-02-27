@@ -9,3 +9,14 @@ database/
 prov_database/
 cache.json
 heritrace/static/dist/
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+pytest-report.xml
+coverage.xml
+*.cover
+.hypothesis/
+nosetests.xml

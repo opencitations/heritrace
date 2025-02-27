@@ -417,16 +417,55 @@ HERITRACE uses pytest for testing and GitHub Actions for continuous integration.
 
 To run the tests locally:
 
-```bash
-# Install dependencies including dev dependencies
-poetry install --with dev
+1. **Start the test databases**:
+   
+   The tests require dedicated test databases running on different ports than the main application:
+   - Test Dataset database on port 9999
+   - Test Provenance database on port 9998
 
-# Run tests
-poetry run pytest
+   For Unix/Linux/MacOS:
+   ```bash
+   # Make the script executable if needed
+   chmod +x ./tests/start-test-databases.sh
+   
+   # Start the test databases
+   ./tests/start-test-databases.sh
+   ```
 
-# Run tests with coverage
-poetry run pytest --cov=heritrace
-```
+   For Windows (PowerShell):
+   ```powershell
+   # Start the test databases
+   .\tests\Start-TestDatabases.ps1
+   ```
+
+2. **Run the tests**:
+   ```bash
+   # Install dependencies including dev dependencies
+   poetry install --with dev
+
+   # Run tests
+   poetry run pytest
+
+   # Run tests with coverage
+   poetry run pytest --cov=heritrace
+   ```
+
+3. **Stop the test databases** when done:
+   
+   For Unix/Linux/MacOS:
+   ```bash
+   # Make the script executable if needed
+   chmod +x ./tests/stop-test-databases.sh
+   
+   # Stop the test databases
+   ./tests/stop-test-databases.sh
+   ```
+
+   For Windows (PowerShell):
+   ```powershell
+   # Stop the test databases
+   .\tests\Stop-TestDatabases.ps1
+   ```
 
 For more detailed information about testing, including test structure, guidelines, and examples, see [tests/README.md](tests/README.md).
 
@@ -435,6 +474,7 @@ For more detailed information about testing, including test structure, guideline
 The project is configured with GitHub Actions to automatically run tests on every push to any branch. The CI pipeline:
 
 - Tests against multiple Python versions (3.10, 3.11, 3.12, 3.13)
+- Automatically starts and stops the test databases
 - Generates test reports and coverage data
 - Creates HTML coverage reports
 - Uploads coverage reports as artifacts for all branches
