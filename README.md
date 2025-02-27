@@ -1,5 +1,12 @@
 # HERITRACE
 
+[<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
+[![Tests](https://github.com/arcangelo7/heritrace/actions/workflows/python-tests.yml/badge.svg)](https://github.com/arcangelo7/heritrace/actions/workflows/python-tests.yml)
+![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-heritrace-coverage-main)
+[![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/arcangelo7/heritrace)
+[![Flask](https://img.shields.io/badge/Flask-2.3.3-red)](https://flask.palletsprojects.com/)
+[![License](https://img.shields.io/badge/license-ISC-green)](https://github.com/arcangelo7/heritrace)
+
 HERITRACE (Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement) is a semantic content management system designed for professionals in galleries, libraries, archives, and museums (GLAM).
 
 This system facilitates non-technical domain experts in enriching and editing metadata in a semantically robust manner. It is developed with a focus on user-friendliness, provenance management, change tracking, customization, and integration with heterogeneous data sources.
@@ -401,3 +408,36 @@ HERITRACE can be launched using Docker Compose:
    ```
 
 The application will be available at `https://localhost:5000`
+
+## Testing and CI/CD
+
+HERITRACE uses pytest for testing and GitHub Actions for continuous integration.
+
+### Running Tests Locally
+
+To run the tests locally:
+
+```bash
+# Install dependencies including dev dependencies
+poetry install --with dev
+
+# Run tests
+poetry run pytest
+
+# Run tests with coverage
+poetry run pytest --cov=heritrace
+```
+
+For more detailed information about testing, including test structure, guidelines, and examples, see [tests/README.md](tests/README.md).
+
+### CI/CD Pipeline
+
+The project is configured with GitHub Actions to automatically run tests on every push to any branch. The CI pipeline:
+
+- Tests against multiple Python versions (3.10, 3.11, 3.12, 3.13)
+- Generates test reports and coverage data
+- Creates HTML coverage reports
+- Uploads coverage reports as artifacts for all branches
+- Generates a coverage badge for each branch
+
+For more details on the CI/CD setup, see [.github/README.md](.github/README.md).

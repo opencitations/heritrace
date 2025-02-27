@@ -1,0 +1,66 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - "**" # All branches, including those with /
+  pull_request:
+    branches: [main]
+
+jobs:
+  CheckCoverage:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Setup Poetry
+      uses: snok/install-poetry@v1
+      with:
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        
+    - name: Install dependencies
+      run: |
+        poetry install --with dev
+        
+    - name: Run tests with coverage
+      run: |
+        poetry run pytest --cov=heritrace --cov-report=xml --cov-report=term
+        echo "=== Coverage Report ==="
+        poetry run coverage report
+        echo "COVERAGE=$(poetry run coverage report | grep TOTAL | awk '{print $4}')" >> $GITHUB_ENV
+        
+    - name: Generate HTML coverage report
+      run: |
+        poetry run coverage html -d htmlcov
+        
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ matrix.python-version }}-${{ github.ref_name }}
+        path: htmlcov/
+        retention-days: 14
+        
+    - name: Generate coverage badge
+      if: matrix.python-version == '3.10'
+      uses: RubbaBoy/BYOB@v1.3.0
+      with:
+        name: opencitations-heritrace-coverage-${{ github.ref_name }}
+        label: "Coverage"
+        status: "${{ env.COVERAGE }}%"
+        color: green
+        github_token: ${{ secrets.GIST_PAT }}
+        repository: arcangelo7/badges
+        actor: arcangelo7 

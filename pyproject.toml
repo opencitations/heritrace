@@ -27,6 +27,16 @@ rdflib-ocdm = "^0.4.1"
 pyopenssl = "^24.3.0"
 
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+pytest-cov = "^6.0.0"
+coverage = "^7.6.12"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "--junitxml=pytest-report.xml --cov=heritrace --cov-report=xml"
