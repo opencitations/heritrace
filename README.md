@@ -440,4 +440,4 @@ The project is configured with GitHub Actions to automatically run tests on ever
 - Uploads coverage reports as artifacts for all branches
 - Generates a coverage badge for each branch
 
-For more details on the CI/CD setup, see [.github/README.md](.github/README.md).
+For more details on the CI/CD setup, see [CI/CD Setup Documentation](.github/CI_CD_SETUP.md).
