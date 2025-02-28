@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "heritrace"
-version = "0.1.0"
+version = "0.0.1"
 description = "An environment for data modification"
 authors = ["arcangelo7 <arcangelomas@gmail.com>"]
 license = "ISC"
@@ -23,7 +23,7 @@ setuptools = "^68.2.2"
 docker = "^7.1.0"
 requests-oauthlib = "^2.0.0"
 flask-login = "^0.6.3"
-rdflib-ocdm = "^0.4.1"
+rdflib-ocdm = "^1.0.1"
 pyopenssl = "^24.3.0"
 
 

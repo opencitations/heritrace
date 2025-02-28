@@ -33,11 +33,11 @@ docker exec test-dataset-db /opt/virtuoso-opensource/bin/isql -U dba -P dba exec
 echo "Setting permissions for the 'nobody' user in the provenance database..."
 docker exec test-provenance-db /opt/virtuoso-opensource/bin/isql -U dba -P dba exec="DB.DBA.RDF_DEFAULT_USER_PERMS_SET ('nobody', 7);"
 
-# Assign SPARQL_SELECT and SPARQL_UPDATE roles to the SPARQL account
-echo "Assigning SPARQL_SELECT and SPARQL_UPDATE roles to the SPARQL account in the dataset database..."
+# Assign SPARQL_UPDATE role to the SPARQL account
+echo "Assigning SPARQL_UPDATE role to the SPARQL account in the dataset database..."
 docker exec test-dataset-db /opt/virtuoso-opensource/bin/isql -U dba -P dba exec="DB.DBA.USER_GRANT_ROLE ('SPARQL', 'SPARQL_UPDATE');"
 
-echo "Assigning SPARQL_SELECT and SPARQL_UPDATE roles to the SPARQL account in the provenance database..."
+echo "Assigning SPARQL_UPDATE role to the SPARQL account in the provenance database..."
 docker exec test-provenance-db /opt/virtuoso-opensource/bin/isql -U dba -P dba exec="DB.DBA.USER_GRANT_ROLE ('SPARQL', 'SPARQL_UPDATE');"
 
 echo "Permissions set successfully."

@@ -1188,13 +1188,13 @@ networkx = ["networkx (>=2.0.0,<3.0.0)"]
 
 [[package]]
 name = "rdflib-ocdm"
-version = "0.4.1"
+version = "1.0.1"
 description = ""
 optional = false
-python-versions = "<3.14,>=3.8"
+python-versions = "<3.14,>=3.9"
 files = [
-    {file = "rdflib_ocdm-0.4.1-py3-none-any.whl", hash = "sha256:3d938cde3c7c59c4bb175c64e8cfb64e093f2782433e309a85bef2dfc2626894"},
-    {file = "rdflib_ocdm-0.4.1.tar.gz", hash = "sha256:5dee5d9a4043ef0c8848b82a7069bb02d05b7368e62aaf53a824f8bcd3a73d57"},
+    {file = "rdflib_ocdm-1.0.1-py3-none-any.whl", hash = "sha256:4307de8edcb8d7db3ea057cbc40a343a1278b8e4531e1464e6f3a8bbe31cc13f"},
+    {file = "rdflib_ocdm-1.0.1.tar.gz", hash = "sha256:c56fb763285eb45ff9bccdc4d9a4fe0c6d20abee7456b7f16b8a9b6b49900261"},
 ]
 
 [package.dependencies]
@@ -1202,7 +1202,7 @@ oc-ocdm = ">=9.1.1,<10.0.0"
 rdflib = ">=6.2.0,<7.0.0"
 redis = ">=4.5.5,<5.0.0"
 sparqlwrapper = ">=2.0.0,<3.0.0"
-time-agnostic-library = ">=4.6.10,<5.0.0"
+time-agnostic-library = ">=4.6.14,<5.0.0"
 
 [[package]]
 name = "redis"
@@ -1310,13 +1310,13 @@ pandas = ["pandas (>=1.3.5)"]
 
 [[package]]
 name = "time-agnostic-library"
-version = "4.6.13"
+version = "4.6.14"
 description = "time-agnostic-library is a Python ≥3.7 library that allows performing time-travel queries on RDF datasets compliant with the OCDM v2.0.1 provenance specification."
 optional = false
-python-versions = "<3.14,>=3.8"
+python-versions = "<3.14,>=3.9"
 files = [
-    {file = "time_agnostic_library-4.6.13-py3-none-any.whl", hash = "sha256:b7b573506a06729b9f455f00e6658a8ec19bae4e54189baede148ab2e0cac970"},
-    {file = "time_agnostic_library-4.6.13.tar.gz", hash = "sha256:f224722dc73e0774d5874b7623b2d5c25ec23d2d1398c31539c9c2168902c22e"},
+    {file = "time_agnostic_library-4.6.14-py3-none-any.whl", hash = "sha256:91d20037b2144167522099f96f2da4d8a912a146738c528d2034c2e5c7fe7db4"},
+    {file = "time_agnostic_library-4.6.14.tar.gz", hash = "sha256:fe5fa2305f4a99e5a389a41383436c8b24ee66e64790ece9c789e24194d6277f"},
 ]
 
 [package.dependencies]
@@ -1324,7 +1324,6 @@ lxml = ">=5.1.0,<6.0.0"
 psycopg2 = ">=2.9.6,<3.0.0"
 python_dateutil = ">=2.8.2,<3.0.0"
 rdflib = "6.3.2"
-rdflib-ocdm = ">=0.4.0,<0.5.0"
 setuptools = ">=68.2.2,<69.0.0"
 SPARQLWrapper = "2.0.0"
 tqdm = ">=4.62.3,<5.0.0"
@@ -1484,4 +1483,4 @@ email = ["email-validator"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10,<3.14"
-content-hash = "59f5ed573be66b6df1b5b054102b820ab70f41cb1b9413b002901837cb82e258"
+content-hash = "330f6df0ae81403844beb9c25a83b306f9b85da6cc489ee934a84308c73d194b"
