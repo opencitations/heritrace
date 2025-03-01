@@ -1,23 +1,49 @@
 # PowerShell script to start test databases for HERITRACE
 
+# Get the absolute path of the current directory
+$CURRENT_DIR = (Get-Location).Path
+
 # Create test database directories if they don't exist
-New-Item -Path "tests/test_dataset_db" -ItemType Directory -Force | Out-Null
-New-Item -Path "tests/test_provenance_db" -ItemType Directory -Force | Out-Null
+$datasetDbPath = Join-Path -Path $CURRENT_DIR -ChildPath "tests\test_dataset_db"
+$provDbPath = Join-Path -Path $CURRENT_DIR -ChildPath "tests\test_provenance_db"
+
+if (-not (Test-Path -Path $datasetDbPath)) {
+    Write-Host "Creating dataset database directory..."
+    New-Item -Path $datasetDbPath -ItemType Directory -Force | Out-Null
+}
+
+if (-not (Test-Path -Path $provDbPath)) {
+    Write-Host "Creating provenance database directory..."
+    New-Item -Path $provDbPath -ItemType Directory -Force | Out-Null
+}
+
+# Check if containers already exist and remove them if they do
+if (docker ps -a --format "{{.Names}}" | Select-String -Pattern "^test-dataset-db$") {
+    Write-Host "Removing existing test-dataset-db container..."
+    docker rm -f test-dataset-db
+}
+
+if (docker ps -a --format "{{.Names}}" | Select-String -Pattern "^test-provenance-db$") {
+    Write-Host "Removing existing test-provenance-db container..."
+    docker rm -f test-provenance-db
+}
 
 # Start Virtuoso for dataset database on port 9999 (different from dev port 8999)
+Write-Host "Starting test-dataset-db container..."
 docker run -d --name test-dataset-db `
   -p 9999:8890 `
   -e DBA_PASSWORD=dba `
   -e SPARQL_UPDATE=true `
-  -v "${PWD}/tests/test_dataset_db:/database" `
+  -v "${datasetDbPath}:/database" `
   openlink/virtuoso-opensource-7:latest
 
 # Start Virtuoso for provenance database on port 9998 (different from dev port 8998)
+Write-Host "Starting test-provenance-db container..."
 docker run -d --name test-provenance-db `
   -p 9998:8890 `
   -e DBA_PASSWORD=dba `
   -e SPARQL_UPDATE=true `
-  -v "${PWD}/tests/test_provenance_db:/database" `
+  -v "${provDbPath}:/database" `
   openlink/virtuoso-opensource-7:latest
 
 # Wait for databases to be ready

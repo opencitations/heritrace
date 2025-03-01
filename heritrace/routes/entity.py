@@ -554,7 +554,8 @@ def validate_entity_data(structured_data, form_fields):
     elif entity_type not in form_fields:
         errors.append(
             gettext(
-                "Invalid entity type selected: %(entity_type)s", entity_type=entity_type
+                "Invalid entity type selected: %(entity_type)s",
+                entity_type=entity_type,
             )
         )
 
@@ -713,6 +714,30 @@ def validate_entity_data(structured_data, form_fields):
                                 acceptable_values=acceptable_values,
                             )
                         )
+
+    # In the RDF model, a property with zero values is equivalent to the property being absent,
+    # as a triple requires a subject, predicate, and object. Therefore, this section checks for
+    # properties defined in the schema that are completely absent from the input data but are
+    # required (min_count > 0). This complements the cardinality check above, which only
+    # validates properties that are present in the data.
+    # Check for missing required properties
+    for prop_uri, field_definitions in entity_fields.items():
+        if prop_uri not in properties:
+            for field_def in field_definitions:
+                min_count = field_def.get("min", 0)
+                if min_count > 0:
+                    value = gettext("values") if min_count > 1 else gettext("value")
+                    errors.append(
+                        gettext(
+                            "Missing required property: %(prop_uri)s requires at least %(min_count)d %(value)s",
+                            prop_uri=custom_filter.human_readable_predicate(
+                                prop_uri, [entity_type]
+                            ),
+                            min_count=min_count,
+                            value=value,
+                        )
+                    )
+                    break  # Only need to report once per property
 
     return errors
 

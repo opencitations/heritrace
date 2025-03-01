@@ -31,6 +31,7 @@ pyopenssl = "^24.3.0"
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"
 coverage = "^7.6.12"
+isort = "^6.0.1"
 
 [build-system]
 requires = ["poetry-core"]
