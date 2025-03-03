@@ -47,6 +47,9 @@ class TestConfig(object):
     DATASET_DB_URL = "http://localhost:9999/sparql"
     PROVENANCE_DB_URL = "http://localhost:9998/sparql"
 
+    # Redis configuration for testing
+    REDIS_URL = "redis://localhost:6380/1"  # Use database 1 for testing on port 6380
+
     # Database store types
     DATASET_IS_QUADSTORE = True
     PROVENANCE_IS_QUADSTORE = True

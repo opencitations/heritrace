@@ -38,38 +38,6 @@ from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
 @pytest.fixture
-def logged_in_client(app: Flask) -> Generator[FlaskClient, None, None]:
-    """Create a logged-in test client."""
-    with app.test_client() as client:
-        # Create a test user with ORCID
-        test_orcid = "0000-0000-0000-0000"
-
-        # Set up session to simulate a logged-in user
-        with client.session_transaction() as session:
-            session["user_id"] = test_orcid
-            session["user_name"] = "Test User"
-            session["is_authenticated"] = True
-            session["lang"] = "en"  # Set language to avoid locale issues
-            session["orcid"] = test_orcid
-            session["_fresh"] = True  # Indicate a fresh login
-            session["_id"] = "test-session-id"  # Session ID
-            session["_user_id"] = test_orcid  # Flask-Login user ID
-
-            # Add OAuth token information if needed
-            session["oauth_token"] = {
-                "access_token": "test-access-token",
-                "token_type": "bearer",
-                "refresh_token": "test-refresh-token",
-                "expires_in": 3600,
-                "scope": ["openid", "/read-limited"],
-                "name": "Test User",
-                "orcid": test_orcid,
-            }
-
-        yield client
-
-
-@pytest.fixture
 def test_entity(app: Flask) -> Generator[URIRef, None, None]:
     """Create a test entity in the database."""
     with app.app_context():

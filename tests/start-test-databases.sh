@@ -19,6 +19,11 @@ if [ "$(docker ps -a -q -f name=test-provenance-db)" ]; then
     docker rm -f test-provenance-db
 fi
 
+if [ "$(docker ps -a -q -f name=test-redis)" ]; then
+    echo "Removing existing test-redis container..."
+    docker rm -f test-redis
+fi
+
 # Start Virtuoso for dataset database on port 9999 (different from dev port 8999)
 echo "Starting test-dataset-db container..."
 docker run -d --name test-dataset-db \
@@ -36,6 +41,12 @@ docker run -d --name test-provenance-db \
   -e SPARQL_UPDATE=true \
   -v "${CURRENT_DIR}/tests/test_provenance_db:/database" \
   openlink/virtuoso-opensource-7:latest
+
+# Start Redis for resource locking on port 6380
+echo "Starting test-redis container..."
+docker run -d --name test-redis \
+  -p 6380:6379 \
+  redis:7-alpine
 
 # Wait for databases to be ready
 echo "Waiting for test databases to start..."
@@ -58,4 +69,5 @@ docker exec test-provenance-db /opt/virtuoso-opensource/bin/isql -U dba -P dba e
 
 echo "Permissions set successfully."
 echo "Dataset DB: http://localhost:9999/sparql"
-echo "Provenance DB: http://localhost:9998/sparql" 
+echo "Provenance DB: http://localhost:9998/sparql"
+echo "Redis: localhost:6380" 

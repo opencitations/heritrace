@@ -11,6 +11,7 @@ This directory contains tests for the Heritrace application.
   - `test_extensions.py`: Tests for the extensions module
   - `test_routes.py`: Tests for the routes
   - `test_editor.py`: Tests for the editor module
+  - `test_api.py`: Tests for the API routes
 
 ## Test Database Setup
 
@@ -18,6 +19,7 @@ Before running tests, you need to set up the test databases. The tests use separ
 
 - Test Dataset database on port 9999
 - Test Provenance database on port 9998
+- Test Redis instance on port 6380 (database 1)
 
 ### Starting Test Databases
 
