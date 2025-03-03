@@ -212,8 +212,6 @@ def format_authors_apa(authors):
         author_list = ", ".join(a["name"] for a in authors[:-1])
         return f"{author_list}, & {authors[-1]['name']}"
 
-    return ""
-
 
 def format_zenodo_source(url):
     """Format Zenodo source for display with full APA citation."""

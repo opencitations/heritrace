@@ -67,3 +67,25 @@ def test_counter_handler_with_different_entities():
         assert (
             counter_handler.read_counter(entity_name) == expected_value
         ), f"Counter for {entity_name} should still be {expected_value}"
+
+
+def test_counter_handler_negative_value():
+    """Test that set_counter raises ValueError when a negative value is passed."""
+    # Get the counter handler from TestConfig
+    counter_handler = TestConfig.COUNTER_HANDLER
+    assert counter_handler is not None
+
+    # Create a test entity name
+    entity_name = "https://w3id.org/oc/meta/br/test_negative"
+
+    # Try to set a negative value and verify it raises ValueError
+    import pytest
+
+    with pytest.raises(ValueError, match="new_value must be a non negative integer!"):
+        counter_handler.set_counter(-1, entity_name)
+
+    # Verify that a zero value is accepted (edge case)
+    counter_handler.set_counter(0, entity_name)
+    assert (
+        counter_handler.read_counter(entity_name) == 0
+    ), "Counter should accept zero as a valid value"

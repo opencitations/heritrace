@@ -308,6 +308,22 @@ def check_orphans():
         )
 
         data = request.json
+
+        # Validate required fields
+        if not data or "changes" not in data or "entity_type" not in data:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "error_type": "validation",
+                        "message": gettext(
+                            "Invalid request: 'changes' and 'entity_type' are required fields"
+                        ),
+                    }
+                ),
+                400,
+            )
+
         changes = data.get("changes", [])
         entity_type = data.get("entity_type")
         custom_filter = get_custom_filter()

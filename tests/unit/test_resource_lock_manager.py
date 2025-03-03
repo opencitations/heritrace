@@ -352,3 +352,71 @@ def test_lock_expiration(mock_current_user, resource_lock_manager: ResourceLockM
     finally:
         # Restore original duration
         resource_lock_manager.lock_duration = original_duration
+
+
+@patch("heritrace.services.resource_lock_manager.current_user")
+def test_check_lock_status_exception(
+    mock_current_user, resource_lock_manager: ResourceLockManager
+):
+    """Test check_lock_status when an exception occurs."""
+    resource_uri = "http://example.org/resource/exception"
+
+    # Mock get_lock_info to raise an exception
+    with patch.object(
+        resource_lock_manager, "get_lock_info", side_effect=Exception("Test exception")
+    ):
+        status, lock_info = resource_lock_manager.check_lock_status(resource_uri)
+
+        # Verify that the method returns ERROR status and None for lock_info
+        assert status == LockStatus.ERROR
+        assert lock_info is None
+
+
+@patch("heritrace.services.resource_lock_manager.current_user")
+def test_acquire_lock_exception(
+    mock_current_user, resource_lock_manager: ResourceLockManager
+):
+    """Test acquire_lock when an exception occurs."""
+    resource_uri = "http://example.org/resource/exception"
+
+    mock_current_user.orcid = "0000-0001-2345-6789"
+    mock_current_user.name = "Test User"
+
+    # Mock redis.setex to raise an exception
+    with patch.object(
+        resource_lock_manager.redis, "setex", side_effect=Exception("Test exception")
+    ):
+        success = resource_lock_manager.acquire_lock(resource_uri)
+
+        # Verify that the method returns False when an exception occurs
+        assert success is False
+
+
+@patch("heritrace.services.resource_lock_manager.current_user")
+def test_release_lock_exception(
+    mock_current_user, resource_lock_manager: ResourceLockManager
+):
+    """Test release_lock when an exception occurs."""
+    resource_uri = "http://example.org/resource/exception"
+
+    user_id = "0000-0001-2345-6789"
+    mock_current_user.orcid = user_id
+
+    # Create a lock by the current user
+    lock_key = resource_lock_manager._generate_lock_key(resource_uri)
+    lock_data = {
+        "user_id": user_id,
+        "user_name": "Test User",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "resource_uri": resource_uri,
+    }
+    resource_lock_manager.redis.setex(lock_key, 300, json.dumps(lock_data))
+
+    # Mock redis.delete to raise an exception
+    with patch.object(
+        resource_lock_manager.redis, "delete", side_effect=Exception("Test exception")
+    ):
+        success = resource_lock_manager.release_lock(resource_uri)
+
+        # Verify that the method returns False when an exception occurs
+        assert success is False
