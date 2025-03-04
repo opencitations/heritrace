@@ -32,7 +32,7 @@ from heritrace.extensions import (
 from heritrace.forms import *
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (
-    class_priorities,
+    get_class_priority,
     get_grouped_triples,
     get_highest_priority_class,
     get_property_order_from_rules,
@@ -206,7 +206,7 @@ def create_entity():
             for entity_type in form_fields.keys()
             if is_entity_type_visible(entity_type)
         ],
-        key=lambda et: class_priorities.get(et, 0),
+        key=lambda et: get_class_priority(et),
         reverse=True,
     )
 

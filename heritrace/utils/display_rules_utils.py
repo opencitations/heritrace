@@ -10,12 +10,20 @@ from SPARQLWrapper import JSON
 
 display_rules = get_display_rules()
 
-class_priorities = {}
-if display_rules:
-    for rule in display_rules:
-        cls = rule["class"]
-        priority = rule.get("priority", 0)
-        class_priorities[cls] = priority
+
+def get_class_priority(class_uri):
+    """
+    Restituisce la priorità di una classe specifica.
+    Calcola la priorità direttamente dalle regole di visualizzazione.
+    """
+    rules = get_display_rules()
+    if not rules:
+        return 0
+
+    for rule in rules:
+        if rule["class"] == str(class_uri):
+            return rule.get("priority", 0)
+    return 0
 
 
 def is_entity_type_visible(entity_type):
@@ -98,8 +106,8 @@ def get_highest_priority_class(subject_classes):
     max_priority = None
     highest_priority_class = None
     for cls in subject_classes:
-        priority = class_priorities.get(str(cls), 0)
-        if max_priority is None or priority < max_priority:
+        priority = get_class_priority(str(cls))
+        if max_priority is None or priority > max_priority:
             max_priority = priority
             highest_priority_class = cls
     return highest_priority_class

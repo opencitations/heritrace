@@ -13,7 +13,7 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/login")
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("catalogue"))
+        return redirect(url_for("main.catalogue"))
 
     callback_url = url_for("auth.callback", _external=True, _scheme="https")
     orcid = OAuth2Session(
@@ -51,14 +51,14 @@ def callback():
             gettext("An error occurred during authentication. Please try again"),
             "danger",
         )
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
     orcid_id = token["orcid"]
 
     if orcid_id not in current_app.config["ORCID_WHITELIST"]:
         flash(
             gettext("Your ORCID is not authorized to access this application"), "danger"
         )
-        return redirect(url_for("login"))
+        return redirect(url_for("auth.login"))
     session["user_name"] = token["name"]
     user = User(id=orcid_id, name=token["name"], orcid=orcid_id)
     session.permanent = True
@@ -69,8 +69,9 @@ def callback():
 
 
 @auth_bp.route("/logout")
-@login_required
 def logout():
+    if not current_user.is_authenticated:
+        return "", 401
     logout_user()
     flash(gettext("You have been logged out"), "info")
     return redirect(url_for("main.index"))
