@@ -4,18 +4,30 @@ This directory contains tests for the Heritrace application.
 
 ## Test Structure
 
+The test suite is organized into two main categories:
+
+### Unit Tests (`unit/`)
+Tests that verify individual components in isolation, without requiring external services:
+- `test_app.py`: Tests for basic application initialization and configuration
+- `test_extensions.py`: Tests for Flask extensions and utilities
+- `test_routes.py`: Tests for route handlers using mocked dependencies
+- `test_api.py`: Tests for API endpoints using mocked services
+- And other component-specific tests that don't require external services
+
+### Integration Tests (`integration/`)
+Tests that verify interactions between components using real external services:
+- `test_editor_integration.py`: Tests for the editor module with real database connections
+- `test_entity_integration.py`: Tests for entity operations using actual databases
+- `test_sparql_utils_integration.py`: Tests for SPARQL utilities with real triplestore
+- And other tests that require external services like databases
+
+### Common Files
 - `conftest.py`: Contains pytest fixtures and configuration
 - `test_config.py`: Contains test-specific configuration settings
-- `unit/`: Contains unit tests for individual components
-  - `test_app.py`: Tests for application initialization
-  - `test_extensions.py`: Tests for the extensions module
-  - `test_routes.py`: Tests for the routes
-  - `test_editor.py`: Tests for the editor module
-  - `test_api.py`: Tests for the API routes
 
 ## Test Database Setup
 
-Before running tests, you need to set up the test databases. The tests use separate database instances running on different ports than the main application:
+The integration tests require dedicated test databases. These are separate database instances running on different ports than the main application:
 
 - Test Dataset database on port 9999
 - Test Provenance database on port 9998
@@ -23,7 +35,7 @@ Before running tests, you need to set up the test databases. The tests use separ
 
 ### Starting Test Databases
 
-Use the provided scripts to start the test databases:
+Use the provided scripts to start the test databases (required for integration tests):
 
 For Unix/Linux/MacOS:
 ```bash
