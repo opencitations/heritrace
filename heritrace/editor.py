@@ -1,9 +1,6 @@
-from collections import defaultdict
 from datetime import datetime
 
 from rdflib import XSD, Graph, Literal, URIRef
-from rdflib.plugins.sparql.algebra import translateUpdate
-from rdflib.plugins.sparql.parser import parseUpdate
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMConjunctiveGraph, OCDMGraph
 from rdflib_ocdm.reader import Reader
@@ -175,70 +172,6 @@ class Editor:
         if len(list(self.g_set.triples((subject, None, None)))) == 0:
             self.g_set.mark_as_deleted(subject)
 
-    def import_entity_from_triplestore(self, res_list: list):
-        sparql: SPARQLWrapper = SPARQLWrapper(self.dataset_endpoint)
-        if self.dataset_is_quadstore:
-            query: str = f"""
-                SELECT ?g ?s ?p ?o (LANG(?o) AS ?lang)
-                WHERE {{
-                    GRAPH ?g {{?s ?p ?o}}.
-                    VALUES ?s {{<{'> <'.join(res_list)}>}}
-                }}"""
-            sparql.setQuery(query)
-            sparql.setMethod(POST)
-            sparql.setReturnFormat(JSON)
-            results = sparql.queryAndConvert()
-
-            if (
-                results is not None
-                and "results" in results
-                and "bindings" in results["results"]
-            ):
-                for result in results["results"]["bindings"]:
-                    s = URIRef(result["s"]["value"])
-                    p = URIRef(result["p"]["value"])
-                    g = URIRef(result["g"]["value"])
-
-                    obj_data = result["o"]
-                    if obj_data["type"] == "uri":
-                        o = URIRef(obj_data["value"])
-                    else:
-                        value = obj_data["value"]
-                        lang = result.get("lang", {}).get("value")
-                        datatype = obj_data.get("datatype")
-
-                        if lang:
-                            o = Literal(value, lang=lang)
-                        elif datatype:
-                            o = Literal(value, datatype=URIRef(datatype))
-                        else:
-                            o = Literal(value, datatype=XSD.string)
-
-                    self.g_set.add(
-                        (s, p, o, g),
-                        resp_agent=self.resp_agent,
-                        primary_source=self.source,
-                    )
-        else:
-            query: str = f"""
-                CONSTRUCT {{
-                    ?s ?p ?o
-                }}
-                WHERE {{
-                    ?s ?p ?o.
-                    VALUES ?s {{<{'> <'.join(res_list)}>}}
-                }}"""
-            sparql.setQuery(query)
-            sparql.setMethod(POST)
-            sparql.setReturnFormat(XML)
-            result: Graph = sparql.queryAndConvert()
-
-            if result is not None:
-                for triple in result:
-                    self.g_set.add(
-                        triple, resp_agent=self.resp_agent, primary_source=self.source
-                    )
-
     def import_entity(self, subject):
         Reader.import_entities_from_triplestore(
             self.g_set, self.dataset_endpoint, [subject]
@@ -256,7 +189,9 @@ class Editor:
         self.g_set.commit_changes()
 
     def to_posix_timestamp(self, value: str | datetime | None) -> float | None:
-        if isinstance(value, datetime):
+        if value is None:
+            return None
+        elif isinstance(value, datetime):
             return value.timestamp()
         elif isinstance(value, str):
             dt = datetime.fromisoformat(value)

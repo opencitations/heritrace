@@ -90,6 +90,8 @@ def get_sortable_properties(entity_type: str, display_rules, form_fields_cache) 
                                 for t in ["int", "float", "decimal", "double", "number"]
                             ):
                                 prop["sortType"] = "number"
+                            elif "boolean" in datatype:
+                                prop["sortType"] = "boolean"
                             else:
                                 prop["sortType"] = "string"
                         else:

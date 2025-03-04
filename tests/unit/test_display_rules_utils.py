@@ -424,6 +424,57 @@ class TestGetSortableProperties:
         assert result[0]["property"] == "http://example.org/unknown"
         assert result[0]["sortType"] == "string"
 
+    def test_get_sortable_properties_with_boolean_type(
+        self, mock_display_rules, mock_form_fields_cache
+    ):
+        """Test getting sortable properties with boolean datatype."""
+        # Modify mock_display_rules to include a boolean property
+        modified_rules = mock_display_rules.copy()
+        modified_rules[0]["sortableBy"].append(
+            {
+                "property": "http://example.org/isActive",
+                "displayName": "Is Active",
+            }
+        )
+
+        # Add boolean property to form_fields_cache
+        mock_form_fields_cache["http://example.org/Person"]["http://example.org/isActive"] = [
+            {
+                "datatypes": ["http://www.w3.org/2001/XMLSchema#boolean"],
+            }
+        ]
+
+        result = get_sortable_properties(
+            "http://example.org/Person", modified_rules, mock_form_fields_cache
+        )
+        assert len(result) == 2
+        boolean_prop = next(
+            p for p in result if p["property"] == "http://example.org/isActive"
+        )
+        assert boolean_prop["sortType"] == "boolean"
+
+    def test_get_sortable_properties_with_string_type(
+        self, mock_display_rules, mock_form_fields_cache
+    ):
+        """Test getting sortable properties with string datatype."""
+        # Modify mock_display_rules to include a string property
+        modified_rules = mock_display_rules.copy()
+        modified_rules[0]["sortableBy"].append(
+            {
+                "property": "http://example.org/description",
+                "displayName": "Description",
+            }
+        )
+
+        result = get_sortable_properties(
+            "http://example.org/Person", modified_rules, mock_form_fields_cache
+        )
+        assert len(result) == 2
+        string_prop = next(
+            p for p in result if p["property"] == "http://example.org/description"
+        )
+        assert string_prop["sortType"] == "string"
+
 
 class TestGetHighestPriorityClass:
     @patch("heritrace.utils.display_rules_utils.get_class_priority")

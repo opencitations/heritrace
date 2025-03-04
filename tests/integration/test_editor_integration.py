@@ -6,6 +6,9 @@ from unittest.mock import MagicMock
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 import pytest
+from rdflib_ocdm.ocdm_graph import OCDMGraph
+from unittest.mock import patch
+from datetime import datetime
 
 # Import the editor module
 from heritrace.editor import Editor
@@ -531,3 +534,204 @@ def test_nested_entity_handling(editor: Editor) -> None:
     assert (main_entity, type_pred, main_type, graph) in editor.g_set
     assert (main_entity, has_nested, nested_entity, graph) not in editor.g_set
     assert len(list(editor.g_set.triples((nested_entity, None, None)))) == 0
+
+
+def test_update_nonexistent_triple(editor: Editor) -> None:
+    """Test error handling when updating a non-existent triple."""
+    subject = URIRef("http://example.org/subject")
+    predicate = URIRef("http://example.org/predicate")
+    old_value = Literal("non-existent value")
+    new_value = Literal("new value")
+    graph = URIRef("http://example.org/graph")
+
+    # Test with quadstore and graph
+    with pytest.raises(Exception) as excinfo:
+        editor.update(subject, predicate, old_value, new_value, graph)
+    assert f"Triple ({subject}, {predicate}, {old_value}, {graph}) does not exist" in str(excinfo.value)
+
+    # Test with non-quadstore
+    editor.dataset_is_quadstore = False
+    with pytest.raises(Exception) as excinfo:
+        editor.update(subject, predicate, old_value, new_value)
+    assert f"Triple ({subject}, {predicate}, {old_value}) does not exist" in str(excinfo.value)
+
+    # Create a triple and then try to update with wrong old_value
+    correct_value = Literal("correct value")
+    editor.create(subject, predicate, correct_value)
+    with pytest.raises(Exception) as excinfo:
+        editor.update(subject, predicate, old_value, new_value)
+    assert f"Triple ({subject}, {predicate}, {old_value}) does not exist" in str(excinfo.value)
+
+
+def test_delete_nonexistent_triple(editor: Editor) -> None:
+    """Test error handling when deleting a non-existent triple."""
+    subject = URIRef("http://example.org/subject")
+    predicate = URIRef("http://example.org/predicate")
+    value = Literal("non-existent value")
+    graph = URIRef("http://example.org/graph")
+
+    # Test deleting a specific non-existent triple with quadstore and graph
+    with pytest.raises(Exception) as excinfo:
+        editor.delete(subject, predicate, value, graph)
+    assert f"Triple ({subject}, {predicate}, {value}, {graph}) does not exist" in str(excinfo.value)
+
+    # Test deleting a specific non-existent triple with non-quadstore
+    editor.dataset_is_quadstore = False
+    with pytest.raises(Exception) as excinfo:
+        editor.delete(subject, predicate, value)
+    assert f"Triple ({subject}, {predicate}, {value}) does not exist" in str(excinfo.value)
+
+    # Test deleting all triples with a non-existent subject and predicate in quadstore
+    editor.dataset_is_quadstore = True
+    with pytest.raises(Exception) as excinfo:
+        editor.delete(subject, predicate, graph=graph)
+    assert f"No triples found with subject {subject} and predicate {predicate} in graph {graph}" in str(excinfo.value)
+
+    # Test deleting all triples with a non-existent subject and predicate in non-quadstore
+    editor.dataset_is_quadstore = False
+    with pytest.raises(Exception) as excinfo:
+        editor.delete(subject, predicate)
+    assert f"No triples found with subject {subject} and predicate {predicate}" in str(excinfo.value)
+
+    # Test deleting a non-existent entity
+    with pytest.raises(Exception) as excinfo:
+        editor.delete(subject)
+    assert f"Entity {subject} does not exist" in str(excinfo.value)
+
+
+def test_update_triple_removal_and_addition_non_quadstore(editor: Editor) -> None:
+    """Test the removal and addition of triples in the non-quadstore context of the update method."""
+    # Setup
+    editor.dataset_is_quadstore = False
+    subject = URIRef("http://example.org/subject")
+    predicate = URIRef("http://example.org/predicate")
+    old_value = Literal("old value")
+    new_value = Literal("new value")
+
+    # Create the initial triple
+    editor.create(subject, predicate, old_value)
+    
+    # Verify the triple was created
+    assert (subject, predicate, old_value) in editor.g_set
+    
+    # Update the triple
+    editor.update(subject, predicate, old_value, new_value)
+    
+    # Verify the old triple was removed
+    assert (subject, predicate, old_value) not in editor.g_set
+    
+    # Verify the new triple was added
+    assert (subject, predicate, new_value) in editor.g_set
+    
+    # Verify the responsible agent and primary source were set correctly
+    # Get all triples for the subject
+    triples = list(editor.g_set.triples((subject, None, None)))
+    
+    # Verify there's only one triple (the updated one)
+    assert len(triples) == 1
+    
+    # Verify the triple has the correct value
+    assert triples[0][2] == new_value
+    
+    # Test with URI values
+    uri_old = URIRef("http://example.org/old")
+    uri_new = URIRef("http://example.org/new")
+    
+    # Create the initial triple with URI value
+    editor.create(subject, predicate, uri_old)
+    
+    # Update the triple
+    editor.update(subject, predicate, uri_old, uri_new)
+    
+    # Verify the old triple was removed
+    assert (subject, predicate, uri_old) not in editor.g_set
+    
+    # Verify the new triple was added
+    assert (subject, predicate, uri_new) in editor.g_set
+
+
+def test_update_resp_agent_and_primary_source_non_quadstore(editor: Editor) -> None:
+    """Test the resp_agent and primary_source parameters when adding a triple in the non-quadstore context of the update method."""
+    # Setup
+    editor.dataset_is_quadstore = False
+    subject = URIRef("http://example.org/subject")
+    predicate = URIRef("http://example.org/predicate")
+    old_value = Literal("old value")
+    new_value = Literal("new value")
+    
+    # Set a custom source
+    custom_source = URIRef("http://example.org/custom-source")
+    editor.source = custom_source
+    
+    # Create the initial triple
+    editor.create(subject, predicate, old_value)
+    
+    # Save the original g_set
+    original_g_set = editor.g_set
+    
+    # Create a new OCDMGraph with the same counter_handler
+    new_g_set = OCDMGraph(editor.counter_handler)
+    
+    # Add the triple to the new graph
+    new_g_set.add((subject, predicate, old_value))
+    
+    # Replace the editor's g_set with our new one
+    editor.g_set = new_g_set
+    
+    # Patch the add method to check if it's called with the correct parameters
+    with patch.object(new_g_set, 'add', wraps=new_g_set.add) as mock_add:
+        # Update the triple
+        editor.update(subject, predicate, old_value, new_value)
+        
+        # Verify that add was called with the correct parameters
+        mock_add.assert_called_with(
+            (subject, predicate, new_value),
+            resp_agent=editor.resp_agent,
+            primary_source=custom_source
+        )
+    
+    # Verify the triple was updated
+    assert (subject, predicate, old_value) not in new_g_set
+    assert (subject, predicate, new_value) in new_g_set
+    
+    # Restore the original g_set
+    editor.g_set = original_g_set
+    
+    # Reset the source
+    editor.source = None
+
+
+def test_import_entity_method(editor: Editor) -> None:
+    """Test the import_entity method which calls Reader.import_entities_from_triplestore."""
+    subject = URIRef("http://example.org/entity")
+    
+    # Mock the Reader.import_entities_from_triplestore method
+    with patch('heritrace.editor.Reader.import_entities_from_triplestore') as mock_import:
+        # Call the method under test
+        editor.import_entity(subject)
+        
+        # Verify Reader.import_entities_from_triplestore was called with the correct parameters
+        mock_import.assert_called_once_with(
+            editor.g_set,
+            editor.dataset_endpoint,
+            [subject]
+        )
+
+
+def test_to_posix_timestamp(editor: Editor) -> None:
+    """Test the to_posix_timestamp method which converts datetime or string to POSIX timestamp."""
+    # Test with datetime object
+    test_datetime = datetime(2023, 1, 1, 12, 0, 0)
+    expected_timestamp = test_datetime.timestamp()
+    result = editor.to_posix_timestamp(test_datetime)
+    assert result == expected_timestamp
+    
+    # Test with ISO format string
+    test_string = "2023-01-01T12:00:00"
+    expected_timestamp = datetime(2023, 1, 1, 12, 0, 0).timestamp()
+    result = editor.to_posix_timestamp(test_string)
+    assert result == expected_timestamp
+    
+    # Test with None value
+    result = editor.to_posix_timestamp(None)
+    assert result is None

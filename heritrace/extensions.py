@@ -373,13 +373,13 @@ def init_request_handlers(app):
     @app.before_request
     def initialize_lock_manager():
         """Initialize the resource lock manager for each request."""
-        if not hasattr(g, 'resource_lock'):
+        if not hasattr(g, 'resource_lock_manager'):
             g.resource_lock_manager = ResourceLockManager(redis_client)
     
     @app.teardown_appcontext
     def close_redis_connection(error):
         """Close Redis connection when the request context ends."""
-        if hasattr(g, 'resource_lock'):
+        if hasattr(g, 'resource_lock_manager'):
             del g.resource_lock_manager
 
 def adjust_endpoint_url(url: str) -> str:

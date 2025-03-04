@@ -121,6 +121,24 @@ def test_callback_http_to_https(client: FlaskClient, app: Flask):
         assert response.location == expected_url
 
 
+def test_callback_already_https(client: FlaskClient, app: Flask):
+    """Test callback with URL already using HTTPS scheme."""
+    with client.session_transaction() as sess:
+        sess["oauth_state"] = "test-state"
+
+    with patch("heritrace.routes.auth.OAuth2Session") as mock_oauth:
+        mock_session = MagicMock()
+        mock_session.fetch_token.side_effect = Exception("OAuth Error")
+        mock_oauth.return_value = mock_session
+
+        with app.test_request_context():
+            expected_url = url_for("auth.login")
+        response = client.get("/auth/callback", base_url="https://localhost")
+
+        assert response.status_code == 302
+        assert response.location == expected_url
+
+
 def test_logout(logged_in_client: FlaskClient, app: Flask):
     """Test logout route."""
     with app.test_request_context():
