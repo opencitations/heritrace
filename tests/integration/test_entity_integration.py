@@ -8,6 +8,7 @@ import os
 import tempfile
 import time
 from typing import Generator
+from datetime import datetime
 
 import pytest
 import yaml
@@ -35,6 +36,7 @@ from heritrace.utils.filters import Filter
 from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
 from rdflib import RDF, XSD, ConjunctiveGraph, Literal, URIRef
 from time_agnostic_library.agnostic_entity import AgnosticEntity
+from SPARQLWrapper import SPARQLWrapper, POST, JSON
 
 
 @pytest.fixture
@@ -230,6 +232,32 @@ def test_create_entity_post(logged_in_client: FlaskClient, app: Flask) -> None:
     response_data = json.loads(response.data)
     assert "redirect_url" in response_data
     assert response_data["status"] == "success"
+
+
+def test_create_entity_post_validation_error(logged_in_client: FlaskClient, app: Flask) -> None:
+    """Test the POST method for the create entity route with invalid data."""
+    # Create invalid entity data (missing entity_type)
+    entity_data = {
+        # Missing entity_type
+        "properties": {
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": "http://purl.org/spar/fabio/JournalArticle",
+            "http://purl.org/dc/terms/title": "New Test Article",
+        },
+    }
+
+    # Post the entity data
+    response = logged_in_client.post(
+        "/create-entity",
+        data={"structured_data": json.dumps(entity_data)},
+        content_type="application/x-www-form-urlencoded",
+    )
+
+    # Check the response
+    assert response.status_code == 400
+    response_data = json.loads(response.data)
+    assert response_data["status"] == "error"
+    assert "errors" in response_data
+    assert len(response_data["errors"]) > 0
 
 
 def test_restore_version(
@@ -1045,6 +1073,84 @@ def test_about_nonexistent_entity(logged_in_client: FlaskClient, app: Flask) -> 
     assert (
         'class="alert alert-info"' in response_text
     ), "Alert info class not found in response"
+
+
+def test_about_deleted_entity(logged_in_client: FlaskClient, test_entity: URIRef, app: Flask) -> None:
+    """Test the about route for a deleted entity."""
+    with app.app_context():
+        # First, create a second snapshot by modifying the entity
+        editor = Editor(
+            get_dataset_endpoint(),
+            get_provenance_endpoint(),
+            app.config["COUNTER_HANDLER"],
+            URIRef("https://orcid.org/0000-0000-0000-0000"),
+            app.config["PRIMARY_SOURCE"],
+        )
+        
+        # Import the entity
+        editor.import_entity(test_entity)
+        
+        # Add a new triple to create a new snapshot
+        editor.create(test_entity, URIRef("http://example.org/property"), Literal("Test value"))
+        editor.save()
+        
+        # Wait a moment to ensure timestamps are different
+        time.sleep(1)
+        
+        # Get the provenance endpoint
+        provenance_endpoint = get_provenance_endpoint()
+        
+        # Create a SPARQL query to add invalidatedAtTime to the entity's provenance
+        sparql = SPARQLWrapper(provenance_endpoint)
+        sparql.setMethod(POST)
+        
+        # Get the latest snapshot URI for the entity
+        query = f"""
+        PREFIX prov: <http://www.w3.org/ns/prov#>
+        SELECT ?snapshot
+        WHERE {{
+            ?snapshot prov:specializationOf <{test_entity}> .
+            ?snapshot prov:generatedAtTime ?time .
+        }}
+        ORDER BY DESC(?time)
+        LIMIT 1
+        """
+        
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
+        
+        if results["results"]["bindings"]:
+            snapshot_uri = results["results"]["bindings"][0]["snapshot"]["value"]
+            
+            # Add invalidatedAtTime to the snapshot
+            current_time = datetime.now().isoformat()
+            update_query = f"""
+            PREFIX prov: <http://www.w3.org/ns/prov#>
+            INSERT DATA {{
+                GRAPH <https://w3id.org/oc/meta/prov/> {{
+                    <{snapshot_uri}> prov:invalidatedAtTime "{current_time}"^^<{XSD.dateTime}> .
+                }}
+            }}
+            """
+            
+            sparql.setQuery(update_query)
+            sparql.query()
+            
+            # Get the about page for the deleted entity
+            response = logged_in_client.get(f"/about/{test_entity}")
+            
+            # Check that the response is successful
+            assert response.status_code == 200
+            
+            # Check that the response indicates the entity is deleted
+            response_text = response.data.decode()
+            assert str(test_entity) in response_text
+            
+            # The page should indicate the entity is deleted
+            soup = BeautifulSoup(response_text, "html.parser")
+            deleted_notice = soup.find(string=lambda text: "deleted" in text.lower() if text else False)
+            assert deleted_notice is not None
 
 
 def test_entity_version_invalid_timestamp(
