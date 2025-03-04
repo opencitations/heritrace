@@ -316,6 +316,18 @@
             // Use the existing validateUrl function from validation.jinja
             return validateUrl(objectValue);
         });
+
+        // Show loading indicator
+        Swal.fire({
+            title: "{{ _('Checking dependencies...') }}",
+            html: "{{ _('Checking for affected entities. Please wait...') }}",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         $.ajax({
             url: "{{ url_for('api.check_orphans') }}",
             method: 'POST',
@@ -325,6 +337,9 @@
                 'entity_type': entity_type
             }),
             success: function(response) {
+                // Close loading indicator
+                Swal.close();
+                
                 if (response.status === 'success') {
                     // Se ci sono entità affette e almeno una strategia è ASK
                     if (response.affected_entities.length > 0 && !response.should_delete) {
@@ -341,6 +356,9 @@
                 }
             },
             error: function(jqXHR) {
+                // Close loading indicator
+                Swal.close();
+                
                 let response = $.parseJSON(jqXHR.responseText);
                 let errorMessage = response && response.message ? 
                     response.message : 
@@ -351,12 +369,26 @@
     }
 
     function applyChangesToEntity(changes, successCallback, errorCallback) {
+        // Show loading indicator
+        Swal.fire({
+            title: "{{ _('Processing...') }}",
+            html: "{{ _('Applying changes to the entity. Please wait...') }}",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         $.ajax({
             url: "{{ url_for('api.apply_changes') }}",
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(changes),
             success: function(response) {
+                // Close loading indicator
+                Swal.close();
+                
                 if (response.status === "success") {
                     Swal.fire({
                         icon: 'success',
@@ -376,6 +408,9 @@
                 }
             },
             error: function(jqXHR) {
+                // Close loading indicator
+                Swal.close();
+                
                 let response = $.parseJSON(jqXHR.responseText);
                 let errorMessage = response && response.message ? 
                     response.message : 

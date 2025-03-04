@@ -1,11 +1,10 @@
 from datetime import datetime
 
-from rdflib import XSD, Graph, Literal, URIRef
+from rdflib import Graph, Literal, URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMConjunctiveGraph, OCDMGraph
 from rdflib_ocdm.reader import Reader
 from rdflib_ocdm.storer import Storer
-from SPARQLWrapper import JSON, POST, XML, SPARQLWrapper
 
 
 class Editor:
@@ -39,11 +38,14 @@ class Editor:
         value: Literal | URIRef,
         graph: URIRef | Graph | str = None,
     ) -> None:
+        subject = URIRef(subject) if not isinstance(subject, URIRef) else subject
+        predicate = URIRef(predicate) if not isinstance(predicate, URIRef) else predicate
         graph = (
             graph.identifier
-            if isinstance(graph, Graph)
+            if graph and isinstance(graph, Graph)
             else URIRef(graph) if graph else None
         )
+
         if self.dataset_is_quadstore and graph:
             self.g_set.add(
                 (subject, predicate, value, graph),
@@ -65,9 +67,11 @@ class Editor:
         new_value: Literal | URIRef,
         graph: URIRef | Graph | str = None,
     ) -> None:
+        subject = URIRef(subject) if not isinstance(subject, URIRef) else subject
+        predicate = URIRef(predicate) if not isinstance(predicate, URIRef) else predicate
         graph = (
             graph.identifier
-            if isinstance(graph, Graph)
+            if graph and isinstance(graph, Graph)
             else URIRef(graph) if graph else None
         )
 
@@ -105,6 +109,17 @@ class Editor:
         graph = (
             graph.identifier
             if isinstance(graph, Graph)
+            else URIRef(graph) if graph else None
+        )
+        subject = URIRef(subject) if not isinstance(subject, URIRef) else subject
+        predicate = (
+            URIRef(predicate)
+            if predicate and not isinstance(predicate, URIRef)
+            else predicate
+        )
+        graph = (
+            graph.identifier
+            if graph and isinstance(graph, Graph)
             else URIRef(graph) if graph else None
         )
 

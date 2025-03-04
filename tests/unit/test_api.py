@@ -1027,8 +1027,8 @@ def test_apply_changes_with_affected_entities(
     # Verify the mock was called correctly
     mock_import_entity_graph.assert_called_once()
     mock_delete_logic.assert_called_once()
-    mock_editor.delete.assert_any_call("http://example.org/orphan/1")
-    mock_editor.delete.assert_any_call("http://example.org/proxy/1")
+    mock_editor.delete.assert_any_call(URIRef("http://example.org/orphan/1"))
+    mock_editor.delete.assert_any_call(URIRef("http://example.org/proxy/1"))
     mock_editor.save.assert_called_once()
 
 

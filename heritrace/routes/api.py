@@ -308,7 +308,6 @@ def check_orphans():
         )
 
         data = request.json
-
         # Validate required fields
         if not data or "changes" not in data or "entity_type" not in data:
             return (
@@ -340,7 +339,6 @@ def check_orphans():
             ProxyHandlingStrategy.DELETE,
             ProxyHandlingStrategy.ASK,
         )
-
         if check_for_orphans or check_for_proxies:
             for change in changes:
                 if change["action"] == "delete":
@@ -350,7 +348,6 @@ def check_orphans():
                         change.get("predicate"),
                         change.get("object"),
                     )
-
                     # Only collect orphans if we need to handle them
                     if check_for_orphans:
                         orphans.extend(found_orphans)
@@ -534,7 +531,7 @@ def apply_changes():
                     )
                     if should_delete_orphans and orphans:
                         for orphan in orphans:
-                            editor.delete(orphan["uri"])
+                            editor.delete(URIRef(orphan["uri"]))
 
                     # Gestione dei proxy secondo la strategia per i proxy
                     should_delete_proxies = (
@@ -546,7 +543,7 @@ def apply_changes():
                     )
                     if should_delete_proxies and proxies:
                         for proxy in proxies:
-                            editor.delete(proxy["uri"])
+                            editor.delete(URIRef(proxy["uri"]))
 
             elif change["action"] == "update":
                 update_logic(

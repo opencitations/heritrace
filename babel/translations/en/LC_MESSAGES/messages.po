@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  1.0\n"
 "Report-Msgid-Bugs-To: arcangelo.massari@unibo.it\n"
-"POT-Creation-Date: 2025-02-25 18:27+0100\n"
+"POT-Creation-Date: 2025-03-04 22:02+0100\n"
 "PO-Revision-Date: 2023-09-09 15:01+0200\n"
 "Last-Translator: Arcangelo Massari <arcangelo.massari@unibo.it>\n"
 "Language: en\n"
@@ -16,69 +16,72 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.16.0\n"
+"Generated-By: Babel 2.17.0\n"
 
-#: heritrace/routes/api.py:114 heritrace/routes/api.py:127
-#: heritrace/routes/api.py:158 heritrace/templates/entity/about.jinja:327
-#: heritrace/templates/entity/about.jinja:378
+#: heritrace/routes/api.py:110 heritrace/routes/api.py:123
+#: heritrace/routes/api.py:154 heritrace/templates/entity/about.jinja:441
 msgid "Error"
 msgstr ""
 
-#: heritrace/routes/api.py:115 heritrace/routes/api.py:177
-#: heritrace/routes/api.py:218 heritrace/routes/api.py:254
+#: heritrace/routes/api.py:111 heritrace/routes/api.py:173
+#: heritrace/routes/api.py:214 heritrace/routes/api.py:250
 msgid "No resource URI provided"
 msgstr ""
 
-#: heritrace/routes/api.py:128
+#: heritrace/routes/api.py:124
 msgid "Error checking lock status"
 msgstr ""
 
-#: heritrace/routes/api.py:139
+#: heritrace/routes/api.py:135
 msgid "Resource Locked"
 msgstr ""
 
-#: heritrace/routes/api.py:140
+#: heritrace/routes/api.py:137
 #, python-format
 msgid ""
 "This resource is currently being edited by %(user)s [orcid:%(orcid)s]. "
 "Please try again later"
 msgstr ""
 
-#: heritrace/routes/api.py:159 heritrace/routes/api.py:201
-#: heritrace/routes/api.py:237 heritrace/routes/api.py:273
+#: heritrace/routes/api.py:155 heritrace/routes/api.py:197
+#: heritrace/routes/api.py:233 heritrace/routes/api.py:269
 msgid "An unexpected error occurred"
 msgstr ""
 
-#: heritrace/routes/api.py:191
+#: heritrace/routes/api.py:187
 msgid "Resource is locked by another user"
 msgstr ""
 
-#: heritrace/routes/api.py:229
+#: heritrace/routes/api.py:225
 msgid "Unable to release lock"
 msgstr ""
 
-#: heritrace/routes/api.py:265
+#: heritrace/routes/api.py:261
 msgid "Unable to renew lock"
 msgstr ""
 
-#: heritrace/routes/api.py:285
+#: heritrace/routes/api.py:281
 msgid "Value is required."
 msgstr ""
 
-#: heritrace/routes/api.py:293
+#: heritrace/routes/api.py:289
 msgid "No matching datatypes found."
 msgstr ""
 
-#: heritrace/routes/api.py:521
+#: heritrace/routes/api.py:319
+msgid "Invalid request: 'changes' and 'entity_type' are required fields"
+msgstr ""
+
+#: heritrace/routes/api.py:424 heritrace/routes/api.py:440
+msgid "An error occurred while checking for orphaned entities"
+msgstr ""
+
+#: heritrace/routes/api.py:574
 msgid "Changes applied successfully"
 msgstr ""
 
-#: heritrace/routes/api.py:536
+#: heritrace/routes/api.py:605
 msgid "An error occurred while applying changes"
-msgstr ""
-
-#: heritrace/routes/api.py:664
-msgid "This property cannot be deleted"
 msgstr ""
 
 #: heritrace/routes/auth.py:51
@@ -94,230 +97,223 @@ msgstr ""
 msgid "Welcome back %(name)s!"
 msgstr ""
 
-#: heritrace/routes/auth.py:75
+#: heritrace/routes/auth.py:76
 msgid "You have been logged out"
 msgstr ""
 
-#: heritrace/routes/entity.py:216
+#: heritrace/routes/entity.py:214
 msgid "Text (string)"
 msgstr ""
 
-#: heritrace/routes/entity.py:217
+#: heritrace/routes/entity.py:215
 msgid "Whole number (integer)"
 msgstr ""
 
-#: heritrace/routes/entity.py:218
+#: heritrace/routes/entity.py:216
 msgid "True or False (boolean)"
 msgstr ""
 
-#: heritrace/routes/entity.py:219
+#: heritrace/routes/entity.py:217
 msgid "Date (YYYY-MM-DD)"
 msgstr ""
 
-#: heritrace/routes/entity.py:220
+#: heritrace/routes/entity.py:218
 msgid "Date and Time (YYYY-MM-DDThh:mm:ss)"
 msgstr ""
 
-#: heritrace/routes/entity.py:221
+#: heritrace/routes/entity.py:219
 msgid "Decimal number"
 msgstr ""
 
-#: heritrace/routes/entity.py:222
+#: heritrace/routes/entity.py:220
 msgid "Floating point number"
 msgstr ""
 
-#: heritrace/routes/entity.py:223
+#: heritrace/routes/entity.py:221
 msgid "Double precision floating point number"
 msgstr ""
 
-#: heritrace/routes/entity.py:224
+#: heritrace/routes/entity.py:222
 msgid "Time (hh:mm:ss)"
 msgstr ""
 
-#: heritrace/routes/entity.py:225
+#: heritrace/routes/entity.py:223
 msgid "Year (YYYY)"
 msgstr ""
 
-#: heritrace/routes/entity.py:226
+#: heritrace/routes/entity.py:224
 msgid "Month (MM)"
 msgstr ""
 
-#: heritrace/routes/entity.py:227
+#: heritrace/routes/entity.py:225
 msgid "Day of the month (DD)"
 msgstr ""
 
-#: heritrace/routes/entity.py:228
+#: heritrace/routes/entity.py:226
 msgid "Duration (e.g., P1Y2M3DT4H5M6S)"
 msgstr ""
 
-#: heritrace/routes/entity.py:229
+#: heritrace/routes/entity.py:227
 msgid "Hexadecimal binary"
 msgstr ""
 
-#: heritrace/routes/entity.py:230
+#: heritrace/routes/entity.py:228
 msgid "Base64 encoded binary"
 msgstr ""
 
-#: heritrace/routes/entity.py:231
+#: heritrace/routes/entity.py:229
 msgid "Web address (URL)"
 msgstr ""
 
-#: heritrace/routes/entity.py:232
+#: heritrace/routes/entity.py:230
 msgid "Language code (e.g., en, it)"
 msgstr ""
 
-#: heritrace/routes/entity.py:233
+#: heritrace/routes/entity.py:231
 msgid "Normalized text (no line breaks)"
 msgstr ""
 
-#: heritrace/routes/entity.py:234
+#: heritrace/routes/entity.py:232
 msgid "Tokenized text (single word)"
 msgstr ""
 
-#: heritrace/routes/entity.py:235
+#: heritrace/routes/entity.py:233
 msgid "Non-positive integer (0 or negative)"
 msgstr ""
 
-#: heritrace/routes/entity.py:236
+#: heritrace/routes/entity.py:234
 msgid "Negative integer"
 msgstr ""
 
-#: heritrace/routes/entity.py:237
+#: heritrace/routes/entity.py:235
 msgid "Long integer"
 msgstr ""
 
-#: heritrace/routes/entity.py:238
+#: heritrace/routes/entity.py:236
 msgid "Short integer"
 msgstr ""
 
-#: heritrace/routes/entity.py:239
+#: heritrace/routes/entity.py:237
 msgid "Byte-sized integer"
 msgstr ""
 
-#: heritrace/routes/entity.py:240
+#: heritrace/routes/entity.py:238
 msgid "Non-negative integer (0 or positive)"
 msgstr ""
 
-#: heritrace/routes/entity.py:241
+#: heritrace/routes/entity.py:239
 msgid "Positive integer (greater than 0)"
 msgstr ""
 
-#: heritrace/routes/entity.py:242
+#: heritrace/routes/entity.py:240
 msgid "Unsigned long integer"
 msgstr ""
 
-#: heritrace/routes/entity.py:243
+#: heritrace/routes/entity.py:241
 msgid "Unsigned integer"
 msgstr ""
 
-#: heritrace/routes/entity.py:244
+#: heritrace/routes/entity.py:242
 msgid "Unsigned short integer"
 msgstr ""
 
-#: heritrace/routes/entity.py:245
+#: heritrace/routes/entity.py:243
 msgid "Unsigned byte"
 msgstr ""
 
-#: heritrace/routes/entity.py:436
+#: heritrace/routes/entity.py:435
 msgid "Entity created successfully"
 msgstr ""
 
-#: heritrace/routes/entity.py:440
+#: heritrace/routes/entity.py:439
 #, python-format
 msgid "An error occurred while creating the entity: %(error)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:552
+#: heritrace/routes/entity.py:553
 msgid "Entity type is required"
 msgstr ""
 
-#: heritrace/routes/entity.py:555
+#: heritrace/routes/entity.py:557
 #, python-format
 msgid "Invalid entity type selected: %(entity_type)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:573
+#: heritrace/routes/entity.py:576
 #, python-format
 msgid "Unknown property %(prop_uri)s for entity type %(entity_type)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:614 heritrace/routes/entity.py:626
-#: heritrace/utils/shacl_utils.py:995 heritrace/utils/shacl_utils.py:1007
+#: heritrace/routes/entity.py:616 heritrace/routes/entity.py:628
+#: heritrace/routes/entity.py:729 heritrace/utils/shacl_utils.py:1013
+#: heritrace/utils/shacl_utils.py:1025
 msgid "values"
 msgstr ""
 
-#: heritrace/routes/entity.py:614 heritrace/routes/entity.py:626
-#: heritrace/utils/shacl_utils.py:995 heritrace/utils/shacl_utils.py:1007
+#: heritrace/routes/entity.py:616 heritrace/routes/entity.py:628
+#: heritrace/routes/entity.py:729 heritrace/utils/shacl_utils.py:1013
+#: heritrace/utils/shacl_utils.py:1025
 msgid "value"
 msgstr ""
 
-#: heritrace/routes/entity.py:618
+#: heritrace/routes/entity.py:619
 #, python-format
 msgid "Property %(prop_uri)s requires at least %(min_count)d %(value)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:630
+#: heritrace/routes/entity.py:631
 #, python-format
 msgid "Property %(prop_uri)s allows at most %(max_count)d %(value)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:645
+#: heritrace/routes/entity.py:646
 #, python-format
 msgid "Property %(prop_uri)s requires the value %(mandatory_value)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:688
+#: heritrace/routes/entity.py:687
 #, python-format
 msgid ""
 "Value \"%(value)s\" for property %(prop_uri)s is not of expected type "
 "%(expected_types)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:710
+#: heritrace/routes/entity.py:709
 #, python-format
 msgid ""
 "Value \"%(value)s\" is not permitted for property %(prop_uri)s. "
 "Acceptable values are: %(acceptable_values)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:811
+#: heritrace/routes/entity.py:732
+#, python-format
+msgid ""
+"Missing required property: %(prop_uri)s requires at least %(min_count)d "
+"%(value)s"
+msgstr ""
+
+#: heritrace/routes/entity.py:837
 msgid "Snapshot"
 msgstr ""
 
-#: heritrace/routes/entity.py:813
-msgid "Responsible agent"
-msgstr ""
-
-#: heritrace/routes/entity.py:814 heritrace/templates/entity/version.jinja:106
-msgid "Primary source"
-msgstr ""
-
-#: heritrace/routes/entity.py:815 heritrace/templates/entity/version.jinja:111
-msgid "Description"
-msgstr ""
-
-#: heritrace/routes/entity.py:819
-msgid "View version"
-msgstr ""
-
-#: heritrace/routes/entity.py:1139
+#: heritrace/routes/entity.py:1166
 msgid "Version restored successfully"
 msgstr ""
 
-#: heritrace/routes/entity.py:1143
+#: heritrace/routes/entity.py:1170
 #, python-format
 msgid "An error occurred while restoring the version: %(error)s"
 msgstr ""
 
-#: heritrace/routes/entity.py:1358
+#: heritrace/routes/entity.py:1385
 msgid "Modifications"
 msgstr ""
 
-#: heritrace/routes/entity.py:1366 heritrace/utils/sparql_utils.py:361
+#: heritrace/routes/entity.py:1393 heritrace/utils/sparql_utils.py:361
 msgid "Additions"
 msgstr ""
 
-#: heritrace/routes/entity.py:1368 heritrace/routes/entity.py:1456
+#: heritrace/routes/entity.py:1395 heritrace/routes/entity.py:1483
 #: heritrace/utils/sparql_utils.py:354
 msgid "Deletions"
 msgstr ""
@@ -400,37 +396,37 @@ msgstr ""
 msgid "Please enter a valid URL"
 msgstr ""
 
-#: heritrace/templates/create_entity.jinja:379
+#: heritrace/templates/create_entity.jinja:380
 msgid "Please provide at least one property with a value"
 msgstr ""
 
-#: heritrace/templates/create_entity.jinja:394
+#: heritrace/templates/create_entity.jinja:395
 msgid "Please fill out at least one property"
 msgstr ""
 
-#: heritrace/templates/create_entity.jinja:459
+#: heritrace/templates/create_entity.jinja:460
 msgid "Validation Errors"
 msgstr ""
 
-#: heritrace/templates/create_entity.jinja:461
-#: heritrace/templates/create_entity.jinja:469
-#: heritrace/templates/validation.jinja:299
+#: heritrace/templates/create_entity.jinja:462
+#: heritrace/templates/create_entity.jinja:470
+#: heritrace/templates/validation.jinja:348
 msgid "OK"
 msgstr ""
 
-#: heritrace/templates/create_entity.jinja:467
+#: heritrace/templates/create_entity.jinja:468
 msgid "An error occurred"
 msgstr ""
 
-#: heritrace/templates/create_entity.jinja:468
+#: heritrace/templates/create_entity.jinja:469
 msgid "Please try again later"
 msgstr ""
 
-#: heritrace/templates/create_entity.jinja:478
+#: heritrace/templates/create_entity.jinja:479
 msgid "Validating data..."
 msgstr ""
 
-#: heritrace/templates/create_entity.jinja:479
+#: heritrace/templates/create_entity.jinja:480
 msgid "Please wait while we validate your data"
 msgstr ""
 
@@ -497,30 +493,30 @@ msgstr ""
 msgid "Select an option"
 msgstr ""
 
-#: heritrace/templates/macros.jinja:143 heritrace/templates/macros.jinja:363
+#: heritrace/templates/macros.jinja:143 heritrace/templates/macros.jinja:369
 msgid "Date"
 msgstr ""
 
-#: heritrace/templates/macros.jinja:146 heritrace/templates/macros.jinja:366
+#: heritrace/templates/macros.jinja:146 heritrace/templates/macros.jinja:372
 msgid "Year and Month"
 msgstr ""
 
-#: heritrace/templates/macros.jinja:149 heritrace/templates/macros.jinja:369
+#: heritrace/templates/macros.jinja:149 heritrace/templates/macros.jinja:375
 msgid "Year"
 msgstr ""
 
-#: heritrace/templates/macros.jinja:152 heritrace/templates/macros.jinja:372
+#: heritrace/templates/macros.jinja:152 heritrace/templates/macros.jinja:378
 msgid "Select Date Type"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:141
+#: heritrace/templates/entity/about.jinja:142
 #: heritrace/templates/macros.jinja:289
 #, python-format
 msgid "Add %(element_type)s"
 msgstr ""
 
 #: heritrace/templates/macros.jinja:321 heritrace/templates/macros.jinja:332
-#: heritrace/templates/macros.jinja:445
+#: heritrace/templates/macros.jinja:451
 #, python-format
 msgid "Redirection to the entity %(entity)s"
 msgstr ""
@@ -726,7 +722,32 @@ msgstr ""
 msgid "in the"
 msgstr ""
 
-#: heritrace/templates/validation.jinja:297
+#: heritrace/templates/validation.jinja:312
+msgid "Unknown property"
+msgstr ""
+
+#: heritrace/templates/validation.jinja:318
+#: heritrace/templates/validation.jinja:326
+msgid "The property"
+msgstr ""
+
+#: heritrace/templates/validation.jinja:318
+msgid "has too many values"
+msgstr ""
+
+#: heritrace/templates/validation.jinja:318
+msgid "Maximum allowed is"
+msgstr ""
+
+#: heritrace/templates/validation.jinja:326
+msgid "has too few values"
+msgstr ""
+
+#: heritrace/templates/validation.jinja:326
+msgid "Minimum required is"
+msgstr ""
+
+#: heritrace/templates/validation.jinja:346
 msgid "Invalid Submission"
 msgstr ""
 
@@ -747,94 +768,114 @@ msgid ""
 "Machine above"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:153
+#: heritrace/templates/entity/about.jinja:154
 msgid "There is no information related to this resource in the dataset"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:159
+#: heritrace/templates/entity/about.jinja:160
 msgid "Save Changes"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:162
-#: heritrace/templates/entity/about.jinja:662
+#: heritrace/templates/entity/about.jinja:163
+#: heritrace/templates/entity/about.jinja:729
 msgid "Cancel"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:167
+#: heritrace/templates/entity/about.jinja:168
 msgid "Linked Resources"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:184
+#: heritrace/templates/entity/about.jinja:185
 msgid "View entity"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:197
+#: heritrace/templates/entity/about.jinja:198
 msgid "No resources reference this resource"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:248
+#: heritrace/templates/entity/about.jinja:249
 msgid ""
 "The following resources will become orphaned (they will no longer be "
 "connected to any other resource in the dataset):"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:263
+#: heritrace/templates/entity/about.jinja:264
 msgid "The following intermediate relationships (proxies) will also be removed:"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:275
+#: heritrace/templates/entity/about.jinja:276
 msgid "Would you like to delete all these entities now?"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:278
-#: heritrace/templates/entity/about.jinja:398
+#: heritrace/templates/entity/about.jinja:279
+#: heritrace/templates/entity/about.jinja:462
 msgid "Warning"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:282
+#: heritrace/templates/entity/about.jinja:283
 msgid "Yes, delete affected entities"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:283
+#: heritrace/templates/entity/about.jinja:284
 msgid "No, keep affected entities"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:324
-#: heritrace/templates/entity/about.jinja:364
+#: heritrace/templates/entity/about.jinja:322
+msgid "Checking dependencies..."
+msgstr ""
+
+#: heritrace/templates/entity/about.jinja:323
+msgid "Checking for affected entities. Please wait..."
+msgstr ""
+
+#: heritrace/templates/entity/about.jinja:365
+#: heritrace/templates/entity/about.jinja:417
 msgid "An unexpected error occurred!"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:345
+#: heritrace/templates/entity/about.jinja:374
+msgid "Processing..."
+msgstr ""
+
+#: heritrace/templates/entity/about.jinja:375
+msgid "Applying changes to the entity. Please wait..."
+msgstr ""
+
+#: heritrace/templates/entity/about.jinja:395
 msgid "Success"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:399
+#: heritrace/templates/entity/about.jinja:433
+msgid "Validation Error"
+msgstr ""
+
+#: heritrace/templates/entity/about.jinja:463
 msgid ""
 "You cannot add more properties; the limit for each property has been "
 "reached"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:654
+#: heritrace/templates/entity/about.jinja:721
 msgid "Are you sure?"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:655
+#: heritrace/templates/entity/about.jinja:722
 msgid "This will delete this resource and all its data"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:656
+#: heritrace/templates/entity/about.jinja:723
 msgid "You can still restore it later using the Time Machine"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:661
+#: heritrace/templates/entity/about.jinja:728
 msgid "Yes, delete it!"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:704
+#: heritrace/templates/entity/about.jinja:772
 msgid "No Changes Detected"
 msgstr ""
 
-#: heritrace/templates/entity/about.jinja:705
+#: heritrace/templates/entity/about.jinja:773
 msgid ""
 "Oops! It looks like you have not made any changes yet. Try updating a "
 "field first"
@@ -888,6 +929,14 @@ msgstr ""
 msgid "Attributed to"
 msgstr ""
 
+#: heritrace/templates/entity/version.jinja:106
+msgid "Primary source"
+msgstr ""
+
+#: heritrace/templates/entity/version.jinja:111
+msgid "Description"
+msgstr ""
+
 #: heritrace/templates/entity/version.jinja:138
 msgid "This is a deletion snapshot. The entity was deleted at this point in time"
 msgstr ""
@@ -908,35 +957,26 @@ msgstr ""
 msgid "The page you're loking for can't be found"
 msgstr ""
 
-#: heritrace/utils/filters.py:64
-#, python-format
-msgid "Link to the entity %(entity)s"
-msgstr ""
-
 #: heritrace/utils/filters.py:133
 msgid "Unknown"
 msgstr ""
 
-#: heritrace/utils/filters.py:137 heritrace/utils/filters.py:145
-msgid "Link to the primary source description"
-msgstr ""
-
-#: heritrace/utils/shacl_utils.py:967
+#: heritrace/utils/shacl_utils.py:983
 #, python-format
 msgid "The property %(predicate)s is not allowed for resources of type %(s_type)s"
 msgstr ""
 
-#: heritrace/utils/shacl_utils.py:1001
+#: heritrace/utils/shacl_utils.py:1018
 #, python-format
 msgid "The property %(predicate)s allows at most %(max_count)s %(value)s"
 msgstr ""
 
-#: heritrace/utils/shacl_utils.py:1013
+#: heritrace/utils/shacl_utils.py:1030
 #, python-format
 msgid "The property %(predicate)s requires at least %(min_count)s %(value)s"
 msgstr ""
 
-#: heritrace/utils/shacl_utils.py:1031
+#: heritrace/utils/shacl_utils.py:1051
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
@@ -944,8 +984,8 @@ msgid ""
 "%(o_values)s"
 msgstr ""
 
-#: heritrace/utils/shacl_utils.py:1049 heritrace/utils/shacl_utils.py:1068
-#: heritrace/utils/shacl_utils.py:1088
+#: heritrace/utils/shacl_utils.py:1065 heritrace/utils/shacl_utils.py:1086
+#: heritrace/utils/shacl_utils.py:1108
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
@@ -1271,5 +1311,8 @@ msgstr ""
 #~ msgstr ""
 
 #~ msgid "No, keep orphans"
+#~ msgstr ""
+
+#~ msgid "This property cannot be deleted"
 #~ msgstr ""
 
