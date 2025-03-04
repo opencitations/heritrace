@@ -2,29 +2,31 @@
 Unit tests for entity-related functions in entity.py.
 These tests focus on the validation, modification, references, and snapshot functionality.
 """
+import threading
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Set, Tuple
+from unittest.mock import MagicMock, call, patch
 
 import pytest
-from unittest.mock import MagicMock, patch, call
-from datetime import datetime, timedelta
 from flask import Flask
-from typing import Dict, List, Optional, Set, Tuple
-
-from heritrace.routes.entity import (
-    validate_entity_data,
-    process_modification_data,
-    validate_modification,
-    format_triple_modification,
-    get_object_label,
-    get_inverse_references,
-    find_appropriate_snapshot,
-    get_entities_to_restore,
-    prepare_entity_snapshots
-)
-from heritrace.utils.filters import Filter
+from heritrace.routes.entity import (apply_modifications,
+                                     compute_graph_differences,
+                                     create_nested_entity, determine_datatype,
+                                     find_appropriate_snapshot,
+                                     format_triple_modification,
+                                     generate_modification_text,
+                                     generate_unique_uri,
+                                     get_entities_to_restore, get_entity_types,
+                                     get_inverse_references, get_object_label,
+                                     get_predicate_count,
+                                     prepare_entity_snapshots,
+                                     process_modification_data,
+                                     validate_entity_data,
+                                     validate_modification)
 from heritrace.utils.display_rules_utils import get_highest_priority_class
-from rdflib import URIRef, Graph, Literal, RDF, XSD
+from heritrace.utils.filters import Filter
+from rdflib import RDF, RDFS, XSD, Graph, Literal, URIRef
 from SPARQLWrapper import JSON
-
 
 # ===== Entity Validation Tests =====
 
@@ -168,6 +170,97 @@ def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter):
     # Verify results
     assert len(errors) == 1
     assert "Invalid entity type" in errors[0]
+
+
+@patch('heritrace.routes.entity.get_custom_filter')
+def test_validate_entity_data_with_shape(mock_get_custom_filter):
+    """Test validate_entity_data with property shapes."""
+    # Setup mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_predicate.return_value = "Human Readable Property"
+    mock_get_custom_filter.return_value = mock_filter
+    
+    # Create form fields with shape definitions
+    form_fields = {
+        "http://example.org/Person": {
+            "http://example.org/hasAddress": [
+                {
+                    "subjectShape": "residential",
+                    "min": 1,
+                    "max": 1,
+                    "datatypes": [str(XSD.string)]
+                },
+                {
+                    "subjectShape": "business",
+                    "min": 0,
+                    "max": 1,
+                    "datatypes": [str(XSD.string)]
+                }
+            ]
+        }
+    }
+    
+    # Test data with shape specified
+    entity_data = {
+        "entity_type": "http://example.org/Person",
+        "properties": {
+            "http://example.org/hasAddress": [
+                {
+                    "shape": "residential",
+                    "value": "123 Main St"
+                }
+            ]
+        }
+    }
+    
+    # Validate the data
+    errors = validate_entity_data(entity_data, form_fields)
+    
+    # Should be no errors
+    assert errors == []
+    
+    # Test with missing required shape
+    # We need to create a new form fields structure where residential is required
+    # and business is optional
+    form_fields = {
+        "http://example.org/Person": {
+            "http://example.org/hasAddress": [
+                {
+                    "min": 1,  # This makes the property required
+                    "max": None
+                }
+            ],
+            "http://example.org/hasResidentialAddress": [
+                {
+                    "subjectShape": "residential",
+                    "min": 1,  # This makes residential address required
+                    "max": 1,
+                    "datatypes": [str(XSD.string)]
+                }
+            ]
+        }
+    }
+    
+    # Entity data missing the required residential address
+    entity_data = {
+        "entity_type": "http://example.org/Person",
+        "properties": {
+            "http://example.org/hasAddress": [
+                {
+                    "shape": "business",
+                    "value": "456 Business Ave"
+                }
+            ]
+            # Missing http://example.org/hasResidentialAddress
+        }
+    }
+    
+    # Validate the data - should have error because residential address is required
+    errors = validate_entity_data(entity_data, form_fields)
+    
+    # Should have one error about missing required property
+    assert len(errors) == 1
+    assert "residential" in str(errors[0]) or "required" in str(errors[0])
 
 
 def test_process_modification_data():
@@ -566,6 +659,69 @@ def test_get_object_label_uri(mock_fetch_data, mock_validators, mock_data):
     mock_filter.human_readable_entity.assert_called_once()
 
 
+@patch('heritrace.routes.entity.validators')
+@patch('heritrace.routes.entity.fetch_data_graph_for_subject')
+def test_get_object_label_with_shape(mock_fetch_data, mock_validators):
+    """Test get_object_label with shape information."""
+    from heritrace.routes.entity import get_object_label
+    from rdflib import RDF, RDFS, Graph, Literal, URIRef
+
+    # Setup mocks
+    mock_validators.url.return_value = False  # Make it treat the value as a literal
+    
+    # Create a mock graph for the object
+    mock_graph = Graph()
+    mock_graph.add((URIRef("http://example.org/address/123"), RDF.type, URIRef("http://example.org/Address")))
+    mock_graph.add((URIRef("http://example.org/address/123"), RDFS.label, Literal("123 Main St")))
+    mock_graph.add((URIRef("http://example.org/address/123"), URIRef("http://example.org/hasShape"), Literal("residential")))
+    mock_fetch_data.return_value = mock_graph
+    
+    # Create a mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_predicate.return_value = "Human Readable Property"
+    
+    # For literal values, the function should return the value itself
+    result = get_object_label(
+        "123 Main St",  # This is a literal value
+        "http://example.org/hasAddress",
+        "http://example.org/Person",
+        {},  # Empty form fields
+        mock_graph,
+        mock_filter
+    )
+    
+    # For literal values, it should return the value itself
+    assert result == "123 Main St"
+    
+    # Test with RDF.type predicate
+    mock_validators.url.return_value = True  # Make it treat the value as a URL
+    
+    result = get_object_label(
+        "http://example.org/Address",
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+        "http://example.org/Person",
+        {},
+        mock_graph,
+        mock_filter
+    )
+    
+    # For RDF.type, it should use the filter's human_readable_predicate and title it
+    assert result == "Human Readable Property".title()
+    
+    # Test with a URL value
+    result = get_object_label(
+        "http://example.org/address/123",
+        "http://example.org/hasAddress",
+        "http://example.org/Person",
+        {},
+        mock_graph,
+        mock_filter
+    )
+    
+    # For URLs, it should use the filter's human_readable_predicate
+    assert result == "Human Readable Property"
+
+
 # ===== Entity References Tests =====
 
 @pytest.fixture
@@ -818,4 +974,529 @@ def test_get_entities_to_restore():
     assert isinstance(result, set)
     assert "http://example.org/entity1" in result
     assert "http://example.org/entity2" in result
-    assert "http://example.org/entity3" in result 
+    assert "http://example.org/entity3" in result
+
+
+@patch('heritrace.routes.entity.get_display_rules')
+@patch('heritrace.routes.entity.get_property_order_from_rules')
+@patch('heritrace.routes.entity.format_triple_modification')
+def test_generate_modification_text(mock_format_triple, mock_get_property_order, mock_get_display_rules):
+    """Test the generate_modification_text function."""
+    # Setup mocks
+    mock_get_display_rules.return_value = {"display_rules": "test"}
+    mock_get_property_order.return_value = ["http://example.org/predicate1", "http://example.org/predicate2"]
+    mock_format_triple.return_value = "<li>Formatted triple</li>"
+    
+    # Create test data
+    modifications = {
+        "Additions": [
+            (
+                URIRef("http://example.org/entity1"),
+                URIRef("http://example.org/predicate1"),
+                Literal("value1")
+            ),
+            (
+                URIRef("http://example.org/entity1"),
+                URIRef("http://example.org/predicate3"),
+                Literal("value3")
+            )
+        ],
+        "Deletions": [
+            (
+                URIRef("http://example.org/entity1"),
+                URIRef("http://example.org/predicate2"),
+                Literal("value2")
+            )
+        ]
+    }
+    
+    subject_classes = ["http://example.org/class1"]
+    history = {"snapshots": {}}
+    entity_uri = "http://example.org/entity1"
+    current_snapshot = Graph()
+    current_snapshot_timestamp = "2023-01-01T00:00:00Z"
+    
+    # Create a mock Filter with proper initialization
+    class MockFilter(Filter):
+        def __init__(self):
+            # Initialize with minimal required parameters
+            self.context = {}
+            self.display_rules = {}
+            self._query_lock = threading.Lock()
+            # Skip SPARQLWrapper initialization
+        
+        def human_readable_predicate(self, url, entity_classes, is_link=True):
+            return f"Human readable {url}"
+    
+    custom_filter = MockFilter()
+    form_fields = {}
+    
+    # Call the function
+    result = generate_modification_text(
+        modifications,
+        subject_classes,
+        history,
+        entity_uri,
+        current_snapshot,
+        current_snapshot_timestamp,
+        custom_filter,
+        form_fields
+    )
+    
+    # Assertions
+    assert "<strong>Modifications</strong>" in result
+    assert '<i class="bi bi-plus-circle-fill text-success"></i>' in result
+    assert '<i class="bi bi-dash-circle-fill text-danger"></i>' in result
+    
+    # Verify format_triple_modification was called for each triple
+    assert mock_format_triple.call_count == 3
+    
+    # We don't need to test the exact order of calls, just that all triples were processed
+    # The function should have called format_triple_modification for each triple
+    call_predicates = [str(call.args[0][1]) for call in mock_format_triple.call_args_list]
+    assert "http://example.org/predicate1" in call_predicates
+    assert "http://example.org/predicate2" in call_predicates
+    assert "http://example.org/predicate3" in call_predicates 
+
+@patch('heritrace.routes.entity.get_sparql')
+def test_get_entity_types(mock_get_sparql):
+    """Test the get_entity_types function."""
+    # Setup mock
+    mock_sparql = MagicMock()
+    mock_get_sparql.return_value = mock_sparql
+    
+    # Mock the query result
+    mock_query_result = MagicMock()
+    mock_sparql.query.return_value = mock_query_result
+    mock_query_result.convert.return_value = {
+        "results": {
+            "bindings": [
+                {"type": {"value": "http://example.org/type1"}},
+                {"type": {"value": "http://example.org/type2"}},
+                {"type": {"value": "http://example.org/type3"}}
+            ]
+        }
+    }
+    
+    # Call the function
+    result = get_entity_types("http://example.org/entity1")
+    
+    # Assertions
+    assert len(result) == 3
+    assert "http://example.org/type1" in result
+    assert "http://example.org/type2" in result
+    assert "http://example.org/type3" in result
+    
+    # Verify SPARQL query was constructed correctly
+    mock_sparql.setQuery.assert_called_once()
+    query_arg = mock_sparql.setQuery.call_args[0][0]
+    assert "SELECT ?type" in query_arg
+    assert "<http://example.org/entity1> a ?type" in query_arg
+    
+    # Verify return format was set
+    mock_sparql.setReturnFormat.assert_called_once_with(JSON)
+
+
+@patch('heritrace.routes.entity.get_sparql')
+def test_get_predicate_count(mock_get_sparql):
+    """Test the get_predicate_count function."""
+    # Setup mock
+    mock_sparql = MagicMock()
+    mock_get_sparql.return_value = mock_sparql
+    
+    # Mock the query result
+    mock_query_result = MagicMock()
+    mock_sparql.query.return_value = mock_query_result
+    mock_query_result.convert.return_value = {
+        "results": {
+            "bindings": [
+                {"count": {"value": "5"}}
+            ]
+        }
+    }
+    
+    # Call the function
+    result = get_predicate_count("http://example.org/entity1", "http://example.org/predicate1")
+    
+    # Assertions
+    assert result == 5
+    
+    # Verify SPARQL query was constructed correctly
+    mock_sparql.setQuery.assert_called_once()
+    query_arg = mock_sparql.setQuery.call_args[0][0]
+    assert "SELECT (COUNT(?o) as ?count)" in query_arg
+    assert "<http://example.org/entity1> <http://example.org/predicate1> ?o" in query_arg
+    
+    # Verify return format was set
+    mock_sparql.setReturnFormat.assert_called_once_with(JSON)
+
+
+def test_apply_modifications():
+    """Test the apply_modifications function."""
+    # Create a mock editor
+    mock_editor = MagicMock()
+    
+    # Create test data
+    subject_uri = "http://example.org/entity1"
+    graph_uri = "http://example.org/graph1"
+    
+    modifications = [
+        {
+            "operation": "add",
+            "predicate": "http://example.org/predicate1",
+            "value": "literal value",
+            "datatype": str(XSD.string)
+        },
+        {
+            "operation": "add",
+            "predicate": "http://example.org/predicate2",
+            "value": "http://example.org/entity2",  # URL value
+        },
+        {
+            "operation": "remove",
+            "predicate": "http://example.org/predicate3",
+        },
+        {
+            "operation": "update",
+            "predicate": "http://example.org/predicate4",
+            "oldValue": "old value",
+            "newValue": "new value",
+            "datatype": str(XSD.string)
+        },
+        {
+            "operation": "update",
+            "predicate": "http://example.org/predicate5",
+            "oldValue": "http://example.org/oldEntity",
+            "newValue": "http://example.org/newEntity",
+        }
+    ]
+    
+    # Call the function
+    apply_modifications(mock_editor, modifications, subject_uri, graph_uri)
+    
+    # Verify editor methods were called correctly
+    
+    # First modification: add literal
+    mock_editor.create.assert_any_call(
+        URIRef(subject_uri),
+        URIRef("http://example.org/predicate1"),
+        Literal("literal value", datatype=URIRef(str(XSD.string))),
+        graph_uri
+    )
+    
+    # Second modification: add URI
+    mock_editor.create.assert_any_call(
+        URIRef(subject_uri),
+        URIRef("http://example.org/predicate2"),
+        URIRef("http://example.org/entity2"),
+        graph_uri
+    )
+    
+    # Third modification: remove
+    mock_editor.delete.assert_called_with(
+        URIRef(subject_uri),
+        URIRef("http://example.org/predicate3"),
+        graph_uri=graph_uri
+    )
+    
+    # Fourth modification: update literal
+    mock_editor.update.assert_any_call(
+        URIRef(subject_uri),
+        URIRef("http://example.org/predicate4"),
+        Literal("old value", datatype=URIRef(str(XSD.string))),
+        Literal("new value", datatype=URIRef(str(XSD.string))),
+        graph_uri
+    )
+    
+    # Fifth modification: update URI
+    mock_editor.update.assert_any_call(
+        URIRef(subject_uri),
+        URIRef("http://example.org/predicate5"),
+        URIRef("http://example.org/oldEntity"),
+        URIRef("http://example.org/newEntity"),
+        graph_uri
+    )
+    
+    # Verify the correct number of calls
+    assert mock_editor.create.call_count == 2
+    assert mock_editor.delete.call_count == 1
+    assert mock_editor.update.call_count == 2 
+
+@patch('heritrace.utils.display_rules_utils.get_class_priority')
+def test_get_highest_priority_class(mock_get_class_priority):
+    """Test the get_highest_priority_class function."""
+    # Setup mock
+    mock_get_class_priority.side_effect = lambda cls: {
+        "http://example.org/class1": 10,
+        "http://example.org/class2": 5,
+        "http://example.org/class3": 15,
+    }.get(cls, 0)
+    
+    # Test with multiple classes
+    subject_classes = [
+        "http://example.org/class1",
+        "http://example.org/class2",
+        "http://example.org/class3"
+    ]
+    
+    result = get_highest_priority_class(subject_classes)
+    
+    # The class with priority 15 should be returned
+    assert result == "http://example.org/class3"
+    
+    # Test with a single class
+    subject_classes = ["http://example.org/class1"]
+    result = get_highest_priority_class(subject_classes)
+    assert result == "http://example.org/class1"
+    
+    # Test with empty list
+    subject_classes = []
+    result = get_highest_priority_class(subject_classes)
+    assert result is None 
+
+def test_determine_datatype():
+    """Test the determine_datatype function."""
+    
+    # Test with a string value and string datatype
+    value = "Hello World"
+    datatype_uris = [str(XSD.string)]
+    result = determine_datatype(value, datatype_uris)
+    assert result == XSD.string
+    
+    # Test with an integer value and integer datatype
+    value = "42"
+    datatype_uris = [str(XSD.integer)]
+    result = determine_datatype(value, datatype_uris)
+    assert result == XSD.integer
+    
+    # Test with a boolean value and boolean datatype
+    value = "true"
+    datatype_uris = [str(XSD.boolean)]
+    result = determine_datatype(value, datatype_uris)
+    assert result == XSD.boolean
+    
+    # Test with a date value and date datatype
+    value = "2023-01-01"
+    datatype_uris = [str(XSD.date)]
+    result = determine_datatype(value, datatype_uris)
+    assert result == XSD.date
+    
+    # Test with multiple datatypes - should choose the first valid one
+    value = "42"
+    datatype_uris = [str(XSD.integer), str(XSD.decimal), str(XSD.string)]
+    result = determine_datatype(value, datatype_uris)
+    assert result == XSD.integer
+    
+    # Test with no matching datatype - should default to string
+    value = "not a number"
+    datatype_uris = [str(XSD.integer), str(XSD.decimal)]
+    result = determine_datatype(value, datatype_uris)
+    assert result == XSD.string
+    
+    # Test with empty datatype_uris - should default to string
+    value = "any value"
+    datatype_uris = []
+    result = determine_datatype(value, datatype_uris)
+    assert result == XSD.string 
+
+def test_generate_unique_uri():
+    """Test the generate_unique_uri function."""
+    
+    # Create a test Flask app
+    app = Flask(__name__)
+    
+    # Setup mock URI generator
+    mock_uri_generator = MagicMock()
+    mock_uri_generator.generate_uri.return_value = "http://example.org/entity/123"
+    mock_counter_handler = MagicMock()
+    mock_uri_generator.counter_handler = mock_counter_handler
+    
+    # Configure app
+    app.config["URI_GENERATOR"] = mock_uri_generator
+    
+    # Use app context for testing
+    with app.app_context():
+        # Test with entity type
+        entity_type = "http://example.org/Person"
+        result = generate_unique_uri(entity_type)
+        
+        # Verify the result
+        assert result == URIRef("http://example.org/entity/123")
+        mock_uri_generator.generate_uri.assert_called_once_with(entity_type)
+        mock_counter_handler.increment_counter.assert_called_once_with(entity_type)
+        
+        # Reset mocks
+        mock_uri_generator.generate_uri.reset_mock()
+        mock_counter_handler.increment_counter.reset_mock()
+        
+        # Test without entity type
+        result = generate_unique_uri()
+        
+        # Verify the result
+        assert result == URIRef("http://example.org/entity/123")
+        mock_uri_generator.generate_uri.assert_called_once_with("None")
+        mock_counter_handler.increment_counter.assert_called_once_with("None")
+        
+        # Test with URI generator that doesn't have a counter_handler
+        mock_uri_generator = MagicMock()
+        mock_uri_generator.generate_uri.return_value = "http://example.org/entity/456"
+        # No counter_handler attribute
+        app.config["URI_GENERATOR"] = mock_uri_generator
+        
+        result = generate_unique_uri("http://example.org/Organization")
+        assert result == URIRef("http://example.org/entity/456")
+
+@patch('heritrace.routes.entity.generate_unique_uri')
+@patch('heritrace.routes.entity.determine_datatype')
+@patch('heritrace.routes.entity.validators')
+def test_create_nested_entity(mock_validators, mock_determine_datatype, mock_generate_unique_uri):
+    """Test the create_nested_entity function."""
+    
+    # Setup mocks
+    mock_validators.url.side_effect = lambda value: value.startswith("http://")
+    mock_determine_datatype.return_value = XSD.string
+    mock_generate_unique_uri.side_effect = lambda entity_type: URIRef(f"http://example.org/{entity_type.split('/')[-1]}/123")
+    
+    # Create mock editor
+    mock_editor = MagicMock()
+    
+    # Test entity data with nested entities
+    entity_uri = URIRef("http://example.org/Person/456")
+    entity_data = {
+        "entity_type": "http://example.org/Person",
+        "properties": {
+            "http://example.org/hasAddress": [
+                {
+                    "entity_type": "http://example.org/Address",
+                    "properties": {
+                        "http://example.org/street": ["123 Main St"],
+                        "http://example.org/city": ["Anytown"]
+                    }
+                }
+            ],
+            "http://example.org/name": ["John Doe"],
+            "http://example.org/age": ["30"]
+        }
+    }
+    
+    # Form fields for validation
+    form_fields = {
+        "http://example.org/Person": {
+            "http://example.org/name": [{"datatypes": [str(XSD.string)]}],
+            "http://example.org/age": [{"datatypes": [str(XSD.integer)]}],
+            "http://example.org/hasAddress": [{}]
+        },
+        "http://example.org/Address": {
+            "http://example.org/street": [{"datatypes": [str(XSD.string)]}],
+            "http://example.org/city": [{"datatypes": [str(XSD.string)]}]
+        }
+    }
+    
+    # Call the function
+    create_nested_entity(mock_editor, entity_uri, entity_data, None, form_fields)
+    
+    # Verify the editor calls
+    # First, it should add the rdf:type triple
+    mock_editor.create.assert_any_call(
+        entity_uri,
+        URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+        URIRef("http://example.org/Person"),
+        None
+    )
+    
+    # It should add the name property
+    mock_editor.create.assert_any_call(
+        entity_uri,
+        URIRef("http://example.org/name"),
+        Literal("John Doe", datatype=XSD.string),
+        None
+    )
+    
+    # It should add the age property
+    mock_editor.create.assert_any_call(
+        entity_uri,
+        URIRef("http://example.org/age"),
+        Literal("30", datatype=XSD.string),
+        None
+    )
+    
+    # It should create the nested address entity
+    mock_editor.create.assert_any_call(
+        entity_uri,
+        URIRef("http://example.org/hasAddress"),
+        URIRef("http://example.org/Address/123"),
+        None
+    )
+    
+    # Test with intermediate relation
+    mock_editor.reset_mock()
+    entity_data = {
+        "entity_type": "http://example.org/Person",
+        "properties": {
+            "http://example.org/hasPublication": [
+                {
+                    "entity_type": "http://example.org/Publication",
+                    "intermediateRelation": {
+                        "class": "http://example.org/Authorship",
+                        "property": "http://example.org/publication"
+                    },
+                    "properties": {
+                        "http://example.org/title": ["Research Paper"]
+                    }
+                }
+            ]
+        }
+    }
+    
+    # Call the function
+    create_nested_entity(mock_editor, entity_uri, entity_data, None, form_fields)
+    
+    # Verify the intermediate relation was created
+    mock_editor.create.assert_any_call(
+        entity_uri,
+        URIRef("http://example.org/hasPublication"),
+        URIRef("http://example.org/Authorship/123"),
+        None
+    )
+    
+    mock_editor.create.assert_any_call(
+        URIRef("http://example.org/Authorship/123"),
+        URIRef("http://example.org/publication"),
+        URIRef("http://example.org/Publication/123"),
+        None
+    ) 
+
+@patch('heritrace.routes.entity.get_entity_types')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.get_predicate_count')
+def test_validate_modification_max_count(mock_get_predicate_count, mock_get_highest_priority, mock_get_entity_types):
+    """Test validate_modification with max count validation."""
+    
+    # Setup mocks
+    mock_get_entity_types.return_value = ["http://example.org/Person"]
+    mock_get_highest_priority.return_value = "http://example.org/Person"
+    mock_get_predicate_count.return_value = 2  # Current count is 2
+    
+    # Create form fields with max count
+    form_fields = {
+        "http://example.org/Person": {
+            "http://example.org/name": [
+                {
+                    "minCount": 1,
+                    "maxCount": 2  # Max count is 2
+                }
+            ]
+        }
+    }
+    
+    # Test adding when max count is already reached
+    modification = {
+        "operation": "add",
+        "predicate": "http://example.org/name",
+        "value": "Another Name",
+        "datatype": "http://www.w3.org/2001/XMLSchema#string"
+    }
+    
+    is_valid, error = validate_modification(modification, "http://example.org/person/123", form_fields)
+    assert not is_valid
+    assert "Maximum count" in error 

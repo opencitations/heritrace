@@ -834,6 +834,10 @@ def order_logic(
 def get_human_readable_entity():
     custom_filter = get_custom_filter()
 
+    # Check if required parameters are present
+    if "uri" not in request.form or "entity_class" not in request.form:
+        return jsonify({"status": "error", "message": "Missing required parameters"}), 400
+
     uri = request.form["uri"]
     entity_class = request.form["entity_class"]
     filter_instance = custom_filter

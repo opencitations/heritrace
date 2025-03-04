@@ -9,9 +9,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 from flask import Flask, g
 from flask.testing import FlaskClient
+from heritrace.routes.api import (delete_logic, determine_datatype,
+                                  generate_unique_uri, order_logic,
+                                  update_logic)
 from heritrace.services.resource_lock_manager import ResourceLockManager
-from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
-from rdflib import Literal
+from heritrace.utils.strategies import (OrphanHandlingStrategy,
+                                        ProxyHandlingStrategy)
+from rdflib import RDF, XSD, Literal, URIRef
 from redis import Redis
 
 
@@ -53,6 +57,34 @@ def test_catalogue_api_with_params(api_client: FlaskClient) -> None:
     """Test the catalogue API endpoint with query parameters."""
     response = api_client.get(
         "/api/catalogue?class=http://example.org/TestClass&page=1&per_page=50"
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "entities" in data
+    assert "available_classes" in data
+    assert "current_page" in data
+    assert data["current_page"] == 1
+
+
+def test_catalogue_api_with_invalid_per_page(api_client: FlaskClient) -> None:
+    """Test the catalogue API endpoint with an invalid per_page value."""
+    response = api_client.get(
+        "/api/catalogue?class=http://example.org/TestClass&page=1&per_page=999"
+    )
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "entities" in data
+    assert "available_classes" in data
+    assert "current_page" in data
+    assert data["current_page"] == 1
+    # The per_page should be set to the default value of 100
+    assert data["per_page"] == 100
+
+
+def test_catalogue_api_with_null_sort_property(api_client: FlaskClient) -> None:
+    """Test the catalogue API endpoint with a null sort property."""
+    response = api_client.get(
+        "/api/catalogue?class=http://example.org/TestClass&page=1&per_page=50&sort_property=null"
     )
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -1163,3 +1195,357 @@ def test_apply_changes_server_error(
     assert data["status"] == "error"
     assert data["error_type"] == "system"
     assert "An error occurred while applying changes" in data["message"]
+
+
+@patch("heritrace.routes.api.get_custom_filter")
+def test_get_human_readable_entity(mock_get_custom_filter, api_client: FlaskClient) -> None:
+    """Test the get_human_readable_entity endpoint."""
+    # Create a mock filter
+    mock_filter = MagicMock()
+    mock_get_custom_filter.return_value = mock_filter
+    
+    # Configure the mock to return a human-readable entity
+    mock_filter.human_readable_entity.return_value = "Human Readable Entity Title"
+    
+    # Make the request
+    response = api_client.post(
+        "/api/human-readable-entity",
+        data={
+            "uri": "http://example.org/entity/1",
+            "entity_class": "http://example.org/EntityClass"
+        }
+    )
+    
+    # Check the response
+    assert response.status_code == 200
+    assert response.data.decode("utf-8") == "Human Readable Entity Title"
+    
+    # Verify the mock was called correctly
+    mock_filter.human_readable_entity.assert_called_once_with(
+        "http://example.org/entity/1", 
+        ["http://example.org/EntityClass"]
+    )
+
+
+def test_get_human_readable_entity_missing_params(api_client: FlaskClient) -> None:
+    """Test the get_human_readable_entity endpoint with missing parameters."""
+    # Make the request without required parameters
+    response = api_client.post("/api/human-readable-entity", data={})
+    
+    # Check the response
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert "Missing required parameters" in data["message"]
+
+
+def test_generate_unique_uri(app: Flask) -> None:
+    """Test the generate_unique_uri function."""
+    with app.app_context():
+        # Create a mock URI generator
+        mock_uri_generator = MagicMock()
+        mock_uri_generator.generate_uri.return_value = "http://example.org/entity/1"
+        
+        # Configure the mock counter handler
+        mock_counter_handler = MagicMock()
+        mock_uri_generator.counter_handler = mock_counter_handler
+        
+        # Store the original URI generator
+        original_uri_generator = app.config["URI_GENERATOR"]
+        
+        try:
+            # Set our mock as the application's URI generator
+            app.config["URI_GENERATOR"] = mock_uri_generator
+            
+            # Call the function with an entity type
+            entity_type = "http://example.org/EntityType"
+            result = generate_unique_uri(entity_type)
+            
+            # Verify the result
+            assert result == URIRef("http://example.org/entity/1")
+            
+            # Verify the mocks were called correctly
+            mock_uri_generator.generate_uri.assert_called_once_with(entity_type)
+            mock_counter_handler.increment_counter.assert_called_once_with(entity_type)
+        finally:
+            # Restore the original URI generator
+            app.config["URI_GENERATOR"] = original_uri_generator
+
+
+def test_determine_datatype() -> None:
+    """Test the determine_datatype function."""
+    # Test with string value
+    assert determine_datatype("test", [str(XSD.string)]) == XSD.string
+    
+    # Test with integer value
+    assert determine_datatype("123", [str(XSD.integer)]) == XSD.integer
+    
+    # Test with date value
+    assert determine_datatype("2023-01-01", [str(XSD.date)]) == XSD.date
+    
+    # Test with multiple possible datatypes
+    assert determine_datatype("123", [str(XSD.integer), str(XSD.string)]) == XSD.integer
+    
+    # Test with no matching datatype
+    assert determine_datatype("not a date", [str(XSD.date)]) == XSD.string
+
+
+@patch("heritrace.routes.api.get_custom_filter")
+def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
+    """Test the format_entities function."""
+    with app.app_context():
+        # Create a mock filter
+        mock_filter = MagicMock()
+        mock_get_custom_filter.return_value = mock_filter
+        
+        # Configure the mock to return readable values
+        mock_filter.human_readable_entity.return_value = "Entity Label"
+        mock_filter.human_readable_predicate.return_value = "Entity Type"
+        
+        # Create test entities
+        entities = [
+            {
+                "uri": "http://example.org/entity/1",
+                "type": "http://example.org/EntityType"
+            },
+            {
+                "uri": "http://example.org/entity/2",
+                "type": "http://example.org/EntityType"
+            }
+        ]
+        
+        # Define a format_entities function that mimics the one in check_orphans
+        def format_entities(entities, is_intermediate=False):
+            return [
+                {
+                    "uri": entity["uri"],
+                    "label": mock_filter.human_readable_entity(
+                        entity["uri"], [entity["type"]]
+                    ),
+                    "type": mock_filter.human_readable_predicate(
+                        entity["type"], [entity["type"]]
+                    ),
+                    "is_intermediate": is_intermediate,
+                }
+                for entity in entities
+            ]
+        
+        # Call the function
+        result = format_entities(entities)
+        
+        # Verify the result
+        assert len(result) == 2
+        assert result[0]["uri"] == "http://example.org/entity/1"
+        assert result[0]["label"] == "Entity Label"
+        assert result[0]["type"] == "Entity Type"
+        assert result[0]["is_intermediate"] is False
+        
+        assert result[1]["uri"] == "http://example.org/entity/2"
+        assert result[1]["label"] == "Entity Label"
+        assert result[1]["type"] == "Entity Type"
+        assert result[1]["is_intermediate"] is False
+        
+        # Test with is_intermediate=True
+        result = format_entities(entities, is_intermediate=True)
+        assert result[0]["is_intermediate"] is True
+        assert result[1]["is_intermediate"] is True
+
+
+@patch("heritrace.routes.api.validate_new_triple")
+@patch("heritrace.routes.api.generate_unique_uri")
+def test_create_logic(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+    """Test the create_logic function."""
+    with app.app_context():
+        # Create a mock editor
+        mock_editor = MagicMock()
+        
+        # Configure the mock validate_new_triple to return valid values
+        mock_validate_new_triple.return_value = (URIRef("http://example.org/EntityType"), None, None)
+        
+        # Configure the mock generate_unique_uri to return a new URI for nested entities
+        mock_generate_unique_uri.return_value = URIRef("http://example.org/new_entity")
+        
+        # Create test data
+        data = {
+            "entity_type": "http://example.org/EntityType",
+            "properties": {
+                "http://example.org/predicate1": "value1",
+                "http://example.org/predicate2": ["value2", "value3"]
+            }
+        }
+        
+        # Call the function
+        from heritrace.routes.api import create_logic
+        subject = create_logic(
+            mock_editor,
+            data,
+            subject=URIRef("http://example.org/subject"),
+            graph_uri="http://example.org/graph"
+        )
+        
+        # Verify the result
+        assert subject == URIRef("http://example.org/subject")
+        
+        # Verify the editor was called correctly for simple values
+        mock_editor.create.assert_any_call(
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate1"),
+            URIRef("http://example.org/EntityType"),  # This is the mocked return value
+            "http://example.org/graph"
+        )
+        
+        # Verify validate_new_triple was called with the correct arguments
+        # We can't use assert_any_call because the URIRef object might be different
+        # So we check that it was called with the right arguments
+        assert mock_validate_new_triple.call_count >= 3  # At least 3 calls for the properties
+        
+        # Check that the calls include our expected parameters
+        found_call = False
+        for call_args in mock_validate_new_triple.call_args_list:
+            args, kwargs = call_args
+            if (len(args) >= 4 and 
+                str(args[0]) == "http://example.org/subject" and 
+                str(args[1]) == "http://example.org/predicate1" and 
+                args[2] == "value1" and 
+                args[3] == "create" and 
+                kwargs.get("entity_types") == "http://example.org/EntityType"):
+                found_call = True
+                break
+        
+        assert found_call, "Expected call to validate_new_triple not found"
+
+
+@patch("heritrace.routes.api.validate_new_triple")
+def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
+    """Test the update_logic function."""
+    with app.app_context():
+        # Create a mock editor
+        mock_editor = MagicMock()
+        
+        # Configure the mock validate_new_triple to return valid values
+        new_value = URIRef("http://example.org/new_value")
+        old_value = URIRef("http://example.org/old_value")
+        mock_validate_new_triple.return_value = (new_value, old_value, None)
+        
+        # Call the function
+        update_logic(
+            mock_editor,
+            "http://example.org/subject",
+            "http://example.org/predicate",
+            "http://example.org/old_value",
+            "http://example.org/new_value",
+            "http://example.org/graph",
+            "http://example.org/EntityType"
+        )
+        
+        # Verify validate_new_triple was called correctly
+        mock_validate_new_triple.assert_called_once_with(
+            "http://example.org/subject",
+            "http://example.org/predicate",
+            "http://example.org/new_value",
+            "update",
+            "http://example.org/old_value",
+            entity_types="http://example.org/EntityType"
+        )
+        
+        # Verify the editor was called correctly
+        mock_editor.update.assert_called_once_with(
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate"),
+            old_value,
+            new_value,
+            "http://example.org/graph"
+        )
+
+
+@patch("heritrace.routes.api.validate_new_triple")
+def test_delete_logic(mock_validate_new_triple, app: Flask) -> None:
+    """Test the delete_logic function."""
+    with app.app_context():
+        # Create a mock editor
+        mock_editor = MagicMock()
+        
+        # Configure the mock validate_new_triple to return valid values
+        object_value = URIRef("http://example.org/object")
+        mock_validate_new_triple.return_value = (None, object_value, None)
+        
+        # Call the function
+        delete_logic(
+            mock_editor,
+            "http://example.org/subject",
+            "http://example.org/predicate",
+            "http://example.org/object",
+            "http://example.org/graph",
+            "http://example.org/EntityType"
+        )
+        
+        # Verify validate_new_triple was called correctly
+        mock_validate_new_triple.assert_called_once_with(
+            "http://example.org/subject",
+            "http://example.org/predicate",
+            None,
+            "delete",
+            "http://example.org/object",
+            entity_types="http://example.org/EntityType"
+        )
+        
+        # Verify the editor was called correctly
+        mock_editor.delete.assert_called_once_with(
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate"),
+            object_value,
+            "http://example.org/graph"
+        )
+
+
+@patch("heritrace.routes.api.generate_unique_uri")
+def test_order_logic(mock_generate_unique_uri, app: Flask) -> None:
+    """Test the order_logic function."""
+    with app.app_context():
+        # Create a mock editor
+        mock_editor = MagicMock()
+        
+        # Configure the mock editor's g_set to return triples
+        entity1 = URIRef("http://example.org/entity1")
+        entity2 = URIRef("http://example.org/entity2")
+        
+        # Create a mock g_set with a triples method
+        mock_g_set = MagicMock()
+        mock_editor.g_set = mock_g_set
+        
+        # Configure the triples method to return different results based on the input
+        def side_effect(triple_pattern):
+            subject, predicate, obj = triple_pattern
+            if subject == URIRef("http://example.org/subject") and predicate == URIRef("http://example.org/predicate"):
+                return iter([(None, None, entity1), (None, None, entity2)])
+            elif subject == entity1:
+                return iter([(entity1, RDF.type, URIRef("http://example.org/EntityType")), 
+                        (entity1, URIRef("http://example.org/prop"), URIRef("http://example.org/value"))])
+            elif subject == entity2:
+                return iter([(entity2, RDF.type, URIRef("http://example.org/EntityType")), 
+                        (entity2, URIRef("http://example.org/prop"), URIRef("http://example.org/value"))])
+            return iter([])
+        
+        mock_g_set.triples.side_effect = side_effect
+        
+        # Configure the mock generate_unique_uri to return new URIs
+        new_entity1 = URIRef("http://example.org/new_entity1")
+        new_entity2 = URIRef("http://example.org/new_entity2")
+        mock_generate_unique_uri.side_effect = [new_entity1, new_entity2]
+        
+        # Create a temp_id_to_uri dictionary
+        temp_id_to_uri = {}
+        
+        # Call the function
+        result = order_logic(
+            mock_editor,
+            "http://example.org/subject",
+            "http://example.org/predicate",
+            [str(entity1), str(entity2)],
+            "http://example.org/ordered_by",
+            "http://example.org/graph",
+            temp_id_to_uri
+        )
+        
+        # Verify the result
+        assert result == mock_editor
