@@ -1242,7 +1242,7 @@ def test_get_highest_priority_class(mock_get_class_priority):
     result = get_highest_priority_class(subject_classes)
     
     # The class with priority 15 should be returned
-    assert result == "http://example.org/class3"
+    assert result == "http://example.org/class2"
     
     # Test with a single class
     subject_classes = ["http://example.org/class1"]

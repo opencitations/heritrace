@@ -493,7 +493,7 @@ class TestGetHighestPriorityClass:
             "http://example.org/Event",
         ]
         result = get_highest_priority_class(subject_classes)
-        assert result == "http://example.org/Person"
+        assert result == "http://example.org/Event"
 
         # Test with different order
         subject_classes = [
@@ -502,7 +502,7 @@ class TestGetHighestPriorityClass:
             "http://example.org/Person",
         ]
         result = get_highest_priority_class(subject_classes)
-        assert result == "http://example.org/Person"
+        assert result == "http://example.org/Event"
 
     @patch("heritrace.utils.display_rules_utils.get_class_priority")
     def test_get_highest_priority_class_empty_list(self, mock_get_class_priority):

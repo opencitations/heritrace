@@ -109,7 +109,7 @@ def get_highest_priority_class(subject_classes):
     highest_priority_class = None
     for cls in subject_classes:
         priority = get_class_priority(str(cls))
-        if max_priority is None or priority > max_priority:
+        if max_priority is None or priority < max_priority:
             max_priority = priority
             highest_priority_class = cls
     return highest_priority_class
