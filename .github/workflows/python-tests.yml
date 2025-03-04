@@ -95,10 +95,8 @@ jobs:
         # Determine color based on coverage
         if (( $(echo "$COVERAGE_NUM >= 90" | bc -l) )); then
           COLOR="brightgreen"
-        elif (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then
+        elif (( $(echo "$COVERAGE_NUM >= 75" | bc -l) )); then
           COLOR="green"
-        elif (( $(echo "$COVERAGE_NUM >= 70" | bc -l) )); then
-          COLOR="yellow-green"
         elif (( $(echo "$COVERAGE_NUM >= 60" | bc -l) )); then
           COLOR="yellow"
         else
