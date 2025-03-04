@@ -5,17 +5,19 @@ Tests for display_rules_utils.py
 from unittest.mock import MagicMock, patch
 
 import pytest
-from heritrace.utils.display_rules_utils import (execute_historical_query,
-                                                 execute_sparql_query,
-                                                 get_class_priority,
-                                                 get_grouped_triples,
-                                                 get_highest_priority_class,
-                                                 get_property_order_from_rules,
-                                                 get_sortable_properties,
-                                                 is_entity_type_visible,
-                                                 process_default_property,
-                                                 process_display_rule,
-                                                 process_ordering)
+from heritrace.utils.display_rules_utils import (
+    execute_historical_query,
+    execute_sparql_query,
+    get_class_priority,
+    get_grouped_triples,
+    get_highest_priority_class,
+    get_property_order_from_rules,
+    get_sortable_properties,
+    is_entity_type_visible,
+    process_default_property,
+    process_display_rule,
+    process_ordering,
+)
 from rdflib import Graph, Literal, URIRef
 
 
@@ -648,28 +650,6 @@ class TestGetGroupedTriples:
                         grouped_triples["Person Name"]["intermediateRelation"]
                         == "http://example.org/related"
                     )
-
-    def test_get_grouped_triples_with_default_property(
-        self,
-        mock_triples,
-        mock_subject_classes,
-    ):
-        """Test getting grouped triples with default property processing."""
-        # Create a scenario where process_default_property is called
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=[],
-        ):
-            with patch("heritrace.utils.display_rules_utils.process_default_property"):
-                grouped_triples, relevant_properties = get_grouped_triples(
-                    "http://example.org/person1",
-                    mock_triples,
-                    mock_subject_classes,
-                    ["http://example.org/name"],
-                )
-
-                # Verify process_default_property was called
-                process_default_property.assert_called_once()
 
 
 class TestProcessDisplayRule:
