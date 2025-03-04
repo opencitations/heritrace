@@ -7,6 +7,16 @@ on:
   pull_request:
     branches: [main]
 
+# Add permissions needed for GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Environment for GitHub Pages
+env:
+  COVERAGE_REPORT_PATH: htmlcov
+
 jobs:
   CheckCoverage:
     runs-on: ubuntu-latest
@@ -72,6 +82,18 @@ jobs:
         path: htmlcov/
         retention-days: 14
         
+    # Configure GitHub Pages
+    - name: Setup Pages
+      if: matrix.python-version == '3.10'
+      uses: actions/configure-pages@v5
+
+    # Upload coverage report as Pages artifact
+    - name: Upload Pages artifact
+      if: matrix.python-version == '3.10' && github.ref == 'refs/heads/main'
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ${{ env.COVERAGE_REPORT_PATH }}
+        
     - name: Generate coverage badge
       if: matrix.python-version == '3.10'
       run: |
@@ -84,7 +106,7 @@ jobs:
         elif (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then
           COLOR="green"
         elif (( $(echo "$COVERAGE_NUM >= 70" | bc -l) )); then
-          COLOR="yellowgreen"
+          COLOR="yellow-green"
         elif (( $(echo "$COVERAGE_NUM >= 60" | bc -l) )); then
           COLOR="yellow"
         else
@@ -104,3 +126,17 @@ jobs:
         github_token: ${{ secrets.GIST_PAT }}
         repository: arcangelo7/badges
         actor: arcangelo7
+
+  # Add a new job to deploy to GitHub Pages
+  deploy-coverage:
+    needs: CheckCoverage
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: ${{ github.repository }}/pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
