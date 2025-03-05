@@ -639,14 +639,7 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
         SELECT DISTINCT ?entity ?type
         WHERE {{
             <{object_value}> a ?type .
-            FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
-            
-            # Considera l'entità intermedia come orfana se non ha altre connessioni
-            FILTER NOT EXISTS {{
-                ?other ?anyPredicate <{object_value}> .
-                FILTER(?other != <{subject}>)
-            }}
-            
+            FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))            
             BIND(<{object_value}> AS ?entity)
         }}
         """
@@ -660,22 +653,10 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
                 <{subject}> ?p ?entity .
                 ?entity a ?type .
                 FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
-                
-                # Considera l'entità intermedia come orfana se non ha altre connessioni
-                FILTER NOT EXISTS {{
-                    ?other ?anyPredicate ?entity .
-                    FILTER(?other != <{subject}>)
-                }}
             }} UNION {{
                 ?entity ?p <{subject}> .
                 ?entity a ?type .
                 FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
-                
-                # Considera l'entità intermedia come orfana se non ha altre connessioni
-                FILTER NOT EXISTS {{
-                    ?entity ?anyPredicate ?other .
-                    FILTER(?other != <{subject}>)
-                }}
             }}        
         }}
         """

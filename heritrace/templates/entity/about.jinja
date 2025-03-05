@@ -620,7 +620,7 @@
                         pendingChanges[existingOrderIndex].object = newOrder;
                     } else {
                         // Add a new order action
-                        storePendingChange('order', subject, predicate, newOrder, property.orderedBy, shape);
+                        storePendingChange('order', subject, predicate, newOrder, property.orderedBy, shape, entity_type);
                     }
                 }
             });
@@ -680,7 +680,7 @@
                 newObject = $(this).val();
             }
 
-            storePendingChange('update', subject, predicate, oldObject, newObject, shape);
+            storePendingChange('update', subject, predicate, oldObject, newObject, shape, entity_type);
         });
 
         $(document).on('click', '.delete-button', function() {
@@ -692,11 +692,47 @@
             const predicate = listItem.data('property-id');
             const object_value = listItem.data('old-object-id');
             const shape = listItem.data('shape');
+            const orderedBy = listItem.data('ordered_by');
+            
             listItem.find('.tripleObject').addClass('striked');
             listItem.find('.editable-field').prop('readonly', true);
             listItem.find('.editable-select').prop('disabled', true);
             $(this).hide();
-            storePendingChange('delete', subject, predicate, object_value, shape);
+            
+            // Aggiungi l'azione di cancellazione
+            storePendingChange('delete', subject, predicate, object_value, null, shape, entity_type);
+            
+            // Se l'elemento fa parte di una lista ordinata, aggiorna l'ordine
+            if (orderedBy) {
+                // Trova tutti gli elementi della stessa lista ordinata (stesso predicato e shape)
+                const list = $(`[data-property-id="${predicate}"][data-shape="${shape || ''}"]`).not('.marked-for-deletion');
+                
+                // Crea un nuovo array di ordine escludendo l'elemento cancellato
+                const newOrder = [];
+                list.each(function() {
+                    const itemId = $(this).data('old-object-id');
+                    if (itemId && itemId !== object_value) {
+                        newOrder.push(itemId);
+                    }
+                });
+                
+                // Cerca un'azione di ordinamento esistente per questo predicato e forma
+                let existingOrderIndex = pendingChanges.findIndex(change => 
+                    change.action === 'order' && 
+                    change.subject === subject && 
+                    change.predicate === predicate &&
+                    change.shape === shape
+                );
+
+                if (existingOrderIndex !== -1) {
+                    // Aggiorna l'ordine esistente
+                    pendingChanges[existingOrderIndex].object = newOrder;
+                } else {
+                    // Aggiungi una nuova azione di ordinamento
+                    storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type);
+                }
+            }
+            
             const undoButton = $('<button>')
                 .addClass('btn btn-sm btn-outline-warning undo-delete-button ms-0 ms-sm-2')
                 .html('<i class="bi bi-arrow-counterclockwise"></i>')
@@ -707,12 +743,53 @@
                     listItem.find('.editable-select').prop('disabled', false);
                     $(this).siblings('.delete-button').show();
                     $(this).hide();
-                    const index = pendingChanges.findIndex(change => change.action === 'delete' && change.subject === subject && change.predicate === predicate && change.object === object_value);
+                    
+                    // Rimuovi l'azione di cancellazione
+                    const index = pendingChanges.findIndex(change => 
+                        change.action === 'delete' && 
+                        change.subject === subject && 
+                        change.predicate === predicate && 
+                        change.object === object_value
+                    );
                     if (index > -1) {
                         pendingChanges.splice(index, 1);
                     }
+                    
+                    // Se l'elemento fa parte di una lista ordinata, aggiorna l'ordine
+                    if (orderedBy) {
+                        // Trova tutti gli elementi della stessa lista ordinata (stesso predicato e shape)
+                        const list = $(`[data-property-id="${predicate}"][data-shape="${shape || ''}"]`).not('.marked-for-deletion');
+                        
+                        // Crea un nuovo array di ordine includendo l'elemento ripristinato
+                        const newOrder = [];
+                        list.each(function() {
+                            const itemId = $(this).data('old-object-id');
+                            if (itemId) {
+                                newOrder.push(itemId);
+                            }
+                        });
+                        newOrder.push(object_value);
+                        
+                        // Cerca un'azione di ordinamento esistente per questo predicato e forma
+                        let existingOrderIndex = pendingChanges.findIndex(change => 
+                            change.action === 'order' && 
+                            change.subject === subject && 
+                            change.predicate === predicate &&
+                            change.shape === shape
+                        );
+
+                        if (existingOrderIndex !== -1) {
+                            // Aggiorna l'ordine esistente
+                            pendingChanges[existingOrderIndex].object = newOrder;
+                        } else {
+                            // Aggiungi una nuova azione di ordinamento
+                            storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type);
+                        }
+                    }
+                    
                     const dateInputGroup = listItem.find('.date-input-group');
                     toggleDateStrike(dateInputGroup, false);
+                    listItem.removeClass('marked-for-deletion');
                 });
         });
 

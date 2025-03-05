@@ -454,7 +454,6 @@ def apply_changes():
         subject = changes[0]["subject"]
         affected_entities = changes[0].get("affected_entities", [])
         delete_affected = changes[0].get("delete_affected", False)
-
         editor = Editor(
             get_dataset_endpoint(),
             get_provenance_endpoint(),
@@ -500,7 +499,6 @@ def apply_changes():
         proxy_strategy = current_app.config.get(
             "PROXY_HANDLING_STRATEGY", ProxyHandlingStrategy.KEEP
         )
-
         for change in changes:
             if change["action"] == "delete":
                 delete_logic(
@@ -754,6 +752,35 @@ def update_logic(
     editor.update(URIRef(subject), URIRef(predicate), old_value, new_value, graph_uri)
 
 
+def rebuild_entity_order(
+    editor: Editor,
+    ordered_by_uri: URIRef,
+    entities: list,
+    graph_uri=None
+):
+    """
+    Rebuild the ordering chain for a list of entities.
+    
+    Args:
+        editor: The editor instance
+        ordered_by_uri: The property used for ordering
+        entities: List of entities to be ordered
+        graph_uri: Optional graph URI
+    """
+    # First, remove all existing ordering relationships
+    for entity in entities:
+        for s, p, o in list(editor.g_set.triples((entity, ordered_by_uri, None))):
+            editor.delete(entity, ordered_by_uri, o, graph_uri)
+    
+    # Then rebuild the chain with the entities
+    for i in range(len(entities) - 1):
+        current_entity = entities[i]
+        next_entity = entities[i + 1]
+        editor.create(current_entity, ordered_by_uri, next_entity, graph_uri)
+    
+    return editor
+
+
 def delete_logic(
     editor: Editor,
     subject,
@@ -829,18 +856,17 @@ def order_logic(
                 if p != predicate_uri and p != ordered_by_uri:
                     editor.create(new_entity_uri, p, o, graph_uri) 
 
-    # Aggiungi la proprietà legata all'ordine alle entità giuste
-    for idx, entity in enumerate(new_order):
+    # Prepara la lista delle entità nel nuovo ordine
+    ordered_entities = []
+    for entity in new_order:
         new_entity_uri = old_to_new_mapping.get(URIRef(entity))
         if not new_entity_uri:
             new_entity_uri = URIRef(temp_id_to_uri.get(entity, entity))
-        if idx < len(new_order) - 1:
-            next_entity = new_order[idx + 1]
-            next_entity = URIRef(temp_id_to_uri.get(next_entity, next_entity))
-            next_entity_uri = old_to_new_mapping.get(
-                URIRef(next_entity), URIRef(next_entity)
-            )
-            editor.create(new_entity_uri, ordered_by_uri, next_entity_uri, graph_uri)
+        ordered_entities.append(new_entity_uri)
+    
+    # Ricostruisci l'ordine
+    if ordered_entities:
+        rebuild_entity_order(editor, ordered_by_uri, ordered_entities, graph_uri)
 
     return editor
 

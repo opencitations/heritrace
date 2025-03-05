@@ -125,14 +125,15 @@ function initializeForm() {
     }
 }
 
-function storePendingChange(action, subject, predicate, object, newObject = null, shape = null) {
+function storePendingChange(action, subject, predicate, object, newObject = null, shape = null, entity_type = null) {
     pendingChanges.push({
         action: action, 
         subject: subject, 
         predicate: predicate, 
         object: object, 
         newObject: newObject,
-        shape: shape
+        shape: shape,
+        entity_type: entity_type
     });
 }
 
@@ -175,7 +176,8 @@ function initSortable(element) {
                 pendingChanges[existingOrderIndex].object = new_order;
             } else {
                 // Aggiungi una nuova azione di ordinamento
-                storePendingChange('order', subject, predicate, new_order, orderedBy, shape);
+                const currentEntityType = typeof entity_type !== 'undefined' ? entity_type : null;
+                storePendingChange('order', subject, predicate, new_order, orderedBy, shape, currentEntityType);
             }
         }
     });
