@@ -585,10 +585,6 @@ function enhanceInputWithSearch(input) {
 
 // Initialize existing fields
 $(document).ready(function() {
-    $('[data-repeater-item]:not(.repeater-template)').find('input:visible').each(function() {
-        enhanceInputWithSearch($(this));
-    });
-
     $('head').append(style);
 
     // Handle clicks outside of search results
@@ -597,30 +593,6 @@ $(document).ready(function() {
             $('.entity-search-results').addClass('d-none');
             $('.search-spinner').addClass('d-none');
         }
-    });
-
-    // Function to handle changing a selected entity
-    $(document).on('click', '.change-entity', function(e) {
-        e.preventDefault();
-        const propertiesContainer = $(this).closest('.newEntityPropertiesContainer');
-        const display = $(this).closest('.entity-reference-display');
-        const hiddenInput = propertiesContainer.find('input[data-entity-reference="true"]');
-
-        // Remove the display and hidden input
-        display.remove();
-        hiddenInput.remove();
-
-        // Restore the original content
-        const originalContent = propertiesContainer.data('originalContent');
-        if (originalContent) {
-            propertiesContainer.append(originalContent);
-            propertiesContainer.removeData('originalContent');
-        }
-
-        // Re-initialize any inputs with search functionality
-        propertiesContainer.find('input').each(function() {
-            enhanceInputWithSearch($(this));
-        });
     });
 
     $(document).on('click', '.load-more-results', function(e) {

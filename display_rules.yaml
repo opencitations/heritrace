@@ -749,7 +749,7 @@ common_properties:
     property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
     displayName: "Publication Date"
     shouldBeDisplayed: true
-    supportsSearch: true
+    supportsSearch: false
 
   embodiment_property: &embodiment_property
     property: "http://purl.org/vocab/frbr/core#embodiment"

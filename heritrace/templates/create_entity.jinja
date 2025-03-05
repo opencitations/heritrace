@@ -1,4 +1,3 @@
-
 {% from 'macros.jinja' import render_repeater_item, render_form_field with context %}
 
 {% extends "_base.jinja" %}
@@ -92,6 +91,7 @@
 </form>
 
 <script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
+{% include 'top_level_search.jinja' %}
 <script>
     window.dataset_db_triplestore = {{ dataset_db_triplestore | tojson | safe }};
     window.dataset_db_text_index_enabled = {{ dataset_db_text_index_enabled | tojson | safe }};

@@ -1,0 +1,240 @@
+<script>
+// Functions for top-level entity search functionality
+// Function to create the suggestion container for top-level entity search
+function createTopLevelSuggestionContainer() {
+    return $(`
+        <div class="top-level-entity-suggestions mt-2 mb-3 d-none">
+            <div class="card border-info">
+                <div class="card-header bg-info bg-opacity-10 d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-info-circle me-2"></i>
+                        <span class="suggestion-count"></span>
+                    </div>
+                    <button type="button" class="btn-close btn-sm" aria-label="Close"></button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush entity-suggestions-list">
+                        <!-- Suggestions will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+}
+
+// Function to search for similar top-level entities
+function searchSimilarTopLevelEntities(term, entityType, predicateUri, callback) {
+    if (!term || term.length < 4 || !entityType || !predicateUri) {
+        if (callback) callback([]);
+        return;
+    }
+
+    // Generate a SPARQL query to find similar entities
+    let sparqlQuery = `
+        SELECT DISTINCT ?entity WHERE {
+            ?entity a <${entityType}> .
+            ?entity <${predicateUri}> ?searchValue .
+            FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+        } 
+        ORDER BY ASC(?entity)
+        LIMIT 5
+    `;
+
+    $.ajax({
+        url: '/dataset-endpoint',
+        method: 'POST',
+        data: { query: sparqlQuery },
+        headers: { 'Accept': 'application/sparql-results+json' },
+        success: function(response) {
+            if (callback) callback(null, response);
+        },
+        error: function(error) {
+            if (callback) callback(error);
+        }
+    });
+}
+
+// Function to update the suggestion UI for top-level entities
+function updateTopLevelSuggestions(results, container, entityType) {
+    const suggestionsList = container.find('.entity-suggestions-list');
+    suggestionsList.empty();
+    
+    if (!results || !results.length) {
+        container.addClass('d-none');
+        return;
+    }
+    
+    // Update the suggestion count text
+    container.find('.suggestion-count').text(
+        `{{ _('Found %(count)s entities similar to the one you are creating', count='${results.length}') }}`
+    );
+    
+    // Add each result to the suggestions list
+    results.forEach(entity => {
+        $.ajax({
+            url: '/api/human-readable-entity',
+            method: 'POST',
+            data: {
+                uri: entity.entity.value,
+                entity_class: entityType
+            },
+            success: function(readableEntity) {
+                entity.humanReadableLabel = readableEntity;
+                
+                const suggestionItem = $(`
+                    <div class="list-group-item list-group-item-action py-3" data-entity-uri="${entity.entity.value}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="me-auto">
+                                <div class="fw-semibold">${readableEntity}</div>
+                                <small class="text-muted">${entityType.split('/').pop()}</small>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/about/${entity.entity.value}" class="btn btn-outline-primary" target="_blank">
+                                    <i class="bi bi-eye me-1"></i>{{ _('View') }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                // Store the entity data on the element
+                suggestionItem.data('entity', entity);
+                suggestionsList.append(suggestionItem);
+            },
+            error: function() {
+                const label = entity.entity.value.split('/').pop();
+                entity.humanReadableLabel = label;
+                
+                const suggestionItem = $(`
+                    <div class="list-group-item list-group-item-action py-3" data-entity-uri="${entity.entity.value}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="me-auto">
+                                <div class="fw-semibold">${label}</div>
+                                <small class="text-muted">${entityType.split('/').pop()}</small>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/about/${entity.entity.value}" class="btn btn-outline-primary" target="_blank">
+                                    <i class="bi bi-eye me-1"></i>{{ _('View') }}
+                                </a>
+                                <button type="button" class="btn btn-outline-secondary use-as-base" data-entity-uri="${entity.entity.value}">
+                                    <i class="bi bi-pencil me-1"></i>{{ _('Edit') }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                
+                // Store the entity data on the element
+                suggestionItem.data('entity', entity);
+                suggestionsList.append(suggestionItem);
+            }
+        });
+    });
+    
+    container.removeClass('d-none');
+}
+
+// Function to enhance top-level input fields with search functionality
+function enhanceTopLevelSearch(input, entityType) {
+    if (!input.length || !entityType) return;
+    
+    // Create and add the suggestions container after the input
+    const suggestionsContainer = createTopLevelSuggestionContainer();
+    const container = input.closest('.newEntityPropertyContainer');
+    
+    input.after(suggestionsContainer);
+    
+    // Add a loading spinner
+    addLoadingSpinner(input);
+    
+    // Handle input with debounce
+    let searchTimeout;
+    
+    input.on('input', function() {
+        const term = $(this).val().trim();
+        const spinner = input.parent().find('.search-spinner');
+        
+        clearTimeout(searchTimeout);
+        suggestionsContainer.addClass('d-none');
+        spinner.addClass('d-none');
+        
+        if (term.length < 4) return;
+        
+        spinner.removeClass('d-none');
+        searchTimeout = setTimeout(() => {
+            const predicateUri = container.closest('[data-repeater-item]').data('predicate-uri');
+            searchSimilarTopLevelEntities(term, entityType, predicateUri, function(error, response) {
+                spinner.addClass('d-none');
+                
+                if (error) {
+                    console.error('Search failed:', error);
+                    return;
+                }
+                
+                updateTopLevelSuggestions(response.results.bindings, suggestionsContainer, entityType);
+            });
+        }, 300);
+    });
+    
+    // Handle close button click
+    suggestionsContainer.on('click', '.btn-close', function() {
+        suggestionsContainer.addClass('d-none');
+    });
+    
+    // Handle "Use as base" button click
+    suggestionsContainer.on('click', '.use-as-base', function() {
+        const entityUri = $(this).data('entity-uri');
+        
+        // Show loading indicator
+        Swal.fire({
+            title: "{{ _('Loading data...') }}",
+            html: "{{ _('We are retrieving the data of the selected entity. Please wait...') }}",
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Redirect to edit page for the selected entity
+        window.location.href = `/about/${entityUri}`;
+    });
+}
+
+// Initialize top-level search functionality
+$(document).ready(function() {
+    // Add CSS styles for top-level entity suggestions
+    const topLevelStyles = `
+        <style>
+            .top-level-entity-suggestions {
+                transition: all 0.3s ease;
+            }
+            .top-level-entity-suggestions .card {
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }
+            .top-level-entity-suggestions .list-group-item {
+                transition: background-color 0.2s;
+            }
+            .top-level-entity-suggestions .list-group-item:hover {
+                background-color: rgba(0,0,0,0.02);
+            }
+            .entity-comparison {
+                font-size: 0.9rem;
+            }
+            .entity-comparison table {
+                width: 100%;
+            }
+            .entity-comparison th, .entity-comparison td {
+                padding: 0.5rem;
+                border-bottom: 1px solid #dee2e6;
+            }
+            .entity-comparison th {
+                font-weight: 600;
+                background-color: #f8f9fa;
+            }
+        </style>
+    `;
+    
+    $('head').append(topLevelStyles);    
+}); 
+</script>

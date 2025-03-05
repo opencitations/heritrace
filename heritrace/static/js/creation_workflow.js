@@ -291,9 +291,17 @@ function initializeNewItem($newItem, isInitialStructure = false) {
 
     setRequiredForVisibleFields($newItem, isInitialStructure);
 
-    $newItem.find('input, textarea').each(function() {
+    $newItem.find('input[data-supports-search="True"], textarea[data-supports-search="True"]').each(function() {
         enhanceInputWithSearch($(this));
     });
+    
+    // Apply top-level search for depth=0 inputs
+    const entityType = $('#entity_type').val();
+    if (entityType) {
+        $newItem.find('input[data-depth="0"][data-supports-search="True"], textarea[data-depth="0"][data-supports-search="True"]').each(function() {
+            enhanceTopLevelSearch($(this), entityType);
+        });
+    }
 }
 
 // Funzione ricorsiva per raccogliere i dati dai campi del form
