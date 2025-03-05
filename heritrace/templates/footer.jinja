@@ -8,14 +8,16 @@
 .link-with-icon {
     position: relative;
     padding-right: 1.2em;
+    display: flex;
+    align-items: center;
 }
 
 .link-with-icon::after {
     content: '↗';
     position: absolute;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
-    margin-left: 0.3em;
     font-size: 1rem;
 }
 
@@ -29,13 +31,13 @@
             <div class="d-flex align-items-center">
                 <a href="https://github.com/opencitations/heritrace" 
                     target="_blank" 
-                    class="text-white link-hover link-with-icon "
+                    class="text-white link-hover link-with-icon"
                     title="Visit our GitHub repository">
                         <img src="{{ url_for('static', filename='images/logo.png') }}" 
                             alt="HERITRACE Logo" 
                             height="30" 
                             class="me-2">
-                        {{_('Made with')}} <span class="fw-bold">HERITRACE</span>
+                        <span class="d-flex align-items-center">{{_('Made with')}} <span class="fw-bold ms-1">HERITRACE</span></span>
                 </a>
             </div>
         </div>

@@ -42,8 +42,8 @@
     
     <div class="col-6">
         {% if next_snapshot_timestamp %}
-            <form action="{{ url_for('entity.restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post" id="restoreVersionBtn">
-                <button type="submit" class="btn btn-outline-warning w-100">
+            <form action="{{ url_for('entity.restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post" id="restoreVersionForm">
+                <button type="submit" class="btn btn-outline-warning w-100" id="restoreVersionBtn">
                     <i class="bi bi-arrow-counterclockwise me-2"></i> {{ _('Restore this Version') }}
                 </button>
             </form>
@@ -141,5 +141,29 @@
 {% else %}
     <p class="alert alert-warning my-5">{{_('This snapshot does not exist')}}</p>
 {% endif %}
+
+<script>
+    $(document).ready(function() {
+        // Add event listener to the restore version form
+        $('#restoreVersionForm').on('submit', function(e) {
+            // Prevent the default form submission
+            e.preventDefault();
+            
+            // Show loading indicator
+            Swal.fire({
+                title: "{{ _('Restoring...') }}",
+                html: "{{ _('Restoring this version. Please wait...') }}",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Submit the form
+            this.submit();
+        });
+    });
+</script>
 
 {% endblock %}

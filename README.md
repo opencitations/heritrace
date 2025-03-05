@@ -227,144 +227,215 @@ The YAML file for display rules allows for presentation customizations of the da
 
 ```yaml
 - class: "http://purl.org/spar/fabio/JournalArticle"
+  priority: 1
+  shouldBeDisplayed: true
   displayName: "Journal Article"
+  fetchUriDisplay: |
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX pro: <http://purl.org/spar/pro/>
+    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT ?display
+    WHERE {
+      # SPARQL query to generate a display string for this entity
+      # This creates a formatted citation-like display in the UI
+    }
   displayProperties:
-    - property: "http://purl.org/dc/terms/title"
-      values:
-        - displayName: "Title"
-          shouldBeDisplayed: true
-          inputType: "text"
-          required: true
-
-    - property: "http://purl.org/spar/fabio/hasSubtitle"
-      values:
-        - displayName: "Subtitle"
-          shouldBeDisplayed: true
-          inputType: "text"
-
-    - property: "http://purl.org/dc/terms/description"
-      values:
-        - displayName: "Abstract"
-          shouldBeDisplayed: true
-          inputType: "textarea"
-
+    - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+      displayName: "Type"
+      shouldBeDisplayed: true
+      supportsSearch: false
+      
     - property: "http://purl.org/spar/datacite/hasIdentifier"
-      values:
-        - displayName: "Identifier"
-          shouldBeDisplayed: true
-          fetchValueFromQuery: |
-            PREFIX datacite: <http://purl.org/spar/datacite/>
-            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-            SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id)
-            WHERE {
-                [[subject]] datacite:hasIdentifier ?identifier.
-                ?identifier datacite:usesIdentifierScheme ?scheme;
-                          literal:hasLiteralValue ?literal.
-            }
-
+      displayName: "Identifier"
+      shouldBeDisplayed: true
+      fetchValueFromQuery: |
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+        SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
+        WHERE {
+            [[subject]] datacite:hasIdentifier ?identifier.
+            VALUES (?identifier) {([[value]])}
+            ?identifier datacite:usesIdentifierScheme ?scheme;
+                      literal:hasLiteralValue ?literal.
+        }
+      supportsSearch: true
+      
+    - property: "http://purl.org/dc/terms/title"
+      displayName: "Title"
+      shouldBeDisplayed: true
+      inputType: "textarea"
+      supportsSearch: true
+      
+    - property: "http://purl.org/dc/terms/description"
+      displayName: "Description"
+      shouldBeDisplayed: true
+      inputType: "textarea"
+      supportsSearch: true
+      
+    - property: "http://purl.org/dc/terms/abstract"
+      displayName: "Abstract"
+      shouldBeDisplayed: true
+      inputType: "textarea"
+      supportsSearch: true
+      
+    - property: "http://prismstandard.org/namespaces/basic/2.0/keyword"
+      displayName: "Keyword"
+      shouldBeDisplayed: true
+      inputType: "tag"
+      supportsSearch: true
+      
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
       orderedBy: "https://w3id.org/oc/ontology/hasNext"
-      values:
-        - displayName: "Author"
-          shouldBeDisplayed: true
+      supportsSearch: true
+      intermediateRelation:
+        class: "http://purl.org/spar/pro/RoleInTime"
+        targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
+      displayRules:
+        - shape: "http://schema.org/AuthorShape"
+          displayName: "Author"
           fetchValueFromQuery: |
             PREFIX pro: <http://purl.org/spar/pro/>
             PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-            SELECT DISTINCT ?formattedName ?ra
-            WHERE {
-                [[value]] pro:isHeldBy ?ra;
-                    pro:withRole pro:author.
-                OPTIONAL { ?ra foaf:name ?name. }
-                OPTIONAL { ?ra foaf:familyName ?familyName. }
-                OPTIONAL { ?ra foaf:givenName ?givenName. }
-                BIND(
-                    IF(BOUND(?name), ?name,
-                        IF(BOUND(?familyName) && BOUND(?givenName), 
-                            CONCAT(?familyName, ", ", ?givenName),
-                            IF(BOUND(?familyName), ?familyName, ?givenName)
-                        )
-                    ) AS ?formattedName
-                )
+            PREFIX datacite: <http://purl.org/spar/datacite/>
+            PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+            SELECT DISTINCT ?formattedName ?ra WHERE {
+              [[value]] pro:isHeldBy ?ra;
+                  pro:withRole pro:author.
+              OPTIONAL { ?ra foaf:name ?name. }
+              OPTIONAL { ?ra foaf:familyName ?familyName. }
+              OPTIONAL { ?ra foaf:givenName ?givenName. }
+              BIND(
+                  IF(BOUND(?name), ?name,
+                      IF(BOUND(?familyName) && BOUND(?givenName), 
+                          CONCAT(?familyName, ", ", ?givenName),
+                          IF(BOUND(?familyName), ?familyName, ?givenName)
+                      )
+                  ) AS ?formattedName
+              )
             }
-
+        - shape: "http://schema.org/EditorShape"
+          displayName: "Editor"
+          fetchValueFromQuery: |
+            # Similar query for editors
+        - shape: "http://schema.org/PublisherShape"
+          displayName: "Publisher"
+          fetchValueFromQuery: |
+            # Similar query for publishers
+      
     - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
-      values:
-        - displayName: "Publication Date"
-          shouldBeDisplayed: true
-          inputType: "date"
-
-    - property: "http://purl.org/vocab/frbr/core#partOf"
-      values:
-        - displayName: "Journal"
-          shouldBeDisplayed: true
-          fetchValueFromQuery: |
-            PREFIX fabio: <http://purl.org/spar/fabio/>
-            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-            PREFIX dcterms: <http://purl.org/dc/terms/>
-            SELECT ?journalName ?journal
-            WHERE {
-                [[subject]] frbr:partOf+ ?journal.
-                ?journal a fabio:Journal;
-                    dcterms:title ?journalName.
-            }
-
-        - displayName: "Volume"
-          shouldBeDisplayed: true
-          fetchValueFromQuery: |
-            PREFIX fabio: <http://purl.org/spar/fabio/>
-            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-            SELECT ?volumeNumber ?volume
-            WHERE {
-                [[subject]] frbr:partOf+ ?volume.
-                ?volume a fabio:JournalVolume;
-                    fabio:hasSequenceIdentifier ?volumeNumber.
-            }
-
-        - displayName: "Issue"
-          shouldBeDisplayed: true
-          fetchValueFromQuery: |
-            PREFIX fabio: <http://purl.org/spar/fabio/>
-            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-            SELECT ?issueNumber ?issue
-            WHERE {
-                [[subject]] frbr:partOf ?issue.
-                ?issue a fabio:JournalIssue;
-                    fabio:hasSequenceIdentifier ?issueNumber.
-            }
-
+      displayName: "Publication Date"
+      shouldBeDisplayed: true
+      supportsSearch: true
+      
     - property: "http://purl.org/vocab/frbr/core#embodiment"
-      values:
-        - displayName: "Page Range"
-          shouldBeDisplayed: true
-          fetchValueFromQuery: |
-            PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-            PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-            SELECT 
-                (IF(BOUND(?startingPage) && BOUND(?endingPage), 
-                    CONCAT(STR(?startingPage), "-", STR(?endingPage)), 
-                    IF(BOUND(?startingPage), STR(?startingPage), 
-                    IF(BOUND(?endingPage), STR(?endingPage), ""))) AS ?page) 
-                ?re
-            WHERE {
-                [[subject]] frbr:embodiment ?re.
-                OPTIONAL { ?re prism:startingPage ?startingPage. }
-                OPTIONAL { ?re prism:endingPage ?endingPage. }
-            }
+      displayName: "Page"
+      shouldBeDisplayed: true
+      fetchValueFromQuery: |
+        PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+        PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+        SELECT ?pageInfo ?re
+        WHERE {
+            [[subject]] frbr:embodiment ?re.
+            OPTIONAL { ?re prism:startingPage ?startingPage. }
+            OPTIONAL { ?re prism:endingPage ?endingPage. }
+            BIND(
+              IF(BOUND(?startingPage) && BOUND(?endingPage), 
+                CONCAT(?startingPage, "-", ?endingPage),
+                IF(BOUND(?startingPage), 
+                    ?startingPage,
+                    IF(BOUND(?endingPage), 
+                      ?endingPage,
+                      "Unknown page")))
+              AS ?pageInfo)
+        }
+      supportsSearch: false
+      
+    - property: "http://purl.org/vocab/frbr/core#partOf"
+      displayName: "Container"
+      fetchValueFromQuery: |
+        PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+        PREFIX fabio: <http://purl.org/spar/fabio/>
+        PREFIX dcterms: <http://purl.org/dc/terms/>
+        PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+        PREFIX datacite: <http://purl.org/spar/datacite/>
+        PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+        SELECT ?display ?container
+        WHERE {
+          # Complex query that finds the most specific container
+          # (Issue > Volume > Journal) and formats it for display
+        }
+      supportsSearch: true
+  sortableBy:
+    - property: "http://purl.org/dc/terms/title"
+      sortOrder: ["asc", "desc"]
+    - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
+      sortOrder: ["desc", "asc"]
 ```
 
 Key configuration elements:
 
 * `class`: The RDF class being configured (e.g., fabio:JournalArticle)
+* `priority`: Numeric priority value for this class (lower values take precedence)
+* `shouldBeDisplayed`: Whether this class should be shown in the interface
 * `displayName`: Human-readable name for the class
+* `fetchUriDisplay`: SPARQL query to generate a display string for entities of this class
 * `displayProperties`: List of properties to display for this class
   * `property`: The RDF property URI
-  * `values`: Configuration for how to display/handle the property values
-    * `displayName`: Label shown in the interface
-    * `shouldBeDisplayed`: Whether to show the property
-    * `inputType`: Type of input field ("text", "textarea", "date", etc.)
-    * `required`: Whether the property is required
-    * `fetchValueFromQuery`: SPARQL query for retrieving values
+  * `displayName`: Label shown in the interface
+  * `shouldBeDisplayed`: Whether to show the property
+  * `inputType`: Type of input field ("text", "textarea", "date", "tag", etc.)
+  * `supportsSearch`: Whether this field should enable search functionality
+  * `fetchValueFromQuery`: SPARQL query for retrieving and formatting values
+  * `intermediateRelation`: For properties that use intermediate nodes (like RoleInTime)
+    * `class`: The class of the intermediate node
+    * `targetEntityType`: The type of entity to display
+  * `displayRules`: For properties with multiple possible values
+    * `shape`: The shape (type) of value to display
+    * `displayName`: Label for this type of value
+    * `fetchValueFromQuery`: SPARQL query specific to this type
   * `orderedBy`: Property used for ordering multiple values (e.g., author order)
+* `sortableBy`: Properties that can be used for sorting in the interface
+  * `property`: The property to sort by
+  * `sortOrder`: Available sort directions (ascending/descending)
+
+> 💡 **Pro Tip**: YAML supports anchors and references to reduce duplication in your configuration file. Since display_rules.yaml can contain many classes with repeated elements, you can define queries and common properties in a single place and reuse them throughout the file:
+> 
+> ```yaml
+> # Define reusable queries at the top
+> queries:
+>   identifier_query: &identifier_query |
+>     PREFIX datacite: <http://purl.org/spar/datacite/>
+>     PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+>     SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
+>     WHERE {
+>         [[subject]] datacite:hasIdentifier ?identifier.
+>         ?identifier datacite:usesIdentifierScheme ?scheme;
+>                   literal:hasLiteralValue ?literal.
+>     }
+> 
+> # Define common properties
+> common_properties:
+>   title_property: &title_property
+>     property: "http://purl.org/dc/terms/title"
+>     displayName: "Title"
+>     shouldBeDisplayed: true
+>     inputType: "textarea"
+>     supportsSearch: true
+> 
+> # Use references in class definitions
+> classes:
+>   - class: "http://purl.org/spar/fabio/JournalArticle"
+>     displayProperties:
+>       - *title_property  # Reference to the common title property
+>       - property: "http://purl.org/spar/datacite/hasIdentifier"
+>         fetchValueFromQuery: *identifier_query  # Reference to the common query
+> ```
+> 
+> This approach significantly reduces the file size and makes maintenance easier by centralizing common definitions.
 
 ## Database Setup
 

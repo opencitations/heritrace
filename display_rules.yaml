@@ -667,40 +667,46 @@ common_properties:
     property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     displayName: "Type"
     shouldBeDisplayed: true
+    supportsSearch: false
 
   title_property: &title_property
     property: "http://purl.org/dc/terms/title"
     displayName: "Title"
     shouldBeDisplayed: true
     inputType: "textarea"
+    supportsSearch: true
 
   abstract_property: &abstract_property
     property: "http://purl.org/dc/terms/abstract"
     displayName: "Abstract"
     shouldBeDisplayed: true
     inputType: "textarea"
+    supportsSearch: true
 
   keyword_property: &keyword_property  
     property: "http://prismstandard.org/namespaces/basic/2.0/keyword"
     displayName: "Keyword"
     shouldBeDisplayed: true
     inputType: "tag"
+    supportsSearch: true
 
   description_property: &description_property
     property: "http://purl.org/dc/terms/description"
     displayName: "Description"
     shouldBeDisplayed: true
     inputType: "textarea"
-
+    supportsSearch: true
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
     displayName: "Identifier"
     shouldBeDisplayed: true
     fetchValueFromQuery: *identifier_query
+    supportsSearch: true
 
   document_context_property: &document_context_property
     property: "http://purl.org/spar/pro/isDocumentContextFor"
     orderedBy: "https://w3id.org/oc/ontology/hasNext"
+    supportsSearch: true
     intermediateRelation:
       class: "http://purl.org/spar/pro/RoleInTime"
       targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
@@ -724,6 +730,7 @@ common_properties:
   document_context_property_container: &document_context_property_container
     property: "http://purl.org/spar/pro/isDocumentContextFor"
     orderedBy: "https://w3id.org/oc/ontology/hasNext"
+    supportsSearch: true
     intermediateRelation:
       class: "http://purl.org/spar/pro/RoleInTime"
       targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
@@ -742,32 +749,33 @@ common_properties:
     property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
     displayName: "Publication Date"
     shouldBeDisplayed: true
+    supportsSearch: true
 
   embodiment_property: &embodiment_property
     property: "http://purl.org/vocab/frbr/core#embodiment"
     displayName: "Page"
     shouldBeDisplayed: true
     fetchValueFromQuery: *page_info_query
+    supportsSearch: false
 
   has_sequence_identifier_property: &has_sequence_identifier_property
     property: "http://purl.org/spar/fabio/hasSequenceIdentifier"
     displayName: "Number"
     shouldBeDisplayed: true
+    supportsSearch: true
 
   issue_volume_journal_container_property: &issue_volume_journal_container_property
     property: "http://purl.org/vocab/frbr/core#partOf"
     displayName: "Container"
     fetchValueFromQuery: *issue_volume_journal_container_query
+    supportsSearch: true
 
   book_container_property: &book_container_property
     property: "http://purl.org/vocab/frbr/core#partOf"
     displayName: "Book"
     shouldBeDisplayed: true
     fetchValueFromQuery: *book_query
-
-  sortableBySequenceIdentifier: &sortableBySequenceIdentifier
-    - property: "http://purl.org/spar/fabio/hasSequenceIdentifier"
-      sortOrder: ["asc", "desc"]
+    supportsSearch: true
 
   sortableByTitleDate: &sortableByTitle
     - property: "http://purl.org/dc/terms/title"
