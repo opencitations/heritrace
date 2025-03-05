@@ -5,6 +5,7 @@ Tests for the main.py routes.
 from unittest.mock import MagicMock, patch
 
 from flask.testing import FlaskClient
+from SPARQLWrapper import JSON
 
 
 def test_index_route(client: FlaskClient) -> None:
@@ -96,34 +97,30 @@ def test_dataset_endpoint_route_unauthenticated(client: FlaskClient) -> None:
     assert response.status_code == 302  # Redirect to login
 
 
-@patch("heritrace.routes.main.get_dataset_endpoint")
-@patch("heritrace.routes.main.requests.post")
+@patch("heritrace.routes.main.get_sparql")
 def test_dataset_endpoint_route_authenticated(
-    mock_requests_post: MagicMock,
-    mock_get_dataset_endpoint: MagicMock,
+    mock_get_sparql: MagicMock,
     logged_in_client: FlaskClient,
 ) -> None:
     """Test that the dataset-endpoint route works when authenticated."""
-    # Mock the return values
-    mock_get_dataset_endpoint.return_value = "http://example.com/sparql"
-
-    # Create a mock response
-    mock_response = MagicMock()
-    mock_response.content = b'{"results": {"bindings": []}}'
-    mock_response.status_code = 200
-    mock_requests_post.return_value = mock_response
+    # Mock the SPARQLWrapper
+    mock_sparql = MagicMock()
+    mock_get_sparql.return_value = mock_sparql
+    
+    # Mock the query result
+    mock_query_result = MagicMock()
+    mock_query_result.convert.return_value = {"results": {"bindings": []}}
+    mock_sparql.query.return_value = mock_query_result
 
     response = logged_in_client.post(
         "/dataset-endpoint", data={"query": "SELECT * WHERE {?s ?p ?o}"}
     )
     assert response.status_code == 200
-
-    # Verify the request was made correctly
-    mock_requests_post.assert_called_with(
-        "http://example.com/sparql",
-        data={"query": "SELECT * WHERE {?s ?p ?o}"},
-        headers={"Accept": "application/sparql-results+json"},
-    )
+    
+    # Verify the query was set correctly
+    mock_sparql.setQuery.assert_called_with("SELECT * WHERE {?s ?p ?o}")
+    mock_sparql.setReturnFormat.assert_called_with(JSON)
+    mock_sparql.query.assert_called_once()
 
 
 def test_endpoint_route_unauthenticated(client: FlaskClient) -> None:

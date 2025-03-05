@@ -8,7 +8,8 @@ services:
       - FLASK_ENV=development
     volumes:
       - .:/app
-      - /app/node_modules
+      - docker-venv:/app/.venv
+      - docker-node-modules:/app/node_modules
     depends_on:
       redis:
         condition: service_healthy
@@ -32,3 +33,5 @@ services:
 
 volumes:
   redis-data:
+  docker-venv:
+  docker-node-modules:

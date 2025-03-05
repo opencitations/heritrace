@@ -10,6 +10,7 @@ prov_database/
 cache.json
 heritrace/static/dist/
 .vscode/
+.venv/
 
 # Unit test / coverage reports
 .coverage

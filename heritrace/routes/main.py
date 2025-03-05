@@ -1,19 +1,14 @@
 import json
+import time
 
-import requests
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, redirect, render_template, request, url_for, current_app
 from flask_login import login_required
-from heritrace.extensions import (
-    get_dataset_endpoint,
-    get_display_rules,
-    get_form_fields,
-)
-from heritrace.utils.sparql_utils import (
-    get_available_classes,
-    get_catalog_data,
-    get_deleted_entities_with_filtering,
-    get_sortable_properties,
-)
+from heritrace.extensions import get_display_rules, get_form_fields, get_sparql
+from heritrace.utils.sparql_utils import (get_available_classes,
+                                          get_catalog_data,
+                                          get_deleted_entities_with_filtering,
+                                          get_sortable_properties)
+from SPARQLWrapper import JSON
 
 main_bp = Blueprint("main", __name__)
 
@@ -108,18 +103,28 @@ def time_vault():
 @main_bp.route("/dataset-endpoint", methods=["POST"])
 @login_required
 def sparql_proxy():
-    dataset_endpoint = get_dataset_endpoint()
     query = request.form.get("query")
-    response = requests.post(
-        dataset_endpoint,
-        data={"query": query},
-        headers={"Accept": "application/sparql-results+json"},
-    )
-    return (
-        response.content,
-        response.status_code,
-        {"Content-Type": "application/sparql-results+json"},
-    )
+    
+    # Use SPARQLWrapper instead of direct requests
+    sparql_wrapper = get_sparql()
+    sparql_wrapper.setQuery(query)
+    sparql_wrapper.setReturnFormat(JSON) 
+    
+    # Implement retry mechanism
+    max_retries = 3
+    retry_delay = 1  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            results = sparql_wrapper.query().convert()
+            return json.dumps(results), 200, {"Content-Type": "application/sparql-results+json"}
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+            else:
+                current_app.logger.error(f"All SPARQL query attempts failed for query: {query}")
+                return json.dumps({"error": str(e)}), 500, {"Content-Type": "application/json"}
 
 
 @main_bp.route("/endpoint")

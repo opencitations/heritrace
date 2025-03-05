@@ -770,7 +770,7 @@ def order_logic(
     subject_uri = URIRef(subject)
     predicate_uri = URIRef(predicate)
     ordered_by_uri = URIRef(ordered_by)
-
+    current_app.logger.info(f"graph_uri: {graph_uri}")
     # Ottieni tutte le entità ordinate attuali direttamente dall'editor
     current_entities = [
         o for _, _, o in editor.g_set.triples((subject_uri, predicate_uri, None))
@@ -800,7 +800,7 @@ def order_logic(
 
             # Cancella la vecchia entità
             editor.delete(subject_uri, predicate_uri, old_entity, graph_uri)
-            editor.delete(old_entity)
+            editor.delete(old_entity, graph=graph_uri)
 
             # Ricrea il collegamento tra il soggetto principale e la nuova entità
             editor.create(subject_uri, predicate_uri, new_entity_uri, graph_uri)
@@ -808,7 +808,7 @@ def order_logic(
             # Ripristina tutte le altre proprietà per la nuova entità
             for _, p, o in entity_properties:
                 if p != predicate_uri and p != ordered_by_uri:
-                    editor.create(new_entity_uri, p, o, graph_uri)
+                    editor.create(new_entity_uri, p, o, graph_uri) 
 
     # Aggiungi la proprietà legata all'ordine alle entità giuste
     for idx, entity in enumerate(new_order):

@@ -565,6 +565,8 @@ def add_display_information(field_info, prop):
         field_info["orderedBy"] = prop["orderedBy"]
     if "inputType" in prop:
         field_info["inputType"] = prop["inputType"]
+    if "supportsSearch" in prop:
+        field_info["supportsSearch"] = prop["supportsSearch"]
 
 
 def handle_intermediate_relation(shacl, field_info, prop):
