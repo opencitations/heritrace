@@ -31,6 +31,25 @@ class Editor:
             else OCDMGraph(self.counter_handler)
         )
 
+    def _normalize_params(self, subject, predicate=None, graph=None) -> tuple[URIRef, URIRef | None, URIRef | Graph | str | None]:
+        """Normalizza i parametri comuni per le operazioni sui grafi."""
+        # Normalizza il soggetto
+        if not isinstance(subject, URIRef):
+            subject = URIRef(subject)
+            
+        # Normalizza il predicato se fornito
+        if predicate is not None and not isinstance(predicate, URIRef):
+            predicate = URIRef(predicate)
+            
+        # Normalizza il grafo se fornito
+        if graph is not None:
+            if isinstance(graph, Graph):
+                graph = graph.identifier
+            elif isinstance(graph, str):
+                graph = URIRef(graph)
+                
+        return subject, predicate, graph
+
     def create(
         self,
         subject: URIRef,
@@ -38,14 +57,9 @@ class Editor:
         value: Literal | URIRef,
         graph: URIRef | Graph | str = None,
     ) -> None:
-        subject = URIRef(subject) if not isinstance(subject, URIRef) else subject
-        predicate = URIRef(predicate) if not isinstance(predicate, URIRef) else predicate
-        graph = (
-            graph.identifier
-            if graph and isinstance(graph, Graph)
-            else URIRef(graph) if graph else None
-        )
-
+        # Normalizza i parametri
+        subject, predicate, graph = self._normalize_params(subject, predicate, graph)
+        
         if self.dataset_is_quadstore and graph:
             self.g_set.add(
                 (subject, predicate, value, graph),
@@ -67,13 +81,8 @@ class Editor:
         new_value: Literal | URIRef,
         graph: URIRef | Graph | str = None,
     ) -> None:
-        subject = URIRef(subject) if not isinstance(subject, URIRef) else subject
-        predicate = URIRef(predicate) if not isinstance(predicate, URIRef) else predicate
-        graph = (
-            graph.identifier
-            if graph and isinstance(graph, Graph)
-            else URIRef(graph) if graph else None
-        )
+        # Normalizza i parametri
+        subject, predicate, graph = self._normalize_params(subject, predicate, graph)
 
         # Check if the triple exists before updating
         if self.dataset_is_quadstore and graph:
@@ -106,23 +115,9 @@ class Editor:
         value=None,
         graph: URIRef | Graph | str = None,
     ) -> None:
-        graph = (
-            graph.identifier
-            if isinstance(graph, Graph)
-            else URIRef(graph) if graph else None
-        )
-        subject = URIRef(subject) if not isinstance(subject, URIRef) else subject
-        predicate = (
-            URIRef(predicate)
-            if predicate and not isinstance(predicate, URIRef)
-            else predicate
-        )
-        graph = (
-            graph.identifier
-            if graph and isinstance(graph, Graph)
-            else URIRef(graph) if graph else None
-        )
-
+        # Normalizza i parametri
+        subject, predicate, graph = self._normalize_params(subject, predicate, graph)
+                
         if predicate is None:
             # Delete the entire entity
             # Check if the entity exists

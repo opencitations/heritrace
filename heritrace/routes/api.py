@@ -22,7 +22,7 @@ from heritrace.utils.sparql_utils import (
     import_entity_graph,
 )
 from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
-from rdflib import RDF, XSD, URIRef
+from rdflib import RDF, XSD, URIRef, Graph
 from resources.datatypes import DATATYPE_MAPPING
 
 api_bp = Blueprint("api", __name__)
@@ -470,7 +470,12 @@ def apply_changes():
         graph_uri = None
         if editor.dataset_is_quadstore:
             for quad in editor.g_set.quads((URIRef(subject), None, None)):
-                graph_uri = quad[3]
+                # Ottieni direttamente l'identificatore del grafo
+                graph_context = quad[3]
+                if isinstance(graph_context, Graph):
+                    graph_uri = graph_context.identifier
+                else:
+                    graph_uri = graph_context
                 break
 
         # Gestisci prima le creazioni
@@ -566,7 +571,22 @@ def apply_changes():
                     temp_id_to_uri,
                 )
 
-        editor.save()
+        try:
+            editor.save()
+        except ValueError as ve:
+            # Re-raise ValueError so it can be caught by the outer try-except block
+            current_app.logger.error(f"Error during save operation: {str(ve)}")
+            raise
+        except Exception as save_error:
+            current_app.logger.error(f"Error during save operation: {str(save_error)}")
+            return jsonify(
+                {
+                    "status": "error",
+                    "error_type": "database",
+                    "message": gettext("Failed to save changes to the database: {}").format(str(save_error)),
+                }
+            ), 500
+
         return (
             jsonify(
                 {
@@ -770,7 +790,6 @@ def order_logic(
     subject_uri = URIRef(subject)
     predicate_uri = URIRef(predicate)
     ordered_by_uri = URIRef(ordered_by)
-    current_app.logger.info(f"graph_uri: {graph_uri}")
     # Ottieni tutte le entità ordinate attuali direttamente dall'editor
     current_entities = [
         o for _, _, o in editor.g_set.triples((subject_uri, predicate_uri, None))

@@ -1193,8 +1193,8 @@ def test_apply_changes_server_error(
     assert response.status_code == 500
     data = json.loads(response.data)
     assert data["status"] == "error"
-    assert data["error_type"] == "system"
-    assert "An error occurred while applying changes" in data["message"]
+    assert data["error_type"] == "database"
+    assert "Failed to save changes to the database" in data["message"]
 
 
 @patch("heritrace.routes.api.get_custom_filter")
