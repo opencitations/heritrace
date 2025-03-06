@@ -623,15 +623,26 @@ def test_update_triple_removal_and_addition_non_quadstore(editor: Editor) -> Non
     # Verify the new triple was added
     assert (subject, predicate, new_value) in editor.g_set
     
+    # Test with string predicate that needs to be normalized to URIRef
+    string_predicate = "http://example.org/string-predicate"
+    editor.create(subject, string_predicate, old_value)
+    
+    # Verify the triple was created with normalized predicate
+    assert (subject, URIRef(string_predicate), old_value) in editor.g_set
+    
+    # Update using string predicate
+    editor.update(subject, string_predicate, old_value, new_value)
+    
+    # Verify the old triple was removed and new one added with normalized predicate
+    assert (subject, URIRef(string_predicate), old_value) not in editor.g_set
+    assert (subject, URIRef(string_predicate), new_value) in editor.g_set
+    
     # Verify the responsible agent and primary source were set correctly
     # Get all triples for the subject
     triples = list(editor.g_set.triples((subject, None, None)))
     
-    # Verify there's only one triple (the updated one)
-    assert len(triples) == 1
-    
-    # Verify the triple has the correct value
-    assert triples[0][2] == new_value
+    # Verify there are two triples (one for each predicate)
+    assert len(triples) == 2
     
     # Test with URI values
     uri_old = URIRef("http://example.org/old")
@@ -735,3 +746,66 @@ def test_to_posix_timestamp(editor: Editor) -> None:
     # Test with None value
     result = editor.to_posix_timestamp(None)
     assert result is None
+
+
+def test_delete_non_quadstore(editor: Editor) -> None:
+    """Test delete method behavior when dataset is not a quadstore."""
+    # Setup
+    editor.dataset_is_quadstore = False
+    subject = URIRef("http://example.org/subject")
+    predicate1 = URIRef("http://example.org/predicate1")
+    predicate2 = URIRef("http://example.org/predicate2")
+    value1 = Literal("value1")
+    value2 = Literal("value2")
+    
+    # Create test triples
+    editor.create(subject, predicate1, value1)
+    editor.create(subject, predicate2, value2)
+    
+    # Verify triples were created
+    assert (subject, predicate1, value1) in editor.g_set, "First triple not created"
+    assert (subject, predicate2, value2) in editor.g_set, "Second triple not created"
+    
+    # Test deleting a specific triple
+    editor.delete(subject, predicate1, value1)
+    assert (subject, predicate1, value1) not in editor.g_set, "First triple not deleted"
+    assert (subject, predicate2, value2) in editor.g_set, "Second triple unexpectedly deleted"
+    
+    # Test deleting all triples with a specific predicate
+    editor.create(subject, predicate1, Literal("another value"))
+    editor.delete(subject, predicate1)
+    assert len(list(editor.g_set.triples((subject, predicate1, None)))) == 0, "Not all triples with predicate1 were deleted"
+    assert (subject, predicate2, value2) in editor.g_set, "Triple with predicate2 unexpectedly deleted"
+    
+    # Test deleting an entire entity
+    other_subject = URIRef("http://example.org/other-subject")
+    editor.create(other_subject, predicate1, value1)
+    editor.create(subject, predicate1, value1)  # Add another triple to subject
+    
+    # Create a triple where our subject is the object
+    editor.create(other_subject, predicate2, subject)
+    
+    editor.delete(subject)
+    
+    # Verify all triples with subject are removed
+    remaining_triples = list(editor.g_set.triples((subject, None, None)))
+    assert len(remaining_triples) == 0, f"Entity not fully deleted, remaining triples: {remaining_triples}"
+    
+    # Verify triples where subject was the object are also removed
+    assert (other_subject, predicate2, subject) not in editor.g_set, "Triple with subject as object not deleted"
+    
+    # Verify other triples are unaffected
+    assert (other_subject, predicate1, value1) in editor.g_set, "Unrelated triple was affected"
+    
+    # Test error cases
+    with pytest.raises(Exception) as excinfo:
+        editor.delete(URIRef("http://example.org/nonexistent"))
+    assert "Entity http://example.org/nonexistent does not exist" in str(excinfo.value)
+    
+    with pytest.raises(Exception) as excinfo:
+        editor.delete(other_subject, URIRef("http://example.org/nonexistent-pred"))
+    assert f"No triples found with subject {other_subject} and predicate http://example.org/nonexistent-pred" in str(excinfo.value)
+    
+    with pytest.raises(Exception) as excinfo:
+        editor.delete(other_subject, predicate1, Literal("nonexistent value"))
+    assert f"Triple ({other_subject}, {predicate1}, nonexistent value) does not exist" in str(excinfo.value)

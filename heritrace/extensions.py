@@ -130,9 +130,7 @@ def initialize_change_tracking_config(app: Flask, adjusted_dataset_endpoint=None
         fuseki_search = db_triplestore == 'fuseki' and text_index_enabled
         virtuoso_search = db_triplestore == 'virtuoso' and text_index_enabled
         
-        graphdb_connector = ''
-        if db_triplestore == 'graphdb' and text_index_enabled:
-            graphdb_connector = app.config.get('GRAPHDB_CONNECTOR_NAME', '')
+        graphdb_connector = '' #TODO: Add graphdb support
         
         try:
             config = generate_config_file(

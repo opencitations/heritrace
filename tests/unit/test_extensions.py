@@ -4,6 +4,7 @@ Tests for the extensions module.
 
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
+import json
 
 import pytest
 from flask import Flask, g
@@ -219,6 +220,41 @@ def test_init_login_manager_directly(app):
             assert user.orcid == 'test_id'
 
 
+def test_rotate_session_token(app):
+    """Test that the rotate_session_token function is properly connected to the user_loaded_from_cookie signal."""
+    
+    # Import the user_loaded_from_cookie signal
+    from flask_login.signals import user_loaded_from_cookie
+    
+    # Create a login manager
+    login_manager = LoginManager()
+    
+    # Patch the signal connect method to capture the handler
+    with patch.object(user_loaded_from_cookie, 'connect') as mock_connect:
+        # Initialize the login manager
+        init_login_manager(app, login_manager)
+        
+        # Verify that the signal was connected
+        mock_connect.assert_called_once()
+        
+        # Get the handler function that was connected
+        handler = mock_connect.call_args[0][0]
+        
+        # Create a mock session
+        mock_session = MagicMock()
+        
+        # Create a mock user and sender
+        mock_user = MagicMock()
+        mock_sender = MagicMock()
+        
+        # Test the handler function directly
+        with patch('heritrace.extensions.session', mock_session):
+            handler(mock_sender, mock_user)
+            
+            # Check that session.modified was set to True
+            assert mock_session.modified is True
+
+
 def test_need_initialization(app):
     """Test that need_initialization correctly determines if initialization is needed."""
 
@@ -334,6 +370,83 @@ def test_initialize_change_tracking_config(app):
         # Check that the config was generated
         assert config is not None
         assert 'cache_triplestore_url' in config
+    
+    # Test when CHANGE_TRACKING_CONFIG is not in app.config (else branch)
+    if 'CHANGE_TRACKING_CONFIG' in app.config:
+        del app.config['CHANGE_TRACKING_CONFIG']
+    
+    # We need to mock the actual file operations in generate_config_file
+    mock_open = MagicMock()
+    
+    with patch('os.path.join', return_value='instance/change_tracking_config.json'), \
+         patch('os.makedirs', MagicMock()) as mock_makedirs, \
+         patch('builtins.open', mock_open), \
+         patch('time_agnostic_library.support.generate_config_file', side_effect=lambda **kwargs: mock_config), \
+         patch('heritrace.extensions.adjust_endpoint_url', lambda x: x + '_adjusted'):
+        
+        config = initialize_change_tracking_config(app)
+        
+        # Check that the directory was created
+        mock_makedirs.assert_called_once_with(app.instance_path, exist_ok=True)
+        
+        # Check that the config was generated
+        assert config is not None
+        assert 'cache_triplestore_url' in config
+
+
+def test_initialize_change_tracking_config_exceptions(app):
+    """Test exception handling in initialize_change_tracking_config function."""
+    
+    # Set up required config values
+    app.config['DATASET_DB_URL'] = 'http://localhost:8080/dataset'
+    app.config['PROVENANCE_DB_URL'] = 'http://localhost:8080/provenance'
+    app.config['DATASET_DIRS'] = []
+    app.config['DATASET_IS_QUADSTORE'] = False
+    app.config['PROVENANCE_IS_QUADSTORE'] = False
+    app.config['PROVENANCE_DIRS'] = []
+    app.config['CACHE_ENDPOINT'] = 'http://localhost:8080/cache'
+    app.config['CACHE_UPDATE_ENDPOINT'] = 'http://localhost:8080/cache/update'
+    
+    # Test exception when generating config file
+    app.config['CHANGE_TRACKING_CONFIG'] = 'nonexistent_config.json'
+    
+    with patch('os.path.exists', return_value=False), \
+         patch('os.makedirs', MagicMock()), \
+         patch('heritrace.extensions.generate_config_file', side_effect=Exception("Test generation error")), \
+         pytest.raises(RuntimeError) as excinfo:
+        
+        initialize_change_tracking_config(app)
+    
+    # Check the error message
+    assert "Failed to generate change tracking configuration: Test generation error" in str(excinfo.value)
+    
+    # Test JSONDecodeError when loading config file
+    app.config['CHANGE_TRACKING_CONFIG'] = 'invalid_json_config.json'
+    
+    mock_open = MagicMock()
+    mock_open.return_value.__enter__.return_value = MagicMock()
+    
+    with patch('os.path.exists', return_value=True), \
+         patch('builtins.open', mock_open), \
+         patch('json.load', side_effect=json.JSONDecodeError("Test JSON error", "", 0)), \
+         pytest.raises(RuntimeError) as excinfo:
+        
+        initialize_change_tracking_config(app)
+    
+    # Check the error message
+    assert "Invalid change tracking configuration JSON at invalid_json_config.json: Test JSON error" in str(excinfo.value)
+    
+    # Test general exception when reading config file
+    app.config['CHANGE_TRACKING_CONFIG'] = 'error_config.json'
+    
+    with patch('os.path.exists', return_value=True), \
+         patch('builtins.open', side_effect=Exception("Test read error")), \
+         pytest.raises(RuntimeError) as excinfo:
+        
+        initialize_change_tracking_config(app)
+    
+    # Check the error message
+    assert "Error reading change tracking configuration at error_config.json: Test read error" in str(excinfo.value)
 
 
 def test_initialize_counter_handler(app):
@@ -379,6 +492,64 @@ def test_initialize_counter_handler(app):
         # Check that the counter handler was updated correctly
         mock_counter_handler.set_counter.assert_any_call(11, 'http://example.org/Person')
         mock_counter_handler.set_counter.assert_any_call(6, 'http://example.org/Event')
+        
+        # Check that update_cache was called
+        mock_update_cache.assert_called_once_with(app)
+
+
+def test_initialize_counter_handler_virtuoso(app):
+    """Test that initialize_counter_handler correctly handles Virtuoso triplestore."""
+
+    # Mock the need_initialization function to return True
+    with patch('heritrace.extensions.need_initialization', return_value=True), \
+         patch('heritrace.extensions.update_cache') as mock_update_cache, \
+         patch('heritrace.extensions.is_virtuoso', return_value=True), \
+         patch('heritrace.extensions.VIRTUOSO_EXCLUDED_GRAPHS', ['http://excluded.graph']), \
+         patch('heritrace.extensions.sparql') as mock_sparql:
+        
+        # Mock the query results
+        mock_results = {
+            'results': {
+                'bindings': [
+                    {
+                        'type': {'value': 'http://example.org/Person'},
+                        'count': {'value': '15'}
+                    },
+                    {
+                        'type': {'value': 'http://example.org/Organization'},
+                        'count': {'value': '8'}
+                    }
+                ]
+            }
+        }
+        
+        # Set up the mock SPARQL query
+        mock_sparql.query.return_value.convert.return_value = mock_results
+        
+        # Set up the URI generator with a counter handler
+        mock_counter_handler = MagicMock()
+        # Use side_effect to return different values for different entity types
+        mock_counter_handler.read_counter.side_effect = lambda entity_type: 5 if entity_type == 'http://example.org/Person' else 7
+        
+        mock_uri_generator = MagicMock()
+        mock_uri_generator.counter_handler = mock_counter_handler
+        
+        app.config['URI_GENERATOR'] = mock_uri_generator
+        
+        # Call the function
+        initialize_counter_handler(app)
+        
+        # Verify that the correct Virtuoso-specific query was used
+        # We can't check the exact query string, but we can verify that sparql.setQuery was called
+        mock_sparql.setQuery.assert_called_once()
+        
+        # The query should contain the FILTER with VIRTUOSO_EXCLUDED_GRAPHS
+        query_arg = mock_sparql.setQuery.call_args[0][0]
+        assert "FILTER(?g NOT IN (<http://excluded.graph>))" in query_arg
+        
+        # Check that the counter handler was updated correctly
+        mock_counter_handler.set_counter.assert_any_call(16, 'http://example.org/Person')
+        mock_counter_handler.set_counter.assert_any_call(9, 'http://example.org/Organization')
         
         # Check that update_cache was called
         mock_update_cache.assert_called_once_with(app)
