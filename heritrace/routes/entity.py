@@ -1182,8 +1182,8 @@ def compute_graph_differences(
         current_data = set(current_graph.quads())
         historical_data = set(historical_graph.quads())
     else:
-        current_data = set(current_graph.quads())
-        historical_data = set(historical_graph.quads())
+        current_data = set(current_graph.triples((None, None, None)))
+        historical_data = set(historical_graph.triples((None, None, None)))
     triples_or_quads_to_delete = current_data - historical_data
     triples_or_quads_to_add = historical_data - current_data
 
@@ -1471,8 +1471,7 @@ def format_triple_modification(
         form_fields: Form fields configuration from SHACL
 
     Returns:
-        HTML string representing the triple modification
-    """
+        HTML string representing the triple modification    """
     predicate = triple[1]
     predicate_label = custom_filter.human_readable_predicate(predicate, subject_classes)
     object_value = triple[2]
