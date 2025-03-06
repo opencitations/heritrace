@@ -1,3 +1,4 @@
+import re
 from collections import OrderedDict, defaultdict
 from typing import List
 
@@ -943,9 +944,29 @@ def validate_new_triple(
         else:
             s_types = [entity_types]
 
+    # Get types for entities that have this subject as their object
+    # This is crucial for proper SHACL validation in cases where constraints depend on the context
+    # Example: When validating an identifier's value (e.g., DOI, ISSN, ORCID):
+    # - The identifier itself is of type datacite:Identifier
+    # - But its format constraints depend on what owns it:
+    #   * A DOI for an article follows one pattern
+    #   * An ISSN for a journal follows another
+    #   * An ORCID for a person follows yet another
+    # By including these "inverse" types, we ensure validation considers the full context
+    inverse_types = []
+    for _, p, o in data_graph.triples((None, None, URIRef(subject))):
+        o_types = [t[2] for t in data_graph.triples((o, RDF.type, None))]
+        inverse_types.extend(o_types)
+
+    # Add inverse types to s_types
+    s_types.extend(inverse_types)
+
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
-        SELECT DISTINCT ?path ?datatype ?a_class ?classIn ?maxCount ?minCount (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
+        SELECT DISTINCT ?path ?datatype ?a_class ?classIn ?maxCount ?minCount ?pattern ?message
+            (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
+            (GROUP_CONCAT(DISTINCT COALESCE(?conditionPath, ""); separator=",") AS ?conditionPaths)
+            (GROUP_CONCAT(DISTINCT COALESCE(?conditionValue, ""); separator=",") AS ?conditionValues)
         WHERE {{
             ?shape sh:targetClass ?type ;
                 sh:property ?propertyShape .
@@ -970,8 +991,17 @@ def validate_new_triple(
                 ?propertyShape sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }}
+            OPTIONAL {{
+                ?propertyShape sh:pattern ?pattern .
+                OPTIONAL {{?propertyShape sh:message ?message .}}
+            }}
+            OPTIONAL {{
+                ?propertyShape sh:condition ?conditionNode .
+                ?conditionNode sh:path ?conditionPath ;
+                             sh:hasValue ?conditionValue .
+            }}
         }}
-        GROUP BY ?path ?datatype ?a_class ?classIn ?maxCount ?minCount
+        GROUP BY ?path ?datatype ?a_class ?classIn ?maxCount ?minCount ?pattern ?message
     """
     shacl = get_shacl_graph()
     custom_filter = get_custom_filter()
@@ -1058,6 +1088,33 @@ def validate_new_triple(
                 ),
             ),
         )
+
+    # Check pattern constraints
+    for row in results:
+        if row.pattern:
+            # Check if there are conditions for this pattern
+            condition_paths = row.conditionPaths.split(",") if row.conditionPaths else []
+            condition_values = row.conditionValues.split(",") if row.conditionValues else []
+            conditions_met = True
+
+            # If there are conditions, check if they are met
+            for path, value in zip(condition_paths, condition_values):
+                if path and value:
+                    # Check if the condition triple exists in the data graph
+                    condition_exists = any(
+                        data_graph.triples((URIRef(subject), URIRef(path), URIRef(value)))
+                    )
+                    if not condition_exists:
+                        conditions_met = False
+                        break
+
+            # Only validate pattern if conditions are met
+            if conditions_met:
+                pattern = str(row.pattern)
+                if not re.match(pattern, new_value):
+                    error_message = str(row.message) if row.message else f"Value must match pattern: {pattern}"
+                    return None, old_value, error_message
+
     if classes:
         if not validators.url(new_value):
             return (
