@@ -245,10 +245,6 @@ def create_entity():
 
     if request.method == "POST":
         structured_data = json.loads(request.form.get("structured_data", "{}"))
-        validation_errors = validate_entity_data(structured_data, form_fields)
-
-        if validation_errors:
-            return jsonify({"status": "error", "errors": validation_errors}), 400
 
         editor = Editor(
             get_dataset_endpoint(),
@@ -260,7 +256,11 @@ def create_entity():
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
 
-        if get_form_fields():
+        if form_fields:
+            validation_errors = validate_entity_data(structured_data, form_fields)
+            if validation_errors:
+                return jsonify({"status": "error", "errors": validation_errors}), 400
+
             entity_type = structured_data.get("entity_type")
             properties = structured_data.get("properties", {})
 

@@ -31,6 +31,11 @@ class TestConfig(object):
     # Testing flag
     TESTING = True
 
+    # Server configuration
+    SERVER_NAME = "localhost"
+    APPLICATION_ROOT = "/"
+    PREFERRED_URL_SCHEME = "http"
+
     # Security settings
     SECRET_KEY = "test-secret-key"
 
