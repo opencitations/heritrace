@@ -14,8 +14,7 @@ from heritrace.extensions import (adjust_endpoint_url, change_tracking_config,
                                   custom_filter, dataset_endpoint,
                                   dataset_is_quadstore, display_rules,
                                   form_fields_cache,
-                                  get_change_tracking_config,
-                                  get_custom_filter, get_dataset_endpoint,
+                                  get_change_tracking_config, get_custom_filter, get_dataset_endpoint,
                                   get_dataset_is_quadstore, get_display_rules,
                                   get_form_fields, get_provenance_endpoint,
                                   get_provenance_sparql, get_shacl_graph,
@@ -600,3 +599,198 @@ def test_init_sparql_services_already_initialized(app):
         mock_init_config.assert_not_called()
         mock_init_counter.assert_not_called()
         mock_init_globals.assert_not_called()
+
+
+def test_initialize_global_variables_dataset_is_quadstore(app):
+    """Test that initialize_global_variables correctly sets dataset_is_quadstore."""
+    # Setup
+    app.config['DATASET_IS_QUADSTORE'] = True
+    
+    # Reset global variables
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', None), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', None):
+        
+        # Call the function
+        initialize_global_variables(app)
+        
+        # Check that dataset_is_quadstore is set correctly
+        from heritrace.extensions import dataset_is_quadstore
+        assert dataset_is_quadstore is True
+
+
+def test_initialize_global_variables_display_rules_not_found(app):
+    """Test that initialize_global_variables handles missing display rules file."""
+    # Setup
+    app.config['DISPLAY_RULES_PATH'] = '/path/does/not/exist'
+    app.config.pop('SHACL_PATH', None)  # Remove SHACL_PATH to avoid additional warnings
+    
+    # Reset global variables
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', None), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', None), \
+         patch('os.path.exists', return_value=False):
+        
+        # Call the function
+        initialize_global_variables(app)
+
+
+def test_initialize_global_variables_display_rules_loaded(app, tmp_path):
+    """Test that initialize_global_variables correctly loads display rules."""
+    # Create a temporary display rules file
+    display_rules_path = tmp_path / "display_rules.yaml"
+    display_rules_content = """
+classes:
+  Class1:
+    label: "Class 1"
+    properties:
+      prop1:
+        label: "Property 1"
+"""
+    display_rules_path.write_text(display_rules_content)
+    
+    # Setup app config
+    app.config['DISPLAY_RULES_PATH'] = str(display_rules_path)
+    app.config.pop('SHACL_PATH', None)  # Remove SHACL_PATH to avoid additional warnings
+    
+    # Reset global variables
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', None), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', None), \
+         patch('os.path.exists', return_value=True):
+        
+        # Call the function
+        initialize_global_variables(app)
+        
+        # Check that display_rules is set correctly
+        from heritrace.extensions import display_rules
+        assert display_rules is not None
+        assert 'Class1' in display_rules
+        assert display_rules['Class1']['label'] == 'Class 1'
+
+
+def test_initialize_global_variables_display_rules_error(app, tmp_path):
+    """Test that initialize_global_variables handles errors when loading display rules."""
+    # Create a temporary display rules file
+    display_rules_path = tmp_path / "invalid_display_rules.yaml"
+    display_rules_path.write_text("invalid: yaml: content:")
+    
+    # Setup app config
+    app.config['DISPLAY_RULES_PATH'] = str(display_rules_path)
+    app.config.pop('SHACL_PATH', None)  # Remove SHACL_PATH to avoid additional warnings
+    
+    # Reset global variables
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', None), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', None), \
+         patch('os.path.exists', return_value=True), \
+         patch('yaml.safe_load', side_effect=Exception("YAML parsing error")):
+        
+        # Call the function and check for exception
+        with pytest.raises(RuntimeError, match="Failed to load display rules: YAML parsing error"):
+            initialize_global_variables(app)
+
+
+def test_initialize_global_variables_shacl_not_found(app):
+    """Test that initialize_global_variables handles missing SHACL file."""
+    # Setup
+    app.config.pop('DISPLAY_RULES_PATH', None)  # Remove DISPLAY_RULES_PATH to avoid additional warnings
+    app.config['SHACL_PATH'] = '/path/does/not/exist'
+    
+    # Reset global variables
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', None), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', None), \
+         patch('os.path.exists', return_value=False):
+        
+        # Call the function
+        initialize_global_variables(app)
+
+
+def test_initialize_global_variables_form_fields_cache_exists(app):
+    """Test that initialize_global_variables returns early if form_fields_cache is not None."""
+    # Setup
+    app.config.pop('DISPLAY_RULES_PATH', None)  # Remove DISPLAY_RULES_PATH to avoid additional warnings
+    app.config['SHACL_PATH'] = '/path/to/shacl.ttl'
+    
+    # Reset global variables but set form_fields_cache
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', None), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', {'existing': 'cache'}), \
+         patch('os.path.exists', return_value=True):
+        
+        # Call the function
+        initialize_global_variables(app)
+
+
+def test_initialize_global_variables_shacl_loaded(app, tmp_path):
+    """Test that initialize_global_variables correctly loads SHACL graph and form fields."""
+    # Create a temporary SHACL file
+    shacl_path = tmp_path / "shacl.ttl"
+    shacl_path.write_text("@prefix sh: <http://www.w3.org/ns/shacl#> .")
+    
+    # Setup app config
+    app.config.pop('DISPLAY_RULES_PATH', None)  # Remove DISPLAY_RULES_PATH to avoid additional warnings
+    app.config['SHACL_PATH'] = str(shacl_path)
+    
+    # Mock get_form_fields_from_shacl
+    mock_form_fields = {'Class1': {'properties': ['prop1']}}
+    
+    # Reset global variables
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', {'Class1': {'label': 'Class 1'}}), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', None), \
+         patch('os.path.exists', return_value=True), \
+         patch('heritrace.utils.shacl_utils.get_form_fields_from_shacl', return_value=mock_form_fields):
+        
+        # Call the function
+        initialize_global_variables(app)
+        
+        # Check that form_fields_cache is set correctly
+        from heritrace.extensions import form_fields_cache, shacl_graph
+        assert form_fields_cache == mock_form_fields
+        assert shacl_graph is not None
+
+
+def test_initialize_global_variables_shacl_error(app, tmp_path):
+    """Test that initialize_global_variables handles errors when loading SHACL graph."""
+    # Create a temporary SHACL file with invalid content
+    shacl_path = tmp_path / "invalid_shacl.ttl"
+    shacl_path.write_text("invalid turtle content")
+    
+    # Setup app config
+    app.config.pop('DISPLAY_RULES_PATH', None)  # Remove DISPLAY_RULES_PATH to avoid additional warnings
+    app.config['SHACL_PATH'] = str(shacl_path)
+    
+    # Reset global variables
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', None), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', None), \
+         patch('os.path.exists', return_value=True), \
+         patch('rdflib.Graph.parse', side_effect=Exception("Turtle parsing error")):
+        
+        # Call the function and check for exception
+        with pytest.raises(RuntimeError, match="Failed to initialize form fields: Turtle parsing error"):
+            initialize_global_variables(app)
+
+
+def test_initialize_global_variables_general_exception(app):
+    """Test that initialize_global_variables handles general exceptions."""
+    # Setup to raise a general exception
+    with patch('heritrace.extensions.dataset_is_quadstore', None), \
+         patch('heritrace.extensions.display_rules', None), \
+         patch('heritrace.extensions.shacl_graph', None), \
+         patch('heritrace.extensions.form_fields_cache', None), \
+         patch.object(app.config, 'get', side_effect=Exception("General error")):
+        
+        # Call the function and check for exception
+        with pytest.raises(RuntimeError, match="Global variables initialization failed: General error"):
+            initialize_global_variables(app)

@@ -471,10 +471,7 @@ def apply_changes():
             for quad in editor.g_set.quads((URIRef(subject), None, None)):
                 # Ottieni direttamente l'identificatore del grafo
                 graph_context = quad[3]
-                if isinstance(graph_context, Graph):
-                    graph_uri = graph_context.identifier
-                else:
-                    graph_uri = graph_context
+                graph_uri = get_graph_uri_from_context(graph_context)
                 break
 
         # Gestisci prima le creazioni
@@ -635,6 +632,21 @@ def generate_unique_uri(entity_type: URIRef | str = None):
             entity_type
         )
     return URIRef(uri)
+
+
+def get_graph_uri_from_context(graph_context):
+    """Extract the graph URI from a graph context.
+    
+    Args:
+        graph_context: Either a Graph object or a direct URI reference
+        
+    Returns:
+        The graph URI
+    """
+    if isinstance(graph_context, Graph):
+        return graph_context.identifier
+    else:
+        return graph_context
 
 
 def determine_datatype(value, datatype_uris):
