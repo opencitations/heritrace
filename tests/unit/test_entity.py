@@ -711,3 +711,149 @@ def test_restore_version_exception(mock_gettext, mock_flash):
     # Verify results
     mock_flash.assert_called_once()
     assert "error" in mock_flash.call_args[0][1]
+
+
+def test_find_appropriate_snapshot_skip_deletion():
+    """Test find_appropriate_snapshot when snapshot has equal generation and invalidation time."""
+    # Setup test data
+    provenance_data = {
+        "snapshot1": {
+            "generatedAtTime": "2024-01-01T00:00:00",
+            "invalidatedAtTime": "2024-01-01T00:00:00"  # Same time = deletion snapshot
+        },
+        "snapshot2": {
+            "generatedAtTime": "2024-01-01T01:00:00",
+            "invalidatedAtTime": None
+        }
+    }
+    target_time = "2024-01-01T02:00:00"
+    
+    # Call the function
+    result = find_appropriate_snapshot(provenance_data, target_time)
+    
+    # Verify results
+    # Should skip snapshot1 (deletion) and return snapshot2
+    assert result == "snapshot2"
+
+
+def test_find_appropriate_snapshot_no_valid_snapshots():
+    """Test find_appropriate_snapshot when there are no valid snapshots."""
+    # Setup test data with only deletion snapshots
+    provenance_data = {
+        "snapshot1": {
+            "generatedAtTime": "2024-01-01T00:00:00",
+            "invalidatedAtTime": "2024-01-01T00:00:00"  # Deletion snapshot
+        },
+        "snapshot2": {
+            "generatedAtTime": "2024-01-01T01:00:00",
+            "invalidatedAtTime": "2024-01-01T01:00:00"  # Another deletion snapshot
+        }
+    }
+    target_time = "2024-01-01T02:00:00"
+    
+    # Call the function
+    result = find_appropriate_snapshot(provenance_data, target_time)
+    
+    # Verify results
+    # Should return None as there are no valid snapshots
+    assert result is None
+
+
+def test_prepare_entity_snapshots_skip_missing_provenance():
+    """Test prepare_entity_snapshots when an entity has no provenance data."""
+    # Setup test data
+    entities_to_restore = {"http://example.org/entity/1", "http://example.org/entity/2"}
+    provenance = {
+        "http://example.org/entity/2": {  # Only entity/2 has provenance data
+            "snapshot1": {
+                "generatedAtTime": "2024-01-01T00:00:00",
+                "invalidatedAtTime": None
+            }
+        }
+    }
+    target_time = "2024-01-01T02:00:00"
+    
+    # Call the function
+    result = prepare_entity_snapshots(entities_to_restore, provenance, target_time)
+    
+    # Verify results
+    # Should only include entity/2 and skip entity/1
+    assert len(result) == 1
+    assert "http://example.org/entity/1" not in result
+    assert "http://example.org/entity/2" in result
+
+
+def test_prepare_entity_snapshots_skip_no_valid_snapshot():
+    """Test prepare_entity_snapshots when an entity has no valid snapshot."""
+    # Setup test data
+    entities_to_restore = {"http://example.org/entity/1", "http://example.org/entity/2"}
+    provenance = {
+        "http://example.org/entity/1": {  # Only deletion snapshots
+            "snapshot1": {
+                "generatedAtTime": "2024-01-01T00:00:00",
+                "invalidatedAtTime": "2024-01-01T00:00:00"
+            }
+        },
+        "http://example.org/entity/2": {  # Has a valid snapshot
+            "snapshot1": {
+                "generatedAtTime": "2024-01-01T00:00:00",
+                "invalidatedAtTime": None
+            }
+        }
+    }
+    target_time = "2024-01-01T02:00:00"
+    
+    # Call the function
+    result = prepare_entity_snapshots(entities_to_restore, provenance, target_time)
+    
+    # Verify results
+    # Should only include entity/2 and skip entity/1
+    assert len(result) == 1
+    assert "http://example.org/entity/1" not in result
+    assert "http://example.org/entity/2" in result
+
+
+@patch('heritrace.routes.entity.get_dataset_is_quadstore')
+def test_compute_graph_differences_non_quadstore(mock_get_dataset_is_quadstore):
+    """Test compute_graph_differences when dataset is not a quadstore."""
+    # Setup mocks
+    mock_get_dataset_is_quadstore.return_value = False
+    
+    # Create test graphs
+    current_graph = Graph()
+    historical_graph = Graph()
+    
+    # Add test triples to current graph
+    current_graph.add((URIRef("http://example.org/subject1"),
+                      URIRef("http://example.org/predicate1"),
+                      Literal("value1")))
+    current_graph.add((URIRef("http://example.org/subject2"),
+                      URIRef("http://example.org/predicate2"),
+                      Literal("value2")))
+    
+    # Add test triples to historical graph
+    historical_graph.add((URIRef("http://example.org/subject1"),
+                         URIRef("http://example.org/predicate1"),
+                         Literal("value1")))
+    historical_graph.add((URIRef("http://example.org/subject3"),
+                         URIRef("http://example.org/predicate3"),
+                         Literal("value3")))
+    
+    # Call the function
+    triples_to_delete, triples_to_add = compute_graph_differences(current_graph, historical_graph)
+    
+    # Verify results
+    # Should compute differences using triples() instead of quads()
+    assert len(triples_to_delete) == 1  # subject2/predicate2/value2 should be deleted
+    assert len(triples_to_add) == 1     # subject3/predicate3/value3 should be added
+    
+    # Verify specific triples
+    expected_delete = (URIRef("http://example.org/subject2"),
+                      URIRef("http://example.org/predicate2"),
+                      Literal("value2"))
+    expected_add = (URIRef("http://example.org/subject3"),
+                   URIRef("http://example.org/predicate3"),
+                   Literal("value3"))
+    
+    assert expected_delete in triples_to_delete
+    assert expected_add in triples_to_add
