@@ -49,7 +49,6 @@ def catalogue_api():
     )
 
     catalog_data["available_classes"] = get_available_classes()
-
     return jsonify(catalog_data)
 
 
