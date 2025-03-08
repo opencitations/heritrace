@@ -8,8 +8,6 @@ from typing import Optional, Tuple, List
 from flask_login import current_user
 from redis import Redis
 
-from heritrace.services.sparql import SparqlService
-
 # Set up logger
 logger = logging.getLogger(__name__)
 
@@ -46,9 +44,8 @@ class ResourceLockManager:
     - reverse_links:{resource_uri} - Stores a set of resources that link to this resource
     """
 
-    def __init__(self, redis_client: Redis, sparql_service: SparqlService = None):
+    def __init__(self, redis_client: Redis):
         self.redis = redis_client
-        self.sparql_service = sparql_service
         self.lock_duration = 300  # 5 minutes in seconds
         self.lock_prefix = "resource_lock:"
         self.reverse_links_prefix = "reverse_links:"    # Reverse links: resources that link to this resource
@@ -112,15 +109,6 @@ class ResourceLockManager:
                     return LockStatus.AVAILABLE, lock_info
                 return LockStatus.LOCKED, lock_info
             
-            # 2. Check if any resource that this resource links to is locked by another user
-            if self.sparql_service:
-                linked_resources = self._get_linked_resources(resource_uri)
-                for linked_uri in linked_resources:
-                    linked_lock_info = self.get_lock_info(linked_uri)
-                    if linked_lock_info and linked_lock_info.user_id != str(current_user.orcid):
-                        # Resource that this resource links to is locked by another user
-                        return LockStatus.LOCKED, linked_lock_info
-            
             # 3. Check if any resource that links to this resource is locked by another user
             # Get the resources that link to this resource (reverse links)
             reverse_links_key = self._generate_reverse_links_key(resource_uri)
@@ -158,23 +146,25 @@ class ResourceLockManager:
             return item.decode('utf-8')
         return str(item)
     
-    def _get_linked_resources(self, resource_uri: str) -> List[str]:
+    def acquire_lock(self, resource_uri: str, linked_resources: List[str]) -> bool:
         """
-        Get all resources linked to the given resource and update reverse links in Redis.
-        
+        Try to acquire a lock on a resource.
+        This method efficiently checks and acquires locks using Redis sets
+        to track relationships between resources.
+
         Args:
-            resource_uri: URI of the resource to check
-            
+            resource_uri: URI of the resource to lock
+            linked_resources: List of linked resources already known
+
         Returns:
-            List of URIs of resources linked to the given resource
+            bool: True if lock was acquired, False otherwise
         """
-        if not self.sparql_service:
-            return []
-        
         try:
-            # Query the SPARQL endpoint for linked resources
-            linked_resources = self.sparql_service.get_linked_resources(resource_uri)
-            
+            # First check if the resource or any related resource is locked by another user
+            status, lock_info = self.check_lock_status(resource_uri)
+            if status == LockStatus.LOCKED:
+                return False
+                
             # Update reverse links in Redis
             if linked_resources:
                 # Use a pipeline for better performance
@@ -188,32 +178,7 @@ class ResourceLockManager:
                     pipe.expire(reverse_links_key, self.lock_duration)
                 
                 pipe.execute()
-            
-            return linked_resources
-        except Exception as e:
-            logger.error(f"Error getting linked resources for {resource_uri}: {str(e)}")
-            return []
-    
-    def acquire_lock(self, resource_uri: str) -> bool:
-        """
-        Try to acquire a lock on a resource.
-        This method efficiently checks and acquires locks using Redis sets
-        to track relationships between resources.
-
-        Args:
-            resource_uri: URI of the resource to lock
-
-        Returns:
-            bool: True if lock was acquired, False otherwise
-        """
-        try:
-            # First check if the resource or any related resource is locked by another user
-            status, lock_info = self.check_lock_status(resource_uri)
-            if status == LockStatus.LOCKED:
-                return False
                 
-            # Get all resources linked to this resource
-            linked_resources = self._get_linked_resources(resource_uri)
             # After checking all linked resources, proceed with lock creation
             return self._create_resource_lock(resource_uri, current_user, linked_resources)
 

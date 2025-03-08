@@ -114,6 +114,9 @@ def about(subject):
     optional_values = {}
     valid_predicates = []
     entity_type = None
+    data_graph = None
+    linked_resources = []
+    inverse_references = []
 
     if not is_deleted:
         # Fetch current entity state
@@ -140,6 +143,25 @@ def about(subject):
             can_be_deleted = [
                 uri for uri in can_be_deleted if uri in relevant_properties
             ]
+            
+            # Get resources that this entity links to (outgoing links)
+            linked_resources = set()
+            for _, predicate, obj in data_graph.triples((URIRef(subject), None, None)):
+                if isinstance(obj, URIRef) and str(obj) != str(subject) and predicate != RDF.type:
+                    linked_resources.add(str(obj))
+            
+        # Get inverse references only for non-deleted entities
+        inverse_references = get_inverse_references(subject)
+        
+        # Add inverse references to linked resources
+        for ref in inverse_references:
+            linked_resources.add(ref["subject"])
+        
+        # Convert to list
+        linked_resources = list(linked_resources)
+    else:
+        # For deleted entities, we don't need to get any linked resources
+        linked_resources = []
 
     update_form = UpdateTripleForm()
     create_form = (
@@ -163,8 +185,6 @@ def about(subject):
                 predicate_details_map[key] = details
 
     entity_type = str(subject_classes[0]) if subject_classes else None
-
-    inverse_references = get_inverse_references(subject)
 
     return render_template(
         "entity/about.jinja",
@@ -192,6 +212,7 @@ def about(subject):
         inverse_references=inverse_references,
         is_deleted=is_deleted,
         context=context_snapshot,
+        linked_resources=linked_resources,
     )
 
 

@@ -10,10 +10,10 @@ from urllib.parse import urlparse, urlunparse
 import yaml
 from flask import Flask, g, redirect, session, url_for
 from flask_babel import Babel
-from flask_login import LoginManager, user_loaded_from_cookie
+from flask_login import LoginManager, current_user
+from flask_login.signals import user_loaded_from_cookie
 from heritrace.models import User
 from heritrace.services.resource_lock_manager import ResourceLockManager
-from heritrace.services.sparql import SparqlService
 from heritrace.utils.filters import Filter
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
@@ -22,13 +22,12 @@ from redis import Redis
 from SPARQLWrapper import JSON, SPARQLWrapper
 from time_agnostic_library.support import generate_config_file
 
-# Initialization flags and shared objects
+# Global variables
 initialization_done = False
 dataset_endpoint = None
 provenance_endpoint = None
 sparql = None
 provenance_sparql = None
-sparql_service = None
 change_tracking_config = None
 form_fields_cache = None
 custom_filter = None
@@ -317,7 +316,7 @@ def initialize_global_variables(app: Flask):
 
 def init_sparql_services(app: Flask):
     """Initialize SPARQL endpoints and related services."""
-    global initialization_done, dataset_endpoint, provenance_endpoint, sparql, provenance_sparql, sparql_service, change_tracking_config
+    global initialization_done, dataset_endpoint, provenance_endpoint, sparql, provenance_sparql, change_tracking_config
 
     if not initialization_done:
         # Adjust endpoints for Docker if necessary
@@ -327,9 +326,6 @@ def init_sparql_services(app: Flask):
         # Initialize SPARQL wrappers
         sparql = SPARQLWrapper(dataset_endpoint)
         provenance_sparql = SPARQLWrapper(provenance_endpoint)
-        
-        # Initialize SPARQL service
-        sparql_service = SparqlService(dataset_endpoint)
         
         # Initialize change tracking configuration
         change_tracking_config = initialize_change_tracking_config(
@@ -377,7 +373,7 @@ def init_request_handlers(app):
     def initialize_lock_manager():
         """Initialize the resource lock manager for each request."""
         if not hasattr(g, 'resource_lock_manager'):
-            g.resource_lock_manager = ResourceLockManager(redis_client, sparql_service)
+            g.resource_lock_manager = ResourceLockManager(redis_client)
     
     @app.teardown_appcontext
     def close_redis_connection(error):
@@ -429,11 +425,6 @@ def get_provenance_endpoint() -> str:
 def get_provenance_sparql() -> SPARQLWrapper:
     """Get the configured SPARQL wrapper for the provenance endpoint."""
     return provenance_sparql
-
-
-def get_sparql_service() -> SparqlService:
-    """Get the configured SPARQL service instance."""
-    return sparql_service
 
 def get_custom_filter() -> Filter:
     """Get the configured custom filter instance."""

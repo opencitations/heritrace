@@ -16,7 +16,7 @@ from heritrace.extensions import (adjust_endpoint_url,
                                   get_dataset_is_quadstore, get_display_rules,
                                   get_form_fields, get_provenance_endpoint,
                                   get_provenance_sparql, get_shacl_graph,
-                                  get_sparql, get_sparql_service,
+                                  get_sparql,
                                   init_extensions, init_login_manager,
                                   init_request_handlers, init_sparql_services,
                                   initialize_change_tracking_config,
@@ -165,7 +165,6 @@ def test_getter_functions():
          patch('heritrace.extensions.sparql', 'sparql_value'), \
          patch('heritrace.extensions.provenance_endpoint', 'provenance_endpoint_value'), \
          patch('heritrace.extensions.provenance_sparql', 'provenance_sparql_value'), \
-         patch('heritrace.extensions.sparql_service', 'sparql_service_value'), \
          patch('heritrace.extensions.custom_filter', 'custom_filter_value'), \
          patch('heritrace.extensions.change_tracking_config', 'change_tracking_config_value'), \
          patch('heritrace.extensions.display_rules', 'display_rules_value'), \
@@ -178,7 +177,6 @@ def test_getter_functions():
         assert get_sparql() == 'sparql_value'
         assert get_provenance_endpoint() == 'provenance_endpoint_value'
         assert get_provenance_sparql() == 'provenance_sparql_value'
-        assert get_sparql_service() == 'sparql_service_value'
         assert get_custom_filter() == 'custom_filter_value'
         assert get_change_tracking_config() == 'change_tracking_config_value'
         assert get_display_rules() == 'display_rules_value'

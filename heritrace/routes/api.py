@@ -98,51 +98,46 @@ def get_deleted_entities_api():
 @api_bp.route("/check-lock", methods=["POST"])
 @login_required
 def check_lock():
+    """Check if a resource is locked."""
     try:
         data = request.get_json()
         resource_uri = data.get("resource_uri")
+
         if not resource_uri:
             return (
                 jsonify(
-                    {
-                        "status": "error",
-                        "title": gettext("Error"),
-                        "message": gettext("No resource URI provided"),
-                    }
+                    {"status": "error", "message": gettext("No resource URI provided")}
                 ),
                 400,
             )
 
         status, lock_info = g.resource_lock_manager.check_lock_status(resource_uri)
-        if status == LockStatus.ERROR:
+
+        if status == LockStatus.LOCKED:
+            return jsonify(
+                {
+                    "status": "locked",
+                    "title": gettext("Resource Locked"),
+                    "message": gettext(
+                        "This resource is currently being edited by %(user)s [%(orcid)s]",
+                        user=lock_info.user_name,
+                        orcid=lock_info.user_id,
+                    ),
+                }
+            )
+        elif status == LockStatus.ERROR:
             return (
                 jsonify(
                     {
                         "status": "error",
                         "title": gettext("Error"),
-                        "message": gettext("Error checking lock status"),
+                        "message": gettext("An error occurred while checking the lock"),
                     }
                 ),
                 500,
             )
-
-        if status == LockStatus.LOCKED:
-            return (
-                jsonify(
-                    {
-                        "status": "locked",
-                        "title": gettext("Resource Locked"),
-                        "message": gettext(
-                            "This resource is currently being edited by %(user)s [orcid:%(orcid)s]. Please try again later",
-                            user=lock_info.user_name,
-                            orcid=lock_info.user_id,
-                        ),
-                    }
-                ),
-                423,
-            )
-
-        return jsonify({"status": "unlocked"})
+        else:
+            return jsonify({"status": "available"})
 
     except Exception as e:
         current_app.logger.error(f"Error in check_lock: {str(e)}")
@@ -165,6 +160,7 @@ def acquire_lock():
     try:
         data = request.get_json()
         resource_uri = data.get("resource_uri")
+        linked_resources = data.get("linked_resources", [])
 
         if not resource_uri:
             return (
@@ -174,7 +170,26 @@ def acquire_lock():
                 400,
             )
 
-        success = g.resource_lock_manager.acquire_lock(resource_uri)
+        # First check if the resource or any related resource is locked by another user
+        status, lock_info = g.resource_lock_manager.check_lock_status(resource_uri)
+        if status == LockStatus.LOCKED:
+            return (
+                jsonify(
+                    {
+                        "status": "locked",
+                        "title": gettext("Resource Locked"),
+                        "message": gettext(
+                            "This resource is currently being edited by %(user)s [%(orcid)s]",
+                            user=lock_info.user_name,
+                            orcid=lock_info.user_id,
+                        ),
+                    }
+                ),
+                200,
+            )
+
+        # Use the provided linked_resources
+        success = g.resource_lock_manager.acquire_lock(resource_uri, linked_resources)
 
         if success:
             return jsonify({"status": "success"})
@@ -251,7 +266,9 @@ def renew_lock():
                 400,
             )
 
-        success = g.resource_lock_manager.acquire_lock(resource_uri)
+        # When renewing a lock, we don't need to check for linked resources again
+        # Just pass an empty list as we're only refreshing the existing lock
+        success = g.resource_lock_manager.acquire_lock(resource_uri, [])
 
         if success:
             return jsonify({"status": "success"})

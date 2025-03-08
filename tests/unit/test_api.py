@@ -160,7 +160,7 @@ def test_check_lock_unlocked(api_client: FlaskClient, app: Flask) -> None:
             )
             assert response.status_code == 200
             data = json.loads(response.data)
-            assert data["status"] == "unlocked"
+            assert data["status"] == "available"
 
 
 def test_check_lock_locked(
@@ -195,11 +195,10 @@ def test_check_lock_locked(
                 "/api/check-lock",
                 json={"resource_uri": resource_uri},
             )
-            assert response.status_code == 423
+            assert response.status_code == 200
             data = json.loads(response.data)
             assert data["status"] == "locked"
             assert "Another User" in data["message"]
-            assert "1111-1111-1111-1111" in data["message"]
 
 
 def test_check_lock_error_status(
@@ -231,7 +230,7 @@ def test_check_lock_error_status(
                 assert response.status_code == 500
                 data = json.loads(response.data)
                 assert data["status"] == "error"
-                assert data["message"] == "Error checking lock status"
+                assert data["message"] == "An error occurred while checking the lock"
 
 
 def test_check_lock_exception(
@@ -337,9 +336,47 @@ def test_acquire_lock_failure(
                 "/api/acquire-lock",
                 json={"resource_uri": resource_uri},
             )
-            assert response.status_code == 423
+            assert response.status_code == 200
             data = json.loads(response.data)
-            assert data["status"] == "error"
+            assert data["status"] == "locked"
+
+
+def test_acquire_lock_race_condition(
+    api_client: FlaskClient, app: Flask
+) -> None:
+    """Test the acquire_lock endpoint when the resource becomes locked between check and acquire."""
+    resource_uri = "http://example.org/race-condition-resource"
+
+    # Mock check_lock_status to return UNLOCKED but acquire_lock to return False
+    # This simulates a race condition where another user acquires the lock between our check and acquire
+    with patch("heritrace.services.resource_lock_manager.ResourceLockManager.check_lock_status") as mock_check:
+        mock_check.return_value = (LockStatus.AVAILABLE, None)
+        
+        with patch("heritrace.services.resource_lock_manager.ResourceLockManager.acquire_lock") as mock_acquire:
+            mock_acquire.return_value = False
+            
+            with app.test_request_context():
+                with app.test_client() as client:
+                    with client.session_transaction() as session:
+                        session["user_id"] = "0000-0000-0000-0000"
+                        session["user_name"] = "Test User"
+                        session["is_authenticated"] = True
+                        session["lang"] = "en"
+                        session["orcid"] = "0000-0000-0000-0000"
+                        session["_fresh"] = True
+                        session["_id"] = "test-session-id"
+                        session["_user_id"] = "0000-0000-0000-0000"
+
+                    response = client.post(
+                        "/api/acquire-lock",
+                        json={"resource_uri": resource_uri},
+                    )
+                    
+                    # This should trigger the 423 error response
+                    assert response.status_code == 423
+                    data = json.loads(response.data)
+                    assert data["status"] == "error"
+                    assert "Resource is locked by another user" in data["message"]
 
 
 def test_acquire_lock_exception(

@@ -54,9 +54,9 @@
 
 <div class="btn-flex d-flex align-items-center my-4">
     {% if not is_deleted and grouped_triples %}
-        <a id="editEntityBtn" class="btn btn-outline-primary" title="{{ _('Edit') }}" type="button">
+        <button id="editEntityBtn" class="btn btn-outline-primary" title="{{ _('Edit') }}" type="button">
             <i class="bi bi-pencil me-2"></i>{{ _('Edit') }}
-        </a>
+        </button>
     {% endif %}
     {% if not is_deleted and grouped_triples %}
         <button id="deleteEntityBtn" class="btn btn-outline-danger" title="{{ _('Delete') }}" type="button">

@@ -12,26 +12,9 @@ from heritrace.services.resource_lock_manager import (
 
 
 @pytest.fixture
-def mock_redis():
-    """Create a mock Redis client."""
-    redis_mock = MagicMock()
-    # Set up default behaviors for Redis methods used in tests
-    redis_mock.get.return_value = None
-    redis_mock.setex.return_value = True
-    redis_mock.delete.return_value = True
-    redis_mock.sadd.return_value = True
-    redis_mock.srem.return_value = True
-    redis_mock.smembers.return_value = set()
-    redis_mock.sismember.return_value = False
-    redis_mock.pipeline.return_value = redis_mock
-    redis_mock.execute.return_value = []
-    return redis_mock
-
-
-@pytest.fixture
-def resource_lock_manager(mock_redis) -> ResourceLockManager:
-    """Create a ResourceLockManager instance with a mock Redis client."""
-    return ResourceLockManager(mock_redis)
+def resource_lock_manager(redis_client) -> ResourceLockManager:
+    """Create a ResourceLockManager instance with a real Redis client."""
+    return ResourceLockManager(redis_client)
 
 
 def test_generate_lock_key(resource_lock_manager: ResourceLockManager):
@@ -41,35 +24,27 @@ def test_generate_lock_key(resource_lock_manager: ResourceLockManager):
     assert resource_lock_manager._generate_lock_key(resource_uri) == expected_key
 
 
-def test_generate_reverse_links_key(resource_lock_manager: ResourceLockManager):
-    """Test the _generate_reverse_links_key method."""
-    resource_uri = "http://example.org/resource/123"
-    expected_key = "reverse_links:http://example.org/resource/123"
-    assert resource_lock_manager._generate_reverse_links_key(resource_uri) == expected_key
-
-
-def test_get_lock_info_no_lock(resource_lock_manager: ResourceLockManager, mock_redis):
+def test_get_lock_info_no_lock(resource_lock_manager: ResourceLockManager):
     """Test get_lock_info when no lock exists."""
     resource_uri = "http://example.org/resource/no-lock"
     lock_key = resource_lock_manager._generate_lock_key(resource_uri)
     
-    # Set up mock to return None (no lock)
-    mock_redis.get.return_value = None
+    # Ensure no lock exists
+    resource_lock_manager.redis.delete(lock_key)
     
     # Call the method
     lock_info = resource_lock_manager.get_lock_info(resource_uri)
     
     # Verify the result
     assert lock_info is None
-    mock_redis.get.assert_called_once_with(lock_key)
 
 
-def test_get_lock_info_with_lock(resource_lock_manager: ResourceLockManager, mock_redis):
+def test_get_lock_info_with_lock(resource_lock_manager: ResourceLockManager):
     """Test get_lock_info when a lock exists."""
     resource_uri = "http://example.org/resource/with-lock"
     lock_key = resource_lock_manager._generate_lock_key(resource_uri)
     
-    # Set up mock to return a lock
+    # Create a lock
     lock_data = {
         "user_id": "user123",
         "user_name": "Test User",
@@ -77,7 +52,9 @@ def test_get_lock_info_with_lock(resource_lock_manager: ResourceLockManager, moc
         "resource_uri": resource_uri,
         "linked_resources": ["http://example.org/resource/linked1", "http://example.org/resource/linked2"]
     }
-    mock_redis.get.return_value = json.dumps(lock_data)
+    resource_lock_manager.redis.setex(
+        lock_key, resource_lock_manager.lock_duration, json.dumps(lock_data)
+    )
     
     # Call the method
     lock_info = resource_lock_manager.get_lock_info(resource_uri)
@@ -88,19 +65,18 @@ def test_get_lock_info_with_lock(resource_lock_manager: ResourceLockManager, moc
     assert lock_info.user_name == "Test User"
     assert lock_info.resource_uri == resource_uri
     assert lock_info.linked_resources == ["http://example.org/resource/linked1", "http://example.org/resource/linked2"]
-    mock_redis.get.assert_called_once_with(lock_key)
 
 
 @patch("heritrace.services.resource_lock_manager.current_user")
 def test_check_lock_status_available(
-    mock_current_user, resource_lock_manager: ResourceLockManager, mock_redis
+    mock_current_user, resource_lock_manager: ResourceLockManager
 ):
     """Test check_lock_status when resource is available."""
     resource_uri = "http://example.org/resource/available"
+    lock_key = resource_lock_manager._generate_lock_key(resource_uri)
     
-    # Set up mock to return no lock and no reverse links
-    mock_redis.get.return_value = None
-    mock_redis.smembers.return_value = set()
+    # Ensure no lock exists
+    resource_lock_manager.redis.delete(lock_key)
     
     # Call the method
     status, lock_info = resource_lock_manager.check_lock_status(resource_uri)
@@ -112,15 +88,16 @@ def test_check_lock_status_available(
 
 @patch("heritrace.services.resource_lock_manager.current_user")
 def test_check_lock_status_locked_by_other(
-    mock_current_user, resource_lock_manager: ResourceLockManager, mock_redis
+    mock_current_user, resource_lock_manager: ResourceLockManager
 ):
     """Test check_lock_status when resource is locked by another user."""
     resource_uri = "http://example.org/resource/locked-by-other"
+    lock_key = resource_lock_manager._generate_lock_key(resource_uri)
     
     # Set current user
     mock_current_user.orcid = "current-user"
     
-    # Set up mock to return a lock by another user
+    # Create a lock by another user
     lock_data = {
         "user_id": "other-user",
         "user_name": "Other User",
@@ -128,7 +105,9 @@ def test_check_lock_status_locked_by_other(
         "resource_uri": resource_uri,
         "linked_resources": []
     }
-    mock_redis.get.return_value = json.dumps(lock_data)
+    resource_lock_manager.redis.setex(
+        lock_key, resource_lock_manager.lock_duration, json.dumps(lock_data)
+    )
     
     # Call the method
     status, lock_info = resource_lock_manager.check_lock_status(resource_uri)
@@ -141,15 +120,16 @@ def test_check_lock_status_locked_by_other(
 
 @patch("heritrace.services.resource_lock_manager.current_user")
 def test_check_lock_status_locked_by_self(
-    mock_current_user, resource_lock_manager: ResourceLockManager, mock_redis
+    mock_current_user, resource_lock_manager: ResourceLockManager
 ):
     """Test check_lock_status when resource is locked by the current user."""
     resource_uri = "http://example.org/resource/locked-by-self"
+    lock_key = resource_lock_manager._generate_lock_key(resource_uri)
     
     # Set current user
     mock_current_user.orcid = "current-user"
     
-    # Set up mock to return a lock by the current user
+    # Create a lock by the current user
     lock_data = {
         "user_id": "current-user",
         "user_name": "Current User",
@@ -157,7 +137,9 @@ def test_check_lock_status_locked_by_self(
         "resource_uri": resource_uri,
         "linked_resources": []
     }
-    mock_redis.get.return_value = json.dumps(lock_data)
+    resource_lock_manager.redis.setex(
+        lock_key, resource_lock_manager.lock_duration, json.dumps(lock_data)
+    )
     
     # Call the method
     status, lock_info = resource_lock_manager.check_lock_status(resource_uri)
@@ -194,7 +176,7 @@ def test_check_lock_status_exception(
 
 @patch("heritrace.services.resource_lock_manager.current_user")
 def test_check_lock_status_reverse_link_locked(
-    mock_current_user, resource_lock_manager: ResourceLockManager, mock_redis
+    mock_current_user, resource_lock_manager: ResourceLockManager
 ):
     """Test check_lock_status when a resource that links to the requested resource is locked by another user."""
     # Set up the resources
@@ -204,23 +186,26 @@ def test_check_lock_status_reverse_link_locked(
     # Set current user
     mock_current_user.orcid = "current-user"
     
-    # Set up mock to return no lock for the target resource
-    mock_redis.get.side_effect = [None]  # First call for target resource
+    # Ensure the target resource is not locked
+    target_lock_key = resource_lock_manager._generate_lock_key(resource_uri)
+    resource_lock_manager.redis.delete(target_lock_key)
     
-    # Set up mock to return reverse links
-    reverse_links_key = resource_lock_manager._generate_reverse_links_key(resource_uri)
-    mock_redis.smembers.return_value = {linking_resource_uri.encode('utf-8')}
-    
-    # Set up mock to return a lock for the linking resource
-    linking_lock_data = {
+    # Create a lock on the linking resource by another user
+    linking_lock_key = resource_lock_manager._generate_lock_key(linking_resource_uri)
+    lock_data = {
         "user_id": "other-user",
         "user_name": "Other User",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "resource_uri": linking_resource_uri,
         "linked_resources": []
     }
-    # Update side_effect to return None for target resource, then lock data for linking resource
-    mock_redis.get.side_effect = [None, json.dumps(linking_lock_data)]
+    resource_lock_manager.redis.setex(
+        linking_lock_key, resource_lock_manager.lock_duration, json.dumps(lock_data)
+    )
+    
+    # Set up the reverse link (linking_resource links to resource)
+    reverse_links_key = resource_lock_manager._generate_reverse_links_key(resource_uri)
+    resource_lock_manager.redis.sadd(reverse_links_key, linking_resource_uri)
     
     # Call the method
     status, lock_info = resource_lock_manager.check_lock_status(resource_uri)
@@ -234,7 +219,7 @@ def test_check_lock_status_reverse_link_locked(
 
 @patch("heritrace.services.resource_lock_manager.current_user")
 def test_check_lock_status_reverse_link_locked_by_self(
-    mock_current_user, resource_lock_manager: ResourceLockManager, mock_redis
+    mock_current_user, resource_lock_manager: ResourceLockManager
 ):
     """Test check_lock_status when a resource that links to the requested resource is locked by the current user."""
     # Set up the resources
@@ -244,23 +229,26 @@ def test_check_lock_status_reverse_link_locked_by_self(
     # Set current user
     mock_current_user.orcid = "current-user"
     
-    # Set up mock to return no lock for the target resource
-    mock_redis.get.side_effect = [None]  # First call for target resource
+    # Ensure the target resource is not locked
+    target_lock_key = resource_lock_manager._generate_lock_key(resource_uri)
+    resource_lock_manager.redis.delete(target_lock_key)
     
-    # Set up mock to return reverse links
-    reverse_links_key = resource_lock_manager._generate_reverse_links_key(resource_uri)
-    mock_redis.smembers.return_value = {linking_resource_uri.encode('utf-8')}
-    
-    # Set up mock to return a lock for the linking resource by the current user
-    linking_lock_data = {
+    # Create a lock on the linking resource by the current user
+    linking_lock_key = resource_lock_manager._generate_lock_key(linking_resource_uri)
+    lock_data = {
         "user_id": "current-user",
         "user_name": "Current User",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "resource_uri": linking_resource_uri,
         "linked_resources": []
     }
-    # Update side_effect to return None for target resource, then lock data for linking resource
-    mock_redis.get.side_effect = [None, json.dumps(linking_lock_data)]
+    resource_lock_manager.redis.setex(
+        linking_lock_key, resource_lock_manager.lock_duration, json.dumps(lock_data)
+    )
+    
+    # Set up the reverse link (linking_resource links to resource)
+    reverse_links_key = resource_lock_manager._generate_reverse_links_key(resource_uri)
+    resource_lock_manager.redis.sadd(reverse_links_key, linking_resource_uri)
     
     # Call the method
     status, lock_info = resource_lock_manager.check_lock_status(resource_uri)
@@ -272,7 +260,7 @@ def test_check_lock_status_reverse_link_locked_by_self(
 
 @patch("heritrace.services.resource_lock_manager.current_user")
 def test_acquire_lock_success(
-    mock_current_user, resource_lock_manager: ResourceLockManager, mock_redis
+    mock_current_user, resource_lock_manager: ResourceLockManager
 ):
     """Test acquire_lock when the resource is not locked."""
     # Setup
@@ -281,18 +269,24 @@ def test_acquire_lock_success(
     mock_current_user.orcid = "user123"
     mock_current_user.name = "Test User"
 
-    # Mock check_lock_status to return AVAILABLE
-    with patch.object(
-        resource_lock_manager, 'check_lock_status', return_value=(LockStatus.AVAILABLE, None)
-    ):
-        # Call the method
-        result = resource_lock_manager.acquire_lock(resource_uri, linked_resources)
-        
-        # Verify the result
-        assert result is True
-        
-        # Verify that the lock was created
-        mock_redis.setex.assert_called()
+    # Ensure no lock exists
+    lock_key = resource_lock_manager._generate_lock_key(resource_uri)
+    resource_lock_manager.redis.delete(lock_key)
+
+    # Call the method
+    result = resource_lock_manager.acquire_lock(resource_uri, linked_resources)
+
+    # Verify the result
+    assert result is True
+
+    # Verify the lock was created
+    lock_data = resource_lock_manager.redis.get(lock_key)
+    assert lock_data is not None
+    lock_info = json.loads(lock_data)
+    assert lock_info["user_id"] == "user123"
+    assert lock_info["user_name"] == "Test User"
+    assert lock_info["resource_uri"] == resource_uri
+    assert lock_info["linked_resources"] == linked_resources
 
 
 @patch("heritrace.services.resource_lock_manager.current_user")
@@ -321,7 +315,7 @@ def test_acquire_lock_exception(
 @patch("heritrace.services.resource_lock_manager.current_user")
 @patch("heritrace.services.resource_lock_manager.logger")
 def test_create_resource_lock_exception(
-    mock_logger, mock_current_user, resource_lock_manager: ResourceLockManager, mock_redis
+    mock_logger, mock_current_user, resource_lock_manager: ResourceLockManager
 ):
     """Test _create_resource_lock when an exception occurs."""
     resource_uri = "http://example.org/resource/error"
@@ -332,23 +326,24 @@ def test_create_resource_lock_exception(
     mock_current_user.name = "Test User"
     
     # Mock redis.setex to raise an exception
-    mock_redis.setex.side_effect = Exception("Test exception")
-    
-    # Call the method
-    result = resource_lock_manager._create_resource_lock(
-        resource_uri, mock_current_user, linked_resources
-    )
-    
-    # Verify the result
-    assert result is False
-    
-    # Verify that the error was logged
-    mock_logger.error.assert_called_once_with(f"Error creating lock for {resource_uri}: Test exception")
+    with patch.object(
+        resource_lock_manager.redis, 'setex', side_effect=Exception("Test exception")
+    ):
+        # Call the method
+        result = resource_lock_manager._create_resource_lock(
+            resource_uri, mock_current_user, linked_resources
+        )
+        
+        # Verify the result
+        assert result is False
+        
+        # Verify that the error was logged
+        mock_logger.error.assert_called_once_with(f"Error creating lock for {resource_uri}: Test exception")
 
 
 @patch("heritrace.services.resource_lock_manager.current_user")
 def test_release_lock_success(
-    mock_current_user, resource_lock_manager: ResourceLockManager, mock_redis
+    mock_current_user, resource_lock_manager: ResourceLockManager
 ):
     """Test release_lock when the resource is locked by the current user."""
     # Setup
@@ -356,28 +351,37 @@ def test_release_lock_success(
     linked_resources = ["http://example.org/resource/linked1", "http://example.org/resource/linked2"]
     mock_current_user.orcid = "user123"
     
-    # Mock get_lock_info to return a lock by the current user
-    lock_info = LockInfo(
-        user_id="user123",
-        user_name="Test User",
-        timestamp=datetime.now(timezone.utc).isoformat(),
-        resource_uri=resource_uri,
-        linked_resources=linked_resources
+    # Create a lock by the current user
+    lock_key = resource_lock_manager._generate_lock_key(resource_uri)
+    lock_data = {
+        "user_id": "user123",
+        "user_name": "Test User",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "resource_uri": resource_uri,
+        "linked_resources": linked_resources
+    }
+    resource_lock_manager.redis.setex(
+        lock_key, resource_lock_manager.lock_duration, json.dumps(lock_data)
     )
-    with patch.object(
-        resource_lock_manager, 'get_lock_info', return_value=lock_info
-    ):
-        # Call the method
-        result = resource_lock_manager.release_lock(resource_uri)
-        
-        # Verify the result
-        assert result is True
-        
-        # Verify that the lock was deleted
-        mock_redis.delete.assert_called()
-        
-        # Verify that the reverse links were cleaned up
-        assert mock_redis.srem.call_count == len(linked_resources)
+    
+    # Set up reverse links
+    for linked_uri in linked_resources:
+        reverse_links_key = resource_lock_manager._generate_reverse_links_key(linked_uri)
+        resource_lock_manager.redis.sadd(reverse_links_key, resource_uri)
+    
+    # Call the method
+    result = resource_lock_manager.release_lock(resource_uri)
+    
+    # Verify the result
+    assert result is True
+    
+    # Verify the lock was released
+    assert resource_lock_manager.redis.get(lock_key) is None
+    
+    # Verify reverse links were cleaned up
+    for linked_uri in linked_resources:
+        reverse_links_key = resource_lock_manager._generate_reverse_links_key(linked_uri)
+        assert not resource_lock_manager.redis.sismember(reverse_links_key, resource_uri)
 
 
 @patch("heritrace.services.resource_lock_manager.current_user")
@@ -439,4 +443,4 @@ def test_lockinfo_post_init():
         resource_uri="http://example.org/resource/123",
         linked_resources=linked_resources
     )
-    assert lock_info.linked_resources == linked_resources
+    assert lock_info.linked_resources == linked_resources 

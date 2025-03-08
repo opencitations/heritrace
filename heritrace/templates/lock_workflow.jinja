@@ -1,5 +1,29 @@
 <script>
+    // This script handles the locking workflow for entity editing.
+    // It uses the linked resources provided by the server to optimize the lock acquisition process
+    // by avoiding expensive SPARQL queries when the information is already available.
+    
     var isInEditMode = false;
+    // Linked resources provided by the server
+    var linkedResources = {{ linked_resources|tojson|safe }};
+
+    function showLoadingSpinner(button) {
+        // Save original button content
+        button.data('original-content', button.html());
+        // Disable the button
+        button.prop('disabled', true);
+        // Add spinner and loading text
+        button.html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>{{ _("Loading...") }}');
+    }
+
+    function hideLoadingSpinner(button) {
+        // Restore original button content
+        if (button.data('original-content')) {
+            button.html(button.data('original-content'));
+        }
+        // Enable the button
+        button.prop('disabled', false);
+    }
 
     function startEditMode() {
         // Salva lo stato iniziale per eventuali rollback
@@ -169,6 +193,10 @@
             if (!$(this).hasClass('edit-mode')) {
                 e.preventDefault();
                 
+                // Show loading spinner and disable button
+                const editButton = $(this);
+                showLoadingSpinner(editButton);
+                
                 $.ajax({
                     url: '/api/check-lock',
                     method: 'POST',
@@ -176,6 +204,9 @@
                     data: JSON.stringify({ resource_uri: subject }),
                     success: function(checkResponse) {
                         if (checkResponse.status === 'locked') {
+                            // Hide loading spinner when resource is locked
+                            hideLoadingSpinner(editButton);
+                            
                             Swal.fire({
                                 title: checkResponse.title,
                                 text: checkResponse.message,
@@ -189,20 +220,41 @@
                             url: '/api/acquire-lock',
                             method: 'POST',
                             contentType: 'application/json',
-                            data: JSON.stringify({ resource_uri: subject }),
+                            data: JSON.stringify({ 
+                                resource_uri: subject,
+                                linked_resources: linkedResources
+                            }),
                             success: function(acquireResponse) {
+                                // Hide loading spinner
+                                hideLoadingSpinner(editButton);
+                                
                                 if (acquireResponse.status === 'success') {
                                     startEditMode();
                                     
                                     window.lockRenewalTimer = setInterval(function() {
                                         renewLock(subject);
                                     }, 240000);
+                                } else if (acquireResponse.status === 'locked') {
+                                    Swal.fire({
+                                        title: acquireResponse.title,
+                                        text: acquireResponse.message,
+                                        icon: 'warning',
+                                        confirmButtonColor: '#3085d6'
+                                    });
                                 }
                             },
-                            error: handleLockError
+                            error: function(xhr) {
+                                // Hide loading spinner in case of error
+                                hideLoadingSpinner(editButton);
+                                handleLockError(xhr);
+                            }
                         });
                     },
-                    error: handleLockError
+                    error: function(xhr) {
+                        // Hide loading spinner in case of error
+                        hideLoadingSpinner(editButton);
+                        handleLockError(xhr);
+                    }
                 });
             } else {
                 exitEditMode();
