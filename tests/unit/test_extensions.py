@@ -2,31 +2,28 @@
 Tests for the extensions module.
 """
 
+import json
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
-import json
 
 import pytest
 from flask import Flask, g
 from flask_babel import Babel
 from flask_login import LoginManager
-from heritrace.extensions import (adjust_endpoint_url, change_tracking_config,
-                                  custom_filter, dataset_endpoint,
-                                  dataset_is_quadstore, display_rules,
-                                  form_fields_cache,
-                                  get_change_tracking_config, get_custom_filter, get_dataset_endpoint,
+from heritrace.extensions import (adjust_endpoint_url,
+                                  get_change_tracking_config,
+                                  get_custom_filter, get_dataset_endpoint,
                                   get_dataset_is_quadstore, get_display_rules,
                                   get_form_fields, get_provenance_endpoint,
                                   get_provenance_sparql, get_shacl_graph,
-                                  get_sparql, init_extensions, init_filters,
-                                  init_login_manager, init_request_handlers,
-                                  init_sparql_services, initialization_done,
+                                  get_sparql, get_sparql_service,
+                                  init_extensions, init_login_manager,
+                                  init_request_handlers, init_sparql_services,
                                   initialize_change_tracking_config,
                                   initialize_counter_handler,
                                   initialize_global_variables,
-                                  need_initialization, provenance_endpoint,
-                                  provenance_sparql, running_in_docker,
-                                  shacl_graph, sparql, update_cache)
+                                  need_initialization, running_in_docker,
+                                  update_cache)
 from redis import Redis
 
 
@@ -168,6 +165,7 @@ def test_getter_functions():
          patch('heritrace.extensions.sparql', 'sparql_value'), \
          patch('heritrace.extensions.provenance_endpoint', 'provenance_endpoint_value'), \
          patch('heritrace.extensions.provenance_sparql', 'provenance_sparql_value'), \
+         patch('heritrace.extensions.sparql_service', 'sparql_service_value'), \
          patch('heritrace.extensions.custom_filter', 'custom_filter_value'), \
          patch('heritrace.extensions.change_tracking_config', 'change_tracking_config_value'), \
          patch('heritrace.extensions.display_rules', 'display_rules_value'), \
@@ -180,6 +178,7 @@ def test_getter_functions():
         assert get_sparql() == 'sparql_value'
         assert get_provenance_endpoint() == 'provenance_endpoint_value'
         assert get_provenance_sparql() == 'provenance_sparql_value'
+        assert get_sparql_service() == 'sparql_service_value'
         assert get_custom_filter() == 'custom_filter_value'
         assert get_change_tracking_config() == 'change_tracking_config_value'
         assert get_display_rules() == 'display_rules_value'
@@ -224,7 +223,7 @@ def test_rotate_session_token(app):
     
     # Import the user_loaded_from_cookie signal
     from flask_login.signals import user_loaded_from_cookie
-    
+
     # Create a login manager
     login_manager = LoginManager()
     

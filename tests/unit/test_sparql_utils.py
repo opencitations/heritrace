@@ -10,10 +10,11 @@ from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject,
     find_orphaned_entities,
     get_available_classes,
+    get_catalog_data,
     get_entities_for_class,
     import_entity_graph,
 )
-from rdflib import URIRef
+from rdflib import URIRef, Graph, ConjunctiveGraph, Literal, XSD
 
 
 @pytest.fixture
@@ -143,6 +144,60 @@ class TestGetAvailableClasses:
             query = mock_sparql_wrapper.setQuery.call_args[0][0]
             assert "GRAPH ?g" in query
             assert "FILTER(?g NOT IN" in query
+            
+    def test_get_available_classes_non_virtuoso(
+        self, mock_sparql_wrapper, mock_custom_filter
+    ):
+        """Test getting available classes from a non-Virtuoso store."""
+        # Configure mock to return some classes
+        mock_sparql_wrapper.query.return_value.convert.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "class": {"value": "http://example.org/Person"},
+                        "count": {"value": "10"},
+                    },
+                    {
+                        "class": {"value": "http://example.org/Document"},
+                        "count": {"value": "5"},
+                    },
+                ]
+            }
+        }
+
+        # Configure the custom filter to return specific labels for sorting
+        mock_custom_filter.human_readable_predicate.side_effect = lambda uri, _: (
+            "Person" if uri == "http://example.org/Person" else "Document"
+        )
+
+        # Configure is_virtuoso to return False
+        with patch(
+            "heritrace.utils.sparql_utils.is_virtuoso", return_value=False
+        ), patch(
+            "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
+        ):
+            classes = get_available_classes()
+
+            # Verify the results
+            assert len(classes) == 2
+
+            # Get the classes by URI to avoid sorting issues
+            person_class = next(
+                c for c in classes if c["uri"] == "http://example.org/Person"
+            )
+            document_class = next(
+                c for c in classes if c["uri"] == "http://example.org/Document"
+            )
+
+            # Verify the counts
+            assert person_class["count"] == 10
+            assert document_class["count"] == 5
+
+            # Verify the correct query was used (non-Virtuoso-specific)
+            mock_sparql_wrapper.setQuery.assert_called_once()
+            query = mock_sparql_wrapper.setQuery.call_args[0][0]
+            assert "GRAPH ?g" not in query
+            assert "FILTER(?g NOT IN" not in query
 
 
 class TestBuildSortClause:
@@ -232,6 +287,117 @@ class TestGetEntitiesForClass:
         assert "FILTER(?g NOT IN" in entities_query
         assert "LIMIT 10" in entities_query
         assert "OFFSET 0" in entities_query
+        
+    def test_get_entities_for_class_non_virtuoso(
+        self, mock_sparql_wrapper, mock_custom_filter
+    ):
+        """Test getting entities for a class from a non-Virtuoso store."""
+        # Configure mock to return some entities
+        mock_sparql_wrapper.query.return_value.convert.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": "http://example.org/person1"},
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person2"},
+                    },
+                ]
+            }
+        }
+
+        # Configure the count query result
+        count_result = {"results": {"bindings": [{"count": {"value": "2"}}]}}
+
+        # Set up the mock to return the count result for the first query
+        mock_sparql_wrapper.query.return_value.convert.side_effect = [
+            count_result,
+            mock_sparql_wrapper.query.return_value.convert.return_value,
+        ]
+
+        # Configure is_virtuoso to return False
+        with patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False):
+            entities, total_count = get_entities_for_class(
+                "http://example.org/Person", 1, 10
+            )
+
+            # Verify the results
+            assert total_count == 2
+            assert len(entities) == 2
+            assert entities[0]["uri"] == "http://example.org/person1"
+            assert entities[1]["uri"] == "http://example.org/person2"
+
+            # Verify the correct queries were used
+            assert mock_sparql_wrapper.setQuery.call_count == 2
+            count_query = mock_sparql_wrapper.setQuery.call_args_list[0][0][0]
+            entities_query = mock_sparql_wrapper.setQuery.call_args_list[1][0][0]
+
+            assert "COUNT(DISTINCT ?subject)" in count_query
+            assert "GRAPH ?g" not in count_query
+            assert "FILTER(?g NOT IN" not in count_query
+
+            assert "SELECT DISTINCT ?subject" in entities_query
+            assert "GRAPH ?g" not in entities_query
+            assert "FILTER(?g NOT IN" not in entities_query
+            assert "LIMIT 10" in entities_query
+            assert "OFFSET 0" in entities_query
+
+
+class TestGetCatalogData:
+    """Tests for the get_catalog_data function."""
+
+    def test_get_catalog_data_with_default_sort_property(
+        self, mock_sparql_wrapper, mock_custom_filter, mock_virtuoso
+    ):
+        """Test get_catalog_data when sort_property is not provided but sortable_properties exist."""
+        # Configure mock to return some entities
+        mock_sparql_wrapper.query.return_value.convert.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": "http://example.org/person1"},
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person2"},
+                    },
+                ]
+            }
+        }
+
+        # Configure the count query result
+        count_result = {"results": {"bindings": [{"count": {"value": "2"}}]}}
+
+        # Set up the mock to return the count result for the first query
+        mock_sparql_wrapper.query.return_value.convert.side_effect = [
+            count_result,
+            mock_sparql_wrapper.query.return_value.convert.return_value,
+        ]
+
+        # Mock sortable properties
+        sortable_properties = [
+            {"property": "http://example.org/name", "label": "Name"},
+            {"property": "http://example.org/age", "label": "Age"},
+        ]
+
+        # Patch get_sortable_properties to return our mock sortable properties
+        with patch(
+            "heritrace.utils.sparql_utils.get_sortable_properties",
+            return_value=sortable_properties,
+        ):
+            # Call get_catalog_data without providing a sort_property
+            catalog_data = get_catalog_data(
+                "http://example.org/Person", 1, 10, sort_property=None
+            )
+
+            # Verify that sort_property was set from the first sortable property
+            assert catalog_data["sort_property"] == "http://example.org/name"
+            assert catalog_data["sortable_properties"] == sortable_properties
+            
+            # Verify other catalog data
+            assert catalog_data["total_count"] == 2
+            assert catalog_data["current_page"] == 1
+            assert catalog_data["per_page"] == 10
+            assert len(catalog_data["entities"]) == 2
 
 
 class TestFetchDataGraphForSubject:
@@ -272,6 +438,56 @@ class TestFetchDataGraphForSubject:
         assert "GRAPH ?g" in query
         assert "FILTER(?g NOT IN" in query
         assert "<http://example.org/person1> ?predicate ?object" in query
+        
+    def test_fetch_data_graph_non_virtuoso_triplestore(
+        self, mock_sparql_wrapper
+    ):
+        """Test fetching data for a subject from a non-Virtuoso triplestore (not quadstore)."""
+        # Configure mock to return some triples
+        mock_sparql_wrapper.query.return_value.convert.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "predicate": {
+                            "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                        },
+                        "object": {"type": "uri", "value": "http://example.org/Person"},
+                    },
+                    {
+                        "predicate": {"value": "http://example.org/name"},
+                        "object": {"type": "literal", "value": "John Doe"},
+                    },
+                ]
+            }
+        }
+
+        # Configure is_virtuoso and get_dataset_is_quadstore to return False
+        with patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=False):
+            
+            graph = fetch_data_graph_for_subject("http://example.org/person1")
+
+            # Verify the graph contains the expected triples
+            assert len(graph) == 2
+            assert isinstance(graph, Graph)  # Should be a regular Graph, not ConjunctiveGraph
+            
+            # Verify that the specific triples were added correctly
+            subject_uri = URIRef("http://example.org/person1")
+            type_predicate = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+            name_predicate = URIRef("http://example.org/name")
+            person_object = URIRef("http://example.org/Person")
+            name_object = Literal("John Doe", datatype=XSD.string)
+            
+            # Check that both triples exist in the graph
+            assert (subject_uri, type_predicate, person_object) in graph
+            assert (subject_uri, name_predicate, name_object) in graph
+
+            # Verify the correct query was used
+            mock_sparql_wrapper.setQuery.assert_called_once()
+            query = mock_sparql_wrapper.setQuery.call_args[0][0]
+            assert "GRAPH ?g" not in query  # Regular triplestore query doesn't use GRAPH
+            assert "FILTER(?g NOT IN" not in query
+            assert "<http://example.org/person1> ?predicate ?object" in query
 
 
 class TestFindOrphanedEntities:

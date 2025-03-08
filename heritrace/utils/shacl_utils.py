@@ -971,9 +971,10 @@ def validate_new_triple(
     #   * An ORCID for a person follows yet another
     # By including these "inverse" types, we ensure validation considers the full context
     inverse_types = []
-    for _, p, o in data_graph.triples((None, None, URIRef(subject))):
-        o_types = [t[2] for t in data_graph.triples((o, RDF.type, None))]
-        inverse_types.extend(o_types)
+    for s, p, o in data_graph.triples((None, None, URIRef(subject))):
+        # Ottieni i tipi dell'entità che ha il soggetto come oggetto
+        s_types_inverse = [t[2] for t in data_graph.triples((s, RDF.type, None))]
+        inverse_types.extend(s_types_inverse)
 
     # Add inverse types to s_types
     s_types.extend(inverse_types)
