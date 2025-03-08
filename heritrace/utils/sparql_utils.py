@@ -1,5 +1,6 @@
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import os
 
 from flask_babel import gettext
 from heritrace.editor import Editor
@@ -440,8 +441,8 @@ def get_deleted_entities_with_filtering(
 
     # Process entities with parallel execution
     deleted_entities = []
-    max_workers = max(1, min(32, len(results_bindings)))
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    max_workers = max(1, min(os.cpu_count() or 4, len(results_bindings)))
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
         future_to_entity = {
             executor.submit(process_deleted_entity, result, sortable_properties): result
             for result in results_bindings

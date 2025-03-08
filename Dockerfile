@@ -2,16 +2,17 @@ FROM nikolaik/python-nodejs:python3.13-nodejs23
 
 WORKDIR /app
 
-# Copia tutto il codice
+# Copy all code
 COPY . .
 
-# Installa le dipendenze Python con Poetry
+# Install Python dependencies with Poetry
+RUN poetry config virtualenvs.in-project true
 RUN poetry install
 
-# Installa le dipendenze Node.js
+# Install Node.js dependencies
 RUN npm install
 
-# Build degli asset frontend
+# Build frontend assets
 RUN npm run build
 
 ENV FLASK_APP=app.py

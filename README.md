@@ -11,6 +11,17 @@ HERITRACE (Heritage Enhanced Repository Interface for Tracing, Research, Archiva
 
 This system facilitates non-technical domain experts in enriching and editing metadata in a semantically robust manner. It is developed with a focus on user-friendliness, provenance management, change tracking, customization, and integration with heterogeneous data sources.
 
+## Table of Contents
+
+- [Configuration](#configuration)
+- [SHACL File](#shacl-file)
+- [YAML Display Rules File](#yaml-display-rules-file)
+- [Database Setup](#database-setup)
+- [Launching the Application](#launching-the-application)
+- [Testing and CI/CD](#testing-and-cicd)
+  - [Running Tests Locally](#running-tests-locally)
+  - [CI/CD Pipeline](#cicd-pipeline)
+
 ## Configuration
 
 A template configuration file is provided as `config.example.py`. To get started:

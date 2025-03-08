@@ -7,8 +7,14 @@ from OpenSSL import crypto
 
 def get_ssl_context():
     """Get SSL context if certificates exist, or create them if they don't."""
-    cert_file = 'cert.pem'
-    key_file = 'key.pem'
+    # Usa una directory specifica per i certificati
+    cert_dir = os.path.join(os.path.dirname(__file__), 'ssl')
+    cert_file = os.path.join(cert_dir, 'cert.pem')
+    key_file = os.path.join(cert_dir, 'key.pem')
+    
+    # Crea la directory se non esiste
+    if not os.path.exists(cert_dir):
+        os.makedirs(cert_dir)
     
     if not (os.path.exists(cert_file) and os.path.exists(key_file)):
         
@@ -63,6 +69,9 @@ def get_ssl_context():
         with open(key_file, "wb") as f:
             f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
             
+        # Aggiungi permessi restrittivi al file della chiave privata
+        os.chmod(key_file, 0o600)
+    
     return (cert_file, key_file)
 
 app = create_app(Config)
@@ -71,14 +80,14 @@ if __name__ == '__main__':
     env = os.getenv('FLASK_ENV', 'development')
     
     run_args = {
-        'host': '0.0.0.0',  # Torniamo a questo per sviluppo locale
-        'port': 5000,
-        'ssl_context': get_ssl_context()
+        'host': '0.0.0.0',
+        'port': 5000
     }
     
     if env == 'development':
         run_args.update({
-            'debug': True
+            'debug': True,
+            'ssl_context': get_ssl_context()
         })
         
     app.run(**run_args)
