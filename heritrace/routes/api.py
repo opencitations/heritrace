@@ -69,7 +69,7 @@ def get_deleted_entities_api():
     if per_page not in allowed_per_page:
         per_page = 100
 
-    deleted_entities, available_classes, selected_class, sortable_properties = (
+    deleted_entities, available_classes, selected_class, sortable_properties, total_count = (
         get_deleted_entities_with_filtering(
             page, per_page, sort_property, sort_direction, selected_class
         )
@@ -78,14 +78,10 @@ def get_deleted_entities_api():
     return jsonify(
         {
             "entities": deleted_entities,
-            "total_pages": (
-                (len(deleted_entities) + per_page - 1) // per_page
-                if deleted_entities
-                else 0
-            ),
+            "total_pages": (total_count + per_page - 1) // per_page if total_count > 0 else 0,
             "current_page": page,
             "per_page": per_page,
-            "total_count": len(deleted_entities),
+            "total_count": total_count,
             "sort_property": sort_property,
             "sort_direction": sort_direction,
             "selected_class": selected_class,

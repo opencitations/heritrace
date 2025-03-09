@@ -75,7 +75,8 @@ def test_time_vault_route_authenticated(
         [],  # initial_entities
         [{"uri": "test_class", "label": "Test Class"}],  # available_classes
         "test_class",  # selected_class
-        1,  # total_pages
+        [],  # sortable_properties
+        10,  # total_count
     )
     mock_get_sortable_properties.return_value = []
 

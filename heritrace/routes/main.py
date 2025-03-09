@@ -68,7 +68,7 @@ def time_vault():
 
     allowed_per_page = [50, 100, 200, 500]
 
-    initial_entities, available_classes, selected_class, _ = (
+    initial_entities, available_classes, selected_class, _, total_count = (
         get_deleted_entities_with_filtering(
             initial_page,
             initial_per_page,
@@ -91,7 +91,7 @@ def time_vault():
         available_classes=available_classes,
         selected_class=selected_class,
         page=initial_page,
-        total_entity_pages=0,
+        total_entity_pages=(total_count + initial_per_page - 1) // initial_per_page if total_count > 0 else 0,
         per_page=initial_per_page,
         allowed_per_page=allowed_per_page,
         sortable_properties=sortable_properties,

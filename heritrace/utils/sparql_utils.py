@@ -437,7 +437,7 @@ def get_deleted_entities_with_filtering(
 
     results_bindings = prov_results["results"]["bindings"]
     if not results_bindings:
-        return [], [], None, []
+        return [], [], None, [], 0
 
     # Process entities with parallel execution
     deleted_entities = []
@@ -477,24 +477,28 @@ def get_deleted_entities_with_filtering(
             reverse=reverse_sort,
         )
 
-    # Paginate the results
-    offset = (page - 1) * per_page
-    paginated_entities = deleted_entities[offset : offset + per_page]
-
     available_classes.sort(key=lambda x: x["label"].lower())
     if not selected_class and available_classes:
         selected_class = available_classes[0]["uri"]
 
+    # First filter by class
     if selected_class:
-        paginated_entities = [
+        filtered_entities = [
             entity
-            for entity in paginated_entities
+            for entity in deleted_entities
             if selected_class in entity["entity_types"]
         ]
     else:
-        paginated_entities = []
+        filtered_entities = deleted_entities
 
-    return paginated_entities, available_classes, selected_class, sortable_properties
+    # Calculate total count for pagination
+    total_count = len(filtered_entities)
+
+    # Then paginate the filtered results
+    offset = (page - 1) * per_page
+    paginated_entities = filtered_entities[offset : offset + per_page]
+
+    return paginated_entities, available_classes, selected_class, sortable_properties, total_count
 
 
 def process_deleted_entity(result, sortable_properties):
