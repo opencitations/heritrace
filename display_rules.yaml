@@ -696,6 +696,7 @@ common_properties:
     shouldBeDisplayed: true
     inputType: "textarea"
     supportsSearch: true
+
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
     displayName: "Identifier"
@@ -972,6 +973,7 @@ classes:
         displayName: "Part Of"
         shouldBeDisplayed: true
         fetchValueFromQuery: *container_query
+        supportsSearch: true
     sortableBy:
       *sortableByTitleDate
 
@@ -1074,6 +1076,7 @@ classes:
       - property: "http://purl.org/vocab/frbr/core#partOf"
         displayName: "Miscellany"
         shouldBeDisplayed: true
+        supportsSearch: true
         fetchValueFromQuery: |
           PREFIX fabio: <http://purl.org/spar/fabio/>
           PREFIX frbr: <http://purl.org/vocab/frbr/core#>
@@ -1325,6 +1328,7 @@ classes:
       - property: "http://purl.org/vocab/frbr/core#partOf"
         displayName: "Container"
         shouldBeDisplayed: true
+        supportsSearch: true
     sortableBy:
       *sortableByTitleDate
 
@@ -1548,6 +1552,7 @@ classes:
       - *has_sequence_identifier_property
       - *description_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
+        supportsSearch: true
         displayRules:
           - shape: "http://schema.org/JournalShape"
             displayName: "Journal"
@@ -1606,6 +1611,7 @@ classes:
       - *has_sequence_identifier_property
       - *description_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
+        supportsSearch: true
         shouldBeDisplayed: true
         displayName: "Container"
         fetchValueFromQuery: *volume_journal_query
@@ -1690,6 +1696,7 @@ classes:
       - *publication_date_property
       - *embodiment_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
+        supportsSearch: true
         displayName: "Conference Proceedings"
         shouldBeDisplayed: true
         fetchValueFromQuery: *proceedings_query
@@ -2212,9 +2219,11 @@ classes:
       - property: "http://purl.org/spar/datacite/usesIdentifierScheme"
         displayName: "Identifier Scheme"
         shouldBeDisplayed: true
+        supportsSearch: false
       - property: "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
         displayName: "Literal Value"
         shouldBeDisplayed: true
+        supportsSearch: true
 
   - class: "http://purl.org/spar/fabio/Manifestation"
     priority: 1
@@ -2247,12 +2256,15 @@ classes:
       - property: "http://purl.org/dc/terms/format"
         displayName: "Format"
         shouldBeDisplayed: true
+        supportsSearch: false
       - property: "http://prismstandard.org/namespaces/basic/2.0/startingPage"
         displayName: "Starting Page"
         shouldBeDisplayed: true
+        supportsSearch: false
       - property: "http://prismstandard.org/namespaces/basic/2.0/endingPage"
         displayName: "Ending Page"
         shouldBeDisplayed: true
+        supportsSearch: false
 
   - class: "http://purl.org/spar/pro/RoleInTime"
     priority: 1
@@ -2289,13 +2301,16 @@ classes:
         displayName: "Held By"
         shouldBeDisplayed: true
         fetchValueFromQuery: *held_by_query
+        supportsSearch: false
       - property: "https://w3id.org/oc/ontology/hasNext"
         displayName: "Has Next"
         shouldBeDisplayed: true
         fetchValueFromQuery: *has_next_query
+        supportsSearch: false
       - property: "http://purl.org/spar/pro/withRole"
         displayName: "Role"
         shouldBeDisplayed: true
+        supportsSearch: false
 
   - class: "http://xmlns.com/foaf/0.1/Agent"
     priority: 1
@@ -2351,9 +2366,12 @@ classes:
       - property: "http://xmlns.com/foaf/0.1/name"
         displayName: "Name"
         shouldBeDisplayed: true
+        supportsSearch: true
       - property: "http://xmlns.com/foaf/0.1/givenName"
         displayName: "Given Name"
         shouldBeDisplayed: true
+        supportsSearch: true
       - property: "http://xmlns.com/foaf/0.1/familyName"
         displayName: "Family Name"
         shouldBeDisplayed: true
+        supportsSearch: true
