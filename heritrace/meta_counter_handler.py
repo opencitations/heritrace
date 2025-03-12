@@ -1,18 +1,22 @@
-import sqlite3
 import urllib.parse
+import redis
 
 
 class MetaCounterHandler:
-    def __init__(self, database: str) -> None:
+    def __init__(self, host='localhost', port=6379, db=0, password=None) -> None:
         """
         Constructor of the ``MetaCounterHandler`` class.
 
-        :param database: The name of the SQLite database file
-        :type database: str
+        :param host: Redis host address
+        :type host: str
+        :param port: Redis port number
+        :type port: int
+        :param db: Redis database number
+        :type db: int
+        :param password: Redis password if required
+        :type password: str
         """
-        sqlite3.threadsafety = 3
-        self.con = sqlite3.connect(database, check_same_thread=False)
-        self.cur = self.con.cursor()
+        self.redis_client = redis.Redis(host=host, port=port, db=db, password=password)
 
         self.base_iri = "https://w3id.org/oc/meta/"
         self.short_names = ["ar", "br", "id", "ra", "re"]
@@ -40,33 +44,20 @@ class MetaCounterHandler:
             "http://purl.org/spar/datacite/Identifier": "id",
         }
 
-        # Create tables
-        self.cur.execute(
-            """CREATE TABLE IF NOT EXISTS data_counters(
-            entity TEXT PRIMARY KEY, 
-            count INTEGER)"""
-        )
-        self.cur.execute(
-            """CREATE TABLE IF NOT EXISTS prov_counters(
-            entity TEXT PRIMARY KEY, 
-            count INTEGER)"""
-        )
-        self.con.commit()
-
     def _process_entity_name(self, entity_name: str) -> tuple:
         """
-        Process the entity name, determine the table to use, and format the entity name.
+        Process the entity name and format it for Redis storage.
 
         :param entity_name: The entity name
         :type entity_name: str
-        :return: A tuple containing the table name and the processed entity name
+        :return: A tuple containing the namespace and the processed entity name
         :rtype: tuple
         """
         entity_name_str = str(entity_name)
         if entity_name_str in self.entity_type_abbr:
-            return ("data_counters", self.entity_type_abbr[entity_name_str])
+            return ("data", self.entity_type_abbr[entity_name_str])
         else:
-            return ("prov_counters", urllib.parse.quote(entity_name_str))
+            return ("prov", urllib.parse.quote(entity_name_str))
 
     def set_counter(self, new_value: int, entity_name: str) -> None:
         """
@@ -82,12 +73,9 @@ class MetaCounterHandler:
         if new_value < 0:
             raise ValueError("new_value must be a non negative integer!")
 
-        table, processed_entity_name = self._process_entity_name(entity_name)
-        self.cur.execute(
-            f"INSERT OR REPLACE INTO {table} (entity, count) VALUES (?, ?)",
-            (processed_entity_name, new_value),
-        )
-        self.con.commit()
+        namespace, processed_entity_name = self._process_entity_name(entity_name)
+        key = f"{namespace}:{processed_entity_name}"
+        self.redis_client.set(key, new_value)
 
     def read_counter(self, entity_name: str) -> int:
         """
@@ -97,14 +85,12 @@ class MetaCounterHandler:
         :type entity_name: str
         :return: The requested counter value.
         """
-        table, processed_entity_name = self._process_entity_name(entity_name)
-        self.cur.execute(
-            f"SELECT count FROM {table} WHERE entity=?", (processed_entity_name,)
-        )
-        result = self.cur.fetchone()
+        namespace, processed_entity_name = self._process_entity_name(entity_name)
+        key = f"{namespace}:{processed_entity_name}"
+        result = self.redis_client.get(key)
 
         if result:
-            return result[0]
+            return int(result)
         else:
             return 0
 
@@ -116,14 +102,14 @@ class MetaCounterHandler:
         :type entity_name: str
         :return: The newly-updated (already incremented) counter value.
         """
-        current_count = self.read_counter(entity_name)
-        new_count = current_count + 1
-        self.set_counter(new_count, entity_name)
+        namespace, processed_entity_name = self._process_entity_name(entity_name)
+        key = f"{namespace}:{processed_entity_name}"
+        new_count = self.redis_client.incr(key)
         return new_count
 
     def close(self):
         """
-        Closes the database connection.
+        Closes the Redis connection.
         """
-        if self.con:
-            self.con.close()
+        if self.redis_client:
+            self.redis_client.close()

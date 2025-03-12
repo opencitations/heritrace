@@ -3,49 +3,32 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 import validators
-from flask import (
-    Blueprint,
-    abort,
-    current_app,
-    flash,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    url_for,
-)
+from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
+                   render_template, request, url_for)
 from flask_babel import gettext
 from flask_login import current_user, login_required
 from heritrace.editor import Editor
-from heritrace.extensions import (
-    get_change_tracking_config,
-    get_custom_filter,
-    get_dataset_endpoint,
-    get_dataset_is_quadstore,
-    get_display_rules,
-    get_form_fields,
-    get_provenance_endpoint,
-    get_provenance_sparql,
-    get_shacl_graph,
-    get_sparql,
-)
+from heritrace.extensions import (get_change_tracking_config,
+                                  get_custom_filter, get_dataset_endpoint,
+                                  get_dataset_is_quadstore, get_display_rules,
+                                  get_form_fields, get_provenance_endpoint,
+                                  get_provenance_sparql, get_shacl_graph,
+                                  get_sparql)
 from heritrace.forms import *
 from heritrace.utils.converters import convert_to_datetime
-from heritrace.utils.display_rules_utils import (
-    get_class_priority,
-    get_grouped_triples,
-    get_highest_priority_class,
-    get_property_order_from_rules,
-    is_entity_type_visible,
-)
+from heritrace.utils.display_rules_utils import (get_class_priority,
+                                                 get_grouped_triples,
+                                                 get_highest_priority_class,
+                                                 get_property_order_from_rules,
+                                                 is_entity_type_visible)
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_utils import get_valid_predicates
 from heritrace.utils.sparql_utils import (
-    fetch_current_state_with_related_entities,
-    fetch_data_graph_for_subject,
-    parse_sparql_update,
-)
-from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
+    fetch_current_state_with_related_entities, fetch_data_graph_for_subject,
+    parse_sparql_update)
+from heritrace.utils.uri_utils import generate_unique_uri
+from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
+                                            is_virtuoso)
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON
@@ -543,16 +526,6 @@ def determine_datatype(value, datatype_uris):
             return URIRef(datatype_uri)
     # If none match, default to XSD.string
     return XSD.string
-
-
-def generate_unique_uri(entity_type: URIRef | str = None):
-    entity_type = str(entity_type)
-    uri = current_app.config["URI_GENERATOR"].generate_uri(entity_type)
-    if hasattr(current_app.config["URI_GENERATOR"], "counter_handler"):
-        current_app.config["URI_GENERATOR"].counter_handler.increment_counter(
-            entity_type
-        )
-    return URIRef(uri)
 
 
 def validate_entity_data(structured_data, form_fields):

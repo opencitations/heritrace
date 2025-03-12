@@ -2,7 +2,6 @@
 
 import json
 import os
-from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict
 from urllib.parse import urlparse, urlunparse
@@ -10,14 +9,14 @@ from urllib.parse import urlparse, urlunparse
 import yaml
 from flask import Flask, g, redirect, session, url_for
 from flask_babel import Babel
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager
 from flask_login.signals import user_loaded_from_cookie
 from heritrace.models import User
 from heritrace.services.resource_lock_manager import ResourceLockManager
+from heritrace.uri_generator.uri_generator import URIGenerator
 from heritrace.utils.filters import Filter
-from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
-                                            is_virtuoso)
 from rdflib import Graph
+from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from redis import Redis
 from SPARQLWrapper import JSON, SPARQLWrapper
 from time_agnostic_library.support import generate_config_file
@@ -221,47 +220,36 @@ def initialize_counter_handler(app: Flask):
     if not need_initialization(app):
         return
     
-    uri_generator = app.config['URI_GENERATOR']
-    counter_handler = uri_generator.counter_handler
+    uri_generator: URIGenerator = app.config['URI_GENERATOR']
+    counter_handler: CounterHandler = uri_generator.counter_handler
 
-    # Query per ottenere tutti i tipi di entità e il loro conteggio
-    if is_virtuoso(app):
-        query = f"""
-            SELECT ?type (COUNT(DISTINCT ?s) as ?count)
-            WHERE {{
-                GRAPH ?g {{
-                    ?s a ?type .
-                }}
-                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-            }}
-            GROUP BY ?type
-        """
-    else:
-        query = """
-            SELECT ?type (COUNT(DISTINCT ?s) as ?count)
-            WHERE {
-                ?s a ?type .
+    # Inizializza i contatori specifici dell'URI generator
+    uri_generator.initialize_counters(sparql)
+
+    # Query per contare gli snapshot nella provenance
+    # Contiamo il numero di wasDerivedFrom per ogni entità e aggiungiamo 1 
+    # (poiché il primo snapshot non ha wasDerivedFrom)
+    prov_query = """
+        SELECT ?entity (COUNT(DISTINCT ?snapshot) as ?count)
+        WHERE {
+            ?snapshot a <http://www.w3.org/ns/prov#Entity> ;
+                        <http://www.w3.org/ns/prov#specializationOf> ?entity .
+            OPTIONAL {
+                ?snapshot <http://www.w3.org/ns/prov#wasDerivedFrom> ?prev .
             }
-            GROUP BY ?type
-        """
-    
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-    
-    # Dizionario per tenere traccia del conteggio massimo per ogni tipo di entità
-    max_counts = defaultdict(int)
+        }
+        GROUP BY ?entity
+    """
 
-    for result in results["results"]["bindings"]:
-        entity_type = result["type"]["value"]
-        count = int(result["count"]["value"])   
-        max_counts[entity_type] = max(max_counts[entity_type], count)
+    # Esegui query sulla provenance e imposta i contatori degli snapshot
+    provenance_sparql.setQuery(prov_query)
+    provenance_sparql.setReturnFormat(JSON)
+    prov_results = provenance_sparql.query().convert()
 
-    # Aggiorna il counter_handler per ogni tipo di entità
-    for entity_type, count in max_counts.items():
-        current_count = counter_handler.read_counter(entity_type)
-        if current_count is not None and current_count <= count:
-            counter_handler.set_counter(count + 1, entity_type)
+    for result in prov_results["results"]["bindings"]:
+        entity = result["entity"]["value"]
+        count = int(result["count"]["value"])
+        counter_handler.set_counter(count, entity)
             
     update_cache(app)
 
@@ -301,7 +289,8 @@ def initialize_global_variables(app: Flask):
                 shacl_graph = Graph()
                 shacl_graph.parse(source=app.config['SHACL_PATH'], format="turtle")
                 
-                from heritrace.utils.shacl_utils import get_form_fields_from_shacl
+                from heritrace.utils.shacl_utils import \
+                    get_form_fields_from_shacl
                 form_fields_cache = get_form_fields_from_shacl(shacl_graph, display_rules)
                 
             except Exception as e:

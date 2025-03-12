@@ -7,22 +7,19 @@ from flask import Blueprint, current_app, g, jsonify, request
 from flask_babel import gettext
 from flask_login import current_user, login_required
 from heritrace.editor import Editor
-from heritrace.extensions import (
-    get_custom_filter,
-    get_dataset_endpoint,
-    get_provenance_endpoint,
-)
+from heritrace.extensions import (get_custom_filter, get_dataset_endpoint,
+                                  get_provenance_endpoint)
 from heritrace.services.resource_lock_manager import LockStatus
 from heritrace.utils.shacl_utils import validate_new_triple
-from heritrace.utils.sparql_utils import (
-    find_orphaned_entities,
-    get_available_classes,
-    get_catalog_data,
-    get_deleted_entities_with_filtering,
-    import_entity_graph,
-)
-from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
-from rdflib import RDF, XSD, URIRef, Graph
+from heritrace.utils.sparql_utils import (find_orphaned_entities,
+                                          get_available_classes,
+                                          get_catalog_data,
+                                          get_deleted_entities_with_filtering,
+                                          import_entity_graph)
+from heritrace.utils.strategies import (OrphanHandlingStrategy,
+                                        ProxyHandlingStrategy)
+from heritrace.utils.uri_utils import generate_unique_uri
+from rdflib import RDF, XSD, Graph, URIRef
 from resources.datatypes import DATATYPE_MAPPING
 
 api_bp = Blueprint("api", __name__)
@@ -634,16 +631,6 @@ def apply_changes():
             ),
             500,
         )
-
-
-def generate_unique_uri(entity_type: URIRef | str = None):
-    entity_type = str(entity_type)
-    uri = current_app.config["URI_GENERATOR"].generate_uri(entity_type)
-    if hasattr(current_app.config["URI_GENERATOR"], "counter_handler"):
-        current_app.config["URI_GENERATOR"].counter_handler.increment_counter(
-            entity_type
-        )
-    return URIRef(uri)
 
 
 def get_graph_uri_from_context(graph_context):

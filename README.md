@@ -481,7 +481,7 @@ HERITRACE can be launched using Docker Compose:
 
 1. **Development mode**:
    ```bash
-   docker compose -f docker-compose.dev.yaml up
+   docker compose -f docker-compose.dev.yaml up --build
    ```
 
 2. **Production mode**:
