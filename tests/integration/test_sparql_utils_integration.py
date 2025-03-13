@@ -6,6 +6,8 @@ import uuid
 import pytest
 from rdflib import URIRef, Literal, RDF
 from SPARQLWrapper import SPARQLWrapper
+from rdflib.plugins.sparql.parser import parseUpdate
+from rdflib.plugins.sparql.algebra import translateUpdate
 
 from heritrace.utils.sparql_utils import (
     get_available_classes,
@@ -14,6 +16,7 @@ from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject,
     fetch_current_state_with_related_entities,
     find_orphaned_entities,
+    parse_sparql_update,
 )
 
 
@@ -279,6 +282,44 @@ class TestFetchDataGraphForSubjectIntegration:
                 ) in graph
                 assert (person_uri, name_pred, Literal(f"John Doe {setup_test_data['test_id']}")) in graph
 
+    def test_fetch_data_graph_non_virtuoso_quadstore(self, app, setup_test_data):
+        """Test fetching data for a subject from a non-virtuoso quadstore."""
+        with app.app_context():
+            # Mock is_virtuoso to return False and get_dataset_is_quadstore to return True
+            with pytest.MonkeyPatch.context() as monkeypatch:
+                monkeypatch.setattr("heritrace.utils.sparql_utils.is_virtuoso", lambda: False)
+                monkeypatch.setattr("heritrace.utils.sparql_utils.get_dataset_is_quadstore", lambda: True)
+
+                # Fetch data for person1
+                graph = fetch_data_graph_for_subject(setup_test_data["person1_uri"])
+
+                # Verify the graph contains the expected triples
+                assert len(graph) > 0
+
+                # Check for specific triples
+                person_uri = URIRef(setup_test_data["person1_uri"])
+                type_triple = (person_uri, RDF.type, URIRef("http://example.org/Person"))
+                name_pred = URIRef("http://example.org/name")
+
+                # Since we're testing quadstore, we need to check if the triples exist in any context
+                # Check if the type triple exists in any context
+                type_exists = any(
+                    s == person_uri
+                    and p == RDF.type
+                    and o == URIRef("http://example.org/Person")
+                    for s, p, o, _ in graph.quads()
+                )
+                assert type_exists
+
+                # Check if the name triple exists in any context
+                name_exists = any(
+                    s == person_uri and p == name_pred for s, p, o, _ in graph.quads()
+                )
+                assert name_exists
+
+                # Verify that the graph is a ConjunctiveGraph (quadstore)
+                assert hasattr(graph, "quads")
+
 
 @pytest.mark.usefixtures("setup_test_data")
 class TestFetchCurrentStateWithRelatedEntitiesIntegration:
@@ -425,3 +466,196 @@ class TestFindOrphanedEntitiesIntegration:
                 # No entities should be orphaned in this case
                 assert len(orphaned) == 0
                 assert len(intermediate_orphans) == 0
+
+
+@pytest.mark.usefixtures("setup_test_data")
+class TestParseSparqlUpdateIntegration:
+    """Integration tests for the parse_sparql_update function using real SPARQL queries."""
+
+    def test_parse_sparql_update_with_insert(self, app):
+        """Test parsing a SPARQL INSERT DATA query."""
+        with app.app_context():
+            # Create a test query that inserts triples
+            query = """
+            INSERT DATA {
+                <http://example.org/subject1> <http://example.org/predicate1> "object1" .
+                <http://example.org/subject2> <http://example.org/predicate2> "object2" .
+            }
+            """
+            
+            modifications = parse_sparql_update(query)
+            
+            # Verify the modifications contain additions
+            assert "Additions" in modifications, f"Expected 'Additions' in modifications, got: {modifications}"
+            additions = modifications["Additions"]
+            
+            # Verify the number of additions
+            assert len(additions) == 2, f"Expected 2 additions, got {len(additions)}"
+            
+            # Verify the content of the additions
+            expected_triples = [
+                (URIRef("http://example.org/subject1"), 
+                 URIRef("http://example.org/predicate1"), 
+                 Literal("object1")),
+                (URIRef("http://example.org/subject2"), 
+                 URIRef("http://example.org/predicate2"), 
+                 Literal("object2"))
+            ]
+            
+            for expected in expected_triples:
+                assert expected in additions, f"Expected triple {expected} not found in additions: {additions}"
+
+    def test_parse_sparql_update_with_delete(self, app):
+        """Test parsing a SPARQL DELETE DATA query."""
+        with app.app_context():
+            # Create a test query that deletes triples with graph context
+            query = """
+            DELETE DATA {
+                GRAPH <http://example.org/graph1> {
+                    <http://example.org/subject1> <http://example.org/predicate1> "object1" .
+                }
+                GRAPH <http://example.org/graph2> {
+                    <http://example.org/subject2> <http://example.org/predicate2> "object2" .
+                }
+            }
+            """
+            
+            # Parse the query and get the parsed and translated versions
+            parsed = parseUpdate(query)
+            translated = translateUpdate(parsed).algebra
+            
+            # Verify that the operation has the quads attribute and it's not empty
+            operation = next(iter(translated))
+            assert hasattr(operation, "quads"), "Operation should have quads attribute"
+            assert operation.quads, "Operation quads should not be empty"
+            
+            # Get the modifications
+            modifications = parse_sparql_update(query)
+            
+            # Verify the modifications contain deletions
+            assert "Deletions" in modifications
+            deletions = modifications["Deletions"]
+            
+            # Verify the number of deletions (should be 2, one from each graph)
+            assert len(deletions) == 2
+            
+            # Verify the content of the deletions
+            expected_triples = [
+                (URIRef("http://example.org/subject1"), 
+                 URIRef("http://example.org/predicate1"), 
+                 Literal("object1")),
+                (URIRef("http://example.org/subject2"), 
+                 URIRef("http://example.org/predicate2"), 
+                 Literal("object2"))
+            ]
+            
+            for expected in expected_triples:
+                assert expected in deletions
+
+    def test_parse_sparql_update_with_graph_context(self, app):
+        """Test parsing a SPARQL query with graph context."""
+        with app.app_context():
+            # Create a test query that inserts triples with graph context
+            query = """
+            INSERT DATA {
+                GRAPH <http://example.org/graph1> {
+                    <http://example.org/subject1> <http://example.org/predicate1> "object1" .
+                }
+                GRAPH <http://example.org/graph2> {
+                    <http://example.org/subject2> <http://example.org/predicate2> "object2" .
+                }
+            }
+            """
+            
+            # Parse the query and get the parsed and translated versions
+            parsed = parseUpdate(query)
+            translated = translateUpdate(parsed).algebra
+            
+            # Verify that the operation has the quads attribute and it's not empty
+            operation = next(iter(translated))
+            assert hasattr(operation, "quads"), "Operation should have quads attribute"
+            assert operation.quads, "Operation quads should not be empty"
+            
+            # Get the modifications
+            modifications = parse_sparql_update(query)
+            
+            # Verify the modifications contain additions
+            assert "Additions" in modifications
+            additions = modifications["Additions"]
+            
+            # Verify the number of additions (should be 2, one from each graph)
+            assert len(additions) == 2
+            
+            # Verify the content of the additions
+            expected_triples = [
+                (URIRef("http://example.org/subject1"), 
+                 URIRef("http://example.org/predicate1"), 
+                 Literal("object1")),
+                (URIRef("http://example.org/subject2"), 
+                 URIRef("http://example.org/predicate2"), 
+                 Literal("object2"))
+            ]
+            
+            for expected in expected_triples:
+                assert expected in additions
+
+    def test_parse_sparql_update_with_mixed_operations(self, app):
+        """Test parsing a SPARQL query with both INSERT and DELETE operations."""
+        with app.app_context():
+            # Create a test query that both inserts and deletes triples
+            query = """
+            DELETE DATA {
+                <http://example.org/subject1> <http://example.org/predicate1> "object1" .
+            };
+            INSERT DATA {
+                <http://example.org/subject2> <http://example.org/predicate2> "object2" .
+            }
+            """
+            
+            modifications = parse_sparql_update(query)
+            
+            # Verify both deletions and additions are present
+            assert "Deletions" in modifications
+            assert "Additions" in modifications
+            
+            # Verify the content of deletions
+            expected_deletion = (URIRef("http://example.org/subject1"), 
+                               URIRef("http://example.org/predicate1"), 
+                               Literal("object1"))
+            assert expected_deletion in modifications["Deletions"]
+            
+            # Verify the content of additions
+            expected_addition = (URIRef("http://example.org/subject2"), 
+                               URIRef("http://example.org/predicate2"), 
+                               Literal("object2"))
+            assert expected_addition in modifications["Additions"]
+
+    def test_parse_sparql_update_with_typed_literals(self, app):
+        """Test parsing a SPARQL query with typed literals."""
+        with app.app_context():
+            # Create a test query with typed literals
+            query = """
+            INSERT DATA {
+                <http://example.org/subject1> <http://example.org/predicate1> "42"^^<http://www.w3.org/2001/XMLSchema#integer> .
+                <http://example.org/subject2> <http://example.org/predicate2> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> .
+            }
+            """
+            
+            modifications = parse_sparql_update(query)
+            
+            # Verify the modifications contain additions
+            assert "Additions" in modifications
+            additions = modifications["Additions"]
+            
+            # Verify the content of the additions with typed literals
+            expected_triples = [
+                (URIRef("http://example.org/subject1"), 
+                 URIRef("http://example.org/predicate1"), 
+                 Literal("42", datatype=URIRef("http://www.w3.org/2001/XMLSchema#integer"))),
+                (URIRef("http://example.org/subject2"), 
+                 URIRef("http://example.org/predicate2"), 
+                 Literal("true", datatype=URIRef("http://www.w3.org/2001/XMLSchema#boolean")))
+            ]
+            
+            for expected in expected_triples:
+                assert expected in additions

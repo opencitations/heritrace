@@ -279,7 +279,7 @@ def fetch_data_graph_for_subject(subject: str) -> Graph | ConjunctiveGraph:
         """
     else:
         if get_dataset_is_quadstore():
-            # For non-virtuoso quadstore
+            # For non-virtuoso quadstore, we need to query all graphs
             query = f"""
             SELECT ?predicate ?object ?g WHERE {{
                 GRAPH ?g {{
@@ -336,30 +336,26 @@ def parse_sparql_update(query) -> dict:
 
     def extract_quads(quads):
         result = []
-        if isinstance(quads, defaultdict):
-            for graph, triples in quads.items():
-                for triple in triples:
-                    result.append((triple[0], triple[1], triple[2]))
-        else:
-            # Fallback for triples
-            result.extend(quads)
+        for graph, triples in quads.items():
+            for triple in triples:
+                result.append((triple[0], triple[1], triple[2]))
         return result
 
     for operation in translated:
         if operation.name == "DeleteData":
-            if hasattr(operation, "quads"):
+            if hasattr(operation, "quads") and operation.quads:
                 deletions = extract_quads(operation.quads)
             else:
                 deletions = operation.triples
             if deletions:
-                modifications.setdefault(gettext("Deletions"), list()).extend(deletions)
+                modifications.setdefault("Deletions", list()).extend(deletions)
         elif operation.name == "InsertData":
-            if hasattr(operation, "quads"):
+            if hasattr(operation, "quads") and operation.quads:
                 additions = extract_quads(operation.quads)
             else:
-                additions = extract_quads(operation.quads)
+                additions = operation.triples
             if additions:
-                modifications.setdefault(gettext("Additions"), list()).extend(additions)
+                modifications.setdefault("Additions", list()).extend(additions)
 
     return modifications
 
