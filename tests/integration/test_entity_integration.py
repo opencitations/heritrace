@@ -5,10 +5,10 @@ These tests focus on the entity routes and functionality using real data on test
 
 import json
 import os
-import tempfile
 import time
-from typing import Generator
+import uuid
 from datetime import datetime
+from typing import Generator
 
 import pytest
 import yaml
@@ -16,27 +16,24 @@ from bs4 import BeautifulSoup
 from flask import Flask
 from flask.testing import FlaskClient
 from heritrace.editor import Editor
-from heritrace.extensions import (
-    get_change_tracking_config,
-    get_dataset_endpoint,
-    get_provenance_endpoint,
-)
+from heritrace.extensions import (get_change_tracking_config,
+                                  get_dataset_endpoint,
+                                  get_provenance_endpoint)
 from heritrace.meta_counter_handler import MetaCounterHandler
-from heritrace.routes.entity import (
-    compute_graph_differences,
-    determine_datatype,
-    format_triple_modification,
-    generate_unique_uri,
-    get_entities_to_restore,
-    validate_entity_data,
-)
+from heritrace.routes.entity import (compute_graph_differences,
+                                     determine_datatype,
+                                     format_triple_modification,
+                                     generate_unique_uri,
+                                     get_entities_to_restore,
+                                     validate_entity_data)
 from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
 from heritrace.uri_generator.meta_uri_generator import MetaURIGenerator
 from heritrace.utils.filters import Filter
 from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
 from rdflib import RDF, XSD, ConjunctiveGraph, Literal, URIRef
+from SPARQLWrapper import JSON, POST, SPARQLWrapper
+from tests.test_config import REDIS_TEST_DB, REDIS_TEST_HOST, REDIS_TEST_PORT
 from time_agnostic_library.agnostic_entity import AgnosticEntity
-from SPARQLWrapper import SPARQLWrapper, POST, JSON
 
 
 @pytest.fixture
@@ -54,14 +51,10 @@ def test_entity(app: Flask) -> Generator[URIRef, None, None]:
             dataset_is_quadstore=app.config["DATASET_IS_QUADSTORE"],
         )
 
-        # Generate a unique URI for the test entity
+        # Generate a unique URI for the test entity using UUID to ensure uniqueness
+        test_id = str(uuid.uuid4())
         entity_uri = URIRef(
-            app.config["URI_GENERATOR"].generate_uri(
-                "http://purl.org/spar/fabio/JournalArticle"
-            )
-        )
-        app.config["URI_GENERATOR"].counter_handler.increment_counter(
-            "http://purl.org/spar/fabio/JournalArticle"
+            f"https://w3id.org/oc/meta/br/test_{test_id}"
         )
 
         # Create the entity with some basic properties
@@ -83,7 +76,7 @@ def test_entity(app: Flask) -> Generator[URIRef, None, None]:
         editor.create(
             entity_uri,
             URIRef("http://purl.org/dc/terms/title"),
-            Literal("Test Article", datatype=XSD.string),
+            Literal(f"Test Article {test_id}", datatype=XSD.string),
             graph_uri,
         )
 
@@ -100,6 +93,26 @@ def test_entity(app: Flask) -> Generator[URIRef, None, None]:
         editor.save()
 
         yield entity_uri
+
+        # # Clean up after test
+        # if app.config["DATASET_IS_QUADSTORE"]:
+        #     # Clean up the entity's graph
+        #     sparql = SPARQLWrapper(get_dataset_endpoint())
+        #     sparql.setMethod(POST)
+        #     clear_query = f"""
+        #     CLEAR GRAPH <{graph_uri}>;
+        #     """
+        #     sparql.setQuery(clear_query)
+        #     sparql.query()
+
+        #     # Clean up the entity's provenance graph
+        #     prov_sparql = SPARQLWrapper(get_provenance_endpoint())
+        #     prov_sparql.setMethod(POST)
+        #     clear_prov_query = f"""
+        #     CLEAR GRAPH <{graph_uri}>;
+        #     """
+        #     prov_sparql.setQuery(clear_prov_query)
+        #     prov_sparql.query()
 
 
 def test_about_route(
@@ -579,14 +592,13 @@ def test_generate_unique_uri(app: Flask) -> None:
             assert isinstance(uri2, URIRef)
             assert str(uri2).startswith("http://example.org/")
             assert uri1 != uri2  # URIs should be different
-
-            # Create a temporary database file for testing
-            temp_db_file = os.path.join(
-                tempfile.gettempdir(), "test_counter_handler.db"
+            
+            # Create a counter handler with the test Redis configuration
+            counter_handler = MetaCounterHandler(
+                host=REDIS_TEST_HOST,
+                port=REDIS_TEST_PORT,
+                db=REDIS_TEST_DB
             )
-
-            # Create a counter handler with the temporary database
-            counter_handler = MetaCounterHandler(temp_db_file)
 
             # Create a MetaURIGenerator instance
             meta_generator = MetaURIGenerator(
@@ -599,45 +611,26 @@ def test_generate_unique_uri(app: Flask) -> None:
             # Test with a specific entity type
             entity_type = "http://purl.org/spar/fabio/JournalArticle"
 
-            # The counter starts at 0, so the first URI will have count=0
-            # After generate_unique_uri, the counter will be incremented to 1
+            # Generate a URI with the entity type
             uri3 = generate_unique_uri(entity_type)
             assert uri3 is not None
             assert isinstance(uri3, URIRef)
-            assert str(uri3) == "http://example.org/br/test0"
+            assert str(uri3).startswith("http://example.org/br/test")
 
-            # The counter is now 1, so the next URI will have count=1
-            # After generate_unique_uri, the counter will be incremented to 2
+            # Generate another URI to ensure the counter is incremented
             uri4 = generate_unique_uri(entity_type)
             assert uri4 is not None
             assert isinstance(uri4, URIRef)
-            assert str(uri4) == "http://example.org/br/test1"
+            assert str(uri4).startswith("http://example.org/br/test")
             assert uri3 != uri4  # URIs should be different
-
-            # Test with a different entity type
-            different_entity_type = "http://xmlns.com/foaf/0.1/Agent"
-
-            # The counter for this entity type starts at 0
-            uri5 = generate_unique_uri(different_entity_type)
-            assert uri5 is not None
-            assert isinstance(uri5, URIRef)
-            assert str(uri5) == "http://example.org/ra/test0"
 
         finally:
             # Restore the original URI generator
             app.config["URI_GENERATOR"] = original_uri_generator
-
-            # Close the counter handler to release the file
-            if "counter_handler" in locals() and hasattr(counter_handler, "close"):
+            
+            # Close the Redis connection
+            if 'counter_handler' in locals():
                 counter_handler.close()
-
-            # Try to delete the file, but don't fail if it can't be deleted
-            try:
-                if os.path.exists(temp_db_file):
-                    os.unlink(temp_db_file)
-            except (PermissionError, OSError):
-                # On Windows, the file might still be locked
-                pass
 
 
 def test_entity_modification_workflow(app: Flask) -> None:

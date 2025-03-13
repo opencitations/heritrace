@@ -7,9 +7,16 @@ from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStra
 # Base directory for the application
 BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
+# Redis configuration for testing - using Docker container name
+REDIS_TEST_HOST = 'localhost'  # Use container name in Docker network
+REDIS_TEST_PORT = 6380  # Default Redis port inside Docker
+REDIS_TEST_DB = 1      # Different database number for tests
+
 # Initialize counter handler for URI generation
 counter_handler = MetaCounterHandler(
-    os.path.join(BASE_HERITRACE_DIR, "tests", "test_counter_handler.db")
+    host=REDIS_TEST_HOST,
+    port=REDIS_TEST_PORT,
+    db=REDIS_TEST_DB
 )
 
 # URI generators for different types of resources
@@ -53,7 +60,7 @@ class TestConfig(object):
     PROVENANCE_DB_URL = "http://localhost:9998/sparql"
 
     # Redis configuration for testing
-    REDIS_URL = "redis://localhost:6380/1"  # Use database 1 for testing on port 6380
+    REDIS_URL = f"redis://{REDIS_TEST_HOST}:{REDIS_TEST_PORT}/{REDIS_TEST_DB}"
 
     # Database store types
     DATASET_IS_QUADSTORE = True

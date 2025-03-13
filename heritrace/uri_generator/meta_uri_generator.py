@@ -6,6 +6,11 @@ from rdflib_ocdm.counter_handler.redis_counter_handler import RedisCounterHandle
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 
+class InvalidURIFormatError(Exception):
+    """Exception raised when an URI has an invalid format."""
+    pass
+
+
 class MetaURIGenerator(URIGenerator):
     def __init__(
         self, base_iri: str, supplier_prefix: str, counter_handler: RedisCounterHandler
@@ -45,10 +50,11 @@ class MetaURIGenerator(URIGenerator):
 
     def initialize_counters(self, sparql: SPARQLWrapper):
         """
-        Inizializza i contatori per i tipi di entità supportati da questo URI generator.
-        Estrae i numeri sequenziali sia dai dati che dalla provenance per ogni abbreviazione.
+        Initialize counters for entity types supported by this URI generator.
+        Extracts sequential numbers from both data and provenance for each abbreviation.
         
-        :param sparql: SPARQLWrapper instance per eseguire le query sul dataset
+        :param sparql: SPARQLWrapper instance to execute queries on the dataset
+        :raises InvalidURIFormatError: If an URI with invalid format is found
         """
         max_numbers = defaultdict(int)
 
@@ -77,7 +83,7 @@ class MetaURIGenerator(URIGenerator):
                         abbr = self.entity_type_abbr[entity_type]
                         max_numbers[abbr] = max(max_numbers[abbr], number)
                 except (ValueError, IndexError):
-                    print(f"Invalid URI format found for entity: {entity_uri}")
+                    raise InvalidURIFormatError(f"Invalid URI format found for entity: {entity_uri}")
 
         prov_query = f"""
             SELECT ?entity
@@ -92,7 +98,7 @@ class MetaURIGenerator(URIGenerator):
         for result in prov_results["results"]["bindings"]:
             entity_uri = result["entity"]["value"]
             
-            # Per la provenance, cerchiamo direttamente l'abbreviazione nell'URI
+            # For provenance, we directly search for the abbreviation in the URI
             for abbr in set(self.entity_type_abbr.values()):
                 if f"/{abbr}/" in entity_uri:
                     try:
@@ -102,7 +108,7 @@ class MetaURIGenerator(URIGenerator):
                             number = int(number_str)
                             max_numbers[abbr] = max(max_numbers[abbr], number)
                     except (ValueError, IndexError):
-                        print(f"Invalid URI format found in provenance for entity: {entity_uri}")
+                        raise InvalidURIFormatError(f"Invalid URI format found in provenance for entity: {entity_uri}")
                     break
 
         for entity_type, abbr in self.entity_type_abbr.items():

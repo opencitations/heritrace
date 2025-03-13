@@ -5,9 +5,13 @@ Tests for the API routes in heritrace/routes/api.py.
 import json
 from typing import Generator
 from unittest.mock import MagicMock, patch
+import logging
+import requests
+from requests.exceptions import Timeout
+from werkzeug.test import Client
 
 import pytest
-from flask import Flask, g
+from flask import Flask, g, request
 from flask.testing import FlaskClient
 from heritrace.routes.api import (create_logic, delete_logic, determine_datatype,
                                   generate_unique_uri, order_logic,
@@ -95,17 +99,80 @@ def test_catalogue_api_with_null_sort_property(api_client: FlaskClient) -> None:
     assert data["current_page"] == 1
 
 
-def test_time_vault_api(api_client: FlaskClient) -> None:
+@patch("heritrace.routes.api.get_deleted_entities_with_filtering")
+def test_time_vault_api(mock_get_deleted_entities, api_client: FlaskClient, app: Flask) -> None:
     """Test the time vault API endpoint."""
+    # Mock the return value of get_deleted_entities_with_filtering
+    mock_deleted_entities = [
+        {
+            "uri": "http://example.org/entity1",
+            "deletionTime": "2023-01-01T00:00:00Z",
+            "deletedBy": "User 1",
+            "type": "TestClass",
+            "label": "Test Entity 1"
+        }
+    ]
+    mock_available_classes = [
+        {
+            "uri": "http://example.org/TestClass",
+            "label": "Test Class",
+            "count": 1
+        }
+    ]
+    mock_sortable_properties = [
+        {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
+    ]
+    
+    mock_get_deleted_entities.return_value = (
+        mock_deleted_entities,  # deleted_entities
+        mock_available_classes,  # available_classes
+        "http://example.org/TestClass",  # selected_class
+        mock_sortable_properties,  # sortable_properties
+        1,  # total_count
+    )
+    
     response = api_client.get("/api/time-vault")
     assert response.status_code == 200
     data = json.loads(response.data)
     assert "entities" in data
     assert "available_classes" in data
+    assert len(data["entities"]) == 1
+    assert len(data["available_classes"]) == 1
+    assert data["total_count"] == 1
 
 
-def test_time_vault_api_with_params(api_client: FlaskClient) -> None:
+@patch("heritrace.routes.api.get_deleted_entities_with_filtering")
+def test_time_vault_api_with_params(mock_get_deleted_entities, api_client: FlaskClient) -> None:
     """Test the time vault API endpoint with query parameters."""
+    # Mock the return value of get_deleted_entities_with_filtering
+    mock_deleted_entities = [
+        {
+            "uri": "http://example.org/entity1",
+            "deletionTime": "2023-01-01T00:00:00Z",
+            "deletedBy": "User 1",
+            "type": "TestClass",
+            "label": "Test Entity 1"
+        }
+    ]
+    mock_available_classes = [
+        {
+            "uri": "http://example.org/TestClass",
+            "label": "Test Class",
+            "count": 1
+        }
+    ]
+    mock_sortable_properties = [
+        {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
+    ]
+    
+    mock_get_deleted_entities.return_value = (
+        mock_deleted_entities,  # deleted_entities
+        mock_available_classes,  # available_classes
+        "http://example.org/TestClass",  # selected_class
+        mock_sortable_properties,  # sortable_properties
+        1,  # total_count
+    )
+    
     response = api_client.get(
         "/api/time-vault?class=http://example.org/TestClass&page=1&per_page=50"
     )
@@ -115,10 +182,41 @@ def test_time_vault_api_with_params(api_client: FlaskClient) -> None:
     assert "available_classes" in data
     assert "current_page" in data
     assert data["current_page"] == 1
+    assert data["per_page"] == 50
 
 
-def test_time_vault_api_with_invalid_per_page(api_client: FlaskClient) -> None:
+@patch("heritrace.routes.api.get_deleted_entities_with_filtering")
+def test_time_vault_api_with_invalid_per_page(mock_get_deleted_entities, api_client: FlaskClient) -> None:
     """Test the time vault API endpoint with an invalid per_page value."""
+    # Mock the return value of get_deleted_entities_with_filtering
+    mock_deleted_entities = [
+        {
+            "uri": "http://example.org/entity1",
+            "deletionTime": "2023-01-01T00:00:00Z",
+            "deletedBy": "User 1",
+            "type": "TestClass",
+            "label": "Test Entity 1"
+        }
+    ]
+    mock_available_classes = [
+        {
+            "uri": "http://example.org/TestClass",
+            "label": "Test Class",
+            "count": 1
+        }
+    ]
+    mock_sortable_properties = [
+        {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
+    ]
+    
+    mock_get_deleted_entities.return_value = (
+        mock_deleted_entities,  # deleted_entities
+        mock_available_classes,  # available_classes
+        "http://example.org/TestClass",  # selected_class
+        mock_sortable_properties,  # sortable_properties
+        1,  # total_count
+    )
+    
     response = api_client.get(
         "/api/time-vault?class=http://example.org/TestClass&page=1&per_page=999"
     )
@@ -2235,28 +2333,24 @@ def test_generate_unique_uri(app: Flask) -> None:
         # Create a mock URI generator
         mock_uri_generator = MagicMock()
         mock_uri_generator.generate_uri.return_value = "http://example.org/entity/1"
-        
-        # Configure the mock counter handler
-        mock_counter_handler = MagicMock()
-        mock_uri_generator.counter_handler = mock_counter_handler
-        
+
         # Store the original URI generator
         original_uri_generator = app.config["URI_GENERATOR"]
-        
+
         try:
             # Set our mock as the application's URI generator
             app.config["URI_GENERATOR"] = mock_uri_generator
-            
+
             # Call the function with an entity type
             entity_type = "http://example.org/EntityType"
             result = generate_unique_uri(entity_type)
-            
+
             # Verify the result
             assert result == URIRef("http://example.org/entity/1")
-            
-            # Verify the mocks were called correctly
+
+            # Verify the mock was called correctly
             mock_uri_generator.generate_uri.assert_called_once_with(entity_type)
-            mock_counter_handler.increment_counter.assert_called_once_with(entity_type)
+
         finally:
             # Restore the original URI generator
             app.config["URI_GENERATOR"] = original_uri_generator

@@ -2,6 +2,7 @@
 Integration tests for the SPARQL utilities module using real test databases.
 """
 
+import uuid
 import pytest
 from rdflib import URIRef, Literal, RDF
 from SPARQLWrapper import SPARQLWrapper
@@ -28,41 +29,56 @@ def setup_test_data(app):
     sparql = SPARQLWrapper(dataset_endpoint)
     sparql.setMethod("POST")
 
+    # Generate unique test IDs
+    test_id = str(uuid.uuid4())
+    graph_uri = f"http://example.org/test-graph-{test_id}"
+    person1_uri = f"http://example.org/person1-{test_id}"
+    person2_uri = f"http://example.org/person2-{test_id}"
+    document1_uri = f"http://example.org/document1-{test_id}"
+    relationship1_uri = f"http://example.org/relationship1-{test_id}"
+
     # Clear any existing data
-    clear_query = """
-    CLEAR GRAPH <http://example.org/test-graph>;
+    clear_query = f"""
+    CLEAR GRAPH <{graph_uri}>;
     """
     sparql.setQuery(clear_query)
     sparql.query()
 
     # Insert test data
-    insert_query = """
-    INSERT DATA {
-        GRAPH <http://example.org/test-graph> {
-            <http://example.org/person1> a <http://example.org/Person> ;
-                <http://example.org/name> "John Doe" ;
+    insert_query = f"""
+    INSERT DATA {{
+        GRAPH <{graph_uri}> {{
+            <{person1_uri}> a <http://example.org/Person> ;
+                <http://example.org/name> "John Doe {test_id}" ;
                 <http://example.org/age> "30"^^<http://www.w3.org/2001/XMLSchema#integer> ;
-                <http://example.org/knows> <http://example.org/person2> .
+                <http://example.org/knows> <{person2_uri}> .
                 
-            <http://example.org/person2> a <http://example.org/Person> ;
-                <http://example.org/name> "Jane Smith" ;
+            <{person2_uri}> a <http://example.org/Person> ;
+                <http://example.org/name> "Jane Smith {test_id}" ;
                 <http://example.org/age> "28"^^<http://www.w3.org/2001/XMLSchema#integer> .
                 
-            <http://example.org/document1> a <http://example.org/Document> ;
-                <http://example.org/title> "Test Document" ;
-                <http://example.org/author> <http://example.org/person1> .
+            <{document1_uri}> a <http://example.org/Document> ;
+                <http://example.org/title> "Test Document {test_id}" ;
+                <http://example.org/author> <{person1_uri}> .
                 
-            <http://example.org/relationship1> a <http://example.org/Relationship> ;
-                <http://example.org/from> <http://example.org/person1> ;
-                <http://example.org/to> <http://example.org/person2> ;
+            <{relationship1_uri}> a <http://example.org/Relationship> ;
+                <http://example.org/from> <{person1_uri}> ;
+                <http://example.org/to> <{person2_uri}> ;
                 <http://example.org/type> "Friend" .
-        }
-    }
+        }}
+    }}
     """
     sparql.setQuery(insert_query)
     sparql.query()
 
-    yield
+    yield {
+        "graph_uri": graph_uri,
+        "person1_uri": person1_uri,
+        "person2_uri": person2_uri,
+        "document1_uri": document1_uri,
+        "relationship1_uri": relationship1_uri,
+        "test_id": test_id
+    }
 
     # Clean up after tests
     sparql.setQuery(clear_query)
@@ -73,7 +89,7 @@ def setup_test_data(app):
 class TestGetAvailableClassesIntegration:
     """Integration tests for the get_available_classes function."""
 
-    def test_get_available_classes_real_db(self, app):
+    def test_get_available_classes_real_db(self, app, setup_test_data):
         """Test getting available classes from the real test database."""
         with app.app_context():
             # Patch the entity type visibility check to allow our test classes
@@ -106,7 +122,7 @@ class TestGetAvailableClassesIntegration:
 class TestGetEntitiesForClassIntegration:
     """Integration tests for the get_entities_for_class function."""
 
-    def test_get_entities_for_class_real_db(self, app):
+    def test_get_entities_for_class_real_db(self, app, setup_test_data):
         """Test getting entities for a class from the real test database."""
         with app.app_context():
             # Get entities for the Person class
@@ -120,10 +136,10 @@ class TestGetEntitiesForClassIntegration:
 
             # Check that we got the expected entities
             entity_uris = [e["uri"] for e in entities]
-            assert "http://example.org/person1" in entity_uris
-            assert "http://example.org/person2" in entity_uris
+            assert setup_test_data["person1_uri"] in entity_uris
+            assert setup_test_data["person2_uri"] in entity_uris
 
-    def test_get_entities_with_sorting(self, app):
+    def test_get_entities_with_sorting(self, app, setup_test_data):
         """Test getting entities with sorting from the real test database."""
         with app.app_context():
             # Get entities for the Person class, sorted by name
@@ -141,15 +157,15 @@ class TestGetEntitiesForClassIntegration:
 
             # Check that both expected entities are present
             entity_uris = [entity["uri"] for entity in entities]
-            assert "http://example.org/person1" in entity_uris
-            assert "http://example.org/person2" in entity_uris
+            assert setup_test_data["person1_uri"] in entity_uris
+            assert setup_test_data["person2_uri"] in entity_uris
 
 
 @pytest.mark.usefixtures("setup_test_data")
 class TestGetCatalogDataIntegration:
     """Integration tests for the get_catalog_data function."""
 
-    def test_get_catalog_data_real_db(self, app):
+    def test_get_catalog_data_real_db(self, app, setup_test_data):
         """Test getting catalog data from the real test database."""
         with app.app_context():
             # Patch the sortable properties function to return our test properties
@@ -191,8 +207,8 @@ class TestGetCatalogDataIntegration:
                 # Verify the entities without assuming specific order
                 assert len(catalog_data["entities"]) == 2
                 entity_uris = [entity["uri"] for entity in catalog_data["entities"]]
-                assert "http://example.org/person1" in entity_uris
-                assert "http://example.org/person2" in entity_uris
+                assert setup_test_data["person1_uri"] in entity_uris
+                assert setup_test_data["person2_uri"] in entity_uris
 
                 # Verify the sortable properties
                 assert len(catalog_data["sortable_properties"]) == 2
@@ -224,17 +240,17 @@ class TestGetCatalogDataIntegration:
 class TestFetchDataGraphForSubjectIntegration:
     """Integration tests for the fetch_data_graph_for_subject function."""
 
-    def test_fetch_data_graph_real_db(self, app):
+    def test_fetch_data_graph_real_db(self, app, setup_test_data):
         """Test fetching data for a subject from the real test database."""
         with app.app_context():
             # Fetch data for person1
-            graph = fetch_data_graph_for_subject("http://example.org/person1")
+            graph = fetch_data_graph_for_subject(setup_test_data["person1_uri"])
 
             # Verify the graph contains the expected triples
             assert len(graph) > 0
 
             # Check for specific triples
-            person_uri = URIRef("http://example.org/person1")
+            person_uri = URIRef(setup_test_data["person1_uri"])
             type_triple = (person_uri, RDF.type, URIRef("http://example.org/Person"))
             name_pred = URIRef("http://example.org/name")
 
@@ -261,21 +277,21 @@ class TestFetchDataGraphForSubjectIntegration:
                     RDF.type,
                     URIRef("http://example.org/Person"),
                 ) in graph
-                assert (person_uri, name_pred, Literal("John Doe")) in graph
+                assert (person_uri, name_pred, Literal(f"John Doe {setup_test_data['test_id']}")) in graph
 
 
 @pytest.mark.usefixtures("setup_test_data")
 class TestFetchCurrentStateWithRelatedEntitiesIntegration:
     """Integration tests for the fetch_current_state_with_related_entities function."""
 
-    def test_fetch_current_state_with_related_entities_real_db(self, app):
+    def test_fetch_current_state_with_related_entities_real_db(self, app, setup_test_data):
         """Test fetching current state with related entities from the real test database."""
         with app.app_context():
             # Create a provenance dictionary with multiple entities
             provenance = {
-                "http://example.org/person1": {"some_metadata": "value1"},
-                "http://example.org/person2": {"some_metadata": "value2"},
-                "http://example.org/document1": {"some_metadata": "value3"},
+                setup_test_data["person1_uri"]: {"some_metadata": "value1"},
+                setup_test_data["person2_uri"]: {"some_metadata": "value2"},
+                setup_test_data["document1_uri"]: {"some_metadata": "value3"},
             }
 
             # Fetch the combined graph
@@ -285,9 +301,9 @@ class TestFetchCurrentStateWithRelatedEntitiesIntegration:
             assert len(combined_graph) > 0
 
             # Check for specific triples from each entity
-            person1_uri = URIRef("http://example.org/person1")
-            person2_uri = URIRef("http://example.org/person2")
-            document1_uri = URIRef("http://example.org/document1")
+            person1_uri = URIRef(setup_test_data["person1_uri"])
+            person2_uri = URIRef(setup_test_data["person2_uri"])
+            document1_uri = URIRef(setup_test_data["document1_uri"])
 
             # For quadstore, we need to check if the triples exist in any context
             if hasattr(combined_graph, "quads"):
@@ -340,7 +356,7 @@ class TestFetchCurrentStateWithRelatedEntitiesIntegration:
 class TestFindOrphanedEntitiesIntegration:
     """Integration tests for the find_orphaned_entities function."""
 
-    def test_find_orphaned_entities_real_db(self, app):
+    def test_find_orphaned_entities_real_db(self, app, setup_test_data):
         """Test finding orphaned entities in the real test database."""
         with app.app_context():
             # Set up display rules for the test
@@ -366,7 +382,7 @@ class TestFindOrphanedEntitiesIntegration:
 
                 # Find orphaned entities if we delete person1
                 orphaned, intermediate_orphans = find_orphaned_entities(
-                    "http://example.org/person1", "http://example.org/Person"
+                    setup_test_data["person1_uri"], "http://example.org/Person"
                 )
 
                 # Verify that we get some results, but don't assume specific entities
@@ -374,7 +390,7 @@ class TestFindOrphanedEntitiesIntegration:
                 assert isinstance(orphaned, list)
                 assert isinstance(intermediate_orphans, list)
 
-    def test_find_orphaned_entities_with_predicate(self, app):
+    def test_find_orphaned_entities_with_predicate(self, app, setup_test_data):
         """Test finding orphaned entities when deleting a specific triple."""
         with app.app_context():
             # Set up display rules for the test
@@ -400,10 +416,10 @@ class TestFindOrphanedEntitiesIntegration:
 
                 # Find orphaned entities if we delete the author relationship from document1
                 orphaned, intermediate_orphans = find_orphaned_entities(
-                    "http://example.org/document1",
+                    setup_test_data["document1_uri"],
                     "http://example.org/Document",
                     predicate="http://example.org/author",
-                    object_value="http://example.org/person1",
+                    object_value=setup_test_data["person1_uri"],
                 )
 
                 # No entities should be orphaned in this case

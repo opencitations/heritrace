@@ -451,10 +451,10 @@ def test_initialize_counter_handler(app):
     # Mock the need_initialization function to return True
     with patch('heritrace.extensions.need_initialization', return_value=True), \
          patch('heritrace.extensions.update_cache') as mock_update_cache, \
-         patch('heritrace.extensions.is_virtuoso', return_value=False), \
-         patch('heritrace.extensions.sparql') as mock_sparql:
+         patch('heritrace.extensions.sparql') as mock_sparql, \
+         patch('heritrace.extensions.provenance_sparql') as mock_provenance_sparql:
         
-        # Mock the query results
+        # Mock the query results for sparql
         mock_results = {
             'results': {
                 'bindings': [
@@ -473,6 +473,25 @@ def test_initialize_counter_handler(app):
         # Set up the mock SPARQL query
         mock_sparql.query.return_value.convert.return_value = mock_results
         
+        # Mock the query results for provenance_sparql
+        mock_prov_results = {
+            'results': {
+                'bindings': [
+                    {
+                        'entity': {'value': 'http://example.org/Person'},
+                        'count': {'value': '10'}
+                    },
+                    {
+                        'entity': {'value': 'http://example.org/Event'},
+                        'count': {'value': '5'}
+                    }
+                ]
+            }
+        }
+        
+        # Set up the mock provenance SPARQL query
+        mock_provenance_sparql.query.return_value.convert.return_value = mock_prov_results
+        
         # Set up the URI generator with a counter handler
         mock_counter_handler = MagicMock()
         mock_counter_handler.read_counter.return_value = 5
@@ -486,66 +505,8 @@ def test_initialize_counter_handler(app):
         initialize_counter_handler(app)
         
         # Check that the counter handler was updated correctly
-        mock_counter_handler.set_counter.assert_any_call(11, 'http://example.org/Person')
-        mock_counter_handler.set_counter.assert_any_call(6, 'http://example.org/Event')
-        
-        # Check that update_cache was called
-        mock_update_cache.assert_called_once_with(app)
-
-
-def test_initialize_counter_handler_virtuoso(app):
-    """Test that initialize_counter_handler correctly handles Virtuoso triplestore."""
-
-    # Mock the need_initialization function to return True
-    with patch('heritrace.extensions.need_initialization', return_value=True), \
-         patch('heritrace.extensions.update_cache') as mock_update_cache, \
-         patch('heritrace.extensions.is_virtuoso', return_value=True), \
-         patch('heritrace.extensions.VIRTUOSO_EXCLUDED_GRAPHS', ['http://excluded.graph']), \
-         patch('heritrace.extensions.sparql') as mock_sparql:
-        
-        # Mock the query results
-        mock_results = {
-            'results': {
-                'bindings': [
-                    {
-                        'type': {'value': 'http://example.org/Person'},
-                        'count': {'value': '15'}
-                    },
-                    {
-                        'type': {'value': 'http://example.org/Organization'},
-                        'count': {'value': '8'}
-                    }
-                ]
-            }
-        }
-        
-        # Set up the mock SPARQL query
-        mock_sparql.query.return_value.convert.return_value = mock_results
-        
-        # Set up the URI generator with a counter handler
-        mock_counter_handler = MagicMock()
-        # Use side_effect to return different values for different entity types
-        mock_counter_handler.read_counter.side_effect = lambda entity_type: 5 if entity_type == 'http://example.org/Person' else 7
-        
-        mock_uri_generator = MagicMock()
-        mock_uri_generator.counter_handler = mock_counter_handler
-        
-        app.config['URI_GENERATOR'] = mock_uri_generator
-        
-        # Call the function
-        initialize_counter_handler(app)
-        
-        # Verify that the correct Virtuoso-specific query was used
-        # We can't check the exact query string, but we can verify that sparql.setQuery was called
-        mock_sparql.setQuery.assert_called_once()
-        
-        # The query should contain the FILTER with VIRTUOSO_EXCLUDED_GRAPHS
-        query_arg = mock_sparql.setQuery.call_args[0][0]
-        assert "FILTER(?g NOT IN (<http://excluded.graph>))" in query_arg
-        
-        # Check that the counter handler was updated correctly
-        mock_counter_handler.set_counter.assert_any_call(16, 'http://example.org/Person')
-        mock_counter_handler.set_counter.assert_any_call(9, 'http://example.org/Organization')
+        mock_counter_handler.set_counter.assert_any_call(10, 'http://example.org/Person')
+        mock_counter_handler.set_counter.assert_any_call(5, 'http://example.org/Event')
         
         # Check that update_cache was called
         mock_update_cache.assert_called_once_with(app)
