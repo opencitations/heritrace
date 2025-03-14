@@ -1188,13 +1188,8 @@ classes:
         
         BIND(CONCAT(
           ?title,
-          IF(BOUND(?editorList) && STRLEN(?editorList) > 0, 
-            CONCAT(" (", ?editorList, ", Ed.)"), 
-            ""),
-          IF(BOUND(?collabList) && STRLEN(?collabList) > 0, 
-            CONCAT(" (", ?collabList, ", Collab.)"), 
-            ""),
-          IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
+          IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, " (Ed.)"), ""),
+          IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, " (Collab.)"), ""),
           IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
           "."
         ) AS ?displayWithDot)
@@ -1763,8 +1758,8 @@ classes:
         
         BIND(CONCAT(
           ?title,
-          IF(BOUND(?editorList), CONCAT(". ", ?editorList, " (Ed.)"), ""),
-          IF(BOUND(?collabList), CONCAT(". ", ?collabList, " (Collab.)"), ""),
+          IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, " (Ed.)"), ""),
+          IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, " (Collab.)"), ""),
           IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
           "."
         ) AS ?displayWithDot)
@@ -2081,18 +2076,18 @@ classes:
           GROUP BY ?title ?pubDate ?publisher ?edition
         }
         
-        BIND(CONCAT(
-          IF(BOUND(?editorList), CONCAT(?editorList, " (Ed.)"),
+        BIND(
+          IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(?editorList, " (Ed.)"),
             COALESCE(?authorList, "")),
-          IF((BOUND(?editorList) || BOUND(?authorList)) && BOUND(?pubDate), " ", ""),
+          IF((BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList)) && BOUND(?pubDate), " ", ""),
           IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-          IF(BOUND(?title), CONCAT(
-            IF(BOUND(?editorList) || BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+          IF(BOUND(?title) && STRLEN(?title) > 0, CONCAT(
+            IF(BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
             ?title,
             " [Dictionary]"
           ), ""),
-          IF(BOUND(?publisher), CONCAT(
-            IF(BOUND(?editorList) || BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+          IF(BOUND(?publisher) && STRLEN(?publisher) > 0, CONCAT(
+            IF(BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
             ?publisher
           ), ""),
           "."
@@ -2126,8 +2121,8 @@ classes:
       WHERE {
         {
           SELECT ?title ?pubDate
-                (GROUP_CONCAT(ì?authorName; SEPARATOR = " & ") AS ?authorList)
-                (GROUP_CONCAT(ì?publisherName; SEPARATOR = ", ") AS ?publisherList)
+                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+                (GROUP_CONCAT(?publisherName; SEPARATOR = ", ") AS ?publisherList)
           WHERE {
             [[uri]] a fabio:Thesis .
             OPTIONAL { [[uri]] dcterms:title ?title . }
