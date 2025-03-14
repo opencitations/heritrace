@@ -16,6 +16,7 @@ services:
       - ./display_rules.yaml:/app/display_rules.yaml
       - ./change_tracking.json:/app/change_tracking.json
       - ./babel:/app/babel
+      - ./webpack.config.js:/app/webpack.config.js
       - docker-venv:/app/.venv
       - docker-node-modules:/app/node_modules
     depends_on:
