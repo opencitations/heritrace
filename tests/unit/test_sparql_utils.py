@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from heritrace.utils.sparql_utils import (
     build_sort_clause,
+    fetch_current_state_with_related_entities,
     fetch_data_graph_for_subject,
     find_orphaned_entities,
     get_available_classes,
@@ -476,7 +477,7 @@ class TestFetchDataGraphForSubject:
             type_predicate = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             name_predicate = URIRef("http://example.org/name")
             person_object = URIRef("http://example.org/Person")
-            name_object = Literal("John Doe", datatype=XSD.string)
+            name_object = Literal("John Doe")  # RDFLib automatically adds XSD.string datatype
             
             # Check that both triples exist in the graph
             assert (subject_uri, type_predicate, person_object) in graph
@@ -562,3 +563,70 @@ class TestImportEntityGraph:
 
             # Verify the result
             assert result == mock_editor
+
+
+class TestFetchCurrentStateWithRelatedEntities:
+    """Tests for the fetch_current_state_with_related_entities function."""
+
+    def test_fetch_current_state_with_related_entities_triplestore(self, mock_quadstore):
+        """Test fetching current state with related entities from a triplestore (not quadstore)."""
+        # Configure mock to return False for quadstore check
+        mock_quadstore.return_value = False
+
+        # Create test data
+        provenance = {
+            "http://example.org/person1": {"version": "1"},
+            "http://example.org/person2": {"version": "2"},
+        }
+
+        # Create mock graphs to be returned by fetch_data_graph_for_subject
+        person1_graph = Graph()
+        person1_graph.add(
+            (
+                URIRef("http://example.org/person1"),
+                URIRef("http://example.org/name"),
+                Literal("Person 1"),
+            )
+        )
+
+        person2_graph = Graph()
+        person2_graph.add(
+            (
+                URIRef("http://example.org/person2"),
+                URIRef("http://example.org/name"),
+                Literal("Person 2"),
+            )
+        )
+
+        # Mock fetch_data_graph_for_subject to return our test graphs
+        with patch(
+            "heritrace.utils.sparql_utils.fetch_data_graph_for_subject"
+        ) as mock_fetch:
+            mock_fetch.side_effect = lambda uri: (
+                person1_graph if uri == "http://example.org/person1" else person2_graph
+            )
+
+            # Call the function
+            result = fetch_current_state_with_related_entities(provenance)
+
+            # Verify the result is a Graph (not a ConjunctiveGraph)
+            assert isinstance(result, Graph)
+            assert not isinstance(result, ConjunctiveGraph)
+
+            # Verify all triples were added to the combined graph
+            assert len(result) == 2
+            assert (
+                URIRef("http://example.org/person1"),
+                URIRef("http://example.org/name"),
+                Literal("Person 1"),
+            ) in result
+            assert (
+                URIRef("http://example.org/person2"),
+                URIRef("http://example.org/name"),
+                Literal("Person 2"),
+            ) in result
+
+            # Verify fetch_data_graph_for_subject was called for each entity
+            assert mock_fetch.call_count == 2
+            mock_fetch.assert_any_call("http://example.org/person1")
+            mock_fetch.assert_any_call("http://example.org/person2")

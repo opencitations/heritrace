@@ -308,7 +308,7 @@ def fetch_data_graph_for_subject(subject: str) -> Graph | ConjunctiveGraph:
                     obj_data["value"], datatype=URIRef(obj_data["datatype"])
                 )
             else:
-                value = Literal(obj_data["value"], datatype=XSD.string)
+                value = Literal(obj_data["value"])
         else:
             value = URIRef(obj_data["value"])
 

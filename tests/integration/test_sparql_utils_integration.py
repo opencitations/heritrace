@@ -40,7 +40,52 @@ def setup_test_data(app):
     document1_uri = f"http://example.org/document1-{test_id}"
     relationship1_uri = f"http://example.org/relationship1-{test_id}"
 
-    # Clear any existing data
+    # Clear any existing data for the test classes
+    # This ensures we start with a clean state for our test entities
+    clear_all_query = """
+    DELETE {
+        GRAPH ?g {
+            ?s a <http://example.org/Person> .
+            ?s ?p ?o .
+        }
+    }
+    WHERE {
+        GRAPH ?g {
+            ?s a <http://example.org/Person> .
+            ?s ?p ?o .
+        }
+    };
+    
+    DELETE {
+        GRAPH ?g {
+            ?s a <http://example.org/Document> .
+            ?s ?p ?o .
+        }
+    }
+    WHERE {
+        GRAPH ?g {
+            ?s a <http://example.org/Document> .
+            ?s ?p ?o .
+        }
+    };
+    
+    DELETE {
+        GRAPH ?g {
+            ?s a <http://example.org/Relationship> .
+            ?s ?p ?o .
+        }
+    }
+    WHERE {
+        GRAPH ?g {
+            ?s a <http://example.org/Relationship> .
+            ?s ?p ?o .
+        }
+    }
+    """
+    sparql.setQuery(clear_all_query)
+    sparql.query()
+
+    # Clear any existing data in our test graph
     clear_query = f"""
     CLEAR GRAPH <{graph_uri}>;
     """
