@@ -59,13 +59,18 @@ function formatValueForSparql(valueObj) {
     return `"${value}"^^<${valueObj.datatypes[0]}>`;
 }
 
-function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled, depth, connectingPredicate, offset = 0) {
+function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled, connectingPredicate, offset = 0, searchTarget = 'self') {
     let query;
-    if (dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso') {
+    // Use Virtuoso text index only if ALL these conditions are true:
+    // 1. Term length >= 4 (Virtuoso requirement), AND
+    // 2. Text index is enabled, AND
+    // 3. Triplestore is virtuoso, AND
+    // 4. Term does not contain spaces
+    if (term.length >= 4 && dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso' && !term.includes(' ') && !term.includes('-')) {
         // Use Virtuoso text index
         query = `
-            SELECT DISTINCT ?entity ?type ?scoreValue WHERE {
-                ${depth > 1 ? `
+            SELECT DISTINCT ?entity ?scoreValue WHERE {
+                ${searchTarget === 'parent' ? `
                     ?entity a <${entityType}> .
                     ?entity <${connectingPredicate}> ?nestedEntity .
                     ?nestedEntity <${predicate}> ?text .
@@ -75,7 +80,6 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                     ${predicate ? `?entity <${predicate}> ?text .` : ''}
                 `}
                 ?text bif:contains "'${term}*'" OPTION (score ?scoreValue) .
-                OPTIONAL { ?entity a ?type }
                 FILTER(?scoreValue > 0.2)
             }
             ORDER BY DESC(?scoreValue) ASC(?entity)
@@ -83,10 +87,10 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
             LIMIT 5
         `;
     } else {
-        // Fallback to standard REGEX search
+        // Use standard REGEX search in all other cases
         query = `
-            SELECT DISTINCT ?entity ?type WHERE {
-                ${depth > 1 ? `
+            SELECT DISTINCT ?entity WHERE {
+                ${searchTarget === 'parent' ? `
                     ?entity a <${entityType}> .
                     ?entity <${connectingPredicate}> ?nestedEntity .
                     ?nestedEntity <${predicate}> ?searchValue .
@@ -98,7 +102,6 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                     }
                 `}
                 FILTER(REGEX(STR(?searchValue), "${term}", "i"))
-                OPTIONAL { ?entity a ?type }
             } 
             ORDER BY ASC(?entity)
             OFFSET ${offset}
@@ -142,23 +145,18 @@ function findConnectingPredicate(input) {
 
 // Function to execute the SPARQL search
 function searchEntities(term, entityType = null, predicate = null, callback, offset = 0) {
-    const input = $('.newEntityPropertyContainer input:focus');
+    const input = $('.newEntityPropertyContainer input:focus, .newEntityPropertyContainer textarea:focus');
     const contextData = input.length ? collectContextData(input) : {};
-    const depth = parseInt(input.data('depth')) || 0;
-
-    if (depth > 1) {
-        const parentClass = findParentObjectClass(input);
-        if (parentClass) {
-            entityType = parentClass;
-        }
+    const searchTarget = input.data('search-target') || 'self';
+    const connectingPredicate = findConnectingPredicate(input);
+    
+    // Determine the correct entity type based on search target
+    let searchEntityType = entityType;
+    if (searchTarget === 'parent') {
+        searchEntityType = findParentObjectClass(input);
     }
 
-    let connectingPredicate = null;
-    if (depth > 1) {
-        connectingPredicate = findConnectingPredicate(input);
-    }
-
-    const cacheKey = generateCacheKey(term, entityType, predicate, contextData, depth, connectingPredicate);
+    const cacheKey = generateCacheKey(term, searchEntityType, predicate, contextData, searchTarget, connectingPredicate);
 
     // Initialize cache structures if they don't exist
     if (!searchCache.results[cacheKey]) {
@@ -180,20 +178,20 @@ function searchEntities(term, entityType = null, predicate = null, callback, off
 
     let sparqlQuery = generateSearchQuery(
         term, 
-        entityType, 
+        searchEntityType, 
         predicate, 
         window.dataset_db_triplestore, 
         window.dataset_db_text_index_enabled, 
-        depth, 
         connectingPredicate,
-        currentOffset
+        currentOffset,
+        searchTarget
     );
 
     let contextConstraints = '';
     Object.entries(contextData).forEach(([predicateUri, values]) => {
         values.forEach(valueObj => {
             const formattedValue = formatValueForSparql(valueObj);
-            if (depth > 1) {
+            if (searchTarget === 'parent') {
                 contextConstraints += `\n    ?nestedEntity <${predicateUri}> ${formattedValue} .`;
             } else {
                 contextConstraints += `\n    ?entity <${predicateUri}> ${formattedValue} .`;
@@ -202,7 +200,7 @@ function searchEntities(term, entityType = null, predicate = null, callback, off
     });
 
     sparqlQuery = sparqlQuery.replace('WHERE {', `WHERE {${contextConstraints}`);
-
+    console.log(sparqlQuery);
     if (input.length) {
         input.removeClass('is-invalid');
         input.siblings('.invalid-feedback').hide();
@@ -308,8 +306,7 @@ function createEntityDisplay(entity, container, callback) {
 }
 
 // Function to update the search results
-// Function to update the search results
-function updateSearchResults(results, dropdown, input, depth, isLoadMore = false) {
+function updateSearchResults(results, dropdown, input, isLoadMore = false) {
     // Se non è un "load more", svuota il dropdown e scrollalo in cima
     if (!isLoadMore) {
         dropdown.empty();
@@ -320,7 +317,7 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
     }
 
     // Aggiungi il pulsante "Create New" all'inizio se applicabile
-    if (dropdown.prev().is('input') && !dropdown.find('.create-new').length) {
+    if (dropdown.prev().is('input, textarea') && !dropdown.find('.create-new').length) {
         const createNewBtn = $(`
             <button type="button" class="list-group-item list-group-item-action create-new sticky-top bg-light">
                 <div class="d-flex justify-content-between align-items-center">
@@ -333,8 +330,10 @@ function updateSearchResults(results, dropdown, input, depth, isLoadMore = false
     }
 
     if (results.length) {
+        // Determine object class based on search target instead of depth
+        const searchTarget = input.data('search-target') || 'self';
         let objectClass;
-        if (depth > 1) {
+        if (searchTarget === 'parent') {
             objectClass = findParentObjectClass(input);
         } else {
             objectClass = findObjectClass(input);
@@ -517,7 +516,6 @@ function findObjectClass(element) {
 }
 
 // Function to enhance existing input fields with search functionality
-// Function to enhance existing input fields with search functionality
 function enhanceInputWithSearch(input) {
     const container = input.closest('.newEntityPropertyContainer');
     const depth = parseInt(input.data('depth')) || 0;
@@ -551,6 +549,7 @@ function enhanceInputWithSearch(input) {
     input.on('input', function() {
         const term = $(this).val().trim();
         const spinner = container.find('.search-spinner');
+        const minCharsForSearch = parseInt($(this).data('min-chars-for-search')) || 4; // Default to 4 if not specified
         
         clearTimeout(searchTimeout);
         searchResults.addClass('d-none').empty();
@@ -559,7 +558,7 @@ function enhanceInputWithSearch(input) {
         $(this).removeClass('is-invalid');
         $(this).siblings('.invalid-feedback').hide();
         
-        if (term.length < 4) return;
+        if (term.length < minCharsForSearch) return;
         
         spinner.removeClass('d-none');
         searchTimeout = setTimeout(() => {
@@ -571,7 +570,7 @@ function enhanceInputWithSearch(input) {
                     return;
                 }
 
-                updateSearchResults(response.results.bindings, searchResults, input, depth);
+                updateSearchResults(response.results.bindings, searchResults, input, false);
             });
         }, 300);
     });
@@ -614,7 +613,7 @@ $(document).ready(function() {
         }
 
         // Re-initialize any inputs with search functionality
-        propertiesContainer.find('input').each(function() {
+        propertiesContainer.find('input, textarea').each(function() {
             enhanceInputWithSearch($(this));
         });
     });
@@ -622,7 +621,7 @@ $(document).ready(function() {
     $(document).on('click', '.load-more-results', function(e) {
         e.preventDefault();
         const dropdown = $(this).closest('.entity-search-results');
-        const input = dropdown.prev('input');
+        const input = dropdown.prev('input, textarea');
         const term = input.val().trim();
         const depth = parseInt(input.data('depth')) || 0;
         
@@ -653,13 +652,13 @@ $(document).ready(function() {
             }
     
             // Update results with the new data
-            updateSearchResults(response.results.bindings, dropdown, input, depth, true);
+            updateSearchResults(response.results.bindings, dropdown, input, true);
         }, searchCache.offset[cacheKey]);
     });
 
     $(document).on('click', '.entity-search-results .list-group-item:not(.create-new, .load-more-results)', function() {
         const entity = $(this).data('entity');
-        const input = $(this).closest('.entity-search-results').prev('input');
+        const input = $(this).closest('.entity-search-results').prev('input, textarea');
         const depth = parseInt(input.data('depth')) || 0;
     
         if (entity) {

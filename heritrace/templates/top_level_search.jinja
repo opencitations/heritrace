@@ -23,22 +23,43 @@ function createTopLevelSuggestionContainer() {
 }
 
 // Function to search for similar top-level entities
-function searchSimilarTopLevelEntities(term, entityType, predicateUri, callback) {
-    if (!term || term.length < 4 || !entityType || !predicateUri) {
+function searchSimilarTopLevelEntities(term, entityType, predicateUri, minCharsForSearch, callback) {
+    if (!term || term.length < minCharsForSearch || !entityType || !predicateUri) {
         if (callback) callback([]);
         return;
     }
 
-    // Generate a SPARQL query to find similar entities
-    let sparqlQuery = `
-        SELECT DISTINCT ?entity WHERE {
-            ?entity a <${entityType}> .
-            ?entity <${predicateUri}> ?searchValue .
-            FILTER(REGEX(STR(?searchValue), "${term}", "i"))
-        } 
-        ORDER BY ASC(?entity)
-        LIMIT 5
-    `;
+    let sparqlQuery;
+    // Use Virtuoso text index only if ALL these conditions are true:
+    // 1. Term length >= 4 (Virtuoso requirement), AND
+    // 2. Term length >= minCharsForSearch, AND
+    // 3. Text index is enabled, AND
+    // 4. Triplestore is virtuoso, AND
+    // 5. Term does not contain spaces
+    if (term.length >= 4 && term.length >= minCharsForSearch && window.dataset_db_text_index_enabled && window.dataset_db_triplestore === 'virtuoso' && !term.includes(' ')) {
+        // Use Virtuoso text index
+        sparqlQuery = `
+            SELECT DISTINCT ?entity ?scoreValue WHERE {
+                ?entity a <${entityType}> .
+                ?entity <${predicateUri}> ?text .
+                ?text bif:contains "'${term}*'" OPTION (score ?scoreValue) .
+                FILTER(?scoreValue > 0.2)
+            }
+            ORDER BY DESC(?scoreValue) ASC(?entity)
+            LIMIT 5
+        `;
+    } else {
+        // Use standard REGEX search in all other cases
+        sparqlQuery = `
+            SELECT DISTINCT ?entity WHERE {
+                ?entity a <${entityType}> .
+                ?entity <${predicateUri}> ?searchValue .
+                FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+            } 
+            ORDER BY ASC(?entity)
+            LIMIT 5
+        `;
+    }
 
     $.ajax({
         url: '/dataset-endpoint',
@@ -153,17 +174,18 @@ function enhanceTopLevelSearch(input, entityType) {
     input.on('input', function() {
         const term = $(this).val().trim();
         const spinner = input.parent().find('.search-spinner');
+        const minCharsForSearch = parseInt($(this).data('min-chars-for-search')) || 4; // Default to 4 if not specified
         
         clearTimeout(searchTimeout);
         suggestionsContainer.addClass('d-none');
         spinner.addClass('d-none');
         
-        if (term.length < 4) return;
+        if (term.length < minCharsForSearch) return;
         
         spinner.removeClass('d-none');
         searchTimeout = setTimeout(() => {
             const predicateUri = container.closest('[data-repeater-item]').data('predicate-uri');
-            searchSimilarTopLevelEntities(term, entityType, predicateUri, function(error, response) {
+            searchSimilarTopLevelEntities(term, entityType, predicateUri, minCharsForSearch, function(error, response) {
                 spinner.addClass('d-none');
                 
                 if (error) {

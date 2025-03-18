@@ -675,6 +675,8 @@ common_properties:
     shouldBeDisplayed: true
     inputType: "textarea"
     supportsSearch: true
+    minCharsForSearch: 2
+    searchTarget: "self"
 
   abstract_property: &abstract_property
     property: "http://purl.org/dc/terms/abstract"
@@ -682,6 +684,8 @@ common_properties:
     shouldBeDisplayed: true
     inputType: "textarea"
     supportsSearch: true
+    minCharsForSearch: 4
+    searchTarget: "self"
 
   keyword_property: &keyword_property  
     property: "http://prismstandard.org/namespaces/basic/2.0/keyword"
@@ -689,6 +693,8 @@ common_properties:
     shouldBeDisplayed: true
     inputType: "tag"
     supportsSearch: true
+    minCharsForSearch: 3
+    searchTarget: "self"
 
   description_property: &description_property
     property: "http://purl.org/dc/terms/description"
@@ -696,6 +702,8 @@ common_properties:
     shouldBeDisplayed: true
     inputType: "textarea"
     supportsSearch: true
+    minCharsForSearch: 4
+    searchTarget: "self"
 
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
@@ -703,11 +711,12 @@ common_properties:
     shouldBeDisplayed: true
     fetchValueFromQuery: *identifier_query
     supportsSearch: true
+    minCharsForSearch: 3
+    searchTarget: "parent"
 
   document_context_property: &document_context_property
     property: "http://purl.org/spar/pro/isDocumentContextFor"
     orderedBy: "https://w3id.org/oc/ontology/hasNext"
-    supportsSearch: true
     intermediateRelation:
       class: "http://purl.org/spar/pro/RoleInTime"
       targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
@@ -731,7 +740,6 @@ common_properties:
   document_context_property_container: &document_context_property_container
     property: "http://purl.org/spar/pro/isDocumentContextFor"
     orderedBy: "https://w3id.org/oc/ontology/hasNext"
-    supportsSearch: true
     intermediateRelation:
       class: "http://purl.org/spar/pro/RoleInTime"
       targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
@@ -757,13 +765,14 @@ common_properties:
     displayName: "Page"
     shouldBeDisplayed: true
     fetchValueFromQuery: *page_info_query
-    supportsSearch: false
 
   has_sequence_identifier_property: &has_sequence_identifier_property
     property: "http://purl.org/spar/fabio/hasSequenceIdentifier"
     displayName: "Number"
     shouldBeDisplayed: true
     supportsSearch: true
+    minCharsForSearch: 1
+    searchTarget: "self"
 
   issue_volume_journal_container_property: &issue_volume_journal_container_property
     property: "http://purl.org/vocab/frbr/core#partOf"
@@ -1514,10 +1523,33 @@ classes:
     displayName: "Journal"
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX datacite: <http://purl.org/spar/datacite/>
+      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
       SELECT ?display
       WHERE {
-        [[uri]] dcterms:title ?title .
-        BIND((?title) AS ?display)
+        {
+          SELECT ?title (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+          WHERE {
+            [[uri]] dcterms:title ?title .
+            
+            # Get all identifiers
+            OPTIONAL {
+              [[uri]] datacite:hasIdentifier ?identifier .
+              ?identifier datacite:usesIdentifierScheme ?scheme ;
+                        literal:hasLiteralValue ?value .
+              BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+            }
+          }
+          GROUP BY ?title
+        }
+        
+        # Format display string with OMID and identifiers
+        BIND(STR([[uri]]) AS ?uriString)
+        BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+        BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+              CONCAT(?title, " [omid:", ?omid, " ", ?identifiers, "]"),
+              CONCAT(?title, " [omid:", ?omid, "]")
+            ) AS ?display)
       }
     displayProperties:
       - *type_property
@@ -2219,6 +2251,8 @@ classes:
         displayName: "Literal Value"
         shouldBeDisplayed: true
         supportsSearch: true
+        minCharsForSearch: 3
+        searchTarget: "parent"
 
   - class: "http://purl.org/spar/fabio/Manifestation"
     priority: 1
@@ -2362,11 +2396,17 @@ classes:
         displayName: "Name"
         shouldBeDisplayed: true
         supportsSearch: true
+        minCharsForSearch: 3
+        searchTarget: "self"
       - property: "http://xmlns.com/foaf/0.1/givenName"
         displayName: "Given Name"
         shouldBeDisplayed: true
         supportsSearch: true
+        minCharsForSearch: 3
+        searchTarget: "self"
       - property: "http://xmlns.com/foaf/0.1/familyName"
         displayName: "Family Name"
         shouldBeDisplayed: true
         supportsSearch: true
+        minCharsForSearch: 3
+        searchTarget: "self"

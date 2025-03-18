@@ -273,31 +273,39 @@ The YAML file for display rules allows for presentation customizations of the da
             ?identifier datacite:usesIdentifierScheme ?scheme;
                       literal:hasLiteralValue ?literal.
         }
-      supportsSearch: true
+      supportsSearch: false
       
     - property: "http://purl.org/dc/terms/title"
       displayName: "Title"
       shouldBeDisplayed: true
       inputType: "textarea"
       supportsSearch: true
+      minCharsForSearch: 4
+      searchTarget: self
       
     - property: "http://purl.org/dc/terms/description"
       displayName: "Description"
       shouldBeDisplayed: true
       inputType: "textarea"
       supportsSearch: true
+      minCharsForSearch: 4
+      searchTarget: self
       
     - property: "http://purl.org/dc/terms/abstract"
       displayName: "Abstract"
       shouldBeDisplayed: true
       inputType: "textarea"
       supportsSearch: true
+      minCharsForSearch: 4
+      searchTarget: self
       
     - property: "http://prismstandard.org/namespaces/basic/2.0/keyword"
       displayName: "Keyword"
       shouldBeDisplayed: true
       inputType: "tag"
       supportsSearch: true
+      minCharsForSearch: 3
+      searchTarget: self
       
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
       orderedBy: "https://w3id.org/oc/ontology/hasNext"
@@ -340,7 +348,7 @@ The YAML file for display rules allows for presentation customizations of the da
     - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
       displayName: "Publication Date"
       shouldBeDisplayed: true
-      supportsSearch: true
+      supportsSearch: false
       
     - property: "http://purl.org/vocab/frbr/core#embodiment"
       displayName: "Page"
@@ -379,7 +387,7 @@ The YAML file for display rules allows for presentation customizations of the da
           # Complex query that finds the most specific container
           # (Issue > Volume > Journal) and formats it for display
         }
-      supportsSearch: true
+      supportsSearch: false
   sortableBy:
     - property: "http://purl.org/dc/terms/title"
       sortOrder: ["asc", "desc"]
@@ -400,6 +408,10 @@ Key configuration elements:
   * `shouldBeDisplayed`: Whether to show the property
   * `inputType`: Type of input field ("text", "textarea", "date", "tag", etc.)
   * `supportsSearch`: Whether this field should enable search functionality
+  * `minCharsForSearch`: Minimum number of characters required before triggering a search (e.g., 4 for text fields, 3 for shorter fields like identifiers)
+  * `searchTarget`: Specifies whether to search the element itself ("self") or its parent ("parent"). For example:
+    * "self" for properties where we want to search the actual element (e.g., title, journal)
+    * "parent" for properties where we want to search the parent element (e.g., identifiers)
   * `fetchValueFromQuery`: SPARQL query for retrieving and formatting values
   * `intermediateRelation`: For properties that use intermediate nodes (like RoleInTime)
     * `class`: The class of the intermediate node

@@ -167,7 +167,13 @@
                                     data-supports-search="{{ details.supportsSearch }}"
                                 {% endif %}
                                 placeholder="{{ label_text }}"
-                                {{ 'required' if details.min and details.min > 0 }}>
+                                {{ 'required' if details.min and details.min > 0 }}
+                                {% if 'minCharsForSearch' in details %}
+                                    data-min-chars-for-search="{{ details.minCharsForSearch }}"
+                                {% endif %}
+                                {% if 'searchTarget' in details %}
+                                    data-search-target="{{ details.searchTarget }}"
+                                {% endif %}>
                             <div class="invalid-feedback w-75"></div>
                         </div>
                     {% endif %}
@@ -186,7 +192,13 @@
                                     data-supports-search="{{ details.supportsSearch }}"
                                 {% endif %}
                                 placeholder="{{ label_text }}"
-                                {{ 'required' if details.min and details.min > 0 }}>
+                                {{ 'required' if details.min and details.min > 0 }}
+                                {% if 'minCharsForSearch' in details %}
+                                    data-min-chars-for-search="{{ details.minCharsForSearch }}"
+                                {% endif %}
+                                {% if 'searchTarget' in details %}
+                                    data-search-target="{{ details.searchTarget }}"
+                                {% endif %}>
                             <div class="invalid-feedback w-75"></div>
                         </div>
                     {% endif %}
@@ -206,7 +218,13 @@
                                 {% endif %}
                                 placeholder="{{ label_text }}"
                                 min="1000" max="9999"
-                                {{ 'required' if details.min and details.min > 0 }}>
+                                {{ 'required' if details.min and details.min > 0 }}
+                                {% if 'minCharsForSearch' in details %}
+                                    data-min-chars-for-search="{{ details.minCharsForSearch }}"
+                                {% endif %}
+                                {% if 'searchTarget' in details %}
+                                    data-search-target="{{ details.searchTarget }}"
+                                {% endif %}>
                             <div class="invalid-feedback w-75"></div>
                         </div>
                     {% endif %}
@@ -233,6 +251,12 @@
                             {% if 'supportsSearch' in details %}
                                 data-supports-search="{{ details.supportsSearch }}"
                             {% endif %}
+                            {% if 'minCharsForSearch' in details %}
+                                data-min-chars-for-search="{{ details.minCharsForSearch }}"
+                            {% endif %}
+                            {% if 'searchTarget' in details %}
+                                data-search-target="{{ details.searchTarget }}"
+                            {% endif %}
                             placeholder="{{ label_text }}"
                             {% if not is_template and details.min and details.min > 0 %}
                                 required
@@ -258,6 +282,12 @@
                             {% endif %}
                             {% if 'supportsSearch' in details %}
                                 data-supports-search="{{ details.supportsSearch }}"
+                            {% endif %}
+                            {% if 'minCharsForSearch' in details %}
+                                data-min-chars-for-search="{{ details.minCharsForSearch }}"
+                            {% endif %}
+                            {% if 'searchTarget' in details %}
+                                data-search-target="{{ details.searchTarget }}"
                             {% endif %}
                             placeholder="{{ label_text }}"
                             {% if not is_template and details.min and details.min > 0 %}
@@ -399,6 +429,16 @@
                                 data-date-type="date"
                                 data-datatypes="http://www.w3.org/2001/XMLSchema#date"
                                 {% if triple[2]|length == 10 %}value="{{ triple[2] }}"{% endif %}
+                                id="new_value_{{ unique_id }}_date"
+                                {% if 'supportsSearch' in details %}
+                                    data-supports-search="{{ details.supportsSearch }}"
+                                {% endif %}
+                                {% if 'minCharsForSearch' in details %}
+                                    data-min-chars-for-search="{{ details.minCharsForSearch }}"
+                                {% endif %}
+                                {% if 'searchTarget' in details %}
+                                    data-search-target="{{ details.searchTarget }}"
+                                {% endif %}
                                 id="new_value_{{ unique_id }}_date">
                         </div>
                         <div class="date-input-container d-none w-75">
@@ -406,7 +446,16 @@
                                 data-datatypes="http://www.w3.org/2001/XMLSchema#gYearMonth"
                                 data-date-type="month"
                                 {% if triple[2]|length == 7 %}value="{{ triple[2] }}"{% endif %}
-                                id="new_value_{{ unique_id }}_month">
+                                id="new_value_{{ unique_id }}_month"
+                                {% if 'supportsSearch' in details %}
+                                    data-supports-search="{{ details.supportsSearch }}"
+                                {% endif %}
+                                {% if 'minCharsForSearch' in details %}
+                                    data-min-chars-for-search="{{ details.minCharsForSearch }}"
+                                {% endif %}
+                                {% if 'searchTarget' in details %}
+                                    data-search-target="{{ details.searchTarget }}"
+                                {% endif %}>
                         </div>
                         <div class="date-input-container d-none w-75">
                             <input type="number" class="form-control editable-field date-input"
@@ -414,7 +463,16 @@
                                 data-date-type="year"
                                 {% if triple[2]|length == 4 %}value="{{ triple[2] }}"{% endif %}
                                 id="new_value_{{ unique_id }}_year"
-                                min="1000" max="9999">
+                                min="1000" max="9999"
+                                {% if 'supportsSearch' in details %}
+                                    data-supports-search="{{ details.supportsSearch }}"
+                                {% endif %}
+                                {% if 'minCharsForSearch' in details %}
+                                    data-min-chars-for-search="{{ details.minCharsForSearch }}"
+                                {% endif %}
+                                {% if 'searchTarget' in details %}
+                                    data-search-target="{{ details.searchTarget }}"
+                                {% endif %}>
                         </div>
                         <div class="date-display-container">
                             <span class="date-display">{{ triple[2] }}</span>

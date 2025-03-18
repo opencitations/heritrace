@@ -1,10 +1,10 @@
 #!/bin/bash
 
 echo "Stopping databases..."
-docker stop dataset_db provenance_db
+docker stop database prov_database
 
 echo "Removing containers..."
-docker rm dataset_db provenance_db
+docker rm database prov_database
 
 echo "Cleaning up network..."
 docker network rm virtuoso-net

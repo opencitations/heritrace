@@ -582,6 +582,10 @@ def add_display_information(field_info, prop):
         field_info["inputType"] = prop["inputType"]
     if "supportsSearch" in prop:
         field_info["supportsSearch"] = prop["supportsSearch"]
+    if "minCharsForSearch" in prop:
+        field_info["minCharsForSearch"] = prop["minCharsForSearch"]
+    if "searchTarget" in prop:
+        field_info["searchTarget"] = prop["searchTarget"]
 
 
 def handle_intermediate_relation(shacl, field_info, prop):
