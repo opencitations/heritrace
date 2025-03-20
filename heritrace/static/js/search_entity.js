@@ -200,7 +200,7 @@ function searchEntities(term, entityType = null, predicate = null, callback, off
     });
 
     sparqlQuery = sparqlQuery.replace('WHERE {', `WHERE {${contextConstraints}`);
-    console.log(sparqlQuery);
+
     if (input.length) {
         input.removeClass('is-invalid');
         input.siblings('.invalid-feedback').hide();
@@ -446,30 +446,37 @@ const style = $(`
 `);
 
 // Function to handle the selection of an entity
-function handleEntitySelection(container, entity, depth) {
+function handleEntitySelection(container, entity) {
+    const input = container.find('input, textarea').first();
+    const searchTarget = input.data('search-target') || 'self';
     let propertiesContainer = container.closest('.newEntityPropertiesContainer');
-    if (depth > 1) {
-        // Move up to the parent 'newEntityPropertiesContainer' at depth - 1
-        for (let i = 1; i < depth; i++) {
-            propertiesContainer = propertiesContainer.closest('[data-repeater-item]').parent().closest('.newEntityPropertiesContainer');
-        }
+    
+    if (searchTarget === 'parent') {
+        // Move up to the parent container
+        propertiesContainer = propertiesContainer.closest('[data-repeater-item]').parent().closest('.newEntityPropertiesContainer');
     }
+    
     // Store only the content that isn't the search results or spinner
     const originalContent = propertiesContainer.children()
         .not('.entity-search-results')
         .not('.search-spinner')
         .detach();
 
+    // Store the original depth value before detaching content
+    const originalDepth = input.data('depth');
+    
     // Save the original content in the container's data
     propertiesContainer.data('originalContent', originalContent);
     const objectClass = findObjectClass(container);
     propertiesContainer.attr('data-class', objectClass);
+    
     // Create the hidden input to store the selected entity's URI
     const hiddenInput = $('<input>')
         .attr('type', 'hidden')
         .val(entity.entity.value)
         .attr('data-entity-reference', 'true')
-        .attr('data-class', objectClass);
+        .attr('data-class', objectClass)
+        .attr('data-depth', originalDepth); // Preserve the original depth
 
     // Create the display for the selected entity
     createEntityDisplay(entity, propertiesContainer, function(display) {
@@ -600,6 +607,9 @@ $(document).ready(function() {
         const propertiesContainer = $(this).closest('.newEntityPropertiesContainer');
         const display = $(this).closest('.entity-reference-display');
         const hiddenInput = propertiesContainer.find('input[data-entity-reference="true"]');
+        
+        // Store the depth before removal to ensure it's preserved
+        const originalDepth = hiddenInput.data('depth');
 
         // Remove the display and hidden input
         display.remove();
@@ -610,12 +620,18 @@ $(document).ready(function() {
         if (originalContent) {
             propertiesContainer.append(originalContent);
             propertiesContainer.removeData('originalContent');
+            
+            // Ensure that all inputs have their depth attribute explicitly set if needed
+            propertiesContainer.find('input, textarea').each(function() {
+                const input = $(this);
+                if (typeof input.data('depth') === 'undefined' && originalDepth !== undefined) {
+                    input.attr('data-depth', originalDepth);
+                }
+                enhanceInputWithSearch(input);
+            });
+        } else {
+            console.warn('Original content not found when changing entity');
         }
-
-        // Re-initialize any inputs with search functionality
-        propertiesContainer.find('input, textarea').each(function() {
-            enhanceInputWithSearch($(this));
-        });
     });
 
     $(document).on('click', '.load-more-results', function(e) {
@@ -659,10 +675,9 @@ $(document).ready(function() {
     $(document).on('click', '.entity-search-results .list-group-item:not(.create-new, .load-more-results)', function() {
         const entity = $(this).data('entity');
         const input = $(this).closest('.entity-search-results').prev('input, textarea');
-        const depth = parseInt(input.data('depth')) || 0;
     
         if (entity) {
-            handleEntitySelection(input.closest('.newEntityPropertyContainer'), entity, depth);
+            handleEntitySelection(input.closest('.newEntityPropertyContainer'), entity);
         }
     });
 });
