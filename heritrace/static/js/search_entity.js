@@ -59,6 +59,8 @@ function formatValueForSparql(valueObj) {
     return `"${value}"^^<${valueObj.datatypes[0]}>`;
 }
 
+
+
 function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled, connectingPredicate, offset = 0, searchTarget = 'self') {
     let query;
     // Use Virtuoso text index only if ALL these conditions are true:
@@ -91,17 +93,22 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
         query = `
             SELECT DISTINCT ?entity WHERE {
                 ${searchTarget === 'parent' ? `
-                    ?entity a <${entityType}> .
-                    ?entity <${connectingPredicate}> ?nestedEntity .
+                    # For parent search, we optimize the order of triple patterns:
+                    # 1. First filter by the specific predicate and search value (most restrictive)
                     ?nestedEntity <${predicate}> ?searchValue .
+                    FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+                    # 2. Then connect to the parent entity (medium restrictive)
+                    ?entity <${connectingPredicate}> ?nestedEntity .
+                    # 3. Finally, filter by entity type (least restrictive)
+                    ?entity a <${entityType}> .
                 ` : `
                     ${entityType ? `?entity a <${entityType}> .` : ''}
                     ${predicate ? 
                         `?entity <${predicate}> ?searchValue .` :
                         `?entity ?searchPredicate ?searchValue .`
                     }
+                    FILTER(REGEX(STR(?searchValue), "${term}", "i"))
                 `}
-                FILTER(REGEX(STR(?searchValue), "${term}", "i"))
             } 
             ORDER BY ASC(?entity)
             OFFSET ${offset}
@@ -522,6 +529,77 @@ function findObjectClass(element) {
     return null;
 }
 
+// Helper function to handle common input setup and event handling
+function setupInputSearchHandling(input, container, resultsContainer, isParentSearch = false) {
+    // Add loading spinner
+    addLoadingSpinner(input);
+    input.after(resultsContainer);
+    
+    // Handle input with debounce
+    let searchTimeout;
+    
+    input.on('input', function() {
+        const term = $(this).val().trim();
+        const spinner = container.find('.search-spinner');
+        const minCharsForSearch = parseInt($(this).data('min-chars-for-search')) || 4;
+        
+        // Clear previous search state
+        clearTimeout(searchTimeout);
+        resultsContainer.addClass('d-none');
+        if (!isParentSearch) resultsContainer.empty();
+        spinner.addClass('d-none');
+        
+        // Clear validation state
+        $(this).removeClass('is-invalid');
+        $(this).siblings('.invalid-feedback').hide();
+        
+        // Only search if we have enough characters
+        if (term.length < minCharsForSearch) return;
+        
+        // Show loading indicator
+        spinner.removeClass('d-none');
+        
+        // Return the timeout handle for potential cancellation
+        return searchTimeout;
+    });
+    
+    return searchTimeout;
+}
+
+// Helper function to find the connecting predicate for parent search
+function findParentConnectingPredicate(repeaterItem) {
+    // Get the parent container of the current repeater-list
+    const currentRepeaterList = repeaterItem.closest('[data-repeater-list]');
+    const parentContainer = currentRepeaterList.parent().closest('[data-repeater-item]');
+    
+    if (parentContainer.length) {
+        // Get the connecting predicate from the parent repeater-item
+        return parentContainer.data('predicate-uri');
+    }
+    
+    return null;
+}
+
+// Helper function to apply context constraints to a SPARQL query
+function applyContextConstraints(sparqlQuery, contextData, insertPoint) {
+    let contextConstraints = '';
+    
+    // Build context constraints string
+    Object.entries(contextData).forEach(([predicateUri, values]) => {
+        values.forEach(valueObj => {
+            const formattedValue = formatValueForSparql(valueObj);
+            contextConstraints += `\n    ?nestedEntity <${predicateUri}> ${formattedValue} .`;
+        });
+    });
+    
+    // Apply constraints if we have any
+    if (contextConstraints && insertPoint) {
+        return sparqlQuery.replace(insertPoint, insertPoint + contextConstraints);
+    }
+    
+    return sparqlQuery;
+}
+
 // Function to enhance existing input fields with search functionality
 function enhanceInputWithSearch(input) {
     const container = input.closest('.newEntityPropertyContainer');
@@ -532,10 +610,10 @@ function enhanceInputWithSearch(input) {
     const objectClass = findObjectClass(container);
     if (!objectClass) return;
 
-    // Rimuoviamo gli handler esistenti
+    // Remove existing handlers
     input.off('input');
 
-    // Determina il predicato corretto
+    // Determine the correct predicate
     let repeaterItem = container.closest('[data-repeater-item]');
     let predicateUri;
     
@@ -544,30 +622,88 @@ function enhanceInputWithSearch(input) {
     } else {
         predicateUri = repeaterItem.data('predicate-uri');
     }
-
-    // Aggiungi dropdown e spinner
-    const searchResults = createSearchDropdown();
-    addLoadingSpinner(input);
-    input.after(searchResults);
     
-    // Handle input con debounce
-    let searchTimeout;
+    // Check if this is the special case: depth 1 with search_target='parent'
+    const searchTarget = input.data('search-target') || 'self';
+    if (depth === 1 && searchTarget === 'parent') {
+        // Use top-level search functionality
+        const suggestionsContainer = createTopLevelSuggestionContainer();
+        let searchTimeout = setupInputSearchHandling(input, container, suggestionsContainer, true);
+        
+        // Handle parent search specific logic
+        input.on('input', function() {
+            const term = $(this).val().trim();
+            const minCharsForSearch = parseInt($(this).data('min-chars-for-search')) || 4;
+            const spinner = container.find('.search-spinner');
+            
+            // Skip if not enough characters
+            if (term.length < minCharsForSearch) return;
+            
+            searchTimeout = setTimeout(() => {
+                // Get parent entity type
+                const parentEntityType = findParentObjectClass(input) || objectClass;
+                
+                // Get connecting predicate from parent
+                const connectingPredicate = findParentConnectingPredicate(repeaterItem);
+                
+                // Get value predicate
+                const nestedEntityValuePredicate = input.data('predicate-uri');
+                
+                // Generate query
+                let sparqlQuery = generateSearchQuery(
+                    term,
+                    parentEntityType,
+                    nestedEntityValuePredicate,
+                    window.dataset_db_triplestore,
+                    window.dataset_db_text_index_enabled,
+                    connectingPredicate,
+                    0,
+                    'parent'
+                );
+                
+                // Apply context constraints
+                const contextData = collectContextData(input);
+                const insertPoint = '?nestedEntity <' + nestedEntityValuePredicate + '> ?searchValue .';
+                sparqlQuery = applyContextConstraints(sparqlQuery, contextData, insertPoint);
+                
+                // Execute query
+                $.ajax({
+                    url: '/dataset-endpoint',
+                    method: 'POST',
+                    data: { query: sparqlQuery },
+                    headers: { 'Accept': 'application/sparql-results+json' },
+                    success: function(response) {
+                        spinner.addClass('d-none');
+                        updateTopLevelSuggestions(response.results.bindings, suggestionsContainer, parentEntityType);
+                    },
+                    error: function(error) {
+                        spinner.addClass('d-none');
+                        console.error('Search failed:', error);
+                    }
+                });
+            }, 300);
+        });
+        
+        // Handle close button click
+        suggestionsContainer.find('.btn-close').on('click', function() {
+            suggestionsContainer.addClass('d-none');
+        });
+        
+        return; // Exit early as we've set up top-level search
+    }
+
+    // Regular entity search for all other cases
+    const searchResults = createSearchDropdown();
+    let searchTimeout = setupInputSearchHandling(input, container, searchResults);
 
     input.on('input', function() {
         const term = $(this).val().trim();
+        const minCharsForSearch = parseInt($(this).data('min-chars-for-search')) || 4;
         const spinner = container.find('.search-spinner');
-        const minCharsForSearch = parseInt($(this).data('min-chars-for-search')) || 4; // Default to 4 if not specified
         
-        clearTimeout(searchTimeout);
-        searchResults.addClass('d-none').empty();
-        spinner.addClass('d-none');
-        
-        $(this).removeClass('is-invalid');
-        $(this).siblings('.invalid-feedback').hide();
-        
+        // Skip if not enough characters
         if (term.length < minCharsForSearch) return;
         
-        spinner.removeClass('d-none');
         searchTimeout = setTimeout(() => {
             searchEntities(term, objectClass, predicateUri, function(error, response) {
                 spinner.addClass('d-none');
@@ -582,7 +718,7 @@ function enhanceInputWithSearch(input) {
         }, 300);
     });
 
-    // Gestisci i click sui risultati
+    // Handle clicks on results
     searchResults.on('click', '.create-new', function() {
         input.trigger('focus');
         searchResults.addClass('d-none');
