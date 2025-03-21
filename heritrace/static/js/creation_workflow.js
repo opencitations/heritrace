@@ -9,6 +9,63 @@ function generateUniqueId(prefix) {
     return prefix + '_' + Math.random().toString(36).substr(2, 9);
 }
 
+// Helper functions for collectFormData
+function createIntermediateEntity(intermediateClass, intermediateShape) {
+    let entity = {
+        "entity_type": intermediateClass,
+        "properties": {}
+    };
+    
+    if (intermediateShape) {
+        entity['shape'] = intermediateShape;
+    }
+    
+    return entity;
+}
+
+function handleNestedProperties(container, objectClass, shape, shacl, depth) {
+    let nestedProperties = {};
+    collectFormData(container, nestedProperties, shacl, depth);
+    
+    if (Object.keys(nestedProperties).length > 0) {
+        let nestedEntity = {
+            "entity_type": objectClass,
+            "properties": nestedProperties
+        };
+        
+        if (shape) {
+            nestedEntity['shape'] = shape;
+        }
+        
+        return nestedEntity;
+    }
+    
+    return null;
+}
+
+function enrichEntityWithMetadata(entity, additionalProperties, orderedBy, tempId) {
+    if (additionalProperties) {
+        Object.assign(entity.properties, additionalProperties);
+    }
+
+    if (orderedBy) {
+        entity['orderedBy'] = orderedBy;
+    }
+
+    if (tempId) {
+        entity['tempId'] = tempId;
+    }
+    
+    return entity;
+}
+
+function ensurePropertyArray(data, propertyUri) {
+    if (!data[propertyUri]) {
+        data[propertyUri] = [];
+    }
+    return data[propertyUri];
+}
+
 function updateButtons(list, recursive = true) {
     const maxItems = parseInt(list.data('max-items')) || Infinity;
     const minItems = parseInt(list.data('min-items')) || 0;
@@ -306,7 +363,7 @@ function initializeNewItem($newItem, isInitialStructure = false) {
 
 // Funzione ricorsiva per raccogliere i dati dai campi del form
 function collectFormData(container, data, shacl, depth) {    
-    if (shacl === 'True' || shacl === true) {        
+    if (shacl === 'True' || shacl === true) {
         container.find('[data-repeater-list]:visible').each(function() {
             let repeaterList = $(this);
 
@@ -327,108 +384,30 @@ function collectFormData(container, data, shacl, depth) {
                 let objectClass = repeaterItem.find('[data-class]:visible').first().data('class');
                 let tempId = repeaterItem.data('temp-id');
                 let entityReference = repeaterItem.find('input[data-entity-reference="true"]');
-                if (entityReference.length > 0) {
-                    let refDepth = parseInt(entityReference.data('depth'));
-                    
-                    if (refDepth === depth) {                        
-                        if (repeaterItem.data('intermediate-relation')) {
-                            let intermediateClass = repeaterItem.data('intermediate-relation');
-                            let connectingProperty = repeaterItem.data('connecting-property');
-
-                            let intermediateEntity = {
-                                "entity_type": intermediateClass,
-                                "properties": {}
-                            };
-                            
-                            let intermediateShape = repeaterItem.data('shape');
-                            if (intermediateShape) {
-                                intermediateEntity['shape'] = intermediateShape;
-                            }
-                            
-                            // Verifichiamo PRIMA se c'è un riferimento diretto a un'entità esistente
-                            // prima di chiamare collectFormData in modo ricorsivo
-                            let entityReferenceInput = repeaterItem.find('input[data-entity-reference="true"]');
-                            let isDirectReference = false;
-                            let directReferenceValue = null;
-                            
-                            if (entityReferenceInput.length > 0 && 
-                                parseInt(entityReferenceInput.data('depth')) === itemDepth + 1) {
-                                
-                                isDirectReference = true;
-                                directReferenceValue = entityReferenceInput.val();
-                            }
-                            
-                            if (isDirectReference && directReferenceValue) {
-                                // Se è un riferimento diretto, usiamo direttamente l'array con l'URI
-                                // senza chiamare collectFormData in modo ricorsivo
-                                intermediateEntity.properties[connectingProperty] = [directReferenceValue];
-                                hasContent = true;
-                            } else {
-                                // Solo se NON è un riferimento diretto procediamo con la chiamata ricorsiva
-                                let nestedProperties = {};
-                                collectFormData(repeaterItem, nestedProperties, shacl, itemDepth + 1);
-                                
-                                if (Object.keys(nestedProperties).length > 0) {
-                                    intermediateEntity.properties[connectingProperty] = {
-                                        "entity_type": objectClass,
-                                        "properties": nestedProperties
-                                    };
-                                    let nestedShape = repeaterItem.find('[data-object-class]:visible').first().data('shape');
-                                    if (nestedShape) {
-                                        intermediateEntity.properties[connectingProperty]['shape'] = nestedShape;
-                                    }
-                                    
-                                    hasContent = true;
-                                }
-                            }
-
-                            let additionalProperties = repeaterItem.data('additional-properties');
-                            if (additionalProperties) {
-                                Object.assign(intermediateEntity.properties, additionalProperties);
-                            }
-
-                            if (orderedBy) {
-                                intermediateEntity['orderedBy'] = orderedBy;
-                            }
-
-                            if (tempId) {
-                                intermediateEntity['tempId'] = tempId;
-                            }
-
-                            if (hasContent) {
-                                itemData = intermediateEntity;
-                            }
-                        } else {
-                            // Comportamento standard per riferimenti diretti
-                            if (!data[predicateUri]) {
-                                data[predicateUri] = [];
-                            }
-                            data[predicateUri].push(entityReference.val());
-                        }
-                        return;
-                    }
-                }
                 
                 if (predicateUri && objectClass && itemDepth === depth) {
                     let itemData = {};
                     let hasContent = false;
                     
+                    // Handle direct entity reference at current depth
+                    if (entityReference.length > 0 && parseInt(entityReference.data('depth')) === depth) {
+                        // Se non è una relazione intermedia, gestisci come riferimento diretto
+                        if (!repeaterItem.data('intermediate-relation')) {
+                            ensurePropertyArray(data, predicateUri).push(entityReference.val());
+                            return;
+                        }
+                        // Altrimenti, lascia che sia gestito dal blocco delle relazioni intermedie sotto
+                    }
+                    
                     if (repeaterItem.data('intermediate-relation')) {
                         let intermediateClass = repeaterItem.data('intermediate-relation');
                         let connectingProperty = repeaterItem.data('connecting-property');
-                        
-                        let intermediateEntity = {
-                            "entity_type": intermediateClass,
-                            "properties": {}
-                        };
-
                         let intermediateShape = repeaterItem.data('shape');
-                        if (intermediateShape) {
-                            intermediateEntity['shape'] = intermediateShape;
-                        }
                         
-                        // Verifichiamo PRIMA se c'è un riferimento diretto a un'entità esistente
-                        // prima di chiamare collectFormData in modo ricorsivo
+                        // Create intermediate entity
+                        let intermediateEntity = createIntermediateEntity(intermediateClass, intermediateShape);
+                        
+                        // Check for direct reference
                         let entityReferenceInput = repeaterItem.find('input[data-entity-reference="true"]');
                         let isDirectReference = false;
                         let directReferenceValue = null;
@@ -441,80 +420,57 @@ function collectFormData(container, data, shacl, depth) {
                         }
                         
                         if (isDirectReference && directReferenceValue) {
-                            // Se è un riferimento diretto, usiamo direttamente l'array con l'URI
-                            // senza chiamare collectFormData in modo ricorsivo
+                            // Direct reference handling
                             intermediateEntity.properties[connectingProperty] = [directReferenceValue];
                             hasContent = true;
                         } else {
-                            // Solo se NON è un riferimento diretto procediamo con la chiamata ricorsiva
-                            let nestedProperties = {};
-                            collectFormData(repeaterItem, nestedProperties, shacl, itemDepth + 1);
+                            // Nested properties handling using the helper function
+                            let nestedEntity = handleNestedProperties(
+                                repeaterItem, 
+                                objectClass, 
+                                repeaterItem.find('[data-object-class]:visible').first().data('shape'), 
+                                shacl, 
+                                itemDepth + 1
+                            );
                             
-                            if (Object.keys(nestedProperties).length > 0) {
-                                // Usa la struttura annidata complessa
-                                intermediateEntity.properties[connectingProperty] = {
-                                    "entity_type": objectClass,
-                                    "properties": nestedProperties
-                                };
-                                let nestedShape = repeaterItem.find('[data-object-class]:visible').first().data('shape');
-                                if (nestedShape) {
-                                    intermediateEntity.properties[connectingProperty]['shape'] = nestedShape;
-                                }
-                                
+                            if (nestedEntity) {
+                                intermediateEntity.properties[connectingProperty] = nestedEntity;
                                 hasContent = true;
                             }
                         }
 
-                        let additionalProperties = repeaterItem.data('additional-properties');
-                        if (additionalProperties) {
-                            Object.assign(intermediateEntity.properties, additionalProperties);
-                        }
-
-                        if (orderedBy) {
-                            intermediateEntity['orderedBy'] = orderedBy;
-                        }
-
-                        if (tempId) {
-                            intermediateEntity['tempId'] = tempId;
-                        }
+                        // Enrich entity with metadata
+                        intermediateEntity = enrichEntityWithMetadata(
+                            intermediateEntity, 
+                            repeaterItem.data('additional-properties'), 
+                            orderedBy, 
+                            tempId
+                        );
 
                         if (hasContent) {
                             itemData = intermediateEntity;
                         }
                     } else {                        
-                        // Verifica se c'è un riferimento diretto a un'entità esistente nel livello annidato
-                        // PRIMA di fare la chiamata ricorsiva
+                        // Check for direct reference in nested level
                         let nestedEntityReference = repeaterItem.find('input[data-entity-reference="true"]');
                         if (nestedEntityReference.length > 0 && 
                             parseInt(nestedEntityReference.data('depth')) === depth + 1) {
                             
-                            // Se è un riferimento diretto, inserisci solo l'URI invece di creare una struttura annidata
+                            // Direct reference - just use the URI
                             itemData = nestedEntityReference.val();
                             hasContent = true;
                         } else {
-                            // Caso standard per le entità annidate nuove
-                            let nestedEntity = {
-                                "entity_type": objectClass,
-                                "properties": {}
-                            };
-
-                            let nestedShape = repeaterItem.data('shape');
-                            if (nestedShape) {
-                                nestedEntity['shape'] = nestedShape;
-                            }
-
+                            // Standard case for new nested entities
+                            let nestedEntity = createIntermediateEntity(objectClass, repeaterItem.data('shape'));
+                            
+                            // Collect nested properties
                             collectFormData(repeaterItem, nestedEntity.properties, shacl, itemDepth + 1);
                             
-                            // Solo gestione delle proprietà annidate se ci sono
+                            // Only process if there are nested properties
                             if (Object.keys(nestedEntity.properties).length > 0) {
-                                if (orderedBy) {
-                                    nestedEntity['orderedBy'] = orderedBy;
-                                }
-
-                                if (tempId) {
-                                    nestedEntity['tempId'] = tempId;
-                                }
-
+                                // Enrich with metadata
+                                nestedEntity = enrichEntityWithMetadata(nestedEntity, null, orderedBy, tempId);
+                                
                                 itemData = nestedEntity;
                                 hasContent = true;
                             }
@@ -522,10 +478,7 @@ function collectFormData(container, data, shacl, depth) {
                     }
 
                     if (hasContent) {
-                        if (!Array.isArray(data[predicateUri])) {
-                            data[predicateUri] = [];
-                        }
-                        data[predicateUri].push(itemData);
+                        ensurePropertyArray(data, predicateUri).push(itemData);
                     }
                 } else if (itemDepth === depth) {
                     repeaterItem.find('input:visible, select:visible, input[data-mandatory-value="true"], textarea:visible').each(function() {
@@ -533,10 +486,7 @@ function collectFormData(container, data, shacl, depth) {
                         if (propertyUri) {
                             let value = $(this).val() || $(this).data('value');
                             if (value !== "") {
-                                if (!data[propertyUri]) {
-                                    data[propertyUri] = [];
-                                }
-                                data[propertyUri].push(value);
+                                ensurePropertyArray(data, propertyUri).push(value);
                             }
                         }
                     });
@@ -550,31 +500,25 @@ function collectFormData(container, data, shacl, depth) {
             if (propertyUri && inputDepth === depth) {
                 let value = $(this).val();
                 if (value !== "") {
-                    if (!data[propertyUri]) {
-                        data[propertyUri] = [];
-                    }
-                    data[propertyUri].push(value);
+                    ensurePropertyArray(data, propertyUri).push(value);
                 }
             }
         });
         
-        // Gestione diretta di riferimenti a entità esistenti che potrebbero non essere 
-        // all'interno di repeater list ma direttamente nel container
+        // Handle direct entity references not inside repeater lists
         container.find('input[data-entity-reference="true"]').each(function() {
             let entityReference = $(this);
             let refDepth = parseInt(entityReference.data('depth'));
             
-            // Processiamo solo i riferimenti che sono al livello corrente di profondità
-            // e non sono già stati processati all'interno di repeater items
+            // Process only references at current depth that are not already processed in repeater items
             if (refDepth === depth && !entityReference.closest('[data-repeater-item]').length) {
-                
-                // Determiniamo se questo riferimento è parte di una relazione intermedia
+                // Determine if this reference is part of an intermediate relation
                 let propertiesContainer = entityReference.closest('.newEntityPropertiesContainer');
                 let predicateUri = entityReference.data('predicate-uri');
                 let isPartOfIntermediateRelation = propertiesContainer.closest('[data-intermediate-relation]').length > 0;
                 
                 if (!predicateUri) {
-                    // Se il predicato non è direttamente nell'input, cerchiamo di ottenerlo dal container o dall'elemento più vicino
+                    // If predicate is not directly in the input, try to get it from container or nearest element
                     let closestRepeaterItem = propertiesContainer.closest('[data-repeater-item]');
                     if (closestRepeaterItem.length) {
                         predicateUri = closestRepeaterItem.data('predicate-uri');
@@ -582,38 +526,33 @@ function collectFormData(container, data, shacl, depth) {
                 }
                 
                 if (predicateUri) {
-                    if (!data[predicateUri]) {
-                        data[predicateUri] = [];
-                    }
+                    let propArray = ensurePropertyArray(data, predicateUri);
                     
-                    // Se è una relazione intermedia, potrebbe richiedere una struttura speciale
+                    // If it's an intermediate relation, it might need a special structure
                     if (isPartOfIntermediateRelation) {
                         let intermediateContainer = propertiesContainer.closest('[data-intermediate-relation]');
                         let intermediateClass = intermediateContainer.data('intermediate-relation');
                         let connectingProperty = intermediateContainer.data('connecting-property');
                         let intermediateShape = intermediateContainer.data('shape');
                         
-                        let intermediateEntity = {
-                            "entity_type": intermediateClass,
-                            "properties": {}
-                        };
+                        // Create and enrich the intermediate entity
+                        let intermediateEntity = createIntermediateEntity(intermediateClass, intermediateShape);
                         
-                        if (intermediateShape) {
-                            intermediateEntity['shape'] = intermediateShape;
-                        }
-                        
-                        // Usiamo direttamente l'array con l'URI per la proprietà di connessione
+                        // Direct reference for the connecting property
                         intermediateEntity.properties[connectingProperty] = [entityReference.val()];
                         
-                        let additionalProperties = intermediateContainer.data('additional-properties');
-                        if (additionalProperties) {
-                            Object.assign(intermediateEntity.properties, additionalProperties);
-                        }
+                        // Enrich with additional properties
+                        intermediateEntity = enrichEntityWithMetadata(
+                            intermediateEntity, 
+                            intermediateContainer.data('additional-properties'), 
+                            null, 
+                            null
+                        );
                         
-                        data[predicateUri].push(intermediateEntity);
+                        propArray.push(intermediateEntity);
                     } else {
-                        // Altrimenti, è un riferimento diretto standard
-                        data[predicateUri].push(entityReference.val());
+                        // Standard direct reference
+                        propArray.push(entityReference.val());
                     }
                 }
             }
@@ -626,16 +565,15 @@ function collectFormData(container, data, shacl, depth) {
             let datatype = $(this).find('select[id^="custom_datatype_"]').val();
 
             if (propertyUri && propertyValue) {
-                if (!data[propertyUri]) {
-                    data[propertyUri] = [];
-                }
+                let propArray = ensurePropertyArray(data, propertyUri);
+                
                 if (valueType === 'uri') {
-                    data[propertyUri].push({
+                    propArray.push({
                         value: propertyValue,
                         type: 'uri'
                     });
                 } else {
-                    data[propertyUri].push({
+                    propArray.push({
                         value: propertyValue,
                         type: 'literal',
                         datatype: datatype
@@ -644,6 +582,7 @@ function collectFormData(container, data, shacl, depth) {
             }
         });
     }
+    return data;
 }
 
 $('[data-repeater-list]').each(function() {
