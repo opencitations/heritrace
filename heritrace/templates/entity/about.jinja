@@ -52,21 +52,29 @@
     {% endif %}
 {% endwith %}
 
-<div class="btn-flex d-flex align-items-center my-4">
+
+
+<div class="row g-3 my-4">
     {% if not is_deleted and grouped_triples %}
-        <button id="editEntityBtn" class="btn btn-outline-primary" title="{{ _('Edit') }}" type="button">
-            <i class="bi bi-pencil me-2"></i>{{ _('Edit') }}
-        </button>
+        <div class="col-12 col-sm-4">
+            <button id="editEntityBtn" class="btn btn-outline-primary w-100" title="{{ _('Edit') }}" type="button">
+                <i class="bi bi-pencil me-2"></i>{{ _('Edit') }}
+            </button>
+        </div>
     {% endif %}
     {% if not is_deleted and grouped_triples %}
-        <button id="deleteEntityBtn" class="btn btn-outline-danger" title="{{ _('Delete') }}" type="button">
-            <i class="bi bi-trash me-2"></i>{{ _('Delete') }}
-        </button>
+        <div class="col-12 col-sm-4">
+            <button id="deleteEntityBtn" class="btn btn-outline-danger w-100" title="{{ _('Delete') }}" type="button">
+                <i class="bi bi-trash me-2"></i>{{ _('Delete') }}
+            </button>
+        </div>
     {% endif %}
     {% if history[subject] %}
-        <a id="historyBtn" href="{{ url_for('entity.entity_history', entity_uri=subject) }}" class="btn btn-outline-primary" title="{{ _('Time Machine') }}" type="button">
-            <i class="bi bi-clock-history me-2"></i>{{ _('Time Machine') }}
-        </a>
+        <div class="col-12 col-sm-4">
+            <a id="historyBtn" href="{{ url_for('entity.entity_history', entity_uri=subject) }}" class="btn btn-outline-primary w-100" title="{{ _('Time Machine') }}" type="button">
+                <i class="bi bi-clock-history me-2"></i>{{ _('Time Machine') }}
+            </a>
+        </div>
     {% endif %}
 </div>
 
@@ -155,13 +163,17 @@
     {% endif %}
 </div>
 
-<div class="btn-flex d-flex align-items-center mb-5">
-    <button class="btn btn-outline-primary" id="saveChangesBtn" style="display: none;">
-        <i class="bi bi-check-circle me-2"></i>{{_('Save Changes')}}
-    </button>
-    <button class="btn btn-outline-secondary" id="cancelChangesBtn" style="display: none;">
-        <i class="bi bi-x-circle me-2"></i>{{_('Cancel')}}
-    </button>
+<div class="row g-3 mb-5">
+    <div class="col-12 col-sm-6">
+        <button class="btn btn-outline-primary w-100" id="saveChangesBtn" style="display: none;">
+            <i class="bi bi-check-circle me-2"></i>{{_('Save Changes')}}
+        </button>
+    </div>
+    <div class="col-12 col-sm-6">
+        <button class="btn btn-outline-secondary w-100" id="cancelChangesBtn" style="display: none;">
+            <i class="bi bi-x-circle me-2"></i>{{_('Cancel')}}
+        </button>
+    </div>
 </div>
 
 <div class="inverse-references">

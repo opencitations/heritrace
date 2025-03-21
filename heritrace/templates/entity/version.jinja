@@ -33,14 +33,16 @@
 
 <h2 class="mb-4 word-wrap">{{_('Version')}} {{ version_number }} {{_('of')}} <span title="{{subject | human_readable_entity(subject_classes, version)}}"><em>{{ subject | human_readable_entity(subject_classes, version) }}</em></span></h2>
 
-<div class="row g-3 mb-4">
-    <div class="col-6">
+
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-12">
         <a href="{{ url_for('entity.entity_history', entity_uri=subject) }}" class="btn btn-outline-primary w-100" id="historyBtn">
             <i class="bi bi-clock-history me-2"></i> {{_('Time Machine')}}
         </a>    
     </div>
     
-    <div class="col-6">
+    <div class="col-sm-6 col-12">
         {% if next_snapshot_timestamp %}
             <form action="{{ url_for('entity.restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post" id="restoreVersionForm">
                 <button type="submit" class="btn btn-outline-warning w-100" id="restoreVersionBtn">
@@ -52,9 +54,8 @@
 </div>
 
 {% if metadata %}
-    {# Pulsanti per navigare tra gli snapshot #}
-    <div class="row g-3 mb-4">
-        <div class="col-6">
+    <div class="row g-3 mb-5">
+        <div class="col-sm-6 col-12">
             {% if prev_snapshot_timestamp %}
                 <a href="{{ url_for('entity.entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" 
                    class="btn btn-outline-primary w-100 prevVersionBtn">
@@ -69,7 +70,7 @@
             {% endif %}
         </div>
         
-        <div class="col-6">
+        <div class="col-sm-6 col-12">
             {% if next_snapshot_timestamp %}
                 <a href="{{ url_for('entity.entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" 
                    class="btn btn-outline-primary w-100 nextVersionBtn">
