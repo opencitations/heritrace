@@ -463,6 +463,9 @@ def apply_changes():
         subject = changes[0]["subject"]
         affected_entities = changes[0].get("affected_entities", [])
         delete_affected = changes[0].get("delete_affected", False)
+        
+        # Tieni traccia delle entità già eliminate per evitare duplicazioni
+        deleted_entities = set()
         editor = Editor(
             get_dataset_endpoint(),
             get_provenance_endpoint(),
@@ -505,54 +508,69 @@ def apply_changes():
         proxy_strategy = current_app.config.get(
             "PROXY_HANDLING_STRATEGY", ProxyHandlingStrategy.KEEP
         )
+        # Separiamo le operazioni di delete in due fasi:
+        # 1. Prima eliminiamo tutte le entità orfane/intermedie
+        # 2. Poi eliminiamo le triple specifiche
+        
+        # Fase 1: Elimina le entità orfane/intermedie
+        if affected_entities and delete_affected:
+            # Separa gli orfani dalle entità proxy
+            orphans = [entity for entity in affected_entities if not entity.get("is_intermediate")]
+            proxies = [entity for entity in affected_entities if entity.get("is_intermediate")]
+            
+            # Gestione degli orfani secondo la strategia per gli orfani
+            should_delete_orphans = (
+                orphan_strategy == OrphanHandlingStrategy.DELETE
+                or (orphan_strategy == OrphanHandlingStrategy.ASK and delete_affected)
+            )
+            
+            if should_delete_orphans and orphans:
+                for orphan in orphans:
+                    orphan_uri = orphan["uri"]
+                    if orphan_uri in deleted_entities:
+                        continue
+                    
+                    delete_logic(editor, orphan_uri, graph_uri=graph_uri)
+                    deleted_entities.add(orphan_uri)
+            
+            # Gestione delle entità proxy secondo la strategia per i proxy
+            should_delete_proxies = (
+                proxy_strategy == ProxyHandlingStrategy.DELETE
+                or (proxy_strategy == ProxyHandlingStrategy.ASK and delete_affected)
+            )
+            
+            if should_delete_proxies and proxies:
+                for proxy in proxies:
+                    proxy_uri = proxy["uri"]
+                    if proxy_uri in deleted_entities:
+                        continue
+                    
+                    delete_logic(editor, proxy_uri, graph_uri=graph_uri)
+                    deleted_entities.add(proxy_uri)
+        
+        # Fase 2: Processa tutte le altre modifiche
         for change in changes:
             if change["action"] == "delete":
-                delete_logic(
-                    editor,
-                    change["subject"],
-                    change.get("predicate"),
-                    change.get("object"),
-                    graph_uri,
-                    change.get("entity_type"),
-                )
+                subject_uri = change["subject"]
+                predicate = change.get("predicate")
+                object_value = change.get("object")
+                
+                # Se stiamo eliminando un'intera entità
+                if not predicate:
+                    if subject_uri in deleted_entities:
+                        continue
+                    
+                    delete_logic(editor, subject_uri, graph_uri=graph_uri, entity_type=change.get("entity_type"))
+                    deleted_entities.add(subject_uri)
+                # Se stiamo eliminando una tripla specifica
+                elif object_value:
+                    # Controlla se l'oggetto è un'entità che è già stata eliminata
+                    if object_value in deleted_entities:
+                        continue
+                    
+                    delete_logic(editor, subject_uri, predicate, object_value, graph_uri, change.get("entity_type"))
 
-                # Gestione separata per orfani e proxy
-                if affected_entities:
-                    # Separa gli orfani dalle entità proxy
-                    orphans = [
-                        entity
-                        for entity in affected_entities
-                        if not entity.get("is_intermediate")
-                    ]
-                    proxies = [
-                        entity
-                        for entity in affected_entities
-                        if entity.get("is_intermediate")
-                    ]
-
-                    # Gestione degli orfani secondo la strategia per gli orfani
-                    should_delete_orphans = (
-                        orphan_strategy == OrphanHandlingStrategy.DELETE
-                        or (
-                            orphan_strategy == OrphanHandlingStrategy.ASK
-                            and delete_affected
-                        )
-                    )
-                    if should_delete_orphans and orphans:
-                        for orphan in orphans:
-                            editor.delete(URIRef(orphan["uri"]))
-
-                    # Gestione dei proxy secondo la strategia per i proxy
-                    should_delete_proxies = (
-                        proxy_strategy == ProxyHandlingStrategy.DELETE
-                        or (
-                            proxy_strategy == ProxyHandlingStrategy.ASK
-                            and delete_affected
-                        )
-                    )
-                    if should_delete_proxies and proxies:
-                        for proxy in proxies:
-                            editor.delete(URIRef(proxy["uri"]))
+                # La gestione degli orfani e dei proxy è stata spostata all'inizio del ciclo
 
             elif change["action"] == "update":
                 update_logic(
