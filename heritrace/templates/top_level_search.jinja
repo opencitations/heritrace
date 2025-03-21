@@ -1,3 +1,4 @@
+<script src="/static/js/utils/search_utils.js"></script>
 <script>
 // Functions for top-level entity search functionality
 // Function to create the suggestion container for top-level entity search
@@ -34,15 +35,15 @@ function searchSimilarTopLevelEntities(term, entityType, predicateUri, minCharsF
     // 1. Term length >= 4 (Virtuoso requirement), AND
     // 2. Term length >= minCharsForSearch, AND
     // 3. Text index is enabled, AND
-    // 4. Triplestore is virtuoso, AND
-    // 5. Term does not contain spaces
-    if (term.length >= 4 && term.length >= minCharsForSearch && window.dataset_db_text_index_enabled && window.dataset_db_triplestore === 'virtuoso' && !term.includes(' ')) {
-        // Use Virtuoso text index
+    // 4. Triplestore is virtuoso
+    if (term.length >= 4 && term.length >= minCharsForSearch && window.dataset_db_text_index_enabled && window.dataset_db_triplestore === 'virtuoso') {
+        // Use Virtuoso text index with proper encoding for special characters
+        const encodedTerm = encodeVirtuosoSearchTerm(term);
         sparqlQuery = `
             SELECT DISTINCT ?entity ?scoreValue WHERE {
                 ?entity a <${entityType}> .
                 ?entity <${predicateUri}> ?text .
-                ?text bif:contains "'${term}*'" OPTION (score ?scoreValue) .
+                ?text bif:contains "'${encodedTerm}*'" OPTION (score ?scoreValue) .
                 FILTER(?scoreValue > 0.2)
             }
             ORDER BY DESC(?scoreValue) ASC(?entity)
@@ -50,11 +51,13 @@ function searchSimilarTopLevelEntities(term, entityType, predicateUri, minCharsF
         `;
     } else {
         // Use standard REGEX search in all other cases
+        // Escape special regex characters in the search term
+        const escapedTerm = escapeRegexSpecialChars(term);
         sparqlQuery = `
             SELECT DISTINCT ?entity WHERE {
                 ?entity a <${entityType}> .
                 ?entity <${predicateUri}> ?searchValue .
-                FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+                FILTER(REGEX(STR(?searchValue), "${escapedTerm}", "i"))
             } 
             ORDER BY ASC(?entity)
             LIMIT 5

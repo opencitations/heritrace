@@ -1,3 +1,5 @@
+// Import search utilities from utils/search_utils.js is handled via script tag in HTML
+
 // Cache object to store search results keyed by the complete search parameters
 const searchCache = {
     results: {},    // Store results by cache key and offset
@@ -66,10 +68,10 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
     // Use Virtuoso text index only if ALL these conditions are true:
     // 1. Term length >= 4 (Virtuoso requirement), AND
     // 2. Text index is enabled, AND
-    // 3. Triplestore is virtuoso, AND
-    // 4. Term does not contain spaces
-    if (term.length >= 4 && dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso' && !term.includes(' ') && !term.includes('-')) {
-        // Use Virtuoso text index
+    // 3. Triplestore is virtuoso
+    if (term.length >= 4 && dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso') {
+        // Use Virtuoso text index with proper encoding for special characters
+        const encodedTerm = encodeVirtuosoSearchTerm(term);
         query = `
             SELECT DISTINCT ?entity ?scoreValue WHERE {
                 ${searchTarget === 'parent' ? `
@@ -81,7 +83,7 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                     ${entityType ? `?entity a <${entityType}> .` : ''}
                     ${predicate ? `?entity <${predicate}> ?text .` : ''}
                 `}
-                ?text bif:contains "'${term}*'" OPTION (score ?scoreValue) .
+                ?text bif:contains "'${encodedTerm}*'" OPTION (score ?scoreValue) .
                 FILTER(?scoreValue > 0.2)
             }
             ORDER BY DESC(?scoreValue) ASC(?entity)
@@ -90,13 +92,15 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
         `;
     } else {
         // Use standard REGEX search in all other cases
+        // Escape special regex characters in the search term
+        const escapedTerm = escapeRegexSpecialChars(term);
         query = `
             SELECT DISTINCT ?entity WHERE {
                 ${searchTarget === 'parent' ? `
                     # For parent search, we optimize the order of triple patterns:
                     # 1. First filter by the specific predicate and search value (most restrictive)
                     ?nestedEntity <${predicate}> ?searchValue .
-                    FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+                    FILTER(REGEX(STR(?searchValue), "${escapedTerm}", "i"))
                     # 2. Then connect to the parent entity (medium restrictive)
                     ?entity <${connectingPredicate}> ?nestedEntity .
                     # 3. Finally, filter by entity type (least restrictive)
@@ -107,7 +111,7 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                         `?entity <${predicate}> ?searchValue .` :
                         `?entity ?searchPredicate ?searchValue .`
                     }
-                    FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+                    FILTER(REGEX(STR(?searchValue), "${escapedTerm}", "i"))
                 `}
             } 
             ORDER BY ASC(?entity)

@@ -91,6 +91,7 @@
 </form>
 
 <script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
+<script src="{{ url_for('static', filename='js/utils/search_utils.js') }}"></script>
 {% include 'top_level_search.jinja' %}
 <script>
     window.dataset_db_triplestore = {{ dataset_db_triplestore | tojson | safe }};
