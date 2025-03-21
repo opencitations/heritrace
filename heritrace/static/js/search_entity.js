@@ -640,8 +640,17 @@ function enhanceInputWithSearch(input) {
             if (term.length < minCharsForSearch) return;
             
             searchTimeout = setTimeout(() => {
-                // Get parent entity type
-                const parentEntityType = findParentObjectClass(input) || objectClass;
+                // Get parent entity type - special handling for different pages
+                let parentEntityType;
+                
+                // Check if we're in about.jinja (where entity_type is a global string variable)
+                if (typeof entity_type !== 'undefined' && typeof entity_type === 'string') {
+                    parentEntityType = entity_type;
+                } 
+                // Otherwise use the regular DOM traversal method
+                else {
+                    parentEntityType = findParentObjectClass(input);
+                }
                 
                 // Get connecting predicate from parent
                 const connectingPredicate = findParentConnectingPredicate(repeaterItem);
