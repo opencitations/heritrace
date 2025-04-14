@@ -1651,7 +1651,7 @@ def test_apply_changes_with_quadstore(
 
     # Verify the mock was called correctly
     mock_import_entity_graph.assert_called_once()
-    mock_editor.g_set.quads.assert_called_once_with((URIRef("http://example.org/entity/1"), None, None))
+    mock_editor.g_set.quads.assert_called_once_with((URIRef("http://example.org/entity/1"), None, None, None))
     
     # Verify create_logic was called
     mock_create_logic.assert_called_once()
