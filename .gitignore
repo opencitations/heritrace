@@ -11,6 +11,7 @@ cache.json
 heritrace/static/dist/
 .vscode/
 .venv/
+tests/test_cache.json
 
 # Unit test / coverage reports
 .coverage
