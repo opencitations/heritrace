@@ -1,5 +1,3 @@
-// Import search utilities from utils/search_utils.js is handled via script tag in HTML
-
 // Cache object to store search results keyed by the complete search parameters
 const searchCache = {
     results: {},    // Store results by cache key and offset

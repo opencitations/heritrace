@@ -692,7 +692,7 @@ common_properties:
     displayName: "Keyword"
     shouldBeDisplayed: true
     inputType: "tag"
-    supportsSearch: true
+    supportsSearch: false
     minCharsForSearch: 3
     searchTarget: "self"
 
