@@ -682,7 +682,7 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
     return orphaned, intermediate_orphans
 
 
-def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5):
+def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5, include_referencing_entities: bool = False):
     """
     Recursively import the main subject and its connected entity graph up to a specified depth.
 
@@ -694,11 +694,48 @@ def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5):
     editor (Editor): The Editor instance to use for importing.
     subject (str): The URI of the subject to start the import from.
     max_depth (int): The maximum depth of recursion (default is 5).
+    include_referencing_entities (bool): Whether to include entities that have the subject as their object (default False).
+                                         Useful when deleting an entity to ensure all references are properly removed.
 
     Returns:
     Editor: The updated Editor instance with all imported entities.
     """
     imported_subjects = set()
+
+    # First import referencing entities if needed
+    if include_referencing_entities:
+        sparql = SPARQLWrapper(editor.dataset_endpoint)
+        
+        # Build query based on database type
+        if editor.dataset_is_quadstore:
+            query = f"""
+            SELECT DISTINCT ?s
+            WHERE {{
+                GRAPH ?g {{
+                    ?s ?p <{subject}> .
+                }}
+                FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
+            }}
+            """
+        else:
+            query = f"""
+            SELECT DISTINCT ?s
+            WHERE {{
+                ?s ?p <{subject}> .
+                FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
+            }}
+            """
+        
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
+        
+        # Import each referencing entity
+        for result in results["results"]["bindings"]:
+            referencing_subject = result["s"]["value"]
+            if referencing_subject != subject and referencing_subject not in imported_subjects:
+                imported_subjects.add(referencing_subject)
+                editor.import_entity(URIRef(referencing_subject))
 
     def recursive_import(current_subject: str, current_depth: int):
         if current_depth > max_depth or current_subject in imported_subjects:

@@ -475,12 +475,24 @@ def apply_changes():
             current_app.config["DATASET_GENERATION_TIME"],
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
-        editor = import_entity_graph(editor, subject)
+        
+        # Se c'è un'operazione di eliminazione completa dell'entità, includiamo le entità referenzianti
+        has_entity_deletion = any(
+            change["action"] == "delete" and not change.get("predicate") 
+            for change in changes
+        )
+        
+        # Import entity con l'opzione per includere le entità referenzianti se necessario
+        editor = import_entity_graph(
+            editor, 
+            subject, 
+            include_referencing_entities=has_entity_deletion
+        )
         editor.preexisting_finished()
 
         graph_uri = None
         if editor.dataset_is_quadstore:
-            for quad in editor.g_set.quads((URIRef(subject), None, None)):
+            for quad in editor.g_set.quads((URIRef(subject), None, None, None)):
                 # Ottieni direttamente l'identificatore del grafo
                 graph_context = quad[3]
                 graph_uri = get_graph_uri_from_context(graph_context)
