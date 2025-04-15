@@ -427,7 +427,7 @@ def test_get_predicate_count_no_values(mock_get_sparql):
     mock_sparql.query.assert_called_once()
 
 
-@patch('heritrace.routes.entity.get_sparql')
+@patch('heritrace.utils.sparql_utils.get_sparql')
 def test_get_entity_types_single_type(mock_get_sparql):
     """Test get_entity_types when the entity has a single type."""
     # Setup mock SPARQL endpoint
@@ -466,7 +466,7 @@ def test_get_entity_types_single_type(mock_get_sparql):
     assert "a ?type" in query
 
 
-@patch('heritrace.routes.entity.get_sparql')
+@patch('heritrace.utils.sparql_utils.get_sparql')
 def test_get_entity_types_multiple_types(mock_get_sparql):
     """Test get_entity_types when the entity has multiple types."""
     # Setup mock SPARQL endpoint
@@ -510,7 +510,7 @@ def test_get_entity_types_multiple_types(mock_get_sparql):
     mock_sparql.query.assert_called_once()
 
 
-@patch('heritrace.routes.entity.get_sparql')
+@patch('heritrace.utils.sparql_utils.get_sparql')
 def test_get_entity_types_no_types(mock_get_sparql):
     """Test get_entity_types when the entity has no types."""
     # Setup mock SPARQL endpoint
