@@ -27,3 +27,5 @@ nosetests.xml
 # Virtuoso lock files
 tests/test_dataset_db/*
 tests/test_provenance_db/*
+
+.cursor

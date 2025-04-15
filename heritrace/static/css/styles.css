@@ -91,19 +91,18 @@ footer.bg-dark {
 .repeater-delete-btn,
 .delete-button,
 .redirection-btn,
-.collapse-btn,
 .undo-delete-button,
-.change-entity {
+.change-entity,
+.merge-btn {
   font-size: 1rem;
   position: absolute;
   top: 0;
   right: 0;
+  min-width: 6em;
+  text-align: center;
   background-color: transparent;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s, border 0.2s;
-  border-radius: 0.25rem;
-  border-top-left-radius: 0.25rem !important;
-  border-bottom-left-radius: 0.25rem !important;
 }
 
 .repeater-delete-btn:hover {
@@ -265,4 +264,22 @@ footer.bg-dark {
   100% {
     border-color: rgba(220, 53, 69, 0);
   }
+}
+
+/* Ensure linked resource content can shrink to prevent overlap */
+.linked-resource-content {
+  min-width: 0;
+  max-width: calc(100% - 7em); /* Limit width to prevent overlap with button */
+}
+
+/* Make the collapse button square */
+.nested-form-header > .toggle-btn.collapse-btn {
+  font-size: 1rem;
+  border-radius: 0.844em; /* Keep it slightly rounded */
+  width: 1.8rem; /* Set fixed width */
+  height: 1.8rem; /* Set fixed height (equal to width) */
+  padding: 1rem; /* Remove padding, override Bootstrap */
+  display: inline-flex; /* Enable flex, override Bootstrap */
+  align-items: center; /* Center icon vertically, override Bootstrap */
+  justify-content: center; /* Center icon horizontally, override Bootstrap */
 }

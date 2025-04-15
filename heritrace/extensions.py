@@ -7,7 +7,7 @@ from typing import Dict
 from urllib.parse import urlparse, urlunparse
 
 import yaml
-from flask import Flask, g, redirect, session, url_for
+from flask import Flask, current_app, g, redirect, session, url_for
 from flask_babel import Babel
 from flask_login import LoginManager
 from flask_login.signals import user_loaded_from_cookie
@@ -414,6 +414,19 @@ def get_provenance_endpoint() -> str:
 def get_provenance_sparql() -> SPARQLWrapper:
     """Get the configured SPARQL wrapper for the provenance endpoint."""
     return provenance_sparql
+
+def get_counter_handler() -> CounterHandler:
+    """
+    Get the configured CounterHandler instance from the URIGenerator.
+    Assumes URIGenerator and its counter_handler are initialized in app.config.
+    """
+    uri_generator: URIGenerator = current_app.config.get('URI_GENERATOR')
+    if uri_generator and hasattr(uri_generator, 'counter_handler'):
+        return uri_generator.counter_handler
+    else:
+        # Handle cases where it might not be initialized yet or configured
+        current_app.logger.error("CounterHandler not found in URIGenerator config.")
+        raise RuntimeError("CounterHandler is not available. Initialization might have failed.")
 
 def get_custom_filter() -> Filter:
     """Get the configured custom filter instance."""

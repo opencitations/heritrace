@@ -797,11 +797,26 @@ common_properties:
     - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
       sortOrder: ["desc", "asc"]
 
+common_similarity_properties:
+  title_identifier: &title_identifier
+    - "http://purl.org/dc/terms/title"
+    - "http://purl.org/spar/datacite/hasIdentifier"
+  sequence_container: &sequence_container
+    - "http://purl.org/vocab/frbr/core#partOf"
+  agent_names_identifier: &agent_names_identifier
+    - "http://xmlns.com/foaf/0.1/name"
+    - "http://xmlns.com/foaf/0.1/familyName"
+    - "http://xmlns.com/foaf/0.1/givenName"
+    - "http://purl.org/spar/datacite/hasIdentifier"
+  identifier_value_scheme: &identifier_value_scheme
+    - "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
+
 classes:
   - class: "http://purl.org/spar/fabio/Expression"
     priority: 2
     shouldBeDisplayed: false
     displayName: "Bibliographic Resource"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -990,6 +1005,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Article"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1125,6 +1141,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Miscellany"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1222,6 +1239,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Monograph"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1340,6 +1358,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Article in Book"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1422,6 +1441,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Journal Article"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1521,6 +1541,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Journal"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX datacite: <http://purl.org/spar/datacite/>
@@ -1563,6 +1584,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Volume"
+    similarity_properties: *sequence_container
     fetchUriDisplay: |
       PREFIX fabio: <http://purl.org/spar/fabio/>
       PREFIX frbr: <http://purl.org/vocab/frbr/core#>
@@ -1589,6 +1611,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Issue"
+    similarity_properties: *sequence_container
     fetchUriDisplay: |
       PREFIX fabio: <http://purl.org/spar/fabio/>
       PREFIX frbr: <http://purl.org/vocab/frbr/core#>
@@ -1647,6 +1670,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Proceedings Paper"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1734,6 +1758,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Proceedings"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1815,6 +1840,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Review"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -1930,6 +1956,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Review Article"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -2038,6 +2065,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Dictionary"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -2142,6 +2170,7 @@ classes:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Thesis"
+    similarity_properties: *title_identifier
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
       PREFIX fabio: <http://purl.org/spar/fabio/>
@@ -2232,6 +2261,7 @@ classes:
     priority: 1
     shouldBeDisplayed: false
     displayName: "Identifier"
+    similarity_properties: *identifier_value_scheme
     fetchUriDisplay: |
       PREFIX datacite: <http://purl.org/spar/datacite/>
       PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
@@ -2345,6 +2375,7 @@ classes:
     priority: 1
     shouldBeDisplayed: false
     displayName: "Responsible Agent"
+    similarity_properties: *agent_names_identifier
     fetchUriDisplay: |
       PREFIX foaf: <http://xmlns.com/foaf/0.1/>
       PREFIX datacite: <http://purl.org/spar/datacite/>

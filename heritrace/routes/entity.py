@@ -25,7 +25,8 @@ from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_utils import get_valid_predicates
 from heritrace.utils.sparql_utils import (
     fetch_current_state_with_related_entities, fetch_data_graph_for_subject,
-    parse_sparql_update)
+    parse_sparql_update, get_entity_types
+)
 from heritrace.utils.uri_utils import generate_unique_uri
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
@@ -126,22 +127,23 @@ def about(subject):
             can_be_deleted = [
                 uri for uri in can_be_deleted if uri in relevant_properties
             ]
-            
+
             # Get resources that this entity links to (outgoing links)
             linked_resources = set()
             for _, predicate, obj in data_graph.triples((URIRef(subject), None, None)):
                 if isinstance(obj, URIRef) and str(obj) != str(subject) and predicate != RDF.type:
                     linked_resources.add(str(obj))
-            
+
         # Get inverse references only for non-deleted entities
         inverse_references = get_inverse_references(subject)
-        
+
         # Add inverse references to linked resources
         for ref in inverse_references:
             linked_resources.add(ref["subject"])
-        
+
         # Convert to list
         linked_resources = list(linked_resources)
+
     else:
         # For deleted entities, we don't need to get any linked resources
         linked_resources = []
@@ -160,14 +162,15 @@ def about(subject):
     entity_types = list(form_fields.keys())
 
     predicate_details_map = {}
-    for entity_type, predicates in form_fields.items():
+    for entity_type_key, predicates in form_fields.items():
         for predicate_uri, details_list in predicates.items():
             for details in details_list:
                 shape = details.get("nodeShape")
-                key = (predicate_uri, entity_type, shape)
+                key = (predicate_uri, entity_type_key, shape)
                 predicate_details_map[key] = details
 
-    entity_type = str(subject_classes[0]) if subject_classes else None
+    # Ensure entity_type is set correctly using the potentially updated subject_classes
+    entity_type = str(get_highest_priority_class(subject_classes)) if subject_classes else None
 
     return render_template(
         "entity/about.jinja",
@@ -1650,31 +1653,6 @@ def validate_modification(
                         )
 
     return True, ""
-
-
-def get_entity_types(subject_uri: str) -> List[str]:
-    """
-    Get all RDF types for an entity.
-
-    Args:
-        subject_uri: URI of the entity
-
-    Returns:
-        List of type URIs
-    """
-    sparql = get_sparql()
-
-    query = f"""
-    SELECT ?type WHERE {{
-        <{subject_uri}> a ?type .
-    }}
-    """
-
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-
-    return [result["type"]["value"] for result in results["results"]["bindings"]]
 
 
 def get_predicate_count(subject_uri: str, predicate: str) -> int:

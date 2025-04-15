@@ -21,6 +21,7 @@ from heritrace.utils.strategies import (OrphanHandlingStrategy,
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, Graph, URIRef
 from resources.datatypes import DATATYPE_MAPPING
+from SPARQLWrapper import JSON
 
 api_bp = Blueprint("api", __name__)
 

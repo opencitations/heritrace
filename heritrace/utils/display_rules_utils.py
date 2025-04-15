@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Tuple
+from typing import Tuple, List, Optional
 from urllib.parse import unquote
 
 from heritrace.extensions import get_display_rules, get_sparql
@@ -439,3 +439,32 @@ def get_property_order_from_rules(subject_classes: list, display_rules: list) ->
                 break
 
     return ordered_properties
+
+
+def get_similarity_properties(entity_type: str) -> Optional[List[str]]:
+    """Gets the list of property URIs specified for similarity matching for a given entity type.
+
+    Args:
+        entity_type: The URI of the entity type.
+
+    Returns:
+        A list of property URIs to use for similarity matching, or None if not specified.
+    """
+    rules = get_display_rules()
+    if not rules:
+        return None
+
+    for rule in rules:
+        if rule["class"] == entity_type:
+            similarity_props = rule.get("similarity_properties")
+            # Return the list only if it exists and is not empty
+            # Ensure it's a list of strings (basic validation)
+            if similarity_props and isinstance(similarity_props, list) and all(isinstance(item, str) for item in similarity_props):
+                return similarity_props
+            else:
+                 # Log a warning if the format is incorrect but the key exists
+                if similarity_props:
+                    print(f"Warning: Invalid format for similarity_properties in class {entity_type}. Expected list of URIs.")
+                return None # Return None if format is incorrect or list is empty
+            
+    return None # Return None if the class or similarity_properties are not found

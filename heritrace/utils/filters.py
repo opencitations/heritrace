@@ -32,16 +32,21 @@ class Filter:
                     if subject_class == display_rule["class"]:
                         if url == subject_class:
                             return display_rule["displayName"]
-                        for display_property in display_rule["displayProperties"]:
-                            if display_property["property"] == str(url):
-                                if "displayRules" in display_property:
-                                    # Se ci sono displayRules, restituisci il primo displayName trovato
-                                    return display_property["displayRules"][0][
-                                        "displayName"
-                                    ]
-                                elif "displayName" in display_property:
-                                    # Se non ci sono displayRules ma c'è un displayName, restituiscilo
-                                    return display_property["displayName"]
+                        
+                        # Check if displayProperties exists before iterating
+                        if "displayProperties" in display_rule:
+                            for display_property in display_rule["displayProperties"]:
+                                if display_property["property"] == str(url):
+                                    if "displayRules" in display_property:
+                                        # Se ci sono displayRules, restituisci il primo displayName trovato
+                                        return display_property["displayRules"][0][
+                                            "displayName"
+                                        ]
+                                    elif "displayName" in display_property:
+                                        # Se non ci sono displayRules ma c'è un displayName, restituiscilo
+                                        return display_property["displayName"]
+                        # If displayProperties is missing or property not found within it, 
+                        # the loop continues to the next rule or falls through to default logic.
 
         # Se non è stato trovato un displayName nelle regole di visualizzazione,
         # procedi con la logica originale

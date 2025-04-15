@@ -1,30 +1,23 @@
-from collections import defaultdict
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from typing import List
 
-from flask_babel import gettext
 from heritrace.editor import Editor
-from heritrace.extensions import (
-    display_rules,
-    form_fields_cache,
-    get_change_tracking_config,
-    get_custom_filter,
-    get_dataset_is_quadstore,
-    get_display_rules,
-    get_provenance_sparql,
-    get_sparql,
-)
+from heritrace.extensions import (display_rules, form_fields_cache,
+                                  get_change_tracking_config,
+                                  get_custom_filter, get_dataset_is_quadstore,
+                                  get_display_rules, get_provenance_sparql,
+                                  get_sparql)
 from heritrace.utils.converters import convert_to_datetime
-from heritrace.utils.display_rules_utils import (
-    get_highest_priority_class,
-    get_sortable_properties,
-    is_entity_type_visible,
-)
-from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
-from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
+from heritrace.utils.display_rules_utils import (get_highest_priority_class,
+                                                 get_sortable_properties,
+                                                 is_entity_type_visible)
+from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
+                                            is_virtuoso)
+from rdflib import RDF, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
-from SPARQLWrapper import JSON, XML, SPARQLWrapper
+from SPARQLWrapper import JSON, SPARQLWrapper
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
@@ -763,3 +756,28 @@ def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5, includ
 
     recursive_import(subject, 1)
     return editor
+
+
+def get_entity_types(subject_uri: str) -> List[str]:
+    """
+    Get all RDF types for an entity.
+
+    Args:
+        subject_uri: URI of the entity
+
+    Returns:
+        List of type URIs
+    """
+    sparql = get_sparql()
+
+    query = f"""
+    SELECT ?type WHERE {{
+        <{subject_uri}> a ?type .
+    }}
+    """
+
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+
+    return [result["type"]["value"] for result in results["results"]["bindings"]]

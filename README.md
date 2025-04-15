@@ -402,6 +402,7 @@ Key configuration elements:
 * `shouldBeDisplayed`: Whether this class should be shown in the interface
 * `displayName`: Human-readable name for the class
 * `fetchUriDisplay`: SPARQL query to generate a display string for entities of this class
+* `similarity_properties`: A list of property URIs used to identify potentially similar entities. These properties are considered key characteristics for determining if two entities of the same class might be duplicates or closely related. For example, for a `Book`, this might include the title and identifiers.
 * `displayProperties`: List of properties to display for this class
   * `property`: The RDF property URI
   * `displayName`: Label shown in the interface
