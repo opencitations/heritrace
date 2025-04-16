@@ -17,6 +17,7 @@ from heritrace.utils.display_rules_utils import (
     process_default_property,
     process_display_rule,
     process_ordering,
+    get_similarity_properties,
 )
 from rdflib import Graph, Literal, URIRef
 
@@ -1133,3 +1134,131 @@ class TestGetPropertyOrderFromRules:
                 # Verify the ordered properties
                 assert "http://example.org/name" in ordered_properties
                 assert "http://example.org/age" in ordered_properties
+
+
+class TestGetSimilarityProperties:
+    """Tests for get_similarity_properties function."""
+
+    @pytest.fixture
+    def mock_display_rules_with_similarity(self):
+        """Mock display rules with similarity_properties."""
+        return [
+            {
+                "class": "http://example.org/Person",
+                "priority": 1,
+                "similarity_properties": [
+                    "http://example.org/name",
+                    "http://example.org/email",
+                ],
+            },
+            {
+                "class": "http://example.org/Organization",
+                "priority": 2,
+                "similarity_properties": [],  # Empty list
+            },
+            {
+                "class": "http://example.org/Document",
+                "priority": 3,
+                # Missing similarity_properties
+            },
+            {
+                "class": "http://example.org/Event",
+                "priority": 4,
+                "similarity_properties": "not a list",  # Invalid format
+            },
+             {
+                "class": "http://example.org/Place",
+                "priority": 5,
+                "similarity_properties": ["prop1", 123],  # Invalid item type
+            },
+        ]
+
+    def test_get_similarity_properties_found(
+        self, mock_display_rules_with_similarity
+    ):
+        """Test when similarity_properties are found and valid."""
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules_with_similarity,
+        ):
+            result = get_similarity_properties("http://example.org/Person")
+            assert result == ["http://example.org/name", "http://example.org/email"]
+
+    def test_get_similarity_properties_empty_list(
+        self, mock_display_rules_with_similarity
+    ):
+        """Test when similarity_properties is an empty list."""
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules_with_similarity,
+        ):
+            result = get_similarity_properties("http://example.org/Organization")
+            assert result is None # Should return None if list is empty
+
+    def test_get_similarity_properties_missing_key(
+        self, mock_display_rules_with_similarity
+    ):
+        """Test when similarity_properties key is missing for the class."""
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules_with_similarity,
+        ):
+            result = get_similarity_properties("http://example.org/Document")
+            assert result is None
+
+    def test_get_similarity_properties_class_not_found(
+        self, mock_display_rules_with_similarity
+    ):
+        """Test when the entity type is not found in the rules."""
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules_with_similarity,
+        ):
+            result = get_similarity_properties("http://example.org/Unknown")
+            assert result is None
+
+    def test_get_similarity_properties_invalid_format_not_list(
+        self, mock_display_rules_with_similarity, capsys
+    ):
+        """Test when similarity_properties is not a list."""
+        entity_type = "http://example.org/Event"
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules_with_similarity,
+        ):
+            result = get_similarity_properties(entity_type)
+            captured = capsys.readouterr()
+            assert result is None
+            assert f"Warning: Invalid format for similarity_properties in class {entity_type}" in captured.out
+
+
+    def test_get_similarity_properties_invalid_format_item_type(
+        self, mock_display_rules_with_similarity, capsys
+    ):
+        """Test when similarity_properties list contains non-string items."""
+        entity_type = "http://example.org/Place"
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules_with_similarity,
+        ):
+            result = get_similarity_properties(entity_type)
+            captured = capsys.readouterr()
+            assert result is None
+            assert f"Warning: Invalid format for similarity_properties in class {entity_type}" in captured.out
+
+
+    def test_get_similarity_properties_no_rules(self):
+        """Test when get_display_rules returns empty list."""
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules", return_value=[]
+        ):
+            result = get_similarity_properties("http://example.org/Person")
+            assert result is None
+
+    def test_get_similarity_properties_no_rules_none(self):
+        """Test when get_display_rules returns None."""
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules", return_value=None
+        ):
+            result = get_similarity_properties("http://example.org/Person")
+            assert result is None

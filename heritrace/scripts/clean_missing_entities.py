@@ -216,16 +216,7 @@ class MissingEntityCleaner:
         
         for entity_uri, references in missing_entities_with_refs.items():
             self.logger.info(f"Processing missing entity: {entity_uri}")
-            
-            if not references:
-                self.logger.info(f"No references found to missing entity {entity_uri}")
-                results.append({
-                    "uri": entity_uri,
-                    "references": [],
-                    "success": True
-                })
-                continue
-                
+                            
             self.logger.info(f"Found {len(references)} references to missing entity {entity_uri}")
             
             # Remove references to the missing entity
@@ -299,12 +290,7 @@ def main():
     
     # Load configuration
     config = load_config(args.config)
-    
-    # Check if Config class exists
-    if not hasattr(config, "Config"):
-        logging.error("Configuration file must define a Config class")
-        return 1
-    
+        
     # Get required configuration from Config class
     if not hasattr(config.Config, "DATASET_DB_URL"):
         logging.error("Config class must define DATASET_DB_URL")

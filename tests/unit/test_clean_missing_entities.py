@@ -589,4 +589,42 @@ def test_main_missing_dataset_db_url(mock_hasattr, mock_logging_error, mock_load
     # Verify error was logged
     mock_logging_error.assert_called_once()
     error_msg = mock_logging_error.call_args[0][0]
-    assert "Config class must define DATASET_DB_URL" in error_msg 
+    assert "Config class must define DATASET_DB_URL" in error_msg
+
+
+@patch('heritrace.scripts.clean_missing_entities.argparse.ArgumentParser')
+@patch('heritrace.scripts.clean_missing_entities.load_config')
+@patch('heritrace.scripts.clean_missing_entities.clean_missing_entities')
+@patch('heritrace.scripts.clean_missing_entities.logging')
+def test_main_no_missing_entities(mock_logging, mock_clean_missing_entities, mock_load_config, mock_argparse):
+    """Test main function when no missing entities are found."""
+    # Mock argument parsing
+    mock_args = MagicMock()
+    mock_args.config = "config.py"
+    mock_args.verbose = False
+    mock_argparse.return_value.parse_args.return_value = mock_args
+    
+    # Mock config
+    mock_config = MagicMock()
+    mock_config.Config.DATASET_DB_URL = "http://example.org/sparql"
+    # Set DATASET_DB_TRIPLESTORE for is_virtuoso check (optional, but good practice)
+    mock_config.Config.DATASET_DB_TRIPLESTORE = "other"  
+    mock_load_config.return_value = mock_config
+    
+    # Mock clean_missing_entities returning an empty list
+    mock_clean_missing_entities.return_value = []
+    
+    # Call the function
+    result = main()
+    
+    # Verify the result is 0
+    assert result == 0
+    
+    # Verify the specific info log message was called
+    mock_logging.info.assert_any_call("No missing entity references found")
+
+    # Verify clean_missing_entities was called
+    mock_clean_missing_entities.assert_called_once_with(
+        endpoint="http://example.org/sparql", 
+        is_virtuoso=False  # Based on "other" triplestore type
+    ) 

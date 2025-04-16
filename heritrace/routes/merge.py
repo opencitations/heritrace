@@ -13,7 +13,6 @@ from heritrace.utils.display_rules_utils import get_similarity_properties
 from heritrace.utils.sparql_utils import get_entity_types
 from SPARQLWrapper import JSON, POST
 
-# Import the Editor class and URIRef
 from heritrace.editor import Editor
 from rdflib import URIRef
 from markupsafe import Markup
@@ -21,7 +20,6 @@ from markupsafe import Markup
 merge_bp = Blueprint("merge", __name__)
 
 
-# New helper function to fetch detailed properties
 def get_entity_details(entity_uri: str) -> Tuple[Optional[Dict[str, Any]], List[str]]:
     """
     Fetches all properties (predicates and objects) for a given entity URI,
@@ -44,13 +42,10 @@ def get_entity_details(entity_uri: str) -> Tuple[Optional[Dict[str, Any]], List[
     entity_types: List[str] = []
 
     try:
-        # Fetch entity types first
         entity_types = get_entity_types(entity_uri)
         if not entity_types:
             current_app.logger.warning(f"No types found for entity: {entity_uri}")
-            # Proceed anyway, might be an entity without explicit type
 
-        # Fetch all direct properties
         query = f"""
         SELECT DISTINCT ?p ?o WHERE {{
             <{entity_uri}> ?p ?o .
@@ -69,19 +64,12 @@ def get_entity_details(entity_uri: str) -> Tuple[Optional[Dict[str, Any]], List[
                 "type": obj_node["type"],
                 "lang": obj_node.get("xml:lang"),
                 "datatype": obj_node.get("datatype"),
-                # Attempt to get a readable label for URI objects
                 "readable_label": None
             }
             if obj_details["type"] == 'uri':
-                 # Fetch types for the object URI to help human_readable_entity
-                 try:
-                     obj_types = get_entity_types(obj_details["value"])
-                     obj_details["readable_label"] = custom_filter.human_readable_entity(obj_details["value"], obj_types)
-                 except Exception as inner_e:
-                     current_app.logger.warning(f"Could not fetch types/label for object URI {obj_details['value']}: {inner_e}")
-                     obj_details["readable_label"] = obj_details["value"] # Fallback
+                obj_types = get_entity_types(obj_details["value"])
+                obj_details["readable_label"] = custom_filter.human_readable_entity(obj_details["value"], obj_types)
             else:
-                # For literals, use the value itself or apply specific formatting if needed
                  obj_details["readable_label"] = obj_details["value"]
 
 
@@ -114,43 +102,20 @@ def execute_merge():
         flash(gettext("Missing entity URIs for merge."), "danger")
         return redirect(url_for("main.catalogue"))
 
-    if entity1_uri == entity2_uri:
-        flash(gettext("Cannot merge an entity with itself."), "warning")
-        referer = request.headers.get("Referer")
-        if referer and url_for('.compare_and_merge') in referer:
-            return redirect(url_for('entity.about', subject=entity1_uri))
-        return redirect(url_for("main.catalogue"))
-
     try:
-        # Get custom filter for readable labels later
         custom_filter = get_custom_filter()
 
-        # Fetch labels BEFORE the merge, as entity2 will be deleted
         _, entity1_types = get_entity_details(entity1_uri)
         _, entity2_types = get_entity_details(entity2_uri)
-        # Fallback to URI if label cannot be generated
         entity1_label = custom_filter.human_readable_entity(entity1_uri, entity1_types) or entity1_uri
         entity2_label = custom_filter.human_readable_entity(entity2_uri, entity2_types) or entity2_uri
 
-        # Instantiate the Editor
         counter_handler = get_counter_handler()
-        # Construct responsible agent URI from current_user's ORCID
         resp_agent_uri = URIRef(f"https://orcid.org/{current_user.orcid}") if current_user.is_authenticated and hasattr(current_user, 'orcid') else None
-        if not resp_agent_uri:
-            # Fallback or error handling if user URI is not available
-            current_app.logger.error("Responsible agent URI not found for current user.")
-            flash(gettext("Could not identify the responsible agent. Merge aborted."), "danger")
-            return redirect(url_for('.compare_and_merge', subject=entity1_uri, other_subject=entity2_uri))
         
-        # Get configurations using getter functions
         dataset_endpoint = get_dataset_endpoint()
         provenance_endpoint = get_provenance_endpoint()
         dataset_is_quadstore = get_dataset_is_quadstore()
-
-        if not dataset_endpoint or not provenance_endpoint:
-            current_app.logger.error("Dataset or Provenance endpoint configuration missing.")
-            flash(gettext("Server configuration error. Merge aborted."), "danger")
-            return redirect(url_for('.compare_and_merge', subject=entity1_uri, other_subject=entity2_uri))
 
         editor = Editor(
             dataset_endpoint=dataset_endpoint,
@@ -158,16 +123,13 @@ def execute_merge():
             counter_handler=counter_handler,
             resp_agent=resp_agent_uri,
             dataset_is_quadstore=dataset_is_quadstore
-            # source and c_time can be added if needed for merge context
         )
 
         current_app.logger.info(f"Executing merge via Editor: Keep <{entity1_uri}>, Delete <{entity2_uri}>")
 
-        # Call the Editor's merge method
         editor.merge(keep_entity_uri=entity1_uri, delete_entity_uri=entity2_uri)
 
         current_app.logger.info(f"Successfully merged <{entity2_uri}> into <{entity1_uri}> via Editor.")
-        # Use human-readable labels in the flash message
         entity1_url = url_for('entity.about', subject=entity1_uri)
         entity2_url = url_for('entity.about', subject=entity2_uri)
         flash_message_html = gettext(
@@ -184,7 +146,6 @@ def execute_merge():
         # Use Markup to render HTML safely
         flash(Markup(flash_message_html), "success")
 
-        # Redirect to the page of the entity that was kept
         return redirect(url_for("entity.about", subject=entity1_uri))
 
     except ValueError as ve:
@@ -197,7 +158,6 @@ def execute_merge():
         tb_str = traceback.format_exc()
         current_app.logger.error(f"Error executing Editor merge for <{entity1_uri}> and <{entity2_uri}>: {e}\n{tb_str}")
         flash(gettext("An error occurred during the merge operation. Please check the logs. No changes were made."), "danger")
-        # Redirect back to the confirmation page or catalogue
         return redirect(url_for('.compare_and_merge', subject=entity1_uri, other_subject=entity2_uri))
 
 
@@ -216,16 +176,6 @@ def compare_and_merge():
         flash(gettext("Two entities must be selected for merging/comparison."), "warning")
         return redirect(url_for("main.catalogue"))
 
-    if entity1_uri == entity2_uri:
-         flash(gettext("Cannot compare or merge an entity with itself."), "warning")
-         # Try to redirect back sensibly
-         referer = request.headers.get("Referer")
-         if referer and f"/about/{entity1_uri}" in referer:
-             return redirect(url_for('entity.about', subject=entity1_uri))
-         else:
-             return redirect(url_for("main.catalogue"))
-
-    # Fetch detailed information for both entities
     entity1_props, entity1_types = get_entity_details(entity1_uri)
     entity2_props, entity2_types = get_entity_details(entity2_uri)
 
@@ -233,12 +183,10 @@ def compare_and_merge():
         flash(gettext("Could not retrieve details for one or both entities. Check logs."), "danger")
         return redirect(url_for("main.catalogue"))
 
-    # Get human-readable labels
     entity1_label = custom_filter.human_readable_entity(entity1_uri, entity1_types) or entity1_uri
     entity2_label = custom_filter.human_readable_entity(entity2_uri, entity2_types) or entity2_uri
 
 
-    # Prepare data for the template
     entity1_data = {
         "uri": entity1_uri,
         "label": entity1_label,

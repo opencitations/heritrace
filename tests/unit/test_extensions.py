@@ -185,6 +185,28 @@ def test_getter_functions():
         assert get_shacl_graph() == 'shacl_graph_value'
 
 
+def test_get_counter_handler_not_initialized(app):
+    """Test that get_counter_handler raises RuntimeError when not initialized."""
+    app.config.pop('URI_GENERATOR', None) 
+    
+    with app.app_context():
+        with patch('heritrace.extensions.current_app.logger.error') as mock_logger_error:
+            with pytest.raises(RuntimeError, match="CounterHandler is not available. Initialization might have failed."):
+                from heritrace.extensions import get_counter_handler
+                get_counter_handler()
+            
+            mock_logger_error.assert_called_once_with("CounterHandler not found in URIGenerator config.")
+
+    app.config['URI_GENERATOR'] = MagicMock(spec=[])
+    
+    with app.app_context():
+        with patch('heritrace.extensions.current_app.logger.error') as mock_logger_error:
+            with pytest.raises(RuntimeError, match="CounterHandler is not available. Initialization might have failed."):
+                from heritrace.extensions import get_counter_handler
+                get_counter_handler()
+            mock_logger_error.assert_called_once_with("CounterHandler not found in URIGenerator config.")
+
+
 def test_init_login_manager_directly(app):
     """Test that init_login_manager correctly configures the login manager."""
 
