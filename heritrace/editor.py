@@ -274,65 +274,12 @@ class Editor:
             self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)
 
 
-            # 4. Process changes in the local graph set
-            # The graph context handling here is simplified. It assumes operations
-            # apply to the default graph or that OCDM handles context.
-            # Refinement might be needed for multi-graph scenarios.
-            graph_context = self.g_set.identifier if self.dataset_is_quadstore else None
+            # 4. Perform the merge using the built-in function
+            # This function handles moving triples and updating the internal
+            # merge_index and entity_index for provenance generation.
+            self.g_set.merge(keep_uri, delete_uri)
 
-            # Process incoming triples: delete old, create new pointing to keep_uri
-            for s_uri, p_uri in incoming_triples_to_update:
-                 try:
-                     # Check if the triple to delete actually exists locally first
-                     if self.dataset_is_quadstore:
-                         if (s_uri, p_uri, delete_uri, graph_context) in self.g_set.quads((s_uri, p_uri, delete_uri, graph_context)):
-                             self.delete(s_uri, p_uri, delete_uri, graph=graph_context)
-                             self.create(s_uri, p_uri, keep_uri, graph=graph_context)
-                     else:
-                          if (s_uri, p_uri, delete_uri) in self.g_set.triples((s_uri, p_uri, delete_uri)):
-                             self.delete(s_uri, p_uri, delete_uri)
-                             self.create(s_uri, p_uri, keep_uri)
-                 except Exception as e:
-                     print(f"Warning: Could not replace incoming triple ({s_uri}, {p_uri}, {delete_uri}): {e}. Skipping this triple.")
-
-            # Process outgoing triples: delete old, create new from keep_uri
-            for p_uri, o_val in outgoing_triples_to_move:
-                 try:
-                      # Check if the triple to delete actually exists locally first
-                     if self.dataset_is_quadstore:
-                         if (delete_uri, p_uri, o_val, graph_context) in self.g_set.quads((delete_uri, p_uri, o_val, graph_context)):
-                             self.delete(delete_uri, p_uri, o_val, graph=graph_context)
-                             # Avoid creating duplicate outgoing triples
-                             if (keep_uri, p_uri, o_val, graph_context) not in self.g_set.quads((keep_uri, p_uri, o_val, graph_context)):
-                                 self.create(keep_uri, p_uri, o_val, graph=graph_context)
-                     else:
-                         if (delete_uri, p_uri, o_val) in self.g_set.triples((delete_uri, p_uri, o_val)):
-                             self.delete(delete_uri, p_uri, o_val)
-                             # Avoid creating duplicate outgoing triples
-                             if (keep_uri, p_uri, o_val) not in self.g_set.triples((keep_uri, p_uri, o_val)):
-                                 self.create(keep_uri, p_uri, o_val)
-                 except Exception as e:
-                     print(f"Warning: Could not move outgoing triple ({delete_uri}, {p_uri}, {o_val}): {e}. Skipping this triple.")
-
-
-            # 5. Delete the merged entity entirely
-            # This removes any remaining triples associated with delete_uri (like rdf:type)
-            # and marks it as deleted in the provenance.
-            try:
-                 # Need to ensure the entity actually exists locally before deleting
-                 # Check if triples exist for the subject before calling delete
-                 if self.dataset_is_quadstore:
-                     if list(self.g_set.quads((delete_uri, None, None, None))):
-                        self.delete(delete_uri, graph=graph_context) # Pass graph context if applicable
-                 else:
-                     if list(self.g_set.triples((delete_uri, None, None))):
-                        self.delete(delete_uri)
-            except Exception as e:
-                 # This might happen if the entity was already gone or import failed
-                 print(f"Info: Entity {delete_uri} likely already deleted or did not exist locally. Merge continuing. ({e})")
-
-
-            # 6. Save changes and provenance
+            # 5. Save changes and provenance
             # This uploads the modified local graph and the generated provenance graph.
             self.save()
 
