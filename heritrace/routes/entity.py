@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
+import re
 
 import validators
 from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
@@ -781,7 +782,8 @@ def entity_history(entity_uri):
     classes = list(context_snapshot.triples((URIRef(entity_uri), RDF.type, None)))
     for triple in classes:
         entity_classes.add(str(triple[2]))
-    entity_classes = [get_highest_priority_class(entity_classes)]
+    highest_priority_class = get_highest_priority_class(entity_classes)
+    entity_classes_for_label = [highest_priority_class] if highest_priority_class else []
 
     # Generate timeline events
     events = []
@@ -799,7 +801,17 @@ def entity_history(entity_uri):
             metadata["hadPrimarySource"]
         )
 
-        modifications = metadata["hasUpdateQuery"]
+        description = _format_snapshot_description(
+            metadata,
+            entity_uri,
+            entity_classes_for_label,
+            context_snapshot,
+            history,
+            sorted_timestamps,
+            i,
+            custom_filter,
+        )
+        modifications = metadata.get("hasUpdateQuery", "")
         modification_text = ""
         if modifications:
             parsed_modifications = parse_sparql_update(modifications)
@@ -813,13 +825,6 @@ def entity_history(entity_uri):
                 custom_filter=custom_filter,
                 form_fields=get_form_fields(),
             )
-
-        description = metadata["description"].replace(
-            entity_uri,
-            custom_filter.human_readable_entity(
-                entity_uri, entity_classes, context_snapshot
-            ),
-        )
 
         event = {
             "start_date": {
@@ -872,6 +877,86 @@ def entity_history(entity_uri):
     }
 
     return render_template("entity/history.jinja", timeline_data=timeline_data)
+
+
+def _format_snapshot_description(
+    metadata: dict,
+    entity_uri: str,
+    entity_classes: list[str],
+    context_snapshot: Graph,
+    history: dict,
+    sorted_timestamps: list[str],
+    current_index: int,
+    custom_filter: Filter,
+) -> Tuple[str, bool]:
+    """
+    Formats the snapshot description and determines if it's a merge snapshot.
+
+    Args:
+        metadata: The snapshot metadata dictionary.
+        entity_uri: The URI of the main entity.
+        entity_classes: The classes of the main entity.
+        context_snapshot: The graph snapshot for context.
+        history: The history dictionary containing snapshots.
+        sorted_timestamps: Sorted list of snapshot timestamps.
+        current_index: The index of the current snapshot in sorted_timestamps.
+        custom_filter: The custom filter instance for formatting.
+
+    Returns:
+        The formatted description string.
+    """
+    description = metadata.get("description", "")
+    is_merge_snapshot = False
+    was_derived_from = metadata.get('wasDerivedFrom')
+    if isinstance(was_derived_from, list) and len(was_derived_from) > 1:
+        is_merge_snapshot = True
+
+    if is_merge_snapshot:
+        # Regex to find URI after "merged with", potentially enclosed in single quotes or none
+        match = re.search(r"merged with ['‘]?([^'’<>\s]+)['’]?", description)
+        if match:
+            potential_merged_uri = match.group(1)
+            if validators.url(potential_merged_uri):
+                merged_entity_uri_from_desc = potential_merged_uri
+                merged_entity_label = None
+                if current_index > 0:
+                    previous_snapshot_timestamp = sorted_timestamps[current_index - 1]
+                    previous_snapshot_graph = history.get(entity_uri, {}).get(previous_snapshot_timestamp)
+                    if previous_snapshot_graph:
+                        raw_merged_entity_classes = [
+                            str(o)
+                            for s, p, o in previous_snapshot_graph.triples(
+                                (URIRef(merged_entity_uri_from_desc), RDF.type, None)
+                            )
+                        ]
+                        highest_priority_merged_class = get_highest_priority_class(
+                            raw_merged_entity_classes
+                        ) if raw_merged_entity_classes else None
+                        merged_entity_classes_for_label = (
+                            [highest_priority_merged_class]
+                            if highest_priority_merged_class
+                            else []
+                        )
+                        merged_entity_label = custom_filter.human_readable_entity(
+                            merged_entity_uri_from_desc,
+                            merged_entity_classes_for_label,
+                            previous_snapshot_graph,
+                        )
+                        if (
+                            merged_entity_label
+                            and merged_entity_label != merged_entity_uri_from_desc
+                        ):
+                            description = description.replace(
+                                match.group(0), f"merged with '{merged_entity_label}'"
+                            )
+
+    entity_label_for_desc = custom_filter.human_readable_entity(
+        entity_uri, entity_classes, context_snapshot
+    )
+    if entity_label_for_desc and entity_label_for_desc != entity_uri:
+        description = description.replace(f"'{entity_uri}'", f"'{entity_label_for_desc}'")
+
+    return description
 
 
 @entity_bp.route("/entity-version/<path:entity_uri>/<timestamp>")
@@ -1032,14 +1117,23 @@ def entity_version(entity_uri, timestamp):
             form_fields=form_fields,
         )
 
-    # Update description with human readable entity name
+    try:
+        current_index = sorted_timestamps.index(closest_timestamp)
+    except ValueError:
+        current_index = -1 
+
     if closest_metadata.get("description"):
-        closest_metadata["description"] = closest_metadata["description"].replace(
+        formatted_description = _format_snapshot_description(
+            closest_metadata,
             entity_uri,
-            custom_filter.human_readable_entity(
-                entity_uri, subject_classes, context_version
-            ),
+            subject_classes,
+            context_version,
+            history,
+            sorted_timestamps,
+            current_index,
+            custom_filter,
         )
+        closest_metadata["description"] = formatted_description
 
     closest_timestamp = closest_metadata["generatedAtTime"]
 
