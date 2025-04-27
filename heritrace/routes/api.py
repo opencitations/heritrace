@@ -19,6 +19,7 @@ from heritrace.utils.sparql_utils import (find_orphaned_entities,
 from heritrace.utils.strategies import (OrphanHandlingStrategy,
                                         ProxyHandlingStrategy)
 from heritrace.utils.uri_utils import generate_unique_uri
+from heritrace.utils.primary_source_utils import save_user_default_primary_source
 from rdflib import RDF, XSD, Graph, URIRef
 from resources.datatypes import DATATYPE_MAPPING
 import validators
@@ -458,14 +459,42 @@ def check_orphans():
 @api_bp.route("/apply_changes", methods=["POST"])
 @login_required
 def apply_changes():
+    """Apply changes to entities.
+
+    Request body:
+    {
+        "subject": (str) Main entity URI being modified,
+        "changes": (list) List of changes to apply,
+        "primary_source": (str) Primary source to use for provenance,
+        "save_default_source": (bool) Whether to save primary_source as default for current user,
+        "affected_entities": (list) Entities potentially affected by delete operations,
+        "delete_affected": (bool) Whether to delete affected entities
+    }
+
+    Responses:
+    200 OK: Changes applied successfully
+    400 Bad Request: Invalid request or validation error
+    500 Internal Server Error: Server error while applying changes
+    """
     try:
-        # Remove all debug logging statements
-        changes = request.json
-        subject = changes[0]["subject"]
-        affected_entities = changes[0].get("affected_entities", [])
-        delete_affected = changes[0].get("delete_affected", False)
+        changes = request.get_json()
         
-        # Tieni traccia delle entità già eliminate per evitare duplicazioni
+        if not changes:
+            return jsonify({"error": "No request data provided"}), 400
+
+        first_change = changes[0] if changes else {}
+        subject = first_change.get("subject")
+        affected_entities = first_change.get("affected_entities", [])
+        delete_affected = first_change.get("delete_affected", False)
+        primary_source = first_change.get("primary_source")
+        save_default_source = first_change.get("save_default_source", False)
+        
+        if primary_source and not validators.url(primary_source):
+            return jsonify({"error": "Invalid primary source URL"}), 400
+        
+        if save_default_source and primary_source and validators.url(primary_source):
+            save_user_default_primary_source(current_user.orcid, primary_source)
+        
         deleted_entities = set()
         editor = Editor(
             get_dataset_endpoint(),
@@ -477,13 +506,14 @@ def apply_changes():
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
         
-        # Se c'è un'operazione di eliminazione completa dell'entità, includiamo le entità referenzianti
+        if primary_source and validators.url(primary_source):
+            editor.set_primary_source(primary_source)
+        
         has_entity_deletion = any(
             change["action"] == "delete" and not change.get("predicate") 
             for change in changes
         )
         
-        # Import entity con l'opzione per includere le entità referenzianti se necessario
         editor = import_entity_graph(
             editor, 
             subject, 
@@ -494,12 +524,10 @@ def apply_changes():
         graph_uri = None
         if editor.dataset_is_quadstore:
             for quad in editor.g_set.quads((URIRef(subject), None, None, None)):
-                # Ottieni direttamente l'identificatore del grafo
                 graph_context = quad[3]
                 graph_uri = get_graph_uri_from_context(graph_context)
                 break
 
-        # Gestisci prima le creazioni
         temp_id_to_uri = {}
         for change in changes:
             if change["action"] == "create":
@@ -514,7 +542,6 @@ def apply_changes():
                         parent_entity_type=None,
                     )
 
-        # Poi gestisci le altre modifiche
         orphan_strategy = current_app.config.get(
             "ORPHAN_HANDLING_STRATEGY", OrphanHandlingStrategy.KEEP
         )

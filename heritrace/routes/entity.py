@@ -32,14 +32,14 @@ from heritrace.utils.sparql_utils import (
 from heritrace.utils.uri_utils import generate_unique_uri
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
+from heritrace.utils.primary_source_utils import (get_default_primary_source,
+                                                 save_user_default_primary_source)
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 entity_bp = Blueprint("entity", __name__)
-
-USER_DEFAULT_SOURCE_KEY = "user:{user_id}:default_primary_source"
 
 
 @entity_bp.route("/about/<path:subject>")
@@ -53,6 +53,8 @@ def about(subject):
     """
     # Get necessary services and configurations
     change_tracking_config = get_change_tracking_config()
+    
+    default_primary_source = get_default_primary_source(current_user.orcid)
 
     # Initialize agnostic entity and get its history
     agnostic_entity = AgnosticEntity(
@@ -203,24 +205,19 @@ def about(subject):
         is_deleted=is_deleted,
         context=context_snapshot,
         linked_resources=linked_resources,
+        default_primary_source=default_primary_source,
     )
 
 
 @entity_bp.route("/create-entity", methods=["GET", "POST"])
 @login_required
 def create_entity():
+    """
+    Create a new entity in the dataset.
+    """
     form_fields = get_form_fields()
     
-    user_default_source = None
-    if current_user.is_authenticated:
-        key = USER_DEFAULT_SOURCE_KEY.format(user_id=current_user.orcid)
-        try:
-            user_default_source = current_app.redis_client.get(key)
-        except Exception as e:
-            current_app.logger.error(f"Failed to get user default primary source from Redis: {e}")
-            user_default_source = None # Ensure it's None on error
-    
-    default_primary_source = user_default_source or current_app.config["PRIMARY_SOURCE"]
+    default_primary_source = get_default_primary_source(current_user.orcid)
 
     entity_types = sorted(
         [
@@ -274,12 +271,7 @@ def create_entity():
             return jsonify({"status": "error", "errors": [gettext("Invalid primary source URL provided")]}), 400
             
         if save_default_source and primary_source and validators.url(primary_source):
-            try:
-                key = USER_DEFAULT_SOURCE_KEY.format(user_id=current_user.orcid)
-                current_app.redis_client.set(key, primary_source)
-                current_app.logger.info(f"Saved new default primary source for user {current_user.orcid}: {primary_source}")
-            except Exception as e:
-                current_app.logger.error(f"Failed to save user default primary source to Redis: {e}")
+            save_user_default_primary_source(current_user.orcid, primary_source)
 
         editor = Editor(
             get_dataset_endpoint(),

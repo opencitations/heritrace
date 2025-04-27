@@ -308,3 +308,17 @@ class Editor:
         elif isinstance(value, str):
             dt = datetime.fromisoformat(value)
             return dt.timestamp()
+
+    def set_primary_source(self, source: str | URIRef) -> None:
+        """
+        Set the primary source for this editor instance.
+        
+        This will affect all future operations performed by this editor.
+        
+        Args:
+            source: The primary source URI to use
+        """
+        if source:
+            if not isinstance(source, URIRef):
+                source = URIRef(source)
+            self.source = source

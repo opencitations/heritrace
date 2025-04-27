@@ -226,6 +226,7 @@
 </div>
 {# End New Similar Resources Section #}
 
+{% include 'primary_source_handler.jinja' %}
 <script>
     let originalOrder = {};
     const optional_values = {{ optional_values|tojson|safe }};
@@ -233,6 +234,8 @@
 
     const entity_type = "{{ entity_type }}";
     const subject = "{{ subject }}";
+    const default_primary_source = "{{ default_primary_source }}";
+    const format_source_api_url = "{{ url_for('api.format_source_api') }}";
 
     window.dataset_db_triplestore = {{ dataset_db_triplestore | tojson | safe }};
     window.dataset_db_text_index_enabled = {{ dataset_db_text_index_enabled | tojson | safe }};
@@ -889,14 +892,29 @@
                 });
                 return;
             }
+            
             processOrphanCheck(pendingChanges, entity_type, function(affectedEntities, shouldDelete) {
                 // Aggiorna il primo elemento di pendingChanges con le informazioni sulle entità affette
                 if (affectedEntities && affectedEntities.length > 0) {
                     pendingChanges[0].affected_entities = affectedEntities;
                     pendingChanges[0].delete_affected = shouldDelete;
                 }
-                applyChangesToEntity(pendingChanges, function() {
-                    window.location.href = "{{ url_for('entity.about', subject=subject) }}";
+                
+                // Use the new primary source dialog
+                showPrimarySourceDialog({
+                    defaultPrimarySource: default_primary_source,
+                    formatSourceApiUrl: format_source_api_url,
+                    onConfirm: function(primarySourceUrl, saveAsDefault) {
+                        // Add primary source information to the first change
+                        if (pendingChanges.length > 0) {
+                            pendingChanges[0].primary_source = primarySourceUrl;
+                            pendingChanges[0].save_default_source = saveAsDefault;
+                        }
+                        
+                        applyChangesToEntity(pendingChanges, function() {
+                            window.location.href = "{{ url_for('entity.about', subject=subject) }}";
+                        });
+                    }
                 });
             });
         });
@@ -935,14 +953,12 @@ $(document).ready(function() {
             limit: 5 // Adjust limit as needed
         },
         success: function(response) {
-            console.log("API Response:", response); // Log the whole response
             loadingIndicator.remove();
             if (response.status === 'success' && response.results && response.results.length > 0) {
                 similarResourcesContainer.empty(); // Clear previous results
                 noSimilarResourcesMessage.hide();
 
                 response.results.forEach(function(simRes, index) {
-                    console.log(`Processing item ${index}:`, simRes);
                     let typesHtml = '';
                     if (simRes.types && simRes.types.length > 0) {
                         // Use the pre-fetched type_labels from the API response
@@ -953,7 +969,6 @@ $(document).ready(function() {
                     let compareUrl = "{{ url_for('merge.compare_and_merge', subject='SUBJECT_PLACEHOLDER', other_subject='OTHER_PLACEHOLDER') }}";
                     compareUrl = compareUrl.replace('SUBJECT_PLACEHOLDER', encodeURIComponent(subjectUri));
                     compareUrl = compareUrl.replace('OTHER_PLACEHOLDER', encodeURIComponent(simRes.uri));
-                    console.log(compareUrl);
                     const itemHtml = `
                         <div class="list-group-item" style="position: relative;">
                             <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">

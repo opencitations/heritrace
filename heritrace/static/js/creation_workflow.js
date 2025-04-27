@@ -152,12 +152,18 @@ function initializeMandatoryElements(container) {
     });
 }
 
-// Function to initialize the form based on the selected entity type
 function initializeForm() {
     let selectedUri;
     if ($('#entity_type').length) {
-        // In create_entity.jinja
         selectedUri = $('#entity_type').val();
+
+        if (!selectedUri) {
+            selectedUri = $('#entity_type option:not(:disabled):first').val();
+            if (selectedUri) {
+                $('#entity_type').val(selectedUri);
+            }
+        }
+
         $('#entity_type option').prop('selected', function() {
             return this.value === selectedUri;
         });

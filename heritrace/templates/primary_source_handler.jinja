@@ -1,0 +1,145 @@
+<script>
+    /**
+     * Primary Source Handler
+     * 
+     * Handles primary source functionality across different pages in the application
+     */
+    
+    function debounce(func, wait, immediate) {
+        let timeout;
+        return function() {
+            const context = this, args = arguments;
+            const later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            const callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    }
+    
+    /**
+     * Updates the preview of a primary source
+     * 
+     * @param {string} url - The URL to preview
+     * @param {string} formatSourceApiUrl - The API endpoint for formatting the source
+     * @param {object} elements - DOM elements (previewContainer, labelContainer)
+     * @param {string} originalDefaultSource - The original default source URL
+     */
+    function updatePrimarySourcePreview(url, formatSourceApiUrl, elements, originalDefaultSource) {
+        const { previewContainer, labelContainer } = elements;
+        
+        if (!url) {
+            labelContainer.text('{{ _("Source (Optional):") }}');
+        } else if (url === originalDefaultSource) {
+            labelContainer.text('{{ _("Current Default:") }}');
+        } else {
+            labelContainer.text('{{ _("Preview:") }}');
+        }
+    
+        if (!url) {
+            previewContainer.html('{{ _("No primary source will be recorded") }}');
+            return;
+        }
+    
+        if (!validateUrl(url)) {
+            previewContainer.html('{{ _("Enter a valid URL or leave blank") }}');
+            return;
+        }
+    
+        previewContainer.html(
+            `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> {{ _("Loading...") }}`
+        );
+        
+        $.ajax({
+            url: formatSourceApiUrl,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ url: url }),
+            success: function(response) {
+                previewContainer.html(response.formatted_html);
+            },
+            error: function() {
+                previewContainer.html(
+                    `<a href="${url}" target="_blank">${url}</a> <small class="text-danger">({{ _("Preview failed to load") }})</small>`
+                );
+            }
+        });
+    }
+    
+    /**
+     * Shows a primary source input dialog
+     * 
+     * @param {Object} options - Configuration options
+     * @param {string} options.defaultPrimarySource - Default primary source URL
+     * @param {string} options.formatSourceApiUrl - API URL for formatting sources
+     * @param {function} options.onConfirm - Callback when user confirms
+     * @param {string} options.confirmButtonText - Text for the confirm button
+     */
+    function showPrimarySourceDialog(options) {
+        const { defaultPrimarySource, formatSourceApiUrl, onConfirm, confirmButtonText } = options;
+        
+        Swal.fire({
+            title: '{{ _("Enter Primary Source") }}',
+            html: `
+                <p>{{ _("Please provide the URL of the primary source for this entity, or leave blank if not applicable") }}</p>
+                <div class="mb-2"><strong id="primary-source-label">{{ _("Current Default:") }}</strong></div>
+                <div id="primary-source-preview" class="default-source-preview p-2 border rounded bg-light">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    {{ _("Loading preview...") }}
+                </div>
+            `,
+            input: 'url',
+            inputValue: defaultPrimarySource || '',
+            inputPlaceholder: '{{ _("Enter the URL") }}',
+            showCancelButton: true,
+            confirmButtonText: confirmButtonText || '{{ _("Confirm") }}',
+            cancelButtonText: '{{ _("Cancel") }}',
+            footer: `
+                <div class="form-check" style="text-align: left;">
+                    <input type="checkbox" class="form-check-input" id="save-default-source">
+                    <label class="form-check-label" for="save-default-source">{{ _("Save this URL as my default primary source") }}</label>
+                </div>
+            `,
+            didOpen: () => {
+                const previewContainer = $('#primary-source-preview');
+                const swalInput = Swal.getInput();
+                const labelContainer = $('#primary-source-label');
+                const elements = { previewContainer, labelContainer };
+                
+                if (defaultPrimarySource) {
+                    updatePrimarySourcePreview(defaultPrimarySource, formatSourceApiUrl, elements, defaultPrimarySource);
+                } else {
+                    previewContainer.html('{{ _("No default source set") }}');
+                    labelContainer.text('{{ _("Source:") }}');
+                }
+    
+                if (swalInput) {
+                    const debouncedUpdatePreview = debounce(
+                        (url) => updatePrimarySourcePreview(url, formatSourceApiUrl, elements, defaultPrimarySource), 
+                        500
+                    );
+                    
+                    $(swalInput).on('input', function() {
+                        debouncedUpdatePreview($(this).val());
+                    });
+                }
+            },
+            inputValidator: (value) => {
+                if (!value) return null;
+                return validateUrl(value) ? null : '{{ _("Please enter a valid URL or leave blank.") }}';
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const primarySourceUrl = result.value;
+                const saveAsDefault = $('#save-default-source').is(':checked');
+                
+                if (onConfirm) {
+                    onConfirm(primarySourceUrl, saveAsDefault);
+                }
+            }
+        });
+    }
+</script> 
