@@ -21,7 +21,7 @@ from heritrace.utils.strategies import (OrphanHandlingStrategy,
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, Graph, URIRef
 from resources.datatypes import DATATYPE_MAPPING
-from SPARQLWrapper import JSON
+import validators
 
 api_bp = Blueprint("api", __name__)
 
@@ -927,3 +927,27 @@ def get_human_readable_entity():
     filter_instance = custom_filter
     readable = filter_instance.human_readable_entity(uri, [entity_class])
     return readable
+
+
+@api_bp.route('/api/format-source', methods=['POST'])
+@login_required
+def format_source_api():
+    """
+    API endpoint to format a source URL using the application's filters.
+    Accepts POST request with JSON body: {"url": "source_url"}
+    Returns JSON: {"formatted_html": "html_string"}
+    """
+    data = request.get_json()
+    source_url = data.get('url')
+
+    if not source_url or not validators.url(source_url):
+        return jsonify({"error": gettext("Invalid or missing URL")}), 400
+
+    try:
+        custom_filter = get_custom_filter()
+        formatted_html = custom_filter.format_source_reference(source_url)
+        return jsonify({"formatted_html": formatted_html})
+    except Exception as e:
+        current_app.logger.error(f"Error formatting source URL '{source_url}': {e}")
+        fallback_html = f'<a href="{source_url}" target="_blank">{source_url}</a>'
+        return jsonify({"formatted_html": fallback_html})

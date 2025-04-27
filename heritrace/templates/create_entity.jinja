@@ -101,6 +101,22 @@
 {% include 'validation.jinja' %}
 
 <script>
+
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    };
+
     $(document).ready(function() {
         // Funzione per validare il valore in tempo reale con AJAX
         function validateValue(propertyId, value) {
@@ -397,79 +413,177 @@
                 }
             }
 
-            // Gestione degli errori
             if (errors.length > 0) {
-                displayValidationErrors(errors);   
-                return; // Interrompe l'invio del form
+                displayValidationErrors(errors);
+                return;
             }
 
-            // Se non ci sono errori, procedi con l'invio dei dati
-            let structuredData = {};
+            Swal.fire({
+                title: '{{ _("Enter Primary Source") }}',
+                html: `
+                    <p>{{ _("Please provide the URL of the primary source for this entity, or leave blank if not applicable") }}</p>
+                    <div class="mb-2"><strong id="primary-source-label">{{ _("Current Default:") }}</strong></div>
+                    <div id="primary-source-preview" class="default-source-preview p-2 border rounded bg-light">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        {{ _("Loading preview...") }}
+                    </div>
+                `,
+                input: 'url',
+                inputValue: '{{ default_primary_source }}',
+                inputPlaceholder: 'Enter the URL',
+                showCancelButton: true,
+                confirmButtonText: '{{ _("Confirm and Create") }}',
+                cancelButtonText: '{{ _("Cancel") }}',
+                footer: `
+                    <div class="form-check" style="text-align: left;">
+                        <input type="checkbox" class="form-check-input" id="save-default-source">
+                        <label class="form-check-label" for="save-default-source">{{ _("Save this URL as my default primary source") }}</label>
+                    </div>
+                `,
+                didOpen: () => {
+                    const previewContainer = $('#primary-source-preview');
+                    const swalInput = Swal.getInput();
+                    const defaultSourceUrl = '{{ default_primary_source }}';
+                    const labelContainer = $('#primary-source-label');
+                    
+                    const updatePrimarySourcePreview = (url) => {
+                        const previewContainer = $('#primary-source-preview');
+                        const labelContainer = $('#primary-source-label');
+                        const originalDefaultSource = '{{ default_primary_source }}';
 
-            if ('{{shacl}}' === 'True') {
-                structuredData = {
-                    entity_type: $('#entity_type').val(),
-                    properties: {}
-                };
-                collectFormData($('#entityForm'), structuredData.properties, '{{ shacl }}', 0);
-            } else {
-                structuredData = {
-                    properties: {}
-                };
-                collectFormData(null, structuredData.properties, '{{ shacl }}', 0);
-            }
+                        if (!url) {
+                            labelContainer.text('{{ _("Source (Optional):") }}');
+                        } else if (url === originalDefaultSource) {
+                            labelContainer.text('{{ _("Current Default:") }}');
+                        } else {
+                            labelContainer.text('{{ _("Preview:") }}');
+                        }
 
-            showLoadingIndicator();
+                        if (!url) {
+                            previewContainer.html('{{ _("No primary source will be recorded.") }}');
+                            return;
+                        }
 
-            $.ajax({
-                url: '{{ url_for("entity.create_entity") }}',
-                type: 'POST',
-                data: {
-                    structured_data: JSON.stringify(structuredData)
-                },
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: function(response) {
-                    hideLoadingIndicator();
-                    if (response.status === 'success') {
-                        // Reindirizza alla pagina dell'entità creata
-                        window.location.href = response.redirect_url;
-                    }
-                },
-                error: function(xhr) {
-                    hideLoadingIndicator();
-                    if (xhr.status === 400) {
-                        let response = JSON.parse(xhr.responseText);
-                        let errors = response.errors;
+                        if (!validateUrl(url)) {
+                            previewContainer.html('{{ _("Enter a valid URL or leave blank") }}');
+                            return;
+                        }
 
-                        // Mostra gli errori all'utente
-                        let errorMessage = '<ul style="list-style-type: none; padding-left: 0;">';
-                        errors.forEach(function(error) {
-                            errorMessage += `
-                                <li style="margin-bottom: 8px; display: flex; align-items: flex-start; text-align: left">
-                                    <span style="color: #d32f2f; margin-right: 8px;">&#9888;</span>
-                                    <span>` + error + `</span>
-                                </li>
-                            `;
+                        previewContainer.html(
+                            `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> {{ _("Loading...") }}`
+                        );
+                        $.ajax({
+                            url: '{{ url_for("api.format_source_api") }}',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ url: url }),
+                            success: function(response) {
+                                previewContainer.html(response.formatted_html);
+                            },
+                            error: function() {
+                                previewContainer.html(`<a href="${url}" target="_blank">${url}</a> <small class="text-danger">(${ '{{ _("Preview failed to load") }}' })</small>`);
+                            }
                         });
-                        errorMessage += '</ul>';
+                    };
 
-                        Swal.fire({
-                            icon: 'error',
-                            title: '{{ _("Validation Errors") }}',
-                            html: errorMessage,
-                            confirmButtonText: '{{ _("OK") }}',
-                        });
+                    const debouncedUpdatePreview = debounce(updatePrimarySourcePreview, 500);
+
+                    if (defaultSourceUrl) {
+                       updatePrimarySourcePreview(defaultSourceUrl);
                     } else {
-                        // Gestisci altri errori (ad esempio errori 500)
-                        Swal.fire({
-                            icon: 'error',
-                            title: '{{ _("An error occurred") }}',
-                            text: '{{ _("Please try again later") }}',
-                            confirmButtonText: '{{ _("OK") }}',
+                        previewContainer.html('{{ _("No default source set") }}');
+                        labelContainer.text('{{ _("Source:") }}');
+                    }
+
+                    if (swalInput) {
+                        $(swalInput).on('input', function() {
+                            debouncedUpdatePreview($(this).val());
                         });
                     }
+                },
+                inputValidator: (value) => {
+                    if (!value) {
+                        return null;
+                    }
+                    try {
+                        new URL(value);
+                    } catch (_) {
+                        return '{{ _("Please enter a valid URL or leave blank.") }}';
+                    }
+                    return null;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const primarySourceUrl = result.value;
+                    const saveAsDefault = $('#save-default-source').is(':checked');
+
+                    let structuredData = {};
+
+                    if ('{{shacl}}' === 'True') {
+                        structuredData = {
+                            entity_type: $('#entity_type').val(),
+                            properties: {}
+                        };
+                        collectFormData($('#entityForm'), structuredData.properties, '{{ shacl }}', 0);
+                    } else {
+                        structuredData = {
+                            properties: {}
+                        };
+                        collectFormData(null, structuredData.properties, '{{ shacl }}', 0);
+                    }
+
+                    showLoadingIndicator();
+
+                    $.ajax({
+                        url: '{{ url_for("entity.create_entity") }}',
+                        type: 'POST',
+                        data: {
+                            structured_data: JSON.stringify(structuredData),
+                            primary_source: primarySourceUrl,
+                            save_default_source: saveAsDefault
+                        },
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        success: function(response) {
+                            hideLoadingIndicator();
+                            if (response.status === 'success') {
+                                window.location.href = response.redirect_url;
+                            }
+                        },
+                        error: function(xhr) {
+                            hideLoadingIndicator();
+                            if (xhr.status === 400) {
+                                let response = JSON.parse(xhr.responseText);
+                                let errors = response.errors;
+
+                                let errorMessage = '<ul style="list-style-type: none; padding-left: 0;">';
+                                errors.forEach(function(error) {
+                                    errorMessage += `
+                                        <li style="margin-bottom: 8px; display: flex; align-items: flex-start; text-align: left">
+                                            <span style="color: #d32f2f; margin-right: 8px;">&#9888;</span>
+                                            <span>` + error + `</span>
+                                        </li>
+                                    `;
+                                });
+                                errorMessage += '</ul>';
+
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: '{{ _("Validation Errors") }}',
+                                    html: errorMessage,
+                                    confirmButtonText: '{{ _("OK") }}',
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: '{{ _("An error occurred") }}',
+                                    text: '{{ _("Please try again later") }}',
+                                    confirmButtonText: '{{ _("OK") }}',
+                                });
+                            }
+                        }
+                    });
                 }
             });
         });

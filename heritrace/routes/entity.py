@@ -9,12 +9,13 @@ from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
 from flask_babel import gettext
 from flask_login import current_user, login_required
 from heritrace.editor import Editor
-from heritrace.extensions import (get_change_tracking_config,
-                                  get_custom_filter, get_dataset_endpoint,
-                                  get_dataset_is_quadstore, get_display_rules,
-                                  get_form_fields, get_provenance_endpoint,
-                                  get_provenance_sparql, get_shacl_graph,
-                                  get_sparql)
+from heritrace.extensions import (
+    get_change_tracking_config,
+    get_custom_filter, get_dataset_endpoint,
+    get_dataset_is_quadstore, get_display_rules,
+    get_form_fields, get_provenance_endpoint,
+    get_provenance_sparql, get_shacl_graph,
+    get_sparql)
 from heritrace.forms import *
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (get_class_priority,
@@ -37,6 +38,8 @@ from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 entity_bp = Blueprint("entity", __name__)
+
+USER_DEFAULT_SOURCE_KEY = "user:{user_id}:default_primary_source"
 
 
 @entity_bp.route("/about/<path:subject>")
@@ -207,6 +210,17 @@ def about(subject):
 @login_required
 def create_entity():
     form_fields = get_form_fields()
+    
+    user_default_source = None
+    if current_user.is_authenticated:
+        key = USER_DEFAULT_SOURCE_KEY.format(user_id=current_user.orcid)
+        try:
+            user_default_source = current_app.redis_client.get(key)
+        except Exception as e:
+            current_app.logger.error(f"Failed to get user default primary source from Redis: {e}")
+            user_default_source = None # Ensure it's None on error
+    
+    default_primary_source = user_default_source or current_app.config["PRIMARY_SOURCE"]
 
     entity_types = sorted(
         [
@@ -253,13 +267,26 @@ def create_entity():
 
     if request.method == "POST":
         structured_data = json.loads(request.form.get("structured_data", "{}"))
+        primary_source = request.form.get("primary_source") or None
+        save_default_source = request.form.get("save_default_source") == 'true'
+
+        if primary_source and not validators.url(primary_source):
+            return jsonify({"status": "error", "errors": [gettext("Invalid primary source URL provided")]}), 400
+            
+        if save_default_source and primary_source and validators.url(primary_source):
+            try:
+                key = USER_DEFAULT_SOURCE_KEY.format(user_id=current_user.orcid)
+                current_app.redis_client.set(key, primary_source)
+                current_app.logger.info(f"Saved new default primary source for user {current_user.orcid}: {primary_source}")
+            except Exception as e:
+                current_app.logger.error(f"Failed to save user default primary source to Redis: {e}")
 
         editor = Editor(
             get_dataset_endpoint(),
             get_provenance_endpoint(),
             current_app.config["COUNTER_HANDLER"],
             URIRef(f"https://orcid.org/{current_user.orcid}"),
-            current_app.config["PRIMARY_SOURCE"],
+            primary_source,
             current_app.config["DATASET_GENERATION_TIME"],
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
@@ -458,6 +485,7 @@ def create_entity():
         dataset_db_text_index_enabled=current_app.config[
             "DATASET_DB_TEXT_INDEX_ENABLED"
         ],
+        default_primary_source=default_primary_source,
     )
 
 
