@@ -223,6 +223,12 @@
     </div>
     {# Always render the 'no results' message, initially hidden by JS #}
     <p class="alert alert-info" style="display: none;">{{ _('No potentially similar resources found') }}</p>
+    {# Add a "Load More" button, initially hidden #}
+    <div class="text-center mt-3">
+        <button id="loadMoreSimilarResourcesBtn" class="btn btn-outline-primary" style="display: none;">
+            <i class="bi bi-arrow-down-circle me-2"></i>{{ _('Load More') }}
+        </button>
+    </div>
 </div>
 {# End New Similar Resources Section #}
 
@@ -570,7 +576,7 @@
             var listItem = $(this);
             
             // Remove strikethrough only from the value display elements, excluding date
-            listItem.find('.tripleObject > span > a, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').removeClass('striked');
+            listItem.find('.draggable-entity-link, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').removeClass('striked');
             
             listItem.find('.editable-field').prop('readonly', false);
             listItem.find('.editable-select').prop('disabled', false);
@@ -729,7 +735,7 @@
             const orderedBy = listItem.data('ordered_by');
             
             // Apply strikethrough only to the value display elements, excluding date (handled by toggleDateStrike)
-            listItem.find('.tripleObject > span > a, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').addClass('striked');
+            listItem.find('.draggable-entity-link, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').addClass('striked');
             
             listItem.find('.editable-field').prop('readonly', true);
             listItem.find('.editable-select').prop('disabled', true);
@@ -777,7 +783,7 @@
                 
                 undoButton.click(function() {
                     // Remove strikethrough only from the value display elements, excluding date
-                    listItem.find('.tripleObject > span > a, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').removeClass('striked');
+                    listItem.find('.draggable-entity-link, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').removeClass('striked');
                     
                     listItem.find('.editable-field').prop('readonly', false);
                     listItem.find('.editable-select').prop('disabled', false);
@@ -932,7 +938,14 @@ $(document).ready(function() {
     const entityType = "{{ entity_type }}"; // Make sure entity_type is the primary one
     const similarResourcesContainer = $('.similar-resources .list-group');
     const noSimilarResourcesMessage = $('.similar-resources .alert-info');
+    const loadMoreButton = $('#loadMoreSimilarResourcesBtn');
     const loadingIndicator = $('<div class="text-center my-3"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">{{ _("Loading...") }}</span></div></div>');
+    
+    // Pagination variables
+    const resultsPerPage = 5;
+    let currentPage = 1;
+    let totalResultsLoaded = 0;
+    let hasMoreResults = false;
 
     if (!entityType) {
         console.warn("Entity type not available for similarity check.");
@@ -940,70 +953,101 @@ $(document).ready(function() {
         return; // Don't proceed if entity type is missing
     }
 
-    // Show loading indicator
-    similarResourcesContainer.hide();
-    noSimilarResourcesMessage.hide();
-    $('.similar-resources').append(loadingIndicator);
-    $.ajax({
-        url: "{{ url_for('merge.find_similar_resources') }}",
-        method: 'GET',
-        data: {
-            subject_uri: subjectUri,
-            entity_type: entityType,
-            limit: 5 // Adjust limit as needed
-        },
-        success: function(response) {
-            loadingIndicator.remove();
-            if (response.status === 'success' && response.results && response.results.length > 0) {
-                similarResourcesContainer.empty(); // Clear previous results
-                noSimilarResourcesMessage.hide();
-
-                response.results.forEach(function(simRes, index) {
-                    let typesHtml = '';
-                    if (simRes.types && simRes.types.length > 0) {
-                        // Use the pre-fetched type_labels from the API response
-                        simRes.type_labels.forEach(function(typeLabel) {
-                            typesHtml += `<span class="badge bg-secondary me-1">${typeLabel}</span>`;
-                        });
+    function loadSimilarResources(page) {
+        similarResourcesContainer.find('.spinner-container').remove();
+        loadMoreButton.hide();
+        $('.similar-resources').append(loadingIndicator);
+        
+        $.ajax({
+            url: "{{ url_for('merge.find_similar_resources') }}",
+            method: 'GET',
+            data: {
+                subject_uri: subjectUri,
+                entity_type: entityType,
+                limit: resultsPerPage,
+                offset: (page - 1) * resultsPerPage
+            },
+            success: function(response) {
+                loadingIndicator.remove();
+                
+                if (response.status === 'success' && response.results && response.results.length > 0) {
+                    if (page === 1) {
+                        similarResourcesContainer.empty();
                     }
-                    let compareUrl = "{{ url_for('merge.compare_and_merge', subject='SUBJECT_PLACEHOLDER', other_subject='OTHER_PLACEHOLDER') }}";
-                    compareUrl = compareUrl.replace('SUBJECT_PLACEHOLDER', encodeURIComponent(subjectUri));
-                    compareUrl = compareUrl.replace('OTHER_PLACEHOLDER', encodeURIComponent(simRes.uri));
-                    const itemHtml = `
-                        <div class="list-group-item" style="position: relative;">
-                            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
-                                <div class="d-flex flex-wrap flex-grow-1 align-items-baseline gap-2 me-2 linked-resource-content">
-                                    <a href="{{ url_for('entity.about', subject='') }}${encodeURIComponent(simRes.uri)}" class="text-primary text-break" title="{{ _('View entity') }}">
-                                        ${simRes.label || simRes.uri} {# Fallback to URI if label is missing #}
+                    
+                    noSimilarResourcesMessage.hide();
+                    
+                    response.results.forEach(function(simRes) {
+                        let typesHtml = '';
+                        if (simRes.types && simRes.types.length > 0) {
+                            simRes.type_labels.forEach(function(typeLabel) {
+                                typesHtml += `<span class="badge bg-secondary me-1">${typeLabel}</span>`;
+                            });
+                        }
+                        let compareUrl = "{{ url_for('merge.compare_and_merge', subject='SUBJECT_PLACEHOLDER', other_subject='OTHER_PLACEHOLDER') }}";
+                        compareUrl = compareUrl.replace('SUBJECT_PLACEHOLDER', encodeURIComponent(subjectUri));
+                        compareUrl = compareUrl.replace('OTHER_PLACEHOLDER', encodeURIComponent(simRes.uri));
+                        const itemHtml = `
+                            <div class="list-group-item" style="position: relative;">
+                                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
+                                    <div class="d-flex flex-wrap flex-grow-1 align-items-baseline gap-2 me-2 linked-resource-content">
+                                        <a href="{{ url_for('entity.about', subject='') }}${encodeURIComponent(simRes.uri)}" class="text-primary text-break" title="{{ _('View entity') }}">
+                                            ${simRes.label || simRes.uri}
+                                        </a>
+                                    </div>
+                                    <a href="${compareUrl}"
+                                       class="btn btn-sm btn-outline-primary merge-btn"
+                                       title="{{ _('Compare and merge with this entity') }}">
+                                        <i class="bi bi-intersect me-1"></i> {{ _('Merge') }}
                                     </a>
                                 </div>
-                                <a href="${compareUrl}"
-                                   class="btn btn-sm btn-outline-primary merge-btn"
-                                   title="{{ _('Compare and merge with this entity') }}">
-                                    <i class="bi bi-intersect me-1"></i> {{ _('Merge') }}
-                                </a>
+                                ${typesHtml ? `<div class="text-muted small mt-2">${typesHtml}</div>` : ''}
                             </div>
-                            ${typesHtml ? `<div class="text-muted small mt-2">${typesHtml}</div>` : ''}
-                        </div>
-                    `;
-                    similarResourcesContainer.append(itemHtml);
-                });
-                similarResourcesContainer.show();
-            } else {
-                noSimilarResourcesMessage.show(); // Ensure this is shown
-                similarResourcesContainer.hide();
-                 if (response.status !== 'success') {
-                    console.error("Error fetching similar resources:", response.message);
-                    noSimilarResourcesMessage.text("{{ _('Error loading similar resources.') }}");
+                        `;
+                        similarResourcesContainer.append(itemHtml);
+                    });
+                    
+                    totalResultsLoaded += response.results.length;
+                    hasMoreResults = response.results.length === resultsPerPage && response.has_more !== false;
+                    
+                    similarResourcesContainer.show();
+                    if (hasMoreResults) {
+                        loadMoreButton.show();
+                    } else {
+                        loadMoreButton.hide();
+                    }
+                } else {
+                    if (page === 1) {
+                        noSimilarResourcesMessage.show();
+                        similarResourcesContainer.hide();
+                        loadMoreButton.hide();
+                    } else {
+                        loadMoreButton.hide();
+                    }
+                    
+                    if (response.status !== 'success') {
+                        console.error("Error fetching similar resources:", response.message);
+                        noSimilarResourcesMessage.text("{{ _('Error loading similar resources.') }}");
+                    }
                 }
+            },
+            error: function(jqXHR) {
+                loadingIndicator.remove();
+                if (page === 1) {
+                    similarResourcesContainer.hide();
+                    noSimilarResourcesMessage.text("{{ _('Error loading similar resources.') }}").show();
+                }
+                loadMoreButton.hide();
+                console.error("AJAX error fetching similar resources:", jqXHR.statusText);
             }
-        },
-        error: function(jqXHR) {
-            loadingIndicator.remove();
-            similarResourcesContainer.hide();
-            noSimilarResourcesMessage.text("{{ _('Error loading similar resources.') }}").show();
-            console.error("AJAX error fetching similar resources:", jqXHR.statusText);
-        }
+        });
+    }
+    
+    loadSimilarResources(currentPage);
+    
+    loadMoreButton.on('click', function() {
+        currentPage++;
+        loadSimilarResources(currentPage);
     });
 });
 </script>

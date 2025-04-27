@@ -214,6 +214,7 @@ def find_similar_resources():
     subject_uri = request.args.get("subject_uri")
     entity_type = request.args.get("entity_type") # Primary entity type
     limit = int(request.args.get("limit", 5))
+    offset = int(request.args.get("offset", 0))
 
     if not subject_uri or not entity_type:
         return jsonify({"status": "error", "message": gettext("Missing required parameters (subject_uri, entity_type)")}), 400
@@ -271,6 +272,28 @@ def find_similar_resources():
         if not similarity_conditions:
             return jsonify({"status": "success", "results": []})
 
+        # Get total count query (for pagination)
+        count_query_parts = [
+            "SELECT (COUNT(DISTINCT ?similar) as ?count) WHERE {",
+            f"  ?similar a <{entity_type}> .",
+            f"  FILTER(?similar != <{subject_uri}>)",
+            "  {",
+            "    " + " \n    UNION\n    ".join(similarity_conditions),
+            "  }",
+            "}"
+        ]
+        count_query = "\n".join(count_query_parts)
+
+        sparql.setQuery(count_query)
+        sparql.setReturnFormat(JSON)
+        count_results = sparql.query().convert()
+        total_count = 0
+        if count_results.get("results", {}).get("bindings", []):
+            count_binding = count_results["results"]["bindings"][0]
+            if "count" in count_binding:
+                total_count = int(count_binding["count"]["value"])
+
+        # Main query with pagination
         query_parts = [
             "SELECT DISTINCT ?similar WHERE {",
             f"  ?similar a <{entity_type}> .",
@@ -278,7 +301,7 @@ def find_similar_resources():
             "  {",
             "    " + " \n    UNION\n    ".join(similarity_conditions),
             "  }",
-            f"}} LIMIT {limit}"
+            f"}} OFFSET {offset} LIMIT {limit}"
         ]
         final_query = "\n".join(query_parts)
 
@@ -299,7 +322,13 @@ def find_similar_resources():
                 "type_labels": type_labels
             })
 
-        return jsonify({"status": "success", "results": transformed_results})
+        has_more = offset + limit < total_count
+        return jsonify({
+            "status": "success", 
+            "results": transformed_results, 
+            "has_more": has_more,
+            "total_count": total_count
+        })
 
     except Exception as e:
         tb_str = traceback.format_exc()
