@@ -956,7 +956,7 @@ def get_human_readable_entity():
     return readable
 
 
-@api_bp.route('/api/format-source', methods=['POST'])
+@api_bp.route('/format-source', methods=['POST'])
 @login_required
 def format_source_api():
     """

@@ -179,39 +179,28 @@
     </div>
 </div>
 
-<div class="inverse-references">
-    <h4 class="mb-4">{{ _('Linked Resources') }}</h4>
-    {% if inverse_references %}
-        <div class="list-group">
-        {% for ref in inverse_references %}
-            <div class="list-group-item">
-                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
-                    <div class="d-flex flex-wrap flex-grow-1 align-items-baseline gap-2 me-2 linked-resource-content">
-                        <a href="{{ url_for('entity.about', subject=ref.subject) }}" class="text-primary text-break">
-                            {{ ref.subject | human_readable_entity(ref.types) }}
-                        </a>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted">→</span>
-                            <span class="text-muted text-break">{{ ref.predicate | human_readable_predicate(ref.types) }}</span>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('entity.about', subject=ref.subject) }}" 
-                       class="btn btn-sm btn-outline-primary redirection-btn" 
-                       title="{{ _('View entity') }}">
-                        <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
-                    </a>
-                </div>
-                <div class="text-muted small mt-2">
-                    {% for type in ref.types %}
-                        <span class="badge bg-secondary me-1">{{ type | human_readable_predicate(ref.types) }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endfor %}
+<div class="linked-resources mt-5">
+    <h4 class="mb-4">{{ _('Resources Referencing This') }}</h4>
+    {# Container for dynamically loaded linked resources #}
+    <div class="list-group linked-resources-container">
+        {# Content will be added dynamically by JavaScript #}
+    </div>
+    {# Loading indicator #}
+    <div class="linked-resources-loading text-center my-3" style="display: none;">
+        <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">{{ _("Loading...") }}</span>
         </div>
-    {% else %}
-        <p class="alert alert-info">{{ _('No resources reference this resource') }}</p>
-    {% endif %}
+    </div>
+    {# Message shown when no linked resources are found #}
+    <p class="alert alert-info linked-resources-none" style="display: none;">
+        {{ _('No resources reference this resource') }}
+    </p>
+    {# "Load More" button #}
+    <div class="text-center mt-3">
+        <button id="loadMoreLinkedResourcesBtn" class="btn btn-outline-primary" style="display: none;">
+            <i class="bi bi-arrow-down-circle me-2"></i>{{ _('Load More') }}
+        </button>
+    </div>
 </div>
 
 {# New Similar Resources Section #}
@@ -1051,4 +1040,125 @@ $(document).ready(function() {
     });
 });
 </script>
+
+{# New script for Linked Resources #}
+<script>
+$(document).ready(function() {
+    const subjectUriLinked = "{{ subject }}";
+    const linkedResourcesContainer = $('.linked-resources-container');
+    const noLinkedResourcesMessage = $('.linked-resources-none');
+    const loadMoreLinkedButton = $('#loadMoreLinkedResourcesBtn');
+    const linkedLoadingIndicator = $('.linked-resources-loading');
+
+    const linkedResultsPerPage = 5;
+    let linkedCurrentPage = 1;
+    let linkedTotalLoaded = 0;
+    let linkedHasMore = true; // Assume more initially
+
+    function loadLinkedResources(page) {
+        if (!linkedHasMore) return;
+
+        linkedLoadingIndicator.show();
+        loadMoreLinkedButton.hide();
+
+        $.ajax({
+            url: "{{ url_for('linked_resources.get_linked_resources_api') }}", // Use the new endpoint
+            method: 'GET',
+            data: {
+                subject_uri: subjectUriLinked,
+                limit: linkedResultsPerPage,
+                offset: (page - 1) * linkedResultsPerPage
+            },
+            success: function(response) {
+                linkedLoadingIndicator.hide();
+
+                if (response.status === 'success' && response.results && response.results.length > 0) {
+                    if (page === 1) {
+                        linkedResourcesContainer.empty(); // Clear only on first load
+                    }
+                    noLinkedResourcesMessage.hide();
+
+                    response.results.forEach(function(ref) {
+                        let typesHtml = '';
+                        if (ref.type_labels && ref.type_labels.length > 0) {
+                            ref.type_labels.forEach(function(typeLabel) {
+                                typesHtml += `<span class="badge bg-secondary me-1">${typeLabel}</span>`;
+                            });
+                        }
+                        
+                        const itemHtml = `
+                            <div class="list-group-item">
+                                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
+                                    <div class="d-flex flex-wrap flex-grow-1 align-items-baseline gap-2 me-2 linked-resource-content" style="word-break: break-word;">
+                                        <a href="{{ url_for('entity.about', subject='') }}${encodeURIComponent(ref.subject)}" class="text-primary text-break" title="{{ _('View entity') }}">
+                                            ${ref.label || ref.subject}
+                                        </a>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="text-muted">←</span>
+                                            <span class="text-muted text-break">${ref.predicate_label || ref.predicate}</span>
+                                        </div>
+                                    </div>
+                                    <a href="{{ url_for('entity.about', subject='') }}${encodeURIComponent(ref.subject)}" 
+                                       class="btn btn-sm btn-outline-primary redirection-btn" 
+                                       title="{{ _('View entity') }}">
+                                        <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
+                                    </a>
+                                </div>
+                                ${typesHtml ? `<div class="text-muted small mt-2">${typesHtml}</div>` : ''}
+                            </div>
+                        `;
+                        linkedResourcesContainer.append(itemHtml);
+                    });
+
+                    linkedTotalLoaded += response.results.length;
+                    linkedHasMore = response.has_more;
+
+                    linkedResourcesContainer.show();
+                    if (linkedHasMore) {
+                        loadMoreLinkedButton.show();
+                    } else {
+                        loadMoreLinkedButton.hide();
+                    }
+
+                } else {
+                    linkedHasMore = false;
+                    if (page === 1) {
+                        noLinkedResourcesMessage.show();
+                        linkedResourcesContainer.hide();
+                    }
+                    loadMoreLinkedButton.hide();
+
+                    if (response.status !== 'success') {
+                        console.error("Error fetching linked resources:", response.message);
+                        if (page === 1) {
+                           noLinkedResourcesMessage.text("{{ _('Error loading linked resources.') }}").show();
+                        }
+                    }
+                }
+            },
+            error: function(jqXHR) {
+                linkedLoadingIndicator.hide();
+                linkedHasMore = false;
+                 if (page === 1) {
+                    linkedResourcesContainer.hide();
+                    noLinkedResourcesMessage.text("{{ _('Error loading linked resources.') }}").show();
+                }
+                loadMoreLinkedButton.hide();
+                console.error("AJAX error fetching linked resources:", jqXHR.statusText);
+            }
+        });
+    }
+
+    // Initial load
+    loadLinkedResources(linkedCurrentPage);
+
+    // Load more on button click
+    loadMoreLinkedButton.on('click', function() {
+        linkedCurrentPage++;
+        loadLinkedResources(linkedCurrentPage);
+    });
+});
+</script>
+{# End New Linked Resources script #}
+
 {% endblock %}

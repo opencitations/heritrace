@@ -2,30 +2,20 @@
 Unit tests for entity-related functions in entity.py.
 These tests focus on the modification, references, and snapshot functionality.
 """
-import threading
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Tuple
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
-from heritrace.routes.entity import (apply_modifications,
-                                     compute_graph_differences,
-                                     create_nested_entity, determine_datatype,
+from heritrace.routes.entity import (compute_graph_differences,
                                      find_appropriate_snapshot,
                                      format_triple_modification,
-                                     generate_modification_text,
-                                     generate_unique_uri,
-                                     get_entities_to_restore, get_entity_types,
-                                     get_inverse_references, get_object_label,
-                                     get_predicate_count,
+                                     get_object_label,
                                      prepare_entity_snapshots,
                                      process_modification_data,
                                      validate_entity_data,
                                      validate_modification)
-from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.filters import Filter
-from rdflib import RDF, RDFS, XSD, Graph, Literal, URIRef, ConjunctiveGraph
+from rdflib import XSD, Graph, Literal, URIRef
 from SPARQLWrapper import JSON
 
 # ===== Entity Tests =====
@@ -521,7 +511,7 @@ def test_entity_version_timestamp_from_provenance():
     
     # Import datetime directly to avoid conflicts
     from datetime import datetime
-    
+
     # Create a Flask app for testing
     app = Flask(__name__)
     

@@ -106,7 +106,6 @@ def about(subject):
     entity_type = None
     data_graph = None
     linked_resources = []
-    inverse_references = []
 
     if not is_deleted:
         # Fetch current entity state
@@ -139,13 +138,6 @@ def about(subject):
             for _, predicate, obj in data_graph.triples((URIRef(subject), None, None)):
                 if isinstance(obj, URIRef) and str(obj) != str(subject) and predicate != RDF.type:
                     linked_resources.add(str(obj))
-
-        # Get inverse references only for non-deleted entities
-        inverse_references = get_inverse_references(subject)
-
-        # Add inverse references to linked resources
-        for ref in inverse_references:
-            linked_resources.add(ref["subject"])
 
         # Convert to list
         linked_resources = list(linked_resources)
@@ -201,7 +193,6 @@ def about(subject):
         dataset_db_text_index_enabled=current_app.config[
             "DATASET_DB_TEXT_INDEX_ENABLED"
         ],
-        inverse_references=inverse_references,
         is_deleted=is_deleted,
         context=context_snapshot,
         linked_resources=linked_resources,
@@ -1411,63 +1402,6 @@ def find_appropriate_snapshot(provenance_data: dict, target_time: str) -> Option
     # Sort by generation time and take the most recent one
     valid_snapshots.sort(key=lambda x: x[0])
     return valid_snapshots[-1][1]
-
-
-def get_inverse_references(subject_uri: str) -> List[Dict]:
-    """
-    Get all entities that reference this entity.
-
-    Args:
-        subject_uri: URI of the entity to find references to
-
-    Returns:
-        List of dictionaries containing reference information
-    """
-    sparql = get_sparql()
-    custom_filter = get_custom_filter()
-
-    # Build appropriate query based on triplestore type
-    if is_virtuoso:
-        query = f"""
-        SELECT DISTINCT ?s ?p ?g WHERE {{
-            GRAPH ?g {{
-                ?s ?p <{subject_uri}> .
-            }}
-            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
-            FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
-        }}
-        """
-    else:
-        query = f"""
-        SELECT DISTINCT ?s ?p WHERE {{
-            ?s ?p <{subject_uri}> .
-            FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
-        }}
-        """
-
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
-
-    references = []
-    for result in results["results"]["bindings"]:
-        subject = result["s"]["value"]
-        predicate = result["p"]["value"]
-
-        # Get the type of the referring entity
-        type_query = f"""
-        SELECT ?type WHERE {{
-            <{subject}> a ?type .
-        }}
-        """
-        sparql.setQuery(type_query)
-        type_results = sparql.query().convert()
-        types = [t["type"]["value"] for t in type_results["results"]["bindings"]]
-        types = [get_highest_priority_class(types)]
-
-        references.append({"subject": subject, "predicate": predicate, "types": types})
-
-    return references
 
 
 def generate_modification_text(
