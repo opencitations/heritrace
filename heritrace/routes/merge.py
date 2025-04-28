@@ -327,7 +327,9 @@ def find_similar_resources():
                     and_patterns.append(f"    ?similar <{prop_uri}> ?o_{var_counter} . FILTER(?o_{var_counter} IN ({values_filter})) .")
 
                 if can_match_and_group and and_patterns:
-                    union_blocks.append(f"  {{\n{'\n'.join(and_patterns)}\n  }}")
+                    # Construct the block with newlines outside the formatted expression
+                    patterns_str = '\n'.join(and_patterns)
+                    union_blocks.append(f"  {{\n{patterns_str}\n  }}")
 
         if not union_blocks:
             current_app.logger.info(f"Could not build any valid query blocks for similarity search for {subject_uri}.")
