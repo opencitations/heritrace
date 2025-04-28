@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Dict, Union
 from urllib.parse import unquote
 
 from heritrace.extensions import get_display_rules, get_sparql
@@ -441,14 +441,25 @@ def get_property_order_from_rules(subject_classes: list, display_rules: list) ->
     return ordered_properties
 
 
-def get_similarity_properties(entity_type: str) -> Optional[List[str]]:
-    """Gets the list of property URIs specified for similarity matching for a given entity type.
+def get_similarity_properties(entity_type: str) -> Optional[List[Union[str, Dict[str, List[str]]]]]:
+    """Gets the similarity properties configuration for a given entity type.
+
+    This configuration specifies which properties should be used for similarity matching
+    using a list-based structure supporting OR logic between elements and
+    nested AND logic within elements.
+
+    Example structures:
+        - ['prop1', 'prop2']                      # prop1 OR prop2
+        - [{'and': ['prop3', 'prop4']}]          # prop3 AND prop4
+        - ['prop1', {'and': ['prop2', 'prop3']}] # prop1 OR (prop2 AND prop3)
 
     Args:
         entity_type: The URI of the entity type.
 
     Returns:
-        A list of property URIs to use for similarity matching, or None if not specified.
+        A list where each element is either a property URI string or a dictionary
+        {'and': [list_of_property_uris]}, representing the boolean logic.
+        Returns None if no configuration is found or if the structure is invalid.
     """
     rules = get_display_rules()
     if not rules:
@@ -457,14 +468,38 @@ def get_similarity_properties(entity_type: str) -> Optional[List[str]]:
     for rule in rules:
         if rule["class"] == entity_type:
             similarity_props = rule.get("similarity_properties")
-            # Return the list only if it exists and is not empty
-            # Ensure it's a list of strings (basic validation)
-            if similarity_props and isinstance(similarity_props, list) and all(isinstance(item, str) for item in similarity_props):
-                return similarity_props
-            else:
-                 # Log a warning if the format is incorrect but the key exists
-                if similarity_props:
-                    print(f"Warning: Invalid format for similarity_properties in class {entity_type}. Expected list of URIs.")
-                return None # Return None if format is incorrect or list is empty
-            
-    return None # Return None if the class or similarity_properties are not found
+
+            # Validate the structure: Must be a list.
+            if not isinstance(similarity_props, list):
+                if similarity_props is not None:
+                    print(
+                        f"Warning: Invalid format for similarity_properties in class {entity_type}. "
+                        f"Expected a list, e.g., ['prop1', {{'and': ['prop2', 'prop3']}}]."
+                    )
+                return None # Return None if structure is incorrect or key is missing
+
+            # Validate each element in the list.
+            validated_props = []
+            for item in similarity_props:
+                if isinstance(item, str):
+                    validated_props.append(item)
+                elif isinstance(item, dict) and len(item) == 1 and "and" in item:
+                    and_list = item["and"]
+                    if isinstance(and_list, list) and and_list and all(isinstance(p, str) for p in and_list):
+                        validated_props.append(item)
+                    else:
+                        print(
+                            f"Warning: Invalid 'and' group in similarity_properties for class {entity_type}. "
+                            f"Expected {{'and': ['prop_uri', ...]}} with a non-empty list of strings."
+                        )
+                        return None # Invalid 'and' group structure
+                else:
+                    print(
+                        f"Warning: Invalid item format in similarity_properties list for class {entity_type}. "
+                        f"Expected a property URI string or {{'and': [...]}} dict."
+                    )
+                    return None # Invalid item type
+
+            return validated_props if validated_props else None # Return validated list or None if empty after validation
+
+    return None # Return None if the class is not found

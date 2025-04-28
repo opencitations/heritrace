@@ -431,4 +431,82 @@ def test_create_entity_with_single_value_properties(mock_get_form_fields, mock_e
         call[0][1] == URIRef("http://example.org/hasBestFriend") and
         call[0][2] == URIRef("http://example.org/persons/existing-friend")
         for call in create_calls
-    ) 
+    )
+
+@patch('heritrace.routes.entity.gettext')
+@patch('heritrace.routes.entity.Editor')
+@patch('heritrace.routes.entity.get_form_fields')
+def test_create_entity_invalid_primary_source(mock_get_form_fields, mock_editor, mock_gettext, logged_in_client, app):
+    """Test entity creation with an invalid primary source URL"""
+    mock_get_form_fields.return_value = {}  # No SHACL validation needed for this test
+    app.config["URI_GENERATOR"] = MagicMock()
+    app.config["URI_GENERATOR"].generate_uri.return_value = "http://example.org/test/123"
+    mock_gettext.return_value = "Invalid primary source URL provided" # Mock translation
+
+    data = {
+        "properties": {
+            "http://example.org/hasName": [{"type": "literal", "value": "Invalid Source Test"}]
+        }
+    }
+
+    response = logged_in_client.post(
+        url_for('entity.create_entity'),
+        data={
+            "structured_data": json.dumps(data),
+            "primary_source": "not-a-valid-url", # Invalid URL
+            "save_default_source": "false"
+        }
+    )
+
+    assert response.status_code == 400
+    assert response.json["status"] == "error"
+    assert "Invalid primary source URL provided" in response.json["errors"]
+    mock_editor.assert_not_called() # Editor should not be instantiated
+
+
+@patch('heritrace.routes.entity.save_user_default_primary_source')
+@patch('heritrace.routes.entity.Editor')
+@patch('heritrace.routes.entity.get_form_fields')
+@patch('heritrace.routes.entity.get_dataset_endpoint')
+@patch('heritrace.routes.entity.get_provenance_endpoint')
+def test_create_entity_save_default_primary_source(mock_get_prov, mock_get_dataset, mock_get_form_fields, mock_editor, mock_save_default, logged_in_client, app, mock_form_fields):
+    """Test saving the primary source as default when creating an entity"""
+    mock_get_form_fields.return_value = mock_form_fields
+    mock_editor_instance = mock_editor.return_value
+    app.config["URI_GENERATOR"] = MagicMock()
+    app.config["URI_GENERATOR"].generate_uri.return_value = "http://example.org/test/123"
+    
+    primary_source_url = "http://valid.source.org/data"
+    
+    data = {
+        "entity_type": "http://example.org/Person",
+        "properties": {
+            "http://example.org/hasName": ["Test Person"]
+        }
+    }
+
+    # Mock current_user which is used inside the route
+    with patch('heritrace.routes.entity.current_user') as mock_current_user:
+        mock_current_user.orcid = "0000-0000-0000-0001" # Example ORCID
+
+        response = logged_in_client.post(
+            url_for('entity.create_entity'),
+            data={
+                "structured_data": json.dumps(data),
+                "primary_source": primary_source_url,
+                "save_default_source": 'true' # Set to save as default
+            }
+        )
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    
+    # Verify save_user_default_primary_source was called correctly
+    mock_save_default.assert_called_once_with("0000-0000-0000-0001", primary_source_url)
+    
+    # Verify editor was instantiated with the primary source
+    mock_editor.assert_called_once()
+    call_args, call_kwargs = mock_editor.call_args
+    # Editor arguments are positional: (dataset_endpoint, prov_endpoint, counter_handler, user_uri, primary_source, ...)
+    assert len(call_args) >= 5  # Ensure enough positional arguments were passed
+    assert call_args[4] == primary_source_url # Check the 5th positional argument (index 4)

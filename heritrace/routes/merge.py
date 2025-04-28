@@ -1,5 +1,6 @@
 import traceback
 from typing import Dict, List, Optional, Any, Tuple
+from collections import defaultdict
 
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
@@ -210,7 +211,8 @@ def compare_and_merge():
 @merge_bp.route("/find_similar", methods=["GET"])
 @login_required
 def find_similar_resources():
-    """Find resources potentially similar to a given subject based on shared literal properties."""
+    """Find resources potentially similar to a given subject based on shared properties,
+    respecting AND/OR logic defined in display rules."""
     subject_uri = request.args.get("subject_uri")
     entity_type = request.args.get("entity_type") # Primary entity type
     try:
@@ -229,67 +231,127 @@ def find_similar_resources():
         sparql = get_sparql()
         custom_filter = get_custom_filter()
 
-        similarity_properties = get_similarity_properties(entity_type)
-        
-        property_filter = ""
-        if similarity_properties:
-            prop_uris = [f"<{p}>" for p in similarity_properties]
-            property_filter = f"FILTER(?p IN ({', '.join(prop_uris)}))"
+        similarity_config = get_similarity_properties(entity_type)
+
+        # If no config or invalid config, return empty
+        if not similarity_config or not isinstance(similarity_config, list):
+            current_app.logger.warning(f"No valid similarity properties found or configured for type {entity_type}")
+            return jsonify({"status": "success", "results": [], "has_more": False})
+
+        # --- Helper function to format RDF terms ---
+        def format_rdf_term(node):
+            value = node["value"]
+            value_type = node["type"]
+            if value_type == 'uri':
+                return f"<{value}>"
+            elif value_type in {'literal', 'typed-literal'}:
+                datatype = node.get("datatype")
+                lang = node.get("xml:lang")
+                # Ensure proper escaping for SPARQL literals
+                escaped_value = value.replace('\\', '\\\\').replace('"', '\\"')
+                if datatype:
+                    return f'"{escaped_value}"^^<{datatype}>'
+                elif lang:
+                    return f'"{escaped_value}"@{lang}'
+                else:
+                    return f'"{escaped_value}"'
+            return None # Ignore blank nodes or other types for similarity
+        # --- End Helper ---
+
+        # --- Fetch ALL relevant property values for the subject URI ---
+        all_props_in_config = set()
+        for item in similarity_config:
+            if isinstance(item, str):
+                all_props_in_config.add(item)
+            elif isinstance(item, dict) and "and" in item:
+                all_props_in_config.update(item["and"])
+
+        if not all_props_in_config:
+            current_app.logger.warning(f"Empty properties list derived from similarity config for type {entity_type}")
+            return jsonify({"status": "success", "results": [], "has_more": False})
+
+        prop_uris_formatted_for_filter = [f"<{p}>" for p in all_props_in_config]
+        property_filter_for_subject = f"FILTER(?p IN ({', '.join(prop_uris_formatted_for_filter)}))"
 
         fetch_comparison_values_query = f"""
         SELECT DISTINCT ?p ?o WHERE {{
             <{subject_uri}> ?p ?o .
-            {property_filter}
+            {property_filter_for_subject}
         }}
         """
         sparql.setQuery(fetch_comparison_values_query)
         sparql.setReturnFormat(JSON)
         subject_values_results = sparql.query().convert()
-        subject_values = subject_values_results.get("results", {}).get("bindings", [])
+        subject_bindings = subject_values_results.get("results", {}).get("bindings", [])
 
-        if not subject_values:
-            return jsonify({"status": "success", "results": []}) 
+        if not subject_bindings:
+            # Subject has no values for any of the specified properties, cannot find similar
+            current_app.logger.info(f"Subject {subject_uri} has no values for any properties in similarity config: {all_props_in_config}")
+            return jsonify({"status": "success", "results": [], "has_more": False})
 
-        similarity_conditions = []
-        for binding in subject_values:
-            prop = binding["p"]["value"]
-            val_node = binding["o"] 
-            value = val_node["value"]
-            value_type = val_node["type"]
-            
-            formatted_value = ""
-            if value_type == 'uri':
-                formatted_value = f"<{value}>"
-            elif value_type in {'literal', 'typed-literal'}:
-                datatype = val_node.get("datatype")
-                lang = val_node.get("xml:lang")
-                escaped_value_literal = value.replace('\\', '\\\\').replace('"', '\\"')
-                if datatype:
-                    formatted_value = f'"{escaped_value_literal}"^^<{datatype}>'
-                elif lang:
-                    formatted_value = f'"{escaped_value_literal}"@{lang}'
-                else:
-                    formatted_value = f'"{escaped_value_literal}"'
-            else: 
-                continue
-                
-            similarity_conditions.append(f"{{ ?similar <{prop}> {formatted_value} . }}")
+        # Group subject's values by property
+        subject_values_by_prop = defaultdict(list)
+        for binding in subject_bindings:
+            formatted_value = format_rdf_term(binding["o"])
+            if formatted_value:
+                subject_values_by_prop[binding["p"]["value"]].append(formatted_value)
 
-        if not similarity_conditions:
-            return jsonify({"status": "success", "results": []})
+        # --- Build the main WHERE clause based on the complex logic ---
+        union_blocks = []
+        var_counter = 0 # To create unique variable names
 
-        # Main query with pagination (fetch limit + 1)
+        for condition in similarity_config:
+            if isinstance(condition, str): # Simple OR condition (single property)
+                prop_uri = condition
+                prop_values = subject_values_by_prop.get(prop_uri)
+                if prop_values:
+                    var_counter += 1
+                    values_filter = ", ".join(prop_values)
+                    union_blocks.append(f"  {{ ?similar <{prop_uri}> ?o_{var_counter} . FILTER(?o_{var_counter} IN ({values_filter})) }}")
+
+            elif isinstance(condition, dict) and "and" in condition: # AND group condition
+                and_props = condition["and"]
+                and_patterns = []
+                can_match_and_group = True
+
+                # Check if subject has values for ALL properties in this AND group
+                if not all(p in subject_values_by_prop for p in and_props):
+                    can_match_and_group = False
+                    current_app.logger.debug(f"Skipping AND group {and_props} because subject {subject_uri} lacks values for all its properties.")
+                    continue # Skip this AND group if subject doesn't have all required values
+
+                for prop_uri in and_props:
+                    prop_values = subject_values_by_prop.get(prop_uri)
+                    # This check should always pass due to the check above, but kept for safety
+                    if not prop_values:
+                        can_match_and_group = False
+                        break
+                    var_counter += 1
+                    values_filter = ", ".join(prop_values)
+                    and_patterns.append(f"    ?similar <{prop_uri}> ?o_{var_counter} . FILTER(?o_{var_counter} IN ({values_filter})) .")
+
+                if can_match_and_group and and_patterns:
+                    union_blocks.append(f"  {{\n{'\n'.join(and_patterns)}\n  }}")
+
+        if not union_blocks:
+            current_app.logger.info(f"Could not build any valid query blocks for similarity search for {subject_uri}.")
+            return jsonify({"status": "success", "results": [], "has_more": False})
+
+        similarity_query_body = " UNION ".join(union_blocks)
+
+        # --- Construct and Execute Final Query ---
+        # Fetch limit + 1 to check if there are more results
         query_limit = limit + 1
-        query_parts = [
-            "SELECT DISTINCT ?similar WHERE {",
-            f"  ?similar a <{entity_type}> .",
-            f"  FILTER(?similar != <{subject_uri}>)",
-            "  {",
-            "    " + " \n    UNION\n    ".join(similarity_conditions),
-            "  }",
-            f"}} ORDER BY ?similar OFFSET {offset} LIMIT {query_limit}" # Use query_limit
-        ]
-        final_query = "\n".join(query_parts)
+        final_query = f"""
+        SELECT DISTINCT ?similar WHERE {{
+          ?similar a <{entity_type}> .
+          FILTER(?similar != <{subject_uri}>)
+          {{
+            {similarity_query_body}
+          }}
+        }} ORDER BY ?similar OFFSET {offset} LIMIT {query_limit}
+        """
+        current_app.logger.info(f"Similarity query for {subject_uri} ({entity_type}):\n{final_query}")
 
         sparql.setQuery(final_query)
         sparql.setReturnFormat(JSON)
@@ -300,28 +362,29 @@ def find_similar_resources():
 
         # Determine if there are more results
         has_more = len(candidate_uris) > limit
+        results_to_process = candidate_uris[:limit] # Process only up to 'limit' results
 
-        # Process only up to 'limit' results
-        results_to_process = candidate_uris[:limit]
+        # Transform results for the response
         transformed_results = []
         for uri in results_to_process:
-            readable_label = custom_filter.human_readable_entity(uri, [entity_type]) 
+            # Fetch types and generate labels for each candidate
             sim_types = get_entity_types(uri)
-            type_labels = [custom_filter.human_readable_predicate(type_uri, sim_types) for type_uri in sim_types]
+            readable_label = custom_filter.human_readable_entity(uri, sim_types) if sim_types else uri
+            type_labels = [custom_filter.human_readable_predicate(type_uri, sim_types) for type_uri in sim_types] if sim_types else []
             transformed_results.append({
                 "uri": uri,
-                "label": readable_label,
+                "label": readable_label or uri, # Ensure label is not empty
                 "types": sim_types,
                 "type_labels": type_labels
             })
 
         return jsonify({
-            "status": "success", 
-            "results": transformed_results, 
+            "status": "success",
+            "results": transformed_results,
             "has_more": has_more,
         })
 
     except Exception as e:
         tb_str = traceback.format_exc()
-        current_app.logger.error(f"Error finding similar resources: {str(e)}\nTraceback: {tb_str}")
+        current_app.logger.error(f"Error finding similar resources for {subject_uri}: {str(e)}\nTraceback: {tb_str}")
         return jsonify({"status": "error", "message": gettext("An error occurred while finding similar resources")}), 500 

@@ -615,9 +615,9 @@ def test_find_similar_resources_literal_formatting(mock_current_user, mock_get_t
 
     find_query = mock_sparql_instance.setQuery.call_args_list[1].args[0]
 
-    assert f'?similar <{prop_typed}> \"TypedValue\"^^<http://www.w3.org/2001/XMLSchema#string>' in find_query
-    assert f'?similar <{prop_lang}> \"LangValue\"@en' in find_query
-    assert f'?similar <{prop_plain}> \"PlainValue\"' in find_query
+    assert f'FILTER(?o_1 IN ("TypedValue"^^<http://www.w3.org/2001/XMLSchema#string>))' in find_query
+    assert f'FILTER(?o_2 IN ("LangValue"@en))' in find_query
+    assert f'FILTER(?o_3 IN ("PlainValue"))' in find_query
     assert f'<{prop_bnode}>' not in find_query
 
 @patch('heritrace.routes.merge.get_sparql')

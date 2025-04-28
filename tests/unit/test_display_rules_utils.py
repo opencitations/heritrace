@@ -1231,7 +1231,6 @@ class TestGetSimilarityProperties:
             assert result is None
             assert f"Warning: Invalid format for similarity_properties in class {entity_type}" in captured.out
 
-
     def test_get_similarity_properties_invalid_format_item_type(
         self, mock_display_rules_with_similarity, capsys
     ):
@@ -1244,8 +1243,77 @@ class TestGetSimilarityProperties:
             result = get_similarity_properties(entity_type)
             captured = capsys.readouterr()
             assert result is None
-            assert f"Warning: Invalid format for similarity_properties in class {entity_type}" in captured.out
+            assert f"Warning: Invalid item format in similarity_properties list for class {entity_type}" in captured.out
+            assert "Expected a property URI string or {'and': [...]} dict" in captured.out
 
+    def test_get_similarity_properties_with_and_structure(
+        self, capsys
+    ):
+        """Test get_similarity_properties with valid and invalid 'and' structures."""
+        entity_type = "http://example.org/TestAnd"
+        mock_rules_and = [
+            {
+                "class": entity_type,
+                "priority": 1,
+                "similarity_properties": [
+                    "prop1",
+                    {"and": ["prop2", "prop3"]}, # Valid
+                ],
+            },
+            {
+                "class": "http://example.org/InvalidAndValue",
+                "priority": 2,
+                "similarity_properties": [
+                    {"and": "not_a_list"}
+                ],
+            },
+            {
+                "class": "http://example.org/InvalidAndListItem",
+                "priority": 3,
+                "similarity_properties": [
+                    {"and": ["prop4", 555]}
+                ],
+            },
+             {
+                "class": "http://example.org/InvalidAndDict",
+                "priority": 4,
+                "similarity_properties": [
+                    {"and": ["prop4"], "or": ["prop5"]}
+                ],
+            },
+        ]
+
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_rules_and,
+        ):
+            # Test valid 'and' structure
+            result_valid = get_similarity_properties(entity_type)
+            assert result_valid == ["prop1", {"and": ["prop2", "prop3"]}]
+
+            # Test invalid 'and' value (not a list)
+            invalid_type1 = "http://example.org/InvalidAndValue"
+            result_invalid_value = get_similarity_properties(invalid_type1)
+            captured_invalid_value = capsys.readouterr()
+            assert result_invalid_value is None
+            expected_warning1 = f"Warning: Invalid 'and' group in similarity_properties for class {invalid_type1}. Expected {{'and': ['prop_uri', ...]}} with a non-empty list of strings."
+            assert expected_warning1 in captured_invalid_value.out
+
+            # Test invalid 'and' list item (not a string)
+            invalid_type2 = "http://example.org/InvalidAndListItem"
+            result_invalid_item = get_similarity_properties(invalid_type2)
+            captured_invalid_item = capsys.readouterr()
+            assert result_invalid_item is None
+            expected_warning2 = f"Warning: Invalid 'and' group in similarity_properties for class {invalid_type2}. Expected {{'and': ['prop_uri', ...]}} with a non-empty list of strings."
+            assert expected_warning2 in captured_invalid_item.out
+
+            # Test invalid 'and' dict (more than one key or key not 'and')
+            invalid_type3 = "http://example.org/InvalidAndDict"
+            result_invalid_dict = get_similarity_properties(invalid_type3)
+            captured_invalid_dict = capsys.readouterr()
+            assert result_invalid_dict is None
+            expected_warning3 = f"Warning: Invalid item format in similarity_properties list for class {invalid_type3}. Expected a property URI string or {{'and': [...]}} dict."
+            assert expected_warning3 in captured_invalid_dict.out
 
     def test_get_similarity_properties_no_rules(self):
         """Test when get_display_rules returns empty list."""
