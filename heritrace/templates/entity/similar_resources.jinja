@@ -1,0 +1,63 @@
+<script>
+$(document).ready(function() {
+    const subjectUriSimilar = "{{ subject }}";
+    const entityTypeSimilar = "{{ entity_type }}";
+
+    if (!entityTypeSimilar) {
+        console.warn("Entity type not available for similarity check.");
+        $('.similar-resources .alert-info').text("{{ _('Similarity check not available for this entity.') }}").show();
+        $('.similar-resources .list-group').hide(); // Ensure container is hidden
+        $('#loadMoreSimilarResourcesBtn').hide(); // Ensure button is hidden
+        return; // Don't proceed if entity type is missing
+    }
+
+    // Define the callback function to render a single similar resource item
+    function renderSimilarResourceItem(simRes) {
+        let typesHtml = '';
+        if (simRes.type_labels && simRes.type_labels.length > 0) {
+            simRes.type_labels.forEach(function(typeLabel) {
+                typesHtml += `<span class="badge bg-secondary me-1">${typeLabel}</span>`;
+            });
+        }
+
+        let compareUrl = "{{ url_for('merge.compare_and_merge', subject='SUBJECT_PLACEHOLDER', other_subject='OTHER_PLACEHOLDER') }}";
+        compareUrl = compareUrl.replace('SUBJECT_PLACEHOLDER', encodeURIComponent(subjectUriSimilar));
+        compareUrl = compareUrl.replace('OTHER_PLACEHOLDER', encodeURIComponent(simRes.uri));
+        const viewUrl = "{{ url_for('entity.about', subject='') }}" + encodeURIComponent(simRes.uri);
+
+        return `
+            <div class="list-group-item" style="position: relative;">
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
+                    <div class="d-flex flex-wrap flex-grow-1 align-items-baseline gap-2 me-2 linked-resource-content">
+                        <a href="${viewUrl}" class="text-primary text-break" title="{{ _('View entity') }}">
+                            ${simRes.label || simRes.uri}
+                        </a>
+                    </div>
+                    <a href="${compareUrl}"
+                       class="btn btn-sm btn-outline-primary merge-btn"
+                       title="{{ _('Compare and merge with this entity') }}">
+                        <i class="bi bi-intersect me-1"></i> {{ _('Merge') }}
+                    </a>
+                </div>
+                ${typesHtml ? `<div class="text-muted small mt-2">${typesHtml}</div>` : ''}
+            </div>
+        `;
+    }
+
+    // Call the reusable loadResources function
+    loadResources({
+        containerSelector: '.similar-resources .list-group',
+        noResultsSelector: '.similar-resources .alert-info',
+        loadMoreSelector: '#loadMoreSimilarResourcesBtn',
+        apiUrl: "{{ url_for('merge.find_similar_resources') }}",
+        ajaxData: {
+            subject_uri: subjectUriSimilar,
+            entity_type: entityTypeSimilar
+        },
+        renderItemCallback: renderSimilarResourceItem,
+        resultsPerPage: 5, // Specify results per page
+        loadingHtml: '<div class="text-center my-3 resource-loading-indicator"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">{{ _("Loading...") }}</span></div></div>',
+        errorText: '{{ _("Error loading similar resources.") }}'
+    });
+});
+</script>

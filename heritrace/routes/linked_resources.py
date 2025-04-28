@@ -12,53 +12,28 @@ from SPARQLWrapper import JSON
 
 linked_resources_bp = Blueprint("linked_resources", __name__, url_prefix="/api/linked-resources")
 
-def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) -> tuple[list[dict], int, bool]:
+def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) -> tuple[list[dict], bool]:
     """
-    Get paginated entities that reference this entity.
+    Get paginated entities that reference this entity using the limit+1 strategy.
 
     Args:
         subject_uri: URI of the entity to find references to.
-        limit: Maximum number of references to return.
+        limit: Maximum number of references to return per page.
         offset: Number of references to skip.
 
     Returns:
         A tuple containing:
-            - List of dictionaries containing reference information.
-            - Total count of references.
+            - List of dictionaries containing reference information (max 'limit' items).
             - Boolean indicating if there are more references.
     """
     sparql = get_sparql()
     custom_filter = get_custom_filter()
-    total_count = 0
     references = []
+    # Fetch limit + 1 to check if there are more results
+    query_limit = limit + 1
 
     try:
-        # Count Query
-        count_query_parts = [
-            "SELECT (COUNT(DISTINCT ?s) as ?count) WHERE {",
-        ]
-        if is_virtuoso:
-            count_query_parts.append("    GRAPH ?g { ?s ?p ?o . }")
-            count_query_parts.append(f"    FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))")
-        else:
-            count_query_parts.append("    ?s ?p ?o .")
-
-        count_query_parts.extend([
-            f"    FILTER(?o = <{subject_uri}>)",
-            "    FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)",
-            "}"
-        ])
-        count_query = "\n".join(count_query_parts)
-
-        sparql.setQuery(count_query)
-        sparql.setReturnFormat(JSON)
-        count_results = sparql.query().convert()
-        if count_results.get("results", {}).get("bindings", []):
-            count_binding = count_results["results"]["bindings"][0]
-            if "count" in count_binding:
-                total_count = int(count_binding["count"]["value"])
-
-        # Main Query with pagination
+        # Main Query with pagination (limit + 1)
         query_parts = [
             "SELECT DISTINCT ?s ?p WHERE {",
         ]
@@ -71,7 +46,7 @@ def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) 
         query_parts.extend([
             f"    FILTER(?o = <{subject_uri}>)",
             "    FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)",
-            f"}} ORDER BY ?s OFFSET {offset} LIMIT {limit}"
+            f"}} ORDER BY ?s OFFSET {offset} LIMIT {query_limit}" # Use query_limit
         ])
         main_query = "\n".join(query_parts)
 
@@ -80,7 +55,14 @@ def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) 
         results = sparql.query().convert()
 
         bindings = results.get("results", {}).get("bindings", [])
-        for result in bindings:
+
+        # Determine if there are more results
+        has_more = len(bindings) > limit
+
+        # Process only up to 'limit' results
+        results_to_process = bindings[:limit]
+
+        for result in results_to_process:
             subject = result["s"]["value"]
             predicate = result["p"]["value"]
 
@@ -100,13 +82,12 @@ def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) 
                 "label": label
             })
 
-        has_more = offset + limit < total_count
-        return references, total_count, has_more
+        return references, has_more
 
     except Exception as e:
         tb_str = traceback.format_exc()
         current_app.logger.error(f"Error fetching inverse references for {subject_uri}: {e}\n{tb_str}")
-        return [], 0, False
+        return [], False
 
 @linked_resources_bp.route("/", methods=["GET"])
 @login_required
@@ -125,11 +106,10 @@ def get_linked_resources_api():
     if limit <= 0 or offset < 0:
          return jsonify({"status": "error", "message": gettext("Limit must be positive and offset non-negative")}), 400
 
-    references, total_count, has_more = get_paginated_inverse_references(subject_uri, limit, offset)
+    references, has_more = get_paginated_inverse_references(subject_uri, limit, offset)
 
     return jsonify({
         "status": "success",
         "results": references,
-        "total_count": total_count,
         "has_more": has_more
     })

@@ -1,0 +1,54 @@
+<script>
+$(document).ready(function() {
+    const subjectUriLinked = "{{ subject }}";
+
+    // Define the callback function to render a single linked resource item
+    function renderLinkedResourceItem(ref) {
+        let typesHtml = '';
+        if (ref.type_labels && ref.type_labels.length > 0) {
+            ref.type_labels.forEach(function(typeLabel) {
+                typesHtml += `<span class="badge bg-secondary me-1">${typeLabel}</span>`;
+            });
+        }
+
+        const viewUrl = "{{ url_for('entity.about', subject='') }}" + encodeURIComponent(ref.subject);
+
+        return `
+            <div class="list-group-item">
+                <div class="d-flex flex-wrap gap-2 justify-content-between align-items-start">
+                    <div class="d-flex flex-wrap flex-grow-1 align-items-baseline gap-2 me-2 linked-resource-content" style="word-break: break-word;">
+                        <a href="${viewUrl}" class="text-primary text-break" title="{{ _('View entity') }}">
+                            ${ref.label || ref.subject}
+                        </a>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">←</span>
+                            <span class="text-muted text-break">${ref.predicate_label || ref.predicate}</span>
+                        </div>
+                    </div>
+                    <a href="${viewUrl}" 
+                       class="btn btn-sm btn-outline-primary redirection-btn" 
+                       title="{{ _('View entity') }}">
+                        <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
+                    </a>
+                </div>
+                ${typesHtml ? `<div class="text-muted small mt-2">${typesHtml}</div>` : ''}
+            </div>
+        `;
+    }
+
+    // Call the reusable loadResources function
+    loadResources({
+        containerSelector: '.linked-resources-container',
+        noResultsSelector: '.linked-resources-none',
+        loadMoreSelector: '#loadMoreLinkedResourcesBtn',
+        apiUrl: "{{ url_for('linked_resources.get_linked_resources_api') }}",
+        ajaxData: {
+            subject_uri: subjectUriLinked
+        },
+        renderItemCallback: renderLinkedResourceItem,
+        resultsPerPage: 5, // Specify results per page if different from default
+        loadingHtml: '<div class="text-center my-3 resource-loading-indicator"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">{{ _("Loading...") }}</span></div></div>',
+        errorText: '{{ _("Error loading linked resources.") }}'
+    });
+});
+</script>

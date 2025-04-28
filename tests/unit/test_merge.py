@@ -28,26 +28,20 @@ def mock_user():
     """Fixture to mock a logged-in user."""
     user = MagicMock()
     user.is_authenticated = True
-    # Keep specific ORCID if needed, or make dynamic within the fixture if required by multiple tests
     user.orcid = "0000-0001-2345-6789"
     return user
 
-# Helper fixture to ensure merge blueprint is registered
 @pytest.fixture(autouse=True)
 def ensure_merge_bp(app):
     """Ensures the merge blueprint is registered on the app."""
     if not app.blueprints.get('merge'):
-        # Ensure the correct URL prefix is used if the blueprint has one
         app.register_blueprint(merge_bp, url_prefix='/merge')
-
-# --- Tests for get_entity_details ---
 
 @patch('heritrace.routes.merge.get_sparql')
 @patch('heritrace.routes.merge.get_custom_filter')
 @patch('heritrace.routes.merge.get_entity_types')
 def test_get_entity_details_success(mock_get_entity_types, mock_get_custom_filter, mock_get_sparql, app):
     """Test get_entity_details successfully fetches properties and types."""
-    # Define constants locally
     entity1_uri = "http://test.com/entityDetailSuccess"
     entity1_types = ["http://test.com/TypeA"]
     obj_uri = "http://obj.uri/detail"
@@ -68,14 +62,14 @@ def test_get_entity_details_success(mock_get_entity_types, mock_get_custom_filte
     }
     mock_get_sparql.return_value = mock_sparql_instance
     mock_get_entity_types.side_effect = [
-        entity1_types, # Types for the main entity
-        obj_type # Types for the object URI
+        entity1_types,
+        obj_type
     ]
     mock_custom_filter_instance = MagicMock()
     mock_custom_filter_instance.human_readable_entity.return_value = readable_obj_label
     mock_get_custom_filter.return_value = mock_custom_filter_instance
 
-    with app.app_context(): # Ensure context for logging and custom filter access
+    with app.app_context():
         props, types = get_entity_details(entity1_uri)
 
     assert types == entity1_types
@@ -85,19 +79,19 @@ def test_get_entity_details_success(mock_get_entity_types, mock_get_custom_filte
     assert prop2 in props
     assert props[prop2][0]["value"] == obj_uri
     assert props[prop2][0]["readable_label"] == readable_obj_label
-    assert mock_get_entity_types.call_count == 2 # Called for subject and object URI
+    assert mock_get_entity_types.call_count == 2
     mock_get_entity_types.assert_any_call(entity1_uri)
     mock_get_entity_types.assert_any_call(obj_uri)
     mock_custom_filter_instance.human_readable_entity.assert_called_once_with(obj_uri, obj_type)
 
 
 @patch('heritrace.routes.merge.get_sparql')
-@patch('heritrace.routes.merge.get_entity_types', return_value=[]) # No types found
+@patch('heritrace.routes.merge.get_entity_types', return_value=[])
 def test_get_entity_details_no_types(mock_get_entity_types, mock_get_sparql, app):
     """Test get_entity_details when no types are found for the entity."""
     entity1_uri = "http://test.com/entityDetailNoTypes"
     mock_sparql_instance = MagicMock()
-    mock_sparql_instance.query().convert.return_value = { "results": { "bindings": [] } } # No properties either
+    mock_sparql_instance.query().convert.return_value = { "results": { "bindings": [] } }
     mock_get_sparql.return_value = mock_sparql_instance
 
     with app.app_context():
@@ -118,20 +112,18 @@ def test_get_entity_details_sparql_error(mock_get_entity_types, mock_get_sparql,
     mock_sparql_instance = MagicMock()
     mock_sparql_instance.query.side_effect = Exception("SPARQL Error")
     mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_entity_types.return_value = entity1_types # Assume types fetch succeeded before error
+    mock_get_entity_types.return_value = entity1_types
 
     with app.app_context():
         props, types = get_entity_details(entity1_uri)
 
     assert props is None
-    assert types == [] # Should return empty list on error
-
-# --- Tests for execute_merge ---
+    assert types == []
 
 @pytest.fixture
 def merge_test_data():
     """Provides common data for merge execution tests."""
-    user_orcid = "0000-0001-2345-6789" # Define ORCID here if consistent
+    user_orcid = "0000-0001-2345-6789"
     return {
         "entity1_uri": "http://merge.test/entityKeep",
         "entity2_uri": "http://merge.test/entityDelete",
@@ -395,8 +387,7 @@ def test_execute_merge_general_exception_flash(mock_current_user, mock_editor_cl
     expected_path = urlparse(url_for('merge.compare_and_merge', subject=merge_test_data["entity1_uri"], other_subject=merge_test_data["entity2_uri"])).path
     assert urlparse(response.location).path == expected_path
 
-# --- Tests for compare_and_merge ---
-@patch('heritrace.utils.sparql_utils.get_sparql') # Mock sparql for potential internal calls
+@patch('heritrace.utils.sparql_utils.get_sparql')
 @patch('heritrace.routes.merge.get_custom_filter')
 @patch('heritrace.routes.merge.get_entity_details')
 @patch('flask_login.utils._get_user')
@@ -442,7 +433,7 @@ def test_compare_and_merge_missing_uris(mock_current_user, client, mock_user, me
     expected_path = urlparse(url_for('main.catalogue')).path
     assert urlparse(response.location).path == expected_path
 
-@patch('heritrace.routes.merge.get_entity_details', return_value=(None, [])) # Simulate fetch error
+@patch('heritrace.routes.merge.get_entity_details', return_value=(None, []))
 @patch('flask_login.utils._get_user')
 def test_compare_and_merge_fetch_error(mock_current_user, mock_get_details, client, mock_user, merge_test_data):
     """Test compare page when fetching entity details fails."""
@@ -462,8 +453,6 @@ def test_compare_and_merge_fetch_error(mock_current_user, mock_get_details, clie
 
     expected_path = urlparse(url_for('main.catalogue')).path
     assert urlparse(response.location).path == expected_path
-
-# --- Tests for find_similar_resources ---
 
 @pytest.fixture
 def similar_test_data():
@@ -489,9 +478,8 @@ def test_find_similar_resources_success(mock_current_user, mock_get_types, mock_
     """Test finding similar resources successfully."""
     mock_current_user.return_value = mock_user
     mock_sparql_instance = MagicMock()
-    # Use similar_test_data fixture
     mock_sparql_instance.query().convert.side_effect = [
-        { # First call: subject properties
+        {
             "results": {
                 "bindings": [
                     {"p": {"value": similar_test_data["prop_name"]}, "o": {"value": similar_test_data["shared_name"], "type": "literal"}},
@@ -499,14 +487,7 @@ def test_find_similar_resources_success(mock_current_user, mock_get_types, mock_
                 ]
             }
         },
-        { # Second call: count similar entities
-            "results": {
-                "bindings": [
-                    {"count": {"value": "1", "type": "literal"}}
-                ]
-            }
-        },
-        { # Third call: fetch similar entities
+        {
             "results": {
                 "bindings": [
                     {"similar": {"value": similar_test_data["similar_uri"]}}
@@ -521,7 +502,10 @@ def test_find_similar_resources_success(mock_current_user, mock_get_types, mock_
     mock_filter_instance.human_readable_entity.return_value = similar_test_data["similar_label"]
     mock_filter_instance.human_readable_predicate.side_effect = lambda x, y: f"Label_{x.split('/')[-1]}"
     mock_get_filter.return_value = mock_filter_instance
-    mock_get_types.return_value = [similar_test_data["similar_type"]]
+    mock_get_types.side_effect = [
+        [similar_test_data["subject_type"]],
+        [similar_test_data["similar_type"]]
+    ]
 
     response = client.get(url_for('merge.find_similar_resources',
                                   subject_uri=similar_test_data["subject_uri"],
@@ -534,9 +518,8 @@ def test_find_similar_resources_success(mock_current_user, mock_get_types, mock_
     assert len(data["results"]) == 1
     assert data["results"][0]["uri"] == similar_test_data["similar_uri"]
     assert data["results"][0]["label"] == similar_test_data["similar_label"]
-    assert data["has_more"] == False # total_count=1, limit=5, offset=0
-    assert data["total_count"] == 1
-    mock_sparql_instance.setQuery.call_count == 3
+    assert data["has_more"] == False
+    assert mock_sparql_instance.setQuery.call_count == 2
 
 @patch('heritrace.routes.merge.get_sparql')
 @patch('heritrace.routes.merge.get_similarity_properties')
@@ -598,23 +581,20 @@ def test_find_similar_resources_literal_formatting(mock_current_user, mock_get_t
     prop_typed = "http://similar.prop/typed"
     prop_lang = "http://similar.prop/lang"
     prop_plain = "http://similar.prop/plain"
-    prop_bnode = "http://similar.prop/bnode" # Property with unsupported object type
+    prop_bnode = "http://similar.prop/bnode"
 
     mock_sparql_instance.query().convert.side_effect = [
-        { # First call: subject properties with various literal types
+        {
             "results": {
                 "bindings": [
                     {"p": {"value": prop_typed}, "o": {"value": "TypedValue", "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#string"}},
                     {"p": {"value": prop_lang}, "o": {"value": "LangValue", "type": "literal", "xml:lang": "en"}},
                     {"p": {"value": prop_plain}, "o": {"value": "PlainValue", "type": "literal"}},
-                    {"p": {"value": prop_bnode}, "o": {"value": "bnode1", "type": "bnode"}}, # Should be skipped
+                    {"p": {"value": prop_bnode}, "o": {"value": "bnode1", "type": "bnode"}},
                 ]
             }
         },
-        { # Second call: count similar entities
-            "results": {"bindings": [{"count": {"value": "1"}}]}
-        },
-        { # Third call: find similar entities
+        {
             "results": {"bindings": [{"similar": {"value": similar_test_data["similar_uri"]}}]}
         }
     ]
@@ -631,32 +611,14 @@ def test_find_similar_resources_literal_formatting(mock_current_user, mock_get_t
                        subject_uri=similar_test_data["subject_uri"],
                        entity_type=similar_test_data["subject_type"]))
 
-    assert mock_sparql_instance.setQuery.call_count == 3
+    assert mock_sparql_instance.setQuery.call_count == 2
 
-    calls = mock_sparql_instance.setQuery.call_args_list
-    # Check query 2 (COUNT)
-    query2 = calls[1][0][0]
-    expected_typed_condition = f'{{ ?similar <{prop_typed}> "TypedValue"^^<http://www.w3.org/2001/XMLSchema#string> . }}'
-    expected_lang_condition = f'{{ ?similar <{prop_lang}> "LangValue"@en . }}'
-    expected_plain_condition = f'{{ ?similar <{prop_plain}> "PlainValue" . }}'
+    find_query = mock_sparql_instance.setQuery.call_args_list[1].args[0]
 
-    assert expected_typed_condition in query2
-    assert expected_lang_condition in query2
-    assert expected_plain_condition in query2
-    # Ensure the bnode property was skipped and not included
-    assert f"<{prop_bnode}>" not in query2
-    assert "bnode1" not in query2
-    assert "UNION" in query2 # Make sure UNION is still present
-
-    # Check query 3 (SELECT)
-    query3 = calls[2][0][0] # Get the third query (the one fetching similar entities)
-    assert expected_typed_condition in query3
-    assert expected_lang_condition in query3
-    assert expected_plain_condition in query3
-    # Ensure the bnode property was skipped and not included
-    assert f"<{prop_bnode}>" not in query3
-    assert "bnode1" not in query3
-    assert "UNION" in query3 # Make sure UNION is still present
+    assert f'?similar <{prop_typed}> \"TypedValue\"^^<http://www.w3.org/2001/XMLSchema#string>' in find_query
+    assert f'?similar <{prop_lang}> \"LangValue\"@en' in find_query
+    assert f'?similar <{prop_plain}> \"PlainValue\"' in find_query
+    assert f'<{prop_bnode}>' not in find_query
 
 @patch('heritrace.routes.merge.get_sparql')
 @patch('heritrace.routes.merge.get_similarity_properties')
@@ -670,7 +632,6 @@ def test_find_similar_resources_no_valid_conditions(mock_current_user, mock_get_
     mock_sparql_instance.query().convert.return_value = {
         "results": {
             "bindings": [
-                # Only return bindings with types that should be skipped (e.g., bnode)
                 {"p": {"value": prop_bnode_only}, "o": {"value": "bnode_val", "type": "bnode"}}
             ]
         }
@@ -682,10 +643,72 @@ def test_find_similar_resources_no_valid_conditions(mock_current_user, mock_get_
                                   subject_uri=similar_test_data["subject_uri"],
                                   entity_type=similar_test_data["subject_type"]))
 
-    # Should return success with empty results without making the second query
     assert response.status_code == 200
     json_data = response.get_json()
     assert json_data["status"] == "success"
     assert json_data["results"] == []
-    # Only the first query (fetching subject values) should have been made
-    mock_sparql_instance.setQuery.assert_called_once() 
+    mock_sparql_instance.setQuery.assert_called_once()
+
+@patch('flask_login.utils._get_user')
+def test_find_similar_resources_invalid_limit_offset_type(mock_current_user, client, mock_user, similar_test_data):
+    """Test request with non-integer limit or offset."""
+    mock_current_user.return_value = mock_user
+
+    response_limit = client.get(url_for('merge.find_similar_resources',
+                                       subject_uri=similar_test_data["subject_uri"],
+                                       entity_type=similar_test_data["subject_type"],
+                                       limit="not-an-int"))
+    assert response_limit.status_code == 400
+    json_data_limit = response_limit.get_json()
+    assert json_data_limit["status"] == "error"
+    assert "Invalid limit or offset parameter" in json_data_limit["message"]
+
+    response_offset = client.get(url_for('merge.find_similar_resources',
+                                         subject_uri=similar_test_data["subject_uri"],
+                                         entity_type=similar_test_data["subject_type"],
+                                         offset="invalid"))
+    assert response_offset.status_code == 400
+    json_data_offset = response_offset.get_json()
+    assert json_data_offset["status"] == "error"
+    assert "Invalid limit or offset parameter" in json_data_offset["message"]
+
+
+@patch('flask_login.utils._get_user')
+def test_find_similar_resources_invalid_limit_offset_value(mock_current_user, client, mock_user, similar_test_data):
+    """Test request with non-positive limit or negative offset."""
+    mock_current_user.return_value = mock_user
+
+    response_limit = client.get(url_for('merge.find_similar_resources',
+                                       subject_uri=similar_test_data["subject_uri"],
+                                       entity_type=similar_test_data["subject_type"],
+                                       limit=0))
+    assert response_limit.status_code == 400
+    json_data_limit = response_limit.get_json()
+    assert json_data_limit["status"] == "error"
+    assert "Limit must be positive and offset non-negative" in json_data_limit["message"]
+
+    response_offset = client.get(url_for('merge.find_similar_resources',
+                                         subject_uri=similar_test_data["subject_uri"],
+                                         entity_type=similar_test_data["subject_type"],
+                                         offset=-1))
+    assert response_offset.status_code == 400
+    json_data_offset = response_offset.get_json()
+    assert json_data_offset["status"] == "error"
+    assert "Limit must be positive and offset non-negative" in json_data_offset["message"]
+
+
+@patch('heritrace.routes.merge.get_sparql')
+@patch('flask_login.utils._get_user')
+def test_find_similar_resources_exception(mock_current_user, mock_get_sparql, client, mock_user, similar_test_data):
+    """Test handling of general exceptions during similarity search."""
+    mock_current_user.return_value = mock_user
+    mock_get_sparql.side_effect = Exception("Database connection failed similar")
+
+    response = client.get(url_for('merge.find_similar_resources',
+                                  subject_uri=similar_test_data["subject_uri"],
+                                  entity_type=similar_test_data["subject_type"]))
+
+    assert response.status_code == 500
+    json_data = response.get_json()
+    assert json_data["status"] == "error"
+    assert "An error occurred while finding similar resources" in json_data["message"] 

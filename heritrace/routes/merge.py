@@ -213,11 +213,17 @@ def find_similar_resources():
     """Find resources potentially similar to a given subject based on shared literal properties."""
     subject_uri = request.args.get("subject_uri")
     entity_type = request.args.get("entity_type") # Primary entity type
-    limit = int(request.args.get("limit", 5))
-    offset = int(request.args.get("offset", 0))
+    try:
+        limit = int(request.args.get("limit", 5))
+        offset = int(request.args.get("offset", 0))
+    except ValueError:
+        return jsonify({"status": "error", "message": gettext("Invalid limit or offset parameter")}), 400
 
     if not subject_uri or not entity_type:
         return jsonify({"status": "error", "message": gettext("Missing required parameters (subject_uri, entity_type)")}), 400
+
+    if limit <= 0 or offset < 0:
+        return jsonify({"status": "error", "message": gettext("Limit must be positive and offset non-negative")}), 400
 
     try:
         sparql = get_sparql()
@@ -272,28 +278,8 @@ def find_similar_resources():
         if not similarity_conditions:
             return jsonify({"status": "success", "results": []})
 
-        # Get total count query (for pagination)
-        count_query_parts = [
-            "SELECT (COUNT(DISTINCT ?similar) as ?count) WHERE {",
-            f"  ?similar a <{entity_type}> .",
-            f"  FILTER(?similar != <{subject_uri}>)",
-            "  {",
-            "    " + " \n    UNION\n    ".join(similarity_conditions),
-            "  }",
-            "}"
-        ]
-        count_query = "\n".join(count_query_parts)
-
-        sparql.setQuery(count_query)
-        sparql.setReturnFormat(JSON)
-        count_results = sparql.query().convert()
-        total_count = 0
-        if count_results.get("results", {}).get("bindings", []):
-            count_binding = count_results["results"]["bindings"][0]
-            if "count" in count_binding:
-                total_count = int(count_binding["count"]["value"])
-
-        # Main query with pagination
+        # Main query with pagination (fetch limit + 1)
+        query_limit = limit + 1
         query_parts = [
             "SELECT DISTINCT ?similar WHERE {",
             f"  ?similar a <{entity_type}> .",
@@ -301,7 +287,7 @@ def find_similar_resources():
             "  {",
             "    " + " \n    UNION\n    ".join(similarity_conditions),
             "  }",
-            f"}} OFFSET {offset} LIMIT {limit}"
+            f"}} ORDER BY ?similar OFFSET {offset} LIMIT {query_limit}" # Use query_limit
         ]
         final_query = "\n".join(query_parts)
 
@@ -309,9 +295,16 @@ def find_similar_resources():
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
 
-        candidate_uris = [item["similar"]["value"] for item in results.get("results", {}).get("bindings", [])]
+        bindings = results.get("results", {}).get("bindings", [])
+        candidate_uris = [item["similar"]["value"] for item in bindings]
+
+        # Determine if there are more results
+        has_more = len(candidate_uris) > limit
+
+        # Process only up to 'limit' results
+        results_to_process = candidate_uris[:limit]
         transformed_results = []
-        for uri in candidate_uris:
+        for uri in results_to_process:
             readable_label = custom_filter.human_readable_entity(uri, [entity_type]) 
             sim_types = get_entity_types(uri)
             type_labels = [custom_filter.human_readable_predicate(type_uri, sim_types) for type_uri in sim_types]
@@ -322,12 +315,10 @@ def find_similar_resources():
                 "type_labels": type_labels
             })
 
-        has_more = offset + limit < total_count
         return jsonify({
             "status": "success", 
             "results": transformed_results, 
             "has_more": has_more,
-            "total_count": total_count
         })
 
     except Exception as e:

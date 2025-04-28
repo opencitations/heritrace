@@ -351,6 +351,28 @@ def test_apply_changes_with_affected_entities(
     mock_editor.save.assert_called_once()
 
 
+@patch("heritrace.routes.api.g")
+def test_apply_changes_no_data(mock_g, logged_in_client: FlaskClient, app: Flask) -> None:
+    """Test the apply_changes endpoint returns 400 when no data is provided."""
+    mock_g.resource_lock_manager = MagicMock() # Mock this to avoid potential AttributeError
+
+    # Test with JSON "null" (explicitly set Content-Type)
+    response_null = logged_in_client.post(
+        "/api/apply_changes",
+        data="null", # Send the JSON literal "null"
+        content_type="application/json"
+    )
+    assert response_null.status_code == 400
+    data_null = json.loads(response_null.data)
+    assert data_null["error"] == "No request data provided"
+
+    # Test with empty list (Flask client sets Content-Type automatically)
+    response_empty = logged_in_client.post("/api/apply_changes", json=[])
+    assert response_empty.status_code == 400
+    data_empty = json.loads(response_empty.data)
+    assert data_empty["error"] == "No request data provided"
+
+
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.g") # Mock g
 def test_apply_changes_validation_error(
