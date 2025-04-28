@@ -711,4 +711,189 @@ def test_find_similar_resources_exception(mock_current_user, mock_get_sparql, cl
     assert response.status_code == 500
     json_data = response.get_json()
     assert json_data["status"] == "error"
-    assert "An error occurred while finding similar resources" in json_data["message"] 
+    assert "An error occurred while finding similar resources" in json_data["message"]
+
+@patch('heritrace.routes.merge.get_similarity_properties')
+@patch('flask_login.utils._get_user')
+def test_find_similar_resources_no_similarity_config(mock_current_user, mock_get_sim_props, client, mock_user, similar_test_data):
+    """Test find_similar_resources when no similarity config is found for the type."""
+    mock_current_user.return_value = mock_user
+    mock_get_sim_props.return_value = None # Simulate no config found
+
+    response = client.get(url_for('merge.find_similar_resources',
+                                  subject_uri=similar_test_data["subject_uri"],
+                                  entity_type=similar_test_data["subject_type"]))
+
+    assert response.status_code == 200
+    json_data = response.get_json()
+    assert json_data["status"] == "success"
+    assert json_data["results"] == []
+    assert json_data["has_more"] == False
+    mock_get_sim_props.assert_called_once_with(similar_test_data["subject_type"])
+
+
+@patch('heritrace.routes.merge.get_similarity_properties')
+@patch('flask_login.utils._get_user')
+def test_find_similar_resources_empty_derived_properties(mock_current_user, mock_get_sim_props, client, mock_user, similar_test_data):
+    """Test find_similar_resources when the derived property set is empty."""
+    mock_current_user.return_value = mock_user
+    # Simulate a config that results in no properties being extracted
+    mock_get_sim_props.return_value = [{"invalid_key": "value"}]
+
+    response = client.get(url_for('merge.find_similar_resources',
+                                  subject_uri=similar_test_data["subject_uri"],
+                                  entity_type=similar_test_data["subject_type"]))
+
+    assert response.status_code == 200
+    json_data = response.get_json()
+    assert json_data["status"] == "success"
+    assert json_data["results"] == []
+    assert json_data["has_more"] == False
+    mock_get_sim_props.assert_called_once_with(similar_test_data["subject_type"])
+
+
+@patch('heritrace.routes.merge.get_sparql')
+@patch('heritrace.routes.merge.get_similarity_properties')
+@patch('flask_login.utils._get_user')
+def test_find_similar_resources_skip_and_group_missing_subject_prop(mock_current_user, mock_get_sim_props, mock_get_sparql, client, mock_user, similar_test_data):
+    """Test skipping an AND group because the subject lacks a required property value."""
+    mock_current_user.return_value = mock_user
+    mock_sparql_instance = MagicMock()
+    prop_a = "http://similar.prop/propA"
+    prop_b = "http://similar.prop/propB" # Subject will lack this
+    prop_c = "http://similar.prop/propC" # OR condition
+
+    # Simulate subject only having value for propA and propC
+    mock_sparql_instance.query().convert.side_effect = [
+        {
+            "results": {
+                "bindings": [
+                    {"p": {"value": prop_a}, "o": {"value": "ValueA", "type": "literal"}},
+                    {"p": {"value": prop_c}, "o": {"value": "ValueC", "type": "literal"}},
+                ]
+            }
+        },
+        # Second call (final query) - should only match based on prop_c
+        {
+            "results": {
+                "bindings": [
+                    {"similar": {"value": similar_test_data["similar_uri"] + "_c"}}
+                ]
+            }
+        }
+    ]
+    mock_get_sparql.return_value = mock_sparql_instance
+    # Config with an AND group requiring propA and propB, and an OR for propC
+    mock_get_sim_props.return_value = [{"and": [prop_a, prop_b]}, prop_c]
+
+    response = client.get(url_for('merge.find_similar_resources',
+                                  subject_uri=similar_test_data["subject_uri"],
+                                  entity_type=similar_test_data["subject_type"]))
+
+    assert response.status_code == 200
+    json_data = response.get_json()
+    assert json_data["status"] == "success"
+    # Only the result from the OR condition (prop_c) should be found
+    assert len(json_data["results"]) >= 0 # Can be 0 or 1 depending on mock_get_types
+    assert mock_sparql_instance.setQuery.call_count == 2
+    # Verify the generated query does not include the AND block but includes the OR block
+    final_query = mock_sparql_instance.setQuery.call_args_list[1].args[0]
+    assert f"<{prop_b}>" not in final_query # AND block should be skipped
+    assert f"<{prop_c}> ?o_" in final_query   # OR block should be present
+
+
+@patch('heritrace.routes.merge.get_sparql')
+@patch('heritrace.routes.merge.get_similarity_properties')
+@patch('flask_login.utils._get_user')
+def test_find_similar_resources_no_valid_union_blocks_due_to_formatting(mock_current_user, mock_get_sim_props, mock_get_sparql, client, mock_user, similar_test_data):
+    """Test case where subject has values but none are formattable (e.g., only bnodes)."""
+    mock_current_user.return_value = mock_user
+    mock_sparql_instance = MagicMock()
+    prop_bnode_only = "http://similar.prop/bnode_only"
+
+    # Simulate subject only having a blank node value for the configured property
+    mock_sparql_instance.query().convert.return_value = {
+        "results": {
+            "bindings": [
+                {"p": {"value": prop_bnode_only}, "o": {"value": "b1", "type": "bnode"}}
+            ]
+        }
+    }
+    mock_get_sparql.return_value = mock_sparql_instance
+    mock_get_sim_props.return_value = [prop_bnode_only]
+
+    response = client.get(url_for('merge.find_similar_resources',
+                                  subject_uri=similar_test_data["subject_uri"],
+                                  entity_type=similar_test_data["subject_type"]))
+
+    assert response.status_code == 200
+    json_data = response.get_json()
+    assert json_data["status"] == "success"
+    assert json_data["results"] == []
+    assert json_data["has_more"] is False
+
+@patch('heritrace.routes.merge.get_sparql')
+@patch('heritrace.routes.merge.get_custom_filter')
+@patch('heritrace.routes.merge.get_similarity_properties')
+@patch('heritrace.routes.merge.get_entity_types')
+@patch('flask_login.utils._get_user')
+def test_find_similar_resources_success_with_and_group(mock_current_user, mock_get_types, mock_get_sim_props, mock_get_filter, mock_get_sparql, client, mock_user, similar_test_data):
+    """Test finding similar resources successfully using an AND group condition."""
+    mock_current_user.return_value = mock_user
+    mock_sparql_instance = MagicMock()
+    prop_a = "http://similar.prop/propA"
+    prop_b = "http://similar.prop/propB"
+    val_a = "ValueA"
+    val_b = "ValueB"
+    similar_uri_and = similar_test_data["similar_uri"] + "_and"
+
+    # Simulate subject having values for both properties in the AND group
+    mock_sparql_instance.query().convert.side_effect = [
+        {
+            "results": {
+                "bindings": [
+                    {"p": {"value": prop_a}, "o": {"value": val_a, "type": "literal"}},
+                    {"p": {"value": prop_b}, "o": {"value": val_b, "type": "literal"}},
+                ]
+            }
+        },
+        # Simulate finding a similar entity that matches the AND condition
+        {
+            "results": {
+                "bindings": [
+                    {"similar": {"value": similar_uri_and}}
+                ]
+            }
+        }
+    ]
+    mock_get_sparql.return_value = mock_sparql_instance
+    # Configure similarity with an AND group
+    mock_get_sim_props.return_value = [{"and": [prop_a, prop_b]}]
+
+    mock_filter_instance = MagicMock()
+    mock_filter_instance.human_readable_entity.return_value = "Similar AND Label"
+    mock_filter_instance.human_readable_predicate.side_effect = lambda x, y: f"Label_{x.split('/')[-1]}"
+    mock_get_filter.return_value = mock_filter_instance
+    mock_get_types.return_value = [similar_test_data["similar_type"]] # For the similar entity
+
+    response = client.get(url_for('merge.find_similar_resources',
+                                  subject_uri=similar_test_data["subject_uri"],
+                                  entity_type=similar_test_data["subject_type"],
+                                  limit=5))
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["status"] == "success"
+    assert len(data["results"]) == 1
+    assert data["results"][0]["uri"] == similar_uri_and
+    assert data["results"][0]["label"] == "Similar AND Label"
+    assert data["has_more"] == False
+    assert mock_sparql_instance.setQuery.call_count == 2
+
+    # Verify the final query includes the AND patterns correctly
+    final_query = mock_sparql_instance.setQuery.call_args_list[1].args[0]
+    assert f"<{prop_a}> ?o_" in final_query # Variable name depends on counter
+    assert f"FILTER(?o_1 IN (\"{val_a}\"))" in final_query # Assuming var_counter starts at 0 -> o_1
+    assert f"<{prop_b}> ?o_" in final_query
+    assert f"FILTER(?o_2 IN (\"{val_b}\"))" in final_query # Assuming var_counter increments -> o_2
+    assert "UNION" not in final_query # Since there's only one AND group

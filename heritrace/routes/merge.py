@@ -322,10 +322,6 @@ def find_similar_resources():
 
                 for prop_uri in and_props:
                     prop_values = subject_values_by_prop.get(prop_uri)
-                    # This check should always pass due to the check above, but kept for safety
-                    if not prop_values:
-                        can_match_and_group = False
-                        break
                     var_counter += 1
                     values_filter = ", ".join(prop_values)
                     and_patterns.append(f"    ?similar <{prop_uri}> ?o_{var_counter} . FILTER(?o_{var_counter} IN ({values_filter})) .")
