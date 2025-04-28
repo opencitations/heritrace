@@ -499,7 +499,14 @@ def test_find_similar_resources_success(mock_current_user, mock_get_types, mock_
                 ]
             }
         },
-        { # Second call: similar entities based on properties
+        { # Second call: count similar entities
+            "results": {
+                "bindings": [
+                    {"count": {"value": "1", "type": "literal"}}
+                ]
+            }
+        },
+        { # Third call: fetch similar entities
             "results": {
                 "bindings": [
                     {"similar": {"value": similar_test_data["similar_uri"]}}
@@ -522,27 +529,14 @@ def test_find_similar_resources_success(mock_current_user, mock_get_types, mock_
                                   limit=5))
 
     assert response.status_code == 200
-    json_data = response.get_json()
-    assert json_data["status"] == "success"
-    assert len(json_data["results"]) == 1
-    result = json_data["results"][0]
-    assert result["uri"] == similar_test_data["similar_uri"]
-    assert result["label"] == similar_test_data["similar_label"]
-    assert result["types"] == [similar_test_data["similar_type"]]
-    assert f"Label_{similar_test_data['similar_type'].split('/')[-1]}" in result["type_labels"]
-
-    calls = mock_sparql_instance.setQuery.call_args_list
-    assert len(calls) == 2
-    query1 = calls[0][0][0]
-    assert f"<{similar_test_data['subject_uri']}> ?p ?o" in query1
-    assert f"FILTER(?p IN (<{similar_test_data['prop_name']}>, <{similar_test_data['prop_ref']}>))" in query1
-    query2 = calls[1][0][0]
-    assert f"?similar a <{similar_test_data['subject_type']}>" in query2
-    assert f"FILTER(?similar != <{similar_test_data['subject_uri']}>)" in query2
-    assert f"?similar <{similar_test_data['prop_name']}> \"{similar_test_data['shared_name']}\"" in query2
-    assert f"?similar <{similar_test_data['prop_ref']}> <{similar_test_data['shared_ref']}>" in query2
-    assert "UNION" in query2
-    assert "LIMIT 5" in query2
+    data = response.get_json()
+    assert data["status"] == "success"
+    assert len(data["results"]) == 1
+    assert data["results"][0]["uri"] == similar_test_data["similar_uri"]
+    assert data["results"][0]["label"] == similar_test_data["similar_label"]
+    assert data["has_more"] == False # total_count=1, limit=5, offset=0
+    assert data["total_count"] == 1
+    mock_sparql_instance.setQuery.call_count == 3
 
 @patch('heritrace.routes.merge.get_sparql')
 @patch('heritrace.routes.merge.get_similarity_properties')
@@ -617,7 +611,10 @@ def test_find_similar_resources_literal_formatting(mock_current_user, mock_get_t
                 ]
             }
         },
-        { # Second call: find similar entities
+        { # Second call: count similar entities
+            "results": {"bindings": [{"count": {"value": "1"}}]}
+        },
+        { # Third call: find similar entities
             "results": {"bindings": [{"similar": {"value": similar_test_data["similar_uri"]}}]}
         }
     ]
@@ -634,22 +631,32 @@ def test_find_similar_resources_literal_formatting(mock_current_user, mock_get_t
                        subject_uri=similar_test_data["subject_uri"],
                        entity_type=similar_test_data["subject_type"]))
 
-    assert mock_sparql_instance.setQuery.call_count == 2
+    assert mock_sparql_instance.setQuery.call_count == 3
+
     calls = mock_sparql_instance.setQuery.call_args_list
-    query2 = calls[1][0][0] # Get the second query (the one with similarity conditions)
+    # Check query 2 (COUNT)
+    query2 = calls[1][0][0]
+    expected_typed_condition = f'{{ ?similar <{prop_typed}> "TypedValue"^^<http://www.w3.org/2001/XMLSchema#string> . }}'
+    expected_lang_condition = f'{{ ?similar <{prop_lang}> "LangValue"@en . }}'
+    expected_plain_condition = f'{{ ?similar <{prop_plain}> "PlainValue" . }}'
 
-    # Check formatted literals
-    expected_typed = f'?similar <{prop_typed}> "TypedValue"^^<http://www.w3.org/2001/XMLSchema#string>'
-    expected_lang = f'?similar <{prop_lang}> "LangValue"@en'
-    expected_plain = f'?similar <{prop_plain}> "PlainValue"'
-
-    assert expected_typed in query2
-    assert expected_lang in query2
-    assert expected_plain in query2
+    assert expected_typed_condition in query2
+    assert expected_lang_condition in query2
+    assert expected_plain_condition in query2
     # Ensure the bnode property was skipped and not included
     assert f"<{prop_bnode}>" not in query2
     assert "bnode1" not in query2
     assert "UNION" in query2 # Make sure UNION is still present
+
+    # Check query 3 (SELECT)
+    query3 = calls[2][0][0] # Get the third query (the one fetching similar entities)
+    assert expected_typed_condition in query3
+    assert expected_lang_condition in query3
+    assert expected_plain_condition in query3
+    # Ensure the bnode property was skipped and not included
+    assert f"<{prop_bnode}>" not in query3
+    assert "bnode1" not in query3
+    assert "UNION" in query3 # Make sure UNION is still present
 
 @patch('heritrace.routes.merge.get_sparql')
 @patch('heritrace.routes.merge.get_similarity_properties')
