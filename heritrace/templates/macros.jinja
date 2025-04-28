@@ -42,7 +42,7 @@
                         <option value="{{ shape_info.nodeShape }}" 
                                 data-object-class="{{ shape_info.entityType }}"
                                 data-node-shape="{{ shape_info.nodeShape }}">
-                            {{ shape_info.entityType | human_readable_predicate(entity_types, False) or shape_info.displayName}}
+                            {{ shape_info.displayName or (shape_info.entityType | human_readable_predicate(entity_types, False)) }}
                         </option>
                     {% endfor %}
                 </select>
