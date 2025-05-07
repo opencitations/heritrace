@@ -702,6 +702,328 @@ class TestGetGroupedTriples:
                         grouped_triples["Person Name"]["intermediateRelation"]
                         == "http://example.org/related"
                     )
+                    
+    def test_top_level_ordered_by_condition(self,
+        mock_display_rules,
+        mock_triples,
+        mock_subject_classes,
+        mock_valid_predicates_info,
+    ):
+        """Test the 'orderedBy' condition in top-level display rules with fetchValueFromQuery."""
+        # Create display rules with orderedBy property in top level with fetchValueFromQuery
+        ordered_display_rules = [
+            {
+                "class": "http://example.org/Person",
+                "displayProperties": [
+                    {
+                        "displayName": "Knows",
+                        "property": "http://example.org/knows",
+                        "orderedBy": "http://example.org/order",
+                        "fetchValueFromQuery": "SELECT ?label WHERE { [[value]] <http://www.w3.org/2000/01/rdf-schema#label> ?label }",
+                    }
+                ],
+                "priority": 1,
+                "shouldBeDisplayed": True,
+            }
+        ]
+
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=ordered_display_rules,
+        ):
+            with patch(
+                "heritrace.utils.display_rules_utils.get_highest_priority_class",
+                return_value=URIRef("http://example.org/Person"),
+            ):
+                with patch(
+                    "heritrace.utils.display_rules_utils.process_display_rule",
+                ):
+                    with patch("heritrace.utils.display_rules_utils.process_ordering"):
+                        grouped_triples, relevant_properties = get_grouped_triples(
+                            "http://example.org/person1",
+                            mock_triples,
+                            mock_subject_classes,
+                            mock_valid_predicates_info,
+                        )
+
+                        # Verify the orderedBy properties are set correctly
+                        assert "Knows" in grouped_triples
+                        assert grouped_triples["Knows"]["is_draggable"] is True
+                        assert grouped_triples["Knows"]["ordered_by"] == "http://example.org/order"
+                        assert grouped_triples["Knows"]["property"] == "http://example.org/knows"
+                        assert "triples" in grouped_triples["Knows"]
+                        
+    def test_top_level_intermediate_relation_condition(self,
+        mock_display_rules,
+        mock_triples,
+        mock_subject_classes,
+        mock_valid_predicates_info,
+    ):
+        """Test the 'intermediateRelation' condition in top-level display rules with fetchValueFromQuery."""
+        # Create display rules with intermediateRelation property in top level with fetchValueFromQuery
+        intermediate_relation_rules = [
+            {
+                "class": "http://example.org/Person",
+                "displayProperties": [
+                    {
+                        "displayName": "Knows",
+                        "property": "http://example.org/knows",
+                        "intermediateRelation": {"class": "http://example.org/Relationship"},
+                        "fetchValueFromQuery": "SELECT ?label WHERE { [[value]] <http://www.w3.org/2000/01/rdf-schema#label> ?label }",
+                    }
+                ],
+                "priority": 1,
+                "shouldBeDisplayed": True,
+            }
+        ]
+
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=intermediate_relation_rules,
+        ):
+            with patch(
+                "heritrace.utils.display_rules_utils.get_highest_priority_class",
+                return_value=URIRef("http://example.org/Person"),
+            ):
+                with patch(
+                    "heritrace.utils.display_rules_utils.process_display_rule",
+                ):
+                    grouped_triples, relevant_properties = get_grouped_triples(
+                        "http://example.org/person1",
+                        mock_triples,
+                        mock_subject_classes,
+                        mock_valid_predicates_info,
+                    )
+
+                    # Verify the intermediateRelation property is set correctly
+                    assert "Knows" in grouped_triples
+                    assert grouped_triples["Knows"]["intermediateRelation"] == {"class": "http://example.org/Relationship"}
+                    assert grouped_triples["Knows"]["property"] == "http://example.org/knows"
+                    assert "triples" in grouped_triples["Knows"]
+                    
+    def test_nested_intermediate_relation_condition(self,
+        mock_display_rules,
+        mock_triples,
+        mock_subject_classes,
+        mock_valid_predicates_info,
+    ):
+        """Test the 'intermediateRelation' condition in nested display rules."""
+        # Create display rules with intermediateRelation in nested display rules
+        nested_intermediate_relation_rules = [
+            {
+                "class": "http://example.org/Person",
+                "displayProperties": [
+                    {
+                        "displayName": "Knows",
+                        "property": "http://example.org/knows",
+                        "displayRules": [
+                            {
+                                "displayName": "Person Knows",
+                                "intermediateRelation": {"class": "http://example.org/Relationship"},
+                                "shape": "http://example.org/PersonShape"
+                            }
+                        ]
+                    }
+                ],
+                "priority": 1,
+                "shouldBeDisplayed": True,
+            }
+        ]
+
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=nested_intermediate_relation_rules,
+        ):
+            with patch(
+                "heritrace.utils.display_rules_utils.get_highest_priority_class",
+                return_value=URIRef("http://example.org/Person"),
+            ):
+                with patch(
+                    "heritrace.utils.display_rules_utils.process_display_rule",
+                ):
+                    grouped_triples, relevant_properties = get_grouped_triples(
+                        "http://example.org/person1",
+                        mock_triples,
+                        mock_subject_classes,
+                        mock_valid_predicates_info,
+                    )
+
+                    # Verify the intermediateRelation property is set correctly in nested rules
+                    assert "Person Knows" in grouped_triples
+                    assert grouped_triples["Person Knows"]["intermediateRelation"] == {"class": "http://example.org/Relationship"}
+                    assert grouped_triples["Person Knows"]["property"] == "http://example.org/knows"
+                    assert grouped_triples["Person Knows"]["shape"] == "http://example.org/PersonShape"
+                    assert "triples" in grouped_triples["Person Knows"]
+                    
+    def test_inherited_intermediate_relation_condition(self,
+        mock_display_rules,
+        mock_triples,
+        mock_subject_classes,
+        mock_valid_predicates_info,
+    ):
+        """Test the inheritance of 'intermediateRelation' from parent to nested display rules."""
+        # Create display rules with intermediateRelation in parent that should be inherited by nested rules
+        inherited_intermediate_relation_rules = [
+            {
+                "class": "http://example.org/Person",
+                "displayProperties": [
+                    {
+                        "displayName": "Knows",
+                        "property": "http://example.org/knows",
+                        "intermediateRelation": {"class": "http://example.org/Relationship"},
+                        "displayRules": [
+                            {
+                                "displayName": "Person Knows",
+                                "shape": "http://example.org/PersonShape"
+                            }
+                        ]
+                    }
+                ],
+                "priority": 1,
+                "shouldBeDisplayed": True,
+            }
+        ]
+
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=inherited_intermediate_relation_rules,
+        ):
+            with patch(
+                "heritrace.utils.display_rules_utils.get_highest_priority_class",
+                return_value=URIRef("http://example.org/Person"),
+            ):
+                with patch(
+                    "heritrace.utils.display_rules_utils.process_display_rule",
+                ):
+                    grouped_triples, relevant_properties = get_grouped_triples(
+                        "http://example.org/person1",
+                        mock_triples,
+                        mock_subject_classes,
+                        mock_valid_predicates_info,
+                    )
+
+                    # Verify the intermediateRelation property is inherited from parent to nested rules
+                    assert "Person Knows" in grouped_triples
+                    assert grouped_triples["Person Knows"]["intermediateRelation"] == {"class": "http://example.org/Relationship"}
+                    assert grouped_triples["Person Knows"]["property"] == "http://example.org/knows"
+                    assert grouped_triples["Person Knows"]["shape"] == "http://example.org/PersonShape"
+                    assert "triples" in grouped_triples["Person Knows"]
+                    
+    def test_simple_display_name_with_ordered_by(self,
+        mock_display_rules,
+        mock_triples,
+        mock_subject_classes,
+        mock_valid_predicates_info,
+    ):
+        """Test the 'orderedBy' condition in simple display name section."""
+        # Create display rules with orderedBy property in simple display name section (no displayRules or fetchValueFromQuery)
+        simple_ordered_rules = [
+            {
+                "class": "http://example.org/Person",
+                "displayProperties": [
+                    {
+                        "displayName": "Simple Property",
+                        "property": "http://example.org/simple",
+                        "orderedBy": "http://example.org/order",
+                        "shape": "http://example.org/SimpleShape"
+                    }
+                ],
+                "priority": 1,
+                "shouldBeDisplayed": True,
+            }
+        ]
+        
+        # Extend mock_valid_predicates_info to include our test property
+        extended_predicates_info = mock_valid_predicates_info + ["http://example.org/simple"]
+
+        # Mock process_display_rule to not do anything (we're testing the code after it's called)
+        def mock_process_display_rule(*args, **kwargs):
+            pass
+
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=simple_ordered_rules,
+        ):
+            with patch(
+                "heritrace.utils.display_rules_utils.get_highest_priority_class",
+                return_value=URIRef("http://example.org/Person"),
+            ):
+                with patch(
+                    "heritrace.utils.display_rules_utils.process_display_rule",
+                    side_effect=mock_process_display_rule,
+                ):
+                    with patch("heritrace.utils.display_rules_utils.process_ordering"):
+                        grouped_triples, relevant_properties = get_grouped_triples(
+                            "http://example.org/person1",
+                            mock_triples,
+                            mock_subject_classes,
+                            extended_predicates_info,
+                        )
+
+                        # Verify the orderedBy properties are set correctly in simple display name section
+                        assert "Simple Property" in grouped_triples
+                        assert grouped_triples["Simple Property"]["is_draggable"] is True
+                        assert grouped_triples["Simple Property"]["ordered_by"] == "http://example.org/order"
+                        assert grouped_triples["Simple Property"]["property"] == "http://example.org/simple"
+                        assert grouped_triples["Simple Property"]["shape"] == "http://example.org/SimpleShape"
+                        assert "triples" in grouped_triples["Simple Property"]
+                        
+    def test_simple_display_name_with_intermediate_relation(self,
+        mock_display_rules,
+        mock_triples,
+        mock_subject_classes,
+        mock_valid_predicates_info,
+    ):
+        """Test the 'intermediateRelation' condition in simple display name section."""
+        # Create display rules with intermediateRelation property in simple display name section (no displayRules or fetchValueFromQuery)
+        simple_intermediate_relation_rules = [
+            {
+                "class": "http://example.org/Person",
+                "displayProperties": [
+                    {
+                        "displayName": "Simple Property",
+                        "property": "http://example.org/simple",
+                        "intermediateRelation": {"class": "http://example.org/SimpleRelationship"},
+                        "shape": "http://example.org/SimpleShape"
+                    }
+                ],
+                "priority": 1,
+                "shouldBeDisplayed": True,
+            }
+        ]
+        
+        # Extend mock_valid_predicates_info to include our test property
+        extended_predicates_info = mock_valid_predicates_info + ["http://example.org/simple"]
+
+        # Mock process_display_rule to not do anything (we're testing the code after it's called)
+        def mock_process_display_rule(*args, **kwargs):
+            pass
+
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=simple_intermediate_relation_rules,
+        ):
+            with patch(
+                "heritrace.utils.display_rules_utils.get_highest_priority_class",
+                return_value=URIRef("http://example.org/Person"),
+            ):
+                with patch(
+                    "heritrace.utils.display_rules_utils.process_display_rule",
+                    side_effect=mock_process_display_rule,
+                ):
+                    grouped_triples, relevant_properties = get_grouped_triples(
+                        "http://example.org/person1",
+                        mock_triples,
+                        mock_subject_classes,
+                        extended_predicates_info,
+                    )
+
+                    # Verify the intermediateRelation property is set correctly in simple display name section
+                    assert "Simple Property" in grouped_triples
+                    assert grouped_triples["Simple Property"]["intermediateRelation"] == {"class": "http://example.org/SimpleRelationship"}
+                    assert grouped_triples["Simple Property"]["property"] == "http://example.org/simple"
+                    assert grouped_triples["Simple Property"]["shape"] == "http://example.org/SimpleShape"
+                    assert "triples" in grouped_triples["Simple Property"]
 
 
 class TestProcessDisplayRule:

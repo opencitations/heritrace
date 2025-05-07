@@ -29,3 +29,4 @@ tests/test_dataset_db/*
 tests/test_provenance_db/*
 
 .cursor
+.windsurfrules

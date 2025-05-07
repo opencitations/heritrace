@@ -774,3 +774,25 @@ def test_initialize_global_variables_general_exception(app):
         # Call the function and check for exception
         with pytest.raises(RuntimeError, match="Global variables initialization failed: General error"):
             initialize_global_variables(app)
+
+
+def test_need_initialization_without_counter_handler(app):
+    """Test that need_initialization returns False when URI generator doesn't have counter_handler."""
+    # Create a mock URI generator without counter_handler attribute
+    mock_uri_generator = MagicMock(spec=[])
+    app.config['URI_GENERATOR'] = mock_uri_generator
+    
+    # Test that need_initialization returns False
+    assert need_initialization(app) is False
+    
+    # Also test with a URI generator that has the counter_handler attribute set to None
+    mock_uri_generator = MagicMock()
+    mock_uri_generator.counter_handler = None
+    app.config['URI_GENERATOR'] = mock_uri_generator
+    
+    # Test that need_initialization still proceeds to check the cache file
+    app.config['CACHE_FILE'] = 'nonexistent_cache_file.json'
+    app.config['CACHE_VALIDITY_DAYS'] = 7
+    
+    with patch('os.path.exists', return_value=False):
+        assert need_initialization(app) is True
