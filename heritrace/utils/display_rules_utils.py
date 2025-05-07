@@ -134,83 +134,125 @@ def get_grouped_triples(
         if display_rules and highest_priority_rules:
             matched_rules = []
             for rule in highest_priority_rules:
-                for prop in rule["displayProperties"]:
-                    if prop["property"] == prop_uri:
+                for prop_config in rule["displayProperties"]:
+                    if prop_config["property"] == prop_uri:
                         matched_rules.append(rule)
+                        current_prop_config = prop_config
+                        break
+                if matched_rules:
+                    break
+            
             if matched_rules:
-                rule = matched_rules[0]
-                for prop in rule["displayProperties"]:
-                    if prop["property"] == prop_uri:
-                        is_ordered = "orderedBy" in prop
-                        order_property = prop.get("orderedBy")
+                if "displayRules" in current_prop_config and current_prop_config.get("fetchValueFromQuery"):
+                    display_name_top_level = current_prop_config.get("displayName", prop_uri)
+                    relevant_properties.add(prop_uri)
+                    
+                    process_display_rule(
+                        display_name_top_level,
+                        prop_uri,
+                        current_prop_config,
+                        subject,
+                        triples,
+                        grouped_triples,
+                        fetched_values_map,
+                        historical_snapshot,
+                    )
 
-                        if "displayRules" in prop:
-                            for display_rule in prop["displayRules"]:
-                                display_name = display_rule.get("displayName", prop_uri)
-                                relevant_properties.add(prop_uri)
-                                process_display_rule(
-                                    display_name,
-                                    prop_uri,
-                                    display_rule,
-                                    subject,
-                                    triples,
-                                    grouped_triples,
-                                    fetched_values_map,
-                                    historical_snapshot,
-                                )
+                    if "orderedBy" in current_prop_config:
+                        if display_name_top_level not in grouped_triples:
+                            grouped_triples[display_name_top_level] = {"property": prop_uri, "triples": [], "shape": current_prop_config.get("shape")}
+                        grouped_triples[display_name_top_level]["is_draggable"] = True
+                        grouped_triples[display_name_top_level]["ordered_by"] = current_prop_config.get("orderedBy")
+                        process_ordering(
+                            subject,
+                            current_prop_config,
+                            current_prop_config.get("orderedBy"),
+                            grouped_triples,
+                            display_name_top_level,
+                            fetched_values_map,
+                            historical_snapshot,
+                        )
+                    if "intermediateRelation" in current_prop_config:
+                        if display_name_top_level not in grouped_triples:
+                             grouped_triples[display_name_top_level] = {"property": prop_uri, "triples": [], "shape": current_prop_config.get("shape")}
+                        grouped_triples[display_name_top_level]["intermediateRelation"] = current_prop_config["intermediateRelation"]
 
-                                if is_ordered:
-                                    grouped_triples[display_name]["is_draggable"] = True
-                                    grouped_triples[display_name][
-                                        "ordered_by"
-                                    ] = order_property
-                                    process_ordering(
-                                        subject,
-                                        prop,
-                                        order_property,
-                                        grouped_triples,
-                                        display_name,
-                                        fetched_values_map,
-                                        historical_snapshot,
-                                    )
-
-                                if "intermediateRelation" in prop:
-                                    grouped_triples[display_name][
-                                        "intermediateRelation"
-                                    ] = prop["intermediateRelation"]
-                        else:
-                            display_name = prop.get("displayName", prop_uri)
-                            relevant_properties.add(prop_uri)
-                            process_display_rule(
-                                display_name,
-                                prop_uri,
-                                prop,
+                elif "displayRules" in current_prop_config:
+                    is_ordered = "orderedBy" in current_prop_config
+                    order_property = current_prop_config.get("orderedBy")
+                    
+                    for display_rule_nested in current_prop_config["displayRules"]:
+                        display_name_nested = display_rule_nested.get("displayName", prop_uri)
+                        relevant_properties.add(prop_uri)
+                        process_display_rule(
+                            display_name_nested,
+                            prop_uri,
+                            display_rule_nested,
+                            subject,
+                            triples,
+                            grouped_triples,
+                            fetched_values_map,
+                            historical_snapshot,
+                        )
+                        if is_ordered:
+                            if display_name_nested not in grouped_triples:
+                                grouped_triples[display_name_nested] = {
+                                    "property": prop_uri,
+                                    "triples": [],
+                                    "shape": display_rule_nested.get("shape"),
+                                }
+                            grouped_triples[display_name_nested]["is_draggable"] = True
+                            grouped_triples[display_name_nested]["ordered_by"] = order_property
+                            process_ordering(
                                 subject,
-                                triples,
+                                current_prop_config,
+                                order_property,
                                 grouped_triples,
+                                display_name_nested,
                                 fetched_values_map,
                                 historical_snapshot,
                             )
 
-                            if is_ordered:
-                                grouped_triples[display_name]["is_draggable"] = True
-                                grouped_triples[display_name][
-                                    "ordered_by"
-                                ] = order_property
-                                process_ordering(
-                                    subject,
-                                    prop,
-                                    order_property,
-                                    grouped_triples,
-                                    display_name,
-                                    fetched_values_map,
-                                    historical_snapshot,
-                                )
+                        if "intermediateRelation" in display_rule_nested:
+                            if display_name_nested not in grouped_triples:
+                                grouped_triples[display_name_nested] = { "property": prop_uri, "triples": [], "shape": display_rule_nested.get("shape")}
+                            grouped_triples[display_name_nested]["intermediateRelation"] = display_rule_nested["intermediateRelation"]
+                        elif "intermediateRelation" in current_prop_config:
+                             if display_name_nested not in grouped_triples:
+                                grouped_triples[display_name_nested] = { "property": prop_uri, "triples": [], "shape": display_rule_nested.get("shape")}
+                             grouped_triples[display_name_nested]["intermediateRelation"] = current_prop_config["intermediateRelation"]
 
-                            if "intermediateRelation" in prop:
-                                grouped_triples[display_name][
-                                    "intermediateRelation"
-                                ] = prop["intermediateRelation"]
+                else:
+                    display_name_simple = current_prop_config.get("displayName", prop_uri)
+                    relevant_properties.add(prop_uri)
+                    process_display_rule(
+                        display_name_simple,
+                        prop_uri,
+                        current_prop_config,
+                        subject,
+                        triples,
+                        grouped_triples,
+                        fetched_values_map,
+                        historical_snapshot,
+                    )
+                    if "orderedBy" in current_prop_config:
+                        if display_name_simple not in grouped_triples:
+                            grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "shape": current_prop_config.get("shape")}
+                        grouped_triples[display_name_simple]["is_draggable"] = True
+                        grouped_triples[display_name_simple]["ordered_by"] = current_prop_config.get("orderedBy")
+                        process_ordering(
+                            subject,
+                            current_prop_config,
+                            current_prop_config.get("orderedBy"),
+                            grouped_triples,
+                            display_name_simple,
+                            fetched_values_map,
+                            historical_snapshot,
+                        )
+                    if "intermediateRelation" in current_prop_config:
+                        if display_name_simple not in grouped_triples:
+                             grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "shape": current_prop_config.get("shape")}
+                        grouped_triples[display_name_simple]["intermediateRelation"] = current_prop_config["intermediateRelation"]
             else:
                 process_default_property(prop_uri, triples, grouped_triples)
         else:
