@@ -701,9 +701,21 @@ common_properties:
     displayName: "Description"
     shouldBeDisplayed: true
     inputType: "textarea"
-    supportsSearch: true
+    supportsSearch: true    
     minCharsForSearch: 4
     searchTarget: "self"
+    
+  container_property: &container_property
+    property: "http://purl.org/vocab/frbr/core#partOf"
+    supportsSearch: false
+    shouldBeDisplayed: true
+    displayName: "Container"
+    fetchValueFromQuery: *volume_journal_query
+    displayRules:
+      - shape: "http://schema.org/VolumeShape"
+        displayName: "Volume"
+      - shape: "http://schema.org/JournalShape"
+        displayName: "Journal"
 
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
@@ -827,8 +839,9 @@ common_similarity_properties:
       - "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
       - "http://purl.org/spar/datacite/usesIdentifierScheme"
 
-classes:
-  - class: "http://purl.org/spar/fabio/Expression"
+rules:
+  - target: 
+      class: "http://purl.org/spar/fabio/Expression"
     priority: 2
     shouldBeDisplayed: false
     displayName: "Bibliographic Resource"
@@ -1017,7 +1030,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/Article"
+  - target:
+      class: "http://purl.org/spar/fabio/Article"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Article"
@@ -1153,7 +1167,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/Series"
+  - target:
+      class: "http://purl.org/spar/fabio/Series"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Miscellany"
@@ -1251,7 +1266,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/Book"
+  - target:
+      class: "http://purl.org/spar/fabio/Book"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Monograph"
@@ -1370,7 +1386,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/BookChapter"
+  - target:
+      class: "http://purl.org/spar/fabio/BookChapter"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Article in Book"
@@ -1453,7 +1470,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/JournalArticle"
+  - target:
+      class: "http://purl.org/spar/fabio/JournalArticle"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Journal Article"
@@ -1553,7 +1571,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/Journal"
+  - target:
+      class: "http://purl.org/spar/fabio/Journal"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Journal"
@@ -1596,7 +1615,8 @@ classes:
     sortableBy:
       *sortableByTitle
 
-  - class: "http://purl.org/spar/fabio/JournalVolume"
+  - target:
+      class: "http://purl.org/spar/fabio/JournalVolume"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Volume"
@@ -1623,7 +1643,8 @@ classes:
             displayName: "Journal"
             fetchValueFromQuery: *journal_query
 
-  - class: "http://purl.org/spar/fabio/JournalIssue"
+  - target:
+      class: "http://purl.org/spar/fabio/JournalIssue"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Issue"
@@ -1676,18 +1697,77 @@ classes:
       - *type_property
       - *has_sequence_identifier_property
       - *description_property
-      - property: "http://purl.org/vocab/frbr/core#partOf"
-        supportsSearch: true
-        shouldBeDisplayed: true
-        displayName: "Container"
-        fetchValueFromQuery: *volume_journal_query
-        displayRules:
-          - shape: "http://schema.org/VolumeShape"
-            displayName: "Volume"
-          - shape: "http://schema.org/JournalShape"
-            displayName: "Journal"
+      - *container_property
 
-  - class: "http://purl.org/spar/fabio/ProceedingsPaper"
+  - target:
+      shape: "http://schema.org/SpecialIssueShape"
+    priority: 1
+    shouldBeDisplayed: true
+    displayName: "Special Issue"
+    similarity_properties:
+      - http://purl.org/dc/terms/title
+      - and:
+        - http://purl.org/spar/datacite/hasIdentifier
+        - http://purl.org/vocab/frbr/core#partOf
+    fetchUriDisplay: |
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      SELECT ?display
+      WHERE {
+        [[uri]] fabio:hasSequenceIdentifier ?number .
+        
+        # Try to find volume
+        OPTIONAL {
+          [[uri]] frbr:partOf ?volume .
+          ?volume a fabio:JournalVolume ;
+                  fabio:hasSequenceIdentifier ?volumeNumber .
+          
+          # Try to find journal through volume
+          OPTIONAL {
+            ?volume frbr:partOf ?journal .
+            ?journal a fabio:Journal ;
+                    dcterms:title ?journalTitle .
+          }
+        }
+        
+        # If no volume, try to find journal directly
+        OPTIONAL {
+          FILTER (!BOUND(?volumeNumber))
+          [[uri]] frbr:partOf ?journal .
+          ?journal a fabio:Journal ;
+                  dcterms:title ?journalTitle .
+        }
+        
+        # Build display string based on available information
+        BIND(
+          IF(BOUND(?number) && BOUND(?volumeNumber) && BOUND(?journalTitle),
+            CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber, ", ", ?journalTitle),
+            IF(BOUND(?number) && BOUND(?journalTitle),
+              CONCAT("Issue ", ?number, ", ", ?journalTitle),
+              IF(BOUND(?number) && BOUND(?volumeNumber),
+                CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber),
+                CONCAT("Issue ", ?number)
+              )
+            )
+          ) AS ?display
+        )
+      }
+    displayProperties:
+      - *type_property
+      - *identifier_property
+      - *title_property
+      - *has_sequence_identifier_property
+      - *description_property
+      - *abstract_property
+      - *keyword_property
+      - *document_context_property
+      - *publication_date_property
+      - *embodiment_property
+      - *container_property
+
+  - target:
+      class: "http://purl.org/spar/fabio/ProceedingsPaper"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Proceedings Paper"
@@ -1775,7 +1855,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/AcademicProceedings"
+  - target:
+      class: "http://purl.org/spar/fabio/AcademicProceedings"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Proceedings"
@@ -1857,7 +1938,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/Review"
+  - target:
+      class: "http://purl.org/spar/fabio/Review"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Review"
@@ -1973,7 +2055,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/ReviewArticle"
+  - target:
+      class: "http://purl.org/spar/fabio/ReviewArticle"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Review Article"
@@ -2082,7 +2165,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/ReferenceBook"
+  - target:
+      class: "http://purl.org/spar/fabio/ReferenceBook"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Dictionary"
@@ -2187,7 +2271,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/fabio/Thesis"
+  - target:
+      class: "http://purl.org/spar/fabio/Thesis"
     priority: 1
     shouldBeDisplayed: true
     displayName: "Thesis"
@@ -2278,7 +2363,8 @@ classes:
     sortableBy:
       *sortableByTitleDate
 
-  - class: "http://purl.org/spar/datacite/Identifier"
+  - target:
+      class: "http://purl.org/spar/datacite/Identifier"
     priority: 1
     shouldBeDisplayed: false
     displayName: "Identifier"
@@ -2305,7 +2391,8 @@ classes:
         minCharsForSearch: 3
         searchTarget: "parent"
 
-  - class: "http://purl.org/spar/fabio/Manifestation"
+  - target:
+      class: "http://purl.org/spar/fabio/Manifestation"
     priority: 1
     shouldBeDisplayed: false
     displayName: "Page"
@@ -2346,7 +2433,8 @@ classes:
         shouldBeDisplayed: true
         supportsSearch: false
 
-  - class: "http://purl.org/spar/pro/RoleInTime"
+  - target:
+      class: "http://purl.org/spar/pro/RoleInTime"
     priority: 1
     shouldBeDisplayed: false
     displayName: "Agent Role"
@@ -2392,7 +2480,8 @@ classes:
         shouldBeDisplayed: true
         supportsSearch: false
 
-  - class: "http://xmlns.com/foaf/0.1/Agent"
+  - target:
+      class: "http://xmlns.com/foaf/0.1/Agent"
     priority: 1
     shouldBeDisplayed: false
     displayName: "Responsible Agent"

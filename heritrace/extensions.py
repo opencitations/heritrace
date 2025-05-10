@@ -272,7 +272,8 @@ def initialize_global_variables(app: Flask):
             else:
                 try:
                     with open(app.config['DISPLAY_RULES_PATH'], 'r') as f:
-                        display_rules = yaml.safe_load(f)['classes']
+                        yaml_content = yaml.safe_load(f)
+                        display_rules = yaml_content['rules']
                 except Exception as e:
                     app.logger.error(f"Error loading display rules: {str(e)}")
                     raise RuntimeError(f"Failed to load display rules: {str(e)}")
@@ -292,7 +293,6 @@ def initialize_global_variables(app: Flask):
                 from heritrace.utils.shacl_utils import \
                     get_form_fields_from_shacl
                 form_fields_cache = get_form_fields_from_shacl(shacl_graph, display_rules)
-                
             except Exception as e:
                 app.logger.error(f"Error initializing form fields from SHACL: {str(e)}")
                 raise RuntimeError(f"Failed to initialize form fields: {str(e)}")
@@ -341,7 +341,8 @@ def init_filters(app: Flask):
     display_rules = None
     if app.config["DISPLAY_RULES_PATH"]:
         with open(app.config["DISPLAY_RULES_PATH"], 'r') as f:
-            display_rules = yaml.safe_load(f)['classes']
+            yaml_content = yaml.safe_load(f)
+            display_rules = yaml_content.get('rules', [])
     
     # Create custom filter instance
     custom_filter = Filter(context, display_rules, dataset_endpoint)

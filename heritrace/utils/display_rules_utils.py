@@ -21,16 +21,15 @@ def get_class_priority(class_uri):
         return 0
 
     for rule in rules:
-        if rule["class"] == str(class_uri):
+        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == str(class_uri):
             return rule.get("priority", 0)
     return 0
 
 
 def is_entity_type_visible(entity_type):
     display_rules = get_display_rules()
-
     for rule in display_rules:
-        if rule["class"] == entity_type:
+        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type:
             return rule.get("shouldBeDisplayed", True)
     return True
 
@@ -50,7 +49,7 @@ def get_sortable_properties(entity_type: str, display_rules, form_fields_cache) 
         return []
 
     for rule in display_rules:
-        if rule["class"] == entity_type and "sortableBy" in rule:
+        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type and "sortableBy" in rule:
             # Aggiungiamo displayName ottenuto dalla proprietà nella classe
             sort_props = []
             for sort_config in rule["sortableBy"]:
@@ -128,7 +127,9 @@ def get_grouped_triples(
     primary_properties = valid_predicates_info
     highest_priority_class = get_highest_priority_class(subject_classes)
     highest_priority_rules = [
-        rule for rule in display_rules if rule["class"] == str(highest_priority_class)
+        rule
+        for rule in display_rules
+        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == str(highest_priority_class)
     ]
     for prop_uri in primary_properties:
         if display_rules and highest_priority_rules:
@@ -261,8 +262,8 @@ def get_grouped_triples(
     if display_rules:
         ordered_display_names = []
         for rule in display_rules:
-            if URIRef(rule["class"]) in subject_classes:
-                for prop in rule["displayProperties"]:
+            if "target" in rule and "class" in rule["target"] and URIRef(rule["target"]["class"]) in subject_classes:
+                for prop in rule.get("displayProperties", []):
                     if "displayRules" in prop:
                         for display_rule in prop["displayRules"]:
                             display_name = display_rule.get(
@@ -473,7 +474,7 @@ def get_property_order_from_rules(subject_classes: list, display_rules: list) ->
     if display_rules and highest_priority_class:
         # Find matching rule for the entity's highest priority class
         for rule in display_rules:
-            if rule["class"] == str(highest_priority_class):
+            if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == str(highest_priority_class):
                 # Extract properties in order from displayProperties
                 for prop in rule.get("displayProperties", []):
                     if isinstance(prop, dict) and "property" in prop:
@@ -508,7 +509,7 @@ def get_similarity_properties(entity_type: str) -> Optional[List[Union[str, Dict
         return None
 
     for rule in rules:
-        if rule["class"] == entity_type:
+        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type:
             similarity_props = rule.get("similarity_properties")
 
             # Validate the structure: Must be a list.

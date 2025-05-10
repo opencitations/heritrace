@@ -14,7 +14,9 @@ def mock_filter():
     context = {"example": "http://example.org/"}
     display_rules = [
         {
-            "class": "http://example.org/Person",
+            "target": {
+                "class": "http://example.org/Person"
+            },
             "displayName": "Person",
             "fetchUriDisplay": "SELECT ?name WHERE { [[uri]] <http://example.org/name> ?name }"
         }

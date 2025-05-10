@@ -870,7 +870,8 @@ def test_format_triple_modification(app: Flask) -> None:
             display_rules = None
             if os.path.exists("display_rules.yaml"):
                 with open("display_rules.yaml", "r") as f:
-                    display_rules = yaml.safe_load(f)["classes"]
+                    yaml_content = yaml.safe_load(f)
+                    display_rules = yaml_content.get("rules", [])
 
             # Create a real filter instance with our custom class
             real_filter = TestFilter(

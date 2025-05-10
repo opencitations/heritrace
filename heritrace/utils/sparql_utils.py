@@ -91,7 +91,7 @@ def build_sort_clause(sort_property: str, entity_type: str, display_rules) -> st
     # Trova la configurazione di ordinamento
     sort_config = None
     for rule in display_rules:
-        if rule["class"] == entity_type and "sortableBy" in rule:
+        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type and "sortableBy" in rule:
             sort_config = next(
                 (s for s in rule["sortableBy"] if s["property"] == sort_property), None
             )
@@ -589,7 +589,7 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
     intermediate_classes = set()
 
     for rule in display_rules:
-        if rule["class"] == entity_type:
+        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type:
             for prop in rule.get("displayProperties", []):
                 if "intermediateRelation" in prop:
                     intermediate_classes.add(prop["intermediateRelation"]["class"])

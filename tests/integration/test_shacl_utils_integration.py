@@ -336,7 +336,9 @@ def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph):
     with app.app_context():
         display_rules = [
             {
-                "class": "http://purl.org/spar/fabio/JournalArticle",
+                "target": {
+                    "class": "http://purl.org/spar/fabio/JournalArticle"
+                },
                 "displayProperties": [
                     {
                         "property": "http://purl.org/dc/terms/title",
@@ -577,7 +579,9 @@ def test_validate_new_triple_with_intermediate_relation(app: Flask, shacl_graph:
     with app.app_context():
         display_rules = [
             {
-                "class": "http://purl.org/spar/fabio/JournalArticle",
+                "target": {
+                    "class": "http://purl.org/spar/fabio/JournalArticle"
+                },
                 "displayProperties": [
                     {
                         "property": "http://purl.org/spar/pro/isDocumentContextFor",
@@ -732,7 +736,9 @@ def test_get_display_name_for_shape(app: Flask):
         # Test with matching display rules
         display_rules = [
             {
-                "class": "http://example.org/class",
+                "target": {
+                    "class": "http://example.org/class"
+                },
                 "displayProperties": [
                     {
                         "property": "http://example.org/property",

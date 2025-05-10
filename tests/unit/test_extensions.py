@@ -622,12 +622,13 @@ def test_initialize_global_variables_display_rules_loaded(app, tmp_path):
     # Create a temporary display rules file
     display_rules_path = tmp_path / "display_rules.yaml"
     display_rules_content = """
-classes:
-  Class1:
-    label: "Class 1"
-    properties:
-      prop1:
-        label: "Property 1"
+rules:
+  - target:
+      class: "Class1"
+    displayName: "Class 1"
+    displayProperties:
+      - property: "prop1"
+        displayName: "Property 1"
 """
     display_rules_path.write_text(display_rules_content)
     
@@ -648,8 +649,9 @@ classes:
         # Check that display_rules is set correctly
         from heritrace.extensions import display_rules
         assert display_rules is not None
-        assert 'Class1' in display_rules
-        assert display_rules['Class1']['label'] == 'Class 1'
+        # Check that there's a rule for Class1
+        assert any(rule.get('target', {}).get('class') == 'Class1' for rule in display_rules)
+        assert any(rule.get('displayName') == 'Class 1' for rule in display_rules if rule.get('target', {}).get('class') == 'Class1')
 
 
 def test_initialize_global_variables_display_rules_error(app, tmp_path):

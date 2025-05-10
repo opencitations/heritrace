@@ -53,12 +53,14 @@ def mock_display_rules():
     with patch("heritrace.utils.sparql_utils.display_rules") as mock_rules:
         mock_rules_data = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
-                    {"property": "http://example.org/name", "label": "Name"},
+                    {"displayName": "Name", "property": "http://example.org/name"},
                     {
+                        "displayName": "Knows",
                         "property": "http://example.org/knows",
-                        "label": "Knows",
                         "intermediateRelation": {
                             "class": "http://example.org/Relationship"
                         },

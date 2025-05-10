@@ -92,7 +92,7 @@ def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict]):
     # Step 3: Applica le regole di visualizzazione ai campi del form
     if display_rules:
         form_fields = apply_display_rules(shacl, form_fields, display_rules)
-
+    
     # Step 4: Ordina i campi del form secondo le regole di visualizzazione
     ordered_form_fields = order_form_fields(form_fields, display_rules)
 
@@ -136,7 +136,7 @@ def execute_shacl_query(shacl: Graph, query, init_bindings=None):
         return shacl.query(query)
 
 
-def get_display_name_for_shape(entity_type, property_uri, shape_uri, display_rules):
+def get_display_name_for_shape(entity_type: str, property_uri: str, shape_uri: str, display_rules: List[dict]) -> str|None:
     """
     Helper function to get displayName from display_rules by matching entity class,
     property, and shape URI.
@@ -152,16 +152,23 @@ def get_display_name_for_shape(entity_type, property_uri, shape_uri, display_rul
     """
     if display_rules:
         for rule in display_rules:
-            # Match the entity class first
-            if rule.get("class") == entity_type:
-                # Then find the matching property
+            rule_class = None
+            if "target" in rule and "class" in rule["target"]:
+                rule_class = rule["target"]["class"]
+                
+            if rule_class == entity_type:
                 for prop in rule.get("displayProperties", []):
                     if prop.get("property") == property_uri:
-                        # Finally match the shape in displayRules
+                        prop_display_name = prop.get("displayName")
+                        
                         for shape_rule in prop.get("displayRules", []):
                             if shape_rule.get("shape") == shape_uri:
-                                return shape_rule.get("displayName")
-    return None
+                                shape_display_name = shape_rule.get("displayName")
+                                if shape_display_name:
+                                    return shape_display_name
+                        
+                        if prop_display_name:
+                            return prop_display_name
 
 
 def process_query_results(shacl, results, display_rules, processed_shapes, depth=0):
@@ -474,7 +481,9 @@ def apply_display_rules(shacl, form_fields, display_rules):
         dict: I campi del form dopo aver applicato le regole di visualizzazione.
     """
     for rule in display_rules:
-        entity_class = rule.get("class")
+        target = rule.get("target", {})
+        entity_class = target.get("class")
+        
         if entity_class and entity_class in form_fields:
             for prop in rule.get("displayProperties", []):
                 prop_uri = prop["property"]
@@ -760,7 +769,8 @@ def order_form_fields(form_fields, display_rules):
     ordered_form_fields = OrderedDict()
     if display_rules:
         for rule in display_rules:
-            entity_class = rule.get("class")
+            target = rule.get("target", {})
+            entity_class = target.get("class")
             if entity_class and entity_class in form_fields:
                 ordered_properties = [
                     prop_rule["property"]

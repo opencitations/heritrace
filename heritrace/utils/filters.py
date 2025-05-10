@@ -28,25 +28,29 @@ class Filter:
         subject_classes = [str(subject_class) for subject_class in entity_classes]
         if self.display_rules:
             for display_rule in self.display_rules:
-                for subject_class in subject_classes:
-                    if subject_class == display_rule["class"]:
-                        if url == subject_class:
-                            return display_rule["displayName"]
-                        
-                        # Check if displayProperties exists before iterating
-                        if "displayProperties" in display_rule:
-                            for display_property in display_rule["displayProperties"]:
-                                if display_property["property"] == str(url):
-                                    if "displayRules" in display_property:
-                                        # Se ci sono displayRules, restituisci il primo displayName trovato
-                                        return display_property["displayRules"][0][
-                                            "displayName"
-                                        ]
-                                    elif "displayName" in display_property:
-                                        # Se non ci sono displayRules ma c'è un displayName, restituiscilo
-                                        return display_property["displayName"]
-                        # If displayProperties is missing or property not found within it, 
-                        # the loop continues to the next rule or falls through to default logic.
+                # Check if the rule has the expected structure
+                if "target" in display_rule and "class" in display_rule["target"]:
+                    rule_class = display_rule["target"]["class"]
+                    for subject_class in subject_classes:
+                        if subject_class == rule_class:
+                            print(url, subject_class)
+                            if url == subject_class:
+                                return display_rule["displayName"]
+                            
+                            # Check if displayProperties exists before iterating
+                            if "displayProperties" in display_rule:
+                                for display_property in display_rule["displayProperties"]:
+                                    if display_property["property"] == str(url):
+                                        if "displayRules" in display_property:
+                                            # Se ci sono displayRules, restituisci il primo displayName trovato
+                                            return display_property["displayRules"][0][
+                                                "displayName"
+                                            ]
+                                        elif "displayName" in display_property:
+                                            # Se non ci sono displayRules ma c'è un displayName, restituiscilo
+                                            return display_property["displayName"]
+                            # If displayProperties is missing or property not found within it, 
+                            # the loop continues to the next rule or falls through to default logic.
 
         # Se non è stato trovato un displayName nelle regole di visualizzazione,
         # procedi con la logica originale
@@ -88,7 +92,8 @@ class Filter:
     ) -> str | None:
         for entity_class in entity_classes:
             for rule in self.display_rules:
-                if rule["class"] == entity_class and "fetchUriDisplay" in rule:
+                # Check if the rule has the expected structure
+                if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_class and "fetchUriDisplay" in rule:
                     query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri}>")
                     if graph is not None:
                         try:

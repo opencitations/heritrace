@@ -1216,6 +1216,50 @@ schema:IssueShape
     sh:minCount 0 ;
   ] .
 
+schema:SpecialIssueShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:JournalIssue ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:JournalIssue ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path fabio:hasSequenceIdentifier ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:VolumeShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:description ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:RoleInTimeShape ;
+    sh:minCount 0 ;
+  ] .
+
 schema:ReferenceBookShape
   a sh:NodeShape ;
   sh:targetClass fabio:ReferenceBook ;

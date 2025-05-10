@@ -27,7 +27,9 @@ def mock_display_rules():
     """Mock display rules for testing."""
     return [
         {
-            "class": "http://example.org/Person",
+            "target": {
+                "class": "http://example.org/Person"
+            },
             "priority": 1,
             "shouldBeDisplayed": True,
             "displayProperties": [
@@ -63,7 +65,9 @@ def mock_display_rules():
             ],
         },
         {
-            "class": "http://example.org/Document",
+            "target": {
+                "class": "http://example.org/Document"
+            },
             "priority": 2,
             "shouldBeDisplayed": False,
             "displayProperties": [
@@ -212,8 +216,8 @@ class TestInitialization:
         """Test that get_class_priority returns the correct priority."""
         # Mock display rules with class priorities
         mock_rules = [
-            {"class": "http://example.org/Person", "priority": 10},
-            {"class": "http://example.org/Organization", "priority": 5},
+            {"target": {"class": "http://example.org/Person"}, "priority": 10},
+            {"target": {"class": "http://example.org/Organization"}, "priority": 5},
         ]
 
         # Mock the get_display_rules function
@@ -367,7 +371,9 @@ class TestGetSortableProperties:
         # Create a modified display rules with a sortType property
         modified_display_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "sortableBy": [
                     {"property": "http://example.org/name", "displayName": "Name"}
                 ],
@@ -395,7 +401,9 @@ class TestGetSortableProperties:
         # Create a modified display rules with a property not in form_fields_cache
         modified_display_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "sortableBy": [
                     {"property": "http://example.org/unknown", "displayName": "Unknown"}
                 ],
@@ -606,7 +614,9 @@ class TestGetGroupedTriples:
         # Create display rules with orderedBy property
         ordered_display_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Name",
@@ -661,7 +671,9 @@ class TestGetGroupedTriples:
         # Create display rules with intermediateRelation property
         intermediate_display_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Name",
@@ -713,7 +725,9 @@ class TestGetGroupedTriples:
         # Create display rules with orderedBy property in top level with fetchValueFromQuery
         ordered_display_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Knows",
@@ -763,7 +777,9 @@ class TestGetGroupedTriples:
         # Create display rules with intermediateRelation property in top level with fetchValueFromQuery
         intermediate_relation_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Knows",
@@ -811,7 +827,9 @@ class TestGetGroupedTriples:
         # Create display rules with intermediateRelation in nested display rules
         nested_intermediate_relation_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Knows",
@@ -865,7 +883,9 @@ class TestGetGroupedTriples:
         # Create display rules with intermediateRelation in parent that should be inherited by nested rules
         inherited_intermediate_relation_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Knows",
@@ -919,7 +939,9 @@ class TestGetGroupedTriples:
         # Create display rules with orderedBy property in simple display name section (no displayRules or fetchValueFromQuery)
         simple_ordered_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Simple Property",
@@ -978,7 +1000,9 @@ class TestGetGroupedTriples:
         # Create display rules with intermediateRelation property in simple display name section (no displayRules or fetchValueFromQuery)
         simple_intermediate_relation_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Simple Property",
@@ -1420,7 +1444,9 @@ class TestGetPropertyOrderFromRules:
         # Create display rules with ordered display names
         mock_display_rules = [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "displayProperties": [
                     {
                         "displayName": "Name",
@@ -1466,7 +1492,9 @@ class TestGetSimilarityProperties:
         """Mock display rules with similarity_properties."""
         return [
             {
-                "class": "http://example.org/Person",
+                "target": {
+                    "class": "http://example.org/Person"
+                },
                 "priority": 1,
                 "similarity_properties": [
                     "http://example.org/name",
@@ -1474,22 +1502,30 @@ class TestGetSimilarityProperties:
                 ],
             },
             {
-                "class": "http://example.org/Organization",
+                "target": {
+                    "class": "http://example.org/Organization"
+                },
                 "priority": 2,
                 "similarity_properties": [],  # Empty list
             },
             {
-                "class": "http://example.org/Document",
+                "target": {
+                    "class": "http://example.org/Document"
+                },
                 "priority": 3,
                 # Missing similarity_properties
             },
             {
-                "class": "http://example.org/Event",
+                "target": {
+                    "class": "http://example.org/Event"
+                },
                 "priority": 4,
                 "similarity_properties": "not a list",  # Invalid format
             },
              {
-                "class": "http://example.org/Place",
+                "target": {
+                    "class": "http://example.org/Place"
+                },
                 "priority": 5,
                 "similarity_properties": ["prop1", 123],  # Invalid item type
             },
@@ -1575,7 +1611,9 @@ class TestGetSimilarityProperties:
         entity_type = "http://example.org/TestAnd"
         mock_rules_and = [
             {
-                "class": entity_type,
+                "target": {
+                    "class": entity_type
+                },
                 "priority": 1,
                 "similarity_properties": [
                     "prop1",
@@ -1583,21 +1621,27 @@ class TestGetSimilarityProperties:
                 ],
             },
             {
-                "class": "http://example.org/InvalidAndValue",
+                "target": {
+                    "class": "http://example.org/InvalidAndValue"
+                },
                 "priority": 2,
                 "similarity_properties": [
                     {"and": "not_a_list"}
                 ],
             },
             {
-                "class": "http://example.org/InvalidAndListItem",
+                "target": {
+                    "class": "http://example.org/InvalidAndListItem"
+                },
                 "priority": 3,
                 "similarity_properties": [
                     {"and": ["prop4", 555]}
                 ],
             },
              {
-                "class": "http://example.org/InvalidAndDict",
+                "target": {
+                    "class": "http://example.org/InvalidAndDict"
+                },
                 "priority": 4,
                 "similarity_properties": [
                     {"and": ["prop4"], "or": ["prop5"]}
