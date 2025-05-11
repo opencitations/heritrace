@@ -1,4 +1,3 @@
-
 import re
 from collections import defaultdict
 
@@ -259,6 +258,15 @@ def validate_new_triple(
     results = shacl.query(query)
     property_exists = [row.path for row in results]
     if not property_exists:
+        if not s_types:
+            return (
+                None,
+                old_value, 
+                gettext(
+                    "No entity type specified"
+                ),
+            )
+        
         return (
             None,
             old_value,

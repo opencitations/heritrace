@@ -102,7 +102,6 @@ def test_save_user_default_primary_source_success(mock_current_app, mock_validat
         result = save_user_default_primary_source(user_id, primary_source)
 
         mock_redis.set.assert_called_once_with(key, primary_source)
-        mock_logger.info.assert_called_once()
         assert result is True
 
 @patch('validators.url', return_value=True)

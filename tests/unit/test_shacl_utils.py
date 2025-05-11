@@ -57,13 +57,13 @@ class TestShaclUtils:
         mock_apply.assert_not_called()
         mock_order.assert_not_called()
         
-    @patch('heritrace.utils.shacl_utils.get_shape_target_class')
-    @patch('heritrace.utils.shacl_utils.get_object_class')
-    @patch('heritrace.utils.shacl_utils.get_display_name_for_shape')
-    @patch('heritrace.utils.shacl_utils.process_nested_shapes')
+    @patch('heritrace.utils.shacl_display.get_shape_target_class')
+    @patch('heritrace.utils.shacl_display.get_object_class')
+    @patch('heritrace.utils.shacl_display.get_display_name_for_shape')
+    @patch('heritrace.utils.shacl_display.process_nested_shapes')
     def test_process_query_results_with_ornodes(self, mock_process_nested_shapes, mock_get_display_name, mock_get_object_class, mock_get_shape_target_class):
         """Test che process_query_results gestisca correttamente gli orNodes."""
-        from heritrace.utils.shacl_utils import process_query_results
+        from heritrace.utils.shacl_display import process_query_results
         from collections import namedtuple
         
         # Configura i mock per le funzioni chiamate da process_query_results
@@ -132,7 +132,7 @@ class TestShaclUtils:
         
     def test_get_shape_target_class_returns_none(self):
         """Test che get_shape_target_class ritorni None quando non trova una targetClass."""
-        from heritrace.utils.shacl_utils import get_shape_target_class
+        from heritrace.utils.shacl_display import get_shape_target_class
         from rdflib import Graph
         
         # Crea un grafo vuoto che non contiene alcuna targetClass
@@ -147,7 +147,7 @@ class TestShaclUtils:
         
     def test_apply_display_rules_to_nested_shapes_parent_prop_not_dict(self):
         """Test che apply_display_rules_to_nested_shapes ritorni nested_fields quando parent_prop non è un dizionario."""
-        from heritrace.utils.shacl_utils import apply_display_rules_to_nested_shapes
+        from heritrace.utils.shacl_display import apply_display_rules_to_nested_shapes
         
         # Prepara i dati di test
         nested_fields = [
@@ -173,13 +173,13 @@ class TestShaclUtils:
         # Verifica che il risultato sia uguale a nested_fields senza modifiche
         assert result == nested_fields
         
-    @patch('heritrace.utils.shacl_utils.get_shape_target_class')
-    @patch('heritrace.utils.shacl_utils.get_object_class')
-    @patch('heritrace.utils.shacl_utils.get_display_name_for_shape')
-    @patch('heritrace.utils.shacl_utils.process_nested_shapes')
+    @patch('heritrace.utils.shacl_display.get_shape_target_class')
+    @patch('heritrace.utils.shacl_display.get_object_class')
+    @patch('heritrace.utils.shacl_display.get_display_name_for_shape')
+    @patch('heritrace.utils.shacl_display.process_nested_shapes')
     def test_process_query_results_update_existing_field(self, mock_process_nested_shapes, mock_get_display_name, mock_get_object_class, mock_get_shape_target_class):
         """Test che process_query_results aggiorni correttamente un campo esistente con nuovi datatype e condizioni."""
-        from heritrace.utils.shacl_utils import process_query_results
+        from heritrace.utils.shacl_display import process_query_results
         from collections import namedtuple
         
         # Configura i mock per le funzioni chiamate da process_query_results
@@ -279,7 +279,7 @@ class TestShaclUtils:
         
     def test_validate_new_triple_no_shacl(self):
         """Test che validate_new_triple funzioni correttamente quando non c'è SHACL."""
-        from heritrace.utils.shacl_utils import validate_new_triple
+        from heritrace.utils.shacl_validation import validate_new_triple
         from rdflib import URIRef, Literal, XSD
         from unittest.mock import patch, MagicMock
         
@@ -290,9 +290,9 @@ class TestShaclUtils:
         mock_data_graph = MagicMock()
         mock_data_graph.triples.return_value = []
         
-        with patch('heritrace.utils.shacl_utils.fetch_data_graph_for_subject', return_value=mock_data_graph), \
-             patch('heritrace.utils.shacl_utils.get_shacl_graph', return_value=MagicMock()), \
-             patch('heritrace.utils.shacl_utils.len', return_value=0):
+        with patch('heritrace.utils.shacl_validation.fetch_data_graph_for_subject', return_value=mock_data_graph), \
+             patch('heritrace.utils.shacl_validation.get_shacl_graph', return_value=MagicMock()), \
+             patch('heritrace.utils.shacl_validation.len', return_value=0):
             
             # Caso 1: new_value è un URL
             new_value = "http://example.org/value1"
@@ -331,7 +331,7 @@ class TestShaclUtils:
     
     def test_validate_new_triple_entity_types_not_list(self):
         """Test che validate_new_triple gestisca correttamente entity_types quando non è una lista."""
-        from heritrace.utils.shacl_utils import validate_new_triple
+        from heritrace.utils.shacl_validation import validate_new_triple
         from unittest.mock import patch, MagicMock
         from rdflib import URIRef, RDF
         
@@ -349,10 +349,10 @@ class TestShaclUtils:
         # Simula che la query SHACL non restituisce risultati (per semplificare il test)
         mock_shacl.query.return_value = []
         
-        with patch('heritrace.utils.shacl_utils.fetch_data_graph_for_subject', return_value=mock_data_graph), \
-             patch('heritrace.utils.shacl_utils.get_shacl_graph', return_value=mock_shacl), \
-             patch('heritrace.utils.shacl_utils.len', return_value=1), \
-             patch('heritrace.utils.shacl_utils.get_custom_filter') as mock_custom_filter:
+        with patch('heritrace.utils.shacl_validation.fetch_data_graph_for_subject', return_value=mock_data_graph), \
+             patch('heritrace.utils.shacl_validation.get_shacl_graph', return_value=mock_shacl), \
+             patch('heritrace.utils.shacl_validation.len', return_value=1), \
+             patch('heritrace.utils.shacl_validation.get_custom_filter') as mock_custom_filter:
             
             # Configura il mock per custom_filter
             mock_filter = MagicMock()
@@ -360,7 +360,7 @@ class TestShaclUtils:
             mock_custom_filter.return_value = mock_filter
             
             # Verifica che entity_types venga convertito in lista
-            with patch('heritrace.utils.shacl_utils.isinstance', side_effect=lambda obj, cls: False if cls == list else isinstance(obj, cls)):
+            with patch('heritrace.utils.shacl_validation.isinstance', side_effect=lambda obj, cls: False if cls == list else isinstance(obj, cls)):
                 validate_new_triple(subject, predicate, new_value, "create", None, entity_types)
                 
                 # Verifica che la query SHACL sia stata chiamata con entity_types convertito in lista
@@ -370,7 +370,7 @@ class TestShaclUtils:
                 
     def test_collect_inverse_types(self):
         """Test specifico per verificare la raccolta degli inverse types."""
-        from heritrace.utils.shacl_utils import validate_new_triple
+        from heritrace.utils.shacl_validation import validate_new_triple
         from unittest.mock import patch, MagicMock
         from rdflib import URIRef, RDF, Graph
         import inspect
@@ -432,7 +432,7 @@ class TestShaclUtils:
         
     def test_validate_new_triple_inverse_types(self):
         """Test che validate_new_triple gestisca correttamente gli inverse types."""
-        from heritrace.utils.shacl_utils import validate_new_triple
+        from heritrace.utils.shacl_validation import validate_new_triple
         from unittest.mock import patch, MagicMock
         from rdflib import URIRef, RDF, Graph
         
@@ -502,10 +502,10 @@ class TestShaclUtils:
         # Creiamo un wrapper per il grafo SHACL
         shacl_wrapper = ShaclGraphWrapper(mock_shacl)
         
-        with patch('heritrace.utils.shacl_utils.fetch_data_graph_for_subject', return_value=data_graph), \
-             patch('heritrace.utils.shacl_utils.get_shacl_graph', return_value=shacl_wrapper), \
-             patch('heritrace.utils.shacl_utils.len', return_value=1), \
-             patch('heritrace.utils.shacl_utils.get_custom_filter') as mock_custom_filter:
+        with patch('heritrace.utils.shacl_validation.fetch_data_graph_for_subject', return_value=data_graph), \
+             patch('heritrace.utils.shacl_validation.get_shacl_graph', return_value=shacl_wrapper), \
+             patch('heritrace.utils.shacl_validation.len', return_value=1), \
+             patch('heritrace.utils.shacl_validation.get_custom_filter') as mock_custom_filter:
             
             # Configura il mock per custom_filter
             mock_filter = MagicMock()

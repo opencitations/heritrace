@@ -15,7 +15,7 @@ from rdflib import Literal, URIRef
 
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.create_logic")
-@patch("heritrace.utils.shacl_utils.validate_new_triple")
+@patch("heritrace.utils.shacl_validation.validate_new_triple")
 @patch("heritrace.routes.api.g")
 def test_apply_changes_create(
     mock_g,
@@ -62,7 +62,7 @@ def test_apply_changes_create(
 
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.update_logic")
-@patch("heritrace.utils.shacl_utils.validate_new_triple")
+@patch("heritrace.utils.shacl_validation.validate_new_triple")
 @patch("heritrace.routes.api.g")
 def test_apply_changes_update(
     mock_g,
@@ -109,7 +109,7 @@ def test_apply_changes_update(
 
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.delete_logic")
-@patch("heritrace.utils.shacl_utils.validate_new_triple")
+@patch("heritrace.utils.shacl_validation.validate_new_triple")
 @patch("heritrace.routes.api.g")
 def test_apply_changes_delete(
     mock_g,
@@ -187,7 +187,7 @@ def test_apply_changes_order(
 
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.delete_logic")
-@patch("heritrace.utils.shacl_utils.validate_new_triple")
+@patch("heritrace.utils.shacl_validation.validate_new_triple")
 @patch("heritrace.routes.api.g")
 def test_apply_changes_with_affected_entities(
     mock_g,
