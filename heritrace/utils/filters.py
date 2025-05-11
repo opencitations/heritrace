@@ -33,7 +33,6 @@ class Filter:
                     rule_class = display_rule["target"]["class"]
                     for subject_class in subject_classes:
                         if subject_class == rule_class:
-                            print(url, subject_class)
                             if url == subject_class:
                                 return display_rule["displayName"]
                             

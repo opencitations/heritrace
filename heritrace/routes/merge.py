@@ -126,11 +126,9 @@ def execute_merge():
             dataset_is_quadstore=dataset_is_quadstore
         )
 
-        current_app.logger.info(f"Executing merge via Editor: Keep <{entity1_uri}>, Delete <{entity2_uri}>")
 
         editor.merge(keep_entity_uri=entity1_uri, delete_entity_uri=entity2_uri)
 
-        current_app.logger.info(f"Successfully merged <{entity2_uri}> into <{entity1_uri}> via Editor.")
         entity1_url = url_for('entity.about', subject=entity1_uri)
         entity2_url = url_for('entity.about', subject=entity2_uri)
         flash_message_html = gettext(
@@ -286,7 +284,6 @@ def find_similar_resources():
 
         if not subject_bindings:
             # Subject has no values for any of the specified properties, cannot find similar
-            current_app.logger.info(f"Subject {subject_uri} has no values for any properties in similarity config: {all_props_in_config}")
             return jsonify({"status": "success", "results": [], "has_more": False})
 
         # Group subject's values by property
@@ -332,7 +329,6 @@ def find_similar_resources():
                     union_blocks.append(f"  {{\n{patterns_str}\n  }}")
 
         if not union_blocks:
-            current_app.logger.info(f"Could not build any valid query blocks for similarity search for {subject_uri}.")
             return jsonify({"status": "success", "results": [], "has_more": False})
 
         similarity_query_body = " UNION ".join(union_blocks)
@@ -349,7 +345,6 @@ def find_similar_resources():
           }}
         }} ORDER BY ?similar OFFSET {offset} LIMIT {query_limit}
         """
-        current_app.logger.info(f"Similarity query for {subject_uri} ({entity_type}):\n{final_query}")
 
         sparql.setQuery(final_query)
         sparql.setReturnFormat(JSON)

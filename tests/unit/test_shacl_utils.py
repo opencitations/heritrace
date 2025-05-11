@@ -424,7 +424,6 @@ class TestShaclUtils:
         inverse_types = []
         for s, p, o in data_graph.triples((None, None, URIRef(subject))):
             o_types = [t[2] for t in data_graph.triples((s, RDF.type, None))]
-            print(f"Entità {s} ha i tipi: {o_types}")
             inverse_types.extend(o_types)
         
         # Verifica che inverse_types contenga entrambi i tipi inversi
@@ -521,7 +520,6 @@ class TestShaclUtils:
             
             # Ottieni la query SPARQL dal wrapper
             query_arg = shacl_wrapper.last_query
-            print(f"Query SPARQL:\n{query_arg}")
             
             # Verifica che la query contenga VALUES ?type con tutti i tipi (diretto e inversi)
             # Nella query SPARQL, i tipi vengono formattati come <URI>
@@ -529,7 +527,6 @@ class TestShaclUtils:
             
             # Estrai la sezione VALUES dalla query
             values_section = query_arg.split("VALUES ?type {")[1].split("}")[0].strip()
-            print(f"VALUES section: {values_section}")
             
             # Verifica che gli inverse types siano presenti nella sezione VALUES
             assert f"<{inverse_type1}>" in values_section, f"L'inverse type {inverse_type1} non è presente nella query"

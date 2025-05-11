@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 import re
 
 import validators
@@ -24,14 +24,12 @@ from heritrace.utils.display_rules_utils import (get_class_priority,
                                                  get_property_order_from_rules,
                                                  is_entity_type_visible)
 from heritrace.utils.filters import Filter
-from heritrace.utils.shacl_utils import get_valid_predicates
+from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
     fetch_current_state_with_related_entities, fetch_data_graph_for_subject,
     parse_sparql_update, get_entity_types
 )
 from heritrace.utils.uri_utils import generate_unique_uri
-from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
-                                            is_virtuoso)
 from heritrace.utils.primary_source_utils import (get_default_primary_source,
                                                  save_user_default_primary_source)
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef

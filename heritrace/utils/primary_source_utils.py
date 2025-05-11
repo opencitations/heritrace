@@ -56,7 +56,6 @@ def save_user_default_primary_source(user_id, primary_source):
     key = USER_DEFAULT_SOURCE_KEY.format(user_id=user_id)
     try:
         current_app.redis_client.set(key, primary_source)
-        current_app.logger.info(f"Saved new default primary source for user {user_id}: {primary_source}")
         return True
     except Exception as e:
         current_app.logger.error(f"Failed to save user default primary source to Redis: {e}")
