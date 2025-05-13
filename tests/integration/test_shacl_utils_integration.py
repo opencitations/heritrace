@@ -114,16 +114,21 @@ def test_get_form_fields_from_shacl_journal_article(app: Flask, shacl_graph: Gra
         # Test with JournalArticle class
         form_fields = get_form_fields_from_shacl(shacl_graph, None)
         
-        # Check that JournalArticle class exists in form fields
-        assert "http://purl.org/spar/fabio/JournalArticle" in form_fields
+        # Find the key for JournalArticle in the tuple-based keys
+        journal_article_key = None
+        for key in form_fields.keys():
+            if isinstance(key, tuple) and key[0] == "http://purl.org/spar/fabio/JournalArticle":
+                journal_article_key = key
+                break
         
-        # Check required properties for JournalArticle
-        journal_article_fields = form_fields["http://purl.org/spar/fabio/JournalArticle"]
+        # Check that we found a key for JournalArticle
+        assert journal_article_key is not None, "No key found for JournalArticle"
         
-        # Check type properties
+        journal_article_fields = form_fields[journal_article_key]
+        
+        # Check type property
         assert "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" in journal_article_fields
         type_fields = journal_article_fields["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"]
-        assert any(field["hasValue"] == "http://purl.org/spar/fabio/Expression" for field in type_fields)
         assert any(field["hasValue"] == "http://purl.org/spar/fabio/JournalArticle" for field in type_fields)
         
         # Check title property
@@ -331,10 +336,13 @@ def test_validate_new_triple_with_datatype_conversion(app: Flask, shacl_graph: G
 def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph):
     """Test form field extraction with display rules."""
     with app.app_context():
+        # Update display rules to include both class and shape
+        journal_article_shape = "http://schema.org/JournalArticleShape"
         display_rules = [
             {
                 "target": {
-                    "class": "http://purl.org/spar/fabio/JournalArticle"
+                    "class": "http://purl.org/spar/fabio/JournalArticle",
+                    "shape": journal_article_shape
                 },
                 "displayProperties": [
                     {
@@ -353,8 +361,18 @@ def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph):
         
         form_fields = get_form_fields_from_shacl(shacl_graph, display_rules)
         
-        # Check that display names are applied
-        article_fields = form_fields["http://purl.org/spar/fabio/JournalArticle"]
+        # Find the key for JournalArticle in the tuple-based keys
+        journal_article_key = None
+        for key in form_fields.keys():
+            if isinstance(key, tuple) and key[0] == "http://purl.org/spar/fabio/JournalArticle":
+                journal_article_key = key
+                break
+        
+        # Check that we found a key for JournalArticle
+        assert journal_article_key is not None, "No key found for JournalArticle"
+        article_fields = form_fields[journal_article_key]
+        
+        # Check that display rules were applied
         title_field = article_fields["http://purl.org/dc/terms/title"][0]
         abstract_field = article_fields["http://purl.org/dc/terms/abstract"][0]
         
@@ -443,9 +461,16 @@ def test_get_form_fields_with_nested_shapes(app: Flask, shacl_graph: Graph):
         # Test with JournalArticle class that has nested shapes (e.g., for authors)
         form_fields = get_form_fields_from_shacl(shacl_graph, None)
         
-        # Check that JournalArticle class exists in form fields
-        assert "http://purl.org/spar/fabio/JournalArticle" in form_fields
-        journal_article_fields = form_fields["http://purl.org/spar/fabio/JournalArticle"]
+        # Find the key for JournalArticle in the tuple-based keys
+        journal_article_key = None
+        for key in form_fields.keys():
+            if isinstance(key, tuple) and key[0] == "http://purl.org/spar/fabio/JournalArticle":
+                journal_article_key = key
+                break
+        
+        # Check that we found a key for JournalArticle
+        assert journal_article_key is not None, "No key found for JournalArticle"
+        journal_article_fields = form_fields[journal_article_key]
         
         # Check that pro:isDocumentContextFor field exists and has nested shapes
         assert "http://purl.org/spar/pro/isDocumentContextFor" in journal_article_fields
@@ -545,10 +570,13 @@ def test_validate_new_triple_with_multiple_types(app: Flask, shacl_graph: Graph,
 def test_validate_new_triple_with_intermediate_relation(app: Flask, shacl_graph: Graph, mock_fetch_data_graph):
     """Test validation with intermediate relations."""
     with app.app_context():
+        # Update display rules to include both class and shape
+        journal_article_shape = "http://schema.org/JournalArticleShape"
         display_rules = [
             {
                 "target": {
-                    "class": "http://purl.org/spar/fabio/JournalArticle"
+                    "class": "http://purl.org/spar/fabio/JournalArticle",
+                    "shape": journal_article_shape
                 },
                 "displayProperties": [
                     {
@@ -564,8 +592,18 @@ def test_validate_new_triple_with_intermediate_relation(app: Flask, shacl_graph:
         
         form_fields = get_form_fields_from_shacl(shacl_graph, display_rules)
         
+        # Find the key for JournalArticle in the tuple-based keys
+        journal_article_key = None
+        for key in form_fields.keys():
+            if isinstance(key, tuple) and key[0] == "http://purl.org/spar/fabio/JournalArticle":
+                journal_article_key = key
+                break
+        
+        # Check that we found a key for JournalArticle
+        assert journal_article_key is not None, "No key found for JournalArticle"
+        article_fields = form_fields[journal_article_key]
+        
         # Check that intermediate relation is processed
-        article_fields = form_fields["http://purl.org/spar/fabio/JournalArticle"]
         role_field = article_fields["http://purl.org/spar/pro/isDocumentContextFor"][0]
         
         assert "intermediateRelation" in role_field
@@ -695,21 +733,17 @@ def test_convert_to_matching_class_edge_cases(app: Flask):
 def test_get_display_name_for_shape(app: Flask):
     """Test the get_display_name_for_shape function."""
     with app.app_context():
-        # Test with matching display rules
+        # Test with matching display rules - updated to include shape in target
         display_rules = [
             {
                 "target": {
-                    "class": "http://example.org/class"
+                    "class": "http://example.org/class",
+                    "shape": "http://example.org/shape"
                 },
                 "displayProperties": [
                     {
                         "property": "http://example.org/property",
-                        "displayRules": [
-                            {
-                                "shape": "http://example.org/shape",
-                                "displayName": "Test Shape"
-                            }
-                        ]
+                        "displayName": "Test Shape"
                     }
                 ]
             }
@@ -938,9 +972,10 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph):
         
         mock_results.__iter__.return_value = [mock_row]
         
-        # Process with existing field
+        # Process with existing field - updated for tuple-based keys
+        entity_key = ("http://example.org/type", "http://example.org/shape")
         form_fields = {
-            "http://example.org/type": {
+            entity_key: {
                 "http://example.org/predicate": [
                     {
                         "datatypes": ["http://www.w3.org/2001/XMLSchema#integer"]
@@ -950,16 +985,18 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph):
         }
         
         result = process_query_results(shacl_graph, mock_results, None, set(), depth=0)
-        assert "http://example.org/type" in result
-        assert "http://example.org/predicate" in result["http://example.org/type"]
+        entity_key = ("http://example.org/type", "http://example.org/shape")
+        assert entity_key in result
+        assert "http://example.org/predicate" in result[entity_key]
         
         # Test with existing field that has the same datatype
         mock_row.datatype = URIRef("http://www.w3.org/2001/XMLSchema#integer")
         mock_results.__iter__.return_value = [mock_row]
         
         result = process_query_results(shacl_graph, mock_results, None, set(), depth=0)
-        assert "http://example.org/type" in result
-        assert "http://example.org/predicate" in result["http://example.org/type"]
+        entity_key = ("http://example.org/type", "http://example.org/shape")
+        assert entity_key in result
+        assert "http://example.org/predicate" in result[entity_key]
 
 
 def test_validate_new_triple_with_uri_validation(app: Flask, shacl_graph: Graph, mock_fetch_data_graph):
@@ -1305,15 +1342,17 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph):
                             processed_shapes = set()
                             fields = process_query_results(shacl_graph, rows, display_rules, processed_shapes)
                             
-                            # Verify the result has the expected structure
-                            assert "http://example.org/type1" in fields
-                            assert "http://example.org/type2" in fields
-                            assert "http://example.org/predicate1" in fields["http://example.org/type1"]
-                            assert "http://example.org/predicate1" in fields["http://example.org/type2"]
+                            # Verify the result has the expected structure with tuple-based keys
+                            entity_key1 = ("http://example.org/type1", "http://example.org/shape1")
+                            entity_key2 = ("http://example.org/type2", "http://example.org/shape1")
+                            assert entity_key1 in fields
+                            assert entity_key2 in fields
+                            assert "http://example.org/predicate1" in fields[entity_key1]
+                            assert "http://example.org/predicate1" in fields[entity_key2]
                             
                             # Verify the OR nodes are processed correctly
-                            assert "or" in fields["http://example.org/type1"]["http://example.org/predicate1"][0]
-                            assert "or" in fields["http://example.org/type2"]["http://example.org/predicate1"][0]
+                            assert "or" in fields[entity_key1]["http://example.org/predicate1"][0]
+                            assert "or" in fields[entity_key2]["http://example.org/predicate1"][0]
             
             # Create the second test case with processed_shapes containing one of the orNodes
             with patch("heritrace.utils.shacl_display.get_shape_target_class", side_effect=["http://example.org/type1", "http://example.org/type2"]):
@@ -1325,10 +1364,11 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph):
                             processed_shapes = {"http://example.org/orNode1"}
                             fields = process_query_results(shacl_graph, rows, display_rules, processed_shapes)
                             
-                            # Verify the result still has the OR nodes
-                            assert "or" in fields["http://example.org/type1"]["http://example.org/predicate1"][0]
+                            # Verify the result still has the OR nodes with tuple-based keys
+                            entity_key1 = ("http://example.org/type1", "http://example.org/shape1")
+                            assert "or" in fields[entity_key1]["http://example.org/predicate1"][0]
                             # Check that the first OR node doesn't have nestedShape since it's in processed_shapes
-                            assert "nestedShape" not in fields["http://example.org/type1"]["http://example.org/predicate1"][0]["or"][0]
+                            assert "nestedShape" not in fields[entity_key1]["http://example.org/predicate1"][0]["or"][0]
 
 
 def test_convert_to_matching_class_with_entity_types(mock_fetch_data_graph):

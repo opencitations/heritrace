@@ -106,12 +106,13 @@ class TestShaclUtils:
         # Chiama direttamente process_query_results
         result = process_query_results(shacl, results, display_rules, processed_shapes)
         
-        # Verifica che il risultato contenga la struttura orNodes attesa
-        assert 'entity_type1' in result
-        assert 'predicate1' in result['entity_type1']
-        assert len(result['entity_type1']['predicate1']) == 1
+        # Verifica che il risultato contenga la struttura orNodes attesa con chiave tuple
+        entity_key = ('entity_type1', 'subjectShape1')
+        assert entity_key in result
+        assert 'predicate1' in result[entity_key]
+        assert len(result[entity_key]['predicate1']) == 1
         
-        field_info = result['entity_type1']['predicate1'][0]
+        field_info = result[entity_key]['predicate1'][0]
         assert 'or' in field_info
         assert len(field_info['or']) == 1
         
@@ -243,13 +244,14 @@ class TestShaclUtils:
         # Chiama direttamente process_query_results
         result = process_query_results(shacl, results, display_rules, processed_shapes)
         
-        # Verifica che il risultato contenga la struttura attesa
-        assert 'entity_type1' in result
-        assert 'predicate1' in result['entity_type1']
+        # Verifica che il risultato contenga la struttura attesa con chiave tuple
+        entity_key = ('entity_type1', 'subjectShape1')
+        assert entity_key in result
+        assert 'predicate1' in result[entity_key]
         # Dovrebbe esserci solo un campo, non due, perché il secondo risultato aggiorna il campo esistente
-        assert len(result['entity_type1']['predicate1']) == 1
+        assert len(result[entity_key]['predicate1']) == 1
         
-        field_info = result['entity_type1']['predicate1'][0]
+        field_info = result[entity_key]['predicate1'][0]
         
         # Verifica che il campo contenga entrambi i datatype
         assert 'datatypes' in field_info
