@@ -234,10 +234,32 @@ schema:BibliographicResourceShape
 
 ## YAML Display Rules File
 
-The YAML file for display rules allows for presentation customizations of the data model. It defines how properties should be displayed and handled in the user interface. Here's an example configuration for a Journal Article:
+The YAML file for display rules allows for presentation customizations of the data model. It defines how properties should be displayed and handled in the user interface.
+
+The configuration uses a flexible targeting system that can specify entities by class, shape, or both. This allows for precise targeting of display rules, including the ability to use multiple shapes for the same class (for example, a regular issue vs. a special issue).
+
+Here are examples of the three possible targeting approaches:
 
 ```yaml
-- class: "http://purl.org/spar/fabio/JournalArticle"
+# Target by class only
+- target:
+    class: "http://purl.org/spar/fabio/JournalArticle"
+
+# Target by shape only
+- target:
+    shape: "http://schema.org/SpecialIssueShape"
+
+# Target by both class and shape
+- target:
+    class: "http://purl.org/spar/fabio/JournalIssue"
+    shape: "http://schema.org/RegularIssueShape"
+```
+
+Here's a complete example configuration for a Journal Article:
+
+```yaml
+  - target:
+      class: "http://purl.org/spar/fabio/JournalArticle"
   priority: 1
   shouldBeDisplayed: true
   displayName: "Journal Article"
@@ -397,13 +419,15 @@ The YAML file for display rules allows for presentation customizations of the da
 
 Key configuration elements:
 
-* `class`: The RDF class being configured (e.g., fabio:JournalArticle)
-* `priority`: Numeric priority value for this class (lower values take precedence)
-* `shouldBeDisplayed`: Whether this class should be shown in the interface
-* `displayName`: Human-readable name for the class
-* `fetchUriDisplay`: SPARQL query to generate a display string for entities of this class
-* `similarity_properties`: A list of property URIs used to identify potentially similar entities. These properties are considered key characteristics for determining if two entities of the same class might be duplicates or closely related. For example, for a `Book`, this might include the title and identifiers.
-* `displayProperties`: List of properties to display for this class
+* `target`: Contains the targeting information
+  * `class`: The target RDF class URI
+  * `shape`: The target SHACL shape URI (optional)
+* `priority`: Numeric priority value for this entity type (lower values take precedence)
+* `shouldBeDisplayed`: Whether this entity type should be shown in the interface
+* `displayName`: Human-readable name for the entity type
+* `fetchUriDisplay`: SPARQL query to generate a display string for entities of this type
+* `similarity_properties`: A list of property URIs used to identify potentially similar entities. These properties are considered key characteristics for determining if two entities of the same type might be duplicates or closely related. For example, for a `Book`, this might include the title and identifiers.
+* `displayProperties`: List of properties to display for this entity type
   * `property`: The RDF property URI
   * `displayName`: Label shown in the interface
   * `shouldBeDisplayed`: Whether to show the property
@@ -450,9 +474,10 @@ Key configuration elements:
 >     inputType: "textarea"
 >     supportsSearch: true
 > 
-> # Use references in class definitions
-> classes:
->   - class: "http://purl.org/spar/fabio/JournalArticle"
+> # Use references in entity definitions
+> rules:
+>   - target:
+>       class: "http://purl.org/spar/fabio/JournalArticle"
 >     displayProperties:
 >       - *title_property  # Reference to the common title property
 >       - property: "http://purl.org/spar/datacite/hasIdentifier"

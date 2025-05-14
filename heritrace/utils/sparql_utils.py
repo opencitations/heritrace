@@ -223,16 +223,19 @@ def get_catalog_data(
     sortable_properties = []
 
     if selected_class:
-        entities, total_count = get_entities_for_class(
-            selected_class, page, per_page, sort_property, sort_direction
-        )
-
+        # Get sortable properties first to determine default sort property
         sortable_properties = get_sortable_properties(
             (selected_class, None), display_rules, form_fields_cache
         )
-
-    if not sort_property and sortable_properties:
-        sort_property = sortable_properties[0]["property"]
+        
+        # Set default sort property if none provided
+        if not sort_property and sortable_properties:
+            sort_property = sortable_properties[0]["property"]
+            
+        # Now get entities with the sort property (default or provided)
+        entities, total_count = get_entities_for_class(
+            selected_class, page, per_page, sort_property, sort_direction
+        )
 
     return {
         "entities": entities,

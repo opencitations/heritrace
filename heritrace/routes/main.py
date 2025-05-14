@@ -46,8 +46,8 @@ def catalogue():
         per_page=per_page,
         allowed_per_page=[50, 100, 200, 500],
         sortable_properties=json.dumps(catalog_data["sortable_properties"]),
-        current_sort_property=None,
-        current_sort_direction="ASC",
+        current_sort_property=catalog_data["sort_property"],
+        current_sort_direction=catalog_data["sort_direction"],
         initial_entities=catalog_data["entities"],
     )
 
