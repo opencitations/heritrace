@@ -11,106 +11,212 @@ from SPARQLWrapper import JSON
 display_rules = get_display_rules()
 
 
-def get_class_priority(class_uri):
+def find_matching_rule(class_uri=None, shape_uri=None, rules=None):
     """
-    Restituisce la priorità di una classe specifica.
-    Calcola la priorità direttamente dalle regole di visualizzazione.
+    Find the most appropriate rule for a given class and/or shape.
+    At least one of class_uri or shape_uri must be provided.
+    
+    Args:
+        class_uri: Optional URI of the class
+        shape_uri: Optional URI of the shape
+        rules: Optional list of rules to search in, defaults to global display_rules
+        
+    Returns:
+        The matching rule or None if no match is found
     """
-    rules = get_display_rules()
     if not rules:
-        return 0
-
+        rules = get_display_rules()
+    if not rules:
+        return None
+    
+    # Initialize variables to track potential matches
+    class_match = None
+    shape_match = None
+    highest_priority = -1
+        
+    # Scan all rules to find the best match based on priority
     for rule in rules:
-        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == str(class_uri):
-            return rule.get("priority", 0)
-    return 0
+        if "target" not in rule:
+            continue
+            
+        rule_priority = rule.get("priority", 0)
+        
+        # Case 1: Both class and shape match (exact match)
+        if class_uri and shape_uri and \
+           "class" in rule["target"] and rule["target"]["class"] == str(class_uri) and \
+           "shape" in rule["target"] and rule["target"]["shape"] == str(shape_uri):
+            # Exact match always takes highest precedence
+            return rule
+        
+        # Case 2: Only class matches
+        elif class_uri and "class" in rule["target"] and rule["target"]["class"] == str(class_uri) and \
+             "shape" not in rule["target"]:
+            if class_match is None or rule_priority < highest_priority:
+                class_match = rule
+                highest_priority = rule_priority
+        
+        # Case 3: Only shape matches
+        elif shape_uri and "shape" in rule["target"] and rule["target"]["shape"] == str(shape_uri) and \
+             "class" not in rule["target"]:
+            if shape_match is None or rule_priority < highest_priority:
+                shape_match = rule
+                highest_priority = rule_priority
+    
+    # Return the best match based on priority
+    # Shape rules typically have higher specificity, so prefer them if they have equal priority
+    if shape_match and (class_match is None or 
+                        shape_match.get("priority", 0) <= class_match.get("priority", 0)):
+        return shape_match
+    elif class_match:
+        return class_match
+    
+    return None
 
 
-def is_entity_type_visible(entity_type):
-    display_rules = get_display_rules()
-    for rule in display_rules:
-        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type:
-            return rule.get("shouldBeDisplayed", True)
-    return True
-
-
-def get_sortable_properties(entity_type: str, display_rules, form_fields_cache) -> list:
+def get_class_priority(entity_key):
     """
-    Ottiene le proprietà ordinabili dalle regole di visualizzazione per un tipo di entità.
-    Inferisce il tipo di ordinamento dal form_fields_cache.
+    Returns the priority of a specific entity key (class_uri, shape_uri).
+    Calculates the priority directly from the display rules.
+    
+    Args:
+        entity_key: A tuple (class_uri, shape_uri)
+    """
+    class_uri = entity_key[0]
+    shape_uri = entity_key[1]
+        
+    rule = find_matching_rule(class_uri, shape_uri)
+    return rule.get("priority", 0) if rule else 0
+
+
+def is_entity_type_visible(entity_key):
+    """
+    Determines if an entity type should be displayed.
+    
+    Args:
+        entity_key: A tuple (class_uri, shape_uri)
+    """
+    class_uri = entity_key[0]
+    shape_uri = entity_key[1]
+        
+    rule = find_matching_rule(class_uri, shape_uri)
+    return rule.get("shouldBeDisplayed", True) if rule else True
+
+
+def get_sortable_properties(entity_key, display_rules=None, form_fields_cache=None) -> list:
+    """
+    Gets the sortable properties from display rules for an entity type and/or shape.
+    Infers the sorting type from form_fields_cache.
 
     Args:
-        entity_type: L'URI del tipo di entità
+        entity_key: A tuple (class_uri, shape_uri)
+        display_rules: The display rules configuration
+        form_fields_cache: The form fields cache
 
     Returns:
-        Lista di dizionari con le informazioni di ordinamento
+        List of dictionaries with sorting information
     """
     if not display_rules:
+        display_rules = get_display_rules()
+    if not display_rules:
         return []
+    
+    class_uri = entity_key[0]
+    shape_uri = entity_key[1]
+    
+    # Find the matching rule
+    rule = find_matching_rule(class_uri, shape_uri, display_rules)
+    if not rule or "sortableBy" not in rule:
+        return []
+    
+    # Process sortable properties from the rule
+    sort_props = []
+    for sort_config in rule["sortableBy"]:
+        prop = sort_config.copy()
 
-    for rule in display_rules:
-        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type and "sortableBy" in rule:
-            # Aggiungiamo displayName ottenuto dalla proprietà nella classe
-            sort_props = []
-            for sort_config in rule["sortableBy"]:
-                prop = sort_config.copy()
+        # Find the corresponding displayProperty to get the displayName
+        for display_prop in rule["displayProperties"]:
+            if display_prop["property"] == prop["property"]:
+                if "displayRules" in display_prop:
+                    prop["displayName"] = display_prop["displayRules"][0][
+                        "displayName"
+                    ]
+                else:
+                    prop["displayName"] = display_prop.get(
+                        "displayName", prop["property"]
+                    )
+                break
 
-                # Trova la displayProperty corrispondente per ottenere il displayName
-                for display_prop in rule["displayProperties"]:
-                    if display_prop["property"] == prop["property"]:
-                        if "displayRules" in display_prop:
-                            prop["displayName"] = display_prop["displayRules"][0][
-                                "displayName"
-                            ]
-                        else:
-                            prop["displayName"] = display_prop.get(
-                                "displayName", prop["property"]
-                            )
+        # Determine the sorting type from form fields
+        entity_key = None
+        if form_fields_cache:
+            # Try different combinations of keys in form_fields_cache
+            if class_uri and shape_uri and (class_uri, str(shape_uri)) in form_fields_cache:
+                entity_key = (class_uri, str(shape_uri))
+            elif class_uri and class_uri in form_fields_cache:
+                entity_key = class_uri
+            elif shape_uri:
+                # Try to find any key with the matching shape
+                for key in form_fields_cache.keys():
+                    if isinstance(key, tuple) and len(key) == 2 and key[1] == str(shape_uri):
+                        entity_key = key
                         break
+        
+        if entity_key and prop["property"] in form_fields_cache[entity_key]:
+            field_info = form_fields_cache[entity_key][prop["property"]][
+                0
+            ]  # Take the first field definition
 
-                # Determina il tipo di ordinamento dalle form fields
-                if form_fields_cache and entity_type in form_fields_cache:
-                    entity_fields = form_fields_cache[entity_type]
-                    if prop["property"] in entity_fields:
-                        field_info = entity_fields[prop["property"]][
-                            0
-                        ]  # Prendi il primo field definition
+            # If there's a shape, it's a reference to an entity (sort by label)
+            if field_info.get("nodeShape"):
+                prop["sortType"] = "string"
+            # Otherwise look at the datatypes
+            elif field_info.get("datatypes"):
+                datatype = str(field_info["datatypes"][0]).lower()
+                if any(t in datatype for t in ["date", "time"]):
+                    prop["sortType"] = "date"
+                elif any(
+                    t in datatype
+                    for t in ["int", "float", "decimal", "double", "number"]
+                ):
+                    prop["sortType"] = "number"
+                elif "boolean" in datatype:
+                    prop["sortType"] = "boolean"
+                else:
+                    prop["sortType"] = "string"
+            else:
+                prop["sortType"] = "string"
+        else:
+            # Default to string sorting if we can't determine the type
+            prop["sortType"] = "string"
 
-                        # Se c'è una shape, è una referenza a un'entità (ordina per label)
-                        if field_info.get("nodeShape"):
-                            prop["sortType"] = "string"
-                        # Altrimenti guarda i datatypes
-                        elif field_info.get("datatypes"):
-                            datatype = str(field_info["datatypes"][0]).lower()
-                            if any(t in datatype for t in ["date", "time"]):
-                                prop["sortType"] = "date"
-                            elif any(
-                                t in datatype
-                                for t in ["int", "float", "decimal", "double", "number"]
-                            ):
-                                prop["sortType"] = "number"
-                            elif "boolean" in datatype:
-                                prop["sortType"] = "boolean"
-                            else:
-                                prop["sortType"] = "string"
-                        else:
-                            prop["sortType"] = "string"
-
-                sort_props.append(prop)
-
-            return sort_props
-
-    return []
+        sort_props.append(prop)
+    
+    return sort_props
 
 
 def get_highest_priority_class(subject_classes):
-    max_priority = None
+    """
+    Find the highest priority class from the given list of classes.
+    
+    Args:
+        subject_classes: List of class URIs
+        
+    Returns:
+        The highest priority class or None if no classes are provided
+    """
+    if not subject_classes:
+        return None
+    
+    highest_priority = -1
     highest_priority_class = None
-    for cls in subject_classes:
-        priority = get_class_priority(str(cls))
-        if max_priority is None or priority < max_priority:
-            max_priority = priority
-            highest_priority_class = cls
+    
+    for class_uri in subject_classes:
+        entity_key = (class_uri, None)
+        priority = get_class_priority(entity_key)
+        if priority > highest_priority:
+            highest_priority = priority
+            highest_priority_class = class_uri
+    
     return highest_priority_class
 
 
@@ -126,6 +232,7 @@ def get_grouped_triples(
     )  # Map of original values to values returned by the query
     primary_properties = valid_predicates_info
     highest_priority_class = get_highest_priority_class(subject_classes)
+
     highest_priority_rules = [
         rule
         for rule in display_rules
@@ -183,7 +290,9 @@ def get_grouped_triples(
                     order_property = current_prop_config.get("orderedBy")
                     
                     for display_rule_nested in current_prop_config["displayRules"]:
-                        display_name_nested = display_rule_nested.get("displayName", prop_uri)
+                        display_name_nested = display_rule_nested.get(
+                            "displayName", prop_uri
+                        )
                         relevant_properties.add(prop_uri)
                         process_display_rule(
                             display_name_nested,
@@ -457,35 +566,51 @@ def execute_historical_query(
     return None, None
 
 
-def get_property_order_from_rules(subject_classes: list, display_rules: list) -> list:
+def get_property_order_from_rules(subject_classes: list, display_rules: list, shape_uri: str = None):
     """
-    Extract ordered list of properties from display rules for given entity classes.
+    Extract ordered list of properties from display rules for given entity classes and optionally a shape.
 
     Args:
         subject_classes: List of class URIs for the entity
         display_rules: List of display rule configurations
+        shape_uri: Optional shape URI for the entity
 
     Returns:
         List of property URIs in the order specified by display rules
     """
+    if not display_rules:
+        return []
+    
     ordered_properties = []
+    
+    # First, find the highest priority class
     highest_priority_class = get_highest_priority_class(subject_classes)
-
-    if display_rules and highest_priority_class:
-        # Find matching rule for the entity's highest priority class
-        for rule in display_rules:
-            if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == str(highest_priority_class):
-                # Extract properties in order from displayProperties
-                for prop in rule.get("displayProperties", []):
-                    if isinstance(prop, dict) and "property" in prop:
-                        ordered_properties.append(prop["property"])
-                break
-
+    if not highest_priority_class:
+        return []
+    
+    # If we have a shape, try to find a rule matching both class and shape
+    if shape_uri:
+        rule = find_matching_rule(highest_priority_class, shape_uri, display_rules)
+        if rule:
+            # Extract properties in order from displayProperties
+            for prop in rule.get("displayProperties", []):
+                if isinstance(prop, dict) and "property" in prop:
+                    ordered_properties.append(prop["property"])
+            return ordered_properties
+    
+    # If no match with shape or no shape provided, find a rule matching just the class
+    rule = find_matching_rule(highest_priority_class, None, display_rules)
+    if rule:
+        # Extract properties in order from displayProperties
+        for prop in rule.get("displayProperties", []):
+            if isinstance(prop, dict) and "property" in prop:
+                ordered_properties.append(prop["property"])
+    
     return ordered_properties
 
 
-def get_similarity_properties(entity_type: str) -> Optional[List[Union[str, Dict[str, List[str]]]]]:
-    """Gets the similarity properties configuration for a given entity type.
+def get_similarity_properties(entity_key) -> Optional[List[Union[str, Dict[str, List[str]]]]]:
+    """Gets the similarity properties configuration for a given entity key.
 
     This configuration specifies which properties should be used for similarity matching
     using a list-based structure supporting OR logic between elements and
@@ -497,52 +622,54 @@ def get_similarity_properties(entity_type: str) -> Optional[List[Union[str, Dict
         - ['prop1', {'and': ['prop2', 'prop3']}] # prop1 OR (prop2 AND prop3)
 
     Args:
-        entity_type: The URI of the entity type.
+        entity_key: A tuple (class_uri, shape_uri)
 
     Returns:
         A list where each element is either a property URI string or a dictionary
         {'and': [list_of_property_uris]}, representing the boolean logic.
         Returns None if no configuration is found or if the structure is invalid.
     """
-    rules = get_display_rules()
-    if not rules:
+    if not entity_key:
         return None
+    
+    class_uri = entity_key[0]
+    shape_uri = entity_key[1]
+        
+    # Find the matching rule
+    rule = find_matching_rule(class_uri, shape_uri)
+    if not rule:
+        return None
+    
+    similarity_props = rule.get("similarity_properties")
+    
+    if not similarity_props or not isinstance(similarity_props, list):
+        print(f"Warning: Invalid format for similarity_properties in class {class_uri}")
+        return None
+    
+    # Validate each element in the list.
+    validated_props = []
+    for item in similarity_props:
+        if isinstance(item, str):
+            validated_props.append(item)
+        elif isinstance(item, dict) and len(item) == 1 and "and" in item:
+            and_list = item["and"]
+            if isinstance(and_list, list) and and_list and all(isinstance(p, str) for p in and_list):
+                validated_props.append(item)
+            else:
+                print(
+                    f"Warning: Invalid 'and' group in similarity_properties" + 
+                    (f" for class {class_uri}" if class_uri else "") + 
+                    (f" with shape {shape_uri}" if shape_uri else "") + 
+                    f". Expected {{'and': ['prop_uri', ...]}} with a non-empty list of strings."
+                )
+                return None  # Invalid 'and' group structure
+        else:
+            print(
+                f"Warning: Invalid item format in similarity_properties list" + 
+                (f" for class {class_uri}" if class_uri else "") + 
+                (f" with shape {shape_uri}" if shape_uri else "") + 
+                f". Expected a property URI string or {{'and': [...]}} dict."
+            )
+            return None  # Invalid item type
 
-    for rule in rules:
-        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type:
-            similarity_props = rule.get("similarity_properties")
-
-            # Validate the structure: Must be a list.
-            if not isinstance(similarity_props, list):
-                if similarity_props is not None:
-                    print(
-                        f"Warning: Invalid format for similarity_properties in class {entity_type}. "
-                        f"Expected a list, e.g., ['prop1', {{'and': ['prop2', 'prop3']}}]."
-                    )
-                return None # Return None if structure is incorrect or key is missing
-
-            # Validate each element in the list.
-            validated_props = []
-            for item in similarity_props:
-                if isinstance(item, str):
-                    validated_props.append(item)
-                elif isinstance(item, dict) and len(item) == 1 and "and" in item:
-                    and_list = item["and"]
-                    if isinstance(and_list, list) and and_list and all(isinstance(p, str) for p in and_list):
-                        validated_props.append(item)
-                    else:
-                        print(
-                            f"Warning: Invalid 'and' group in similarity_properties for class {entity_type}. "
-                            f"Expected {{'and': ['prop_uri', ...]}} with a non-empty list of strings."
-                        )
-                        return None # Invalid 'and' group structure
-                else:
-                    print(
-                        f"Warning: Invalid item format in similarity_properties list for class {entity_type}. "
-                        f"Expected a property URI string or {{'and': [...]}} dict."
-                    )
-                    return None # Invalid item type
-
-            return validated_props if validated_props else None # Return validated list or None if empty after validation
-
-    return None # Return None if the class is not found
+    return validated_props if validated_props else None  # Return validated list or None if empty after validation

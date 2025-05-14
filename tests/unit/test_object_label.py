@@ -33,7 +33,7 @@ def test_get_object_label_rdf_type():
     
     # Verify
     assert label == "Person"
-    custom_filter.human_readable_predicate.assert_called_once_with(object_value, [entity_type])
+    custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
 
 
 def test_get_object_label_node_shape(mock_custom_filter):
@@ -43,7 +43,7 @@ def test_get_object_label_node_shape(mock_custom_filter):
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
     form_fields = {
-        "http://example.org/Entity": {
+        ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"nodeShape": "http://example.org/shape"}
             ]
@@ -73,7 +73,7 @@ def test_get_object_label_object_class_no_snapshot(mock_custom_filter):
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
     form_fields = {
-        "http://example.org/Entity": {
+        ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"objectClass": "http://example.org/Person"}
             ]
@@ -98,7 +98,7 @@ def test_get_object_label_has_value(mock_custom_filter):
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
     form_fields = {
-        "http://example.org/Entity": {
+        ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"hasValue": "http://example.org/specific-value"}
             ]
@@ -111,7 +111,7 @@ def test_get_object_label_has_value(mock_custom_filter):
     
     # Verify
     assert label == "Human Readable Predicate"
-    mock_custom_filter.human_readable_predicate.assert_called_once_with(object_value, [entity_type])
+    mock_custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
 
 
 def test_get_object_label_optional_values(mock_custom_filter):
@@ -121,7 +121,7 @@ def test_get_object_label_optional_values(mock_custom_filter):
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
     form_fields = {
-        "http://example.org/Entity": {
+        ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"optionalValues": ["http://example.org/optional-value"]}
             ]
@@ -134,7 +134,7 @@ def test_get_object_label_optional_values(mock_custom_filter):
     
     # Verify
     assert label == "Human Readable Predicate"
-    mock_custom_filter.human_readable_predicate.assert_called_once_with(object_value, [entity_type])
+    mock_custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
 
 
 def test_get_object_label_literal_value(mock_custom_filter):
@@ -162,7 +162,7 @@ def test_get_object_label_uri_no_special_handling(mock_custom_filter):
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
     form_fields = {
-        "http://example.org/Entity": {
+        ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"someOtherField": "value"}
             ]
@@ -175,4 +175,4 @@ def test_get_object_label_uri_no_special_handling(mock_custom_filter):
     
     # Verify
     assert label == "Human Readable Predicate"
-    mock_custom_filter.human_readable_predicate.assert_called_once_with(object_value, [entity_type])
+    mock_custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))

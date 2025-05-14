@@ -1463,6 +1463,7 @@ rules:
       - *title_property
       - *description_property
       - *abstract_property
+      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property

@@ -117,8 +117,8 @@ class TestGetAvailableClasses:
         }
 
         # Configure the custom filter to return specific labels for sorting
-        mock_custom_filter.human_readable_predicate.side_effect = lambda uri, _: (
-            "Person" if uri == "http://example.org/Person" else "Document"
+        mock_custom_filter.human_readable_predicate.side_effect = lambda entity_key: (
+            "Person" if entity_key[0] == "http://example.org/Person" else "Document"
         )
 
         # Configure visibility check to allow all classes
@@ -169,8 +169,8 @@ class TestGetAvailableClasses:
         }
 
         # Configure the custom filter to return specific labels for sorting
-        mock_custom_filter.human_readable_predicate.side_effect = lambda uri, _: (
-            "Person" if uri == "http://example.org/Person" else "Document"
+        mock_custom_filter.human_readable_predicate.side_effect = lambda entity_key: (
+            "Person" if entity_key[0] == "http://example.org/Person" else "Document"
         )
 
         # Configure is_virtuoso to return False

@@ -225,10 +225,10 @@ class TestInitialization:
             "heritrace.utils.display_rules_utils.get_display_rules", lambda: mock_rules
         )
 
-        # Test get_class_priority function
-        assert get_class_priority("http://example.org/Person") == 10
-        assert get_class_priority("http://example.org/Organization") == 5
-        assert get_class_priority("http://example.org/Unknown") == 0
+        # Test get_class_priority function with tuple-based keys
+        assert get_class_priority(("http://example.org/Person", None)) == 10
+        assert get_class_priority(("http://example.org/Organization", None)) == 5
+        assert get_class_priority(("http://example.org/Unknown", None)) == 0
 
     def test_get_class_priority_no_rules(self, monkeypatch):
         """Test that get_class_priority returns 0 when there are no rules."""
@@ -237,8 +237,8 @@ class TestInitialization:
             "heritrace.utils.display_rules_utils.get_display_rules", lambda: {}
         )
 
-        # Test get_class_priority function
-        assert get_class_priority("http://example.org/Person") == 0
+        # Test get_class_priority function with tuple-based key
+        assert get_class_priority(("http://example.org/Person", None)) == 0
 
 
 class TestIsEntityTypeVisible:
@@ -250,7 +250,7 @@ class TestIsEntityTypeVisible:
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules,
         ):
-            result = is_entity_type_visible("http://example.org/Person")
+            result = is_entity_type_visible(("http://example.org/Person", None))
             assert result is True
 
     def test_entity_type_visible_false(self, mock_display_rules):
@@ -259,8 +259,7 @@ class TestIsEntityTypeVisible:
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules,
         ):
-            result = is_entity_type_visible("http://example.org/Document")
-            assert result is False
+            assert is_entity_type_visible(("http://example.org/Document", None)) is False
 
     def test_entity_type_not_in_rules(self, mock_display_rules):
         """Test when entity type is not in display rules."""
@@ -268,13 +267,12 @@ class TestIsEntityTypeVisible:
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules,
         ):
-            result = is_entity_type_visible("http://example.org/Unknown")
-            assert result is True
+            assert is_entity_type_visible(("http://example.org/Unknown", None)) is True
 
     def test_no_display_rules(self):
         """Test when there are no display rules."""
         with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules", return_value=[]
+            "heritrace.utils.display_rules_utils.get_display_rules", return_value=None
         ):
             result = is_entity_type_visible("http://example.org/Person")
             assert result is True
@@ -288,7 +286,7 @@ class TestGetSortableProperties:
     ):
         """Test getting sortable properties with display rules."""
         result = get_sortable_properties(
-            "http://example.org/Person", mock_display_rules, mock_form_fields_cache
+            ("http://example.org/Person", None), mock_display_rules, mock_form_fields_cache
         )
         assert len(result) == 1
         assert result[0]["property"] == "http://example.org/name"
@@ -298,7 +296,7 @@ class TestGetSortableProperties:
     def test_get_sortable_properties_no_rules(self, mock_form_fields_cache):
         """Test getting sortable properties with no display rules."""
         result = get_sortable_properties(
-            "http://example.org/Person", [], mock_form_fields_cache
+            ("http://example.org/Person", None), [], mock_form_fields_cache
         )
         assert result == []
 
@@ -307,7 +305,7 @@ class TestGetSortableProperties:
     ):
         """Test getting sortable properties for a class not in display rules."""
         result = get_sortable_properties(
-            "http://example.org/Unknown", mock_display_rules, mock_form_fields_cache
+            ("http://example.org/Unknown", None), mock_display_rules, mock_form_fields_cache
         )
         assert result == []
 
@@ -325,7 +323,7 @@ class TestGetSortableProperties:
         )
 
         result = get_sortable_properties(
-            "http://example.org/Person", modified_rules, mock_form_fields_cache
+            ("http://example.org/Person", None), modified_rules, mock_form_fields_cache
         )
         assert len(result) == 2
         date_prop = next(
@@ -347,7 +345,7 @@ class TestGetSortableProperties:
         )
 
         result = get_sortable_properties(
-            "http://example.org/Person", modified_rules, mock_form_fields_cache
+            ("http://example.org/Person", None), modified_rules, mock_form_fields_cache
         )
         assert len(result) == 2
         number_prop = next(
@@ -358,10 +356,11 @@ class TestGetSortableProperties:
     def test_get_sortable_properties_no_form_fields(self, mock_display_rules):
         """Test getting sortable properties with no form fields cache."""
         result = get_sortable_properties(
-            "http://example.org/Person", mock_display_rules, None
+            ("http://example.org/Person", None), mock_display_rules, None
         )
         assert len(result) == 1
-        assert "sortType" not in result[0]
+        assert "sortType" in result[0]
+        assert result[0]["sortType"] == "string"
 
     def test_get_sortable_properties_with_missing_form_fields(self, mock_display_rules):
         """Test getting sortable properties when form fields are missing for a property."""
@@ -386,7 +385,7 @@ class TestGetSortableProperties:
         ]
 
         result = get_sortable_properties(
-            "http://example.org/Person", modified_display_rules, mock_form_fields_cache
+            ("http://example.org/Person", None), modified_display_rules, mock_form_fields_cache
         )
 
         # Verify the result has the expected property
@@ -423,7 +422,7 @@ class TestGetSortableProperties:
         }
 
         result = get_sortable_properties(
-            "http://example.org/Person",
+            ("http://example.org/Person", None),
             modified_display_rules,
             mock_form_fields_cache_empty,
         )
@@ -446,16 +445,24 @@ class TestGetSortableProperties:
             }
         )
 
-        # Add boolean property to form_fields_cache
-        mock_form_fields_cache["http://example.org/Person"]["http://example.org/isActive"] = [
-            {
-                "datatypes": ["http://www.w3.org/2001/XMLSchema#boolean"],
+        # Create a form fields cache with a boolean property
+        mock_form_fields_cache_with_boolean = {
+            "http://example.org/Person": {
+                "http://example.org/isActive": [
+                    {
+                        "datatypes": ["http://www.w3.org/2001/XMLSchema#boolean"],
+                    }
+                ]
             }
-        ]
+        }
 
         result = get_sortable_properties(
-            "http://example.org/Person", modified_rules, mock_form_fields_cache
+            ("http://example.org/Person", None),
+            modified_rules,
+            mock_form_fields_cache_with_boolean,
         )
+
+        # Verify the result has the boolean sort type
         assert len(result) == 2
         boolean_prop = next(
             p for p in result if p["property"] == "http://example.org/isActive"
@@ -476,7 +483,7 @@ class TestGetSortableProperties:
         )
 
         result = get_sortable_properties(
-            "http://example.org/Person", modified_rules, mock_form_fields_cache
+            ("http://example.org/Person", None), modified_rules, mock_form_fields_cache
         )
         assert len(result) == 2
         string_prop = next(
@@ -488,12 +495,12 @@ class TestGetSortableProperties:
 class TestGetHighestPriorityClass:
     @patch("heritrace.utils.display_rules_utils.get_class_priority")
     def test_get_highest_priority_class(self, mock_get_class_priority):
-        # Mock get_class_priority to return specific values
-        mock_get_class_priority.side_effect = lambda class_uri: {
-            "http://example.org/Person": 10,
-            "http://example.org/Organization": 5,
-            "http://example.org/Event": 3,
-        }.get(class_uri, 0)
+        # Mock get_class_priority to return specific values for tuple-based keys
+        mock_get_class_priority.side_effect = lambda entity_key: {
+            ("http://example.org/Person", None): 10,
+            ("http://example.org/Organization", None): 5,
+            ("http://example.org/Event", None): 3,
+        }.get(entity_key, 0)
 
         # Test with multiple classes
         subject_classes = [
@@ -502,7 +509,7 @@ class TestGetHighestPriorityClass:
             "http://example.org/Event",
         ]
         result = get_highest_priority_class(subject_classes)
-        assert result == "http://example.org/Event"
+        assert result == "http://example.org/Person"
 
         # Test with different order
         subject_classes = [
@@ -511,7 +518,7 @@ class TestGetHighestPriorityClass:
             "http://example.org/Person",
         ]
         result = get_highest_priority_class(subject_classes)
-        assert result == "http://example.org/Event"
+        assert result == "http://example.org/Person"
 
     @patch("heritrace.utils.display_rules_utils.get_class_priority")
     def test_get_highest_priority_class_empty_list(self, mock_get_class_priority):
@@ -1531,26 +1538,27 @@ class TestGetSimilarityProperties:
             },
         ]
 
-    def test_get_similarity_properties_found(
-        self, mock_display_rules_with_similarity
-    ):
+    def test_get_similarity_properties_found(self, mock_display_rules_with_similarity):
         """Test when similarity_properties are found and valid."""
         with patch(
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules_with_similarity,
         ):
-            result = get_similarity_properties("http://example.org/Person")
+            result = get_similarity_properties(("http://example.org/Person", None))
             assert result == ["http://example.org/name", "http://example.org/email"]
 
     def test_get_similarity_properties_empty_list(
         self, mock_display_rules_with_similarity
     ):
         """Test when similarity_properties is an empty list."""
+        # Modify the mock to have an empty similarity_properties list
+        mock_rules = mock_display_rules_with_similarity.copy()
+        mock_rules[0]["similarity_properties"] = []
+
         with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules_with_similarity,
+            "heritrace.utils.display_rules_utils.get_display_rules", return_value=mock_rules
         ):
-            result = get_similarity_properties("http://example.org/Organization")
+            result = get_similarity_properties(("http://example.org/Person", None))
             assert result is None # Should return None if list is empty
 
     def test_get_similarity_properties_missing_key(
@@ -1561,18 +1569,16 @@ class TestGetSimilarityProperties:
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules_with_similarity,
         ):
-            result = get_similarity_properties("http://example.org/Document")
+            result = get_similarity_properties(("http://example.org/Document", None))
             assert result is None
 
-    def test_get_similarity_properties_class_not_found(
-        self, mock_display_rules_with_similarity
-    ):
+    def test_get_similarity_properties_class_not_found(self, mock_display_rules_with_similarity):
         """Test when the entity type is not found in the rules."""
         with patch(
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules_with_similarity,
         ):
-            result = get_similarity_properties("http://example.org/Unknown")
+            result = get_similarity_properties(("http://example.org/Unknown", None))
             assert result is None
 
     def test_get_similarity_properties_invalid_format_not_list(
@@ -1584,7 +1590,7 @@ class TestGetSimilarityProperties:
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules_with_similarity,
         ):
-            result = get_similarity_properties(entity_type)
+            result = get_similarity_properties((entity_type, None))
             captured = capsys.readouterr()
             assert result is None
             assert f"Warning: Invalid format for similarity_properties in class {entity_type}" in captured.out
@@ -1598,7 +1604,7 @@ class TestGetSimilarityProperties:
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules_with_similarity,
         ):
-            result = get_similarity_properties(entity_type)
+            result = get_similarity_properties((entity_type, None))
             captured = capsys.readouterr()
             assert result is None
             assert f"Warning: Invalid item format in similarity_properties list for class {entity_type}" in captured.out
@@ -1654,12 +1660,12 @@ class TestGetSimilarityProperties:
             return_value=mock_rules_and,
         ):
             # Test valid 'and' structure
-            result_valid = get_similarity_properties(entity_type)
+            result_valid = get_similarity_properties((entity_type, None))
             assert result_valid == ["prop1", {"and": ["prop2", "prop3"]}]
 
             # Test invalid 'and' value (not a list)
             invalid_type1 = "http://example.org/InvalidAndValue"
-            result_invalid_value = get_similarity_properties(invalid_type1)
+            result_invalid_value = get_similarity_properties((invalid_type1, None))
             captured_invalid_value = capsys.readouterr()
             assert result_invalid_value is None
             expected_warning1 = f"Warning: Invalid 'and' group in similarity_properties for class {invalid_type1}. Expected {{'and': ['prop_uri', ...]}} with a non-empty list of strings."
@@ -1667,7 +1673,7 @@ class TestGetSimilarityProperties:
 
             # Test invalid 'and' list item (not a string)
             invalid_type2 = "http://example.org/InvalidAndListItem"
-            result_invalid_item = get_similarity_properties(invalid_type2)
+            result_invalid_item = get_similarity_properties((invalid_type2, None))
             captured_invalid_item = capsys.readouterr()
             assert result_invalid_item is None
             expected_warning2 = f"Warning: Invalid 'and' group in similarity_properties for class {invalid_type2}. Expected {{'and': ['prop_uri', ...]}} with a non-empty list of strings."
@@ -1675,7 +1681,7 @@ class TestGetSimilarityProperties:
 
             # Test invalid 'and' dict (more than one key or key not 'and')
             invalid_type3 = "http://example.org/InvalidAndDict"
-            result_invalid_dict = get_similarity_properties(invalid_type3)
+            result_invalid_dict = get_similarity_properties((invalid_type3, None))
             captured_invalid_dict = capsys.readouterr()
             assert result_invalid_dict is None
             expected_warning3 = f"Warning: Invalid item format in similarity_properties list for class {invalid_type3}. Expected a property URI string or {{'and': [...]}} dict."
@@ -1686,7 +1692,7 @@ class TestGetSimilarityProperties:
         with patch(
             "heritrace.utils.display_rules_utils.get_display_rules", return_value=[]
         ):
-            result = get_similarity_properties("http://example.org/Person")
+            result = get_similarity_properties(("http://example.org/Person", None))
             assert result is None
 
     def test_get_similarity_properties_no_rules_none(self):
@@ -1694,5 +1700,5 @@ class TestGetSimilarityProperties:
         with patch(
             "heritrace.utils.display_rules_utils.get_display_rules", return_value=None
         ):
-            result = get_similarity_properties("http://example.org/Person")
+            result = get_similarity_properties(("http://example.org/Person", None))
             assert result is None

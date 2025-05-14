@@ -265,7 +265,7 @@ def test_validate_modification_remove_required(mock_get_highest_priority, mock_g
     }
     subject_uri = "http://example.org/entity"
     form_fields = {
-        "http://example.org/Document": {
+        ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
                     "minCount": 1  # This makes it required
@@ -299,7 +299,7 @@ def test_validate_modification_exceed_max_count(mock_get_highest_priority, mock_
     }
     subject_uri = "http://example.org/entity"
     form_fields = {
-        "http://example.org/Document": {
+        ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
                     "maxCount": 2  # Maximum allowed

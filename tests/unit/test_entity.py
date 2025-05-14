@@ -40,7 +40,7 @@ def test_validate_modification_valid(mock_get_highest_priority, mock_get_entity_
     subject_uri = URIRef("http://example.org/entity")
     
     form_fields = {
-        "http://example.org/Document": {
+        ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
                     "label": "Title",
@@ -80,7 +80,7 @@ def test_validate_entity_data_valid(mock_get_custom_filter):
     }
     
     form_fields = {
-        "http://example.org/Document": {
+        ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
                     "label": "Title",
@@ -130,7 +130,7 @@ def test_validate_entity_data_missing_required(mock_get_custom_filter):
     }
     
     form_fields = {
-        "http://example.org/Document": {
+        ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
                     "label": "Title",
@@ -181,7 +181,7 @@ def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter):
     }
     
     form_fields = {
-        "http://example.org/Document": {
+        ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
                     "label": "Title",
@@ -201,7 +201,7 @@ def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter):
     
     # Verify results
     assert len(errors) == 1
-    assert "Invalid entity type" in errors[0]
+    assert "Unknown entity type:" in errors[0]
 
 
 @patch('heritrace.routes.entity.get_custom_filter')
@@ -214,7 +214,7 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
     
     # Create form fields with shape definitions
     form_fields = {
-        "http://example.org/Person": {
+        ("http://example.org/Person", None): {
             "http://example.org/hasAddress": [
                 {
                     "subjectShape": "residential",
@@ -255,7 +255,7 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
     # We need to create a new form fields structure where residential is required
     # and business is optional
     form_fields = {
-        "http://example.org/Person": {
+        ("http://example.org/Person", None): {
             "http://example.org/hasAddress": [
                 {
                     "min": 1,  # This makes the property required
@@ -335,7 +335,7 @@ def test_validate_modification_max_count(mock_get_predicate_count, mock_get_high
     
     # Create form fields with max count
     form_fields = {
-        "http://example.org/Person": {
+        ("http://example.org/Person", None): {
             "http://example.org/name": [
                 {
                     "minCount": 1,
@@ -374,7 +374,7 @@ def test_get_object_label_with_has_value(mock_validators, mock_get_custom_filter
     entity_type = "http://example.org/Person"
     
     form_fields = {
-        "http://example.org/Person": {
+        ("http://example.org/Person", None): {
             "http://example.org/predicate": [
                 {
                     "hasValue": "http://example.org/value"
@@ -395,7 +395,7 @@ def test_get_object_label_with_has_value(mock_validators, mock_get_custom_filter
     
     # Verify results
     assert result == "Human Readable Value"
-    mock_filter.human_readable_predicate.assert_called_with(object_value, [entity_type])
+    mock_filter.human_readable_predicate.assert_called_with((object_value, None))
 
 
 @patch('heritrace.routes.entity.get_custom_filter')
@@ -414,7 +414,7 @@ def test_get_object_label_with_optional_values(mock_validators, mock_get_custom_
     entity_type = "http://example.org/Person"
     
     form_fields = {
-        "http://example.org/Person": {
+        ("http://example.org/Person", None): {
             "http://example.org/predicate": [
                 {
                     "optionalValues": ["http://example.org/option1", "http://example.org/option2"]
@@ -435,7 +435,7 @@ def test_get_object_label_with_optional_values(mock_validators, mock_get_custom_
     
     # Verify results
     assert result == "Human Readable Option"
-    mock_filter.human_readable_predicate.assert_called_with(object_value, [entity_type])
+    mock_filter.human_readable_predicate.assert_called_with((object_value, None))
 
 
 @patch('heritrace.routes.entity.RDF')

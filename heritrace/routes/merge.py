@@ -363,7 +363,7 @@ def find_similar_resources():
             # Fetch types and generate labels for each candidate
             sim_types = get_entity_types(uri)
             readable_label = custom_filter.human_readable_entity(uri, sim_types) if sim_types else uri
-            type_labels = [custom_filter.human_readable_predicate(type_uri, sim_types) for type_uri in sim_types] if sim_types else []
+            type_labels = [custom_filter.human_readable_predicate((type_uri, None)) for type_uri in sim_types] if sim_types else []
             transformed_results.append({
                 "uri": uri,
                 "label": readable_label or uri, # Ensure label is not empty

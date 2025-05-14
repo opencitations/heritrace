@@ -22,38 +22,27 @@ class Filter:
         self.sparql.setReturnFormat(JSON)
         self._query_lock = threading.Lock()
 
-    def human_readable_predicate(
-        self, url: str, entity_classes: list, is_link: bool = True
-    ):
-        subject_classes = [str(subject_class) for subject_class in entity_classes]
-        if self.display_rules:
-            for display_rule in self.display_rules:
-                # Check if the rule has the expected structure
-                if "target" in display_rule and "class" in display_rule["target"]:
-                    rule_class = display_rule["target"]["class"]
-                    for subject_class in subject_classes:
-                        if subject_class == rule_class:
-                            if url == subject_class:
-                                return display_rule["displayName"]
-                            
-                            # Check if displayProperties exists before iterating
-                            if "displayProperties" in display_rule:
-                                for display_property in display_rule["displayProperties"]:
-                                    if display_property["property"] == str(url):
-                                        if "displayRules" in display_property:
-                                            # Se ci sono displayRules, restituisci il primo displayName trovato
-                                            return display_property["displayRules"][0][
-                                                "displayName"
-                                            ]
-                                        elif "displayName" in display_property:
-                                            # Se non ci sono displayRules ma c'è un displayName, restituiscilo
-                                            return display_property["displayName"]
-                            # If displayProperties is missing or property not found within it, 
-                            # the loop continues to the next rule or falls through to default logic.
+    def human_readable_predicate(self, entity_key, is_link=False):
+        from heritrace.utils.display_rules_utils import find_matching_rule
+        
+        class_uri = entity_key[0]
+        shape_uri = entity_key[1]
+        
+        rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
 
-        # Se non è stato trovato un displayName nelle regole di visualizzazione,
-        # procedi con la logica originale
-        first_part, last_part = self.split_ns(url)
+        if rule:
+            if "displayName" in rule:
+                return rule["displayName"]
+                
+            if "displayProperties" in rule:
+                for display_property in rule["displayProperties"]:
+                    if display_property["property"] == str(class_uri):
+                        if "displayRules" in display_property:
+                            return display_property["displayRules"][0]["displayName"]
+                        elif "displayName" in display_property:
+                            return display_property["displayName"]
+
+        first_part, last_part = self.split_ns(class_uri)
         if first_part in self.context:
             if last_part.islower():
                 return last_part
@@ -68,10 +57,10 @@ class Filter:
                         word += char
                 words.append(word)
                 return " ".join(words).lower()
-        elif validators.url(url) and is_link:
-            return f"<a href='{url_for('entity.about', subject=quote(url))}' alt='{gettext('Link to the entity %(entity)s', entity=url)}'>{url}</a>"
+        elif validators.url(class_uri) and is_link:
+            return f"<a href='{url_for('entity.about', subject=quote(class_uri))}' alt='{gettext('Link to the entity %(entity)s', entity=class_uri)}'>{class_uri}</a>"
         else:
-            return url
+            return str(class_uri)
 
     def human_readable_entity(
         self, uri: str, entity_classes: list, graph: Graph | ConjunctiveGraph = None

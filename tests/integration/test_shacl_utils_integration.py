@@ -245,7 +245,7 @@ def test_validate_new_triple_journal_identifier(app: Flask, shacl_graph: Graph, 
                     entity_types=["http://purl.org/spar/datacite/Identifier"]
                 )
                 assert error != "", "Should reject invalid DOI format"
-                assert "The property Literal Value requires at least 1 value" in error
+                assert "The property has literal value requires at least 1 value" in error
 
 def test_get_valid_predicates_journal_article(app: Flask, shacl_graph: Graph):
     """Test getting valid predicates for a JournalArticle."""

@@ -60,13 +60,13 @@ def get_available_classes():
     available_classes = [
         {
             "uri": result["class"]["value"],
-            "label": custom_filter.human_readable_predicate(
-                result["class"]["value"], [result["class"]["value"]]
+            "label": custom_filter.human_readable_predicate((
+                (result["class"]["value"], None))
             ),
             "count": int(result["count"]["value"]),
         }
         for result in classes_results["results"]["bindings"]
-        if is_entity_type_visible(result["class"]["value"])
+        if is_entity_type_visible((result["class"]["value"], None))
     ]
 
     # Sort classes by label
@@ -88,14 +88,18 @@ def build_sort_clause(sort_property: str, entity_type: str, display_rules) -> st
     if not display_rules or not sort_property:
         return ""
 
-    # Trova la configurazione di ordinamento
     sort_config = None
     for rule in display_rules:
-        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type and "sortableBy" in rule:
-            sort_config = next(
-                (s for s in rule["sortableBy"] if s["property"] == sort_property), None
-            )
-            break
+        if "target" in rule:
+            target_class = None
+            if "class" in rule["target"]:
+                target_class = rule["target"]["class"]
+            
+            if target_class == entity_type and "sortableBy" in rule:
+                sort_config = next(
+                    (s for s in rule["sortableBy"] if s["property"] == sort_property), None
+                )
+                break
 
     if not sort_config:
         return ""
@@ -223,9 +227,8 @@ def get_catalog_data(
             selected_class, page, per_page, sort_property, sort_direction
         )
 
-        # Get sortable properties for the class
         sortable_properties = get_sortable_properties(
-            selected_class, display_rules, form_fields_cache
+            (selected_class, None), display_rules, form_fields_cache
         )
 
     if not sort_property and sortable_properties:
@@ -399,7 +402,7 @@ def get_deleted_entities_with_filtering(
 
     if selected_class:
         sortable_properties.extend(
-            get_sortable_properties(selected_class, display_rules, form_fields_cache)
+            get_sortable_properties((selected_class, None), display_rules, form_fields_cache)
         )
 
     prov_query = """
@@ -450,7 +453,7 @@ def get_deleted_entities_with_filtering(
     available_classes = [
         {
             "uri": class_uri,
-            "label": custom_filter.human_readable_predicate(class_uri, [class_uri]),
+            "label": custom_filter.human_readable_predicate(((class_uri, None))),
             "count": count,
         }
         for class_uri, count in class_counts.items()
@@ -514,17 +517,15 @@ def process_deleted_entity(result, sortable_properties):
     last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
     last_valid_state: ConjunctiveGraph = state[entity_uri][last_valid_time]
 
-    # Get entity types and filter for visible ones early
     entity_types = [
         str(o)
         for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))
     ]
-    visible_types = [t for t in entity_types if is_entity_type_visible(t)]
+    visible_types = [t for t in entity_types if is_entity_type_visible((t, None))]
 
     if not visible_types:
         return None
 
-    # Get the highest priority class
     highest_priority_type = get_highest_priority_class(visible_types)
     if not highest_priority_type:
         return None
@@ -536,7 +537,7 @@ def process_deleted_entity(result, sortable_properties):
         values = [
             str(o)
             for s, p, o in last_valid_state.triples(
-                (URIRef(entity_uri), URIRef(prop_uri), None)
+            (URIRef(entity_uri), URIRef(prop_uri), None)
             )
         ]
         sort_values[prop_uri] = values[0] if values else ""
@@ -548,8 +549,8 @@ def process_deleted_entity(result, sortable_properties):
             result.get("agent", {}).get("value", "")
         ),
         "lastValidSnapshotTime": last_valid_snapshot_time,
-        "type": custom_filter.human_readable_predicate(
-            highest_priority_type, [highest_priority_type]
+        "type": custom_filter.human_readable_predicate((
+            (highest_priority_type, None))
         ),
         "label": custom_filter.human_readable_entity(
             entity_uri, [highest_priority_type], last_valid_state

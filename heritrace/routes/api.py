@@ -382,9 +382,8 @@ def check_orphans():
                     "label": custom_filter.human_readable_entity(
                         entity["uri"], [entity["type"]]
                     ),
-                    "type": custom_filter.human_readable_predicate(
-                        entity["type"], [entity["type"]]
-                    ),
+                    "type": custom_filter.human_readable_predicate((
+                        entity["type"], None)),
                     "is_intermediate": is_intermediate,
                 }
                 for entity in entities

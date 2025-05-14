@@ -50,7 +50,8 @@ def test_get_paginated_inverse_references_basic(mock_get_sparql, mock_get_filter
     mock_sparql_instance = mock_sparql_query_results(mock_bindings, limit=limit, offset=offset)
     mock_get_sparql.return_value = mock_sparql_instance
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
-    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, t: f"{p}_label"
+    # Updated to match the new tuple-based structure
+    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p: f"{p[0]}_label"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():
@@ -81,7 +82,8 @@ def test_get_paginated_inverse_references_pagination_has_more(mock_get_sparql, m
     mock_sparql_instance = mock_sparql_query_results(mock_bindings, limit=limit, offset=offset)
     mock_get_sparql.return_value = mock_sparql_instance
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
-    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, t: f"{p}_label"
+    # Updated to match the new tuple-based structure
+    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p: f"{p[0]}_label"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():
@@ -90,8 +92,8 @@ def test_get_paginated_inverse_references_pagination_has_more(mock_get_sparql, m
     assert has_more
     assert len(refs) == 2
     assert refs[0]["subject"] == SAMPLE_REFERRING_SUBJECT_1
-    assert refs[0]["predicate"] == SAMPLE_PREDICATE_1
     assert refs[0]["label"] == f"{SAMPLE_REFERRING_SUBJECT_1}_label"
+    assert refs[0]["predicate"] == SAMPLE_PREDICATE_1
     assert refs[0]["predicate_label"] == f"{SAMPLE_PREDICATE_1}_label"
     assert refs[0]["types"] == [SAMPLE_TYPE_1]
     assert refs[1]["subject"] == SAMPLE_REFERRING_SUBJECT_2
@@ -112,7 +114,8 @@ def test_get_paginated_inverse_references_pagination_no_more(mock_get_sparql, mo
     mock_sparql_instance = mock_sparql_query_results(all_bindings, limit=limit, offset=offset)
     mock_get_sparql.return_value = mock_sparql_instance
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
-    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, t: f"{p}_label"
+    # Updated to match the new tuple-based structure
+    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p: f"{p[0]}_label"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():
@@ -262,4 +265,4 @@ def test_get_linked_resources_api_internal_error(mock_get_paginated, logged_in_c
     assert json_data['status'] == 'success'
     assert json_data['results'] == []
     assert not json_data['has_more']
-    mock_get_paginated.assert_called_once_with(SAMPLE_SUBJECT_URI, 5, 0) 
+    mock_get_paginated.assert_called_once_with(SAMPLE_SUBJECT_URI, 5, 0)

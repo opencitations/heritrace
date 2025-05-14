@@ -500,7 +500,7 @@ def test_find_similar_resources_success(mock_current_user, mock_get_types, mock_
     mock_get_sim_props.return_value = similarity_props
     mock_filter_instance = MagicMock()
     mock_filter_instance.human_readable_entity.return_value = similar_test_data["similar_label"]
-    mock_filter_instance.human_readable_predicate.side_effect = lambda x, y: f"Label_{x.split('/')[-1]}"
+    mock_filter_instance.human_readable_predicate.side_effect = lambda x: f"Label_{x[0].split('/')[-1]}"
     mock_get_filter.return_value = mock_filter_instance
     mock_get_types.side_effect = [
         [similar_test_data["subject_type"]],
@@ -603,7 +603,7 @@ def test_find_similar_resources_literal_formatting(mock_current_user, mock_get_t
     mock_get_sim_props.return_value = similarity_props
     mock_filter_instance = MagicMock()
     mock_filter_instance.human_readable_entity.return_value = similar_test_data["similar_label"]
-    mock_filter_instance.human_readable_predicate.side_effect = lambda x, y: f"Label_{x.split('/')[-1]}"
+    mock_filter_instance.human_readable_predicate.side_effect = lambda x: f"Label_{x[0].split('/')[-1]}"
     mock_get_filter.return_value = mock_filter_instance
     mock_get_types.return_value = [similar_test_data["similar_type"]]
 
@@ -872,7 +872,7 @@ def test_find_similar_resources_success_with_and_group(mock_current_user, mock_g
 
     mock_filter_instance = MagicMock()
     mock_filter_instance.human_readable_entity.return_value = "Similar AND Label"
-    mock_filter_instance.human_readable_predicate.side_effect = lambda x, y: f"Label_{x.split('/')[-1]}"
+    mock_filter_instance.human_readable_predicate.side_effect = lambda x: f"Label_{x[0].split('/')[-1]}"
     mock_get_filter.return_value = mock_filter_instance
     mock_get_types.return_value = [similar_test_data["similar_type"]] # For the similar entity
 

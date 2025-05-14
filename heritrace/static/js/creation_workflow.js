@@ -154,19 +154,27 @@ function initializeMandatoryElements(container) {
 
 function initializeForm() {
     let selectedUri;
+    let selectedShape;
     if ($('#entity_type').length) {
-        selectedUri = $('#entity_type').val();
-
-        if (!selectedUri) {
-            selectedUri = $('#entity_type option:not(:disabled):first').val();
-            if (selectedUri) {
+        const selectedOption = $('#entity_type option:selected');
+        
+        // Se l'opzione selezionata è quella predefinita (disabled) o non è selezionata alcuna opzione
+        if (selectedOption.is(':disabled') || !selectedOption.val()) {
+            // Seleziona automaticamente la prima opzione non disabilitata
+            const firstOption = $('#entity_type option:not(:disabled):first');
+            if (firstOption.length) {
+                selectedUri = firstOption.val();
+                selectedShape = firstOption.data('shape');
                 $('#entity_type').val(selectedUri);
+            } else {
+                selectedUri = null;
+                selectedShape = null;
             }
+        } else {
+            // Ottieni i valori dall'opzione selezionata
+            selectedUri = selectedOption.val();
+            selectedShape = selectedOption.data('shape');
         }
-
-        $('#entity_type option').prop('selected', function() {
-            return this.value === selectedUri;
-        });
     } else if (typeof entity_type !== 'undefined' && entity_type) {
         // In about.jinja, use the entity_type variable
         selectedUri = entity_type;
@@ -176,14 +184,53 @@ function initializeForm() {
         // Hide all property groups
         $('.property-group').hide();
 
-        // Show the selected group
-        let selectedGroup = $(`.property-group[data-uri="${selectedUri}"]`);
-        selectedGroup.show();
+        // Implementa una logica simile a find_matching_rule in display_rules_utils.py
+        let selectedGroup = null;
+        let classMatch = null;
+        let shapeMatch = null;
         
-        // Initialize mandatory elements recursively
-        initializeMandatoryElements(selectedGroup);
+        // Cerca tutti i gruppi di proprietà disponibili
+        $('.property-group').each(function() {
+            const groupUri = $(this).data('uri');
+            const groupShape = $(this).data('shape');
+            
+            // Caso 1: Corrispondenza esatta sia per classe che per shape
+            if (selectedUri && selectedShape && 
+                groupUri === selectedUri && 
+                groupShape === selectedShape) {
+                // La corrispondenza esatta ha sempre la precedenza più alta
+                selectedGroup = $(this);
+                return false; // Interrompe il ciclo each
+            }
+            
+            // Caso 2: Solo la classe corrisponde
+            if (selectedUri && groupUri === selectedUri && !groupShape) {
+                classMatch = $(this);
+            }
+            
+            // Caso 3: Solo lo shape corrisponde
+            if (selectedShape && groupShape === selectedShape && !groupUri) {
+                shapeMatch = $(this);
+            }
+        });
+        
+        // Se non abbiamo trovato una corrispondenza esatta, usa la migliore disponibile
+        // Le regole shape hanno tipicamente una specificità più alta, quindi le preferiamo
+        if (!selectedGroup) {
+            selectedGroup = shapeMatch || classMatch;
+        }
+        
+        // Mostra solo il gruppo selezionato
+        if (selectedGroup && selectedGroup.length > 0) {
+            selectedGroup.show();
+            
+            // Inizializza gli elementi obbligatori ricorsivamente
+            initializeMandatoryElements(selectedGroup);
+        } else {
+            console.log(`Nessun gruppo di proprietà trovato per URI=${selectedUri}${selectedShape ? ' e shape=' + selectedShape : ''}`);
+        }
     } else {
-        // If no type is selected, disable all inputs
+        // Se non è selezionato alcun tipo, disabilita tutti gli input
         $('.property-group :input').prop('disabled', true);
     }
 }

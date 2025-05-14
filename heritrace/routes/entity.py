@@ -150,7 +150,7 @@ def about(subject):
     )
     if can_be_added:
         create_form.predicate.choices = [
-            (p, get_custom_filter().human_readable_predicate(p, subject_classes))
+            (p, get_custom_filter().human_readable_predicate((p, None)))
             for p in can_be_added
         ]
 
@@ -208,15 +208,16 @@ def create_entity():
     
     default_primary_source = get_default_primary_source(current_user.orcid)
 
-    entity_types = sorted(
+    entity_class_shape_pairs = sorted(
         [
-            entity_type
-            for entity_type in form_fields.keys()
-            if is_entity_type_visible(entity_type)
+            entity_key
+            for entity_key in form_fields.keys()
+            if is_entity_type_visible(entity_key)
         ],
         key=lambda et: get_class_priority(et),
         reverse=True,
     )
+
 
     datatype_options = {
         gettext("Text (string)"): XSD.string,
@@ -291,7 +292,14 @@ def create_entity():
                 if not isinstance(values, list):
                     values = [values]
 
-                field_definitions = form_fields.get(entity_type, {}).get(predicate, [])
+                # Find the matching form field entry for this entity type
+                matching_key = None
+                for key in form_fields.keys():
+                    if key[0] == entity_type:
+                        matching_key = key
+                        break
+                        
+                field_definitions = form_fields.get(matching_key, {}).get(predicate, []) if matching_key else []
 
                 # Get the shape from the property value if available
                 property_shape = None
@@ -458,8 +466,6 @@ def create_entity():
 
     return render_template(
         "create_entity.jinja",
-        shacl=bool(get_form_fields()),
-        entity_types=entity_types,
         form_fields=form_fields,
         datatype_options=datatype_options,
         dataset_db_triplestore=current_app.config["DATASET_DB_TRIPLESTORE"],
@@ -467,6 +473,8 @@ def create_entity():
             "DATASET_DB_TEXT_INDEX_ENABLED"
         ],
         default_primary_source=default_primary_source,
+        shacl=bool(get_form_fields()),
+        entity_class_shape_pairs=entity_class_shape_pairs
     )
 
 
@@ -484,11 +492,21 @@ def create_nested_entity(
     entity_type = entity_data.get("entity_type")
     properties = entity_data.get("properties", {})
 
+    matching_key = None
+    for key in form_fields.keys():
+        if key[0] == entity_type:
+            matching_key = key
+            break
+
+    if not matching_key:
+        return
+
     # Add other properties
     for predicate, values in properties.items():
         if not isinstance(values, list):
             values = [values]
-        field_definitions = form_fields.get(entity_type, {}).get(predicate, [])
+        field_definitions = form_fields[matching_key].get(predicate, [])
+
         for value in values:
             if isinstance(value, dict) and "entity_type" in value:
                 if "intermediateRelation" in value:
@@ -547,7 +565,7 @@ def validate_entity_data(structured_data, form_fields):
 
     Args:
         structured_data (dict): Data to validate containing entity_type and properties
-        form_fields (dict): Form field definitions from SHACL shapes
+        form_fields (dict): Form field definitions from SHACL shapes where keys are tuples of (class, shape)
 
     Returns:
         list: List of validation error messages, empty if validation passes
@@ -558,18 +576,20 @@ def validate_entity_data(structured_data, form_fields):
     entity_type = structured_data.get("entity_type")
     if not entity_type:
         errors.append(gettext("Entity type is required"))
-    elif entity_type not in form_fields:
-        errors.append(
-            gettext(
-                "Invalid entity type selected: %(entity_type)s",
-                entity_type=entity_type,
-            )
-        )
-
-    if errors:
+    
+    # Find the matching form field entry for this entity type
+    # We need to find a key where the first element of the tuple matches entity_type
+    matching_key = None
+    for key in form_fields.keys():
+        if key[0] == entity_type:
+            matching_key = key
+            break
+    
+    if not matching_key:
+        errors.append(f"Unknown entity type: {entity_type}")
         return errors
 
-    entity_fields = form_fields.get(entity_type, {})
+    entity_fields = form_fields[matching_key]
     properties = structured_data.get("properties", {})
 
     for prop_uri, prop_values in properties.items():
@@ -624,9 +644,8 @@ def validate_entity_data(structured_data, form_fields):
                 errors.append(
                     gettext(
                         "Property %(prop_uri)s requires at least %(min_count)d %(value)s",
-                        prop_uri=custom_filter.human_readable_predicate(
-                            prop_uri, [entity_type]
-                        ),
+                        prop_uri=custom_filter.human_readable_predicate((
+                            prop_uri, None)),
                         min_count=min_count,
                         value=value,
                     )
@@ -636,9 +655,8 @@ def validate_entity_data(structured_data, form_fields):
                 errors.append(
                     gettext(
                         "Property %(prop_uri)s allows at most %(max_count)d %(value)s",
-                        prop_uri=custom_filter.human_readable_predicate(
-                            prop_uri, [entity_type]
-                        ),
+                        prop_uri=custom_filter.human_readable_predicate((
+                            prop_uri, None)),
                         max_count=max_count,
                         value=value,
                     )
@@ -651,9 +669,8 @@ def validate_entity_data(structured_data, form_fields):
                     errors.append(
                         gettext(
                             "Property %(prop_uri)s requires the value %(mandatory_value)s",
-                            prop_uri=custom_filter.human_readable_predicate(
-                                prop_uri, [entity_type]
-                            ),
+                            prop_uri=custom_filter.human_readable_predicate((
+                                prop_uri, None)),
                             mandatory_value=mandatory_value,
                         )
                     )
@@ -683,9 +700,8 @@ def validate_entity_data(structured_data, form_fields):
                         if not is_valid_datatype:
                             expected_types = ", ".join(
                                 [
-                                    custom_filter.human_readable_predicate(
-                                        dtype, form_fields.keys()
-                                    )
+                                    custom_filter.human_readable_predicate((
+                                        dtype, None))
                                     for dtype in datatypes
                                 ]
                             )
@@ -693,10 +709,9 @@ def validate_entity_data(structured_data, form_fields):
                                 gettext(
                                     'Value "%(value)s" for property %(prop_uri)s is not of expected type %(expected_types)s',
                                     value=value,
-                                    prop_uri=custom_filter.human_readable_predicate(
-                                        prop_uri, form_fields.keys()
-                                    ),
-                                    expected_types=expected_types,
+                                    prop_uri=custom_filter.human_readable_predicate((
+                                        prop_uri, None)),
+                                    expected_types=expected_types
                                 )
                             )
 
@@ -705,9 +720,8 @@ def validate_entity_data(structured_data, form_fields):
                     if optional_values and value not in optional_values:
                         acceptable_values = ", ".join(
                             [
-                                custom_filter.human_readable_predicate(
-                                    val, form_fields.keys()
-                                )
+                                custom_filter.human_readable_predicate((
+                                    val, None))
                                 for val in optional_values
                             ]
                         )
@@ -715,10 +729,9 @@ def validate_entity_data(structured_data, form_fields):
                             gettext(
                                 'Value "%(value)s" is not permitted for property %(prop_uri)s. Acceptable values are: %(acceptable_values)s',
                                 value=value,
-                                prop_uri=custom_filter.human_readable_predicate(
-                                    prop_uri, form_fields.keys()
-                                ),
-                                acceptable_values=acceptable_values,
+                                prop_uri=custom_filter.human_readable_predicate((
+                                    prop_uri, None)),
+                                acceptable_values=acceptable_values
                             )
                         )
 
@@ -737,9 +750,8 @@ def validate_entity_data(structured_data, form_fields):
                     errors.append(
                         gettext(
                             "Missing required property: %(prop_uri)s requires at least %(min_count)d %(value)s",
-                            prop_uri=custom_filter.human_readable_predicate(
-                                prop_uri, [entity_type]
-                            ),
+                            prop_uri=custom_filter.human_readable_predicate((
+                                prop_uri, None)),
                             min_count=min_count,
                             value=value,
                         )
@@ -1508,15 +1520,16 @@ def format_triple_modification(
         mod_type: Type of modification (addition/deletion)
         history: Historical snapshots dictionary
         entity_uri: URI of the entity being modified
-        current_snapshot: Current entity snapshot
-        current_snapshot_timestamp: Timestamp of current snapshot
-        custom_filter: Filter instance for formatting
-        form_fields: Form fields configuration from SHACL
+        current_snapshot: Current state of the entity
+        current_snapshot_timestamp: Timestamp of the current snapshot
+        custom_filter (Filter): Filter instance for formatting
+        form_fields (dict): Form fields configuration from SHACL where keys are tuples of (class, shape)
 
     Returns:
-        HTML string representing the triple modification    """
+        str: HTML text describing the modification
+    """
     predicate = triple[1]
-    predicate_label = custom_filter.human_readable_predicate(predicate, subject_classes)
+    predicate_label = custom_filter.human_readable_predicate((predicate, None))
     object_value = triple[2]
 
     # Determine which snapshot to use for context
@@ -1571,63 +1584,66 @@ def get_object_label(
         object_value: The value to get a label for
         predicate: The predicate URI
         entity_type: The type of the entity
-        form_fields: Form fields configuration from SHACL
+        form_fields (dict): Form fields configuration from SHACL where keys are tuples of (class, shape)
         snapshot: Optional graph snapshot for context
-        custom_filter: Custom filter instance for formatting
+        custom_filter (Filter): Custom filter instance for formatting
 
     Returns:
-        A human-readable label for the object value
+        str: A human-readable label for the object value
     """
     entity_type = str(entity_type)
     predicate = str(predicate)
 
     # Handle RDF type predicates
     if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-        return custom_filter.human_readable_predicate(
-            object_value, [entity_type]
-        ).title()
+        return custom_filter.human_readable_predicate((object_value, None)).title()
 
-    if form_fields and entity_type in form_fields:
-        predicate_fields = form_fields[entity_type].get(predicate, [])
-        for field in predicate_fields:
-            # Check if this is an entity reference
-            if field.get("nodeShape") or field.get("objectClass"):
-                if validators.url(object_value):
-                    # Get types for the referenced entity
-                    object_classes = []
-                    if snapshot:
-                        object_classes = [
-                            str(o)
-                            for s, p, o in snapshot.triples(
-                                (URIRef(object_value), RDF.type, None)
-                            )
-                        ]
+    matching_key = None
+    for key in form_fields.keys():
+        if key[0] == entity_type:
+            matching_key = key
+            break
 
-                    if not object_classes and field.get("objectClass"):
-                        object_classes = [field["objectClass"]]
+    if not matching_key:
+        return object_value
 
-                    return custom_filter.human_readable_entity(
-                        object_value, object_classes, snapshot
-                    )
+    predicate_fields = form_fields[matching_key].get(predicate, [])
 
-            # Check for mandatory values
-            if field.get("hasValue") == object_value:
-                return custom_filter.human_readable_predicate(
-                    object_value, [entity_type]
+    for field in predicate_fields:
+        # Check if this is an entity reference
+        if field.get("nodeShape") or field.get("objectClass"):
+            if validators.url(object_value):
+                # Get types for the referenced entity
+                object_classes = []
+                if snapshot:
+                    object_classes = [
+                        str(o)
+                        for s, p, o in snapshot.triples(
+                            (URIRef(object_value), RDF.type, None)
+                        )
+                    ]
+
+                if not object_classes and field.get("objectClass"):
+                    object_classes = [field["objectClass"]]
+
+                return custom_filter.human_readable_entity(
+                    object_value, object_classes, snapshot
                 )
 
-            # Check for optional values from a predefined set
-            if object_value in field.get("optionalValues", []):
-                return custom_filter.human_readable_predicate(
-                    object_value, [entity_type]
-                )
+        # Check for mandatory values
+        if field.get("hasValue") == object_value:
+            return custom_filter.human_readable_predicate((object_value, None))
+
+        # Check for optional values from a predefined set
+        if object_value in field.get("optionalValues", []):
+            return custom_filter.human_readable_predicate((object_value, None))
 
     # Default to simple string representation for literal values
     if not validators.url(object_value):
         return object_value
 
     # For any other URIs, use human_readable_predicate
-    return custom_filter.human_readable_predicate(object_value, [entity_type])
+    return custom_filter.human_readable_predicate((object_value, None))
 
 
 def process_modification_data(data: dict) -> Tuple[str, List[dict]]:
@@ -1660,7 +1676,7 @@ def validate_modification(
     Args:
         modification: Dictionary containing modification details
         subject_uri: URI of the subject being modified
-        form_fields: Form fields configuration from SHACL
+        form_fields (dict): Form fields configuration from SHACL where keys are tuples of (class, shape)
 
     Returns:
         Tuple of (is_valid, error_message)
@@ -1680,9 +1696,15 @@ def validate_modification(
     if form_fields:
         entity_types = [str(t) for t in get_entity_types(subject_uri)]
         entity_type = get_highest_priority_class(entity_types)
-
-        if entity_type in form_fields:
-            predicate_fields = form_fields[entity_type].get(predicate, [])
+        
+        matching_key = None
+        for key in form_fields.keys():
+            if key[0] == entity_type:
+                matching_key = key
+                break
+                
+        if matching_key:
+            predicate_fields = form_fields[matching_key].get(predicate, [])
 
             for field in predicate_fields:
                 if operation == "remove" and field.get("minCount", 0) > 0:

@@ -346,31 +346,9 @@ def order_form_fields(form_fields, display_rules):
             entity_class = target.get("class")
             entity_shape = target.get("shape")
             
-            # Create the entity key based on available information
-            if entity_class:
-                # If both class and shape are specified
-                if entity_shape:
-                    entity_key = (entity_class, entity_shape)
-                # If only class is specified, look for all keys with matching class
-                else:
-                    for key in form_fields:
-                        if key[0] == entity_class:  # Check if class part of tuple matches
-                            entity_key = key
-                            ordered_properties = [
-                                prop_rule["property"]
-                                for prop_rule in rule.get("displayProperties", [])
-                            ]
-                            ordered_form_fields[entity_key] = OrderedDict()
-                            for prop in ordered_properties:
-                                if prop in form_fields[entity_key]:
-                                    ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
-                            # Aggiungi le proprietà rimanenti non specificate nell'ordine
-                            for prop in form_fields[entity_key]:
-                                if prop not in ordered_properties:
-                                    ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
-                    continue  # Skip the rest of this iteration since we've handled all matching keys
-                
-                # Handle the case where both class and shape are specified
+            # Case 1: Both class and shape are specified (exact match)
+            if entity_class and entity_shape:
+                entity_key = (entity_class, entity_shape)
                 if entity_key in form_fields:
                     ordered_properties = [
                         prop_rule["property"]
@@ -384,6 +362,42 @@ def order_form_fields(form_fields, display_rules):
                     for prop in form_fields[entity_key]:
                         if prop not in ordered_properties:
                             ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
+            
+            # Case 2: Only class is specified (apply to all matching classes)
+            elif entity_class:
+                for key in form_fields:
+                    if key[0] == entity_class:  # Check if class part of tuple matches
+                        entity_key = key
+                        ordered_properties = [
+                            prop_rule["property"]
+                            for prop_rule in rule.get("displayProperties", [])
+                        ]
+                        ordered_form_fields[entity_key] = OrderedDict()
+                        for prop in ordered_properties:
+                            if prop in form_fields[entity_key]:
+                                ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
+                        # Aggiungi le proprietà rimanenti non specificate nell'ordine
+                        for prop in form_fields[entity_key]:
+                            if prop not in ordered_properties:
+                                ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
+            
+            # Case 3: Only shape is specified (apply to all matching shapes)
+            elif entity_shape:
+                for key in form_fields:
+                    if key[1] == entity_shape:  # Check if shape part of tuple matches
+                        entity_key = key
+                        ordered_properties = [
+                            prop_rule["property"]
+                            for prop_rule in rule.get("displayProperties", [])
+                        ]
+                        ordered_form_fields[entity_key] = OrderedDict()
+                        for prop in ordered_properties:
+                            if prop in form_fields[entity_key]:
+                                ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
+                        # Aggiungi le proprietà rimanenti non specificate nell'ordine
+                        for prop in form_fields[entity_key]:
+                            if prop not in ordered_properties:
+                                ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
     else:
         ordered_form_fields = form_fields
     return ordered_form_fields
@@ -405,17 +419,21 @@ def apply_display_rules(shacl, form_fields, display_rules):
         entity_shape = target.get("shape")
         
         # Handle different cases based on available target information
-        if entity_class:
-            # Case 1: Both class and shape are specified
-            if entity_shape:
-                entity_key = (entity_class, entity_shape)
-                if entity_key in form_fields:
-                    apply_rule_to_entity(shacl, form_fields, entity_key, rule)
-            # Case 2: Only class is specified (apply to all matching classes)
-            else:
-                for key in list(form_fields.keys()):
-                    if key[0] == entity_class:  # Check if class part of tuple matches
-                        apply_rule_to_entity(shacl, form_fields, key, rule)
+        # Case 1: Both class and shape are specified (exact match)
+        if entity_class and entity_shape:
+            entity_key = (entity_class, entity_shape)
+            if entity_key in form_fields:
+                apply_rule_to_entity(shacl, form_fields, entity_key, rule)
+        # Case 2: Only class is specified (apply to all matching classes)
+        elif entity_class:
+            for key in list(form_fields.keys()):
+                if key[0] == entity_class:  # Check if class part of tuple matches
+                    apply_rule_to_entity(shacl, form_fields, key, rule)
+        # Case 3: Only shape is specified (apply to all matching shapes)
+        elif entity_shape:
+            for key in list(form_fields.keys()):
+                if key[1] == entity_shape:  # Check if shape part of tuple matches
+                    apply_rule_to_entity(shacl, form_fields, key, rule)
     return form_fields
 
 
