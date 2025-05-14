@@ -496,11 +496,12 @@ class TestGetHighestPriorityClass:
     @patch("heritrace.utils.display_rules_utils.get_class_priority")
     def test_get_highest_priority_class(self, mock_get_class_priority):
         # Mock get_class_priority to return specific values for tuple-based keys
+        # Lower values indicate higher priority in the actual implementation
         mock_get_class_priority.side_effect = lambda entity_key: {
-            ("http://example.org/Person", None): 10,
+            ("http://example.org/Person", None): 1,
             ("http://example.org/Organization", None): 5,
-            ("http://example.org/Event", None): 3,
-        }.get(entity_key, 0)
+            ("http://example.org/Event", None): 10,
+        }.get(entity_key, 100)
 
         # Test with multiple classes
         subject_classes = [

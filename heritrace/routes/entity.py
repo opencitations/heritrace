@@ -49,12 +49,10 @@ def about(subject):
     Args:
         subject: URI of the entity to display
     """
-    # Get necessary services and configurations
     change_tracking_config = get_change_tracking_config()
     
     default_primary_source = get_default_primary_source(current_user.orcid)
 
-    # Initialize agnostic entity and get its history
     agnostic_entity = AgnosticEntity(
         res=subject, config=change_tracking_config, related_entities_history=True
     )
@@ -64,10 +62,8 @@ def about(subject):
     context_snapshot = None
     subject_classes = []
 
-    # Process entity history
     if history.get(subject):
         sorted_timestamps = sorted(history[subject].keys())
-        latest_snapshot = history[subject][sorted_timestamps[-1]]
         latest_metadata = next(
             (
                 meta
@@ -106,11 +102,9 @@ def about(subject):
     linked_resources = []
 
     if not is_deleted:
-        # Fetch current entity state
         data_graph = fetch_data_graph_for_subject(subject)
         if data_graph:
             triples = list(data_graph.triples((None, None, None)))
-            # Get valid predicates and other metadata
             (
                 can_be_added,
                 can_be_deleted,
@@ -121,7 +115,6 @@ def about(subject):
                 valid_predicates,
             ) = get_valid_predicates(triples)
 
-            # Group triples for display
             grouped_triples, relevant_properties = get_grouped_triples(
                 subject, triples, subject_classes, valid_predicates
             )
@@ -131,17 +124,14 @@ def about(subject):
                 uri for uri in can_be_deleted if uri in relevant_properties
             ]
 
-            # Get resources that this entity links to (outgoing links)
             linked_resources = set()
             for _, predicate, obj in data_graph.triples((URIRef(subject), None, None)):
                 if isinstance(obj, URIRef) and str(obj) != str(subject) and predicate != RDF.type:
                     linked_resources.add(str(obj))
 
-        # Convert to list
         linked_resources = list(linked_resources)
 
     else:
-        # For deleted entities, we don't need to get any linked resources
         linked_resources = []
 
     update_form = UpdateTripleForm()
@@ -165,7 +155,6 @@ def about(subject):
                 key = (predicate_uri, entity_type_key, shape)
                 predicate_details_map[key] = details
 
-    # Ensure entity_type is set correctly using the potentially updated subject_classes
     entity_type = str(get_highest_priority_class(subject_classes)) if subject_classes else None
 
     return render_template(

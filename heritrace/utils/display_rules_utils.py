@@ -32,7 +32,7 @@ def find_matching_rule(class_uri=None, shape_uri=None, rules=None):
     # Initialize variables to track potential matches
     class_match = None
     shape_match = None
-    highest_priority = -1
+    highest_priority = float('inf')
         
     # Scan all rules to find the best match based on priority
     for rule in rules:
@@ -207,13 +207,13 @@ def get_highest_priority_class(subject_classes):
     if not subject_classes:
         return None
     
-    highest_priority = -1
+    highest_priority = float('inf')
     highest_priority_class = None
     
     for class_uri in subject_classes:
         entity_key = (class_uri, None)
         priority = get_class_priority(entity_key)
-        if priority > highest_priority:
+        if priority < highest_priority:
             highest_priority = priority
             highest_priority_class = class_uri
     
