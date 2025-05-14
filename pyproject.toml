@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "heritrace"
-version = "0.0.1"
+version = "1.0.0"
 description = "An environment for data modification"
 authors = ["arcangelo7 <arcangelomas@gmail.com>"]
 license = "ISC"
