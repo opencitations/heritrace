@@ -37,6 +37,8 @@ def test_catalogue_route_authenticated(
         "entities": [],
         "total_pages": 1,
         "sortable_properties": [],
+        "sort_property": None,
+        "sort_direction": "ASC"
     }
 
     response = logged_in_client.get("/catalogue")
