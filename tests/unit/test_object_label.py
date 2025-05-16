@@ -17,32 +17,34 @@ def mock_custom_filter():
     return filter_mock
 
 
-def test_get_object_label_rdf_type():
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_rdf_type(mock_get_form_fields):
     """Test get_object_label with RDF type predicate."""
     # Setup
     object_value = "http://example.org/Person"
     predicate = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     entity_type = "http://example.org/Entity"
-    form_fields = {}
+    mock_get_form_fields.return_value = {}
     snapshot = None
     custom_filter = MagicMock(spec=Filter)
     custom_filter.human_readable_predicate.return_value = "person"
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, form_fields, snapshot, custom_filter)
+    label = get_object_label(object_value, predicate, entity_type, snapshot, custom_filter)
     
     # Verify
     assert label == "Person"
     custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
 
 
-def test_get_object_label_node_shape(mock_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_node_shape(mock_get_form_fields, mock_custom_filter):
     """Test get_object_label when field has nodeShape and object_value is a URL."""
     # Setup
     object_value = "http://example.org/referenced-entity"
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
-    form_fields = {
+    mock_get_form_fields.return_value = {
         ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"nodeShape": "http://example.org/shape"}
@@ -57,7 +59,7 @@ def test_get_object_label_node_shape(mock_custom_filter):
     ]
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, form_fields, snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, entity_type, snapshot, mock_custom_filter)
     
     # Verify
     assert label == "Human Readable Entity"
@@ -66,13 +68,14 @@ def test_get_object_label_node_shape(mock_custom_filter):
     )
 
 
-def test_get_object_label_object_class_no_snapshot(mock_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_object_class_no_snapshot(mock_get_form_fields, mock_custom_filter):
     """Test get_object_label when field has objectClass but no snapshot is provided."""
     # Setup
     object_value = "http://example.org/referenced-entity"
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
-    form_fields = {
+    mock_get_form_fields.return_value = {
         ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"objectClass": "http://example.org/Person"}
@@ -82,7 +85,7 @@ def test_get_object_label_object_class_no_snapshot(mock_custom_filter):
     snapshot = None
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, form_fields, snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, entity_type, snapshot, mock_custom_filter)
     
     # Verify
     assert label == "Human Readable Entity"
@@ -91,13 +94,14 @@ def test_get_object_label_object_class_no_snapshot(mock_custom_filter):
     )
 
 
-def test_get_object_label_has_value(mock_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_has_value(mock_get_form_fields, mock_custom_filter):
     """Test get_object_label when field has hasValue matching object_value."""
     # Setup
     object_value = "http://example.org/specific-value"
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
-    form_fields = {
+    mock_get_form_fields.return_value = {
         ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"hasValue": "http://example.org/specific-value"}
@@ -107,20 +111,21 @@ def test_get_object_label_has_value(mock_custom_filter):
     snapshot = None
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, form_fields, snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, entity_type, snapshot, mock_custom_filter)
     
     # Verify
     assert label == "Human Readable Predicate"
     mock_custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
 
 
-def test_get_object_label_optional_values(mock_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_optional_values(mock_get_form_fields, mock_custom_filter):
     """Test get_object_label when object_value is in optionalValues."""
     # Setup
     object_value = "http://example.org/optional-value"
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
-    form_fields = {
+    mock_get_form_fields.return_value = {
         ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"optionalValues": ["http://example.org/optional-value"]}
@@ -130,24 +135,25 @@ def test_get_object_label_optional_values(mock_custom_filter):
     snapshot = None
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, form_fields, snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, entity_type, snapshot, mock_custom_filter)
     
     # Verify
     assert label == "Human Readable Predicate"
     mock_custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
 
 
-def test_get_object_label_literal_value(mock_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_literal_value(mock_get_form_fields, mock_custom_filter):
     """Test get_object_label with a literal (non-URL) value."""
     # Setup
     object_value = "Simple text value"
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
-    form_fields = {}
+    mock_get_form_fields.return_value = {}
     snapshot = None
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, form_fields, snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, entity_type, snapshot, mock_custom_filter)
     
     # Verify
     assert label == "Simple text value"
@@ -155,13 +161,14 @@ def test_get_object_label_literal_value(mock_custom_filter):
     mock_custom_filter.human_readable_entity.assert_not_called()
 
 
-def test_get_object_label_uri_no_special_handling(mock_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_uri_no_special_handling(mock_get_form_fields, mock_custom_filter):
     """Test get_object_label with a URI that doesn't match any special cases."""
     # Setup
     object_value = "http://example.org/some-uri"
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
-    form_fields = {
+    mock_get_form_fields.return_value = {
         ("http://example.org/Entity", None): {
             "http://example.org/predicate": [
                 {"someOtherField": "value"}
@@ -171,7 +178,7 @@ def test_get_object_label_uri_no_special_handling(mock_custom_filter):
     snapshot = None
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, form_fields, snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, entity_type, snapshot, mock_custom_filter)
     
     # Verify
     assert label == "Human Readable Predicate"

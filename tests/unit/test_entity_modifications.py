@@ -197,41 +197,44 @@ def test_apply_modifications_multiple():
     )
 
 
-def test_validate_modification_no_operation():
+@patch('heritrace.routes.entity.get_form_fields')
+def test_validate_modification_no_operation(mock_get_form_fields):
     """Test validate_modification when no operation is specified."""
     # Setup
     modification = {
         "predicate": "http://example.org/predicate"
     }
     subject_uri = "http://example.org/entity"
-    form_fields = {}
+    mock_get_form_fields.return_value = {}
     
     # Execute
-    is_valid, error_message = validate_modification(modification, subject_uri, form_fields)
+    is_valid, error_message = validate_modification(modification, subject_uri)
     
     # Verify
     assert not is_valid
     assert "No operation specified in modification" == error_message
 
 
-def test_validate_modification_no_predicate():
+@patch('heritrace.routes.entity.get_form_fields')
+def test_validate_modification_no_predicate(mock_get_form_fields):
     """Test validate_modification when no predicate is specified."""
     # Setup
     modification = {
         "operation": "add"
     }
     subject_uri = "http://example.org/entity"
-    form_fields = {}
+    mock_get_form_fields.return_value = {}
     
     # Execute
-    is_valid, error_message = validate_modification(modification, subject_uri, form_fields)
+    is_valid, error_message = validate_modification(modification, subject_uri)
     
     # Verify
     assert not is_valid
     assert "No predicate specified in modification" == error_message
 
 
-def test_validate_modification_invalid_operation():
+@patch('heritrace.routes.entity.get_form_fields')
+def test_validate_modification_invalid_operation(mock_get_form_fields):
     """Test validate_modification with an invalid operation."""
     # Setup
     modification = {
@@ -239,32 +242,28 @@ def test_validate_modification_invalid_operation():
         "predicate": "http://example.org/predicate"
     }
     subject_uri = "http://example.org/entity"
-    form_fields = {}
+    mock_get_form_fields.return_value = {}
     
     # Execute
-    is_valid, error_message = validate_modification(modification, subject_uri, form_fields)
+    is_valid, error_message = validate_modification(modification, subject_uri)
     
     # Verify
     assert not is_valid
     assert "Invalid operation: invalid" == error_message
 
 
+@patch('heritrace.routes.entity.get_form_fields')
 @patch('heritrace.routes.entity.get_predicate_count')
 @patch('heritrace.routes.entity.get_entity_types')
 @patch('heritrace.routes.entity.get_highest_priority_class')
-def test_validate_modification_remove_required(mock_get_highest_priority, mock_get_entity_types, mock_get_predicate_count):
+def test_validate_modification_remove_required(mock_get_highest_priority, mock_get_entity_types, mock_get_predicate_count, mock_get_form_fields):
     """Test validate_modification when trying to remove a required predicate."""
     # Setup mocks
     mock_get_highest_priority.return_value = "http://example.org/Document"
     mock_get_entity_types.return_value = ["http://example.org/Document"]
     
-    # Setup test data
-    modification = {
-        "operation": "remove",
-        "predicate": "http://example.org/title"
-    }
-    subject_uri = "http://example.org/entity"
-    form_fields = {
+    # Setup form_fields mock
+    mock_get_form_fields.return_value = {
         ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
@@ -274,31 +273,34 @@ def test_validate_modification_remove_required(mock_get_highest_priority, mock_g
         }
     }
     
+    # Setup test data
+    modification = {
+        "operation": "remove",
+        "predicate": "http://example.org/title"
+    }
+    subject_uri = "http://example.org/entity"
+    
     # Execute
-    is_valid, error_message = validate_modification(modification, subject_uri, form_fields)
+    is_valid, error_message = validate_modification(modification, subject_uri)
     
     # Verify
     assert not is_valid
     assert "Cannot remove required predicate: http://example.org/title" == error_message
 
 
+@patch('heritrace.routes.entity.get_form_fields')
 @patch('heritrace.routes.entity.get_predicate_count')
 @patch('heritrace.routes.entity.get_entity_types')
 @patch('heritrace.routes.entity.get_highest_priority_class')
-def test_validate_modification_exceed_max_count(mock_get_highest_priority, mock_get_entity_types, mock_get_predicate_count):
+def test_validate_modification_exceed_max_count(mock_get_highest_priority, mock_get_entity_types, mock_get_predicate_count, mock_get_form_fields):
     """Test validate_modification when exceeding maxCount for a predicate."""
     # Setup mocks
     mock_get_highest_priority.return_value = "http://example.org/Document"
     mock_get_entity_types.return_value = ["http://example.org/Document"]
     mock_get_predicate_count.return_value = 2  # Current count
     
-    # Setup test data
-    modification = {
-        "operation": "add",
-        "predicate": "http://example.org/title"
-    }
-    subject_uri = "http://example.org/entity"
-    form_fields = {
+    # Setup form_fields mock
+    mock_get_form_fields.return_value = {
         ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
@@ -308,8 +310,15 @@ def test_validate_modification_exceed_max_count(mock_get_highest_priority, mock_
         }
     }
     
+    # Setup test data
+    modification = {
+        "operation": "add",
+        "predicate": "http://example.org/title"
+    }
+    subject_uri = "http://example.org/entity"
+    
     # Execute
-    is_valid, error_message = validate_modification(modification, subject_uri, form_fields)
+    is_valid, error_message = validate_modification(modification, subject_uri)
     
     # Verify
     assert not is_valid

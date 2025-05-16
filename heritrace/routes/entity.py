@@ -263,7 +263,7 @@ def create_entity():
         )
 
         if form_fields:
-            validation_errors = validate_entity_data(structured_data, form_fields)
+            validation_errors = validate_entity_data(structured_data)
             if validation_errors:
                 return jsonify({"status": "error", "errors": validation_errors}), 400
 
@@ -345,8 +345,7 @@ def create_entity():
                                     editor,
                                     nested_uri,
                                     value,
-                                    default_graph_uri,
-                                    form_fields,
+                                    default_graph_uri
                                 )
                             else:
                                 # If it's a direct URI value (reference to existing entity)
@@ -381,8 +380,7 @@ def create_entity():
                                 editor,
                                 nested_uri,
                                 value,
-                                default_graph_uri,
-                                form_fields,
+                                default_graph_uri
                             )
                         else:
                             # Handle both URI references and literal values
@@ -468,9 +466,10 @@ def create_entity():
 
 
 def create_nested_entity(
-    editor: Editor, entity_uri, entity_data, graph_uri=None, form_fields=None
+    editor: Editor, entity_uri, entity_data, graph_uri=None
 ):
-    # Add rdf:type
+    form_fields = get_form_fields()
+    
     editor.create(
         entity_uri,
         URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
@@ -513,14 +512,14 @@ def create_nested_entity(
                         graph_uri,
                     )
                     create_nested_entity(
-                        editor, target_uri, value, graph_uri, form_fields
+                        editor, target_uri, value, graph_uri
                     )
                 else:
                     # Handle nested entities
                     nested_uri = generate_unique_uri(value["entity_type"])
                     editor.create(entity_uri, URIRef(predicate), nested_uri, graph_uri)
                     create_nested_entity(
-                        editor, nested_uri, value, graph_uri, form_fields
+                        editor, nested_uri, value, graph_uri
                     )
             else:
                 # Handle simple properties
@@ -548,18 +547,18 @@ def determine_datatype(value, datatype_uris):
     return XSD.string
 
 
-def validate_entity_data(structured_data, form_fields):
+def validate_entity_data(structured_data):
     """
     Validates entity data against form field definitions, considering shape matching.
 
     Args:
         structured_data (dict): Data to validate containing entity_type and properties
-        form_fields (dict): Form field definitions from SHACL shapes where keys are tuples of (class, shape)
 
     Returns:
         list: List of validation error messages, empty if validation passes
     """
     custom_filter = get_custom_filter()
+    form_fields = get_form_fields()
 
     errors = []
     entity_type = structured_data.get("entity_type")
@@ -667,7 +666,7 @@ def validate_entity_data(structured_data, form_fields):
             # Validate each value
             for value in prop_values:
                 if isinstance(value, dict) and "entity_type" in value:
-                    nested_errors = validate_entity_data(value, form_fields)
+                    nested_errors = validate_entity_data(value)
                     errors.extend(nested_errors)
                 else:
                     # Validate against datatypes
@@ -833,7 +832,6 @@ def entity_history(entity_uri):
                 current_snapshot=snapshot_graph,
                 current_snapshot_timestamp=snapshot_timestamp_str,
                 custom_filter=custom_filter,
-                form_fields=get_form_fields(),
             )
 
         event = {
@@ -980,7 +978,6 @@ def entity_version(entity_uri, timestamp):
         timestamp: Timestamp of the version to display
     """
     custom_filter = get_custom_filter()
-    form_fields = get_form_fields()
     change_tracking_config = get_change_tracking_config()
 
     try:
@@ -1119,12 +1116,11 @@ def entity_version(entity_uri, timestamp):
         modifications = generate_modification_text(
             parsed_modifications,
             subject_classes,
-            history=history,
-            entity_uri=entity_uri,
-            current_snapshot=version,
-            current_snapshot_timestamp=closest_timestamp,
-            custom_filter=custom_filter,
-            form_fields=form_fields,
+            history,
+            entity_uri,
+            context_version,
+            closest_timestamp,
+            custom_filter,
         )
 
     try:
@@ -1411,8 +1407,7 @@ def generate_modification_text(
     current_snapshot,
     current_snapshot_timestamp,
     custom_filter: Filter,
-    form_fields,
-):
+) -> str:
     """
     Generate HTML text describing modifications to an entity, using display rules for property ordering.
 
@@ -1424,7 +1419,9 @@ def generate_modification_text(
         current_snapshot (Graph): Current entity snapshot
         current_snapshot_timestamp (str): Timestamp of current snapshot
         custom_filter (Filter): Filter instance for formatting
-        form_fields (dict): Form fields configuration from SHACL
+
+    Returns:
+        str: HTML text describing the modifications
     """
     modification_text = "<p><strong>" + gettext("Modifications") + "</strong></p>"
 
@@ -1465,7 +1462,6 @@ def generate_modification_text(
                         current_snapshot,
                         current_snapshot_timestamp,
                         custom_filter,
-                        form_fields,
                     )
 
         # Then handle any remaining predicates not in the ordered list
@@ -1481,7 +1477,6 @@ def generate_modification_text(
                         current_snapshot,
                         current_snapshot_timestamp,
                         custom_filter,
-                        form_fields,
                     )
 
         modification_text += "</ul>"
@@ -1498,8 +1493,7 @@ def format_triple_modification(
     current_snapshot,
     current_snapshot_timestamp,
     custom_filter: Filter,
-    form_fields,
-):
+) -> str:
     """
     Format a single triple modification as HTML.
 
@@ -1512,7 +1506,6 @@ def format_triple_modification(
         current_snapshot: Current state of the entity
         current_snapshot_timestamp: Timestamp of the current snapshot
         custom_filter (Filter): Filter instance for formatting
-        form_fields (dict): Form fields configuration from SHACL where keys are tuples of (class, shape)
 
     Returns:
         str: HTML text describing the modification
@@ -1544,7 +1537,6 @@ def format_triple_modification(
         object_value,
         predicate,
         subject_class,
-        form_fields,
         relevant_snapshot,
         custom_filter,
     )
@@ -1562,7 +1554,6 @@ def get_object_label(
     object_value: str,
     predicate: str,
     entity_type: str,
-    form_fields: dict,
     snapshot: Optional[Graph],
     custom_filter: Filter,
 ) -> str:
@@ -1573,13 +1564,14 @@ def get_object_label(
         object_value: The value to get a label for
         predicate: The predicate URI
         entity_type: The type of the entity
-        form_fields (dict): Form fields configuration from SHACL where keys are tuples of (class, shape)
         snapshot: Optional graph snapshot for context
         custom_filter (Filter): Custom filter instance for formatting
 
     Returns:
         str: A human-readable label for the object value
     """
+    form_fields = get_form_fields()
+    
     entity_type = str(entity_type)
     predicate = str(predicate)
 
@@ -1657,7 +1649,7 @@ def process_modification_data(data: dict) -> Tuple[str, List[dict]]:
 
 
 def validate_modification(
-    modification: dict, subject_uri: str, form_fields: dict
+    modification: dict, subject_uri: str
 ) -> Tuple[bool, str]:
     """
     Validate a single modification operation.
@@ -1665,11 +1657,11 @@ def validate_modification(
     Args:
         modification: Dictionary containing modification details
         subject_uri: URI of the subject being modified
-        form_fields (dict): Form fields configuration from SHACL where keys are tuples of (class, shape)
 
     Returns:
         Tuple of (is_valid, error_message)
     """
+    form_fields = get_form_fields()
     operation = modification.get("operation")
     if not operation:
         return False, "No operation specified in modification"

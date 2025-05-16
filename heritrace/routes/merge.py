@@ -1,22 +1,21 @@
 import traceback
-from typing import Dict, List, Optional, Any, Tuple
 from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple
 
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_babel import gettext
-from flask_login import login_required, current_user
-from heritrace.extensions import (
-    get_custom_filter, get_sparql, get_counter_handler, 
-    get_dataset_endpoint, get_provenance_endpoint, get_dataset_is_quadstore
-)
+from flask_login import current_user, login_required
+from heritrace.editor import Editor
+from heritrace.extensions import (get_counter_handler, get_custom_filter,
+                                  get_dataset_endpoint,
+                                  get_dataset_is_quadstore,
+                                  get_provenance_endpoint, get_sparql)
 from heritrace.utils.display_rules_utils import get_similarity_properties
 from heritrace.utils.sparql_utils import get_entity_types
-from SPARQLWrapper import JSON, POST
-
-from heritrace.editor import Editor
-from rdflib import URIRef
 from markupsafe import Markup
+from rdflib import URIRef
+from SPARQLWrapper import JSON
 
 merge_bp = Blueprint("merge", __name__)
 

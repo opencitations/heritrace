@@ -220,7 +220,7 @@ class TestGetCatalogDataIntegration:
             with pytest.MonkeyPatch.context() as monkeypatch:
                 monkeypatch.setattr(
                     "heritrace.utils.sparql_utils.get_sortable_properties",
-                    lambda class_uri, display_rules, form_fields_cache: [
+                    lambda class_uri: [
                         {
                             "property": "http://example.org/name",
                             "displayName": "Name",

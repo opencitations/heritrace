@@ -10,7 +10,8 @@ from heritrace.utils.filters import Filter
 
 
 @patch('heritrace.routes.entity.get_custom_filter')
-def test_validate_entity_data_valid(mock_get_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_validate_entity_data_valid(mock_get_form_fields, mock_get_custom_filter):
     """Test validate_entity_data with valid data."""
     # Setup mock filter
     mock_filter = MagicMock(spec=Filter)
@@ -53,15 +54,16 @@ def test_validate_entity_data_valid(mock_get_custom_filter):
         }
     }
     
-    # Call the function
-    errors = validate_entity_data(entity_data, form_fields)
+    mock_get_form_fields.return_value = form_fields
     
-    # Verify results
+    errors = validate_entity_data(entity_data)
+    
     assert errors == []
 
 
 @patch('heritrace.routes.entity.get_custom_filter')
-def test_validate_entity_data_missing_required(mock_get_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_validate_entity_data_missing_required(mock_get_form_fields, mock_get_custom_filter):
     """Test validate_entity_data with missing required field."""
     # Setup mock filter
     mock_filter = MagicMock(spec=Filter)
@@ -103,17 +105,18 @@ def test_validate_entity_data_missing_required(mock_get_custom_filter):
         }
     }
     
-    # Call the function
-    errors = validate_entity_data(entity_data, form_fields)
+    mock_get_form_fields.return_value = form_fields
     
-    # Verify results
+    errors = validate_entity_data(entity_data)
+    
     assert len(errors) == 1
     assert "Missing required property" in errors[0]
     assert "Title" in errors[0]
 
 
 @patch('heritrace.routes.entity.get_custom_filter')
-def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_validate_entity_data_invalid_entity_type(mock_get_form_fields, mock_get_custom_filter):
     """Test validate_entity_data with invalid entity type."""
     # Setup mock filter
     mock_filter = MagicMock(spec=Filter)
@@ -143,8 +146,10 @@ def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter):
         }
     }
     
+    mock_get_form_fields.return_value = form_fields
+    
     # Call the function
-    errors = validate_entity_data(entity_data, form_fields)
+    errors = validate_entity_data(entity_data)
     
     # Verify results
     assert len(errors) == 1
@@ -152,7 +157,8 @@ def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter):
 
 
 @patch('heritrace.routes.entity.get_custom_filter')
-def test_validate_entity_data_with_shape(mock_get_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_validate_entity_data_with_shape(mock_get_form_fields, mock_get_custom_filter):
     """Test validate_entity_data with property shapes."""
     # Setup mock filter
     mock_filter = MagicMock()
@@ -179,6 +185,8 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
         }
     }
     
+    mock_get_form_fields.return_value = form_fields
+    
     # Test data with shape specified
     entity_data = {
         "entity_type": "http://example.org/Person",
@@ -192,8 +200,7 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
         }
     }
     
-    # Validate the data
-    errors = validate_entity_data(entity_data, form_fields)
+    errors = validate_entity_data(entity_data)
     
     # Should be no errors
     assert errors == []
@@ -220,6 +227,8 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
         }
     }
     
+    mock_get_form_fields.return_value = form_fields
+    
     # Entity data missing the required residential address
     entity_data = {
         "entity_type": "http://example.org/Person",
@@ -234,8 +243,7 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
         }
     }
     
-    # Validate the data - should have error because residential address is required
-    errors = validate_entity_data(entity_data, form_fields)
+    errors = validate_entity_data(entity_data)
     
     # Should have one error about missing required property
     assert len(errors) == 1

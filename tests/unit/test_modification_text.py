@@ -51,8 +51,10 @@ def mock_format_triple():
 def test_generate_modification_text_empty_modifications(mock_custom_filter, mock_display_rules):
     """Test generate_modification_text with empty modifications."""
     with patch('heritrace.routes.entity.get_display_rules', return_value=mock_display_rules), \
-         patch('heritrace.routes.entity.get_property_order_from_rules', return_value=[]), \
-         patch('heritrace.routes.entity.gettext', side_effect=lambda x: x):
+         patch('heritrace.routes.entity.get_property_order_from_rules', 
+               return_value=[]), \
+         patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
+         patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {}
         subject_classes = ["http://example.org/Person"]
@@ -60,7 +62,6 @@ def test_generate_modification_text_empty_modifications(mock_custom_filter, mock
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
-        form_fields = {}
 
         result = generate_modification_text(
             modifications,
@@ -69,8 +70,7 @@ def test_generate_modification_text_empty_modifications(mock_custom_filter, mock
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
-            form_fields
+            mock_custom_filter
         )
 
         assert "<p><strong>Modifications</strong></p>" in result
@@ -86,7 +86,8 @@ def test_generate_modification_text_additions(
                return_value=["http://example.org/name"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
          patch('heritrace.routes.entity.format_triple_modification', 
-               side_effect=mock_format_triple):
+               side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {
             "Additions": [
@@ -102,7 +103,6 @@ def test_generate_modification_text_additions(
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
-        form_fields = {}
 
         result = generate_modification_text(
             modifications,
@@ -111,8 +111,7 @@ def test_generate_modification_text_additions(
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
-            form_fields
+            mock_custom_filter
         )
 
         assert "<p><strong>Modifications</strong></p>" in result
@@ -129,7 +128,8 @@ def test_generate_modification_text_deletions(
                return_value=["http://example.org/age"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
          patch('heritrace.routes.entity.format_triple_modification', 
-               side_effect=mock_format_triple):
+               side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {
             "Deletions": [
@@ -150,7 +150,6 @@ def test_generate_modification_text_deletions(
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
-        form_fields = {}
 
         result = generate_modification_text(
             modifications,
@@ -159,8 +158,7 @@ def test_generate_modification_text_deletions(
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
-            form_fields
+            mock_custom_filter
         )
 
         assert "<p><strong>Modifications</strong></p>" in result
@@ -177,7 +175,8 @@ def test_generate_modification_text_mixed_modifications(
                return_value=["http://example.org/name", "http://example.org/age"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
          patch('heritrace.routes.entity.format_triple_modification', 
-               side_effect=mock_format_triple):
+               side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {
             "Additions": [
@@ -205,7 +204,6 @@ def test_generate_modification_text_mixed_modifications(
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
-        form_fields = {}
 
         result = generate_modification_text(
             modifications,
@@ -214,8 +212,7 @@ def test_generate_modification_text_mixed_modifications(
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
-            form_fields
+            mock_custom_filter
         )
 
         assert "<p><strong>Modifications</strong></p>" in result
@@ -234,7 +231,8 @@ def test_generate_modification_text_ordered_properties(
                return_value=["http://example.org/age", "http://example.org/name"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
          patch('heritrace.routes.entity.format_triple_modification', 
-               side_effect=mock_format_triple):
+               side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {
             "Additions": [
@@ -255,7 +253,6 @@ def test_generate_modification_text_ordered_properties(
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
-        form_fields = {}
 
         result = generate_modification_text(
             modifications,
@@ -264,8 +261,7 @@ def test_generate_modification_text_ordered_properties(
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
-            form_fields
+            mock_custom_filter
         )
 
         # Verify that age appears before name in the result
@@ -283,7 +279,8 @@ def test_generate_modification_text_unordered_properties(
                return_value=["http://example.org/name"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
          patch('heritrace.routes.entity.format_triple_modification', 
-               side_effect=mock_format_triple):
+               side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {
             "Additions": [
@@ -304,7 +301,6 @@ def test_generate_modification_text_unordered_properties(
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
-        form_fields = {}
 
         result = generate_modification_text(
             modifications,
@@ -313,8 +309,7 @@ def test_generate_modification_text_unordered_properties(
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
-            form_fields
+            mock_custom_filter
         )
 
         assert "http://example.org/unordered: Unordered Value" in result

@@ -1,8 +1,8 @@
 from collections import OrderedDict
-from typing import Tuple, List, Optional, Dict, Union
+from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote
 
-from heritrace.extensions import get_display_rules, get_sparql
+from heritrace.extensions import get_display_rules, get_form_fields, get_sparql
 from rdflib import ConjunctiveGraph, Graph, URIRef
 from rdflib.plugins.sparql.algebra import translateQuery
 from rdflib.plugins.sparql.parser import parseQuery
@@ -102,7 +102,7 @@ def is_entity_type_visible(entity_key):
     return rule.get("shouldBeDisplayed", True) if rule else True
 
 
-def get_sortable_properties(entity_key, display_rules=None, form_fields_cache=None) -> list:
+def get_sortable_properties(entity_key: Tuple[str, str]) -> List[Dict[str, str]]:
     """
     Gets the sortable properties from display rules for an entity type and/or shape.
     Infers the sorting type from form_fields_cache.
@@ -115,10 +115,11 @@ def get_sortable_properties(entity_key, display_rules=None, form_fields_cache=No
     Returns:
         List of dictionaries with sorting information
     """
-    if not display_rules:
-        display_rules = get_display_rules()
+    display_rules = get_display_rules()
     if not display_rules:
         return []
+    
+    form_fields = get_form_fields()
     
     class_uri = entity_key[0]
     shape_uri = entity_key[1]
@@ -148,21 +149,21 @@ def get_sortable_properties(entity_key, display_rules=None, form_fields_cache=No
 
         # Determine the sorting type from form fields
         entity_key = None
-        if form_fields_cache:
+        if form_fields:
             # Try different combinations of keys in form_fields_cache
-            if class_uri and shape_uri and (class_uri, str(shape_uri)) in form_fields_cache:
+            if class_uri and shape_uri and (class_uri, str(shape_uri)) in form_fields:
                 entity_key = (class_uri, str(shape_uri))
-            elif class_uri and class_uri in form_fields_cache:
+            elif class_uri and class_uri in form_fields:
                 entity_key = class_uri
             elif shape_uri:
                 # Try to find any key with the matching shape
-                for key in form_fields_cache.keys():
+                for key in form_fields.keys():
                     if isinstance(key, tuple) and len(key) == 2 and key[1] == str(shape_uri):
                         entity_key = key
                         break
         
-        if entity_key and prop["property"] in form_fields_cache[entity_key]:
-            field_info = form_fields_cache[entity_key][prop["property"]][
+        if entity_key and prop["property"] in form_fields[entity_key]:
+            field_info = form_fields[entity_key][prop["property"]][
                 0
             ]  # Take the first field definition
 

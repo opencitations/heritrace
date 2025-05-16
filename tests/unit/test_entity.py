@@ -20,26 +20,19 @@ from SPARQLWrapper import JSON
 
 # ===== Entity Tests =====
 
+@patch('heritrace.routes.entity.get_form_fields')
 @patch('heritrace.routes.entity.get_predicate_count')
 @patch('heritrace.routes.entity.get_entity_types')
 @patch('heritrace.routes.entity.get_highest_priority_class')
-def test_validate_modification_valid(mock_get_highest_priority, mock_get_entity_types, mock_get_predicate_count):
+def test_validate_modification_valid(mock_get_highest_priority, mock_get_entity_types, mock_get_predicate_count, mock_get_form_fields):
     """Test validate_modification with valid data."""
     # Setup mocks
     mock_get_highest_priority.return_value = "http://example.org/Document"
     mock_get_entity_types.return_value = ["http://example.org/Document"]
     mock_get_predicate_count.return_value = 1
     
-    # Create test data
-    modification = {
-        "operation": "add",
-        "predicate": URIRef("http://example.org/title"),
-        "object": Literal("New Title", datatype=XSD.string)
-    }
-    
-    subject_uri = URIRef("http://example.org/entity")
-    
-    form_fields = {
+    # Mock form_fields
+    mock_get_form_fields.return_value = {
         ("http://example.org/Document", None): {
             "http://example.org/title": [
                 {
@@ -55,22 +48,40 @@ def test_validate_modification_valid(mock_get_highest_priority, mock_get_entity_
         }
     }
     
+    # Create test data
+    modification = {
+        "operation": "add",
+        "predicate": URIRef("http://example.org/title"),
+        "object": Literal("New Title", datatype=XSD.string)
+    }
+    
+    subject_uri = URIRef("http://example.org/entity")
+    
     # Call the function
-    is_valid, error_message = validate_modification(modification, subject_uri, form_fields)
+    is_valid, error_message = validate_modification(modification, subject_uri)
     
     # Verify results
     assert is_valid is True
     assert error_message == ""  # Empty string instead of None
 
-@patch('heritrace.routes.entity.get_custom_filter')
-def test_validate_entity_data_valid(mock_get_custom_filter):
+@pytest.fixture
+def mock_get_custom_filter():
+    with patch("heritrace.routes.entity.get_custom_filter") as mock:
+        mock.return_value = MagicMock()
+        mock.return_value.human_readable_predicate.return_value = "Human readable"
+        yield mock
+
+
+@pytest.fixture
+def mock_get_form_fields():
+    with patch("heritrace.routes.entity.get_form_fields") as mock:
+        yield mock
+
+
+def test_validate_entity_data_valid(mock_get_custom_filter, mock_get_form_fields):
     """Test validate_entity_data with valid data."""
-    # Setup mock filter
-    mock_filter = MagicMock(spec=Filter)
-    mock_get_custom_filter.return_value = mock_filter
-    mock_filter.human_readable_predicate.return_value = "Title"
+    mock_get_custom_filter.return_value.human_readable_predicate.return_value = "Title"
     
-    # Create test data
     entity_data = {
         "entity_type": "http://example.org/Document",
         "properties": {
@@ -106,22 +117,17 @@ def test_validate_entity_data_valid(mock_get_custom_filter):
         }
     }
     
-    # Call the function
-    errors = validate_entity_data(entity_data, form_fields)
+    mock_get_form_fields.return_value = form_fields
     
-    # Verify results
+    errors = validate_entity_data(entity_data)
+    
     assert errors == []
 
 
-@patch('heritrace.routes.entity.get_custom_filter')
-def test_validate_entity_data_missing_required(mock_get_custom_filter):
+def test_validate_entity_data_missing_required(mock_get_custom_filter, mock_get_form_fields):
     """Test validate_entity_data with missing required field."""
-    # Setup mock filter
-    mock_filter = MagicMock(spec=Filter)
-    mock_get_custom_filter.return_value = mock_filter
-    mock_filter.human_readable_predicate.return_value = "Title"
+    mock_get_custom_filter.return_value.human_readable_predicate.return_value = "Title"
     
-    # Create test data
     entity_data = {
         "entity_type": "http://example.org/Document",
         "properties": {
@@ -156,23 +162,19 @@ def test_validate_entity_data_missing_required(mock_get_custom_filter):
         }
     }
     
-    # Call the function
-    errors = validate_entity_data(entity_data, form_fields)
+    mock_get_form_fields.return_value = form_fields
     
-    # Verify results
+    errors = validate_entity_data(entity_data)
+    
     assert len(errors) == 1
     assert "Missing required property" in errors[0]
     assert "Title" in errors[0]
 
 
-@patch('heritrace.routes.entity.get_custom_filter')
-def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter):
+def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter, mock_get_form_fields):
     """Test validate_entity_data with invalid entity type."""
-    # Setup mock filter
-    mock_filter = MagicMock(spec=Filter)
-    mock_get_custom_filter.return_value = mock_filter
+    mock_get_custom_filter.return_value.human_readable_predicate.return_value = "Title"
     
-    # Create test data
     entity_data = {
         "entity_type": "http://example.org/InvalidType",
         "properties": {
@@ -196,21 +198,18 @@ def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter):
         }
     }
     
-    # Call the function
-    errors = validate_entity_data(entity_data, form_fields)
+    mock_get_form_fields.return_value = form_fields
     
-    # Verify results
+    errors = validate_entity_data(entity_data)
+    
     assert len(errors) == 1
-    assert "Unknown entity type:" in errors[0]
+    assert "Unknown entity type" in errors[0]
 
 
-@patch('heritrace.routes.entity.get_custom_filter')
-def test_validate_entity_data_with_shape(mock_get_custom_filter):
+def test_validate_entity_data_with_shape(mock_get_custom_filter, mock_get_form_fields):
     """Test validate_entity_data with property shapes."""
-    # Setup mock filter
-    mock_filter = MagicMock()
-    mock_filter.human_readable_predicate.return_value = "Human Readable Property"
-    mock_get_custom_filter.return_value = mock_filter
+    # Setup mock
+    mock_get_custom_filter.return_value.human_readable_predicate.return_value = "Human Readable Property"
     
     # Create form fields with shape definitions
     form_fields = {
@@ -232,6 +231,8 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
         }
     }
     
+    mock_get_form_fields.return_value = form_fields
+    
     # Test data with shape specified
     entity_data = {
         "entity_type": "http://example.org/Person",
@@ -245,8 +246,7 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
         }
     }
     
-    # Validate the data
-    errors = validate_entity_data(entity_data, form_fields)
+    errors = validate_entity_data(entity_data)
     
     # Should be no errors
     assert errors == []
@@ -273,6 +273,8 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
         }
     }
     
+    mock_get_form_fields.return_value = form_fields
+    
     # Entity data missing the required residential address
     entity_data = {
         "entity_type": "http://example.org/Person",
@@ -287,8 +289,7 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter):
         }
     }
     
-    # Validate the data - should have error because residential address is required
-    errors = validate_entity_data(entity_data, form_fields)
+    errors = validate_entity_data(entity_data)
     
     # Should have one error about missing required property
     assert len(errors) == 1
@@ -322,10 +323,11 @@ def test_process_modification_data():
     assert modifications[0]["datatype"] == str(XSD.string)
 
 
+@patch('heritrace.routes.entity.get_form_fields')
 @patch('heritrace.routes.entity.get_entity_types')
 @patch('heritrace.routes.entity.get_highest_priority_class')
 @patch('heritrace.routes.entity.get_predicate_count')
-def test_validate_modification_max_count(mock_get_predicate_count, mock_get_highest_priority, mock_get_entity_types):
+def test_validate_modification_max_count(mock_get_predicate_count, mock_get_highest_priority, mock_get_entity_types, mock_get_form_fields):
     """Test validate_modification with max count validation."""
     
     # Setup mocks
@@ -333,8 +335,8 @@ def test_validate_modification_max_count(mock_get_predicate_count, mock_get_high
     mock_get_highest_priority.return_value = "http://example.org/Person"
     mock_get_predicate_count.return_value = 2  # Current count is 2
     
-    # Create form fields with max count
-    form_fields = {
+    # Mock form_fields
+    mock_get_form_fields.return_value = {
         ("http://example.org/Person", None): {
             "http://example.org/name": [
                 {
@@ -353,14 +355,15 @@ def test_validate_modification_max_count(mock_get_predicate_count, mock_get_high
         "datatype": "http://www.w3.org/2001/XMLSchema#string"
     }
     
-    is_valid, error = validate_modification(modification, "http://example.org/person/123", form_fields)
+    is_valid, error = validate_modification(modification, "http://example.org/person/123")
     assert not is_valid
     assert "Maximum count" in error
 
 
 @patch('heritrace.routes.entity.get_custom_filter')
 @patch('validators.url')
-def test_get_object_label_with_has_value(mock_validators, mock_get_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_with_has_value(mock_get_form_fields, mock_validators, mock_get_custom_filter):
     """Test get_object_label with hasValue field definition."""
     # Setup mocks
     mock_filter = MagicMock(spec=Filter)
@@ -369,15 +372,15 @@ def test_get_object_label_with_has_value(mock_validators, mock_get_custom_filter
     mock_validators.return_value = False
     
     # Create test data
-    object_value = "http://example.org/value"
+    object_value = "http://example.org/specific-value"
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Person"
     
-    form_fields = {
+    mock_get_form_fields.return_value = {
         ("http://example.org/Person", None): {
             "http://example.org/predicate": [
                 {
-                    "hasValue": "http://example.org/value"
+                    "hasValue": "http://example.org/specific-value"
                 }
             ]
         }
@@ -388,7 +391,6 @@ def test_get_object_label_with_has_value(mock_validators, mock_get_custom_filter
         object_value,
         predicate,
         entity_type,
-        form_fields,
         None,
         mock_filter
     )
@@ -400,7 +402,8 @@ def test_get_object_label_with_has_value(mock_validators, mock_get_custom_filter
 
 @patch('heritrace.routes.entity.get_custom_filter')
 @patch('validators.url')
-def test_get_object_label_with_optional_values(mock_validators, mock_get_custom_filter):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_get_object_label_with_optional_values(mock_get_form_fields, mock_validators, mock_get_custom_filter):
     """Test get_object_label with optionalValues field definition."""
     # Setup mocks
     mock_filter = MagicMock(spec=Filter)
@@ -413,7 +416,7 @@ def test_get_object_label_with_optional_values(mock_validators, mock_get_custom_
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Person"
     
-    form_fields = {
+    mock_get_form_fields.return_value = {
         ("http://example.org/Person", None): {
             "http://example.org/predicate": [
                 {
@@ -428,7 +431,6 @@ def test_get_object_label_with_optional_values(mock_validators, mock_get_custom_
         object_value,
         predicate,
         entity_type,
-        form_fields,
         None,
         mock_filter
     )
@@ -439,12 +441,22 @@ def test_get_object_label_with_optional_values(mock_validators, mock_get_custom_
 
 
 @patch('heritrace.routes.entity.RDF')
-def test_format_triple_modification_with_relevant_snapshot(mock_rdf):
+@patch('heritrace.routes.entity.get_form_fields')
+def test_format_triple_modification_with_relevant_snapshot(mock_get_form_fields, mock_rdf):
     """Test format_triple_modification with a relevant snapshot for deletions."""
     # Setup mocks
     mock_rdf.type = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
     mock_filter = MagicMock(spec=Filter)
     mock_filter.human_readable_predicate.return_value = "Human Readable Predicate"
+    mock_get_form_fields.return_value = {
+        ("http://example.org/Person", None): {
+            "http://example.org/predicate": [
+                {
+                    "datatypes": [str(XSD.string)]
+                }
+            ]
+        }
+    }
     
     # Create test data
     entity_uri = "http://example.org/entity/123"
@@ -481,8 +493,7 @@ def test_format_triple_modification_with_relevant_snapshot(mock_rdf):
         entity_uri,
         snapshot2,
         timestamp2,
-        mock_filter,
-        {}
+        mock_filter
     )
     
     # Verify results

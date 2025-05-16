@@ -281,36 +281,52 @@ class TestIsEntityTypeVisible:
 class TestGetSortableProperties:
     """Tests for get_sortable_properties function."""
 
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
     def test_get_sortable_properties_with_rules(
-        self, mock_display_rules, mock_form_fields_cache
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
     ):
         """Test getting sortable properties with display rules."""
-        result = get_sortable_properties(
-            ("http://example.org/Person", None), mock_display_rules, mock_form_fields_cache
-        )
+        mock_get_display_rules.return_value = mock_display_rules
+        mock_get_form_fields.return_value = mock_form_fields_cache
+        
+        result = get_sortable_properties(("http://example.org/Person", None))
+        
         assert len(result) == 1
         assert result[0]["property"] == "http://example.org/name"
         assert result[0]["displayName"] == "Person Name"
         assert result[0]["sortType"] == "string"
 
-    def test_get_sortable_properties_no_rules(self, mock_form_fields_cache):
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
+    def test_get_sortable_properties_no_rules(
+        self, mock_get_form_fields, mock_get_display_rules, mock_form_fields_cache
+    ):
         """Test getting sortable properties with no display rules."""
-        result = get_sortable_properties(
-            ("http://example.org/Person", None), [], mock_form_fields_cache
-        )
+        mock_get_display_rules.return_value = []
+        mock_get_form_fields.return_value = mock_form_fields_cache
+        
+        result = get_sortable_properties(("http://example.org/Person", None))
+        
         assert result == []
 
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
     def test_get_sortable_properties_class_not_in_rules(
-        self, mock_display_rules, mock_form_fields_cache
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
     ):
         """Test getting sortable properties for a class not in display rules."""
-        result = get_sortable_properties(
-            ("http://example.org/Unknown", None), mock_display_rules, mock_form_fields_cache
-        )
+        mock_get_display_rules.return_value = mock_display_rules
+        mock_get_form_fields.return_value = mock_form_fields_cache
+        
+        result = get_sortable_properties(("http://example.org/Unknown", None))
+        
         assert result == []
 
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
     def test_get_sortable_properties_with_date_type(
-        self, mock_display_rules, mock_form_fields_cache
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
     ):
         """Test getting sortable properties with date datatype."""
         # Modify mock_display_rules to include a date property
@@ -321,18 +337,21 @@ class TestGetSortableProperties:
                 "displayName": "Birth Date",
             }
         )
+        mock_get_display_rules.return_value = modified_rules
+        mock_get_form_fields.return_value = mock_form_fields_cache
 
-        result = get_sortable_properties(
-            ("http://example.org/Person", None), modified_rules, mock_form_fields_cache
-        )
+        result = get_sortable_properties(("http://example.org/Person", None))
+        
         assert len(result) == 2
         date_prop = next(
             p for p in result if p["property"] == "http://example.org/birthDate"
         )
         assert date_prop["sortType"] == "date"
 
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
     def test_get_sortable_properties_with_number_type(
-        self, mock_display_rules, mock_form_fields_cache
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
     ):
         """Test getting sortable properties with number datatype."""
         # Modify mock_display_rules to include a number property
@@ -343,26 +362,37 @@ class TestGetSortableProperties:
                 "displayName": "Height",
             }
         )
+        mock_get_display_rules.return_value = modified_rules
+        mock_get_form_fields.return_value = mock_form_fields_cache
 
-        result = get_sortable_properties(
-            ("http://example.org/Person", None), modified_rules, mock_form_fields_cache
-        )
+        result = get_sortable_properties(("http://example.org/Person", None))
+        
         assert len(result) == 2
         number_prop = next(
             p for p in result if p["property"] == "http://example.org/height"
         )
         assert number_prop["sortType"] == "number"
 
-    def test_get_sortable_properties_no_form_fields(self, mock_display_rules):
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
+    def test_get_sortable_properties_no_form_fields(
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules
+    ):
         """Test getting sortable properties with no form fields cache."""
-        result = get_sortable_properties(
-            ("http://example.org/Person", None), mock_display_rules, None
-        )
+        mock_get_display_rules.return_value = mock_display_rules
+        mock_get_form_fields.return_value = None
+        
+        result = get_sortable_properties(("http://example.org/Person", None))
+        
         assert len(result) == 1
         assert "sortType" in result[0]
         assert result[0]["sortType"] == "string"
 
-    def test_get_sortable_properties_with_missing_form_fields(self, mock_display_rules):
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
+    def test_get_sortable_properties_with_missing_form_fields(
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules
+    ):
         """Test getting sortable properties when form fields are missing for a property."""
         # Create a form fields cache with missing entries
         mock_form_fields_cache = {"http://example.org/Person": {}}
@@ -383,18 +413,20 @@ class TestGetSortableProperties:
                 "shouldBeDisplayed": True,
             }
         ]
+        mock_get_display_rules.return_value = modified_display_rules
+        mock_get_form_fields.return_value = mock_form_fields_cache
 
-        result = get_sortable_properties(
-            ("http://example.org/Person", None), modified_display_rules, mock_form_fields_cache
-        )
+        result = get_sortable_properties(("http://example.org/Person", None))
 
         # Verify the result has the expected property
         assert len(result) == 1
         assert result[0]["property"] == "http://example.org/name"
         # Note: sortType is not added when the property is not in form_fields_cache
 
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
     def test_get_sortable_properties_with_default_sort_type(
-        self, mock_form_fields_cache
+        self, mock_get_form_fields, mock_get_display_rules, mock_form_fields_cache
     ):
         """Test getting sortable properties with default sort type."""
         # Create a modified display rules with a property not in form_fields_cache
@@ -420,20 +452,21 @@ class TestGetSortableProperties:
                 "http://example.org/unknown": [{}]  # No datatype or nodeShape
             }
         }
+        
+        mock_get_display_rules.return_value = modified_display_rules
+        mock_get_form_fields.return_value = mock_form_fields_cache_empty
 
-        result = get_sortable_properties(
-            ("http://example.org/Person", None),
-            modified_display_rules,
-            mock_form_fields_cache_empty,
-        )
+        result = get_sortable_properties(("http://example.org/Person", None))
 
         # Verify the result has the default string sort type
         assert len(result) == 1
         assert result[0]["property"] == "http://example.org/unknown"
         assert result[0]["sortType"] == "string"
 
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
     def test_get_sortable_properties_with_boolean_type(
-        self, mock_display_rules, mock_form_fields_cache
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
     ):
         """Test getting sortable properties with boolean datatype."""
         # Modify mock_display_rules to include a boolean property
@@ -455,12 +488,11 @@ class TestGetSortableProperties:
                 ]
             }
         }
+        
+        mock_get_display_rules.return_value = modified_rules
+        mock_get_form_fields.return_value = mock_form_fields_cache_with_boolean
 
-        result = get_sortable_properties(
-            ("http://example.org/Person", None),
-            modified_rules,
-            mock_form_fields_cache_with_boolean,
-        )
+        result = get_sortable_properties(("http://example.org/Person", None))
 
         # Verify the result has the boolean sort type
         assert len(result) == 2
@@ -469,8 +501,10 @@ class TestGetSortableProperties:
         )
         assert boolean_prop["sortType"] == "boolean"
 
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
     def test_get_sortable_properties_with_string_type(
-        self, mock_display_rules, mock_form_fields_cache
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
     ):
         """Test getting sortable properties with string datatype."""
         # Modify mock_display_rules to include a string property
@@ -481,10 +515,12 @@ class TestGetSortableProperties:
                 "displayName": "Description",
             }
         )
+        
+        mock_get_display_rules.return_value = modified_rules
+        mock_get_form_fields.return_value = mock_form_fields_cache
 
-        result = get_sortable_properties(
-            ("http://example.org/Person", None), modified_rules, mock_form_fields_cache
-        )
+        result = get_sortable_properties(("http://example.org/Person", None))
+        
         assert len(result) == 2
         string_prop = next(
             p for p in result if p["property"] == "http://example.org/description"

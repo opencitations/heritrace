@@ -1,9 +1,10 @@
 import json
 import time
 
-from flask import Blueprint, redirect, render_template, request, url_for, current_app
+from flask import (Blueprint, current_app, redirect, render_template, request,
+                   url_for)
 from flask_login import login_required
-from heritrace.extensions import get_display_rules, get_form_fields, get_sparql
+from heritrace.extensions import get_sparql
 from heritrace.utils.sparql_utils import (get_available_classes,
                                           get_catalog_data,
                                           get_deleted_entities_with_filtering,
@@ -58,8 +59,6 @@ def time_vault():
     """
     Render the Time Vault page, which displays a list of deleted entities.
     """
-    display_rules = get_display_rules()
-    form_fields = get_form_fields()
     initial_page = request.args.get("page", 1, type=int)
     initial_per_page = request.args.get("per_page", 50, type=int)
     sort_property = request.args.get("sort_property", "deletionTime")
@@ -82,7 +81,7 @@ def time_vault():
         {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
     ]
     sortable_properties.extend(
-        get_sortable_properties(selected_class, display_rules, form_fields)
+        get_sortable_properties(selected_class)
     )
     sortable_properties = json.dumps(sortable_properties)
 

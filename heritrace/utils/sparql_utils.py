@@ -3,8 +3,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List
 
 from heritrace.editor import Editor
-from heritrace.extensions import (display_rules, form_fields_cache,
-                                  get_change_tracking_config,
+from heritrace.extensions import (display_rules, get_change_tracking_config,
                                   get_custom_filter, get_dataset_is_quadstore,
                                   get_display_rules, get_provenance_sparql,
                                   get_sparql)
@@ -225,7 +224,7 @@ def get_catalog_data(
     if selected_class:
         # Get sortable properties first to determine default sort property
         sortable_properties = get_sortable_properties(
-            (selected_class, None), display_rules, form_fields_cache
+            (selected_class, None)
         )
         
         # Set default sort property if none provided
@@ -405,7 +404,7 @@ def get_deleted_entities_with_filtering(
 
     if selected_class:
         sortable_properties.extend(
-            get_sortable_properties((selected_class, None), display_rules, form_fields_cache)
+            get_sortable_properties((selected_class, None))
         )
 
     prov_query = """
