@@ -4,6 +4,7 @@ Tests for the shacl_utils module.
 
 from unittest.mock import patch
 
+from flask import Flask
 from heritrace.utils.shacl_utils import (extract_shacl_form_fields,
                                          get_form_fields_from_shacl)
 from rdflib import Graph
@@ -14,30 +15,33 @@ class TestShaclUtils:
 
     def test_shacl_utils_empty_shacl(self):
         """Test that functions return an empty dict when shacl is None or empty."""
+        app = Flask(__name__)
+        app.config['DATASET_DB_URL'] = 'http://example.org/sparql'
+        
         # Caso 1: Test get_form_fields_from_shacl con None
-        result = get_form_fields_from_shacl(None, [])
+        result = get_form_fields_from_shacl(None, [], app)
         assert result == {}
         
         # Caso 2: Test get_form_fields_from_shacl con empty Graph
         empty_graph = Graph()
-        result = get_form_fields_from_shacl(empty_graph, [])
+        result = get_form_fields_from_shacl(empty_graph, [], app)
         assert result == {}
         
         # Caso 3: Test get_form_fields_from_shacl con None e display rules
-        display_rules = [{"class": "http://example.org/Person"}]
-        result = get_form_fields_from_shacl(None, display_rules)
+        display_rules = [{"target": {"class": "http://example.org/Person"}}]
+        result = get_form_fields_from_shacl(None, display_rules, app)
         assert result == {}
         
         # Caso 4: Test extract_shacl_form_fields con None
-        result = extract_shacl_form_fields(None, [])
+        result = extract_shacl_form_fields(None, [], app)
         assert result == {}
         
         # Caso 5: Test extract_shacl_form_fields con empty Graph
-        result = extract_shacl_form_fields(empty_graph, [])
+        result = extract_shacl_form_fields(empty_graph, [], app)
         assert result == {}
         
         # Caso 6: Test extract_shacl_form_fields con None e display rules
-        result = extract_shacl_form_fields(None, display_rules)
+        result = extract_shacl_form_fields(None, display_rules, app)
         assert result == {}
         
 
@@ -47,8 +51,11 @@ class TestShaclUtils:
     @patch('heritrace.utils.shacl_utils.order_form_fields')
     def test_get_form_fields_from_shacl_early_return(self, mock_order, mock_apply, mock_process, mock_extract):
         """Test that get_form_fields_from_shacl returns early when shacl is None without calling other functions."""
+        app = Flask(__name__)
+        app.config['DATASET_DB_URL'] = 'http://example.org/sparql'
+        
         # Call with None
-        result = get_form_fields_from_shacl(None, [])
+        result = get_form_fields_from_shacl(None, [], app)
         
         # Assert
         assert result == {}
@@ -59,9 +66,9 @@ class TestShaclUtils:
         
     @patch('heritrace.utils.shacl_display.get_shape_target_class')
     @patch('heritrace.utils.shacl_display.get_object_class')
-    @patch('heritrace.utils.shacl_display.get_display_name_for_shape')
+    @patch('heritrace.utils.filters.Filter.human_readable_class')
     @patch('heritrace.utils.shacl_display.process_nested_shapes')
-    def test_process_query_results_with_ornodes(self, mock_process_nested_shapes, mock_get_display_name, mock_get_object_class, mock_get_shape_target_class):
+    def test_process_query_results_with_ornodes(self, mock_process_nested_shapes, mock_human_readable_class, mock_get_object_class, mock_get_shape_target_class):
         """Test che process_query_results gestisca correttamente gli orNodes."""
         from heritrace.utils.shacl_display import process_query_results
         from collections import namedtuple
@@ -69,7 +76,7 @@ class TestShaclUtils:
         # Configura i mock per le funzioni chiamate da process_query_results
         mock_get_shape_target_class.return_value = 'entity_type_or_node'
         mock_get_object_class.return_value = 'objectClass1'
-        mock_get_display_name.return_value = 'display_name'
+        mock_human_readable_class.return_value = 'display_name'
         mock_process_nested_shapes.return_value = {}
         
         # Crea un risultato di query simulato con orNodes
@@ -102,9 +109,18 @@ class TestShaclUtils:
         shacl = Graph()
         display_rules = []
         processed_shapes = set()
+        app = Flask(__name__)
+        app.config['DATASET_DB_URL'] = 'http://example.org/sparql'
         
-        # Chiama direttamente process_query_results
-        result = process_query_results(shacl, results, display_rules, processed_shapes)
+        # Mock per il file context.json
+        with patch('os.path.join', return_value='mock_path'), \
+             patch('builtins.open', create=True) as mock_open, \
+             patch('json.load') as mock_json_load:
+            mock_file = mock_open.return_value.__enter__.return_value
+            mock_json_load.return_value = {"@context": {}}
+            
+            # Chiama direttamente process_query_results
+            result = process_query_results(shacl, results, display_rules, processed_shapes, app)
         
         # Verifica che il risultato contenga la struttura orNodes attesa con chiave tuple
         entity_key = ('entity_type1', 'subjectShape1')
@@ -126,9 +142,9 @@ class TestShaclUtils:
         # Verifica che le funzioni mock siano state chiamate correttamente
         mock_get_shape_target_class.assert_called_with(shacl, 'orNode1')
         mock_get_object_class.assert_called_with(shacl, 'orNode1', 'predicate1')
-        mock_get_display_name.assert_called_with('entity_type1', 'predicate1', 'orNode1', display_rules)
+        mock_human_readable_class.assert_called_with(('entity_type_or_node', 'orNode1'))
         mock_process_nested_shapes.assert_called_with(
-            shacl, display_rules, 'orNode1', depth=1, processed_shapes=processed_shapes
+            shacl, display_rules, 'orNode1', app, depth=1, processed_shapes=processed_shapes
         )
         
     def test_get_shape_target_class_returns_none(self):
@@ -159,16 +175,20 @@ class TestShaclUtils:
         ]
         display_rules = [
             {
-                "class": "http://example.org/Class1",
-                "properties": {
-                    "http://example.org/predicate1": "New Display Name"
-                }
+                "target": {
+                    "class": "http://example.org/Class1",
+                    "shape": "http://example.org/Shape1"
+                },
+                "displayProperties": [
+                    {
+                        "property": "http://example.org/predicate1",
+                        "displayName": "New Display Name"
+                    }
+                ]
             }
         ]
         parent_prop = "not_a_dict"  # Questo non è un dizionario
-        parent_class = "http://example.org/Class1"
         
-        # Chiama la funzione
         result = apply_display_rules_to_nested_shapes(nested_fields, parent_prop, "http://example.org/Shape1")
         
         # Verifica che il risultato sia uguale a nested_fields senza modifiche
@@ -176,9 +196,9 @@ class TestShaclUtils:
         
     @patch('heritrace.utils.shacl_display.get_shape_target_class')
     @patch('heritrace.utils.shacl_display.get_object_class')
-    @patch('heritrace.utils.shacl_display.get_display_name_for_shape')
+    @patch('heritrace.utils.filters.Filter.human_readable_class')
     @patch('heritrace.utils.shacl_display.process_nested_shapes')
-    def test_process_query_results_update_existing_field(self, mock_process_nested_shapes, mock_get_display_name, mock_get_object_class, mock_get_shape_target_class):
+    def test_process_query_results_update_existing_field(self, mock_process_nested_shapes, mock_human_readable_class, mock_get_object_class, mock_get_shape_target_class):
         """Test che process_query_results aggiorni correttamente un campo esistente con nuovi datatype e condizioni."""
         from heritrace.utils.shacl_display import process_query_results
         from collections import namedtuple
@@ -186,7 +206,7 @@ class TestShaclUtils:
         # Configura i mock per le funzioni chiamate da process_query_results
         mock_get_shape_target_class.return_value = 'entity_type_or_node'
         mock_get_object_class.return_value = 'objectClass1'
-        mock_get_display_name.return_value = 'display_name'
+        mock_human_readable_class.return_value = 'display_name'
         mock_process_nested_shapes.return_value = {}
         
         # Crea un risultato di query simulato
@@ -240,9 +260,18 @@ class TestShaclUtils:
         shacl = Graph()
         display_rules = []
         processed_shapes = set()
+        app = Flask(__name__)
+        app.config['DATASET_DB_URL'] = 'http://example.org/sparql'
         
-        # Chiama direttamente process_query_results
-        result = process_query_results(shacl, results, display_rules, processed_shapes)
+        # Mock per il file context.json
+        with patch('os.path.join', return_value='mock_path'), \
+             patch('builtins.open', create=True) as mock_open, \
+             patch('json.load') as mock_json_load:
+            mock_file = mock_open.return_value.__enter__.return_value
+            mock_json_load.return_value = {"@context": {}}
+            
+            # Chiama direttamente process_query_results
+            result = process_query_results(shacl, results, display_rules, processed_shapes, app)
         
         # Verifica che il risultato contenga la struttura attesa con chiave tuple
         entity_key = ('entity_type1', 'subjectShape1')

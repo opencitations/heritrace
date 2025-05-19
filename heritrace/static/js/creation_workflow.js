@@ -781,7 +781,9 @@ $(document).ready(function() {
     $(document).on('change', '.container-type-selector', function() {
         const $container = $(this).closest('[data-repeater-item]');
         const $selectedOption = $(this).find('option:selected');
-        const selectedShape = $selectedOption.val();
+        const selectedShape = $selectedOption.data('node-shape');
+        const selectedClass = $selectedOption.data('object-class');
+
         const $containerForms = $container.find('.container-forms');
         $container.find('.container-form').addClass('d-none');
         
@@ -789,21 +791,23 @@ $(document).ready(function() {
         if (selectedShape) {
             $container.attr('data-skip-collect', 'true');
             $containerForms.removeClass('d-none');
-            const $selectedForm = $container.find(`.container-form[data-shape="${selectedShape}"]`);
+            
+            // Trova il form corrispondente alla classe e shape selezionate
+            const $selectedForm = $container.find(`.container-form[data-shape="${selectedShape}"][data-class="${selectedClass}"]`);
             $selectedForm.removeClass('d-none');
 
-            // Aggiorna gli attributi data del container con le informazioni dalla shape selezionata
+            // Aggiorna gli attributi data del container con le informazioni dalla shape e classe selezionate
             $container
-                .attr('data-object-class', $selectedOption.data('object-class'))
+                .attr('data-object-class', selectedClass)
                 .attr('data-target-class', $selectedOption.data('target-class'))
-                .attr('data-node-shape', $selectedOption.data('node-shape'));
+                .attr('data-node-shape', selectedShape);
 
-            // Trova il pulsante "Add" per questa shape e simulane il click
+            // Trova il pulsante "Add" per questa combinazione classe/shape e simulane il click
             const addButton = $selectedForm.find('[data-repeater-create]').not('.repeater-template').find('button.add-button').last();
             if (addButton.length) {
                 // Verifica se non ci sono già elementi (escluso il template)
                 const existingItems = $selectedForm
-                    .find(`[data-repeater-list] [data-repeater-item][data-shape="${selectedShape}"]`)
+                    .find(`[data-repeater-list] [data-repeater-item][data-shape="${selectedShape}"][data-class="${selectedClass}"]`)
                     .not('.repeater-template')
                     .not('.d-none');
 

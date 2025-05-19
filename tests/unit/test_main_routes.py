@@ -58,8 +58,8 @@ def test_time_vault_route_unauthenticated(client: FlaskClient) -> None:
     assert response.status_code == 302  # Redirect to login
 
 
-@patch("heritrace.routes.main.get_display_rules")
-@patch("heritrace.routes.main.get_form_fields")
+@patch("heritrace.extensions.get_display_rules")
+@patch("heritrace.extensions.get_form_fields")
 @patch("heritrace.routes.main.get_deleted_entities_with_filtering")
 @patch("heritrace.routes.main.get_sortable_properties")
 def test_time_vault_route_authenticated(

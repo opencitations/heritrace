@@ -292,7 +292,7 @@ def initialize_global_variables(app: Flask):
                 
                 from heritrace.utils.shacl_utils import \
                     get_form_fields_from_shacl
-                form_fields_cache = get_form_fields_from_shacl(shacl_graph, display_rules)
+                form_fields_cache = get_form_fields_from_shacl(shacl_graph, display_rules, app=app)
             except Exception as e:
                 app.logger.error(f"Error initializing form fields from SHACL: {str(e)}")
                 raise RuntimeError(f"Failed to initialize form fields: {str(e)}")
@@ -349,6 +349,7 @@ def init_filters(app: Flask):
     
     # Register template filters
     app.jinja_env.filters['human_readable_predicate'] = custom_filter.human_readable_predicate
+    app.jinja_env.filters['human_readable_class'] = custom_filter.human_readable_class
     app.jinja_env.filters['human_readable_entity'] = custom_filter.human_readable_entity
     app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_readable_primary_source
     app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime

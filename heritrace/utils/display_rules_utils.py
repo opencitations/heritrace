@@ -35,10 +35,7 @@ def find_matching_rule(class_uri=None, shape_uri=None, rules=None):
     highest_priority = float('inf')
         
     # Scan all rules to find the best match based on priority
-    for rule in rules:
-        if "target" not in rule:
-            continue
-            
+    for rule in rules:            
         rule_priority = rule.get("priority", 0)
         
         # Case 1: Both class and shape match (exact match)
@@ -610,7 +607,7 @@ def get_property_order_from_rules(subject_classes: list, display_rules: list, sh
     return ordered_properties
 
 
-def get_similarity_properties(entity_key) -> Optional[List[Union[str, Dict[str, List[str]]]]]:
+def get_similarity_properties(entity_key: Tuple[str, str]) -> Optional[List[Union[str, Dict[str, List[str]]]]]:
     """Gets the similarity properties configuration for a given entity key.
 
     This configuration specifies which properties should be used for similarity matching
@@ -629,10 +626,7 @@ def get_similarity_properties(entity_key) -> Optional[List[Union[str, Dict[str, 
         A list where each element is either a property URI string or a dictionary
         {'and': [list_of_property_uris]}, representing the boolean logic.
         Returns None if no configuration is found or if the structure is invalid.
-    """
-    if not entity_key:
-        return None
-    
+    """    
     class_uri = entity_key[0]
     shape_uri = entity_key[1]
         

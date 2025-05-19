@@ -778,6 +778,29 @@ def test_initialize_global_variables_general_exception(app):
             initialize_global_variables(app)
 
 
+def test_initialize_counter_handler_no_initialization_needed(app):
+    """Test that initialize_counter_handler returns early when need_initialization returns False."""
+    with patch('heritrace.extensions.need_initialization', return_value=False) as mock_need_initialization, \
+         patch('heritrace.extensions.update_cache') as mock_update_cache, \
+         patch('heritrace.extensions.sparql') as mock_sparql, \
+         patch('heritrace.extensions.provenance_sparql') as mock_provenance_sparql:
+        
+        mock_counter_handler = MagicMock()
+        mock_uri_generator = MagicMock()
+        mock_uri_generator.counter_handler = mock_counter_handler
+        app.config['URI_GENERATOR'] = mock_uri_generator
+        
+        initialize_counter_handler(app)
+        
+        mock_need_initialization.assert_called_once_with(app)
+        
+        mock_counter_handler.set_counter.assert_not_called()
+        mock_update_cache.assert_not_called()
+        mock_uri_generator.initialize_counters.assert_not_called()
+        mock_sparql.assert_not_called()
+        mock_provenance_sparql.setQuery.assert_not_called()
+
+
 def test_need_initialization_without_counter_handler(app):
     """Test that need_initialization returns False when URI generator doesn't have counter_handler."""
     # Create a mock URI generator without counter_handler attribute

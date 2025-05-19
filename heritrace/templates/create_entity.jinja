@@ -25,7 +25,7 @@
             <select class="form-select" id="entity_type" name="entity_type">
                 <option value="" disabled selected>{{_('Select an entity type')}}</option>
                 {% for entity_key in entity_class_shape_pairs %}
-                    <option value="{{ entity_key[0] }}" data-uri="{{ entity_key[0] }}" data-shape="{{ entity_key[1] }}">{{ entity_key | human_readable_predicate }}</option>
+                    <option value="{{ entity_key[0] }}" data-uri="{{ entity_key[0] }}" data-shape="{{ entity_key[1] }}">{{ entity_key | human_readable_class }}</option>
                 {% endfor %}
             </select>
             <label for="entity_type" class="form-label">{{_('Select an entity type')}}</label>
@@ -34,7 +34,7 @@
         {% for entity_key, properties in form_fields.items() %}
             {% set entity_type = entity_key[0] %}
             {% set entity_shape = entity_key[1] %}
-            {% set group_id = ((entity_type, None) | human_readable_predicate + "_group") | replace(" ", "_") %}
+            {% set group_id = ((entity_type, entity_shape) | human_readable_class + "_group") | replace(" ", "_") %}
             <div class="property-group mb-3" id="{{ group_id }}" data-uri="{{ entity_type }}" data-shape="{{ entity_shape }}" style="display:none">
                 {% for prop, details_list in properties.items() %}
                     {% for details in details_list %}

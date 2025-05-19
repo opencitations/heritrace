@@ -134,7 +134,7 @@
                                             {% set key = (predicate, entity_type, shape) %}
                                             {% if key in predicate_details_map %}
                                                 {% set unique_id_base = (((entity_type, None) | human_readable_predicate) | replace(" ", "") + "_" + ((predicate, None) | human_readable_predicate) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
-                                                {{ render_repeater_item(entity_type, predicate, predicate_details_map[key], entity_types, form_fields, depth=0, unique_id_base=unique_id_base, label=None, is_template=True) }}
+                                                {{ render_repeater_item(entity_type, predicate, predicate_details_map[key], entity_types, form_fields, depth=0, unique_id_base=unique_id_base, is_template=True) }}
                                                 {% set namespace_render_repeater_item.counter = namespace_render_repeater_item.counter + 1 %}
                                             {% endif %}
                                         {% endif %}

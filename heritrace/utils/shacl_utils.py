@@ -1,5 +1,6 @@
 from typing import List
 
+from flask import Flask
 from heritrace.utils.shacl_display import (apply_display_rules,
                                            extract_shacl_form_fields,
                                            order_form_fields,
@@ -7,9 +8,14 @@ from heritrace.utils.shacl_display import (apply_display_rules,
 from rdflib import Graph
 
 
-def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict]):
+def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict], app: Flask):
     """
     Analyze SHACL shapes to extract form fields for each entity type.
+    
+    Args:
+        shacl: The SHACL graph
+        display_rules: The display rules configuration
+        app: Flask application instance
 
     Returns:
         OrderedDict: A dictionary where the keys are tuples (class, shape) and the values are dictionaries
@@ -19,7 +25,7 @@ def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict]):
         return dict()
 
     # Step 1: Get the initial form fields from SHACL shapes
-    form_fields = extract_shacl_form_fields(shacl, display_rules)
+    form_fields = extract_shacl_form_fields(shacl, display_rules, app=app)
 
     # Step 2: Process nested shapes for each field
     processed_shapes = set()
@@ -31,6 +37,7 @@ def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict]):
                         shacl,
                         display_rules,
                         field_info["nodeShape"],
+                        app=app,
                         processed_shapes=processed_shapes,
                     )
 

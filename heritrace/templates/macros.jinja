@@ -1,6 +1,6 @@
 {% set namespace_render_form_field = namespace(counter=0) %}
 
-{% macro render_repeater_item(entity_type, prop, details, form_fields, depth, unique_id_base, label, index=None, is_template=False, max_depth=5) %}
+{% macro render_repeater_item(entity_type, prop, details, form_fields, depth, unique_id_base, index=None, is_template=False, max_depth=5) %}
     <div data-repeater-item 
         class="input-group mb-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" 
         style="position: relative;" 
@@ -19,9 +19,8 @@
                 <span class="drag-handle me-2" style="cursor: move;">☰</span>
             {% endif %}
             <div class="d-flex align-items-start flex-grow-1">
-                {% set label_text = label or details.displayName or ((prop, None) | human_readable_predicate) %}
-                <h6 class="{% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label_text }}">
-                    {{ label_text }}
+                <h6 class="{% if depth == 0 %}form-label{% endif %}" data-original-text="{{ details.displayName }}">
+                    {{ details.displayName }}
                 </h6>
                 {% if details.hasValue %}
                     <i class="bi bi-question-circle-fill ms-2 text-info mandatory-value-info" 
@@ -42,7 +41,7 @@
                         <option value="{{ shape_info.nodeShape }}" 
                                 data-object-class="{{ shape_info.entityType }}"
                                 data-node-shape="{{ shape_info.nodeShape }}">
-                            {{ shape_info.displayName or ((shape_info.entityType, None) | human_readable_predicate) }}
+                            {{ shape_info.displayName or ((shape_info.entityType, shape_info.nodeShape) | human_readable_class) }}
                         </option>
                     {% endfor %}
                 </select>
@@ -56,8 +55,8 @@
             {# Container forms - one for each option #}
             <div class="container-forms d-none w-100">
                 {% for shape_info in details.or %}
-                    <div class="container-form d-none" data-shape="{{ shape_info.nodeShape }}">
-                        {{ render_form_field(shape_info.entityType, prop, shape_info, form_fields, depth, max_depth=max_depth, label=None, is_template=is_template) }}
+                    <div class="container-form d-none" data-shape="{{ shape_info.nodeShape }}" data-class="{{ shape_info.entityType }}">
+                        {{ render_form_field(shape_info.entityType, prop, shape_info, form_fields, depth, max_depth=max_depth, is_template=is_template) }}
                     </div>
                 {% endfor %}
             </div>
@@ -76,7 +75,7 @@
                 <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container collapse" data-object-class="{{ details.intermediateRelation.targetEntityType }}">
                     {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}
                         {% for inter_details in inter_details_list %}
-                            {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, form_fields, depth + 1, max_depth, None, is_template) }}
+                            {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, form_fields, depth + 1, max_depth, is_template) }}
                         {% endfor %}
                     {% endfor %}
                 </div>
@@ -95,12 +94,7 @@
                 </div>
                 <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
                     {% for nested_details in details.nestedShape %}
-                        {% if nested_details.get('_reference') %}
-                            <!-- Gestione del caso di riferimento, se necessario -->
-                        {% else %}
-                            {% set nested_display_name = nested_details.displayName or (nested_details.entityType, None) | human_readable_predicate %}
-                            {{ render_form_field(nested_details.entityType, nested_details.uri, nested_details, form_fields, depth + 1, max_depth, nested_display_name, is_template=is_template) }}
-                        {% endif %}
+                        {{ render_form_field(nested_details.entityType, nested_details.uri, nested_details, form_fields, depth + 1, max_depth, is_template=is_template) }}
                     {% endfor %}
                 </div>
             </div>
@@ -109,7 +103,11 @@
             <div class="newEntityPropertyContainer w-100">
                 <span class="flex-grow-1 d-flex flex-column justify-content-center">
                     <div class="d-flex align-items-center">
-                        <p style="margin-left: 0.75rem">{{ (details.hasValue, None)  | human_readable_predicate }}</p>
+                        {% if details.uri == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
+                            <p style="margin-left: 0.75rem">{{ (details.hasValue, details.subjectShape) | human_readable_class }}</p>
+                        {% else %}
+                            <p style="margin-left: 0.75rem">{{ (details.hasValue, details.subjectShape) | human_readable_predicate }}</p>
+                        {% endif %}
                     </div>
                 </span>
                 <input type="hidden" 
@@ -123,7 +121,7 @@
             <div class="newEntityPropertyContainer w-75">
                 <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
                     {% for val in details.optionalValues %}
-                        <option value="{{ val }}">{{ (val, None)  | human_readable_predicate }}</option>
+                        <option value="{{ val }}">{{ (val, details.subjectShape) | human_readable_predicate }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -313,25 +311,25 @@
     </div>
 {% endmacro %}
 
-{% macro render_form_field(entity_type, prop, details, form_fields, depth=0, max_depth=5, label=None, is_template=False) %}
+{% macro render_form_field(entity_type, prop, details, form_fields, depth=0, max_depth=5, is_template=False) %}
     {% if depth <= max_depth %}
         {% set namespace_render_form_field.counter = namespace_render_form_field.counter + 1 %}
-        {% set unique_id_base = ((entity_type, None) | human_readable_predicate | replace(" ", "_") + "_" + (prop, None) | human_readable_predicate | replace(" ", "_") | string) + "_" + namespace_render_form_field.counter | string  %}
+        {% set unique_id_base = (entity_type, details.subjectShape) | human_readable_class | replace(" ", "_") + "_" + details.displayName | replace(" ", "_") | string + "_" + namespace_render_form_field.counter | string  %}
 
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-object-class="{{ details.objectClass }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
             {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}
             data-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
             data-container-display-name="{{ details.displayName }}"
-            data-display-name="{{ (entity_type, None)  | human_readable_predicate }}"
+            data-display-name="{{ details.displayName }}"
             {% if details.or %}data-skip-collect="true"{% endif %}>
             <!-- Template nascosto per elementi opzionali -->
-            {{ render_repeater_item(entity_type, prop, details, form_fields, depth, unique_id_base, label=None, is_template=True, max_depth=max_depth) }}
+            {{ render_repeater_item(entity_type, prop, details, form_fields, depth, unique_id_base, is_template=True, max_depth=max_depth) }}
 
             <!-- Pulsante per aggiungere nuovi elementi -->
             <div class="my-3 text-start" data-repeater-create>
                 <button type="button" class="add-button {% if details.min > 0 %}initial-structure-add{% endif %}">
                     <i class="bi bi-plus-circle"></i>
-                    {{ _("Add %(element_type)s", element_type=details.displayName or ((prop, None) | human_readable_predicate)) }}
+                    {{ _("Add %(element_type)s", element_type=details.displayName) }}
                 </button>
             </div>
         </div>

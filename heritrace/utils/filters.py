@@ -25,24 +25,36 @@ class Filter:
     def human_readable_predicate(self, entity_key, is_link=False):
         from heritrace.utils.display_rules_utils import find_matching_rule
         
-        class_uri = entity_key[0]
+        predicate_uri = entity_key[0]
         shape_uri = entity_key[1]
-        
-        rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
+                
+        rule = find_matching_rule(predicate_uri, shape_uri, self.display_rules)
 
         if rule:
-            if "displayName" in rule:
-                return rule["displayName"]
-                
             if "displayProperties" in rule:
                 for display_property in rule["displayProperties"]:
-                    if display_property["property"] == str(class_uri):
+                    if display_property["property"] == str(predicate_uri):
                         if "displayRules" in display_property:
                             return display_property["displayRules"][0]["displayName"]
                         elif "displayName" in display_property:
                             return display_property["displayName"]
 
-        first_part, last_part = self.split_ns(class_uri)
+        return self._format_uri_as_readable(predicate_uri, is_link)
+
+    def _format_uri_as_readable(self, uri, is_link=False):
+        """
+        Format an URI in a human-readable way.
+        
+        This is a common fallback method used when no specific display rules are found.
+        
+        Args:
+            uri (str): The URI to format
+            is_link (bool): Whether to generate a hyperlink for the URI
+            
+        Returns:
+            str: Human-readable representation of the URI
+        """
+        first_part, last_part = self.split_ns(uri)
         if first_part in self.context:
             if last_part.islower():
                 return last_part
@@ -57,10 +69,32 @@ class Filter:
                         word += char
                 words.append(word)
                 return " ".join(words).lower()
-        elif validators.url(class_uri) and is_link:
-            return f"<a href='{url_for('entity.about', subject=quote(class_uri))}' alt='{gettext('Link to the entity %(entity)s', entity=class_uri)}'>{class_uri}</a>"
+        elif validators.url(uri) and is_link:
+            return f"<a href='{url_for('entity.about', subject=quote(uri))}' alt='{gettext('Link to the entity %(entity)s', entity=uri)}'>{uri}</a>"
         else:
-            return str(class_uri)
+            return str(uri)
+
+    def human_readable_class(self, entity_key):
+        """
+        Converts a class URI to human-readable format.
+                
+        Args:
+            entity_key (tuple): A tuple containing (class_uri, shape_uri)
+            
+        Returns:
+            str: Human-readable representation of the class
+        """
+        from heritrace.utils.display_rules_utils import find_matching_rule
+        
+        class_uri = entity_key[0]
+        shape_uri = entity_key[1]
+        
+        rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
+
+        if rule and "displayName" in rule:
+            return rule["displayName"]
+
+        return self._format_uri_as_readable(class_uri)
 
     def human_readable_entity(
         self, uri: str, entity_classes: list, graph: Graph | ConjunctiveGraph = None

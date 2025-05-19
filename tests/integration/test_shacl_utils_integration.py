@@ -5,15 +5,15 @@ import pytest
 from flask import Flask
 from heritrace.utils.shacl_display import (
     apply_display_rules_to_nested_shapes, execute_shacl_query,
-    get_display_name_for_shape, get_object_class, get_property_order,
+    get_object_class, get_property_order,
     order_fields, process_query_results)
 from heritrace.utils.shacl_utils import (get_form_fields_from_shacl,
                                          process_nested_shapes)
 from heritrace.utils.shacl_validation import (convert_to_matching_class,
-                                              convert_to_matching_literal,
-                                              get_datatype_label,
-                                              get_valid_predicates,
-                                              validate_new_triple)
+                                               convert_to_matching_literal,
+                                               get_datatype_label,
+                                               get_valid_predicates,
+                                               validate_new_triple)
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 from tests.test_config import BASE_HERITRACE_DIR
 
@@ -112,7 +112,7 @@ def test_get_form_fields_from_shacl_journal_article(app: Flask, shacl_graph: Gra
     """Test form field extraction for JournalArticle with real SHACL data."""
     with app.app_context():
         # Test with JournalArticle class
-        form_fields = get_form_fields_from_shacl(shacl_graph, None)
+        form_fields = get_form_fields_from_shacl(shacl_graph, None, app)
         
         # Find the key for JournalArticle in the tuple-based keys
         journal_article_key = None
@@ -359,7 +359,7 @@ def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph):
             }
         ]
         
-        form_fields = get_form_fields_from_shacl(shacl_graph, display_rules)
+        form_fields = get_form_fields_from_shacl(shacl_graph, display_rules, app)
         
         # Find the key for JournalArticle in the tuple-based keys
         journal_article_key = None
@@ -459,7 +459,7 @@ def test_get_form_fields_with_nested_shapes(app: Flask, shacl_graph: Graph):
     """Test form field extraction with nested shapes."""
     with app.app_context():
         # Test with JournalArticle class that has nested shapes (e.g., for authors)
-        form_fields = get_form_fields_from_shacl(shacl_graph, None)
+        form_fields = get_form_fields_from_shacl(shacl_graph, None, app)
         
         # Find the key for JournalArticle in the tuple-based keys
         journal_article_key = None
@@ -590,7 +590,7 @@ def test_validate_new_triple_with_intermediate_relation(app: Flask, shacl_graph:
             }
         ]
         
-        form_fields = get_form_fields_from_shacl(shacl_graph, display_rules)
+        form_fields = get_form_fields_from_shacl(shacl_graph, display_rules, app)
         
         # Find the key for JournalArticle in the tuple-based keys
         journal_article_key = None
@@ -730,70 +730,6 @@ def test_convert_to_matching_class_edge_cases(app: Flask):
             assert str(result) == "http://example.org/test"
 
 
-def test_get_display_name_for_shape(app: Flask):
-    """Test the get_display_name_for_shape function."""
-    with app.app_context():
-        # Test with matching display rules - updated to include shape in target
-        display_rules = [
-            {
-                "target": {
-                    "class": "http://example.org/class",
-                    "shape": "http://example.org/shape"
-                },
-                "displayProperties": [
-                    {
-                        "property": "http://example.org/property",
-                        "displayName": "Test Shape"
-                    }
-                ]
-            }
-        ]
-        
-        result = get_display_name_for_shape(
-            "http://example.org/class",
-            "http://example.org/property",
-            "http://example.org/shape",
-            display_rules
-        )
-        assert result == "Test Shape"
-        
-        # Test with non-matching class
-        result = get_display_name_for_shape(
-            "http://example.org/other-class",
-            "http://example.org/property",
-            "http://example.org/shape",
-            display_rules
-        )
-        assert result is None
-        
-        # Test with non-matching property
-        result = get_display_name_for_shape(
-            "http://example.org/class",
-            "http://example.org/other-property",
-            "http://example.org/shape",
-            display_rules
-        )
-        assert result is None
-        
-        # Test with non-matching shape
-        result = get_display_name_for_shape(
-            "http://example.org/class",
-            "http://example.org/property",
-            "http://example.org/other-shape",
-            display_rules
-        )
-        assert result is None
-        
-        # Test with None display rules
-        result = get_display_name_for_shape(
-            "http://example.org/class",
-            "http://example.org/property",
-            "http://example.org/shape",
-            None
-        )
-        assert result is None
-
-
 def test_get_property_order(app: Flask):
     """Test the get_property_order function."""
     with app.app_context():
@@ -929,12 +865,12 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph):
     """Test process_nested_shapes with edge cases."""
     with app.app_context():
         # Test with None processed_shapes
-        result = process_nested_shapes(shacl_graph, None, "http://www.w3.org/ns/shacl#NodeShape", depth=0, processed_shapes=None)
+        result = process_nested_shapes(shacl_graph, None, "http://www.w3.org/ns/shacl#NodeShape", app, depth=0, processed_shapes=None)
         assert isinstance(result, list)
         
         # Test with already processed shape
         processed_shapes = {"http://www.w3.org/ns/shacl#NodeShape"}
-        result = process_nested_shapes(shacl_graph, None, "http://www.w3.org/ns/shacl#NodeShape", depth=0, processed_shapes=processed_shapes)
+        result = process_nested_shapes(shacl_graph, None, "http://www.w3.org/ns/shacl#NodeShape", app, depth=0, processed_shapes=processed_shapes)
         assert result == []
 
 
@@ -984,7 +920,7 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph):
             }
         }
         
-        result = process_query_results(shacl_graph, mock_results, None, set(), depth=0)
+        result = process_query_results(shacl_graph, mock_results, None, set(), app, depth=0)
         entity_key = ("http://example.org/type", "http://example.org/shape")
         assert entity_key in result
         assert "http://example.org/predicate" in result[entity_key]
@@ -993,7 +929,7 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph):
         mock_row.datatype = URIRef("http://www.w3.org/2001/XMLSchema#integer")
         mock_results.__iter__.return_value = [mock_row]
         
-        result = process_query_results(shacl_graph, mock_results, None, set(), depth=0)
+        result = process_query_results(shacl_graph, mock_results, None, set(), app, depth=0)
         entity_key = ("http://example.org/type", "http://example.org/shape")
         assert entity_key in result
         assert "http://example.org/predicate" in result[entity_key]
@@ -1335,12 +1271,12 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph):
             # Create the first test case with empty processed_shapes
             with patch("heritrace.utils.shacl_display.get_shape_target_class", side_effect=["http://example.org/type1", "http://example.org/type2"]):
                 with patch("heritrace.utils.shacl_display.get_object_class", return_value="http://example.org/objectClass"):
-                    with patch("heritrace.utils.shacl_display.get_display_name_for_shape", return_value="Test Display Name"):
+                    with patch("heritrace.utils.filters.Filter.human_readable_class", return_value="Test Display Name"):
                         with patch("heritrace.utils.shacl_display.process_nested_shapes", return_value={"nestedField": "nestedValue"}):
                             # Call the function with empty processed_shapes
                             display_rules = []
                             processed_shapes = set()
-                            fields = process_query_results(shacl_graph, rows, display_rules, processed_shapes)
+                            fields = process_query_results(shacl_graph, rows, display_rules, processed_shapes, app)
                             
                             # Verify the result has the expected structure with tuple-based keys
                             entity_key1 = ("http://example.org/type1", "http://example.org/shape1")
@@ -1353,16 +1289,16 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph):
                             # Verify the OR nodes are processed correctly
                             assert "or" in fields[entity_key1]["http://example.org/predicate1"][0]
                             assert "or" in fields[entity_key2]["http://example.org/predicate1"][0]
-            
+
             # Create the second test case with processed_shapes containing one of the orNodes
             with patch("heritrace.utils.shacl_display.get_shape_target_class", side_effect=["http://example.org/type1", "http://example.org/type2"]):
                 with patch("heritrace.utils.shacl_display.get_object_class", return_value="http://example.org/objectClass"):
-                    with patch("heritrace.utils.shacl_display.get_display_name_for_shape", return_value="Test Display Name"):
+                    with patch("heritrace.utils.filters.Filter.human_readable_class", return_value="Test Display Name"):
                         with patch("heritrace.utils.shacl_display.process_nested_shapes", return_value={"nestedField": "nestedValue"}):
                             # Call the function with processed_shapes containing one of the orNodes
                             display_rules = []
                             processed_shapes = {"http://example.org/orNode1"}
-                            fields = process_query_results(shacl_graph, rows, display_rules, processed_shapes)
+                            fields = process_query_results(shacl_graph, rows, display_rules, processed_shapes, app)
                             
                             # Verify the result still has the OR nodes with tuple-based keys
                             entity_key1 = ("http://example.org/type1", "http://example.org/shape1")

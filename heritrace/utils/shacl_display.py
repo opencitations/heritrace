@@ -1,9 +1,12 @@
+import json
+import os
 from collections import OrderedDict, defaultdict
 from typing import List
 
+from flask import Flask
+from heritrace.utils.filters import Filter
 from rdflib import Graph, URIRef
 from rdflib.plugins.sparql import prepareQuery
-
 
 COMMON_SPARQL_QUERY = prepareQuery(
     """
@@ -56,39 +59,14 @@ COMMON_SPARQL_QUERY = prepareQuery(
 )
 
 
-def get_display_name_for_shape(entity_type: str, property_uri: str, shape_uri: str, display_rules: List[dict]) -> str|None:
-    """
-    Helper function to get displayName from display_rules by matching entity class,
-    property, and shape URI.
-
-    Args:
-        entity_type (str): The type of the current entity
-        property_uri (str): The URI of the property being processed
-        shape_uri (str): The URI of the shape to match
-        display_rules (list): The display rules configuration
-
-    Returns:
-        str: The display name if found, None otherwise
-    """
-    if display_rules:
-        for rule in display_rules:
-            rule_class = None
-            rule_shape = None
-            if "target" in rule:
-                if "class" in rule["target"]:
-                    rule_class = rule["target"]["class"]
-                if "shape" in rule["target"]:
-                    rule_shape = rule["target"]["shape"]
-                
-            # Match only when both class and shape are specified
-            if rule_class == entity_type and rule_shape == shape_uri:
-                for prop in rule.get("displayProperties", []):
-                    if prop.get("property") == property_uri:
-                        return prop.get("displayName")
-
-
-def process_query_results(shacl, results, display_rules, processed_shapes, depth=0):
+def process_query_results(shacl, results, display_rules, processed_shapes, app: Flask, depth=0):
     form_fields = defaultdict(dict)
+
+    with open(os.path.join("resources", "context.json"), "r") as config_file:
+        context = json.load(config_file)["@context"]
+    
+    custom_filter = Filter(context, display_rules, app.config['DATASET_DB_URL'])
+
     for row in results:
         subject_shape = str(row.shape)
         entity_type = str(row.type)
@@ -139,41 +117,11 @@ def process_query_results(shacl, results, display_rules, processed_shapes, depth
                 break
 
         if existing_field:
+            # Aggiorniamo il campo esistente con nuovi datatype o condizioni
             if datatype and str(datatype) not in existing_field.get("datatypes", []):
                 existing_field.setdefault("datatypes", []).append(str(datatype))
             if condition_entry:
                 existing_field.setdefault("conditions", []).append(condition_entry)
-            if orNodes:
-                existing_field.setdefault("or", [])
-                for node in orNodes:
-                    entity_type_or_node = get_shape_target_class(shacl, node)
-                    object_class = get_object_class(shacl, node, predicate)
-                    shape_display_name = get_display_name_for_shape(
-                        entity_type, predicate, node, display_rules
-                    )
-                    # Process orNode as a field_info
-                    or_field_info = {
-                        "entityType": entity_type_or_node,
-                        "uri": predicate,
-                        "displayName": shape_display_name,
-                        "subjectShape": subject_shape,
-                        "nodeShape": node,
-                        "min": minCount,
-                        "max": maxCount,
-                        "hasValue": hasValue,
-                        "objectClass": object_class,
-                        "optionalValues": optionalValues,
-                        "conditions": [condition_entry] if condition_entry else [],
-                    }
-                    if node not in processed_shapes:
-                        or_field_info["nestedShape"] = process_nested_shapes(
-                            shacl,
-                            display_rules,
-                            node,
-                            depth=depth + 1,
-                            processed_shapes=processed_shapes,
-                        )
-                    existing_field["or"].append(or_field_info)
         else:
             field_info = {
                 "entityType": entity_type,
@@ -197,6 +145,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes, depth
                     shacl,
                     display_rules,
                     nodeShape,
+                    app,
                     depth=depth + 1,
                     processed_shapes=processed_shapes,
                 )
@@ -207,8 +156,8 @@ def process_query_results(shacl, results, display_rules, processed_shapes, depth
                     # Process orNode as a field_info
                     entity_type_or_node = get_shape_target_class(shacl, node)
                     object_class = get_object_class(shacl, node, predicate)
-                    shape_display_name = get_display_name_for_shape(
-                        entity_type, predicate, node, display_rules
+                    shape_display_name = custom_filter.human_readable_class(
+                        (entity_type_or_node, node)
                     )
                     or_field_info = {
                         "entityType": entity_type_or_node,
@@ -228,6 +177,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes, depth
                             shacl,
                             display_rules,
                             node,
+                            app,
                             depth=depth + 1,
                             processed_shapes=processed_shapes,
                         )
@@ -239,7 +189,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes, depth
 
 
 def process_nested_shapes(
-    shacl, display_rules, shape_uri, depth=0, processed_shapes=None
+    shacl: Graph, display_rules: List[dict], shape_uri: str, app: Flask, depth=0, processed_shapes=None
 ):
     """
     Processa ricorsivamente le shape annidate.
@@ -264,7 +214,7 @@ def process_nested_shapes(
     nested_fields = []
 
     temp_form_fields = process_query_results(
-        shacl, nested_results, display_rules, processed_shapes, depth
+        shacl, nested_results, display_rules, processed_shapes, app=app, depth=depth
     )
 
     # Applica le regole di visualizzazione ai campi annidati
@@ -743,13 +693,18 @@ def get_object_class(shacl, shape_uri, predicate_uri):
     return None
 
 
-def extract_shacl_form_fields(shacl, display_rules):
+def extract_shacl_form_fields(shacl, display_rules, app: Flask):
     """
     Estrae i campi del form dalle shape SHACL.
 
-    Restituisce:
-        defaultdict: Un dizionario dove le chiavi sono i tipi di entità e i valori sono dizionari
-                     dei campi del form con le loro proprietà.
+    Args:
+        shacl: The SHACL graph
+        display_rules: The display rules configuration
+        app: Flask application instance
+
+    Returns:
+        defaultdict: A dictionary where the keys are tuples (class, shape) and the values are dictionaries
+                     of form fields with their properties.
     """
     if not shacl:
         return dict()
@@ -757,7 +712,7 @@ def extract_shacl_form_fields(shacl, display_rules):
     processed_shapes = set()
     results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY)
     form_fields = process_query_results(
-        shacl, results, display_rules, processed_shapes, depth=0
+        shacl, results, display_rules, processed_shapes, app=app, depth=0
     )
     return form_fields
 
@@ -766,13 +721,13 @@ def execute_shacl_query(shacl: Graph, query, init_bindings=None):
     """
     Esegue una query SPARQL sul grafo SHACL con eventuali binding iniziali.
 
-    Argomenti:
-        shacl (Graph): Il grafo SHACL su cui eseguire la query.
-        query (PreparedQuery): La query SPARQL preparata.
-        init_bindings (dict): I binding iniziali per la query.
+    Args:
+        shacl (Graph): The SHACL graph on which to execute the query.
+        query (PreparedQuery): The prepared SPARQL query.
+        init_bindings (dict): Initial bindings for the query.
 
-    Restituisce:
-        Result: I risultati della query.
+    Returns:
+        Result: The query results.
     """
     if init_bindings:
         return shacl.query(query, initBindings=init_bindings)
