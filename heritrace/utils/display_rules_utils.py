@@ -106,8 +106,6 @@ def get_sortable_properties(entity_key: Tuple[str, str]) -> List[Dict[str, str]]
 
     Args:
         entity_key: A tuple (class_uri, shape_uri)
-        display_rules: The display rules configuration
-        form_fields_cache: The form fields cache
 
     Returns:
         List of dictionaries with sorting information
@@ -117,7 +115,7 @@ def get_sortable_properties(entity_key: Tuple[str, str]) -> List[Dict[str, str]]
         return []
     
     form_fields = get_form_fields()
-    
+            
     class_uri = entity_key[0]
     shape_uri = entity_key[1]
     

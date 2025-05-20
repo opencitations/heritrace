@@ -326,7 +326,6 @@ def init_sparql_services(app: Flask):
         # Initialize other required components
         initialize_counter_handler(app)
         initialize_global_variables(app)
-        
         initialization_done = True
 
 def init_filters(app: Flask):
@@ -403,18 +402,26 @@ def running_in_docker() -> bool:
 
 def get_dataset_endpoint() -> str:
     """Get the configured dataset endpoint URL."""
+
+    global dataset_endpoint
     return dataset_endpoint
 
 def get_sparql() -> SPARQLWrapper:
     """Get the configured SPARQL wrapper for the dataset endpoint."""
+
+    global sparql
     return sparql
 
 def get_provenance_endpoint() -> str:
     """Get the configured provenance endpoint URL."""
+
+    global provenance_endpoint
     return provenance_endpoint
 
 def get_provenance_sparql() -> SPARQLWrapper:
     """Get the configured SPARQL wrapper for the provenance endpoint."""
+
+    global provenance_sparql
     return provenance_sparql
 
 def get_counter_handler() -> CounterHandler:
@@ -432,24 +439,36 @@ def get_counter_handler() -> CounterHandler:
 
 def get_custom_filter() -> Filter:
     """Get the configured custom filter instance."""
+
+    global custom_filter
     return custom_filter
 
 def get_change_tracking_config() -> Dict:
     """Get the change tracking configuration."""
+
+    global change_tracking_config
     return change_tracking_config
 
 def get_display_rules() -> Dict:
     """Get the display_rules configuration."""
+
+    global display_rules
     return display_rules
 
 def get_form_fields() -> Dict:
     """Get the form_fields configuration."""
+
+    global form_fields_cache    
     return form_fields_cache
 
 def get_dataset_is_quadstore() -> bool:
     """Check if the dataset is a quadstore."""
+
+    global dataset_is_quadstore
     return dataset_is_quadstore
 
 def get_shacl_graph() -> Graph:
     """Get the SHACL shapes graph."""
+
+    global shacl_graph
     return shacl_graph

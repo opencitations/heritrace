@@ -8,6 +8,7 @@ import pytest
 from heritrace.utils.display_rules_utils import (
     execute_historical_query,
     execute_sparql_query,
+    find_matching_rule,
     get_class_priority,
     get_grouped_triples,
     get_highest_priority_class,
@@ -1739,3 +1740,50 @@ class TestGetSimilarityProperties:
         ):
             result = get_similarity_properties(("http://example.org/Person", None))
             assert result is None
+
+
+class TestFindMatchingRule:
+    """Tests for find_matching_rule function."""
+
+    def test_exact_match_class_and_shape(self):
+        """Test Case 1: Both class and shape match (exact match)."""
+        class_uri = "http://example.org/Person"
+        shape_uri = "http://example.org/PersonShape"
+        
+        mock_rules = [
+            {
+                "target": {
+                    "class": "http://example.org/Document",
+                    "shape": "http://example.org/DocumentShape"
+                },
+                "priority": 5,
+                "displayProperties": []
+            },
+            {
+                "target": {
+                    "class": "http://example.org/Person",
+                    "shape": "http://example.org/PersonShape"
+                },
+                "priority": 10,
+                "displayProperties": []
+            },
+            {
+                "target": {
+                    "class": "http://example.org/Person"
+                },
+                "priority": 1,  # Lower priority number (better priority)
+                "displayProperties": []
+            }
+        ]
+        
+        result = find_matching_rule(class_uri, shape_uri, mock_rules)
+        
+        assert result is not None
+        assert "target" in result
+        assert "class" in result["target"]
+        assert "shape" in result["target"]
+        assert result["target"]["class"] == class_uri
+        assert result["target"]["shape"] == shape_uri
+        assert result["priority"] == 10  # Confirming it's the exact match rule
+        
+        assert result["priority"] > mock_rules[2]["priority"]  # 10 > 1
