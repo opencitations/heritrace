@@ -85,7 +85,7 @@ def mock_display_rules():
 def mock_form_fields_cache():
     """Mock form fields cache for testing."""
     return {
-        "http://example.org/Person": {
+        ("http://example.org/Person", None): {
             "http://example.org/name": [
                 {
                     "nodeShape": "http://example.org/PersonShape",
@@ -324,49 +324,37 @@ class TestGetSortableProperties:
         
         assert result == []
 
-    @patch("heritrace.utils.display_rules_utils.get_display_rules")
-    @patch("heritrace.utils.display_rules_utils.get_form_fields")
-    def test_get_sortable_properties_with_date_type(
-        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
-    ):
-        """Test getting sortable properties with date datatype."""
-        # Modify mock_display_rules to include a date property
-        modified_rules = mock_display_rules.copy()
-        modified_rules[0]["sortableBy"].append(
-            {
-                "property": "http://example.org/birthDate",
-                "displayName": "Birth Date",
-            }
-        )
-        mock_get_display_rules.return_value = modified_rules
-        mock_get_form_fields.return_value = mock_form_fields_cache
-
-        result = get_sortable_properties(("http://example.org/Person", None))
-        
-        assert len(result) == 2
-        date_prop = next(
-            p for p in result if p["property"] == "http://example.org/birthDate"
-        )
-        assert date_prop["sortType"] == "date"
 
     @patch("heritrace.utils.display_rules_utils.get_display_rules")
     @patch("heritrace.utils.display_rules_utils.get_form_fields")
-    def test_get_sortable_properties_with_number_type(
+    def test_get_sortable_properties_with_number_type_and_shape(
         self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
     ):
-        """Test getting sortable properties with number datatype."""
-        # Modify mock_display_rules to include a number property
+        """Test getting sortable properties with number datatype and shape."""
+        # Modify mock_display_rules to include a number property with shape
         modified_rules = mock_display_rules.copy()
+        modified_rules[0]["target"]["shape"] = "http://example.org/PersonShape"
         modified_rules[0]["sortableBy"].append(
             {
                 "property": "http://example.org/height",
                 "displayName": "Height",
             }
         )
+        
+        # Modify form_fields_cache to include tuple keys with shape
+        modified_form_fields = mock_form_fields_cache.copy()
+        modified_form_fields[("http://example.org/Person", "http://example.org/PersonShape")] = {
+            "http://example.org/height": [
+                {
+                    "datatypes": ["http://www.w3.org/2001/XMLSchema#decimal"],
+                }
+            ]
+        }
+        
         mock_get_display_rules.return_value = modified_rules
-        mock_get_form_fields.return_value = mock_form_fields_cache
+        mock_get_form_fields.return_value = modified_form_fields
 
-        result = get_sortable_properties(("http://example.org/Person", None))
+        result = get_sortable_properties(("http://example.org/Person", "http://example.org/PersonShape"))
         
         assert len(result) == 2
         number_prop = next(
@@ -466,41 +454,77 @@ class TestGetSortableProperties:
 
     @patch("heritrace.utils.display_rules_utils.get_display_rules")
     @patch("heritrace.utils.display_rules_utils.get_form_fields")
-    def test_get_sortable_properties_with_boolean_type(
+    def test_get_sortable_properties_with_date_type_and_shape(
         self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
     ):
-        """Test getting sortable properties with boolean datatype."""
-        # Modify mock_display_rules to include a boolean property
+        """Test getting sortable properties with date datatype and shape."""
         modified_rules = mock_display_rules.copy()
+        modified_rules[0]["target"]["shape"] = "http://example.org/PersonShape"
+        modified_rules[0]["sortableBy"].append(
+            {
+                "property": "http://example.org/birthDate",
+                "displayName": "Birth Date",
+            }
+        )
+        
+        # Modify form_fields_cache to include tuple keys with shape
+        modified_form_fields = mock_form_fields_cache.copy()
+        modified_form_fields[("http://example.org/Person", "http://example.org/PersonShape")] = {
+            "http://example.org/birthDate": [
+                {
+                    "datatypes": ["http://www.w3.org/2001/XMLSchema#date"],
+                }
+            ]
+        }
+        
+        mock_get_display_rules.return_value = modified_rules
+        mock_get_form_fields.return_value = modified_form_fields
+
+        result = get_sortable_properties(("http://example.org/Person", "http://example.org/PersonShape"))
+        
+        assert len(result) == 2
+        date_prop = next(
+            p for p in result if p["property"] == "http://example.org/birthDate"
+        )
+        assert date_prop["sortType"] == "date"
+
+    @patch("heritrace.utils.display_rules_utils.get_display_rules")
+    @patch("heritrace.utils.display_rules_utils.get_form_fields")
+    def test_get_sortable_properties_with_boolean_type_and_shape(
+        self, mock_get_form_fields, mock_get_display_rules, mock_display_rules, mock_form_fields_cache
+    ):
+        """Test getting sortable properties with boolean datatype and shape."""
+        # Modify mock_display_rules to include a boolean property with shape
+        modified_rules = mock_display_rules.copy()
+        modified_rules[0]["target"]["shape"] = "http://example.org/PersonShape"
         modified_rules[0]["sortableBy"].append(
             {
                 "property": "http://example.org/isActive",
                 "displayName": "Is Active",
             }
         )
-
-        # Create a form fields cache with a boolean property
-        mock_form_fields_cache_with_boolean = {
-            "http://example.org/Person": {
-                "http://example.org/isActive": [
-                    {
-                        "datatypes": ["http://www.w3.org/2001/XMLSchema#boolean"],
-                    }
-                ]
-            }
+        
+        # Modify form_fields_cache to include tuple keys with shape
+        modified_form_fields = mock_form_fields_cache.copy()
+        modified_form_fields[("http://example.org/Person", "http://example.org/PersonShape")] = {
+            "http://example.org/isActive": [
+                {
+                    "datatypes": ["http://www.w3.org/2001/XMLSchema#boolean"],
+                }
+            ]
         }
         
         mock_get_display_rules.return_value = modified_rules
-        mock_get_form_fields.return_value = mock_form_fields_cache_with_boolean
+        mock_get_form_fields.return_value = modified_form_fields
 
-        result = get_sortable_properties(("http://example.org/Person", None))
-
-        # Verify the result has the boolean sort type
+        result = get_sortable_properties(("http://example.org/Person", "http://example.org/PersonShape"))
+        
         assert len(result) == 2
         boolean_prop = next(
             p for p in result if p["property"] == "http://example.org/isActive"
         )
         assert boolean_prop["sortType"] == "boolean"
+
 
     @patch("heritrace.utils.display_rules_utils.get_display_rules")
     @patch("heritrace.utils.display_rules_utils.get_form_fields")

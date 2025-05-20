@@ -11,6 +11,7 @@ from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (get_highest_priority_class,
                                                  get_sortable_properties,
                                                  is_entity_type_visible)
+from heritrace.utils.shacl_utils import determine_shape_for_subject
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
 from rdflib import RDF, ConjunctiveGraph, Graph, Literal, URIRef
@@ -56,17 +57,26 @@ def get_available_classes():
     sparql.setReturnFormat(JSON)
     classes_results = sparql.query().convert()
 
-    available_classes = [
-        {
-            "uri": result["class"]["value"],
-            "label": custom_filter.human_readable_predicate((
-                (result["class"]["value"], None))
-            ),
-            "count": int(result["count"]["value"]),
-        }
-        for result in classes_results["results"]["bindings"]
-        if is_entity_type_visible((result["class"]["value"], None))
-    ]
+    # Creare la lista delle classi disponibili
+    available_classes = []
+    for result in classes_results["results"]["bindings"]:
+        class_uri = result["class"]["value"]
+        count = int(result["count"]["value"])
+        
+        # Determiniamo la shape per questa classe
+        shape_uri = determine_shape_for_subject([class_uri])
+        
+        # Creiamo la tupla (class_uri, shape_uri) come entity_key
+        entity_key = (class_uri, shape_uri)
+        
+        # Includiamo solo se il tipo di entità è visibile
+        if is_entity_type_visible(entity_key):
+            available_classes.append({
+                "uri": class_uri,
+                "label": custom_filter.human_readable_class(entity_key),
+                "count": count,
+                "shape": shape_uri  # Includiamo la shape determinata
+            })
 
     # Sort classes by label
     available_classes.sort(key=lambda x: x["label"].lower())
@@ -202,7 +212,7 @@ def get_entities_for_class(
 
 
 def get_catalog_data(
-    selected_class, page, per_page, sort_property=None, sort_direction="ASC"
+    selected_class, page, per_page, available_classes, sort_property=None, sort_direction="ASC"
 ):
     """
     Get catalog data with pagination and sorting.
@@ -211,27 +221,34 @@ def get_catalog_data(
         selected_class (str): Selected class URI
         page (int): Current page number
         per_page (int): Items per page
+        available_classes (list): List of available classes with their shapes,
+                                          to avoid redundant calls to determine_shape_for_subject
         sort_property (str, optional): Property to sort by
         sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
 
     Returns:
         dict: Catalog data including entities, pagination info, and sort settings
     """
+    
     entities = []
     total_count = 0
     sortable_properties = []
+    selected_shape = None
 
     if selected_class:
-        # Get sortable properties first to determine default sort property
+        if available_classes:
+            for cls in available_classes:
+                if cls["uri"] == selected_class:
+                    selected_shape = cls["shape"]
+                    break
+        
         sortable_properties = get_sortable_properties(
-            (selected_class, None)
+            (selected_class, selected_shape)
         )
         
-        # Set default sort property if none provided
         if not sort_property and sortable_properties:
             sort_property = sortable_properties[0]["property"]
             
-        # Now get entities with the sort property (default or provided)
         entities, total_count = get_entities_for_class(
             selected_class, page, per_page, sort_property, sort_direction
         )
@@ -248,6 +265,7 @@ def get_catalog_data(
         "sort_direction": sort_direction,
         "sortable_properties": sortable_properties,
         "selected_class": selected_class,
+        "selected_shape": selected_shape,
     }
 
 

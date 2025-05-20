@@ -30,9 +30,10 @@ def test_catalogue_route_authenticated(
 ) -> None:
     """Test that the catalogue route works when authenticated."""
     # Mock the return values
-    mock_get_available_classes.return_value = [
-        {"uri": "test_class", "label": "Test Class"}
+    available_classes = [
+        {"uri": "test_class", "label": "Test Class", "shape": None, "count": 10}
     ]
+    mock_get_available_classes.return_value = available_classes
     mock_get_catalog_data.return_value = {
         "entities": [],
         "total_pages": 1,
@@ -49,7 +50,7 @@ def test_catalogue_route_authenticated(
         "/catalogue?page=2&per_page=100&class=test_class&sort_property=name&sort_direction=DESC"
     )
     assert response.status_code == 200
-    mock_get_catalog_data.assert_called_with("test_class", 2, 100, "name", "DESC")
+    mock_get_catalog_data.assert_called_with("test_class", 2, 100, available_classes, "name", "DESC")
 
 
 def test_time_vault_route_unauthenticated(client: FlaskClient) -> None:

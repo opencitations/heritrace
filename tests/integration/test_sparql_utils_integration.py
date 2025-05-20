@@ -233,12 +233,23 @@ class TestGetCatalogDataIntegration:
                         },
                     ],
                 )
+                
+                # Create mock available_classes
+                available_classes = [
+                    {
+                        "uri": "http://example.org/Person",
+                        "label": "Person",
+                        "count": 2,
+                        "shape": "http://example.org/PersonShape"
+                    }
+                ]
 
                 # Get catalog data for the Person class
                 catalog_data = get_catalog_data(
                     "http://example.org/Person",
                     1,
                     10,
+                    available_classes,
                     sort_property="http://example.org/name",
                     sort_direction="ASC",
                 )
@@ -272,8 +283,11 @@ class TestGetCatalogDataIntegration:
     def test_get_catalog_data_no_class(self, app):
         """Test getting catalog data with no class selected."""
         with app.app_context():
+            # Create empty available_classes
+            available_classes = []
+            
             # Get catalog data with no class selected
-            catalog_data = get_catalog_data(None, 1, 10)
+            catalog_data = get_catalog_data(None, 1, 10, available_classes)
 
             # Verify the catalog data
             assert catalog_data["total_count"] == 0

@@ -119,17 +119,14 @@ def get_sortable_properties(entity_key: Tuple[str, str]) -> List[Dict[str, str]]
     class_uri = entity_key[0]
     shape_uri = entity_key[1]
     
-    # Find the matching rule
     rule = find_matching_rule(class_uri, shape_uri, display_rules)
     if not rule or "sortableBy" not in rule:
         return []
-    
-    # Process sortable properties from the rule
+
     sort_props = []
     for sort_config in rule["sortableBy"]:
         prop = sort_config.copy()
 
-        # Find the corresponding displayProperty to get the displayName
         for display_prop in rule["displayProperties"]:
             if display_prop["property"] == prop["property"]:
                 if "displayRules" in display_prop:
@@ -141,53 +138,41 @@ def get_sortable_properties(entity_key: Tuple[str, str]) -> List[Dict[str, str]]
                         "displayName", prop["property"]
                     )
                 break
-
-        # Determine the sorting type from form fields
-        entity_key = None
-        if form_fields:
-            # Try different combinations of keys in form_fields_cache
-            if class_uri and shape_uri and (class_uri, str(shape_uri)) in form_fields:
-                entity_key = (class_uri, str(shape_uri))
-            elif class_uri and class_uri in form_fields:
-                entity_key = class_uri
-            elif shape_uri:
-                # Try to find any key with the matching shape
-                for key in form_fields.keys():
-                    if isinstance(key, tuple) and len(key) == 2 and key[1] == str(shape_uri):
-                        entity_key = key
-                        break
         
-        if entity_key and prop["property"] in form_fields[entity_key]:
-            field_info = form_fields[entity_key][prop["property"]][
-                0
-            ]  # Take the first field definition
-
-            # If there's a shape, it's a reference to an entity (sort by label)
-            if field_info.get("nodeShape"):
-                prop["sortType"] = "string"
-            # Otherwise look at the datatypes
-            elif field_info.get("datatypes"):
-                datatype = str(field_info["datatypes"][0]).lower()
-                if any(t in datatype for t in ["date", "time"]):
-                    prop["sortType"] = "date"
-                elif any(
-                    t in datatype
-                    for t in ["int", "float", "decimal", "double", "number"]
-                ):
-                    prop["sortType"] = "number"
-                elif "boolean" in datatype:
-                    prop["sortType"] = "boolean"
-                else:
-                    prop["sortType"] = "string"
-            else:
-                prop["sortType"] = "string"
-        else:
-            # Default to string sorting if we can't determine the type
-            prop["sortType"] = "string"
+        # Default to string sorting
+        prop["sortType"] = "string"
+        
+        # Try to determine the sort type from form fields
+        if form_fields:
+            # First try with the exact entity_key (class, shape)
+            if entity_key in form_fields and prop["property"] in form_fields[entity_key]:
+                field_info = form_fields[entity_key][prop["property"]][0]  # Take the first field definition
+                prop["sortType"] = determine_sort_type(field_info)
 
         sort_props.append(prop)
-    
+
     return sort_props
+
+
+def determine_sort_type(field_info):
+    """Helper function to determine sort type from field info."""
+    # If there's a shape, it's a reference to an entity (sort by label)
+    if field_info.get("nodeShape"):
+        return "string"
+    # Otherwise look at the datatypes
+    elif field_info.get("datatypes"):
+        datatype = str(field_info["datatypes"][0]).lower()
+        if any(t in datatype for t in ["date", "time"]):
+            return "date"
+        elif any(
+            t in datatype
+            for t in ["int", "float", "decimal", "double", "number"]
+        ):
+            return "number"
+        elif "boolean" in datatype:
+            return "boolean"
+    # Default to string
+    return "string"
 
 
 def get_highest_priority_class(subject_classes):

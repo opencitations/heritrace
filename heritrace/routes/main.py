@@ -34,9 +34,8 @@ def catalogue():
         selected_class = available_classes[0]["uri"]
 
     catalog_data = get_catalog_data(
-        selected_class, page, per_page, sort_property, sort_direction
+        selected_class, page, per_page, available_classes, sort_property, sort_direction
     )
-    current_app.logger.debug("Catalog data: %s", catalog_data)
 
     return render_template(
         "catalogue.jinja",

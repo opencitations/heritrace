@@ -116,16 +116,21 @@ class TestGetAvailableClasses:
             }
         }
 
-        # Configure the custom filter to return specific labels for sorting
-        mock_custom_filter.human_readable_predicate.side_effect = lambda entity_key: (
-            "Person" if entity_key[0] == "http://example.org/Person" else "Document"
-        )
-
-        # Configure visibility check to allow all classes
+        # Mock determine_shape_for_subject
         with patch(
-            "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
-        ):
-            classes = get_available_classes()
+            "heritrace.utils.sparql_utils.determine_shape_for_subject",
+            return_value="http://example.org/PersonShape"
+        ) as mock_determine_shape:
+            # Configure the custom filter to return specific labels
+            mock_custom_filter.human_readable_class.side_effect = lambda entity_key: (
+                "Person" if entity_key[0] == "http://example.org/Person" else "Document"
+            )
+
+            # Configure visibility check to allow all classes
+            with patch(
+                "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
+            ):
+                classes = get_available_classes()
 
             # Verify the results
             assert len(classes) == 2
@@ -168,18 +173,23 @@ class TestGetAvailableClasses:
             }
         }
 
-        # Configure the custom filter to return specific labels for sorting
-        mock_custom_filter.human_readable_predicate.side_effect = lambda entity_key: (
-            "Person" if entity_key[0] == "http://example.org/Person" else "Document"
-        )
-
-        # Configure is_virtuoso to return False
+        # Mock determine_shape_for_subject
         with patch(
-            "heritrace.utils.sparql_utils.is_virtuoso", return_value=False
-        ), patch(
-            "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
-        ):
-            classes = get_available_classes()
+            "heritrace.utils.sparql_utils.determine_shape_for_subject",
+            return_value="http://example.org/PersonShape"
+        ) as mock_determine_shape:
+            # Configure the custom filter to return specific labels
+            mock_custom_filter.human_readable_class.side_effect = lambda entity_key: (
+                "Person" if entity_key[0] == "http://example.org/Person" else "Document"
+            )
+
+            # Configure is_virtuoso to return False
+            with patch(
+                "heritrace.utils.sparql_utils.is_virtuoso", return_value=False
+            ), patch(
+                "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
+            ):
+                classes = get_available_classes()
 
             # Verify the results
             assert len(classes) == 2
@@ -382,14 +392,24 @@ class TestGetCatalogData:
             {"property": "http://example.org/age", "label": "Age"},
         ]
 
+        # Create mock available_classes
+        available_classes = [
+            {
+                "uri": "http://example.org/Person",
+                "label": "Person",
+                "count": 10,
+                "shape": "http://example.org/PersonShape"
+            }
+        ]
+
         # Patch get_sortable_properties to return our mock sortable properties
         with patch(
             "heritrace.utils.sparql_utils.get_sortable_properties",
             return_value=sortable_properties,
         ):
-            # Call get_catalog_data without providing a sort_property
+            # Call get_catalog_data with the new parameter structure
             catalog_data = get_catalog_data(
-                "http://example.org/Person", 1, 10, sort_property=None
+                "http://example.org/Person", 1, 10, available_classes, sort_property=None
             )
 
             # Verify that sort_property was set from the first sortable property

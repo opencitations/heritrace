@@ -44,11 +44,13 @@ def catalogue_api():
     if not sort_property or sort_property.lower() == "null":
         sort_property = None
 
+    available_classes = get_available_classes()
+    
     catalog_data = get_catalog_data(
-        selected_class, page, per_page, sort_property, sort_direction
+        selected_class, page, per_page, available_classes, sort_property, sort_direction
     )
 
-    catalog_data["available_classes"] = get_available_classes()
+    catalog_data["available_classes"] = available_classes
     return jsonify(catalog_data)
 
 

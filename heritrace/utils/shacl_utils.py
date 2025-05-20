@@ -1,6 +1,8 @@
-from typing import List
+from typing import List, Optional, Tuple
 
 from flask import Flask
+from heritrace.extensions import get_shacl_graph
+from heritrace.utils.display_rules_utils import get_class_priority
 from heritrace.utils.shacl_display import (apply_display_rules,
                                            extract_shacl_form_fields,
                                            order_form_fields,
@@ -48,3 +50,58 @@ def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict], app: Fla
     # Step 4: Order the form fields according to the display rules
     ordered_form_fields = order_form_fields(form_fields, display_rules)        
     return ordered_form_fields
+
+
+def determine_shape_for_subject(class_list: List[str]) -> Optional[str]:
+    """
+    Determine the most appropriate SHACL shape for a subject based on its class list.
+    
+    Args:
+        class_list: List of class URIs the subject belongs to
+        
+    Returns:
+        The most appropriate shape URI based on priority, or None if no shapes are found
+    """
+    shacl_graph = get_shacl_graph()
+    if not shacl_graph:
+        return None
+    
+    all_shacl_shapes = []
+    
+    for class_uri in class_list:
+        query_string = f"""
+            SELECT DISTINCT ?shape WHERE {{
+                ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
+            }}
+        """
+        
+        results = shacl_graph.query(query_string)
+        shapes = [str(row.shape) for row in results]
+        
+        for shape in shapes:
+            all_shacl_shapes.append((class_uri, shape))
+    
+    return _find_highest_priority_shape(all_shacl_shapes)
+
+
+def _find_highest_priority_shape(class_shape_pairs: List[Tuple[str, str]]) -> Optional[str]:
+    """
+    Helper function to find the shape with the highest priority from a list of (class_uri, shape) pairs.
+    
+    Args:
+        class_shape_pairs: List of tuples (class_uri, shape)
+        
+    Returns:
+        The shape with the highest priority, or None if the list is empty
+    """
+    highest_priority = float('inf')
+    highest_priority_shape = None
+    
+    for class_uri, shape in class_shape_pairs:
+        entity_key = (class_uri, shape)
+        priority = get_class_priority(entity_key)
+        if priority < highest_priority:
+            highest_priority = priority
+            highest_priority_shape = shape
+    
+    return highest_priority_shape
