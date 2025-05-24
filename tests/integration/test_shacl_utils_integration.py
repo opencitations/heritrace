@@ -1045,6 +1045,7 @@ def test_validate_new_triple_with_pattern_validation(app: Flask, shacl_graph: Gr
                         self.maxCount = None
                         self.minCount = None
                         self.optionalValues = ""
+                        self.shape = URIRef("http://example.org/TestShape")
                 
                 # Create a mock result with a pattern constraint
                 mock_results = [MockRow("10\.[0-9]{4,}/[a-zA-Z0-9.]+", "Invalid DOI format")]
@@ -1201,6 +1202,7 @@ def test_validate_new_triple_with_literal_conversion(app: Flask, shacl_graph: Gr
                         self.pattern = None
                         self.message = None
                         self.optionalValues = ""
+                        self.shape = URIRef("http://example.org/TestShape")
                 
                 # Create a mock result with a datatype constraint
                 mock_results = [MockRow(datatype=XSD.string)]

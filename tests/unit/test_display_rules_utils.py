@@ -712,7 +712,7 @@ class TestGetGroupedTriples:
                 with patch(
                     "heritrace.utils.display_rules_utils.process_display_rule",
                     side_effect=lambda display_name, prop_uri, display_rule, subject, triples, grouped_triples, fetched_values_map, historical_snapshot, subject_shape=None: grouped_triples.update(
-                        {"Person Name": {}}
+                        {"Person Name": {"property": "http://example.org/name", "triples": [], "subjectShape": None, "objectShape": None}}
                     ),
                 ):
                     grouped_triples, relevant_properties = get_grouped_triples(

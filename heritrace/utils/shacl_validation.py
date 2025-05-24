@@ -213,7 +213,7 @@ def validate_new_triple(
 
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
-        SELECT DISTINCT ?path ?datatype ?a_class ?classIn ?maxCount ?minCount ?pattern ?message
+        SELECT DISTINCT ?path ?datatype ?a_class ?classIn ?maxCount ?minCount ?pattern ?message ?shape
             (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS ?optionalValues)
             (GROUP_CONCAT(DISTINCT COALESCE(?conditionPath, ""); separator=",") AS ?conditionPaths)
             (GROUP_CONCAT(DISTINCT COALESCE(?conditionValue, ""); separator=",") AS ?conditionValues)
@@ -251,12 +251,14 @@ def validate_new_triple(
                              sh:hasValue ?conditionValue .
             }}
         }}
-        GROUP BY ?path ?datatype ?a_class ?classIn ?maxCount ?minCount ?pattern ?message
+        GROUP BY ?path ?datatype ?a_class ?classIn ?maxCount ?minCount ?pattern ?message ?shape
     """
     shacl = get_shacl_graph()
     custom_filter = get_custom_filter()
     results = shacl.query(query)
     property_exists = [row.path for row in results]
+    shapes = [row.shape for row in results if row.shape is not None]
+    current_shape = shapes[0] if shapes else None
     if not property_exists:
         if not s_types:
             return (
@@ -272,8 +274,8 @@ def validate_new_triple(
             old_value,
             gettext(
                 "The property %(predicate)s is not allowed for resources of type %(s_type)s",
-                predicate=custom_filter.human_readable_predicate(((predicate, None))),
-                s_type=custom_filter.human_readable_predicate(((s_types[0], None))),
+                predicate=custom_filter.human_readable_predicate((predicate, current_shape)),
+                s_type=custom_filter.human_readable_class((s_types[0], current_shape)),
             ),
         )
     datatypes = [row.datatype for row in results if row.datatype is not None]
@@ -307,7 +309,7 @@ def validate_new_triple(
             old_value,
             gettext(
                 "The property %(predicate)s allows at most %(max_count)s %(value)s",
-                predicate=custom_filter.human_readable_predicate((predicate, None)),
+                predicate=custom_filter.human_readable_predicate((predicate, current_shape)),
                 max_count=max_count,
                 value=value,
             ),
@@ -319,7 +321,7 @@ def validate_new_triple(
             old_value,
             gettext(
                 "The property %(predicate)s requires at least %(min_count)s %(value)s",
-                predicate=custom_filter.human_readable_predicate((predicate, None)),
+                predicate=custom_filter.human_readable_predicate((predicate, current_shape)),
                 min_count=min_count,
                 value=value,
             ),
@@ -332,7 +334,7 @@ def validate_new_triple(
 
     if optional_values and new_value not in optional_values:
         optional_value_labels = [
-            custom_filter.human_readable_predicate(((value, None)))
+            custom_filter.human_readable_predicate((value, current_shape))
             for value in optional_values
         ]
         return (
@@ -340,8 +342,8 @@ def validate_new_triple(
             old_value,
             gettext(
                 "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s",
-                new_value=custom_filter.human_readable_predicate(((new_value, None))),
-                property=custom_filter.human_readable_predicate(((predicate, None))),
+                new_value=custom_filter.human_readable_predicate((new_value, current_shape)),
+                property=custom_filter.human_readable_predicate((predicate, current_shape)),
                 o_values=", ".join(
                     [f"<code>{label}</code>" for label in optional_value_labels]
                 ),
@@ -381,13 +383,12 @@ def validate_new_triple(
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate((
-                        new_value, None)),
-                    property=custom_filter.human_readable_predicate((predicate, None)),
+                    new_value=custom_filter.human_readable_predicate((new_value, current_shape)),
+                    property=custom_filter.human_readable_predicate((predicate, current_shape)),
                     o_types=", ".join(
                         [
-                            f"<code>{custom_filter.human_readable_predicate((o_class, None))}</code>"
-                            for o_class in classes
+                            f"<code>{custom_filter.human_readable_class((c, current_shape))}</code>"
+                            for c in classes
                         ]
                     ),
                 ),
@@ -401,13 +402,12 @@ def validate_new_triple(
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate((
-                        new_value, None)),
-                    property=custom_filter.human_readable_predicate((predicate, None)),
+                    new_value=custom_filter.human_readable_predicate((new_value, current_shape)),
+                    property=custom_filter.human_readable_predicate((predicate, current_shape)),
                     o_types=", ".join(
                         [
-                            f"<code>{custom_filter.human_readable_predicate((o_class, None))}</code>"
-                            for o_class in classes
+                            f"<code>{custom_filter.human_readable_class((c, current_shape))}</code>"
+                            for c in classes
                         ]
                     ),
                 ),
@@ -416,15 +416,14 @@ def validate_new_triple(
     elif datatypes:
         valid_value = convert_to_matching_literal(new_value, datatypes)
         if valid_value is None:
-            datatype_labels = [get_datatype_label(datatype) for datatype in datatypes]
+            datatype_labels = [get_datatype_label(dt) for dt in datatypes]
             return (
                 None,
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate((
-                        new_value, None)),
-                    property=custom_filter.human_readable_predicate((predicate, None)),
+                    new_value=custom_filter.human_readable_predicate((new_value, current_shape)),
+                    property=custom_filter.human_readable_predicate((predicate, current_shape)),
                     o_types=", ".join(
                         [f"<code>{label}</code>" for label in datatype_labels]
                     ),

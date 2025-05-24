@@ -218,9 +218,6 @@ def get_grouped_triples(
     Returns:
         Tuple of grouped triples, relevant properties, and fetched values map
     """
-    import json
-
-    from flask import current_app
     from heritrace.utils.shacl_utils import determine_shape_for_subject
     display_rules = get_display_rules()
 
@@ -244,7 +241,6 @@ def get_grouped_triples(
                 if prop_config["property"] == prop_uri:
                     current_prop_config = prop_config
                     break
-            
             if current_prop_config:
                 if "displayRules" in current_prop_config:
                     is_ordered = "orderedBy" in current_prop_config
@@ -279,17 +275,16 @@ def get_grouped_triples(
                                 historical_snapshot,
                             )
 
-                        # Handle intermediateRelation from either display_rule_nested or current_prop_config
-                        if "intermediateRelation" in display_rule_nested or "intermediateRelation" in current_prop_config:
-                            # Ensure the grouped_triples entry exists
-                            if display_name_nested not in grouped_triples:
-                                grouped_triples[display_name_nested] = {
-                                    "property": prop_uri,
-                                    "triples": [],
-                                    "subjectShape": subject_shape,
-                                    "objectShape": display_rule_nested.get("shape")
-                                }
+                        # Ensure the grouped_triples entry exists
+                        if display_name_nested not in grouped_triples:
+                            grouped_triples[display_name_nested] = {
+                                "property": prop_uri,
+                                "triples": [],
+                                "subjectShape": subject_shape,
+                                "objectShape": display_rule_nested.get("shape")
+                            }
                             
+                        if "intermediateRelation" in display_rule_nested or "intermediateRelation" in current_prop_config:
                             # Set intermediateRelation from the appropriate source
                             if "intermediateRelation" in display_rule_nested:
                                 grouped_triples[display_name_nested]["intermediateRelation"] = display_rule_nested["intermediateRelation"]
@@ -355,7 +350,7 @@ def get_grouped_triples(
                 ordered_display_names.append(display_name)
     else:
         ordered_display_names = list(grouped_triples.keys())
-
+    
     grouped_triples = OrderedDict(
         (k, grouped_triples[k]) for k in ordered_display_names
     )
@@ -373,15 +368,12 @@ def process_display_rule(
     historical_snapshot=None,
     subject_shape=None,
 ):
-    from flask import current_app
-    from heritrace.utils.entity_utils import get_entity_shape
-
     if display_name not in grouped_triples:
         grouped_triples[display_name] = {
             "property": prop_uri,
             "triples": [],
             "subjectShape": subject_shape,
-            "objectShape": None,
+            "objectShape": rule.get("shape"),
             "intermediateRelation": rule.get("intermediateRelation"),
         }
     for triple in triples:
@@ -402,29 +394,23 @@ def process_display_rule(
                     fetched_values_map[str(result)] = str(triple[2])
                     new_triple = (str(triple[0]), str(triple[1]), str(result))
                     object_uri = str(triple[2])
-                    object_shape = None
-                    if external_entity:
-                        object_shape = get_entity_shape(object_uri)
                     
                     new_triple_data = {
                         "triple": new_triple,
                         "external_entity": external_entity,
                         "object": object_uri,
                         "subjectShape": subject_shape,
-                        "objectShape": object_shape,
+                        "objectShape": rule.get("shape"),
                     }
                     grouped_triples[display_name]["triples"].append(new_triple_data)
             else:
                 object_uri = str(triple[2])
-                object_shape = None
-                if isinstance(triple[2], URIRef):
-                    object_shape = get_entity_shape(object_uri)
                 
                 new_triple_data = {
                     "triple": (str(triple[0]), str(triple[1]), object_uri),
                     "object": object_uri,
                     "subjectShape": subject_shape,
-                    "objectShape": object_shape,
+                    "objectShape": rule.get("shape"),
                 }
                 grouped_triples[display_name]["triples"].append(new_triple_data)
 
