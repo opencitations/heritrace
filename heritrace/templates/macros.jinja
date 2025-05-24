@@ -358,31 +358,37 @@
                         </div>
                         <span style="margin-left: .75rem;">
                             {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                            <a href="{{url_for('entity.about', subject=externalEntity)}}" 
+                            <a href="{{url_for('entity.about', subject=triple[2])}}" 
                             class="draggable-entity-link"
                             data-bs-toggle="tooltip" 
                             data-bs-placement="top" 
-                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity(entity_classes))}}">
-                                {{ (triple[2], None)  | human_readable_predicate }}
+                            title="{{_('Redirection to the entity %(entity)s', entity=triple[2])}}">
+                                {{ triple[2] }}
                             </a>
                         </span>
                     </div>
                 {% else %}
                     <span style="margin-left: .75rem;">
                         {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                        <a href="{{url_for('entity.about', subject=externalEntity)}}"
+                        <a href="{{url_for('entity.about', subject=triple[2])}}"
                            class="draggable-entity-link"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top" 
-                           title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity(entity_classes))}}">
-                            {{ ((triple[2], None) | human_readable_predicate) }}
+                           title="{{_('Redirection to the entity %(entity)s', entity=triple[2])}}">
+                            {{ triple[2] }}
                         </a>
                     </span>
                 {% endif %}
             {% else %}
                 {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
                     <div class="d-flex align-items-baseline">
-                        <p style="margin-left: 0.75rem">{{ (triple[2], None)  | human_readable_predicate }}</p>
+                        <p style="margin-left: 0.75rem">
+                            {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
+                                {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_class }}
+                            {% else %}
+                                {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_predicate }}
+                            {% endif %}
+                        </p>
                         <i class="bi bi-question-circle-fill ms-2 text-info" 
                            data-bs-toggle="tooltip" 
                            data-bs-placement="right"
@@ -398,10 +404,22 @@
                     <div class="w-75">
                         <select name="new_value" class="form-select editable-select d-none">
                             {% for value in optional_values[triple[1]] %}
-                                <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>{{ (value, None)  | human_readable_predicate }}</option>
+                                <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>
+                                    {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
+                                        {{ (value, grouped_triples_data.get('subjectShape')) | human_readable_class }}
+                                    {% else %}
+                                        {{ (value, grouped_triples_data.get('subjectShape')) | human_readable_predicate }}
+                                    {% endif %}
+                                </option>
                             {% endfor %}
                         </select>
-                        <span class="select-value-display" id="display_value_{{ unique_id }}" style="margin-left: .75rem;">{{ (triple[2], None)  | human_readable_predicate }}</span>
+                        <span class="select-value-display" id="display_value_{{ unique_id }}" style="margin-left: .75rem;">
+                            {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
+                                {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_class }}
+                            {% else %}
+                                {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_predicate }}
+                            {% endif %}
+                        </span>
                     </div>
                 {% elif 'http://www.w3.org/2001/XMLSchema#date' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYear' in datatypes.get(triple[1], []) %}
                     <div class="date-input-group" data-original-value="{{ triple[2] }}">
@@ -521,8 +539,8 @@
                             <a class="btn btn-sm btn-outline-primary redirection-btn" 
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
-                            title="{{_('Redirection to the entity %(entity)s', entity=externalEntity | human_readable_entity(entity_classes))}}"
-                            href="{{url_for('entity.about', subject=externalEntity)}}">
+                            title="{{_('Redirection to the entity %(entity)s', entity=triple[2])}}"
+                            href="{{url_for('entity.about', subject=triple[2])}}">
                                 <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
                             </a>
                         </div>
@@ -533,7 +551,7 @@
                                     style="display: none;"
                                     data-subject="{{ subject }}" 
                                     data-predicate="{{ triple[1] }}" 
-                                    data-object="{{ externalEntity if externalEntity else triple[2] }}">
+                                    data-object="{{ triple[2] }}">
                             <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
                             </button>
                         </div>

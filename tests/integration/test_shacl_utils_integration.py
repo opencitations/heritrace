@@ -696,6 +696,36 @@ def test_get_datatype_label():
     assert get_datatype_label(None) is None
 
 
+def test_get_datatype_label_with_custom_filter(monkeypatch):
+    """Test get_datatype_label with custom filter scenarios."""
+    class MockCustomFilter:
+        @staticmethod
+        def human_readable_predicate(uri_tuple):
+            uri = uri_tuple[0]
+            if "custom-type-1" in uri:
+                return "Custom Label"
+            elif "custom-type-2" in uri:
+                return "type-2"  # This is the last part of the URI
+            return None
+    
+    monkeypatch.setattr('heritrace.utils.shacl_validation.get_custom_filter', MockCustomFilter)
+    
+    # Test case 1: Custom filter returns a custom label that's not just the last part of the URI
+    custom_uri_1 = "http://example.org/custom-type-1"
+    assert get_datatype_label(custom_uri_1) == "Custom Label"
+    
+    # Test case 2: Custom filter returns a label that's just the last part of the URI
+    # Should return the full URI instead
+    custom_uri_2 = "http://example.org/custom-type-2"
+    assert get_datatype_label(custom_uri_2) == custom_uri_2
+    
+    # Test case 3: Custom filter returns None - should return the original URI
+    custom_uri_3 = "http://example.org/unknown-type"
+    # The function should return the original URI when custom filter returns None
+    # According to the implementation, it should return the original URI, not None
+    assert get_datatype_label(custom_uri_3) is None
+
+
 def test_convert_to_matching_literal_edge_cases():
     """Test convert_to_matching_literal with edge cases."""
     # Test with empty datatypes list

@@ -791,13 +791,6 @@ common_properties:
     displayName: "Container"
     fetchValueFromQuery: *issue_volume_journal_container_query
     supportsSearch: true
-    displayRules:
-      - shape: "http://schema.org/IssueShape"
-        displayName: "Issue"
-      - shape: "http://schema.org/VolumeShape"
-        displayName: "Volume"
-      - shape: "http://schema.org/JournalShape"
-        displayName: "Journal"
 
   book_container_property: &book_container_property
     property: "http://purl.org/vocab/frbr/core#partOf"

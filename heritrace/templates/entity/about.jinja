@@ -88,88 +88,52 @@
             {{_('This entity has been deleted. You can view its history using the Time Machine above')}}
         </div>
     {% elif grouped_triples %}
-
         {% for display_name, data in grouped_triples.items() %}
             {% set predicate = data['property'] %}
             {% set isDraggable = data['is_draggable'] %}
+            {% set subject_shape = data.get('subjectShape') %}
+            {% set object_shape = data.get('objectShape') %}
+            {% set entity_key = (entity_type, subject_shape) %}
+            {% set key = (predicate, entity_key, object_shape) %}
+            {% set has_details = key in predicate_details_map %}
+            {% set details = predicate_details_map[key] if has_details else {} %}
             <div class="property-group" data-uri="{{entity_type}}">
-                {% if data['triples'] or data['property'] in can_be_added %}
-                    {% set objectClass = namespace(value='') %}
-                    {% set max_items = namespace(value='') %}
-                    {% set min_items = namespace(value='') %}
-                    {% set found_details = false %}
-                    {% for entity_key, fields in form_fields.items() %}
-                        {% if entity_key[0] == entity_type and predicate in fields %}
-                            {% for details in fields[predicate] %}
-                                {% if details['objectClass'] %}
-                                    {% set objectClass.value = details['objectClass'] %}
-                                {% endif %}
-                                {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') %}
-                                    {# We have the matching details #}
-                                    {% set max_items.value = details.max %}
-                                    {% set min_items.value = details.min %}
-                                    {% set found_details = true %}
-                                {% endif %}
-                            {% endfor %}
-                        {% endif %}
-                    {% endfor %}
+                {% if data['triples'] or predicate in can_be_added %}
                     
                     {%if data['triples'] %}
-                        <h6 class="item-label">{{ (display_name, None)  | human_readable_predicate }}</h6>
+                        <h6 class="item-label">{{ (display_name, data.get("subjectShape")) | human_readable_predicate }}</h6>
                     {% endif %}
+                    {% set object_class = details.objectClass if has_details and details.objectClass else '' %}
+
                     <div class="predicate-ul" 
                         data-repeater-list="{{ display_name | replace(' ', '_') }}" 
                         {% if isDraggable %}data-ordered-by="{{ data.ordered_by }}"{% endif %} 
-                        data-uri="{{ data['property'] }}"
-                        data-object-class="{{ objectClass.value }}"
-                        {% if max_items.value %}data-max-items="{{ max_items.value }}"{% endif %}
-                        {% if min_items.value %}data-min-items="{{ min_items.value }}"{% endif %}
-                        {% if data['property'] in mandatory_values %}data-skip-collect="true"{% endif %}>
-                        {% if data['property'] in can_be_added %}
-                            {% for entity_key, fields in form_fields.items() %}
-                                {% if entity_key[0] == entity_type and predicate in fields %}
-                                    {% for details in fields[predicate] %}
-                                        {% set shape = details.get('nodeShape') %}
-                                        {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') or details.get('or') %}
-                                            {% set key = (predicate, entity_type, shape) %}
-                                            {% if key in predicate_details_map %}
-                                                {% set unique_id_base = (((entity_type, None) | human_readable_predicate) | replace(" ", "") + "_" + ((predicate, None) | human_readable_predicate) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
-                                                {{ render_repeater_item(entity_type, predicate, predicate_details_map[key], entity_types, form_fields, depth=0, unique_id_base=unique_id_base, is_template=True) }}
-                                                {% set namespace_render_repeater_item.counter = namespace_render_repeater_item.counter + 1 %}
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                            {% endfor %}
+                        data-uri="{{ predicate }}"
+                        data-object-class="{{ object_class }}"
+                        {% if has_details and details.max %}data-max-items="{{ details.max }}"{% endif %}
+                        {% if has_details and details.min %}data-min-items="{{ details.min }}"{% endif %}
+                        {% if predicate in mandatory_values %}data-skip-collect="true"{% endif %}>
+                        {% if predicate in can_be_added and has_details %}
+                            {% set unique_id_base = (((entity_type, object_shape) | human_readable_class) | replace(" ", "") + "_" + ((predicate, object_shape) | human_readable_predicate) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
+                            {{ render_repeater_item(entity_type=entity_type, prop=predicate, details=details, form_fields=form_fields, depth=0, unique_id_base=unique_id_base, index=None, is_template=True) }}
+                            {% set namespace_render_repeater_item.counter = namespace_render_repeater_item.counter + 1 %}
                         {% endif %}
                         {% for triple_data in data['triples'] %}
                             {% set unique_counter.value = unique_counter.value + 1 %}
-                            {{ render_triple(triple_data['triple'], subject, triple_data['external_entity'], isDraggable, triple_data['object'], data['ordered_by'], unique_counter.value, data, display_name, objectClass.value) }}
+                            {{ render_triple(triple=triple_data['triple'], subject=subject, externalEntity=triple_data['external_entity'], isDraggable=isDraggable, object=triple_data['object'], orderedBy=data['ordered_by'], unique_id=unique_counter.value, grouped_triples_data=data, display_name=display_name, object_class=object_class) }}
                         {% endfor %}
 
                         <!-- Move the add-button inside the ul -->
-                        {% if data['property'] in can_be_added %}
-                            {% set predicate = data['property'] %}
-                            {% for entity_key, fields in form_fields.items() %}
-                                {% if entity_key[0] == entity_type and predicate in fields %}
-                                    {% for details in fields[predicate] %}
-                                        {% set shape = details.get('nodeShape') %}
-                                        {% if details.get('nodeShape') == data.get('shape') or not data.get('shape') or details.get('or') %}
-                                            {% set key = (predicate, entity_type, shape) %}
-                                            {% if key in predicate_details_map %}
-                                                {% set unique_id_base = (((entity_type, None) | human_readable_predicate) | replace(" ", "") + "_" + ((predicate, None) | human_readable_predicate) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
-                                                <!-- Button to add new items -->
-                                                <div class="text-start mt-3" data-repeater-create>
-                                                    <button type="button" class="add-button">
-                                                        <i class="bi bi-plus-circle"></i>
-                                                        {{ _("Add %(element_type)s", element_type=details.displayName or (((data['property'], None) | human_readable_predicate))) }}
-                                                    </button>
-                                                </div>
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                {% endif %}
-                            {% endfor %}
+                        {% if predicate in can_be_added and has_details %}
+                            {% set unique_id_base = (((entity_type, subject_shape) | human_readable_class) | replace(" ", "") + "_" + ((predicate, subject_shape) | human_readable_predicate) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
+                            <!-- Button to add new items -->
+                            <div class="text-start mt-3" data-repeater-create>
+                                <button type="button" class="add-button">
+                                    <i class="bi bi-plus-circle"></i>
+                                    {{ _("Add %(element_type)s", element_type=details.displayName) }}
+                                </button>
+                            </div>
+                            {% set namespace_render_repeater_item.counter = namespace_render_repeater_item.counter + 1 %}
                         {% endif %}
                     </div>
                 {% endif %}
