@@ -22,13 +22,19 @@ function loadResources(options) {
         renderItemCallback,
         resultsPerPage = 5,
         loadingHtml = '<div class="text-center my-3 resource-loading-indicator"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div></div>',
-        errorText = 'Error loading resources.' // Default error text
+        errorText = 'Error loading resources.'
     } = options;
-
+    
+    const state = {
+        isLoading: false,
+        hasLoaded: false,
+        error: null
+    };
+    
     const $container = $(containerSelector);
     const $noResults = $(noResultsSelector);
     const $loadMoreButton = $(loadMoreSelector);
-    const $parent = $container.parent(); // Get parent to append loading indicator
+    const $parent = $container.parent();
 
     let currentPage = 1;
     let totalLoaded = 0;
@@ -38,7 +44,10 @@ function loadResources(options) {
     function fetchData(page) {
         if (!hasMore) return;
 
-        // Remove existing indicator and add new one
+        state.isLoading = true;
+        state.hasLoaded = false;
+        state.error = null;
+        $container.data('loaderState', {...state});
         if ($loadingIndicator) {
             $loadingIndicator.remove();
         }
@@ -56,7 +65,7 @@ function loadResources(options) {
             url: apiUrl,
             method: 'GET',
             data: requestData,
-            success: function(response) {
+            success: function handleSuccess(response) {
                 if ($loadingIndicator) $loadingIndicator.remove();
 
                 if (response.status === 'success' && response.results && response.results.length > 0) {
@@ -75,7 +84,6 @@ function loadResources(options) {
                     totalLoaded += response.results.length;
                     // Use response.has_more if available, otherwise estimate based on resultsPerPage
                     hasMore = response.has_more !== undefined ? response.has_more : (response.results.length === resultsPerPage);
-
 
                     $container.show();
                     if (hasMore) {
@@ -102,26 +110,35 @@ function loadResources(options) {
                         console.error(`Error fetching resources from ${apiUrl}:`, response.message);
                     }
                 }
+                // Update state after successful fetch
+                $container.data('loaderState', {...state, isLoading: false, hasLoaded: true});
             },
-            error: function(jqXHR) {
+            error: function handleError(xhr) {
                 if ($loadingIndicator) $loadingIndicator.remove();
                 hasMore = false; // Stop loading on error
-                 if (page === 1) {
+                if (page === 1) {
                     $container.hide();
                     $noResults.text(errorText).show(); // Show generic error on first page AJAX fail
                 }
                 $loadMoreButton.hide(); // Hide button on error
-                console.error(`AJAX error fetching resources from ${apiUrl}:`, jqXHR.statusText);
+                state.isLoading = false;
+                state.error = xhr.statusText;
+                $container.data('loaderState', {...state});
+                console.error(`AJAX error fetching resources from ${apiUrl}:`, xhr.statusText);
             }
         });
     }
 
-    // Initial load
     fetchData(currentPage);
-
-    // Load more on button click
+    
     $loadMoreButton.on('click', function() {
         currentPage++;
+        fetchData(currentPage);
+    });
+    
+    $container.data('refresh', function() {
+        currentPage = 1;
+        hasMore = true;
         fetchData(currentPage);
     });
 } 

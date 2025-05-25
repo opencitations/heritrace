@@ -1,8 +1,7 @@
 <script>
 $(document).ready(function() {
     const subjectUriLinked = "{{ subject }}";
-
-    // Define the callback function to render a single linked resource item
+    
     function renderLinkedResourceItem(ref) {
         let typesHtml = '';
         if (ref.type_labels && ref.type_labels.length > 0) {
@@ -36,7 +35,6 @@ $(document).ready(function() {
         `;
     }
 
-    // Call the reusable loadResources function
     loadResources({
         containerSelector: '.linked-resources-container',
         noResultsSelector: '.linked-resources-none',
@@ -46,7 +44,7 @@ $(document).ready(function() {
             subject_uri: subjectUriLinked
         },
         renderItemCallback: renderLinkedResourceItem,
-        resultsPerPage: 5, // Specify results per page if different from default
+        resultsPerPage: 5,
         loadingHtml: '<div class="text-center my-3 resource-loading-indicator"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">{{ _("Loading...") }}</span></div></div>',
         errorText: '{{ _("Error loading linked resources.") }}'
     });

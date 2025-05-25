@@ -97,7 +97,6 @@ def about(subject):
     valid_predicates = []
     entity_type = None
     data_graph = None
-    linked_resources = []
 
     if not is_deleted:
         data_graph = fetch_data_graph_for_subject(subject)
@@ -122,25 +121,10 @@ def about(subject):
                 uri for uri in can_be_deleted if uri in relevant_properties
             ]
 
-            linked_resources = set()
-            for _, predicate, obj in data_graph.triples((URIRef(subject), None, None)):
-                if isinstance(obj, URIRef) and str(obj) != str(subject) and predicate != RDF.type:
-                    linked_resources.add(str(obj))
-
-        linked_resources = list(linked_resources)
-
-    else:
-        linked_resources = []
-
     update_form = UpdateTripleForm()
-    create_form = (
-        CreateTripleFormWithSelect() if can_be_added else CreateTripleFormWithInput()
-    )
-    if can_be_added:
-        create_form.predicate.choices = [
-            (p, get_custom_filter().human_readable_predicate(p, (entity_type, None)))
-            for p in can_be_added
-        ]
+
+    entity_type = str(get_highest_priority_class(subject_classes)) if subject_classes else None
+    entity_shape = determine_shape_for_subject(subject_classes) if subject_classes else None
 
     form_fields = get_form_fields()
 
@@ -152,10 +136,6 @@ def about(subject):
                 key = (predicate_uri, entity_type_key, shape)
                 predicate_details_map[key] = details
 
-    entity_type = str(get_highest_priority_class(subject_classes)) if subject_classes else None
-    entity_shape = determine_shape_for_subject(subject_classes) if subject_classes else None
-    
-
     return render_template(
         "entity/about.jinja",
         subject=subject,
@@ -164,7 +144,6 @@ def about(subject):
         can_be_deleted=can_be_deleted,
         datatypes=datatypes,
         update_form=update_form,
-        create_form=create_form,
         mandatory_values=mandatory_values,
         optional_values=optional_values,
         shacl=bool(len(get_shacl_graph())),
@@ -180,7 +159,6 @@ def about(subject):
         ],
         is_deleted=is_deleted,
         context=context_snapshot,
-        linked_resources=linked_resources,
         default_primary_source=default_primary_source,
     )
 

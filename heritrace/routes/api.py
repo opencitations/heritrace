@@ -340,6 +340,7 @@ def check_orphans():
 
         changes = data.get("changes", [])
         entity_type = data.get("entity_type")
+        entity_shape = data.get("entity_shape")
         custom_filter = get_custom_filter()
 
         orphans = []
@@ -383,10 +384,10 @@ def check_orphans():
                 {
                     "uri": entity["uri"],
                     "label": custom_filter.human_readable_entity(
-                        entity["uri"], (entity["type"], None)
+                        entity["uri"], (entity["type"], entity_shape)
                     ),
-                    "type": custom_filter.human_readable_predicate(
-                        entity["type"], (entity["type"], None)
+                    "type": custom_filter.human_readable_class(
+                        (entity["type"], entity_shape)
                     ),
                     "is_intermediate": is_intermediate,
                 }

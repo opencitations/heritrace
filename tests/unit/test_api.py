@@ -846,14 +846,15 @@ def test_check_orphans_with_orphans_delete_strategy(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with orphans and DELETE strategy."""
-    # Mock the custom filter
-    mock_filter = mock_get_custom_filter.return_value
-    mock_filter.human_readable_entity.return_value = "Human Readable Entity"
-    mock_filter.human_readable_predicate.return_value = "Human Readable Type"
-
+    # Set up the mock custom filter to return static values to avoid serialization issues
+    custom_filter = MagicMock()
+    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.human_readable_class.return_value = "Human Readable Type"
+    mock_get_custom_filter.return_value = custom_filter
+    
     # Mock the find_orphaned_entities function to return orphans
     mock_find_orphaned.return_value = (
-        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type"}],
+        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type", "shape": "http://example.org/Shape"}],
         [],
     )
 
@@ -894,15 +895,16 @@ def test_check_orphans_with_proxies_delete_strategy(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with proxies and DELETE strategy."""
-    # Mock the custom filter
-    mock_filter = mock_get_custom_filter.return_value
-    mock_filter.human_readable_entity.return_value = "Human Readable Entity"
-    mock_filter.human_readable_predicate.return_value = "Human Readable Type"
-
+    # Set up the mock custom filter to return static values to avoid serialization issues
+    custom_filter = MagicMock()
+    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.human_readable_class.return_value = "Human Readable Type"
+    mock_get_custom_filter.return_value = custom_filter
+    
     # Mock the find_orphaned_entities function to return proxies
     mock_find_orphaned.return_value = (
         [],
-        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType"}],
+        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType", "shape": "http://example.org/ProxyShape"}],
     )
 
     # Set the proxy handling strategy to DELETE
@@ -942,14 +944,15 @@ def test_check_orphans_with_orphans_ask_strategy(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with orphans and ASK strategy."""
-    # Mock the custom filter
-    mock_filter = mock_get_custom_filter.return_value
-    mock_filter.human_readable_entity.return_value = "Human Readable Entity"
-    mock_filter.human_readable_predicate.return_value = "Human Readable Type"
-
+    # Set up the mock custom filter to return static values to avoid serialization issues
+    custom_filter = MagicMock()
+    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.human_readable_class.return_value = "Human Readable Type"
+    mock_get_custom_filter.return_value = custom_filter
+    
     # Mock the find_orphaned_entities function to return orphans
     mock_find_orphaned.return_value = (
-        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type"}],
+        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type", "shape": "http://example.org/Shape"}],
         [],
     )
 
@@ -990,15 +993,16 @@ def test_check_orphans_with_proxies_ask_strategy(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with proxies and ASK strategy."""
-    # Mock the custom filter
-    mock_filter = mock_get_custom_filter.return_value
-    mock_filter.human_readable_entity.return_value = "Human Readable Entity"
-    mock_filter.human_readable_predicate.return_value = "Human Readable Type"
-
+    # Set up the mock custom filter to return static values to avoid serialization issues
+    custom_filter = MagicMock()
+    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.human_readable_class.return_value = "Human Readable Type"
+    mock_get_custom_filter.return_value = custom_filter
+    
     # Mock the find_orphaned_entities function to return proxies
     mock_find_orphaned.return_value = (
         [],
-        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType"}],
+        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType", "shape": "http://example.org/ProxyShape"}],
     )
 
     # Set the proxy handling strategy to ASK
@@ -1038,15 +1042,16 @@ def test_check_orphans_with_both_orphans_and_proxies(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with both orphans and proxies."""
-    # Mock the custom filter
-    mock_filter = mock_get_custom_filter.return_value
-    mock_filter.human_readable_entity.return_value = "Human Readable Entity"
-    mock_filter.human_readable_predicate.return_value = "Human Readable Type"
-
+    # Set up the mock custom filter to return static values to avoid serialization issues
+    custom_filter = MagicMock()
+    custom_filter.human_readable_entity.return_value = "Human Readable Entity"
+    custom_filter.human_readable_class.return_value = "Human Readable Type"
+    mock_get_custom_filter.return_value = custom_filter
+    
     # Mock the find_orphaned_entities function to return both orphans and proxies
     mock_find_orphaned.return_value = (
-        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type"}],
-        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType"}],
+        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type", "shape": "http://example.org/Shape"}],
+        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType", "shape": "http://example.org/ProxyShape"}],
     )
 
     # Set the strategies to ASK

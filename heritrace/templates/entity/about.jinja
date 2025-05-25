@@ -206,6 +206,7 @@
     const shacl = {{ shacl|tojson|safe }};
 
     const entity_type = "{{ entity_type }}";
+    const entity_shape = "{{ entity_shape }}";
     const subject = "{{ subject }}";
     const default_primary_source = "{{ default_primary_source }}";
     const format_source_api_url = "{{ url_for('api.format_source_api') }}";
@@ -215,6 +216,11 @@
 </script>
 
 {% include 'validation.jinja' %}
+
+<script src="{{ url_for('static', filename='js/resource_loader.js') }}"></script>
+{% include 'entity/similar_resources.jinja' %}
+{% include 'entity/linked_resources.jinja' %}
+
 {% include 'lock_workflow.jinja' with context %}
 
 <script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
@@ -297,7 +303,7 @@
         });
     }
 
-    function processOrphanCheck(changes, entity_type, successCallback) {
+    function processOrphanCheck(changes, entity_type, entity_shape, successCallback) {
         // Filter out changes that involve literals - only process delete operations that involve entities
         const entityChanges = changes.filter(change => {
             // Only process delete operations
@@ -338,7 +344,8 @@
             contentType: 'application/json',
             data: JSON.stringify({
                 'changes': entityChanges,
-                'entity_type': entity_type
+                'entity_type': entity_type,
+                'entity_shape': entity_shape
             }),
             success: function(response) {
                 // Close loading indicator
@@ -824,7 +831,7 @@
                         subject: subject
                     }];
 
-                    processOrphanCheck(changes, entity_type, function(affectedEntities, shouldDelete) {
+                    processOrphanCheck(changes, entity_type, entity_shape, function(affectedEntities, shouldDelete) {
                         const finalChanges = [{
                             action: "delete",
                             subject: subject,
@@ -866,7 +873,7 @@
                 return;
             }
             
-            processOrphanCheck(pendingChanges, entity_type, function(affectedEntities, shouldDelete) {
+            processOrphanCheck(pendingChanges, entity_type, entity_shape, function(affectedEntities, shouldDelete) {
                 // Aggiorna il primo elemento di pendingChanges con le informazioni sulle entità affette
                 if (affectedEntities && affectedEntities.length > 0) {
                     pendingChanges[0].affected_entities = affectedEntities;
@@ -897,9 +904,5 @@
         });
    });
 </script>
-
-<script src="{{ url_for('static', filename='js/resource_loader.js') }}"></script>
-{% include 'entity/similar_resources.jinja' %}
-{% include 'entity/linked_resources.jinja' %}
 
 {% endblock %}
