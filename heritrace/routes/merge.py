@@ -13,7 +13,7 @@ from heritrace.extensions import (get_counter_handler, get_custom_filter,
                                   get_provenance_endpoint, get_sparql)
 from heritrace.utils.display_rules_utils import (get_highest_priority_class,
                                                  get_similarity_properties)
-from heritrace.utils.shacl_utils import determine_shape_for_subject
+from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import get_entity_types
 from markupsafe import Markup
 from rdflib import URIRef
@@ -113,8 +113,8 @@ def execute_merge():
 
         entity1_type = get_highest_priority_class(entity1_types)
         entity2_type = get_highest_priority_class(entity2_types)
-        entity1_shape = determine_shape_for_subject(entity1_types)
-        entity2_shape = determine_shape_for_subject(entity2_types)
+        entity1_shape = determine_shape_for_classes(entity1_types)
+        entity2_shape = determine_shape_for_classes(entity2_types)
         entity1_label = custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape)) or entity1_uri
         entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) or entity2_uri
 
@@ -191,8 +191,8 @@ def compare_and_merge():
 
     entity1_type = get_highest_priority_class(entity1_types)
     entity2_type = get_highest_priority_class(entity2_types)
-    entity1_shape = determine_shape_for_subject(entity1_types)
-    entity2_shape = determine_shape_for_subject(entity2_types)
+    entity1_shape = determine_shape_for_classes(entity1_types)
+    entity2_shape = determine_shape_for_classes(entity2_types)
     entity1_label = custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape)) or entity1_uri
     entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) or entity2_uri
 

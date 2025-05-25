@@ -27,8 +27,8 @@ from heritrace.utils.primary_source_utils import (
     get_default_primary_source, save_user_default_primary_source)
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
-    fetch_current_state_with_related_entities, fetch_data_graph_for_subject,
-    get_entity_types, parse_sparql_update, determine_shape_for_subject)
+    determine_shape_for_classes, fetch_current_state_with_related_entities,
+    fetch_data_graph_for_subject, get_entity_types, parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from resources.datatypes import DATATYPE_MAPPING
@@ -95,36 +95,38 @@ def about(subject):
     mandatory_values = {}
     optional_values = {}
     valid_predicates = []
-    entity_type = None
+    highest_priority_class = None
+    entity_shape = None
     data_graph = None
-
+    
     if not is_deleted:
         data_graph = fetch_data_graph_for_subject(subject)
         if data_graph:
             triples = list(data_graph.triples((None, None, None)))
+            subject_classes = [o for s, p, o in data_graph.triples((URIRef(subject), RDF.type, None))]
+            
+            highest_priority_class = get_highest_priority_class(subject_classes)
+            entity_shape = determine_shape_for_classes(subject_classes)
+            
             (
                 can_be_added,
                 can_be_deleted,
                 datatypes,
                 mandatory_values,
                 optional_values,
-                subject_classes,
                 valid_predicates,
-            ) = get_valid_predicates(triples)
+            ) = get_valid_predicates(triples, highest_priority_class=highest_priority_class)
 
             grouped_triples, relevant_properties = get_grouped_triples(
-                subject, triples, subject_classes, valid_predicates
+                subject, triples, valid_predicates, highest_priority_class=highest_priority_class
             )
 
             can_be_added = [uri for uri in can_be_added if uri in relevant_properties]
             can_be_deleted = [
                 uri for uri in can_be_deleted if uri in relevant_properties
             ]
-
+    
     update_form = UpdateTripleForm()
-
-    entity_type = str(get_highest_priority_class(subject_classes)) if subject_classes else None
-    entity_shape = determine_shape_for_subject(subject_classes) if subject_classes else None
 
     form_fields = get_form_fields()
 
@@ -150,7 +152,7 @@ def about(subject):
         grouped_triples=grouped_triples,
         display_rules=get_display_rules(),
         form_fields=form_fields,
-        entity_type=entity_type,
+        entity_type=highest_priority_class,
         entity_shape=entity_shape,
         predicate_details_map=predicate_details_map,
         dataset_db_triplestore=current_app.config["DATASET_DB_TRIPLESTORE"],
@@ -841,7 +843,7 @@ def entity_history(entity_uri):
 
         events.append(event)
 
-    shape = determine_shape_for_subject(entity_classes)
+    shape = determine_shape_for_classes(entity_classes)
     entity_label = custom_filter.human_readable_entity(
         entity_uri, (highest_priority_class, shape), context_snapshot
     )
@@ -910,7 +912,7 @@ def _format_snapshot_description(
                             raw_merged_entity_classes
                         ) if raw_merged_entity_classes else None
 
-                        shape = determine_shape_for_subject(raw_merged_entity_classes)
+                        shape = determine_shape_for_classes(raw_merged_entity_classes)
                         merged_entity_label = custom_filter.human_readable_entity(
                             merged_entity_uri_from_desc,
                             (highest_priority_merged_class, shape),
@@ -925,7 +927,7 @@ def _format_snapshot_description(
                             )
 
     entity_class = get_highest_priority_class(entity_classes)
-    shape = determine_shape_for_subject(entity_classes)
+    shape = determine_shape_for_classes(entity_classes)
     entity_label_for_desc = custom_filter.human_readable_entity(
         entity_uri, (entity_class, shape), context_snapshot
     )
@@ -1041,18 +1043,19 @@ def entity_version(entity_uri, timestamp):
         subject_classes = [
             o for _, _, o in version.triples((URIRef(entity_uri), RDF.type, None))
         ]
+    
+    highest_priority_class = get_highest_priority_class(subject_classes)
+    entity_type = highest_priority_class
+    entity_shape = determine_shape_for_classes(subject_classes)
 
-    entity_type = get_highest_priority_class(subject_classes)
-    entity_shape = determine_shape_for_subject(subject_classes)
-
-    # Process and group triples
-    _, _, _, _, _, _, valid_predicates = get_valid_predicates(triples)
+    _, _, _, _, _, valid_predicates = get_valid_predicates(triples, highest_priority_class=highest_priority_class)
+    
     grouped_triples, relevant_properties = get_grouped_triples(
         entity_uri,
         triples,
-        subject_classes,
         valid_predicates,
         historical_snapshot=context_version,
+        highest_priority_class=entity_type
     )
 
     # Calculate version number
@@ -1482,7 +1485,7 @@ def format_triple_modification(
     """
     predicate = triple[1]
     entity_class = get_highest_priority_class(subject_classes)
-    entity_shape = determine_shape_for_subject(subject_classes)
+    entity_shape = determine_shape_for_classes(subject_classes)
     predicate_label = custom_filter.human_readable_predicate(predicate, (entity_class, entity_shape))
     object_value = triple[2]
 
@@ -1546,7 +1549,7 @@ def get_object_label(
     
     entity_type = str(entity_type)
     predicate = str(predicate)
-    predicate_shape = determine_shape_for_subject(entity_type)
+    predicate_shape = determine_shape_for_classes([entity_type])
 
     # Handle RDF type predicates
     if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
@@ -1581,7 +1584,7 @@ def get_object_label(
                     object_classes = [field["objectClass"]]
 
                 object_class = get_highest_priority_class(object_classes)
-                shape = determine_shape_for_subject(object_classes)
+                shape = determine_shape_for_classes(object_classes)
                 return custom_filter.human_readable_entity(
                     object_value, (object_class, shape), snapshot
                 )

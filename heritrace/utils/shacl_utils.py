@@ -52,12 +52,12 @@ def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict], app: Fla
     return ordered_form_fields
 
 
-def determine_shape_for_subject(class_list: List[str]) -> Optional[str]:
+def determine_shape_for_classes(class_list: List[str]) -> Optional[str]:
     """
-    Determine the most appropriate SHACL shape for a subject based on its class list.
+    Determine the most appropriate SHACL shape for a list of class URIs.
     
     Args:
-        class_list: List of class URIs the subject belongs to
+        class_list: List of class URIs to find shapes for
         
     Returns:
         The most appropriate shape URI based on priority, or None if no shapes are found

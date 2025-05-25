@@ -202,7 +202,11 @@ def get_highest_priority_class(subject_classes):
 
 
 def get_grouped_triples(
-    subject: URIRef, triples: List[Tuple[URIRef, URIRef, URIRef|Literal]], subject_classes: List[str], valid_predicates_info: List[str], historical_snapshot: Optional[Graph]=None
+    subject: URIRef, 
+    triples: List[Tuple[URIRef, URIRef, URIRef|Literal]], 
+    valid_predicates_info: List[str], 
+    historical_snapshot: Optional[Graph] = None,
+    highest_priority_class: Optional[str] = None
 ) -> Tuple[OrderedDict, set, dict]:
     """
     This function groups the triples based on the display rules. 
@@ -211,26 +215,22 @@ def get_grouped_triples(
     Args:
         subject: The subject URI
         triples: List of triples for the subject
-        subject_classes: List of class URIs for the subject
         valid_predicates_info: List of valid predicates for the subject
         historical_snapshot: Optional historical snapshot graph
+        highest_priority_class: The highest priority class URI for the subject
     
     Returns:
         Tuple of grouped triples, relevant properties, and fetched values map
     """
-    from heritrace.utils.shacl_utils import determine_shape_for_subject
+    from heritrace.utils.shacl_utils import determine_shape_for_classes
     display_rules = get_display_rules()
 
     grouped_triples = OrderedDict()
     relevant_properties = set()
-    fetched_values_map = (
-        dict()
-    )  # Map of original values to values returned by the query
+    fetched_values_map = dict()  # Map of original values to values returned by the query
     primary_properties = valid_predicates_info
-    highest_priority_class = get_highest_priority_class(subject_classes)
     
-    # Determine the most appropriate shape for the subject based on its classes
-    subject_shape = determine_shape_for_subject(subject_classes)
+    subject_shape = determine_shape_for_classes([highest_priority_class])
     # Find the matching rule using find_matching_rule function
     matching_rule = find_matching_rule(highest_priority_class, subject_shape, display_rules)
     
@@ -332,7 +332,7 @@ def get_grouped_triples(
     if display_rules:
         ordered_display_names = []
         for rule in display_rules:
-            if "target" in rule and "class" in rule["target"] and URIRef(rule["target"]["class"]) in subject_classes:
+            if "target" in rule and "class" in rule["target"] and URIRef(rule["target"]["class"]) == highest_priority_class:
                 for prop in rule.get("displayProperties", []):
                     if "displayRules" in prop:
                         for display_rule in prop["displayRules"]:

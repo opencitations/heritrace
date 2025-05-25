@@ -11,7 +11,7 @@ from heritrace.editor import Editor
 from heritrace.extensions import (get_custom_filter, get_dataset_endpoint,
                                   get_provenance_endpoint)
 from heritrace.services.resource_lock_manager import LockStatus
-from heritrace.utils.shacl_utils import determine_shape_for_subject
+from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.primary_source_utils import \
     save_user_default_primary_source
 from heritrace.utils.shacl_validation import validate_new_triple
@@ -956,7 +956,7 @@ def get_human_readable_entity():
 
     uri = request.form["uri"]
     entity_class = request.form["entity_class"]
-    shape = determine_shape_for_subject([entity_class])
+    shape = determine_shape_for_classes([entity_class])
     filter_instance = custom_filter
     readable = filter_instance.human_readable_entity(uri, (entity_class, shape))
     return readable

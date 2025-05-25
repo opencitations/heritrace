@@ -116,9 +116,9 @@ class TestGetAvailableClasses:
             }
         }
 
-        # Mock determine_shape_for_subject
+        # Mock determine_shape_for_classes
         with patch(
-            "heritrace.utils.sparql_utils.determine_shape_for_subject",
+            "heritrace.utils.sparql_utils.determine_shape_for_classes",
             return_value="http://example.org/PersonShape"
         ) as mock_determine_shape:
             # Configure the custom filter to return specific labels
@@ -173,9 +173,9 @@ class TestGetAvailableClasses:
             }
         }
 
-        # Mock determine_shape_for_subject
+        # Mock determine_shape_for_classes
         with patch(
-            "heritrace.utils.sparql_utils.determine_shape_for_subject",
+            "heritrace.utils.sparql_utils.determine_shape_for_classes",
             return_value="http://example.org/PersonShape"
         ) as mock_determine_shape:
             # Configure the custom filter to return specific labels
@@ -221,7 +221,7 @@ class TestBuildSortClause:
         entity_type = "http://example.org/Person"
         sort_property = "http://example.org/name"
         
-        with patch("heritrace.utils.sparql_utils.determine_shape_for_subject", return_value="http://example.org/PersonShape"):
+        with patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
             sort_clause = build_sort_clause(sort_property, entity_type)
 
             assert (
@@ -233,7 +233,7 @@ class TestBuildSortClause:
         entity_type = "http://example.org/Person"
         sort_property = "http://example.org/invalid"
 
-        with patch("heritrace.utils.sparql_utils.determine_shape_for_subject", return_value="http://example.org/PersonShape"):
+        with patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
             sort_clause = build_sort_clause(sort_property, entity_type)
 
             assert sort_clause == ""
@@ -244,7 +244,7 @@ class TestBuildSortClause:
         sort_property = "http://example.org/name"
 
         with patch("heritrace.utils.sparql_utils.get_display_rules", return_value=None):
-            with patch("heritrace.utils.sparql_utils.determine_shape_for_subject", return_value="http://example.org/PersonShape"):
+            with patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
                 sort_clause = build_sort_clause(sort_property, entity_type)
 
                 assert sort_clause == ""

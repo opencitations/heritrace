@@ -1,17 +1,21 @@
 import re
 from collections import defaultdict
+from typing import Dict, List, Optional, Tuple, Union
 
 import validators
 from flask_babel import gettext
 from heritrace.extensions import get_custom_filter, get_shacl_graph
-from resources.datatypes import DATATYPE_MAPPING
-from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
+from heritrace.utils.display_rules_utils import get_highest_priority_class
 from rdflib import RDF, XSD, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
+from resources.datatypes import DATATYPE_MAPPING
 
 
-def get_valid_predicates(triples):
+def get_valid_predicates(
+    triples: List[Tuple[URIRef, URIRef, Union[URIRef, Literal]]],
+    highest_priority_class: URIRef
+) -> Tuple[List[URIRef], List[URIRef], Dict, Dict, Dict, List[str]]:
     shacl = get_shacl_graph()
 
     existing_predicates = [triple[1] for triple in triples]
@@ -42,7 +46,6 @@ def get_valid_predicates(triples):
             default_datatypes,
             dict(),
             dict(),
-            [],
             [str(predicate) for predicate in existing_predicates],
         )
     if not shacl:
@@ -52,18 +55,14 @@ def get_valid_predicates(triples):
             default_datatypes,
             dict(),
             dict(),
-            s_types,
             [str(predicate) for predicate in existing_predicates],
         )
-
-    highest_priority_class = get_highest_priority_class(s_types)
-    s_types = [highest_priority_class] if highest_priority_class else s_types
 
     query_string = f"""
         SELECT ?predicate ?datatype ?maxCount ?minCount ?hasValue (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues) WHERE {{
             ?shape sh:targetClass ?type ;
                    sh:property ?property .
-            VALUES ?type {{<{'> <'.join(s_types)}>}}
+            VALUES ?type {{<{highest_priority_class}>}}
             ?property sh:path ?predicate .
             OPTIONAL {{?property sh:datatype ?datatype .}}
             OPTIONAL {{?property sh:maxCount ?maxCount .}}
@@ -148,7 +147,6 @@ def get_valid_predicates(triples):
         dict(datatypes),
         mandatory_values,
         optional_values,
-        s_types,
         {list(predicate_data.keys())[0] for predicate_data in valid_predicates},
     )
 
@@ -181,13 +179,11 @@ def validate_new_triple(
             else:
                 return Literal(new_value), old_value, ""
 
-    # Get entity types from the data graph
     s_types = [
         triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))
     ]
     highest_priority_class = get_highest_priority_class(s_types)
 
-    # If entity_types is provided, use it (useful for nested entities being created)
     if entity_types and not s_types:
         if isinstance(entity_types, list):
             s_types = entity_types

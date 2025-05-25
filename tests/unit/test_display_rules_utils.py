@@ -651,8 +651,8 @@ class TestGetGroupedTriples:
                         grouped_triples, relevant_properties = get_grouped_triples(
                             "http://example.org/person1",
                             mock_triples,
-                            mock_subject_classes,
                             mock_valid_predicates_info,
+                            highest_priority_class=URIRef("http://example.org/Person")
                         )
                         assert isinstance(grouped_triples, dict)
                         assert isinstance(relevant_properties, set)
@@ -668,8 +668,8 @@ class TestGetGroupedTriples:
                 grouped_triples, relevant_properties = get_grouped_triples(
                     "http://example.org/person1",
                     mock_triples,
-                    mock_subject_classes,
                     mock_valid_predicates_info,
+                    highest_priority_class=URIRef("http://example.org/Person")
                 )
                 assert isinstance(grouped_triples, dict)
                 assert isinstance(relevant_properties, set)
@@ -718,8 +718,8 @@ class TestGetGroupedTriples:
                     grouped_triples, relevant_properties = get_grouped_triples(
                         "http://example.org/person1",
                         mock_triples,
-                        mock_subject_classes,
                         mock_valid_predicates_info,
+                        highest_priority_class=URIRef("http://example.org/Person")
                     )
 
                     # Verify the intermediateRelation property is set
@@ -770,8 +770,8 @@ class TestGetGroupedTriples:
                     grouped_triples, relevant_properties = get_grouped_triples(
                         "http://example.org/person1",
                         mock_triples,
-                        mock_subject_classes,
                         mock_valid_predicates_info,
+                        highest_priority_class=URIRef("http://example.org/Person")
                     )
 
                     # Verify the intermediateRelation property is set correctly
@@ -825,8 +825,8 @@ class TestGetGroupedTriples:
                     grouped_triples, relevant_properties = get_grouped_triples(
                         "http://example.org/person1",
                         mock_triples,
-                        mock_subject_classes,
                         mock_valid_predicates_info,
+                        highest_priority_class=URIRef("http://example.org/Person")
                     )
 
                     # Verify the intermediateRelation property is set correctly in nested rules
@@ -881,8 +881,8 @@ class TestGetGroupedTriples:
                     grouped_triples, relevant_properties = get_grouped_triples(
                         "http://example.org/person1",
                         mock_triples,
-                        mock_subject_classes,
                         mock_valid_predicates_info,
+                        highest_priority_class=URIRef("http://example.org/Person")
                     )
 
                     # Verify the intermediateRelation property is inherited from parent to nested rules
@@ -941,8 +941,8 @@ class TestGetGroupedTriples:
                         grouped_triples, relevant_properties = get_grouped_triples(
                             "http://example.org/person1",
                             mock_triples,
-                            mock_subject_classes,
                             extended_predicates_info,
+                            highest_priority_class=URIRef("http://example.org/Person")
                         )
 
                         # Verify the orderedBy properties are set correctly in simple display name section
@@ -1001,8 +1001,8 @@ class TestGetGroupedTriples:
                     grouped_triples, relevant_properties = get_grouped_triples(
                         "http://example.org/person1",
                         mock_triples,
-                        mock_subject_classes,
                         extended_predicates_info,
+                        highest_priority_class=URIRef("http://example.org/Person")
                     )
 
                     # Verify the intermediateRelation property is set correctly in simple display name section
@@ -1033,7 +1033,7 @@ class TestProcessDisplayRule:
             return_value=("John Doe", "http://example.org/name1"),
         ):
             with patch(
-                "heritrace.utils.shacl_utils.determine_shape_for_subject",
+                "heritrace.utils.shacl_utils.determine_shape_for_classes",
                 return_value="http://example.org/PersonShape",
             ):
                 process_display_rule(
@@ -1071,7 +1071,7 @@ class TestProcessDisplayRule:
             return_value=("John Doe", "http://example.org/name1"),
         ):
             with patch(
-                "heritrace.utils.shacl_utils.determine_shape_for_subject",
+                "heritrace.utils.shacl_utils.determine_shape_for_classes",
                 return_value="http://example.org/PersonShape",
             ):
                 process_display_rule(
@@ -1109,7 +1109,7 @@ class TestProcessDisplayRule:
     
         with app.app_context():
             with patch(
-                "heritrace.utils.shacl_utils.determine_shape_for_subject",
+                "heritrace.utils.shacl_utils.determine_shape_for_classes",
                 return_value="http://example.org/AgeShape",
             ):
                 process_display_rule(

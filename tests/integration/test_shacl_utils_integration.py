@@ -3,17 +3,17 @@ from unittest.mock import Mock, patch
 
 import pytest
 from flask import Flask
+from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_display import (
     apply_display_rules_to_nested_shapes, execute_shacl_query,
-    get_object_class, get_property_order,
-    order_fields, process_query_results)
+    get_object_class, get_property_order, order_fields, process_query_results)
 from heritrace.utils.shacl_utils import (get_form_fields_from_shacl,
                                          process_nested_shapes)
 from heritrace.utils.shacl_validation import (convert_to_matching_class,
-                                               convert_to_matching_literal,
-                                               get_datatype_label,
-                                               get_valid_predicates,
-                                               validate_new_triple)
+                                              convert_to_matching_literal,
+                                              get_datatype_label,
+                                              get_valid_predicates,
+                                              validate_new_triple)
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 from tests.test_config import BASE_HERITRACE_DIR
 
@@ -258,8 +258,11 @@ def test_get_valid_predicates_journal_article(app: Flask, shacl_graph: Graph):
             test_graph.add((subject, RDF.type, URIRef("http://purl.org/spar/fabio/Expression")))
             
             # Get valid predicates
-            can_add, can_delete, datatypes, mandatory_values, optional_values, s_types, all_predicates = get_valid_predicates(
-                list(test_graph.triples((subject, None, None)))
+            triples = list(test_graph.triples((subject, None, None)))
+            s_types = [o for s, p, o in test_graph.triples((subject, RDF.type, None))]
+            highest_priority_class = get_highest_priority_class(s_types)
+            can_add, can_delete, datatypes, mandatory_values, optional_values, all_predicates = get_valid_predicates(
+                triples, highest_priority_class
             )
             
             # Convert URIRefs to strings for comparison
@@ -1007,21 +1010,22 @@ def test_validate_new_triple_with_uri_validation(app: Flask, shacl_graph: Graph,
 
 def test_get_valid_predicates_edge_cases():
     """Test get_valid_predicates with edge cases."""
-    # Test with empty triples
-    result = get_valid_predicates([])
-    # Just check that the function returns a list
-    assert isinstance(result, list) or isinstance(result, tuple)
+    # Test with empty triples and a default class
+    test_class = URIRef("http://example.org/TestClass")
+    result = get_valid_predicates([], test_class)
+    assert isinstance(result, tuple)
     
     # Test with triples that have no valid predicates
     triples = [
-        (URIRef("http://example.org/subject"), URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), URIRef("http://example.org/class"))
+        (URIRef("http://example.org/subject"), URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), URIRef("http://example.org/class")),
+        (URIRef("http://example.org/subject"), RDF.type, URIRef("http://example.org/TestClass"))
     ]
     
     # Mock the get_custom_filter function to return None
     with patch("heritrace.extensions.get_custom_filter", return_value=None):
         with patch("heritrace.extensions.get_shacl_graph", return_value=Graph()):
-            result = get_valid_predicates(triples)
-            # Just check that the function returns something without errors
+            test_class = URIRef("http://example.org/TestClass")
+            result = get_valid_predicates(triples, test_class)
             assert result is not None
 
 
@@ -1029,16 +1033,14 @@ def test_validate_new_triple_with_pattern_validation(app: Flask, shacl_graph: Gr
     """Test validate_new_triple with pattern validation."""
     with app.test_request_context():
         with app.app_context():
-            # Create an empty data graph for the subject
             data_graph = Graph()
             mock_fetch_data_graph.return_value = data_graph
             
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                # Create a test case for pattern validation
+                
                 subject = "https://example.org/identifier/test"
                 predicate = "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
                 
-                # Create a mock SPARQL query result for pattern validation
                 class MockRow:
                     def __init__(self, pattern, message=None, conditionPaths="", conditionValues=""):
                         self.pattern = pattern
@@ -1054,13 +1056,10 @@ def test_validate_new_triple_with_pattern_validation(app: Flask, shacl_graph: Gr
                         self.optionalValues = ""
                         self.shape = URIRef("http://example.org/TestShape")
                 
-                # Create a mock result with a pattern constraint
                 mock_results = [MockRow("10\.[0-9]{4,}/[a-zA-Z0-9.]+", "Invalid DOI format")]
                 
-                # Mock the query result
                 with patch("rdflib.graph.Graph.query", return_value=mock_results):
                     
-                    # Mock re.match to control pattern validation behavior
                     with patch("re.match") as mock_re_match:
                         # For invalid pattern
                         mock_re_match.return_value = None

@@ -11,7 +11,7 @@ from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (get_highest_priority_class,
                                                  get_sortable_properties,
                                                  is_entity_type_visible)
-from heritrace.utils.shacl_utils import determine_shape_for_subject
+from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
 from rdflib import RDF, ConjunctiveGraph, Graph, Literal, URIRef
@@ -64,7 +64,7 @@ def get_available_classes():
         count = int(result["count"]["value"])
         
         # Determiniamo la shape per questa classe
-        shape_uri = determine_shape_for_subject([class_uri])
+        shape_uri = determine_shape_for_classes([class_uri])
         
         # Creiamo la tupla (class_uri, shape_uri) come entity_key
         entity_key = (class_uri, shape_uri)
@@ -204,7 +204,7 @@ def get_entities_for_class(
     entities = []
     for result in entities_results["results"]["bindings"]:
         subject_uri = result["subject"]["value"]
-        shape = determine_shape_for_subject([selected_class])
+        shape = determine_shape_for_classes([selected_class])
         entity_label = custom_filter.human_readable_entity(
             subject_uri, (selected_class, shape), None
         )
@@ -225,7 +225,7 @@ def get_catalog_data(
         page (int): Current page number
         per_page (int): Items per page
         available_classes (list): List of available classes with their shapes,
-                                          to avoid redundant calls to determine_shape_for_subject
+                                          to avoid redundant calls to determine_shape_for_classes
         sort_property (str, optional): Property to sort by
         sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
 
@@ -576,7 +576,7 @@ def process_deleted_entity(result, sortable_properties):
             highest_priority_type, (highest_priority_type, None)
         ),
         "label": custom_filter.human_readable_entity(
-            entity_uri, (highest_priority_type, determine_shape_for_subject([highest_priority_type])), last_valid_state
+            entity_uri, (highest_priority_type, determine_shape_for_classes([highest_priority_type])), last_valid_state
         ),
         "entity_types": visible_types,
         "sort_values": sort_values,

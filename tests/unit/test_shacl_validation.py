@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from heritrace.utils.shacl_utils import determine_shape_for_subject
+from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.shacl_validation import (get_valid_predicates,
                                               validate_new_triple)
 from rdflib import RDF, XSD, Graph, Literal, URIRef
@@ -56,39 +56,29 @@ class TestShaclValidation(unittest.TestCase):
         ]
         
         with patch("heritrace.utils.shacl_validation.get_shacl_graph", return_value=None):
-            with patch("heritrace.utils.shacl_validation.get_highest_priority_class", return_value=None):
-                result = get_valid_predicates(triples)
-                
-                existing_predicates, can_be_added, default_datatypes, mandatory_values, can_be_deleted, s_types, valid_predicates = result
-                
-                self.assertEqual(len(existing_predicates), 3)
-                self.assertTrue(RDF.type in existing_predicates)
-                self.assertTrue(predicate1 in existing_predicates)
-                self.assertTrue(predicate2 in existing_predicates)
-                
-                self.assertEqual(existing_predicates, can_be_added)
-                
-                self.assertEqual(len(default_datatypes), 3)
-                for pred in [str(RDF.type), str(predicate1), str(predicate2)]:
-                    self.assertTrue(pred in default_datatypes)
-                    self.assertEqual(default_datatypes[pred], XSD.string)
-                
-                self.assertEqual(mandatory_values, {})
-                self.assertEqual(can_be_deleted, {})
-                
-                self.assertEqual(len(s_types), 1)
-                self.assertEqual(s_types[0], s_type)
-                
-                self.assertEqual(len(valid_predicates), 3)
-                self.assertTrue(str(RDF.type) in valid_predicates)
-                self.assertTrue(str(predicate1) in valid_predicates)
-                self.assertTrue(str(predicate2) in valid_predicates)
-                
-    def test_determine_shape_for_subject_no_shacl(self):
-        """Test that determine_shape_for_subject returns None when shacl_graph is None."""
-        class_list = ["http://example.org/TestClass1", "http://example.org/TestClass2"]
-        
-        with patch("heritrace.utils.shacl_utils.get_shacl_graph", return_value=None):
-            result = determine_shape_for_subject(class_list)
+            result = get_valid_predicates(triples, s_type)
             
+            can_add, can_delete, datatypes, mandatory_values, optional_values, all_predicates = result
+            
+            self.assertEqual(len(can_add), 3)
+            self.assertTrue(RDF.type in can_add)
+            self.assertTrue(predicate1 in can_add)
+            self.assertTrue(predicate2 in can_add)
+            
+            self.assertEqual(len(datatypes), 3)
+            for pred in [RDF.type, predicate1, predicate2]:
+                self.assertTrue(str(pred) in datatypes)
+                self.assertEqual(datatypes[str(pred)], XSD.string)
+                
+            self.assertEqual(mandatory_values, {})
+            self.assertEqual(optional_values, {})
+            self.assertEqual(len(can_delete), 3)
+            self.assertEqual(set(can_delete), {RDF.type, predicate1, predicate2})
+            self.assertEqual(len(all_predicates), 3)
+            
+    def test_determine_shape_for_classes_no_shacl(self):
+        """Test that determine_shape_for_classes returns None when shacl_graph is None."""
+        class_list = ["http://example.org/Class1"]
+        with patch('heritrace.utils.shacl_utils.get_shacl_graph', return_value=None):
+            result = determine_shape_for_classes(class_list)
             self.assertIsNone(result)
