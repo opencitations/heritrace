@@ -106,7 +106,7 @@
                         {% if details.uri == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
                             <p style="margin-left: 0.75rem">{{ (details.hasValue, details.subjectShape) | human_readable_class }}</p>
                         {% else %}
-                            <p style="margin-left: 0.75rem">{{ (details.hasValue, details.subjectShape) | human_readable_predicate }}</p>
+                            <p style="margin-left: 0.75rem">{{ details.hasValue | human_readable_predicate((details.subjectClass, details.subjectShape)) }}</p>
                         {% endif %}
                     </div>
                 </span>
@@ -121,7 +121,7 @@
             <div class="newEntityPropertyContainer w-75">
                 <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
                     {% for val in details.optionalValues %}
-                        <option value="{{ val }}">{{ (val, details.subjectShape) | human_readable_predicate }}</option>
+                        <option value="{{ val }}">{{ val | human_readable_predicate((details.subjectClass, details.subjectShape)) }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -340,7 +340,6 @@
     {% set shape = grouped_triples_data.get('shape') %}
     {% set intermediate_relation = grouped_triples_data.get('intermediateRelation', {}) %}
     {% set target_entity_type = intermediate_relation.get('targetEntityType') if intermediate_relation else None %}
-
     <div data-repeater-item class="input-group d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
         data-subject-id="{{ subject }}" 
         data-property-id="{{ triple[1] }}" 
@@ -358,7 +357,7 @@
                         </div>
                         <span style="margin-left: .75rem;">
                             {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                            <a href="{{url_for('entity.about', subject=triple[2])}}" 
+                            <a href="{{url_for('entity.about', subject=object)}}" 
                             class="draggable-entity-link"
                             data-bs-toggle="tooltip" 
                             data-bs-placement="top" 
@@ -370,7 +369,7 @@
                 {% else %}
                     <span style="margin-left: .75rem;">
                         {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                        <a href="{{url_for('entity.about', subject=triple[2])}}"
+                        <a href="{{url_for('entity.about', subject=object)}}"
                            class="draggable-entity-link"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top" 
@@ -386,7 +385,7 @@
                             {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
                                 {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_class }}
                             {% else %}
-                                {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_predicate }}
+                                {{ triple[2] | human_readable_predicate((grouped_triples_data.get('subjectClass'), grouped_triples_data.get('subjectShape'))) }}
                             {% endif %}
                         </p>
                         <i class="bi bi-question-circle-fill ms-2 text-info" 
@@ -408,7 +407,7 @@
                                     {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
                                         {{ (value, grouped_triples_data.get('subjectShape')) | human_readable_class }}
                                     {% else %}
-                                        {{ (value, grouped_triples_data.get('subjectShape')) | human_readable_predicate }}
+                                        {{ value | human_readable_predicate((grouped_triples_data.get('subjectClass'), grouped_triples_data.get('subjectShape'))) }}
                                     {% endif %}
                                 </option>
                             {% endfor %}
@@ -417,7 +416,7 @@
                             {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
                                 {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_class }}
                             {% else %}
-                                {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_predicate }}
+                                {{ triple[2] | human_readable_predicate((grouped_triples_data.get('subjectClass'), grouped_triples_data.get('subjectShape'))) }}
                             {% endif %}
                         </span>
                     </div>
@@ -540,7 +539,7 @@
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="{{_('Redirection to the entity %(entity)s', entity=triple[2])}}"
-                            href="{{url_for('entity.about', subject=triple[2])}}">
+                            href="{{ url_for('entity.about', subject=object) }}">
                                 <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
                             </a>
                         </div>

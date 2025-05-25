@@ -1174,7 +1174,7 @@ def test_get_human_readable_entity(mock_get_custom_filter, api_client: FlaskClie
     # Verify the mock was called correctly
     mock_filter.human_readable_entity.assert_called_once_with(
         "http://example.org/entity/1", 
-        ["http://example.org/EntityClass"]
+        ("http://example.org/EntityClass", None)
     )
 
 

@@ -15,7 +15,8 @@ def mock_filter():
     display_rules = [
         {
             "target": {
-                "class": "http://example.org/Person"
+                "class": "http://example.org/Person",
+                "shape": "http://example.org/PersonShape"
             },
             "displayName": "Person",
             "fetchUriDisplay": "SELECT ?name WHERE { [[uri]] <http://example.org/name> ?name }"
@@ -29,7 +30,9 @@ def test_get_fetch_uri_display_with_graph_success(mock_filter):
     """Test get_fetch_uri_display with a graph that returns results successfully."""
     # Setup
     uri = "http://example.org/person/1"
-    entity_classes = ["http://example.org/Person"]
+    rule = {
+        "fetchUriDisplay": "SELECT ?name WHERE { <http://example.org/person/1> <http://example.org/name> ?name }"
+    }
     
     # Create a mock graph that returns a result
     mock_graph = MagicMock(spec=Graph)
@@ -37,8 +40,11 @@ def test_get_fetch_uri_display_with_graph_success(mock_filter):
     mock_results.__iter__.return_value = [("John Doe",)]
     mock_graph.query.return_value = mock_results
     
-    # Execute
-    result = mock_filter.get_fetch_uri_display(uri, entity_classes, mock_graph)
+    with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
+        mock_find_rule.return_value = mock_filter.display_rules[0]
+        
+        # Execute
+        result = mock_filter.get_fetch_uri_display(uri, rule, mock_graph)
     
     # Verify
     assert result == "John Doe"
@@ -49,7 +55,9 @@ def test_get_fetch_uri_display_with_graph_exception(mock_filter):
     """Test get_fetch_uri_display with a graph that raises an exception."""
     # Setup
     uri = "http://example.org/person/1"
-    entity_classes = ["http://example.org/Person"]
+    rule = {
+        "fetchUriDisplay": "SELECT ?name WHERE { <http://example.org/person/1> <http://example.org/name> ?name }"
+    }
     
     # Create a mock graph that raises an exception
     mock_graph = MagicMock(spec=Graph)
@@ -57,7 +65,7 @@ def test_get_fetch_uri_display_with_graph_exception(mock_filter):
     
     # Execute
     with patch('builtins.print') as mock_print:
-        result = mock_filter.get_fetch_uri_display(uri, entity_classes, mock_graph)
+        result = mock_filter.get_fetch_uri_display(uri, rule, mock_graph)
     
     # Verify
     assert result is None
@@ -70,7 +78,9 @@ def test_get_fetch_uri_display_with_sparql_success(mock_filter):
     """Test get_fetch_uri_display with SPARQL endpoint that returns results successfully."""
     # Setup
     uri = "http://example.org/person/1"
-    entity_classes = ["http://example.org/Person"]
+    rule = {
+        "fetchUriDisplay": "SELECT ?name WHERE { <http://example.org/person/1> <http://example.org/name> ?name }"
+    }
     
     # Mock the SPARQL query response
     mock_response = {
@@ -86,7 +96,7 @@ def test_get_fetch_uri_display_with_sparql_success(mock_filter):
     # Execute
     with patch.object(mock_filter.sparql, 'query') as mock_query:
         mock_query.return_value.convert.return_value = mock_response
-        result = mock_filter.get_fetch_uri_display(uri, entity_classes, None)
+        result = mock_filter.get_fetch_uri_display(uri, rule, None)
     
     # Verify
     assert result == "John Doe"
@@ -97,13 +107,29 @@ def test_get_fetch_uri_display_with_sparql_exception(mock_filter):
     """Test get_fetch_uri_display with SPARQL endpoint that raises an exception."""
     # Setup
     uri = "http://example.org/person/1"
-    entity_classes = ["http://example.org/Person"]
+    rule = {
+        "fetchUriDisplay": "SELECT ?name WHERE { <http://example.org/person/1> <http://example.org/name> ?name }"
+    }
+    
+    # Mock the SPARQL query response
+    mock_response = {
+        "results": {
+            "bindings": [
+                {
+                    "name": {"value": "John Doe"}
+                }
+            ]
+        }
+    }
     
     # Execute
-    with patch.object(mock_filter.sparql, 'query') as mock_query:
-        mock_query.side_effect = Exception("Test exception")
-        with patch('builtins.print') as mock_print:
-            result = mock_filter.get_fetch_uri_display(uri, entity_classes, None)
+    with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
+        mock_find_rule.return_value = mock_filter.display_rules[0]
+        
+        with patch.object(mock_filter.sparql, 'query') as mock_query:
+            mock_query.side_effect = Exception("Test exception")
+            with patch('builtins.print') as mock_print:
+                result = mock_filter.get_fetch_uri_display(uri, rule, None)
     
     # Verify
     assert result is None
@@ -116,10 +142,10 @@ def test_get_fetch_uri_display_no_matching_class(mock_filter):
     """Test get_fetch_uri_display when no matching class is found."""
     # Setup
     uri = "http://example.org/person/1"
-    entity_classes = ["http://example.org/Organization"]  # Not matching any rule
+    rule = {}  # Empty rule with no fetchUriDisplay
     
     # Execute
-    result = mock_filter.get_fetch_uri_display(uri, entity_classes, None)
+    result = mock_filter.get_fetch_uri_display(uri, rule, None)
     
     # Verify
     assert result is None
@@ -129,13 +155,10 @@ def test_get_fetch_uri_display_no_fetch_uri_display(mock_filter):
     """Test get_fetch_uri_display when rule has no fetchUriDisplay."""
     # Setup
     uri = "http://example.org/person/1"
-    entity_classes = ["http://example.org/Person"]
-    
-    # Modify the display rules to remove fetchUriDisplay
-    mock_filter.display_rules[0].pop("fetchUriDisplay")
+    rule = {}  # Empty rule with no fetchUriDisplay
     
     # Execute
-    result = mock_filter.get_fetch_uri_display(uri, entity_classes, None)
+    result = mock_filter.get_fetch_uri_display(uri, rule, None)
     
     # Verify
     assert result is None
@@ -145,7 +168,9 @@ def test_get_fetch_uri_display_sparql_no_results(mock_filter):
     """Test get_fetch_uri_display with SPARQL endpoint that returns no results."""
     # Setup
     uri = "http://example.org/person/1"
-    entity_classes = ["http://example.org/Person"]
+    rule = {
+        "fetchUriDisplay": "SELECT ?name WHERE { <http://example.org/person/1> <http://example.org/name> ?name }"
+    }
     
     # Mock the SPARQL query response with no bindings
     mock_response = {
@@ -157,11 +182,23 @@ def test_get_fetch_uri_display_sparql_no_results(mock_filter):
     # Execute
     with patch.object(mock_filter.sparql, 'query') as mock_query:
         mock_query.return_value.convert.return_value = mock_response
-        result = mock_filter.get_fetch_uri_display(uri, entity_classes, None)
-    
-    # Verify
-    assert result is None
-    mock_query.assert_called_once()
+        result = mock_filter.get_fetch_uri_display(uri, rule, None)
+        
+        # Verify
+        assert result is None
+        mock_query.assert_called_once()
+        
+        # Test with no results.bindings
+        mock_response = {
+            "results": {}
+        }
+        mock_query.reset_mock()
+        with patch.object(mock_filter.sparql, 'query') as mock_query:
+            mock_query.return_value.convert.return_value = mock_response
+            result = mock_filter.get_fetch_uri_display(uri, rule, None)
+        
+        assert result is None
+        mock_query.assert_called_once()
 
 
 def test_human_readable_primary_source_none(mock_filter):

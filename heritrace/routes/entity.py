@@ -1,7 +1,7 @@
 import json
+import re
 from datetime import datetime
 from typing import List, Optional, Tuple
-import re
 
 import validators
 from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
@@ -9,13 +9,12 @@ from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
 from flask_babel import gettext
 from flask_login import current_user, login_required
 from heritrace.editor import Editor
-from heritrace.extensions import (
-    get_change_tracking_config,
-    get_custom_filter, get_dataset_endpoint,
-    get_dataset_is_quadstore, get_display_rules,
-    get_form_fields, get_provenance_endpoint,
-    get_provenance_sparql, get_shacl_graph,
-    get_sparql)
+from heritrace.extensions import (get_change_tracking_config,
+                                  get_custom_filter, get_dataset_endpoint,
+                                  get_dataset_is_quadstore, get_display_rules,
+                                  get_form_fields, get_provenance_endpoint,
+                                  get_provenance_sparql, get_shacl_graph,
+                                  get_sparql)
 from heritrace.forms import *
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (get_class_priority,
@@ -24,14 +23,13 @@ from heritrace.utils.display_rules_utils import (get_class_priority,
                                                  get_property_order_from_rules,
                                                  is_entity_type_visible)
 from heritrace.utils.filters import Filter
+from heritrace.utils.primary_source_utils import (
+    get_default_primary_source, save_user_default_primary_source)
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
     fetch_current_state_with_related_entities, fetch_data_graph_for_subject,
-    parse_sparql_update, get_entity_types
-)
+    get_entity_types, parse_sparql_update, determine_shape_for_subject)
 from heritrace.utils.uri_utils import generate_unique_uri
-from heritrace.utils.primary_source_utils import (get_default_primary_source,
-                                                 save_user_default_primary_source)
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from resources.datatypes import DATATYPE_MAPPING
 from SPARQLWrapper import JSON
@@ -140,12 +138,11 @@ def about(subject):
     )
     if can_be_added:
         create_form.predicate.choices = [
-            (p, get_custom_filter().human_readable_predicate((p, None)))
+            (p, get_custom_filter().human_readable_predicate(p, (entity_type, None)))
             for p in can_be_added
         ]
 
     form_fields = get_form_fields()
-    entity_types = list(form_fields.keys())
 
     predicate_details_map = {}
     for entity_type_key, predicates in form_fields.items():
@@ -156,6 +153,8 @@ def about(subject):
                 predicate_details_map[key] = details
 
     entity_type = str(get_highest_priority_class(subject_classes)) if subject_classes else None
+    entity_shape = determine_shape_for_subject(subject_classes) if subject_classes else None
+    
 
     return render_template(
         "entity/about.jinja",
@@ -170,11 +169,10 @@ def about(subject):
         optional_values=optional_values,
         shacl=bool(len(get_shacl_graph())),
         grouped_triples=grouped_triples,
-        subject_classes=[str(s_class) for s_class in subject_classes],
         display_rules=get_display_rules(),
         form_fields=form_fields,
-        entity_types=entity_types,
         entity_type=entity_type,
+        entity_shape=entity_shape,
         predicate_details_map=predicate_details_map,
         dataset_db_triplestore=current_app.config["DATASET_DB_TRIPLESTORE"],
         dataset_db_text_index_enabled=current_app.config[
@@ -632,8 +630,7 @@ def validate_entity_data(structured_data):
                 errors.append(
                     gettext(
                         "Property %(prop_uri)s requires at least %(min_count)d %(value)s",
-                        prop_uri=custom_filter.human_readable_predicate((
-                            prop_uri, None)),
+                        prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
                         min_count=min_count,
                         value=value,
                     )
@@ -643,8 +640,7 @@ def validate_entity_data(structured_data):
                 errors.append(
                     gettext(
                         "Property %(prop_uri)s allows at most %(max_count)d %(value)s",
-                        prop_uri=custom_filter.human_readable_predicate((
-                            prop_uri, None)),
+                        prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
                         max_count=max_count,
                         value=value,
                     )
@@ -657,8 +653,7 @@ def validate_entity_data(structured_data):
                     errors.append(
                         gettext(
                             "Property %(prop_uri)s requires the value %(mandatory_value)s",
-                            prop_uri=custom_filter.human_readable_predicate((
-                                prop_uri, None)),
+                            prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
                             mandatory_value=mandatory_value,
                         )
                     )
@@ -688,8 +683,7 @@ def validate_entity_data(structured_data):
                         if not is_valid_datatype:
                             expected_types = ", ".join(
                                 [
-                                    custom_filter.human_readable_predicate((
-                                        dtype, None))
+                                    custom_filter.human_readable_predicate(dtype, (entity_type, None))
                                     for dtype in datatypes
                                 ]
                             )
@@ -697,8 +691,7 @@ def validate_entity_data(structured_data):
                                 gettext(
                                     'Value "%(value)s" for property %(prop_uri)s is not of expected type %(expected_types)s',
                                     value=value,
-                                    prop_uri=custom_filter.human_readable_predicate((
-                                        prop_uri, None)),
+                                    prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
                                     expected_types=expected_types
                                 )
                             )
@@ -708,8 +701,7 @@ def validate_entity_data(structured_data):
                     if optional_values and value not in optional_values:
                         acceptable_values = ", ".join(
                             [
-                                custom_filter.human_readable_predicate((
-                                    val, None))
+                                custom_filter.human_readable_predicate(val, (entity_type, None))
                                 for val in optional_values
                             ]
                         )
@@ -717,8 +709,7 @@ def validate_entity_data(structured_data):
                             gettext(
                                 'Value "%(value)s" is not permitted for property %(prop_uri)s. Acceptable values are: %(acceptable_values)s',
                                 value=value,
-                                prop_uri=custom_filter.human_readable_predicate((
-                                    prop_uri, None)),
+                                prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
                                 acceptable_values=acceptable_values
                             )
                         )
@@ -738,8 +729,7 @@ def validate_entity_data(structured_data):
                     errors.append(
                         gettext(
                             "Missing required property: %(prop_uri)s requires at least %(min_count)d %(value)s",
-                            prop_uri=custom_filter.human_readable_predicate((
-                                prop_uri, None)),
+                            prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
                             min_count=min_count,
                             value=value,
                         )
@@ -873,8 +863,9 @@ def entity_history(entity_uri):
 
         events.append(event)
 
+    shape = determine_shape_for_subject(entity_classes)
     entity_label = custom_filter.human_readable_entity(
-        entity_uri, entity_classes, context_snapshot
+        entity_uri, (highest_priority_class, shape), context_snapshot
     )
 
     timeline_data = {
@@ -940,14 +931,11 @@ def _format_snapshot_description(
                         highest_priority_merged_class = get_highest_priority_class(
                             raw_merged_entity_classes
                         ) if raw_merged_entity_classes else None
-                        merged_entity_classes_for_label = (
-                            [highest_priority_merged_class]
-                            if highest_priority_merged_class
-                            else []
-                        )
+
+                        shape = determine_shape_for_subject(raw_merged_entity_classes)
                         merged_entity_label = custom_filter.human_readable_entity(
                             merged_entity_uri_from_desc,
-                            merged_entity_classes_for_label,
+                            (highest_priority_merged_class, shape),
                             previous_snapshot_graph,
                         )
                         if (
@@ -958,8 +946,10 @@ def _format_snapshot_description(
                                 match.group(0), f"merged with '{merged_entity_label}'"
                             )
 
+    entity_class = get_highest_priority_class(entity_classes)
+    shape = determine_shape_for_subject(entity_classes)
     entity_label_for_desc = custom_filter.human_readable_entity(
-        entity_uri, entity_classes, context_snapshot
+        entity_uri, (entity_class, shape), context_snapshot
     )
     if entity_label_for_desc and entity_label_for_desc != entity_uri:
         description = description.replace(f"'{entity_uri}'", f"'{entity_label_for_desc}'")
@@ -1074,7 +1064,8 @@ def entity_version(entity_uri, timestamp):
             o for _, _, o in version.triples((URIRef(entity_uri), RDF.type, None))
         ]
 
-    subject_classes = [get_highest_priority_class(subject_classes)]
+    entity_type = get_highest_priority_class(subject_classes)
+    entity_shape = determine_shape_for_subject(subject_classes)
 
     # Process and group triples
     _, _, _, _, _, _, valid_predicates = get_valid_predicates(triples)
@@ -1146,13 +1137,14 @@ def entity_version(entity_uri, timestamp):
     return render_template(
         "entity/version.jinja",
         subject=entity_uri,
+        entity_type=entity_type,
+        entity_shape=entity_shape,
         metadata={closest_timestamp: closest_metadata},
         timestamp=closest_timestamp,
         next_snapshot_timestamp=next_snapshot_timestamp,
         prev_snapshot_timestamp=prev_snapshot_timestamp,
         modifications=modifications,
         grouped_triples=grouped_triples,
-        subject_classes=subject_classes,
         version_number=version_number,
         version=context_version,
     )
@@ -1511,7 +1503,9 @@ def format_triple_modification(
         str: HTML text describing the modification
     """
     predicate = triple[1]
-    predicate_label = custom_filter.human_readable_predicate((predicate, None))
+    entity_class = get_highest_priority_class(subject_classes)
+    entity_shape = determine_shape_for_subject(subject_classes)
+    predicate_label = custom_filter.human_readable_predicate(predicate, (entity_class, entity_shape))
     object_value = triple[2]
 
     # Determine which snapshot to use for context
@@ -1574,10 +1568,11 @@ def get_object_label(
     
     entity_type = str(entity_type)
     predicate = str(predicate)
+    predicate_shape = determine_shape_for_subject(entity_type)
 
     # Handle RDF type predicates
     if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-        return custom_filter.human_readable_predicate((object_value, None)).title()
+        return custom_filter.human_readable_class((entity_type, predicate_shape))
 
     matching_key = None
     for key in form_fields.keys():
@@ -1607,24 +1602,26 @@ def get_object_label(
                 if not object_classes and field.get("objectClass"):
                     object_classes = [field["objectClass"]]
 
+                object_class = get_highest_priority_class(object_classes)
+                shape = determine_shape_for_subject(object_classes)
                 return custom_filter.human_readable_entity(
-                    object_value, object_classes, snapshot
+                    object_value, (object_class, shape), snapshot
                 )
 
         # Check for mandatory values
         if field.get("hasValue") == object_value:
-            return custom_filter.human_readable_predicate((object_value, None))
+            return custom_filter.human_readable_predicate(object_value, (entity_type, predicate_shape))
 
         # Check for optional values from a predefined set
         if object_value in field.get("optionalValues", []):
-            return custom_filter.human_readable_predicate((object_value, None))
+            return custom_filter.human_readable_predicate(object_value, (entity_type, predicate_shape))
 
     # Default to simple string representation for literal values
     if not validators.url(object_value):
-        return object_value
+        return str(object_value)
 
     # For any other URIs, use human_readable_predicate
-    return custom_filter.human_readable_predicate((object_value, None))
+    return custom_filter.human_readable_predicate(object_value, (entity_type, predicate_shape))
 
 
 def process_modification_data(data: dict) -> Tuple[str, List[dict]]:

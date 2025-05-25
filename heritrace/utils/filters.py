@@ -22,14 +22,22 @@ class Filter:
         self.sparql.setReturnFormat(JSON)
         self._query_lock = threading.Lock()
 
-    def human_readable_predicate(self, entity_key, is_link=False):
+    def human_readable_predicate(self, predicate_uri: str, entity_key: tuple[str, str], is_link=False):
+        """Get human readable label for a predicate in the context of an entity.
+        
+        Args:
+            predicate_uri: URI of the predicate to get label for
+            entity_key: Tuple of (class_uri, shape_uri) for the entity context
+            is_link: Whether to format as a link
+            
+        Returns:
+            str: Human readable label for the predicate
+        """
         from heritrace.utils.display_rules_utils import find_matching_rule
         
-        predicate_uri = entity_key[0]
-        shape_uri = entity_key[1]
-                
-        rule = find_matching_rule(predicate_uri, shape_uri, self.display_rules)
-
+        class_uri, shape_uri = entity_key
+        rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
+        
         if rule:
             if "displayProperties" in rule:
                 for display_property in rule["displayProperties"]:
@@ -97,47 +105,72 @@ class Filter:
         return self._format_uri_as_readable(class_uri)
 
     def human_readable_entity(
-        self, uri: str, entity_classes: list, graph: Graph | ConjunctiveGraph = None
+        self, uri: str, entity_key: tuple[str, str | None], graph: Graph | ConjunctiveGraph = None
     ) -> str:
-        subject_classes = [str(subject_class) for subject_class in entity_classes]
+        """Convert an entity URI to human-readable format using display rules.
+        
+        Args:
+            uri: The URI of the entity to format
+            entity_key: A tuple containing (class_uri, shape_uri)
+            graph: Optional graph to use for fetching URI display values
+            
+        Returns:
+            str: Human-readable representation of the entity
+        """
+        from heritrace.utils.display_rules_utils import find_matching_rule
+        
+        class_uri = entity_key[0]
+        shape_uri = entity_key[1]
+        
+        rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
+        if not rule:
+            return uri
+            
+        if "fetchUriDisplay" in rule:
+            uri_display = self.get_fetch_uri_display(uri, rule, graph)
+            if uri_display:
+                return uri_display
+                
+        if "displayName" in rule:
+            return rule["displayName"]
 
-        # Cerca prima una configurazione fetchUriDisplay
-        uri_display = self.get_fetch_uri_display(uri, subject_classes, graph)
-        if uri_display:
-            return uri_display
-
-        # Se non trova nulla, restituisce l'URI originale
         return uri
 
     def get_fetch_uri_display(
-        self, uri: str, entity_classes: list, graph: Graph | ConjunctiveGraph = None
+        self, uri: str, rule: dict, graph: Graph | ConjunctiveGraph = None
     ) -> str | None:
-        for entity_class in entity_classes:
-            for rule in self.display_rules:
-                # Check if the rule has the expected structure
-                if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_class and "fetchUriDisplay" in rule:
-                    query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri}>")
-                    if graph is not None:
-                        try:
-                            with self._query_lock:
-                                results = graph.query(query)
-                            for row in results:
-                                return str(row[0])
-                        except Exception as e:
-                            print(
-                                f"Error executing fetchUriDisplay query: {e}. {query}"
-                            )
-                    else:
-                        self.sparql.setQuery(query)
-                        try:
-                            results = self.sparql.query().convert()
-                            if results["results"]["bindings"]:
-                                # Prendi il primo binding e il primo (e unico) valore
-                                first_binding = results["results"]["bindings"][0]
-                                first_key = list(first_binding.keys())[0]
-                                return first_binding[first_key]["value"]
-                        except Exception as e:
-                            print(f"Error executing fetchUriDisplay query: {e}")
+        """Get a display value for an entity URI using fetchUriDisplay rules.
+        
+        Args:
+            uri: The URI to get a display value for
+            rule: The display rule containing the fetchUriDisplay query
+            graph: Optional graph to use for fetching URI display values
+            
+        Returns:
+            str | None: The display value if found, None otherwise
+        """
+        if "fetchUriDisplay" in rule:
+            query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri}>")
+            if graph is not None:
+                try:
+                    with self._query_lock:
+                        results = graph.query(query)
+                    for row in results:
+                        return str(row[0])
+                except Exception as e:
+                    print(
+                        f"Error executing fetchUriDisplay query: {e}. {query}"
+                    )
+            else:
+                self.sparql.setQuery(query)
+                try:
+                    results = self.sparql.query().convert()
+                    if results["results"]["bindings"]:
+                        first_binding = results["results"]["bindings"][0]
+                        first_key = list(first_binding.keys())[0]
+                        return first_binding[first_key]["value"]
+                except Exception as e:
+                    print(f"Error executing fetchUriDisplay query: {e}")
         return None
 
     def human_readable_datetime(self, dt_str):

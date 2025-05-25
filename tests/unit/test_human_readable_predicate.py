@@ -40,74 +40,84 @@ def mock_filter():
 
 def test_human_readable_predicate_with_display_rules(mock_filter):
     """Test human_readable_predicate when displayRules is present in the property."""
-    entity_key = ("http://example.org/predicate1", "http://example.org/Shape")
+    predicate_uri = "http://example.org/predicate1"
+    entity_key = ("http://example.org/Class", "http://example.org/Shape")
     
     with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
         mock_find_rule.return_value = mock_filter.display_rules[0]
         
-        result = mock_filter.human_readable_predicate(entity_key)
+        with patch.object(mock_filter, 'human_readable_predicate', wraps=mock_filter.human_readable_predicate) as wrapped_mock:
+            result = mock_filter.human_readable_predicate(predicate_uri, entity_key)
     
     assert result == "Predicate 1 Display Name"
+    # Verify that find_matching_rule was called with the correct entity_key tuple
     mock_find_rule.assert_called_once_with(
-        "http://example.org/predicate1", 
-        "http://example.org/Shape", 
+        entity_key[0],
+        entity_key[1], 
         mock_filter.display_rules
     )
 
 
 def test_human_readable_predicate_with_display_name(mock_filter):
     """Test human_readable_predicate when displayName is present in the property."""
-    entity_key = ("http://example.org/predicate2", "http://example.org/Shape")
+    predicate_uri = "http://example.org/predicate2"
+    entity_key = ("http://example.org/Class", "http://example.org/Shape")
     
     with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
         mock_find_rule.return_value = mock_filter.display_rules[0]
         
-        result = mock_filter.human_readable_predicate(entity_key)
+        with patch.object(mock_filter, '_format_uri_as_readable') as mock_format:
+            result = mock_filter.human_readable_predicate(predicate_uri, entity_key)
     
     assert result == "Predicate 2 Display Name"
+    # Verify that find_matching_rule was called with the correct entity_key tuple
     mock_find_rule.assert_called_once_with(
-        "http://example.org/predicate2", 
-        "http://example.org/Shape", 
+        entity_key[0],
+        entity_key[1], 
         mock_filter.display_rules
     )
 
 
 def test_human_readable_predicate_fallback(mock_filter):
     """Test human_readable_predicate fallback to _format_uri_as_readable."""
-    entity_key = ("http://example.org/unknown_predicate", "http://example.org/Shape")
+    predicate_uri = "http://example.org/unknown_predicate"
+    entity_key = ("http://example.org/Class", "http://example.org/Shape")
     
     with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
         mock_find_rule.return_value = mock_filter.display_rules[0]
         
         with patch.object(mock_filter, '_format_uri_as_readable', return_value="Formatted URI") as mock_format:
-            result = mock_filter.human_readable_predicate(entity_key)
+            result = mock_filter.human_readable_predicate(predicate_uri, entity_key)
     
     assert result == "Formatted URI"
+    # Verify that find_matching_rule was called with the correct entity_key tuple
     mock_find_rule.assert_called_once_with(
-        "http://example.org/unknown_predicate", 
-        "http://example.org/Shape", 
+        entity_key[0],
+        entity_key[1], 
         mock_filter.display_rules
     )
-    mock_format.assert_called_once_with("http://example.org/unknown_predicate", False)
+    mock_format.assert_called_once_with(predicate_uri, False)
 
 
 def test_human_readable_predicate_no_rule(mock_filter):
     """Test human_readable_predicate when no rule is found."""
-    entity_key = ("http://example.org/predicate1", "http://example.org/Shape")
+    predicate_uri = "http://example.org/predicate1"
+    entity_key = ("http://example.org/Class", "http://example.org/Shape")
     
     with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
         mock_find_rule.return_value = None
         
         with patch.object(mock_filter, '_format_uri_as_readable', return_value="Formatted URI") as mock_format:
-            result = mock_filter.human_readable_predicate(entity_key)
+            result = mock_filter.human_readable_predicate(predicate_uri, entity_key)
     
     assert result == "Formatted URI"
+    # Verify that find_matching_rule was called with the correct entity_key tuple
     mock_find_rule.assert_called_once_with(
-        "http://example.org/predicate1", 
-        "http://example.org/Shape", 
+        entity_key[0],
+        entity_key[1], 
         mock_filter.display_rules
     )
-    mock_format.assert_called_once_with("http://example.org/predicate1", False)
+    mock_format.assert_called_once_with(predicate_uri, False)
 
 
 def test_format_uri_as_readable_with_link(mock_filter):

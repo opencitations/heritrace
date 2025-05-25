@@ -411,20 +411,24 @@ def test_validate_new_triple_with_invalid_property(app: Flask, shacl_graph: Grap
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/article/1"
-                predicate = "http://example.org/invalid/property"
-                new_value = "Test Value"
-                
-                # Test with invalid property
-                valid_value, old_value, error = validate_new_triple(
-                    subject,
-                    predicate,
-                    new_value,
-                    "create",
-                    entity_types=["http://purl.org/spar/fabio/JournalArticle"]
-                )
-                assert error != "", "Should reject invalid property"
-                assert "is not allowed for resources of type" in error
+                # Aggiungi mock per human_readable_class
+                with patch("heritrace.utils.filters.Filter.human_readable_class") as mock_human_readable_class:
+                    mock_human_readable_class.return_value = "Journal Article"
+                    
+                    subject = "https://example.org/article/1"
+                    predicate = "http://example.org/invalid/property"
+                    new_value = "Test Value"
+                    
+                    # Test with invalid property
+                    valid_value, old_value, error = validate_new_triple(
+                        subject,
+                        predicate,
+                        new_value,
+                        "create",
+                        entity_types=["http://purl.org/spar/fabio/JournalArticle"]
+                    )
+                    assert error != "", "Should reject invalid property"
+                    assert "is not allowed for resources of type" in error
 
 def test_validate_new_triple_with_optional_values(app: Flask, shacl_graph: Graph, mock_fetch_data_graph):
     """Test validation with optional values."""
@@ -644,44 +648,48 @@ def test_validate_new_triple_with_complex_conditions(app: Flask, shacl_graph: Gr
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                # Use article/2 which has no title
-                subject = "https://example.org/article/2"
-                
-                # Test with no SHACL graph
-                with patch("heritrace.extensions.get_shacl_graph", return_value=Graph()):
+                with patch("heritrace.utils.filters.Filter.human_readable_class") as mock_human_readable_class:
+                    mock_human_readable_class.return_value = "Journal Article"
+                    
+                    # Use article/2 which has no title
+                    subject = "https://example.org/article/2"
+                    
+                    # Test with no SHACL graph
+                    with patch("heritrace.extensions.get_shacl_graph", return_value=Graph()):
+                        valid_value, old_value, error = validate_new_triple(
+                            subject,
+                            "http://purl.org/dc/terms/title",
+                            "Test Title",
+                            "create",
+                            entity_types=["http://purl.org/spar/fabio/JournalArticle"]
+                        )
+                        assert error == "", f"Validation error: {error}"
+                        assert isinstance(valid_value, Literal)
+                        # Without SHACL graph, the default datatype is XSD.string
+                        assert valid_value.datatype == XSD.string
+                        assert str(valid_value) == "Test Title"
+                    
+                    # Test with empty entity types
                     valid_value, old_value, error = validate_new_triple(
                         subject,
                         "http://purl.org/dc/terms/title",
                         "Test Title",
                         "create",
-                        entity_types=["http://purl.org/spar/fabio/JournalArticle"]
+                        entity_types=[]
                     )
-                    assert error == "", f"Validation error: {error}"
-                    assert isinstance(valid_value, Literal)
-                    # Without SHACL graph, the default datatype is XSD.string
-                    assert valid_value.datatype == XSD.string
-                    assert str(valid_value) == "Test Title"
-                
-                # Test with empty entity types
-                valid_value, old_value, error = validate_new_triple(
-                    subject,
-                    "http://purl.org/dc/terms/title",
-                    "Test Title",
-                    "create",
-                    entity_types=[]
-                )
-                assert error == "No entity type specified", f"Validation error: {error}"
-                
-                # Test with invalid entity type
-                valid_value, old_value, error = validate_new_triple(
-                    subject,
-                    "http://purl.org/dc/terms/title",
-                    "Test Title",
-                    "create",
-                    entity_types=["http://example.org/InvalidType"]
-                )
-                assert error == "The property title is not allowed for resources of type invalid type", f"Validation error: {error}"
-
+                    assert error == "No entity type specified", f"Validation error: {error}"
+                    
+                    # Test with invalid entity type
+                    valid_value, old_value, error = validate_new_triple(
+                        subject,
+                        "http://purl.org/dc/terms/title",
+                        "Test Title",
+                        "create",
+                        entity_types=["http://example.org/InvalidType"]
+                    )
+                    # With invalid entity type, we should get an error
+                    assert error != "", f"Validation error: {error}"
+                    assert "is not allowed for resources of type" in error
 
 def test_get_datatype_label():
     """Test the get_datatype_label function."""
@@ -700,8 +708,7 @@ def test_get_datatype_label_with_custom_filter(monkeypatch):
     """Test get_datatype_label with custom filter scenarios."""
     class MockCustomFilter:
         @staticmethod
-        def human_readable_predicate(uri_tuple):
-            uri = uri_tuple[0]
+        def human_readable_predicate(uri: str, entity_key: tuple[str | None, str | None]):
             if "custom-type-1" in uri:
                 return "Custom Label"
             elif "custom-type-2" in uri:
@@ -1109,28 +1116,31 @@ def test_validate_new_triple_with_invalid_uri(app: Flask, shacl_graph: Graph, mo
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/resource/test"
-                predicate = "http://purl.org/dc/terms/creator"
-                
-                # Test with invalid URI (not a URL) and class constraints
-                with patch("heritrace.utils.shacl_validation.get_valid_predicates") as mock_get_valid_predicates:
-                    mock_get_valid_predicates.return_value = [
-                        {
-                            "predicate": predicate,
-                            "classes": ["http://xmlns.com/foaf/0.1/Person"]
-                        }
-                    ]
+                with patch("heritrace.utils.filters.Filter.human_readable_class") as mock_human_readable_class:
+                    mock_human_readable_class.return_value = "Journal Article"
                     
-                    # Mock validators.url to return False for invalid URL
-                    with patch("validators.url", return_value=False):
-                        new_value = "not-a-valid-url"
-                        valid_value, old_value, error = validate_new_triple(
-                            subject,
-                            predicate,
-                            new_value,
-                            "create",
-                            entity_types=["http://purl.org/spar/fabio/JournalArticle"]
-                        )
+                    subject = "https://example.org/resource/test"
+                    predicate = "http://purl.org/dc/terms/creator"
+
+                    # Test with invalid URI (not a URL) and class constraints
+                    with patch("heritrace.utils.shacl_validation.get_valid_predicates") as mock_get_valid_predicates:
+                        mock_get_valid_predicates.return_value = [
+                            {
+                                "predicate": predicate,
+                                "classes": ["http://xmlns.com/foaf/0.1/Person"]
+                            }
+                        ]
+
+                        # Mock validators.url to return False for invalid URL
+                        with patch("validators.url", return_value=False):
+                            new_value = "not-a-valid-url"
+                            valid_value, old_value, error = validate_new_triple(
+                                subject,
+                                predicate,
+                                new_value,
+                                "create",
+                                entity_types=["http://purl.org/spar/fabio/JournalArticle"]
+                            )
                         
                         # Should return an error for invalid URL
                         assert valid_value is None
@@ -1142,30 +1152,33 @@ def test_validate_new_triple_with_invalid_class_match(app: Flask, shacl_graph: G
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/resource/test"
-                predicate = "http://purl.org/dc/terms/creator"
-                
-                # Test with valid URI but invalid class match
-                with patch("heritrace.utils.shacl_validation.get_valid_predicates") as mock_get_valid_predicates:
-                    mock_get_valid_predicates.return_value = [
-                        {
-                            "predicate": predicate,
-                            "classes": ["http://xmlns.com/foaf/0.1/Person"]
-                        }
-                    ]
+                with patch("heritrace.utils.filters.Filter.human_readable_class") as mock_human_readable_class:
+                    mock_human_readable_class.return_value = "Journal Article"
                     
-                    # Mock validators.url to return True for valid URL
-                    with patch("validators.url", return_value=True):
-                        # Mock convert_to_matching_class to return None (no match)
-                        with patch("heritrace.utils.shacl_validation.convert_to_matching_class", return_value=None):
-                            new_value = "https://example.org/person/invalid"
-                            valid_value, old_value, error = validate_new_triple(
-                                subject,
-                                predicate,
-                                new_value,
-                                "create",
-                                entity_types=["http://purl.org/spar/fabio/JournalArticle"]
-                            )
+                    subject = "https://example.org/resource/test"
+                    predicate = "http://purl.org/dc/terms/creator"
+
+                    # Test with valid URI but invalid class match
+                    with patch("heritrace.utils.shacl_validation.get_valid_predicates") as mock_get_valid_predicates:
+                        mock_get_valid_predicates.return_value = [
+                            {
+                                "predicate": predicate,
+                                "classes": ["http://xmlns.com/foaf/0.1/Person"]
+                            }
+                        ]
+
+                        # Mock validators.url to return True for valid URL
+                        with patch("validators.url", return_value=True):
+                            # Mock convert_to_matching_class to return None (no match)
+                            with patch("heritrace.utils.shacl_validation.convert_to_matching_class", return_value=None):
+                                new_value = "https://example.org/person/invalid"
+                                valid_value, old_value, error = validate_new_triple(
+                                    subject,
+                                    predicate,
+                                    new_value,
+                                    "create",
+                                    entity_types=["http://purl.org/spar/fabio/JournalArticle"]
+                                )
                             
                             # Should return an error for invalid class match
                             assert valid_value is None

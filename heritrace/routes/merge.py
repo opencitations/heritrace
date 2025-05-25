@@ -11,7 +11,9 @@ from heritrace.extensions import (get_counter_handler, get_custom_filter,
                                   get_dataset_endpoint,
                                   get_dataset_is_quadstore,
                                   get_provenance_endpoint, get_sparql)
-from heritrace.utils.display_rules_utils import get_similarity_properties
+from heritrace.utils.display_rules_utils import (get_highest_priority_class,
+                                                 get_similarity_properties)
+from heritrace.utils.shacl_utils import determine_shape_for_subject
 from heritrace.utils.sparql_utils import get_entity_types
 from markupsafe import Markup
 from rdflib import URIRef
@@ -68,7 +70,8 @@ def get_entity_details(entity_uri: str) -> Tuple[Optional[Dict[str, Any]], List[
             }
             if obj_details["type"] == 'uri':
                 obj_types = get_entity_types(obj_details["value"])
-                obj_details["readable_label"] = custom_filter.human_readable_entity(obj_details["value"], obj_types)
+                obj_type = get_highest_priority_class(obj_types)
+                obj_details["readable_label"] = custom_filter.human_readable_entity(obj_details["value"], (obj_type, None))
             else:
                  obj_details["readable_label"] = obj_details["value"]
 
@@ -107,8 +110,13 @@ def execute_merge():
 
         _, entity1_types = get_entity_details(entity1_uri)
         _, entity2_types = get_entity_details(entity2_uri)
-        entity1_label = custom_filter.human_readable_entity(entity1_uri, entity1_types) or entity1_uri
-        entity2_label = custom_filter.human_readable_entity(entity2_uri, entity2_types) or entity2_uri
+
+        entity1_type = get_highest_priority_class(entity1_types)
+        entity2_type = get_highest_priority_class(entity2_types)
+        entity1_shape = determine_shape_for_subject(entity1_types)
+        entity2_shape = determine_shape_for_subject(entity2_types)
+        entity1_label = custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape)) or entity1_uri
+        entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) or entity2_uri
 
         counter_handler = get_counter_handler()
         resp_agent_uri = URIRef(f"https://orcid.org/{current_user.orcid}") if current_user.is_authenticated and hasattr(current_user, 'orcid') else None
@@ -181,8 +189,12 @@ def compare_and_merge():
         flash(gettext("Could not retrieve details for one or both entities. Check logs."), "danger")
         return redirect(url_for("main.catalogue"))
 
-    entity1_label = custom_filter.human_readable_entity(entity1_uri, entity1_types) or entity1_uri
-    entity2_label = custom_filter.human_readable_entity(entity2_uri, entity2_types) or entity2_uri
+    entity1_type = get_highest_priority_class(entity1_types)
+    entity2_type = get_highest_priority_class(entity2_types)
+    entity1_shape = determine_shape_for_subject(entity1_types)
+    entity2_shape = determine_shape_for_subject(entity2_types)
+    entity1_label = custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape)) or entity1_uri
+    entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) or entity2_uri
 
 
     entity1_data = {
@@ -361,8 +373,10 @@ def find_similar_resources():
         for uri in results_to_process:
             # Fetch types and generate labels for each candidate
             sim_types = get_entity_types(uri)
-            readable_label = custom_filter.human_readable_entity(uri, sim_types) if sim_types else uri
-            type_labels = [custom_filter.human_readable_predicate((type_uri, None)) for type_uri in sim_types] if sim_types else []
+
+            sim_type = get_highest_priority_class(sim_types) if sim_types else None
+            readable_label = custom_filter.human_readable_entity(uri, (sim_type, None)) if sim_type else uri
+            type_labels = [custom_filter.human_readable_predicate(type_uri, (type_uri, None)) for type_uri in sim_types] if sim_types else []
             transformed_results.append({
                 "uri": uri,
                 "label": readable_label or uri, # Ensure label is not empty

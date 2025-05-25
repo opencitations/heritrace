@@ -1033,7 +1033,7 @@ class TestProcessDisplayRule:
             return_value=("John Doe", "http://example.org/name1"),
         ):
             with patch(
-                "heritrace.utils.entity_utils.get_entity_shape",
+                "heritrace.utils.shacl_utils.determine_shape_for_subject",
                 return_value="http://example.org/PersonShape",
             ):
                 process_display_rule(
@@ -1071,7 +1071,7 @@ class TestProcessDisplayRule:
             return_value=("John Doe", "http://example.org/name1"),
         ):
             with patch(
-                "heritrace.utils.entity_utils.get_entity_shape",
+                "heritrace.utils.shacl_utils.determine_shape_for_subject",
                 return_value="http://example.org/PersonShape",
             ):
                 process_display_rule(
@@ -1088,7 +1088,7 @@ class TestProcessDisplayRule:
             assert display_name in grouped_triples
             assert len(grouped_triples[display_name]["triples"]) == 1
 
-    def test_process_display_rule_without_fetch_value(self):
+    def test_process_display_rule_without_fetch_value(self, app):
         """Test processing display rule without fetchValueFromQuery."""
         display_name = "Age"
         prop_uri = "http://example.org/age"
@@ -1107,19 +1107,20 @@ class TestProcessDisplayRule:
             )
         ]
     
-        with patch(
-            "heritrace.utils.entity_utils.get_entity_shape",
-            return_value="http://example.org/AgeShape",
-        ):
-            process_display_rule(
-                display_name,
-                prop_uri,
-                rule,
-                subject,
-                test_triples,
-                grouped_triples,
-                fetched_values_map,
-            )
+        with app.app_context():
+            with patch(
+                "heritrace.utils.shacl_utils.determine_shape_for_subject",
+                return_value="http://example.org/AgeShape",
+            ):
+                process_display_rule(
+                    display_name,
+                    prop_uri,
+                    rule,
+                    subject,
+                    test_triples,
+                    grouped_triples,
+                    fetched_values_map,
+                )
 
         assert display_name in grouped_triples
         assert len(grouped_triples[display_name]["triples"]) == 1

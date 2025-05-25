@@ -3,7 +3,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List
 
 from heritrace.editor import Editor
-from heritrace.extensions import (display_rules, get_change_tracking_config,
+from heritrace.extensions import (get_change_tracking_config,
                                   get_custom_filter, get_dataset_is_quadstore,
                                   get_display_rules, get_provenance_sparql,
                                   get_sparql)
@@ -83,7 +83,7 @@ def get_available_classes():
     return available_classes
 
 
-def build_sort_clause(sort_property: str, entity_type: str, display_rules) -> str:
+def build_sort_clause(sort_property: str, entity_type: str) -> str:
     """
     Costruisce la clausola di ordinamento SPARQL in base alla configurazione sortableBy.
 
@@ -94,6 +94,8 @@ def build_sort_clause(sort_property: str, entity_type: str, display_rules) -> st
     Returns:
         Clausola SPARQL per l'ordinamento o stringa vuota
     """
+    display_rules = get_display_rules()
+
     if not display_rules or not sort_property:
         return ""
 
@@ -141,7 +143,7 @@ def get_entities_for_class(
     sort_clause = ""
     order_clause = "ORDER BY ?subject"
     if sort_property:
-        sort_clause = build_sort_clause(sort_property, selected_class, display_rules)
+        sort_clause = build_sort_clause(sort_property, selected_class)
         order_clause = f"ORDER BY {sort_direction}(?sortValue)"
 
     # Build query based on database type
@@ -202,8 +204,9 @@ def get_entities_for_class(
     entities = []
     for result in entities_results["results"]["bindings"]:
         subject_uri = result["subject"]["value"]
+        shape = determine_shape_for_subject([selected_class])
         entity_label = custom_filter.human_readable_entity(
-            subject_uri, [selected_class]
+            subject_uri, (selected_class, shape), None
         )
 
         entities.append({"uri": subject_uri, "label": entity_label})
@@ -473,7 +476,7 @@ def get_deleted_entities_with_filtering(
     available_classes = [
         {
             "uri": class_uri,
-            "label": custom_filter.human_readable_predicate(((class_uri, None))),
+            "label": custom_filter.human_readable_class((class_uri, None)),
             "count": count,
         }
         for class_uri, count in class_counts.items()
@@ -569,11 +572,11 @@ def process_deleted_entity(result, sortable_properties):
             result.get("agent", {}).get("value", "")
         ),
         "lastValidSnapshotTime": last_valid_snapshot_time,
-        "type": custom_filter.human_readable_predicate((
-            (highest_priority_type, None))
+        "type": custom_filter.human_readable_predicate(
+            highest_priority_type, (highest_priority_type, None)
         ),
         "label": custom_filter.human_readable_entity(
-            entity_uri, [highest_priority_type], last_valid_state
+            entity_uri, (highest_priority_type, determine_shape_for_subject([highest_priority_type])), last_valid_state
         ),
         "entity_types": visible_types,
         "sort_values": sort_values,

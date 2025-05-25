@@ -5,6 +5,7 @@ from flask_babel import gettext
 from flask_login import login_required
 from heritrace.extensions import get_custom_filter, get_sparql
 from heritrace.utils.display_rules_utils import get_highest_priority_class
+from heritrace.utils.shacl_utils import determine_shape_for_subject
 from heritrace.utils.sparql_utils import get_entity_types
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
@@ -70,13 +71,14 @@ def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) 
             types = get_entity_types(subject)
             highest_priority_type = get_highest_priority_class(types) if types else None
             display_types = [highest_priority_type] if highest_priority_type else []
-            type_labels = [custom_filter.human_readable_predicate((t, None)) for t in display_types] if display_types else []
-            label = custom_filter.human_readable_entity(subject, display_types)
+            type_labels = [custom_filter.human_readable_predicate(t, (t, None)) for t in display_types] if display_types else []
+            shape = determine_shape_for_subject(types) if types else None
+            label = custom_filter.human_readable_entity(subject, (highest_priority_type, shape))
 
             references.append({
                 "subject": subject,
                 "predicate": predicate,
-                "predicate_label": custom_filter.human_readable_predicate((predicate, None)),
+                "predicate_label": custom_filter.human_readable_predicate(predicate, (display_types[0] if display_types else None, None)),
                 "types": display_types,
                 "type_labels": type_labels,
                 "label": label

@@ -28,13 +28,14 @@ def test_get_object_label_rdf_type(mock_get_form_fields):
     snapshot = None
     custom_filter = MagicMock(spec=Filter)
     custom_filter.human_readable_predicate.return_value = "person"
+    custom_filter.human_readable_class.return_value = "Person"
     
     # Execute
     label = get_object_label(object_value, predicate, entity_type, snapshot, custom_filter)
     
     # Verify
     assert label == "Person"
-    custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
+    custom_filter.human_readable_class.assert_called_once_with((entity_type, None))
 
 
 @patch('heritrace.routes.entity.get_form_fields')
@@ -64,8 +65,8 @@ def test_get_object_label_node_shape(mock_get_form_fields, mock_custom_filter):
     # Verify
     assert label == "Human Readable Entity"
     mock_custom_filter.human_readable_entity.assert_called_once_with(
-        object_value, ["http://example.org/Person"], snapshot
-    )
+            object_value, ("http://example.org/Person", None), snapshot
+        )
 
 
 @patch('heritrace.routes.entity.get_form_fields')
@@ -90,8 +91,8 @@ def test_get_object_label_object_class_no_snapshot(mock_get_form_fields, mock_cu
     # Verify
     assert label == "Human Readable Entity"
     mock_custom_filter.human_readable_entity.assert_called_once_with(
-        object_value, ["http://example.org/Person"], None
-    )
+            object_value, ("http://example.org/Person", None), None
+        )
 
 
 @patch('heritrace.routes.entity.get_form_fields')
@@ -115,7 +116,7 @@ def test_get_object_label_has_value(mock_get_form_fields, mock_custom_filter):
     
     # Verify
     assert label == "Human Readable Predicate"
-    mock_custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
+    mock_custom_filter.human_readable_predicate.assert_called_once_with(object_value, (entity_type, None))
 
 
 @patch('heritrace.routes.entity.get_form_fields')
@@ -139,7 +140,7 @@ def test_get_object_label_optional_values(mock_get_form_fields, mock_custom_filt
     
     # Verify
     assert label == "Human Readable Predicate"
-    mock_custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
+    mock_custom_filter.human_readable_predicate.assert_called_once_with(object_value, (entity_type, None))
 
 
 @patch('heritrace.routes.entity.get_form_fields')
@@ -182,4 +183,4 @@ def test_get_object_label_uri_no_special_handling(mock_get_form_fields, mock_cus
     
     # Verify
     assert label == "Human Readable Predicate"
-    mock_custom_filter.human_readable_predicate.assert_called_once_with((object_value, None))
+    mock_custom_filter.human_readable_predicate.assert_called_once_with(object_value, (entity_type, None))

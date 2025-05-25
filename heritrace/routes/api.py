@@ -11,6 +11,7 @@ from heritrace.editor import Editor
 from heritrace.extensions import (get_custom_filter, get_dataset_endpoint,
                                   get_provenance_endpoint)
 from heritrace.services.resource_lock_manager import LockStatus
+from heritrace.utils.shacl_utils import determine_shape_for_subject
 from heritrace.utils.primary_source_utils import \
     save_user_default_primary_source
 from heritrace.utils.shacl_validation import validate_new_triple
@@ -382,10 +383,11 @@ def check_orphans():
                 {
                     "uri": entity["uri"],
                     "label": custom_filter.human_readable_entity(
-                        entity["uri"], [entity["type"]]
+                        entity["uri"], (entity["type"], None)
                     ),
-                    "type": custom_filter.human_readable_predicate((
-                        entity["type"], None)),
+                    "type": custom_filter.human_readable_predicate(
+                        entity["type"], (entity["type"], None)
+                    ),
                     "is_intermediate": is_intermediate,
                 }
                 for entity in entities
@@ -953,8 +955,9 @@ def get_human_readable_entity():
 
     uri = request.form["uri"]
     entity_class = request.form["entity_class"]
+    shape = determine_shape_for_subject([entity_class])
     filter_instance = custom_filter
-    readable = filter_instance.human_readable_entity(uri, [entity_class])
+    readable = filter_instance.human_readable_entity(uri, (entity_class, shape))
     return readable
 
 

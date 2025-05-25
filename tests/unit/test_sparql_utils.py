@@ -50,7 +50,7 @@ def mock_custom_filter():
 @pytest.fixture
 def mock_display_rules():
     """Mock display rules for testing."""
-    with patch("heritrace.utils.sparql_utils.display_rules") as mock_rules:
+    with patch("heritrace.utils.sparql_utils.get_display_rules") as mock_get_rules:
         mock_rules_data = [
             {
                 "target": {
@@ -71,7 +71,7 @@ def mock_display_rules():
                 ],
             }
         ]
-        mock_rules.__iter__.return_value = iter(mock_rules_data)
+        mock_get_rules.return_value = mock_rules_data
         yield mock_rules_data
 
 
@@ -220,30 +220,34 @@ class TestBuildSortClause:
         """Test building a sort clause with a valid property."""
         entity_type = "http://example.org/Person"
         sort_property = "http://example.org/name"
+        
+        with patch("heritrace.utils.sparql_utils.determine_shape_for_subject", return_value="http://example.org/PersonShape"):
+            sort_clause = build_sort_clause(sort_property, entity_type)
 
-        sort_clause = build_sort_clause(sort_property, entity_type, mock_display_rules)
-
-        assert (
-            sort_clause == "OPTIONAL { ?subject <http://example.org/name> ?sortValue }"
-        )
+            assert (
+                sort_clause == "OPTIONAL { ?subject <http://example.org/name> ?sortValue }"
+            )
 
     def test_build_sort_clause_with_invalid_property(self, mock_display_rules):
         """Test building a sort clause with an invalid property."""
         entity_type = "http://example.org/Person"
         sort_property = "http://example.org/invalid"
 
-        sort_clause = build_sort_clause(sort_property, entity_type, mock_display_rules)
+        with patch("heritrace.utils.sparql_utils.determine_shape_for_subject", return_value="http://example.org/PersonShape"):
+            sort_clause = build_sort_clause(sort_property, entity_type)
 
-        assert sort_clause == ""
+            assert sort_clause == ""
 
     def test_build_sort_clause_with_no_display_rules(self):
         """Test building a sort clause with no display rules."""
         entity_type = "http://example.org/Person"
         sort_property = "http://example.org/name"
 
-        sort_clause = build_sort_clause(sort_property, entity_type, None)
+        with patch("heritrace.utils.sparql_utils.get_display_rules", return_value=None):
+            with patch("heritrace.utils.sparql_utils.determine_shape_for_subject", return_value="http://example.org/PersonShape"):
+                sort_clause = build_sort_clause(sort_property, entity_type)
 
-        assert sort_clause == ""
+                assert sort_clause == ""
 
 
 class TestGetEntitiesForClass:

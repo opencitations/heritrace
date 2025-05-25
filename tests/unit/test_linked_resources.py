@@ -51,7 +51,7 @@ def test_get_paginated_inverse_references_basic(mock_get_sparql, mock_get_filter
     mock_get_sparql.return_value = mock_sparql_instance
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
     # Updated to match the new tuple-based structure
-    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p: f"{p[0]}_label"
+    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: f"{p}_label"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():
@@ -83,7 +83,7 @@ def test_get_paginated_inverse_references_pagination_has_more(mock_get_sparql, m
     mock_get_sparql.return_value = mock_sparql_instance
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
     # Updated to match the new tuple-based structure
-    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p: f"{p[0]}_label"
+    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: f"{p}_label"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():
@@ -115,7 +115,7 @@ def test_get_paginated_inverse_references_pagination_no_more(mock_get_sparql, mo
     mock_get_sparql.return_value = mock_sparql_instance
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
     # Updated to match the new tuple-based structure
-    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p: f"{p[0]}_label"
+    mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: f"{p}_label"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():

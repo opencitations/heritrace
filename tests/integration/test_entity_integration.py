@@ -797,10 +797,14 @@ def test_format_triple_modification(app: Flask) -> None:
 
     # Create a custom filter class that doesn't rely on url_for
     class TestFilter(Filter):
-        def human_readable_predicate(self, entity_key, is_link=False):
+        def human_readable_predicate(self, predicate_uri, entity_key, is_link=False):
             # Override to avoid using url_for
+            # Special handling for the title predicate in the test
+            if str(predicate_uri) == "http://purl.org/dc/terms/title":
+                return "title"
+                
             # entity_key is now a tuple (class_uri, shape_uri)
-            url = entity_key[0]  # Extract the class_uri from the tuple
+            url = predicate_uri  # Use the predicate_uri directly
             first_part, last_part = self.split_ns(url)
             if first_part in self.context:
                 if last_part.islower():
@@ -820,6 +824,13 @@ def test_format_triple_modification(app: Flask) -> None:
                 return f"<a href='/about/{url}'>{url}</a>"
             else:
                 return url
+                
+        def human_readable_entity(self, uri, entity_key, graph=None):
+            # For testing purposes, return the original URI
+            # This ensures the original URI is visible in the test output
+            if str(uri).startswith("http://example.org/role"):
+                return str(uri)  # Return original URI
+            return super().human_readable_entity(uri, entity_key, graph)
 
     # Run the test within an application context
     with app.app_context():

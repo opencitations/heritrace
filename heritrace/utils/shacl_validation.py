@@ -185,6 +185,7 @@ def validate_new_triple(
     s_types = [
         triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))
     ]
+    highest_priority_class = get_highest_priority_class(s_types)
 
     # If entity_types is provided, use it (useful for nested entities being created)
     if entity_types and not s_types:
@@ -274,8 +275,8 @@ def validate_new_triple(
             old_value,
             gettext(
                 "The property %(predicate)s is not allowed for resources of type %(s_type)s",
-                predicate=custom_filter.human_readable_predicate((predicate, current_shape)),
-                s_type=custom_filter.human_readable_class((s_types[0], current_shape)),
+                predicate=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
+                s_type=custom_filter.human_readable_class((highest_priority_class, current_shape)),
             ),
         )
     datatypes = [row.datatype for row in results if row.datatype is not None]
@@ -309,7 +310,7 @@ def validate_new_triple(
             old_value,
             gettext(
                 "The property %(predicate)s allows at most %(max_count)s %(value)s",
-                predicate=custom_filter.human_readable_predicate((predicate, current_shape)),
+                predicate=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
                 max_count=max_count,
                 value=value,
             ),
@@ -321,7 +322,7 @@ def validate_new_triple(
             old_value,
             gettext(
                 "The property %(predicate)s requires at least %(min_count)s %(value)s",
-                predicate=custom_filter.human_readable_predicate((predicate, current_shape)),
+                predicate=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
                 min_count=min_count,
                 value=value,
             ),
@@ -334,7 +335,7 @@ def validate_new_triple(
 
     if optional_values and new_value not in optional_values:
         optional_value_labels = [
-            custom_filter.human_readable_predicate((value, current_shape))
+            custom_filter.human_readable_predicate(value, (highest_priority_class, current_shape))
             for value in optional_values
         ]
         return (
@@ -342,8 +343,8 @@ def validate_new_triple(
             old_value,
             gettext(
                 "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s",
-                new_value=custom_filter.human_readable_predicate((new_value, current_shape)),
-                property=custom_filter.human_readable_predicate((predicate, current_shape)),
+                new_value=custom_filter.human_readable_predicate(new_value, (highest_priority_class, current_shape)),
+                property=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
                 o_values=", ".join(
                     [f"<code>{label}</code>" for label in optional_value_labels]
                 ),
@@ -383,8 +384,8 @@ def validate_new_triple(
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate((new_value, current_shape)),
-                    property=custom_filter.human_readable_predicate((predicate, current_shape)),
+                    new_value=custom_filter.human_readable_predicate(new_value, (highest_priority_class, current_shape)),
+                    property=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
                     o_types=", ".join(
                         [
                             f"<code>{custom_filter.human_readable_class((c, current_shape))}</code>"
@@ -402,8 +403,8 @@ def validate_new_triple(
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate((new_value, current_shape)),
-                    property=custom_filter.human_readable_predicate((predicate, current_shape)),
+                    new_value=custom_filter.human_readable_predicate(new_value, (highest_priority_class, current_shape)),
+                    property=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
                     o_types=", ".join(
                         [
                             f"<code>{custom_filter.human_readable_class((c, current_shape))}</code>"
@@ -422,8 +423,8 @@ def validate_new_triple(
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate((new_value, current_shape)),
-                    property=custom_filter.human_readable_predicate((predicate, current_shape)),
+                    new_value=custom_filter.human_readable_predicate(new_value, (highest_priority_class, current_shape)),
+                    property=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
                     o_types=", ".join(
                         [f"<code>{label}</code>" for label in datatype_labels]
                     ),
@@ -531,7 +532,7 @@ def get_datatype_label(datatype_uri):
     # If not found anywhere, return the URI as is
     custom_filter = get_custom_filter()
     if custom_filter:
-        custom_label = custom_filter.human_readable_predicate((datatype_uri, None))
+        custom_label = custom_filter.human_readable_predicate(datatype_uri, (None, None))
         # If the custom filter returns just the last part of the URI, return the full URI instead
         if custom_label and custom_label != datatype_uri and datatype_uri.endswith(custom_label):
             return datatype_uri

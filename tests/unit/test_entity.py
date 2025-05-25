@@ -397,7 +397,7 @@ def test_get_object_label_with_has_value(mock_get_form_fields, mock_validators, 
     
     # Verify results
     assert result == "Human Readable Value"
-    mock_filter.human_readable_predicate.assert_called_with((object_value, None))
+    mock_filter.human_readable_predicate.assert_called_with(object_value, (entity_type, None))
 
 
 @patch('heritrace.routes.entity.get_custom_filter')
@@ -437,7 +437,7 @@ def test_get_object_label_with_optional_values(mock_get_form_fields, mock_valida
     
     # Verify results
     assert result == "Human Readable Option"
-    mock_filter.human_readable_predicate.assert_called_with((object_value, None))
+    mock_filter.human_readable_predicate.assert_called_with(object_value, (entity_type, None))
 
 
 @patch('heritrace.routes.entity.RDF')

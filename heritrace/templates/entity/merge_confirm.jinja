@@ -15,7 +15,7 @@
             <div class="mt-1"><small class="text-muted" title="{{ entity.uri }}">{{ entity.label }}</small></div>
             <div class="mt-1">
                 {% for type_uri in entity.types %}
-                    <span class="badge bg-secondary me-1">{{ ((type_uri, None) | human_readable_predicate) }}</span>
+                    <span class="badge bg-secondary me-1">{{ type_uri | human_readable_predicate((type_uri, None)) }}</span>
                 {% else %}
                     <span class="badge bg-light text-dark">{{_('No type specified')}}</span>
                 {% endfor %}
@@ -28,7 +28,7 @@
                     {% for prop_uri, values in entity.properties.items() %}
                         {# Skip rdf:type as it's shown in the header #}
                         {% if prop_uri != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
-                            <dt class="text-truncate border-top pt-2 mt-2" title="{{ prop_uri }}">{{ ((prop_uri, None) | human_readable_predicate) }}</dt>
+                            <dt class="text-truncate border-top pt-2 mt-2" title="{{ prop_uri }}">{{ prop_uri | human_readable_predicate((entity_type, None)) }}</dt>
                             {% for value in values %}
                                 <dd class="mb-1">
                                     {% if value.type == 'uri' %}

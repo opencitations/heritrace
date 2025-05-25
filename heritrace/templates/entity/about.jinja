@@ -42,7 +42,7 @@
 }
 </style>
 
-<h2 class="mb-4 word-wrap"><em>{{ subject | human_readable_entity(subject_classes, context) }}</em></h2>
+<h2 class="mb-4 word-wrap"><em>{{ subject | human_readable_entity((entity_type, entity_shape), context) }}</em></h2>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -101,7 +101,7 @@
                 {% if data['triples'] or predicate in can_be_added %}
                     
                     {%if data['triples'] %}
-                        <h6 class="item-label">{{ (display_name, data.get("subjectShape")) | human_readable_predicate }}</h6>
+                        <h6 class="item-label">{{ display_name | human_readable_predicate((data.get("subjectClass"), data.get("subjectShape"))) }}</h6>
                     {% endif %}
                     {% set object_class = details.objectClass if has_details and details.objectClass else '' %}
 
@@ -114,7 +114,7 @@
                         {% if has_details and details.min %}data-min-items="{{ details.min }}"{% endif %}
                         {% if predicate in mandatory_values %}data-skip-collect="true"{% endif %}>
                         {% if predicate in can_be_added and has_details %}
-                            {% set unique_id_base = (((entity_type, object_shape) | human_readable_class) | replace(" ", "") + "_" + ((predicate, object_shape) | human_readable_predicate) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
+                            {% set unique_id_base = (((entity_type, object_shape) | human_readable_class) | replace(" ", "") + "_" + (predicate | human_readable_predicate((entity_type, object_shape))) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
                             {{ render_repeater_item(entity_type=entity_type, prop=predicate, details=details, form_fields=form_fields, depth=0, unique_id_base=unique_id_base, index=None, is_template=True) }}
                             {% set namespace_render_repeater_item.counter = namespace_render_repeater_item.counter + 1 %}
                         {% endif %}
@@ -125,7 +125,7 @@
 
                         <!-- Move the add-button inside the ul -->
                         {% if predicate in can_be_added and has_details %}
-                            {% set unique_id_base = (((entity_type, subject_shape) | human_readable_class) | replace(" ", "") + "_" + ((predicate, subject_shape) | human_readable_predicate) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
+                            {% set unique_id_base = (((entity_type, subject_shape) | human_readable_class) | replace(" ", "") + "_" + (predicate | human_readable_predicate((entity_type, subject_shape))) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
                             <!-- Button to add new items -->
                             <div class="text-start mt-3" data-repeater-create>
                                 <button type="button" class="add-button">

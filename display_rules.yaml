@@ -711,11 +711,6 @@ common_properties:
     shouldBeDisplayed: true
     displayName: "Container"
     fetchValueFromQuery: *volume_journal_query
-    displayRules:
-      - shape: "http://schema.org/VolumeShape"
-        displayName: "Volume"
-      - shape: "http://schema.org/JournalShape"
-        displayName: "Journal"
 
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
