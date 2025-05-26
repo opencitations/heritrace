@@ -429,7 +429,8 @@
 
                     if ('{{shacl}}' === 'True') {
                         structuredData = {
-                            entity_type: $('#entity_type').val(),
+                            entity_type: $('#entity_type option:selected').data('uri'),
+                            entity_shape: $('#entity_type option:selected').data('shape'),
                             properties: {}
                         };
                         collectFormData($('#entityForm'), structuredData.properties, '{{ shacl }}', 0);

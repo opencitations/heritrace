@@ -375,8 +375,9 @@ def find_similar_resources():
             sim_types = get_entity_types(uri)
 
             sim_type = get_highest_priority_class(sim_types) if sim_types else None
-            readable_label = custom_filter.human_readable_entity(uri, (sim_type, None)) if sim_type else uri
-            type_labels = [custom_filter.human_readable_predicate(type_uri, (type_uri, None)) for type_uri in sim_types] if sim_types else []
+            shape = determine_shape_for_classes(sim_types)
+            readable_label = custom_filter.human_readable_entity(uri, (sim_type, shape)) if sim_type else uri
+            type_labels = [custom_filter.human_readable_predicate(type_uri, (type_uri, shape)) for type_uri in sim_types] if sim_types else []
             transformed_results.append({
                 "uri": uri,
                 "label": readable_label or uri, # Ensure label is not empty

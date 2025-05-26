@@ -96,6 +96,7 @@
             {% set entity_key = (entity_type, subject_shape) %}
             {% set key = (predicate, entity_key, object_shape) %}
             {% set has_details = key in predicate_details_map %}
+
             {% set details = predicate_details_map[key] if has_details else {} %}
             <div class="property-group" data-uri="{{entity_type}}">
                 {% if data['triples'] or predicate in can_be_added %}

@@ -192,6 +192,7 @@ def get_highest_priority_class(subject_classes):
     highest_priority_class = None
     
     for class_uri in subject_classes:
+        class_uri = str(class_uri)
         entity_key = (class_uri, None)
         priority = get_class_priority(entity_key)
         if priority < highest_priority:
@@ -231,16 +232,26 @@ def get_grouped_triples(
     primary_properties = valid_predicates_info
     
     subject_shape = determine_shape_for_classes([highest_priority_class])
-    # Find the matching rule using find_matching_rule function
     matching_rule = find_matching_rule(highest_priority_class, subject_shape, display_rules)
     
+    ordered_properties = []
+    if display_rules and matching_rule:
+        for prop_config in matching_rule.get("displayProperties", []):
+            if prop_config["property"] not in ordered_properties:
+                ordered_properties.append(prop_config["property"])
+    
     for prop_uri in primary_properties:
+        if prop_uri not in ordered_properties:
+            ordered_properties.append(prop_uri)
+
+    for prop_uri in ordered_properties:
         if display_rules and matching_rule:
             current_prop_config = None
             for prop_config in matching_rule.get("displayProperties", []):
                 if prop_config["property"] == prop_uri:
                     current_prop_config = prop_config
                     break
+            
             if current_prop_config:
                 if "displayRules" in current_prop_config:
                     is_ordered = "orderedBy" in current_prop_config
@@ -329,31 +340,7 @@ def get_grouped_triples(
         else:
             process_default_property(prop_uri, triples, grouped_triples)
 
-    if display_rules:
-        ordered_display_names = []
-        for rule in display_rules:
-            if "target" in rule and "class" in rule["target"] and URIRef(rule["target"]["class"]) == highest_priority_class:
-                for prop in rule.get("displayProperties", []):
-                    if "displayRules" in prop:
-                        for display_rule in prop["displayRules"]:
-                            display_name = display_rule.get(
-                                "displayName", prop["property"]
-                            )
-                            if display_name in grouped_triples:
-                                ordered_display_names.append(display_name)
-                    else:
-                        display_name = prop.get("displayName", prop["property"])
-                        if display_name in grouped_triples:
-                            ordered_display_names.append(display_name)
-        for display_name in grouped_triples.keys():
-            if display_name not in ordered_display_names:
-                ordered_display_names.append(display_name)
-    else:
-        ordered_display_names = list(grouped_triples.keys())
-    
-    grouped_triples = OrderedDict(
-        (k, grouped_triples[k]) for k in ordered_display_names
-    )
+    grouped_triples = OrderedDict(grouped_triples)
     return grouped_triples, relevant_properties
 
 

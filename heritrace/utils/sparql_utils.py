@@ -550,6 +550,7 @@ def process_deleted_entity(result, sortable_properties):
         return None
 
     highest_priority_type = get_highest_priority_class(visible_types)
+    shape = determine_shape_for_classes(visible_types)
     if not highest_priority_type:
         return None
 
@@ -573,10 +574,10 @@ def process_deleted_entity(result, sortable_properties):
         ),
         "lastValidSnapshotTime": last_valid_snapshot_time,
         "type": custom_filter.human_readable_predicate(
-            highest_priority_type, (highest_priority_type, None)
+            highest_priority_type, (highest_priority_type, shape)
         ),
         "label": custom_filter.human_readable_entity(
-            entity_uri, (highest_priority_type, determine_shape_for_classes([highest_priority_type])), last_valid_state
+            entity_uri, (highest_priority_type, shape), last_valid_state
         ),
         "entity_types": visible_types,
         "sort_values": sort_values,

@@ -460,20 +460,6 @@ def test_human_readable_entity_no_rule(mock_filter):
     mock_find_rule.assert_called_once_with(entity_key[0], entity_key[1], mock_filter.display_rules)
 
 
-def test_human_readable_entity_rule_without_display_or_fetch(mock_filter):
-    """Test human_readable_entity when rule has neither displayName nor fetchUriDisplay properties."""
-    uri = "http://example.org/person/1"
-    entity_key = ("http://example.org/Person", "http://example.org/PersonShape")
-    rule = {}  # Empty rule without displayName or fetchUriDisplay
-    
-    with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
-        mock_find_rule.return_value = rule
-        result = mock_filter.human_readable_entity(uri, entity_key)
-    
-    assert result == uri
-    mock_find_rule.assert_called_once_with(entity_key[0], entity_key[1], mock_filter.display_rules)
-
-
 def test_human_readable_entity_no_matching_rule(mock_filter):
     """Test human_readable_entity when no matching rule is found."""
     uri = "http://example.org/unknown/1"
@@ -481,6 +467,25 @@ def test_human_readable_entity_no_matching_rule(mock_filter):
     
     with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
         mock_find_rule.return_value = None
+        result = mock_filter.human_readable_entity(uri, entity_key)
+    
+    assert result == uri
+    mock_find_rule.assert_called_once_with(entity_key[0], entity_key[1], mock_filter.display_rules)
+
+
+def test_human_readable_entity_malformed_rule(mock_filter):
+    """Test human_readable_entity when rule exists but has neither displayName nor fetchUriDisplay."""
+    uri = "http://example.org/person/1"
+    entity_key = ("http://example.org/Person", "http://example.org/PersonShape")
+    # Rule exists but is malformed (missing both displayName and fetchUriDisplay)
+    rule = {
+        "target": {"class": "http://example.org/Person"},
+        "priority": 1,
+        "shouldBeDisplayed": True
+    }
+    
+    with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
+        mock_find_rule.return_value = rule
         result = mock_filter.human_readable_entity(uri, entity_key)
     
     assert result == uri

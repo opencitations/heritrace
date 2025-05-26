@@ -540,6 +540,8 @@ def validate_entity_data(structured_data):
 
     errors = []
     entity_type = structured_data.get("entity_type")
+    entity_shape = structured_data.get("entity_shape")
+    
     if not entity_type:
         errors.append(gettext("Entity type is required"))
     
@@ -610,7 +612,7 @@ def validate_entity_data(structured_data):
                 errors.append(
                     gettext(
                         "Property %(prop_uri)s requires at least %(min_count)d %(value)s",
-                        prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
+                        prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, entity_shape)),
                         min_count=min_count,
                         value=value,
                     )
@@ -620,7 +622,7 @@ def validate_entity_data(structured_data):
                 errors.append(
                     gettext(
                         "Property %(prop_uri)s allows at most %(max_count)d %(value)s",
-                        prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
+                        prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, entity_shape)),
                         max_count=max_count,
                         value=value,
                     )
@@ -633,7 +635,7 @@ def validate_entity_data(structured_data):
                     errors.append(
                         gettext(
                             "Property %(prop_uri)s requires the value %(mandatory_value)s",
-                            prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
+                            prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, entity_shape)),
                             mandatory_value=mandatory_value,
                         )
                     )
@@ -663,7 +665,7 @@ def validate_entity_data(structured_data):
                         if not is_valid_datatype:
                             expected_types = ", ".join(
                                 [
-                                    custom_filter.human_readable_predicate(dtype, (entity_type, None))
+                                    custom_filter.human_readable_predicate(dtype, (entity_type, entity_shape))
                                     for dtype in datatypes
                                 ]
                             )
@@ -671,7 +673,7 @@ def validate_entity_data(structured_data):
                                 gettext(
                                     'Value "%(value)s" for property %(prop_uri)s is not of expected type %(expected_types)s',
                                     value=value,
-                                    prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
+                                    prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, entity_shape)),
                                     expected_types=expected_types
                                 )
                             )
@@ -681,7 +683,7 @@ def validate_entity_data(structured_data):
                     if optional_values and value not in optional_values:
                         acceptable_values = ", ".join(
                             [
-                                custom_filter.human_readable_predicate(val, (entity_type, None))
+                                custom_filter.human_readable_predicate(val, (entity_type, entity_shape))
                                 for val in optional_values
                             ]
                         )
@@ -689,7 +691,7 @@ def validate_entity_data(structured_data):
                             gettext(
                                 'Value "%(value)s" is not permitted for property %(prop_uri)s. Acceptable values are: %(acceptable_values)s',
                                 value=value,
-                                prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
+                                prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, entity_shape)),
                                 acceptable_values=acceptable_values
                             )
                         )
@@ -709,7 +711,7 @@ def validate_entity_data(structured_data):
                     errors.append(
                         gettext(
                             "Missing required property: %(prop_uri)s requires at least %(min_count)d %(value)s",
-                            prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, None)),
+                            prop_uri=custom_filter.human_readable_predicate(prop_uri, (entity_type, entity_shape)),
                             min_count=min_count,
                             value=value,
                         )
