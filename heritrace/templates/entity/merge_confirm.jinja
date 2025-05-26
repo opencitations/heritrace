@@ -1,8 +1,7 @@
 {% extends "_base.jinja" %}
 
-{# --- Macro Definition --- #}
 {% macro render_merge_card(entity, card_title, header_bg_class, header_icon_class, column_class) %}
-<div class="{{ column_class }}"> {# Use dynamic column class #}
+<div class="{{ column_class }}">
     <div class="card h-100 shadow-sm">
         <div class="card-header {{ header_bg_class }}">
             <div class="d-flex justify-content-between align-items-center">
@@ -10,7 +9,6 @@
                     <i class="{{ header_icon_class }}"></i>
                     <strong>{{ card_title }}</strong>
                 </span>
-                {# Header content like entity label and types #}
             </div>
             <div class="mt-1"><small class="text-muted" title="{{ entity.uri }}">{{ entity.label }}</small></div>
             <div class="mt-1">
@@ -26,9 +24,8 @@
             {% if entity.properties %}
                 <dl class="mb-0">
                     {% for prop_uri, values in entity.properties.items() %}
-                        {# Skip rdf:type as it's shown in the header #}
                         {% if prop_uri != 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
-                            <dt class="text-truncate border-top pt-2 mt-2" title="{{ prop_uri }}">{{ prop_uri | human_readable_predicate((entity_type, None)) }}</dt>
+                            <dt class="text-truncate border-top pt-2 mt-2" title="{{ prop_uri }}">{{ prop_uri | human_readable_predicate((entity.type, entity.shape)) }}</dt>
                             {% for value in values %}
                                 <dd class="mb-1">
                                     {% if value.type == 'uri' %}
@@ -55,14 +52,11 @@
     </div>
 </div>
 {% endmacro %}
-{# --- End Macro Definition --- #}
 
 {% block content %}
 <div class="container mt-4">
     <h2 class="mb-4">{{_('Confirm Entity Merge')}}</h2>
-    {# Removed introductory paragraph #}
 
-    {# --- Flash Messages --- #}
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="alert-messages mt-4 mb-4">
@@ -75,47 +69,40 @@
             </div>
         {% endif %}
     {% endwith %}
-    {# --- End Flash Messages --- #}
 
-    <form method="POST" action="{{ url_for('merge.execute_merge') }}">
-        {# Hidden fields to pass URIs #}
+    <form method="POST" action="{{ url_for('merge.execute_merge') }}" id="merge-form">
         <input type="hidden" name="entity1_uri" value="{{ entity1.uri }}">
         <input type="hidden" name="entity2_uri" value="{{ entity2.uri }}">
-        {# {{ form.csrf_token }} #}
+        <input type="hidden" name="primary_source" id="primary-source-input">
+        <input type="hidden" name="save_default_source" id="save-default-source-input" value="false">
 
-        {# --- New Row for Arrow --- #}
         <div class="row mb-2">
-            <div class="col-5"></div> {# Spacer column #}
-            <div class="col-2 text-center"> {# Centered arrow column #}
+            <div class="col-5"></div>
+            <div class="col-2 text-center"> 
                 <i class="bi bi-arrow-right-circle-fill display-4 text-primary"></i>
                 <p class="text-muted small mt-1">{{_('Merge Into')}}</p>
             </div>
-            <div class="col-5"></div> {# Spacer column #}
+            <div class="col-5"></div>
         </div>
 
-        {# --- Row for Cards --- #}
-        <div class="row mb-4"> {# Removed align-items-center as it's less relevant now #}
-            {# --- Use Macro for Entity 2 (Merge & Delete) --- #}
+        <div class="row mb-4">
             {{ render_merge_card(
                 entity=entity2,
                 card_title=_('Entity 2 (Merge & Delete)'),
                 header_bg_class='bg-danger-subtle',
                 header_icon_class='bi bi-trash-fill me-2 text-danger',
                 column_class='col-md-6'
-            ) }} {# Increased column size #} {# Swapped entity #}
-
-            {# --- Use Macro for Entity 1 (Keep) --- #}
+            ) }}
             {{ render_merge_card(
                 entity=entity1,
                 card_title=_('Entity 1 (Keep)'),
                 header_bg_class='bg-success-subtle',
                 header_icon_class='bi bi-check-circle-fill me-2 text-success',
                 column_class='col-md-6'
-            ) }} {# Increased column size #} {# Swapped entity #}
+            ) }}
         </div>
 
-        {# Merge Strategy Info - Removed alert box styling #}
-        <div class="mt-4 p-3"> {# Removed alert and alert-outline-secondary classes #}
+        <div class="mt-4 p-3"> 
              <div class="d-flex align-items-start mb-2">
                  <i class="bi bi-box-arrow-in-right me-2 fs-5 text-primary"></i>
                  <div><strong>{{_('Properties:')}}</strong> {{_('All properties from Entity 2 will be added to Entity 1.')}}</div>
@@ -125,21 +112,40 @@
                  <div><strong>{{_('References:')}}</strong> {{_('Links pointing to Entity 2 will be updated to point to Entity 1.')}}</div>
              </div>
              <div class="d-flex align-items-start">
-                 <i class="bi bi-trash-fill me-2 fs-5 text-danger"></i> {# Kept text-danger for deletion icon #}
+                 <i class="bi bi-trash-fill me-2 fs-5 text-danger"></i>
                  <div><strong>{{_('Deletion:')}}</strong> {{_('Entity 2 will be deleted after the merge.')}}</div>
              </div>
         </div>
 
         <div class="d-flex justify-content-between mt-4">
-            {# Cancel Button #}
             <a href="{{ url_for('entity.about', subject=entity1.uri) }}" class="btn btn-secondary">
                 <i class="bi bi-x-lg me-1"></i>{{_('Cancel')}}
             </a>
-            {# Confirm Button with shorter text #}
-            <button type="submit" class="btn btn-primary">
+            <button type="button" class="btn btn-primary" onclick="handleMergeConfirm()">
                 <i class="bi bi-check-lg me-1"></i>{{_('Confirm Merge')}}
             </button>
         </div>
     </form>
 </div>
-{% endblock %} 
+
+{% include 'validation.jinja' %}
+{% include 'primary_source_handler.jinja' %}
+
+<script>
+    const default_primary_source = "{{ default_primary_source }}";
+    const format_source_api_url = "{{ url_for('api.format_source_api') }}";
+
+    function handleMergeConfirm() {
+        showPrimarySourceDialog({
+            defaultPrimarySource: default_primary_source,
+            formatSourceApiUrl: format_source_api_url,
+            confirmButtonText: '{{_('Proceed with Merge')}}',
+            onConfirm: (primarySourceUrl, saveAsDefault) => {
+                $('#primary-source-input').val(primarySourceUrl);
+                $('#save-default-source-input').val(saveAsDefault);
+                $('#merge-form').submit();
+            }
+        });
+    }
+</script>
+{% endblock %}

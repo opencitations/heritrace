@@ -2,6 +2,7 @@ import traceback
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
+import validators
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_babel import gettext
@@ -13,6 +14,8 @@ from heritrace.extensions import (get_counter_handler, get_custom_filter,
                                   get_provenance_endpoint, get_sparql)
 from heritrace.utils.display_rules_utils import (get_highest_priority_class,
                                                  get_similarity_properties)
+from heritrace.utils.primary_source_utils import (
+    get_default_primary_source, save_user_default_primary_source)
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import get_entity_types
 from markupsafe import Markup
@@ -98,12 +101,21 @@ def execute_merge():
     """
     entity1_uri = request.form.get("entity1_uri")
     entity2_uri = request.form.get("entity2_uri")
+    primary_source = request.form.get("primary_source")
+    save_default_source = request.form.get("save_default_source") == "true"
 
     # TODO: Implement CSRF validation if using Flask-WTF
 
     if not entity1_uri or not entity2_uri:
         flash(gettext("Missing entity URIs for merge."), "danger")
         return redirect(url_for("main.catalogue"))
+        
+    if primary_source and not validators.url(primary_source):
+        flash(gettext("Invalid primary source URL provided."), "danger")
+        return redirect(url_for('.compare_and_merge', subject=entity1_uri, other_subject=entity2_uri))
+        
+    if save_default_source and primary_source and validators.url(primary_source):
+        save_user_default_primary_source(current_user.orcid, primary_source)
 
     try:
         custom_filter = get_custom_filter()
@@ -132,7 +144,9 @@ def execute_merge():
             resp_agent=resp_agent_uri,
             dataset_is_quadstore=dataset_is_quadstore
         )
-
+        
+        if primary_source and validators.url(primary_source):
+            editor.set_primary_source(primary_source)
 
         editor.merge(keep_entity_uri=entity1_uri, delete_entity_uri=entity2_uri)
 
@@ -149,13 +163,11 @@ def execute_merge():
             entity2_url=entity2_url
         )
 
-        # Use Markup to render HTML safely
         flash(Markup(flash_message_html), "success")
 
         return redirect(url_for("entity.about", subject=entity1_uri))
 
     except ValueError as ve:
-        # Specific handling for merge with self
         current_app.logger.warning(f"Merge attempt failed: {ve}")
         flash(str(ve), "warning")
         return redirect(url_for('.compare_and_merge', subject=entity1_uri, other_subject=entity2_uri))
@@ -201,19 +213,26 @@ def compare_and_merge():
         "uri": entity1_uri,
         "label": entity1_label,
         "type_label": custom_filter.human_readable_class((entity1_type, entity1_shape)),
+        "type": entity1_type,
+        "shape": entity1_shape,
         "properties": entity1_props
     }
     entity2_data = {
         "uri": entity2_uri,
         "label": entity2_label,
         "type_label": custom_filter.human_readable_class((entity2_type, entity2_shape)),
+        "type": entity2_type,
+        "shape": entity2_shape,
         "properties": entity2_props
     }
+
+    default_primary_source = get_default_primary_source(current_user.orcid)
 
     return render_template(
         "entity/merge_confirm.jinja",
         entity1=entity1_data,
-        entity2=entity2_data
+        entity2=entity2_data,
+        default_primary_source=default_primary_source
     )
 
 

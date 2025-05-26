@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock, patch
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from flask import url_for
@@ -183,6 +183,81 @@ def test_execute_merge_success_flash(mock_current_user, mock_quadstore, mock_pro
 
     expected_path = urlparse(url_for('entity.about', subject=merge_test_data["entity1_uri"])).path
     assert urlparse(response.location).path == expected_path
+
+@patch('flask_login.utils._get_user')
+def test_execute_merge_invalid_primary_source(mock_current_user, client, mock_user, merge_test_data):
+    """Test merge with invalid primary source URL."""
+    mock_current_user.return_value = mock_user
+    invalid_url = "not-a-valid-url"
+
+    with client.session_transaction() as session:
+        session['_user_id'] = mock_user.orcid
+
+    response = client.post(url_for('merge.execute_merge'), data={
+        'entity1_uri': merge_test_data["entity1_uri"],
+        'entity2_uri': merge_test_data["entity2_uri"],
+        'primary_source': invalid_url
+    }, follow_redirects=False)
+
+    assert response.status_code == 302
+    
+    # Should redirect back to compare_and_merge with both entity URIs
+    assert 'compare-and-merge' in response.location.lower()
+    query = parse_qs(urlparse(response.location).query)
+    assert query.get('subject') == [merge_test_data["entity1_uri"]]
+    assert query.get('other_subject') == [merge_test_data["entity2_uri"]]
+    
+    with client.session_transaction() as session:
+        flashes = session.get('_flashes', [])
+        assert len(flashes) == 1
+        assert flashes[0][0] == 'danger'
+        assert 'invalid' in flashes[0][1].lower()
+
+
+@patch('heritrace.routes.merge.save_user_default_primary_source')
+@patch('heritrace.routes.merge.get_custom_filter')
+@patch('heritrace.routes.merge.get_entity_details')
+@patch('heritrace.routes.merge.Editor')
+@patch('heritrace.routes.merge.get_counter_handler')
+@patch('heritrace.routes.merge.get_dataset_endpoint', return_value='http://db/ds_merge_save_source')
+@patch('heritrace.routes.merge.get_provenance_endpoint', return_value='http://db/prov_merge_save_source')
+@patch('heritrace.routes.merge.get_dataset_is_quadstore', return_value=False)
+@patch('flask_login.utils._get_user')
+def test_execute_merge_save_default_source(
+    mock_current_user, mock_quadstore, mock_prov, mock_ds, 
+    mock_counter, mock_editor_cls, mock_get_details, mock_get_filter, 
+    mock_save_source, client, mock_user, merge_test_data
+):
+    """Test that default source is saved when checkbox is checked."""
+    mock_current_user.return_value = mock_user
+    mock_get_details.side_effect = [
+        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
+        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
+    ]
+    mock_filter_instance = MagicMock()
+    mock_filter_instance.human_readable_entity.side_effect = [
+        merge_test_data["entity1_label"], merge_test_data["entity2_label"]
+    ]
+    mock_get_filter.return_value = mock_filter_instance
+    mock_editor_instance = MagicMock()
+    mock_editor_cls.return_value = mock_editor_instance
+    
+    primary_source = "https://example.com/valid-source"
+
+    with client.session_transaction() as session:
+        session['_user_id'] = mock_user.orcid
+
+    response = client.post(url_for('merge.execute_merge'), data={
+        'entity1_uri': merge_test_data["entity1_uri"],
+        'entity2_uri': merge_test_data["entity2_uri"],
+        'primary_source': primary_source,
+        'save_default_source': 'true'
+    }, follow_redirects=False)
+
+    mock_save_source.assert_called_once_with(mock_user.orcid, primary_source)
+    
+    mock_editor_instance.set_primary_source.assert_called_once_with(primary_source)
+
 
 @patch('flask_login.utils._get_user')
 def test_execute_merge_missing_uris(mock_current_user, client, mock_user):
