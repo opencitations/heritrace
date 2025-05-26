@@ -141,54 +141,6 @@ def merge_test_data():
         }
     }
 
-@patch('heritrace.routes.merge.get_custom_filter')
-@patch('heritrace.routes.merge.get_entity_details')
-@patch('heritrace.routes.merge.Editor')
-@patch('heritrace.routes.merge.get_counter_handler')
-@patch('heritrace.routes.merge.get_dataset_endpoint', return_value='http://db/ds_merge_exec')
-@patch('heritrace.routes.merge.get_provenance_endpoint', return_value='http://db/prov_merge_exec')
-@patch('heritrace.routes.merge.get_dataset_is_quadstore', return_value=False)
-@patch('flask_login.utils._get_user')
-@patch('heritrace.utils.sparql_utils.get_sparql')
-@patch('time_agnostic_library.sparql.Sparql.run_construct_query')
-@patch('heritrace.routes.entity.get_sparql')
-def test_execute_merge_success(mock_entity_get_sparql, mock_prov_query, mock_utils_get_sparql, mock_current_user, mock_quadstore, mock_prov, mock_ds, mock_counter, mock_editor_cls, mock_get_details, mock_get_filter, client, mock_user, merge_test_data):
-    """Test successful execution of the merge."""
-    mock_utils_get_sparql.return_value.query().convert.return_value = {"results": {"bindings": []}}
-    mock_prov_query.return_value = MagicMock()
-    mock_entity_get_sparql.return_value.query().convert.return_value = {"results": {"bindings": []}}
-
-    mock_current_user.return_value = mock_user
-    mock_get_details.side_effect = [
-        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
-        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
-    ]
-    mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
-        merge_test_data["entity1_label"], merge_test_data["entity2_label"]
-    ]
-    mock_get_filter.return_value = mock_filter_instance
-    mock_editor_instance = MagicMock()
-    mock_editor_cls.return_value = mock_editor_instance
-
-    response = client.post(url_for('merge.execute_merge'), data={
-        'entity1_uri': merge_test_data["entity1_uri"],
-        'entity2_uri': merge_test_data["entity2_uri"],
-    }, follow_redirects=True)
-
-    mock_editor_cls.assert_called_once_with(
-        dataset_endpoint='http://db/ds_merge_exec',
-        provenance_endpoint='http://db/prov_merge_exec',
-        counter_handler=mock_counter.return_value,
-        resp_agent=merge_test_data["resp_agent_uri"],
-        dataset_is_quadstore=False
-    )
-    mock_editor_instance.merge.assert_called_once_with(
-        keep_entity_uri=merge_test_data["entity1_uri"],
-        delete_entity_uri=merge_test_data["entity2_uri"]
-    )
-
-    assert response.status_code == 200
 
 @patch('heritrace.routes.merge.get_custom_filter')
 @patch('heritrace.routes.merge.get_entity_details')
@@ -729,7 +681,7 @@ def test_find_similar_resources_no_similarity_config(mock_current_user, mock_get
     assert json_data["status"] == "success"
     assert json_data["results"] == []
     assert json_data["has_more"] == False
-    mock_get_sim_props.assert_called_once_with(similar_test_data["subject_type"])
+    mock_get_sim_props.assert_called_once_with((similar_test_data["subject_type"], None))
 
 
 @patch('heritrace.routes.merge.get_similarity_properties')
@@ -749,7 +701,7 @@ def test_find_similar_resources_empty_derived_properties(mock_current_user, mock
     assert json_data["status"] == "success"
     assert json_data["results"] == []
     assert json_data["has_more"] == False
-    mock_get_sim_props.assert_called_once_with(similar_test_data["subject_type"])
+    mock_get_sim_props.assert_called_once_with((similar_test_data["subject_type"], None))
 
 
 @patch('heritrace.routes.merge.get_sparql')

@@ -14,11 +14,11 @@
             </div>
             <div class="mt-1"><small class="text-muted" title="{{ entity.uri }}">{{ entity.label }}</small></div>
             <div class="mt-1">
-                {% for type_uri in entity.types %}
-                    <span class="badge bg-secondary me-1">{{ type_uri | human_readable_predicate((type_uri, None)) }}</span>
+                {% if entity.type_label %}
+                    <span class="badge bg-secondary me-1">{{ entity.type_label }}</span>
                 {% else %}
                     <span class="badge bg-light text-dark">{{_('No type specified')}}</span>
-                {% endfor %}
+                {% endif %}
             </div>
         </div>
         <div class="card-body small">

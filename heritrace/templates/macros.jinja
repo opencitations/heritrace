@@ -357,7 +357,7 @@
                         </div>
                         <span style="margin-left: .75rem;">
                             {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                            <a href="{{url_for('entity.about', subject=object)}}" 
+                            <a href="{{url_for('entity.about', subject=externalEntity)}}" 
                             class="draggable-entity-link"
                             data-bs-toggle="tooltip" 
                             data-bs-placement="top" 
@@ -369,7 +369,7 @@
                 {% else %}
                     <span style="margin-left: .75rem;">
                         {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                        <a href="{{url_for('entity.about', subject=object)}}"
+                        <a href="{{url_for('entity.about', subject=externalEntity)}}"
                            class="draggable-entity-link"
                            data-bs-toggle="tooltip" 
                            data-bs-placement="top" 
@@ -539,7 +539,7 @@
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
                             title="{{_('Redirection to the entity %(entity)s', entity=triple[2])}}"
-                            href="{{ url_for('entity.about', subject=object) }}">
+                            href="{{ url_for('entity.about', subject=externalEntity) }}">
                                 <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
                             </a>
                         </div>

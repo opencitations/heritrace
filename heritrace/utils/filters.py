@@ -94,8 +94,7 @@ class Filter:
         """
         from heritrace.utils.display_rules_utils import find_matching_rule
         
-        class_uri = entity_key[0]
-        shape_uri = entity_key[1]
+        class_uri, shape_uri = entity_key
         
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
 

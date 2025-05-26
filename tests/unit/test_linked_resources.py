@@ -52,6 +52,7 @@ def test_get_paginated_inverse_references_basic(mock_get_sparql, mock_get_filter
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
     # Updated to match the new tuple-based structure
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: f"{p}_label"
+    mock_get_filter.return_value.human_readable_class.return_value = "Type A"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():
@@ -63,7 +64,7 @@ def test_get_paginated_inverse_references_basic(mock_get_sparql, mock_get_filter
     assert refs[0]["predicate"] == SAMPLE_PREDICATE_1
     assert refs[0]["label"] == f"{SAMPLE_REFERRING_SUBJECT_1}_label"
     assert refs[0]["predicate_label"] == f"{SAMPLE_PREDICATE_1}_label"
-    assert refs[0]["types"] == [SAMPLE_TYPE_1]
+    assert refs[0]["type_label"] == "Type A"
     assert refs[1]["subject"] == SAMPLE_REFERRING_SUBJECT_2
 
 @patch('heritrace.routes.linked_resources.get_entity_types')
@@ -84,6 +85,7 @@ def test_get_paginated_inverse_references_pagination_has_more(mock_get_sparql, m
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
     # Updated to match the new tuple-based structure
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: f"{p}_label"
+    mock_get_filter.return_value.human_readable_class.return_value = "Type A"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():
@@ -95,7 +97,7 @@ def test_get_paginated_inverse_references_pagination_has_more(mock_get_sparql, m
     assert refs[0]["label"] == f"{SAMPLE_REFERRING_SUBJECT_1}_label"
     assert refs[0]["predicate"] == SAMPLE_PREDICATE_1
     assert refs[0]["predicate_label"] == f"{SAMPLE_PREDICATE_1}_label"
-    assert refs[0]["types"] == [SAMPLE_TYPE_1]
+    assert refs[0]["type_label"] == "Type A"
     assert refs[1]["subject"] == SAMPLE_REFERRING_SUBJECT_2
 
 @patch('heritrace.routes.linked_resources.get_entity_types')
@@ -116,6 +118,7 @@ def test_get_paginated_inverse_references_pagination_no_more(mock_get_sparql, mo
     mock_get_filter.return_value.human_readable_entity.side_effect = lambda s, t: f"{s}_label"
     # Updated to match the new tuple-based structure
     mock_get_filter.return_value.human_readable_predicate.side_effect = lambda p, _: f"{p}_label"
+    mock_get_filter.return_value.human_readable_class.return_value = "Type A"
     mock_get_types.return_value = [SAMPLE_TYPE_1]
 
     with app.app_context():
@@ -127,7 +130,7 @@ def test_get_paginated_inverse_references_pagination_no_more(mock_get_sparql, mo
     assert refs[0]["label"] == f"{SAMPLE_REFERRING_SUBJECT_3}_label"
     assert refs[0]["predicate"] == SAMPLE_PREDICATE_1
     assert refs[0]["predicate_label"] == f"{SAMPLE_PREDICATE_1}_label"
-    assert refs[0]["types"] == [SAMPLE_TYPE_1]
+    assert refs[0]["type_label"] == "Type A"
 
 @patch('heritrace.routes.linked_resources.get_entity_types')
 @patch('heritrace.routes.linked_resources.get_custom_filter')
@@ -186,7 +189,7 @@ def test_get_linked_resources_api_success(mock_get_paginated, logged_in_client):
     limit = 5
     offset = 0
     mock_data = [
-        {"subject": SAMPLE_REFERRING_SUBJECT_1, "predicate": SAMPLE_PREDICATE_1, "label": "Ref1", "types": [], "type_labels": [], "predicate_label": "Pred1"},
+        {"subject": SAMPLE_REFERRING_SUBJECT_1, "predicate": SAMPLE_PREDICATE_1, "label": "Ref1", "type_label": "Type A", "predicate_label": "Pred1"},
     ]
     mock_get_paginated.return_value = (mock_data, False)
 

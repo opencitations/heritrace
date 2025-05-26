@@ -70,16 +70,14 @@ def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) 
             types = get_entity_types(subject)
             highest_priority_type = get_highest_priority_class(types)
             shape = determine_shape_for_classes(types)
-            display_types = [highest_priority_type] if highest_priority_type else []
-            type_labels = [custom_filter.human_readable_predicate(t, (t, shape)) for t in display_types] if display_types else []
             label = custom_filter.human_readable_entity(subject, (highest_priority_type, shape))
+            type_label = custom_filter.human_readable_class((highest_priority_type, shape)) if highest_priority_type else None
 
             references.append({
                 "subject": subject,
                 "predicate": predicate,
-                "predicate_label": custom_filter.human_readable_predicate(predicate, (display_types[0] if display_types else None, None)),
-                "types": display_types,
-                "type_labels": type_labels,
+                "predicate_label": custom_filter.human_readable_predicate(predicate, (highest_priority_type, shape)),
+                "type_label": type_label,
                 "label": label
             })
 

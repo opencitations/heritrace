@@ -200,13 +200,13 @@ def compare_and_merge():
     entity1_data = {
         "uri": entity1_uri,
         "label": entity1_label,
-        "types": entity1_types,
+        "type_label": custom_filter.human_readable_class((entity1_type, entity1_shape)),
         "properties": entity1_props
     }
     entity2_data = {
         "uri": entity2_uri,
         "label": entity2_label,
-        "types": entity2_types,
+        "type_label": custom_filter.human_readable_class((entity2_type, entity2_shape)),
         "properties": entity2_props
     }
 
@@ -224,6 +224,7 @@ def find_similar_resources():
     respecting AND/OR logic defined in display rules."""
     subject_uri = request.args.get("subject_uri")
     entity_type = request.args.get("entity_type") # Primary entity type
+    shape_uri = request.args.get("shape_uri")
     try:
         limit = int(request.args.get("limit", 5))
         offset = int(request.args.get("offset", 0))
@@ -240,14 +241,13 @@ def find_similar_resources():
         sparql = get_sparql()
         custom_filter = get_custom_filter()
 
-        similarity_config = get_similarity_properties(entity_type)
+        entity_key = (entity_type, shape_uri)
+        similarity_config = get_similarity_properties(entity_key)
 
-        # If no config or invalid config, return empty
         if not similarity_config or not isinstance(similarity_config, list):
             current_app.logger.warning(f"No valid similarity properties found or configured for type {entity_type}")
             return jsonify({"status": "success", "results": [], "has_more": False})
 
-        # --- Helper function to format RDF terms ---
         def format_rdf_term(node):
             value = node["value"]
             value_type = node["type"]
@@ -256,7 +256,6 @@ def find_similar_resources():
             elif value_type in {'literal', 'typed-literal'}:
                 datatype = node.get("datatype")
                 lang = node.get("xml:lang")
-                # Ensure proper escaping for SPARQL literals
                 escaped_value = value.replace('\\', '\\\\').replace('"', '\\"')
                 if datatype:
                     return f'"{escaped_value}"^^<{datatype}>'
@@ -264,10 +263,8 @@ def find_similar_resources():
                     return f'"{escaped_value}"@{lang}'
                 else:
                     return f'"{escaped_value}"'
-            return None # Ignore blank nodes or other types for similarity
-        # --- End Helper ---
+            return None
 
-        # --- Fetch ALL relevant property values for the subject URI ---
         all_props_in_config = set()
         for item in similarity_config:
             if isinstance(item, str):
@@ -288,28 +285,26 @@ def find_similar_resources():
             {property_filter_for_subject}
         }}
         """
+
         sparql.setQuery(fetch_comparison_values_query)
         sparql.setReturnFormat(JSON)
         subject_values_results = sparql.query().convert()
         subject_bindings = subject_values_results.get("results", {}).get("bindings", [])
 
         if not subject_bindings:
-            # Subject has no values for any of the specified properties, cannot find similar
             return jsonify({"status": "success", "results": [], "has_more": False})
 
-        # Group subject's values by property
         subject_values_by_prop = defaultdict(list)
         for binding in subject_bindings:
             formatted_value = format_rdf_term(binding["o"])
             if formatted_value:
                 subject_values_by_prop[binding["p"]["value"]].append(formatted_value)
 
-        # --- Build the main WHERE clause based on the complex logic ---
         union_blocks = []
-        var_counter = 0 # To create unique variable names
+        var_counter = 0
 
         for condition in similarity_config:
-            if isinstance(condition, str): # Simple OR condition (single property)
+            if isinstance(condition, str):
                 prop_uri = condition
                 prop_values = subject_values_by_prop.get(prop_uri)
                 if prop_values:
@@ -317,16 +312,15 @@ def find_similar_resources():
                     values_filter = ", ".join(prop_values)
                     union_blocks.append(f"  {{ ?similar <{prop_uri}> ?o_{var_counter} . FILTER(?o_{var_counter} IN ({values_filter})) }}")
 
-            elif isinstance(condition, dict) and "and" in condition: # AND group condition
+            elif isinstance(condition, dict) and "and" in condition:
                 and_props = condition["and"]
                 and_patterns = []
                 can_match_and_group = True
 
-                # Check if subject has values for ALL properties in this AND group
                 if not all(p in subject_values_by_prop for p in and_props):
                     can_match_and_group = False
                     current_app.logger.debug(f"Skipping AND group {and_props} because subject {subject_uri} lacks values for all its properties.")
-                    continue # Skip this AND group if subject doesn't have all required values
+                    continue
 
                 for prop_uri in and_props:
                     prop_values = subject_values_by_prop.get(prop_uri)
@@ -344,8 +338,6 @@ def find_similar_resources():
 
         similarity_query_body = " UNION ".join(union_blocks)
 
-        # --- Construct and Execute Final Query ---
-        # Fetch limit + 1 to check if there are more results
         query_limit = limit + 1
         final_query = f"""
         SELECT DISTINCT ?similar WHERE {{
@@ -364,25 +356,15 @@ def find_similar_resources():
         bindings = results.get("results", {}).get("bindings", [])
         candidate_uris = [item["similar"]["value"] for item in bindings]
 
-        # Determine if there are more results
         has_more = len(candidate_uris) > limit
-        results_to_process = candidate_uris[:limit] # Process only up to 'limit' results
+        results_to_process = candidate_uris[:limit]
 
-        # Transform results for the response
         transformed_results = []
         for uri in results_to_process:
-            # Fetch types and generate labels for each candidate
-            sim_types = get_entity_types(uri)
-
-            sim_type = get_highest_priority_class(sim_types) if sim_types else None
-            shape = determine_shape_for_classes(sim_types)
-            readable_label = custom_filter.human_readable_entity(uri, (sim_type, shape)) if sim_type else uri
-            type_labels = [custom_filter.human_readable_predicate(type_uri, (type_uri, shape)) for type_uri in sim_types] if sim_types else []
+            readable_label = custom_filter.human_readable_entity(uri, (entity_type, shape_uri)) if entity_type else uri
             transformed_results.append({
                 "uri": uri,
-                "label": readable_label or uri, # Ensure label is not empty
-                "types": sim_types,
-                "type_labels": type_labels
+                "label": readable_label or uri
             })
 
         return jsonify({

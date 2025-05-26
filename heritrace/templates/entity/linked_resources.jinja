@@ -3,13 +3,6 @@ $(document).ready(function() {
     const subjectUriLinked = "{{ subject }}";
     
     function renderLinkedResourceItem(ref) {
-        let typesHtml = '';
-        if (ref.type_labels && ref.type_labels.length > 0) {
-            ref.type_labels.forEach(function(typeLabel) {
-                typesHtml += `<span class="badge bg-secondary me-1">${typeLabel}</span>`;
-            });
-        }
-
         const viewUrl = "{{ url_for('entity.about', subject='') }}" + encodeURIComponent(ref.subject);
 
         return `
@@ -30,7 +23,9 @@ $(document).ready(function() {
                         <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
                     </a>
                 </div>
-                ${typesHtml ? `<div class="text-muted small mt-2">${typesHtml}</div>` : ''}
+                ${ref.type_label ? `<div class="text-muted small mt-2">
+                    <span class="badge bg-secondary me-1">${ref.type_label}</span>
+                </div>` : ''}
             </div>
         `;
     }
