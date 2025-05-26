@@ -120,7 +120,7 @@ class Filter:
         
         class_uri = entity_key[0]
         shape_uri = entity_key[1]
-        
+
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
         if not rule:
             return uri

@@ -59,6 +59,8 @@ def about(subject):
     is_deleted = False
     context_snapshot = None
     subject_classes = []
+    highest_priority_class = None
+    entity_shape = None
 
     if history.get(subject):
         sorted_timestamps = sorted(history[subject].keys())
@@ -85,6 +87,9 @@ def about(subject):
                     (URIRef(subject), RDF.type, None)
                 )
             ]
+            
+            highest_priority_class = get_highest_priority_class(subject_classes)
+            entity_shape = determine_shape_for_classes(subject_classes)
         else:
             context_snapshot = None
 
@@ -95,8 +100,6 @@ def about(subject):
     mandatory_values = {}
     optional_values = {}
     valid_predicates = []
-    highest_priority_class = None
-    entity_shape = None
     data_graph = None
     
     if not is_deleted:
