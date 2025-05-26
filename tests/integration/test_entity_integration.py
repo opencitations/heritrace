@@ -859,7 +859,8 @@ def test_format_triple_modification(app: Flask) -> None:
 
             result = format_triple_modification(
                 triple,
-                ["http://purl.org/spar/fabio/JournalArticle"],
+                "http://purl.org/spar/fabio/JournalArticle",
+                "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
                 "Additions",
                 None,
                 str(subject),
@@ -910,7 +911,8 @@ def test_format_triple_modification(app: Flask) -> None:
 
             result = format_triple_modification(
                 triple,
-                ["http://purl.org/spar/fabio/JournalArticle"],
+                "http://purl.org/spar/fabio/JournalArticle",
+                "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
                 "Additions",
                 None,
                 str(subject),
@@ -943,7 +945,8 @@ def test_format_triple_modification(app: Flask) -> None:
 
             result = format_triple_modification(
                 triple,
-                ["http://purl.org/spar/fabio/JournalArticle"],
+                "http://purl.org/spar/fabio/JournalArticle",
+                "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
                 "Additions",
                 None,
                 str(subject),
@@ -976,7 +979,8 @@ def test_format_triple_modification(app: Flask) -> None:
 
             result = format_triple_modification(
                 triple,
-                ["http://purl.org/spar/fabio/JournalArticle"],
+                "http://purl.org/spar/fabio/JournalArticle",
+                "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
                 "Additions",
                 None,
                 str(subject),

@@ -472,3 +472,16 @@ def test_human_readable_entity_rule_without_display_or_fetch(mock_filter):
     
     assert result == uri
     mock_find_rule.assert_called_once_with(entity_key[0], entity_key[1], mock_filter.display_rules)
+
+
+def test_human_readable_entity_no_matching_rule(mock_filter):
+    """Test human_readable_entity when no matching rule is found."""
+    uri = "http://example.org/unknown/1"
+    entity_key = ("http://example.org/Unknown", "http://example.org/UnknownShape")
+    
+    with patch('heritrace.utils.display_rules_utils.find_matching_rule') as mock_find_rule:
+        mock_find_rule.return_value = None
+        result = mock_filter.human_readable_entity(uri, entity_key)
+    
+    assert result == uri
+    mock_find_rule.assert_called_once_with(entity_key[0], entity_key[1], mock_filter.display_rules)

@@ -1373,11 +1373,11 @@ class TestGetPropertyOrderFromRules:
     ):
         """Test getting property order from rules."""
         with patch(
-            "heritrace.utils.display_rules_utils.get_highest_priority_class",
-            return_value=URIRef("http://example.org/Person"),
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules
         ):
             result = get_property_order_from_rules(
-                mock_subject_classes, mock_display_rules
+                "http://example.org/Person"
             )
 
             assert len(result) == 3
@@ -1388,11 +1388,11 @@ class TestGetPropertyOrderFromRules:
     def test_get_property_order_from_rules_no_matching_class(self, mock_display_rules):
         """Test getting property order from rules with no matching class."""
         with patch(
-            "heritrace.utils.display_rules_utils.get_highest_priority_class",
-            return_value=URIRef("http://example.org/Unknown"),
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules
         ):
             result = get_property_order_from_rules(
-                [URIRef("http://example.org/Unknown")], mock_display_rules
+                "http://example.org/Unknown"
             )
 
             assert result == []
@@ -1400,10 +1400,10 @@ class TestGetPropertyOrderFromRules:
     def test_get_property_order_from_rules_no_rules(self, mock_subject_classes):
         """Test getting property order from rules with no rules."""
         with patch(
-            "heritrace.utils.display_rules_utils.get_highest_priority_class",
-            return_value=URIRef("http://example.org/Person"),
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=[]
         ):
-            result = get_property_order_from_rules(mock_subject_classes, [])
+            result = get_property_order_from_rules("http://example.org/Person")
 
             assert result == []
 
@@ -1412,10 +1412,10 @@ class TestGetPropertyOrderFromRules:
     ):
         """Test getting property order from rules with no highest priority class."""
         with patch(
-            "heritrace.utils.display_rules_utils.get_highest_priority_class",
-            return_value=None,
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules
         ):
-            result = get_property_order_from_rules([], mock_display_rules)
+            result = get_property_order_from_rules(None)
 
             assert result == []
 
@@ -1443,25 +1443,18 @@ class TestGetPropertyOrderFromRules:
             }
         ]
 
-        # Create mock subject classes
-        subject_classes = [URIRef("http://example.org/Person")]
-
         with patch(
             "heritrace.utils.display_rules_utils.get_display_rules",
             return_value=mock_display_rules,
         ):
-            with patch(
-                "heritrace.utils.display_rules_utils.get_highest_priority_class",
-                return_value=URIRef("http://example.org/Person"),
-            ):
-                # Call the function with the correct parameters
-                ordered_properties = get_property_order_from_rules(
-                    subject_classes, mock_display_rules
-                )
+            # Call the function with the correct parameters
+            ordered_properties = get_property_order_from_rules(
+                "http://example.org/Person"
+            )
 
-                # Verify the ordered properties
-                assert "http://example.org/name" in ordered_properties
-                assert "http://example.org/age" in ordered_properties
+            # Verify the ordered properties
+            assert "http://example.org/name" in ordered_properties
+            assert "http://example.org/age" in ordered_properties
 
     def test_get_property_order_from_rules_with_shape_uri(self):
         """Test getting property order from rules when shape_uri is provided."""
@@ -1503,17 +1496,15 @@ class TestGetPropertyOrderFromRules:
                 ],
             },
         ]
-
-        subject_classes = [URIRef("http://example.org/Person")]
         
         shape_uri = "http://example.org/PersonShape"
 
         with patch(
-            "heritrace.utils.display_rules_utils.get_highest_priority_class",
-            return_value=URIRef("http://example.org/Person"),
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=mock_display_rules
         ):
             ordered_properties = get_property_order_from_rules(
-                subject_classes, mock_display_rules, shape_uri
+                "http://example.org/Person", shape_uri
             )
 
             assert len(ordered_properties) == 3

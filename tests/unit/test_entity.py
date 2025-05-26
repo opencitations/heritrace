@@ -213,7 +213,7 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter, mock_get_form_f
     
     # Create form fields with shape definitions
     form_fields = {
-        ("http://example.org/Person", None): {
+        ("http://example.org/Person", "http://example.org/EntityShape"): {
             "http://example.org/hasAddress": [
                 {
                     "subjectShape": "residential",
@@ -255,7 +255,7 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter, mock_get_form_f
     # We need to create a new form fields structure where residential is required
     # and business is optional
     form_fields = {
-        ("http://example.org/Person", None): {
+        ("http://example.org/Person", "http://example.org/EntityShape"): {
             "http://example.org/hasAddress": [
                 {
                     "min": 1,  # This makes the property required
@@ -337,7 +337,7 @@ def test_validate_modification_max_count(mock_get_predicate_count, mock_get_high
     
     # Mock form_fields
     mock_get_form_fields.return_value = {
-        ("http://example.org/Person", None): {
+        ("http://example.org/Person", "http://example.org/EntityShape"): {
             "http://example.org/name": [
                 {
                     "minCount": 1,
@@ -360,86 +360,6 @@ def test_validate_modification_max_count(mock_get_predicate_count, mock_get_high
     assert "Maximum count" in error
 
 
-@patch('heritrace.routes.entity.get_custom_filter')
-@patch('validators.url')
-@patch('heritrace.routes.entity.get_form_fields')
-def test_get_object_label_with_has_value(mock_get_form_fields, mock_validators, mock_get_custom_filter):
-    """Test get_object_label with hasValue field definition."""
-    # Setup mocks
-    mock_filter = MagicMock(spec=Filter)
-    mock_get_custom_filter.return_value = mock_filter
-    mock_filter.human_readable_predicate.return_value = "Human Readable Value"
-    mock_validators.return_value = False
-    
-    # Create test data
-    object_value = "http://example.org/specific-value"
-    predicate = "http://example.org/predicate"
-    entity_type = "http://example.org/Person"
-    
-    mock_get_form_fields.return_value = {
-        ("http://example.org/Person", None): {
-            "http://example.org/predicate": [
-                {
-                    "hasValue": "http://example.org/specific-value"
-                }
-            ]
-        }
-    }
-    
-    # Call the function
-    result = get_object_label(
-        object_value,
-        predicate,
-        entity_type,
-        None,
-        mock_filter
-    )
-    
-    # Verify results
-    assert result == "Human Readable Value"
-    mock_filter.human_readable_predicate.assert_called_with(object_value, (entity_type, None))
-
-
-@patch('heritrace.routes.entity.get_custom_filter')
-@patch('validators.url')
-@patch('heritrace.routes.entity.get_form_fields')
-def test_get_object_label_with_optional_values(mock_get_form_fields, mock_validators, mock_get_custom_filter):
-    """Test get_object_label with optionalValues field definition."""
-    # Setup mocks
-    mock_filter = MagicMock(spec=Filter)
-    mock_get_custom_filter.return_value = mock_filter
-    mock_filter.human_readable_predicate.return_value = "Human Readable Option"
-    mock_validators.return_value = False
-    
-    # Create test data
-    object_value = "http://example.org/option1"
-    predicate = "http://example.org/predicate"
-    entity_type = "http://example.org/Person"
-    
-    mock_get_form_fields.return_value = {
-        ("http://example.org/Person", None): {
-            "http://example.org/predicate": [
-                {
-                    "optionalValues": ["http://example.org/option1", "http://example.org/option2"]
-                }
-            ]
-        }
-    }
-    
-    # Call the function
-    result = get_object_label(
-        object_value,
-        predicate,
-        entity_type,
-        None,
-        mock_filter
-    )
-    
-    # Verify results
-    assert result == "Human Readable Option"
-    mock_filter.human_readable_predicate.assert_called_with(object_value, (entity_type, None))
-
-
 @patch('heritrace.routes.entity.RDF')
 @patch('heritrace.routes.entity.get_form_fields')
 def test_format_triple_modification_with_relevant_snapshot(mock_get_form_fields, mock_rdf):
@@ -449,7 +369,7 @@ def test_format_triple_modification_with_relevant_snapshot(mock_get_form_fields,
     mock_filter = MagicMock(spec=Filter)
     mock_filter.human_readable_predicate.return_value = "Human Readable Predicate"
     mock_get_form_fields.return_value = {
-        ("http://example.org/Person", None): {
+        ("http://example.org/Person", "http://example.org/EntityShape"): {
             "http://example.org/predicate": [
                 {
                     "datatypes": [str(XSD.string)]
@@ -486,9 +406,10 @@ def test_format_triple_modification_with_relevant_snapshot(mock_get_form_fields,
     
     # Call the function
     result = format_triple_modification(
-        triple,
-        subject_classes,
-        mod_type,
+            triple,
+            "http://example.org/Person",
+            "http://example.org/PersonShape",
+                    mod_type,
         history,
         entity_uri,
         snapshot2,

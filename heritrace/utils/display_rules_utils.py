@@ -541,25 +541,23 @@ def execute_historical_query(
     return None, None
 
 
-def get_property_order_from_rules(subject_classes: list, display_rules: list, shape_uri: str = None):
+def get_property_order_from_rules(highest_priority_class: str, shape_uri: str = None):
     """
-    Extract ordered list of properties from display rules for given entity classes and optionally a shape.
+    Extract ordered list of properties from display rules for given entity class and optionally a shape.
 
     Args:
-        subject_classes: List of class URIs for the entity
-        display_rules: List of display rule configurations
+        highest_priority_class: The highest priority class for the entity
         shape_uri: Optional shape URI for the entity
 
     Returns:
         List of property URIs in the order specified by display rules
     """
+    display_rules = get_display_rules()
     if not display_rules:
         return []
     
     ordered_properties = []
     
-    # First, find the highest priority class
-    highest_priority_class = get_highest_priority_class(subject_classes)
     if not highest_priority_class:
         return []
     

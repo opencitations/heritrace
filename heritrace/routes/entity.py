@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import validators
 from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
@@ -761,9 +761,9 @@ def entity_history(entity_uri):
     classes = list(context_snapshot.triples((URIRef(entity_uri), RDF.type, None)))
     for triple in classes:
         entity_classes.add(str(triple[2]))
-    highest_priority_class = get_highest_priority_class(entity_classes)
-    entity_classes_for_label = [highest_priority_class] if highest_priority_class else []
 
+    highest_priority_class = get_highest_priority_class(entity_classes)
+    
     # Generate timeline events
     events = []
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
@@ -783,7 +783,7 @@ def entity_history(entity_uri):
         description = _format_snapshot_description(
             metadata,
             entity_uri,
-            entity_classes_for_label,
+            highest_priority_class,
             context_snapshot,
             history,
             sorted_timestamps,
@@ -793,10 +793,12 @@ def entity_history(entity_uri):
         modifications = metadata.get("hasUpdateQuery", "")
         modification_text = ""
         if modifications:
+            snapshot_entity_shape = determine_shape_for_classes([highest_priority_class])
             parsed_modifications = parse_sparql_update(modifications)
             modification_text = generate_modification_text(
                 parsed_modifications,
-                list(entity_classes),
+                highest_priority_class,
+                snapshot_entity_shape,
                 history=history,
                 entity_uri=entity_uri,
                 current_snapshot=snapshot_graph,
@@ -861,7 +863,7 @@ def entity_history(entity_uri):
 def _format_snapshot_description(
     metadata: dict,
     entity_uri: str,
-    entity_classes: list[str],
+    highest_priority_class: str,
     context_snapshot: Graph,
     history: dict,
     sorted_timestamps: list[str],
@@ -874,7 +876,7 @@ def _format_snapshot_description(
     Args:
         metadata: The snapshot metadata dictionary.
         entity_uri: The URI of the main entity.
-        entity_classes: The classes of the main entity.
+        highest_priority_class: The highest priority class for the entity.
         context_snapshot: The graph snapshot for context.
         history: The history dictionary containing snapshots.
         sorted_timestamps: Sorted list of snapshot timestamps.
@@ -926,10 +928,9 @@ def _format_snapshot_description(
                                 match.group(0), f"merged with '{merged_entity_label}'"
                             )
 
-    entity_class = get_highest_priority_class(entity_classes)
-    shape = determine_shape_for_classes(entity_classes)
+    shape = determine_shape_for_classes([highest_priority_class])
     entity_label_for_desc = custom_filter.human_readable_entity(
-        entity_uri, (entity_class, shape), context_snapshot
+        entity_uri, (highest_priority_class, shape), context_snapshot
     )
     if entity_label_for_desc and entity_label_for_desc != entity_uri:
         description = description.replace(f"'{entity_uri}'", f"'{entity_label_for_desc}'")
@@ -1045,7 +1046,6 @@ def entity_version(entity_uri, timestamp):
         ]
     
     highest_priority_class = get_highest_priority_class(subject_classes)
-    entity_type = highest_priority_class
     entity_shape = determine_shape_for_classes(subject_classes)
 
     _, _, _, _, _, valid_predicates = get_valid_predicates(triples, highest_priority_class=highest_priority_class)
@@ -1055,7 +1055,7 @@ def entity_version(entity_uri, timestamp):
         triples,
         valid_predicates,
         historical_snapshot=context_version,
-        highest_priority_class=entity_type
+        highest_priority_class=highest_priority_class
     )
 
     # Calculate version number
@@ -1087,7 +1087,8 @@ def entity_version(entity_uri, timestamp):
         parsed_modifications = parse_sparql_update(sparql_query)
         modifications = generate_modification_text(
             parsed_modifications,
-            subject_classes,
+            highest_priority_class,
+            entity_shape,
             history,
             entity_uri,
             context_version,
@@ -1104,7 +1105,7 @@ def entity_version(entity_uri, timestamp):
         formatted_description = _format_snapshot_description(
             closest_metadata,
             entity_uri,
-            subject_classes,
+            highest_priority_class,
             context_version,
             history,
             sorted_timestamps,
@@ -1118,7 +1119,7 @@ def entity_version(entity_uri, timestamp):
     return render_template(
         "entity/version.jinja",
         subject=entity_uri,
-        entity_type=entity_type,
+        entity_type=highest_priority_class,
         entity_shape=entity_shape,
         metadata={closest_timestamp: closest_metadata},
         timestamp=closest_timestamp,
@@ -1374,7 +1375,8 @@ def find_appropriate_snapshot(provenance_data: dict, target_time: str) -> Option
 
 def generate_modification_text(
     modifications,
-    subject_classes,
+    highest_priority_class,
+    entity_shape,
     history,
     entity_uri,
     current_snapshot,
@@ -1386,7 +1388,8 @@ def generate_modification_text(
 
     Args:
         modifications (dict): Dictionary of modifications from parse_sparql_update
-        subject_classes (list): List of classes for the subject entity
+        highest_priority_class (str): The highest priority class for the subject entity
+        entity_shape (str): The shape for the subject entity
         history (dict): Historical snapshots dictionary
         entity_uri (str): URI of the entity being modified
         current_snapshot (Graph): Current entity snapshot
@@ -1398,9 +1401,7 @@ def generate_modification_text(
     """
     modification_text = "<p><strong>" + gettext("Modifications") + "</strong></p>"
 
-    # Get display rules and property order
-    display_rules = get_display_rules()
-    ordered_properties = get_property_order_from_rules(subject_classes, display_rules)
+    ordered_properties = get_property_order_from_rules(highest_priority_class)
 
     for mod_type, triples in modifications.items():
         modification_text += "<ul class='list-group mb-3'><p>"
@@ -1428,7 +1429,8 @@ def generate_modification_text(
                 for triple in predicate_groups[predicate]:
                     modification_text += format_triple_modification(
                         triple,
-                        subject_classes,
+                        highest_priority_class,
+                        entity_shape,
                         mod_type,
                         history,
                         entity_uri,
@@ -1443,7 +1445,8 @@ def generate_modification_text(
                 for triple in triples:
                     modification_text += format_triple_modification(
                         triple,
-                        subject_classes,
+                        highest_priority_class,
+                        entity_shape,
                         mod_type,
                         history,
                         entity_uri,
@@ -1458,13 +1461,14 @@ def generate_modification_text(
 
 
 def format_triple_modification(
-    triple,
-    subject_classes,
-    mod_type,
-    history,
-    entity_uri,
-    current_snapshot,
-    current_snapshot_timestamp,
+    triple: Tuple[URIRef, URIRef, URIRef|Literal],
+    highest_priority_class: str,
+    entity_shape: str,
+    mod_type: str,
+    history: Dict[str, Dict[str, Graph]],
+    entity_uri: str,
+    current_snapshot: Graph,
+    current_snapshot_timestamp: str,
     custom_filter: Filter,
 ) -> str:
     """
@@ -1472,7 +1476,8 @@ def format_triple_modification(
 
     Args:
         triple: The RDF triple being modified
-        subject_classes: List of classes for the subject entity
+        highest_priority_class: The highest priority class for the subject entity
+        entity_shape: The shape for the subject entity
         mod_type: Type of modification (addition/deletion)
         history: Historical snapshots dictionary
         entity_uri: URI of the entity being modified
@@ -1484,9 +1489,7 @@ def format_triple_modification(
         str: HTML text describing the modification
     """
     predicate = triple[1]
-    entity_class = get_highest_priority_class(subject_classes)
-    entity_shape = determine_shape_for_classes(subject_classes)
-    predicate_label = custom_filter.human_readable_predicate(predicate, (entity_class, entity_shape))
+    predicate_label = custom_filter.human_readable_predicate(predicate, (highest_priority_class, entity_shape))
     object_value = triple[2]
 
     # Determine which snapshot to use for context
@@ -1506,12 +1509,11 @@ def format_triple_modification(
     else:
         relevant_snapshot = current_snapshot
 
-    subject_class = get_highest_priority_class(subject_classes)
-
     object_label = get_object_label(
         object_value,
         predicate,
-        subject_class,
+        highest_priority_class,
+        entity_shape,
         relevant_snapshot,
         custom_filter,
     )
@@ -1528,81 +1530,48 @@ def format_triple_modification(
 def get_object_label(
     object_value: str,
     predicate: str,
-    entity_type: str,
+    highest_priority_class: str,
+    entity_shape: str,
     snapshot: Optional[Graph],
     custom_filter: Filter,
 ) -> str:
     """
-    Get appropriate display label for an object value based on form fields configuration.
+    Get appropriate display label for an object value.
 
     Args:
         object_value: The value to get a label for
         predicate: The predicate URI
-        entity_type: The type of the entity
+        highest_priority_class: The highest priority class for the entity
+        entity_shape: The shape for the subject entity
         snapshot: Optional graph snapshot for context
         custom_filter (Filter): Custom filter instance for formatting
 
     Returns:
         str: A human-readable label for the object value
     """
-    form_fields = get_form_fields()
-    
-    entity_type = str(entity_type)
     predicate = str(predicate)
-    predicate_shape = determine_shape_for_classes([entity_type])
-
-    # Handle RDF type predicates
+    entity_key = (highest_priority_class, entity_shape)
+    
     if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-        return custom_filter.human_readable_class((entity_type, predicate_shape))
-
-    matching_key = None
-    for key in form_fields.keys():
-        if key[0] == entity_type:
-            matching_key = key
-            break
-
-    if not matching_key:
-        return object_value
-
-    predicate_fields = form_fields[matching_key].get(predicate, [])
-
-    for field in predicate_fields:
-        # Check if this is an entity reference
-        if field.get("nodeShape") or field.get("objectClass"):
-            if validators.url(object_value):
-                # Get types for the referenced entity
-                object_classes = []
-                if snapshot:
-                    object_classes = [
-                        str(o)
-                        for s, p, o in snapshot.triples(
-                            (URIRef(object_value), RDF.type, None)
-                        )
-                    ]
-
-                if not object_classes and field.get("objectClass"):
-                    object_classes = [field["objectClass"]]
-
-                object_class = get_highest_priority_class(object_classes)
-                shape = determine_shape_for_classes(object_classes)
-                return custom_filter.human_readable_entity(
-                    object_value, (object_class, shape), snapshot
+        return custom_filter.human_readable_class(entity_key)
+    
+    if validators.url(object_value):
+        object_classes = []
+        if snapshot:
+            object_classes = [
+                str(o)
+                for s, p, o in snapshot.triples(
+                    (URIRef(object_value), RDF.type, None)
                 )
-
-        # Check for mandatory values
-        if field.get("hasValue") == object_value:
-            return custom_filter.human_readable_predicate(object_value, (entity_type, predicate_shape))
-
-        # Check for optional values from a predefined set
-        if object_value in field.get("optionalValues", []):
-            return custom_filter.human_readable_predicate(object_value, (entity_type, predicate_shape))
-
-    # Default to simple string representation for literal values
-    if not validators.url(object_value):
-        return str(object_value)
-
-    # For any other URIs, use human_readable_predicate
-    return custom_filter.human_readable_predicate(object_value, (entity_type, predicate_shape))
+            ]
+        
+        object_class = get_highest_priority_class(object_classes)
+        shape = determine_shape_for_classes(object_classes)
+        return custom_filter.human_readable_entity(
+            object_value, (object_class, shape), snapshot
+        )
+    
+    return str(object_value)
 
 
 def process_modification_data(data: dict) -> Tuple[str, List[dict]]:

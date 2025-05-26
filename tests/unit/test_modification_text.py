@@ -65,8 +65,9 @@ def test_generate_modification_text_empty_modifications(mock_custom_filter, mock
 
         result = generate_modification_text(
             modifications,
-            subject_classes,
-            history,
+            "http://example.org/Person",
+            "http://example.org/PersonShape",
+                        history,
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
@@ -106,8 +107,9 @@ def test_generate_modification_text_additions(
 
         result = generate_modification_text(
             modifications,
-            subject_classes,
-            history,
+            "http://example.org/Person",
+            "http://example.org/PersonShape",
+                        history,
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
@@ -153,8 +155,9 @@ def test_generate_modification_text_deletions(
 
         result = generate_modification_text(
             modifications,
-            subject_classes,
-            history,
+            "http://example.org/Person",
+            "http://example.org/PersonShape",
+                        history,
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
@@ -207,8 +210,9 @@ def test_generate_modification_text_mixed_modifications(
 
         result = generate_modification_text(
             modifications,
-            subject_classes,
-            history,
+            "http://example.org/Person",
+            "http://example.org/PersonShape",
+                        history,
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
@@ -256,8 +260,9 @@ def test_generate_modification_text_ordered_properties(
 
         result = generate_modification_text(
             modifications,
-            subject_classes,
-            history,
+            "http://example.org/Person",
+            "http://example.org/PersonShape",
+                        history,
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
@@ -304,8 +309,9 @@ def test_generate_modification_text_unordered_properties(
 
         result = generate_modification_text(
             modifications,
-            subject_classes,
-            history,
+            "http://example.org/Person",
+            "http://example.org/PersonShape",
+                        history,
             entity_uri,
             current_snapshot,
             current_snapshot_timestamp,
