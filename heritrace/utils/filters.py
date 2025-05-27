@@ -96,7 +96,8 @@ class Filter:
         from heritrace.utils.shacl_utils import determine_shape_for_classes
 
         class_uri, shape_uri = entity_key
-        shape_uri = determine_shape_for_classes([class_uri])
+        if shape_uri is None:
+            shape_uri = determine_shape_for_classes([class_uri])
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
 
         if rule and "displayName" in rule:
