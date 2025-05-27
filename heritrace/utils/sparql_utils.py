@@ -8,7 +8,8 @@ from heritrace.extensions import (get_change_tracking_config,
                                   get_display_rules, get_provenance_sparql,
                                   get_sparql)
 from heritrace.utils.converters import convert_to_datetime
-from heritrace.utils.display_rules_utils import (get_highest_priority_class,
+from heritrace.utils.display_rules_utils import (find_matching_rule,
+                                                 get_highest_priority_class,
                                                  get_sortable_properties,
                                                  is_entity_type_visible)
 from heritrace.utils.shacl_utils import determine_shape_for_classes
@@ -83,43 +84,39 @@ def get_available_classes():
     return available_classes
 
 
-def build_sort_clause(sort_property: str, entity_type: str) -> str:
+def build_sort_clause(sort_property: str, entity_type: str, shape_uri: str = None) -> str:
     """
-    Costruisce la clausola di ordinamento SPARQL in base alla configurazione sortableBy.
+    Build a SPARQL sort clause based on the sortableBy configuration.
 
     Args:
-        sort_property: La proprietà su cui ordinare
-        entity_type: Il tipo di entità
+        sort_property: The property to sort by
+        entity_type: The entity type URI
+        shape_uri: Optional shape URI for more specific sorting rules
 
     Returns:
-        Clausola SPARQL per l'ordinamento o stringa vuota
-    """
-    display_rules = get_display_rules()
-
-    if not display_rules or not sort_property:
+        SPARQL sort clause or empty string
+    """    
+    if not sort_property or not entity_type:
         return ""
-
-    sort_config = None
-    for rule in display_rules:
-        if "target" in rule:
-            target_class = None
-            if "class" in rule["target"]:
-                target_class = rule["target"]["class"]
-            
-            if target_class == entity_type and "sortableBy" in rule:
-                sort_config = next(
-                    (s for s in rule["sortableBy"] if s["property"] == sort_property), None
-                )
-                break
-
+    
+    rule = find_matching_rule(entity_type, shape_uri)
+    
+    if not rule or "sortableBy" not in rule:
+        return ""
+        
+    sort_config = next(
+        (s for s in rule["sortableBy"] if s.get("property") == sort_property),
+        None
+    )
+    
     if not sort_config:
         return ""
-
+        
     return f"OPTIONAL {{ ?subject <{sort_property}> ?sortValue }}"
 
 
 def get_entities_for_class(
-    selected_class, page, per_page, sort_property=None, sort_direction="ASC"
+    selected_class, page, per_page, sort_property=None, sort_direction="ASC", selected_shape=None
 ):
     """
     Retrieve entities for a specific class with pagination and sorting.
@@ -130,6 +127,7 @@ def get_entities_for_class(
         per_page (int): Number of items per page
         sort_property (str, optional): Property to sort by
         sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
+        selected_shape (str, optional): URI of the shape to use for sorting rules
 
     Returns:
         tuple: (list of entities, total count)
@@ -139,14 +137,13 @@ def get_entities_for_class(
 
     offset = (page - 1) * per_page
 
-    # Build sort clause if sort property is provided
     sort_clause = ""
     order_clause = "ORDER BY ?subject"
-    if sort_property:
-        sort_clause = build_sort_clause(sort_property, selected_class)
-        order_clause = f"ORDER BY {sort_direction}(?sortValue)"
+    if sort_property:            
+        sort_clause = build_sort_clause(sort_property, selected_class, selected_shape)
+        if sort_clause:
+            order_clause = f"ORDER BY {sort_direction}(?sortValue)"
 
-    # Build query based on database type
     if is_virtuoso():
         entities_query = f"""
         SELECT DISTINCT ?subject {f"?sortValue" if sort_property else ""}
@@ -162,7 +159,6 @@ def get_entities_for_class(
         OFFSET {offset}
         """
 
-        # Count query for total number of entities
         count_query = f"""
         SELECT (COUNT(DISTINCT ?subject) as ?count)
         WHERE {{
@@ -191,13 +187,10 @@ def get_entities_for_class(
         }}
         """
 
-    # Execute count query
     sparql.setQuery(count_query)
     sparql.setReturnFormat(JSON)
     count_results = sparql.query().convert()
     total_count = int(count_results["results"]["bindings"][0]["count"]["value"])
-
-    # Execute entities query
     sparql.setQuery(entities_query)
     entities_results = sparql.query().convert()
 
@@ -215,8 +208,13 @@ def get_entities_for_class(
 
 
 def get_catalog_data(
-    selected_class, page, per_page, available_classes, sort_property=None, sort_direction="ASC"
-):
+    selected_class: str, 
+    page: int, 
+    per_page: int, 
+    sort_property: str = None, 
+    sort_direction: str = "ASC",
+    selected_shape: str = None
+) -> dict:
     """
     Get catalog data with pagination and sorting.
 
@@ -224,27 +222,19 @@ def get_catalog_data(
         selected_class (str): Selected class URI
         page (int): Current page number
         per_page (int): Items per page
-        available_classes (list): List of available classes with their shapes,
-                                          to avoid redundant calls to determine_shape_for_classes
         sort_property (str, optional): Property to sort by
         sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
+        selected_shape (str, optional): URI of the shape to use for sorting rules
 
     Returns:
         dict: Catalog data including entities, pagination info, and sort settings
     """
-    
+
     entities = []
     total_count = 0
     sortable_properties = []
-    selected_shape = None
 
     if selected_class:
-        if available_classes:
-            for cls in available_classes:
-                if cls["uri"] == selected_class:
-                    selected_shape = cls["shape"]
-                    break
-        
         sortable_properties = get_sortable_properties(
             (selected_class, selected_shape)
         )
@@ -253,7 +243,7 @@ def get_catalog_data(
             sort_property = sortable_properties[0]["property"]
             
         entities, total_count = get_entities_for_class(
-            selected_class, page, per_page, sort_property, sort_direction
+            selected_class, page, per_page, sort_property, sort_direction, selected_shape
         )
 
     return {

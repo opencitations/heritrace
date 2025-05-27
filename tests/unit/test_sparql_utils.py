@@ -221,7 +221,13 @@ class TestBuildSortClause:
         entity_type = "http://example.org/Person"
         sort_property = "http://example.org/name"
         
-        with patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
+        with patch("heritrace.utils.sparql_utils.find_matching_rule") as mock_find_rule:
+            mock_find_rule.return_value = {
+                "sortableBy": [{
+                    "property": "http://example.org/name",
+                    "label": "Name"
+                }]
+            }
             sort_clause = build_sort_clause(sort_property, entity_type)
 
             assert (
@@ -233,7 +239,13 @@ class TestBuildSortClause:
         entity_type = "http://example.org/Person"
         sort_property = "http://example.org/invalid"
 
-        with patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
+        with patch("heritrace.utils.sparql_utils.find_matching_rule") as mock_find_rule:
+            mock_find_rule.return_value = {
+                "sortableBy": [{
+                    "property": "http://example.org/name",
+                    "label": "Name"
+                }]
+            }
             sort_clause = build_sort_clause(sort_property, entity_type)
 
             assert sort_clause == ""
@@ -243,11 +255,11 @@ class TestBuildSortClause:
         entity_type = "http://example.org/Person"
         sort_property = "http://example.org/name"
 
-        with patch("heritrace.utils.sparql_utils.get_display_rules", return_value=None):
-            with patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
-                sort_clause = build_sort_clause(sort_property, entity_type)
+        with patch("heritrace.utils.sparql_utils.find_matching_rule") as mock_find_rule:
+            mock_find_rule.return_value = None
+            sort_clause = build_sort_clause(sort_property, entity_type)
 
-                assert sort_clause == ""
+            assert sort_clause == ""
 
 
 class TestGetEntitiesForClass:
@@ -413,7 +425,7 @@ class TestGetCatalogData:
         ):
             # Call get_catalog_data with the new parameter structure
             catalog_data = get_catalog_data(
-                "http://example.org/Person", 1, 10, available_classes, sort_property=None
+                "http://example.org/Person", 1, 10, sort_property=None, selected_shape="http://example.org/PersonShape"
             )
 
             # Verify that sort_property was set from the first sortable property

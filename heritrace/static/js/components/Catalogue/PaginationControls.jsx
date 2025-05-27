@@ -24,6 +24,8 @@ const PaginationControls = ({
           style={{ width: 'auto' }}
           value={itemsPerPage}
           onChange={handlePerPageChange}
+          data-per-page={itemsPerPage}
+          data-current-page={currentPage}
         >
           {allowedPerPage.map((pp) => (
             <option key={pp} value={pp}>{pp}</option>
@@ -39,6 +41,8 @@ const PaginationControls = ({
                 className="page-link" 
                 onClick={() => onPageChange(1)}
                 disabled={currentPage === 1}
+                data-page="1"
+                data-per-page={itemsPerPage}
               >
                 <ChevronFirst size={16} />
               </button>
@@ -48,6 +52,8 @@ const PaginationControls = ({
                 className="page-link" 
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
+                data-page={currentPage - 1}
+                data-per-page={itemsPerPage}
               >
                 <ChevronLeft size={16} />
               </button>
@@ -60,6 +66,8 @@ const PaginationControls = ({
                 className="page-link" 
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
+                data-page={currentPage + 1}
+                data-per-page={itemsPerPage}
               >
                 <ChevronRight size={16} />
               </button>
@@ -69,6 +77,8 @@ const PaginationControls = ({
                 className="page-link" 
                 onClick={() => onPageChange(totalPages)}
                 disabled={currentPage === totalPages}
+                data-page={totalPages}
+                data-per-page={itemsPerPage}
               >
                 <ChevronLast size={16} />
               </button>

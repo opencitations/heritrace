@@ -859,6 +859,7 @@ def entity_history(entity_uri):
         "entityUri": entity_uri,
         "entityLabel": entity_label,
         "entityClasses": list(entity_classes),
+        "entityShape": shape,
         "events": events,
     }
 

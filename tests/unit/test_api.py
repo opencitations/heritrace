@@ -80,8 +80,7 @@ def test_catalogue_api_with_invalid_per_page(api_client: FlaskClient) -> None:
     assert "available_classes" in data
     assert "current_page" in data
     assert data["current_page"] == 1
-    # The per_page should be set to the default value of 100
-    assert data["per_page"] == 100
+    assert data["per_page"] == 50
 
 
 def test_catalogue_api_with_null_sort_property(api_client: FlaskClient) -> None:
@@ -224,8 +223,7 @@ def test_time_vault_api_with_invalid_per_page(mock_get_deleted_entities, api_cli
     assert "available_classes" in data
     assert "current_page" in data
     assert data["current_page"] == 1
-    # The per_page should be set to the default value of 100
-    assert data["per_page"] == 100
+    assert data["per_page"] == 50
 
 
 def test_check_lock_no_uri(api_client: FlaskClient) -> None:

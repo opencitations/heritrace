@@ -33,6 +33,7 @@ api_bp = Blueprint("api", __name__)
 @login_required
 def catalogue_api():
     selected_class = request.args.get("class")
+    selected_shape = request.args.get("shape")
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 50))
     sort_property = request.args.get("sort_property")
@@ -40,7 +41,7 @@ def catalogue_api():
 
     allowed_per_page = [50, 100, 200, 500]
     if per_page not in allowed_per_page:
-        per_page = 100
+        per_page = 50
 
     if not sort_property or sort_property.lower() == "null":
         sort_property = None
@@ -48,7 +49,12 @@ def catalogue_api():
     available_classes = get_available_classes()
     
     catalog_data = get_catalog_data(
-        selected_class, page, per_page, available_classes, sort_property, sort_direction
+        selected_class=selected_class,
+        page=page,
+        per_page=per_page,
+        sort_property=sort_property,
+        sort_direction=sort_direction,
+        selected_shape=selected_shape
     )
 
     catalog_data["available_classes"] = available_classes
@@ -70,7 +76,7 @@ def get_deleted_entities_api():
 
     allowed_per_page = [50, 100, 200, 500]
     if per_page not in allowed_per_page:
-        per_page = 100
+        per_page = 50
 
     deleted_entities, available_classes, selected_class, sortable_properties, total_count = (
         get_deleted_entities_with_filtering(

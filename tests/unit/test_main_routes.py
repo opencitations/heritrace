@@ -50,7 +50,7 @@ def test_catalogue_route_authenticated(
         "/catalogue?page=2&per_page=100&class=test_class&sort_property=name&sort_direction=DESC"
     )
     assert response.status_code == 200
-    mock_get_catalog_data.assert_called_with("test_class", 2, 100, available_classes, "name", "DESC")
+    mock_get_catalog_data.assert_called_with("test_class", 2, 100, "name", "DESC", None)
 
 
 def test_time_vault_route_unauthenticated(client: FlaskClient) -> None:

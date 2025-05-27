@@ -5,6 +5,7 @@ from flask import (Blueprint, current_app, redirect, render_template, request,
                    url_for)
 from flask_login import login_required
 from heritrace.extensions import get_sparql
+from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import (get_available_classes,
                                           get_catalog_data,
                                           get_deleted_entities_with_filtering,
@@ -27,20 +28,30 @@ def catalogue():
     selected_class = request.args.get("class")
     sort_property = request.args.get("sort_property")
     sort_direction = request.args.get("sort_direction", "ASC")
+    selected_shape = request.args.get("shape")
 
     available_classes = get_available_classes()
 
     if not selected_class and available_classes:
         selected_class = available_classes[0]["uri"]
 
+    if not selected_shape and selected_class:
+        selected_shape = determine_shape_for_classes([selected_class])
+
     catalog_data = get_catalog_data(
-        selected_class, page, per_page, available_classes, sort_property, sort_direction
+        selected_class, 
+        page, 
+        per_page, 
+        sort_property, 
+        sort_direction,
+        selected_shape
     )
 
     return render_template(
         "catalogue.jinja",
         available_classes=available_classes,
         selected_class=selected_class,
+        selected_shape=selected_shape,
         page=page,
         total_entity_pages=catalog_data["total_pages"],
         per_page=per_page,

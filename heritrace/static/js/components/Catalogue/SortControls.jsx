@@ -12,7 +12,8 @@ const SortControls = ({
   }
 
   const handlePropertyChange = (e) => {
-    const newProperty = e.target.value;
+    const select = e.target;
+    const newProperty = select.value;
     onSortChange(newProperty, currentDirection);
   };
 
@@ -30,6 +31,8 @@ const SortControls = ({
         style={{ width: 'auto' }}
         value={currentProperty || ''}
         onChange={handlePropertyChange}
+        data-sort-property={currentProperty || ''}
+        data-sort-direction={currentDirection}
       >
         {sortableProperties.map((prop) => (
           <option key={prop.property} value={prop.property}>
@@ -43,6 +46,8 @@ const SortControls = ({
         onClick={toggleDirection}
         title={`Change sort direction`}
         style={{ width: '32px', height: '32px', padding: 0 }}
+        data-sort-property={currentProperty || ''}
+        data-sort-direction={currentDirection}
       >
         <SortAsc 
           size={16} 

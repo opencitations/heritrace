@@ -249,9 +249,9 @@ class TestGetCatalogDataIntegration:
                     "http://example.org/Person",
                     1,
                     10,
-                    available_classes,
                     sort_property="http://example.org/name",
                     sort_direction="ASC",
+                    selected_shape="http://example.org/PersonShape"
                 )
 
                 # Verify the catalog data

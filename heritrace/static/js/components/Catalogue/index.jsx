@@ -6,6 +6,7 @@ import CatalogueInterface from './CatalogueInterface';
 const parseDatasetAttributes = (element) => {
   const {
     selectedClass,
+    selectedShape,
     initialPage,
     initialPerPage,
     totalPages,
@@ -18,6 +19,7 @@ const parseDatasetAttributes = (element) => {
 
   return {
     selectedClass,
+    selectedShape,
     initialPage: parseInt(initialPage, 10),
     initialPerPage: parseInt(initialPerPage, 10),
     totalPages: parseInt(totalPages || '0', 10),
@@ -44,6 +46,7 @@ const initializeCatalogue = (elementId, isTimeVault = false) => {
         <CatalogueInterface
           initialClasses={initialClasses}
           initialSelectedClass={parsedAttributes.selectedClass}
+          initialSelectedShape={parsedAttributes.selectedShape}
           initialPage={parsedAttributes.initialPage}
           initialPerPage={parsedAttributes.initialPerPage}
           initialTotalPages={parsedAttributes.totalPages}

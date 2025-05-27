@@ -7,6 +7,7 @@ import RestoreVersionButton from './RestoreVersionButton';
 const CatalogueInterface = ({
   initialClasses = [],
   initialSelectedClass,
+  initialSelectedShape,
   initialPage = 1,
   initialPerPage = 10,
   initialTotalPages = 0,
@@ -26,6 +27,7 @@ const CatalogueInterface = ({
   const [state, setState] = useState({
     classes: initialClasses,
     selectedClass: getUrlParam('class', initialSelectedClass || (initialClasses[0]?.uri ?? null)),
+    selectedShape: getUrlParam('shape', initialSelectedShape),
     entities: initialEntities,
     isLoading: false,
     classesListSortDirection: 'ASC',
@@ -37,7 +39,6 @@ const CatalogueInterface = ({
     totalPages: initialTotalPages
   });
 
-  // If there are no classes at all, show a context-specific empty state message
   if (state.classes.length === 0) {
     return (
       <div className="alert alert-info text-center p-4">
@@ -72,6 +73,7 @@ const CatalogueInterface = ({
     try {
       const queryParams = new URLSearchParams({
         class: params.class || state.selectedClass,
+        shape: params.shape || state.selectedShape,
         page: params.page || state.currentPage,
         per_page: params.perPage || state.currentPerPage,
         sort_property: params.sortProperty || state.sortProperty,
@@ -94,6 +96,7 @@ const CatalogueInterface = ({
 
       updateUrl({
         class: params.class || state.selectedClass,
+        shape: params.shape || state.selectedShape,
         page: data.current_page,
         per_page: data.per_page,
         sort_property: data.sort_property,
@@ -106,10 +109,14 @@ const CatalogueInterface = ({
     }
   };
 
-  const handleClassClick = (classUri) => {
+  const handleClassClick = (event) => {
+    const button = event.currentTarget;
+    const classUri = button.dataset.class;
+    const shape = button.dataset.shape;
+    
     if (classUri === state.selectedClass) return;
-    setState(prev => ({ ...prev, selectedClass: classUri }));
-    fetchData({ class: classUri, page: 1 });
+    setState(prev => ({ ...prev, selectedClass: classUri, selectedShape: shape }));
+    fetchData({ class: classUri, shape: shape, page: 1 });
   };
 
   const handleSortChange = (property, direction) => {
@@ -163,6 +170,7 @@ const CatalogueInterface = ({
                 style={{ width: '32px', height: '32px', padding: 0 }}
                 onClick={toggleClassesSort}
                 title={`Sort ${state.classesListSortDirection === 'ASC' ? 'A-Z' : 'Z-A'}`}
+                data-sort-direction={state.classesListSortDirection}
               >
                 <SortAsc 
                   size={16} 
@@ -176,7 +184,9 @@ const CatalogueInterface = ({
               {sortedClasses.map((cls) => (
                 <button
                   key={cls.uri}
-                  onClick={() => handleClassClick(cls.uri)}
+                  onClick={handleClassClick}
+                  data-class={cls.uri}
+                  data-shape={cls.shape || ''}
                   className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${
                     cls.uri === state.selectedClass ? 'active' : ''
                   }`}
@@ -205,7 +215,7 @@ const CatalogueInterface = ({
           <>
             <div className="mb-3">
               {state.sortableProperties?.length > 0 && (
-                <div className="mb-3">
+                <div className="mb-3">  
                   <SortControls
                     sortableProperties={state.sortableProperties}
                     currentProperty={state.sortProperty}
