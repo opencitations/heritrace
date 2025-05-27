@@ -7,10 +7,11 @@ import sys
 from typing import Union
 from urllib.parse import urlparse
 
-from rdflib import URIRef
-from SPARQLWrapper import JSON, SPARQLWrapper
-from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
+from heritrace.extensions import SPARQLWrapperWithRetry
 from heritrace.utils.converters import convert_to_datetime
+from rdflib import URIRef
+from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
+from SPARQLWrapper import JSON
 
 
 class ProvenanceResetter:
@@ -32,7 +33,7 @@ class ProvenanceResetter:
             counter_handler: An instance of a CounterHandler to manage provenance counters
         """
         self.provenance_endpoint = provenance_endpoint
-        self.provenance_sparql = SPARQLWrapper(provenance_endpoint)
+        self.provenance_sparql = SPARQLWrapperWithRetry(provenance_endpoint)
         self.provenance_sparql.setReturnFormat(JSON)
         self.counter_handler = counter_handler
         self.logger = logging.getLogger(__name__)

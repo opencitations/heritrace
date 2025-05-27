@@ -11,14 +11,16 @@ from flask_babel import format_datetime, gettext, lazy_gettext
 from heritrace.apis.orcid import format_orcid_attribution, is_orcid_url
 from heritrace.apis.zenodo import format_zenodo_source, is_zenodo_url
 from rdflib import ConjunctiveGraph, Graph
-from SPARQLWrapper import JSON, SPARQLWrapper
+from SPARQLWrapper import JSON
 
 
 class Filter:
     def __init__(self, context: dict, display_rules: dict, sparql_endpoint: str):
+        from heritrace.extensions import get_sparql
+
         self.context = context
         self.display_rules = display_rules
-        self.sparql = SPARQLWrapper(sparql_endpoint)
+        self.sparql = get_sparql()
         self.sparql.setReturnFormat(JSON)
         self._query_lock = threading.Lock()
 

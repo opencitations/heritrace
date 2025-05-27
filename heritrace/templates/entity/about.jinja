@@ -124,10 +124,8 @@
                             {{ render_triple(triple=triple_data['triple'], subject=subject, externalEntity=triple_data['external_entity'], isDraggable=isDraggable, object=triple_data['object'], orderedBy=data['ordered_by'], unique_id=unique_counter.value, grouped_triples_data=data, display_name=display_name, object_class=object_class) }}
                         {% endfor %}
 
-                        <!-- Move the add-button inside the ul -->
                         {% if predicate in can_be_added and has_details %}
                             {% set unique_id_base = (((entity_type, subject_shape) | human_readable_class) | replace(" ", "") + "_" + (predicate | human_readable_predicate((entity_type, subject_shape))) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
-                            <!-- Button to add new items -->
                             <div class="text-start mt-3" data-repeater-create>
                                 <button type="button" class="add-button">
                                     <i class="bi bi-plus-circle"></i>

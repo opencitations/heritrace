@@ -19,8 +19,8 @@ def mock_counter_handler():
 
 @pytest.fixture
 def mock_sparql():
-    """Fixture for a mock SPARQLWrapper."""
-    with patch('heritrace.scripts.reset_provenance.SPARQLWrapper') as mock:
+    """Fixture for a mock SPARQLWrapperWithRetry."""
+    with patch('heritrace.scripts.reset_provenance.SPARQLWrapperWithRetry') as mock:
         mock_instance = MagicMock()
         mock.return_value = mock_instance
         mock_instance.queryAndConvert = MagicMock()

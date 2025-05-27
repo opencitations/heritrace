@@ -1,18 +1,14 @@
-from datetime import datetime
-import argparse
-import concurrent.futures
-import csv
-import os
 import traceback
-from typing import Dict, List, Set
+from datetime import datetime
+from typing import List, Set
 
+from heritrace.extensions import SPARQLWrapperWithRetry
 from rdflib import Graph, Literal, URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMConjunctiveGraph, OCDMGraph
 from rdflib_ocdm.reader import Reader
 from rdflib_ocdm.storer import Storer
-from SPARQLWrapper import SPARQLWrapper, JSON
-from tqdm import tqdm
+from SPARQLWrapper import JSON
 
 
 class Editor:
@@ -218,7 +214,7 @@ class Editor:
         if keep_uri == delete_uri:
             raise ValueError("Cannot merge an entity with itself.")
 
-        sparql = SPARQLWrapper(self.dataset_endpoint)
+        sparql = SPARQLWrapperWithRetry(self.dataset_endpoint)
         entities_to_import: Set[URIRef] = {keep_uri, delete_uri}
         incoming_triples_to_update: List[tuple[URIRef, URIRef]] = []
         outgoing_triples_to_move: List[tuple[URIRef, Literal | URIRef]] = []

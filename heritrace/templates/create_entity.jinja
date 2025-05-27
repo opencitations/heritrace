@@ -56,11 +56,9 @@
                     <input type="url" class="form-control mb-2" id="custom_property_1" name="custom_property_1" placeholder="{{ _('Property URI') }}" required>
                     <div class="invalid-feedback mb-2">{{_('Please enter a valid URL for the property URI')}}</div>
 
-                    <!-- Input per il valore (gestito dinamicamente in JS) -->
                     <input type="text" class="form-control custom-value-input mb-2" id="custom_value_1" name="custom_value_1" placeholder="{{ _('Value') }}">
                     <div class="invalid-feedback mb-2"></div>
 
-                    <!-- Selettore per URI o Literal -->
                     <div class="mb-2">
                         <label for="custom_value_type_1" class="form-label">{{ _('Value Type') }}</label>
                         <select class="form-select custom-value-type" id="custom_value_type_1" name="custom_value_type_1">
@@ -70,7 +68,6 @@
                         <div class="invalid-feedback"></div>
                     </div>
 
-                    <!-- Dropdown per selezionare il datatype (mostrato solo per Literal) -->
                     <div class="mt-2 custom-datatype-section" id="custom_datatype_section_1">
                         <label for="custom_datatype_1" class="form-label">{{ _('Select Datatype') }}</label>
                         <select class="form-select" id="custom_datatype_1" name="custom_datatype_1">
@@ -121,10 +118,8 @@
     };
 
     $(document).ready(function() {
-        // Funzione per validare il valore in tempo reale con AJAX
         function validateValue(propertyId, value) {
             if (!value.trim()) {
-                // Se il valore è vuoto, mostra tutte le opzioni e esci dalla funzione
                 $(`#custom_datatype_${propertyId} option`).show();
                 return;
             }
@@ -137,20 +132,16 @@
                 success: function(response) {
                     var select = $(`#custom_datatype_${propertyId}`);
                     
-                    // Nascondi tutte le opzioni prima
                     select.find('option').hide();
                     
-                    // Mostra solo le opzioni valide
                     response.valid_datatypes.forEach(function(datatypeUri) {
                         select.find(`option[value="${datatypeUri}"]`).show();
                     });
                     
-                    // Se l'opzione attualmente selezionata non è valida, seleziona la prima opzione valida
                     if (!response.valid_datatypes.includes(select.val())) {
                         select.val(response.valid_datatypes[0]);
                     }
                     
-                    // Se non ci sono opzioni valide, mostra un messaggio
                     if (response.valid_datatypes.length === 0) {
                         select.append($('<option>', {
                             value: '',
@@ -182,12 +173,9 @@
 
         initializeForm();       
 
-        // Handle entity type selection
         $('#entity_type').change(function() {
             initializeForm();            
         });
-
-        // Toggle nested forms
         $(document).on('click', '.toggle-btn', function(e) {
             e.stopPropagation();
             let target = $(this).attr('data-bs-target');
@@ -208,10 +196,8 @@
 
         updateOrderedElementsNumbering();
 
-        // Handle custom entity form
         let propertyCount = 1;
 
-        // Aggiungi nuova proprietà
         $('#add-property').click(function() {
             propertyCount++;
             let newProperty = `
@@ -253,7 +239,6 @@
             toggleRemoveButtons();
         });
 
-        // Gestione della rimozione delle proprietà
         $('#custom-properties').on('click', '.remove-property', function() {
             let propertyId = $(this).data('property-id');
             $(`div[data-property-id="${propertyId}"]`).remove();
@@ -266,10 +251,8 @@
                 let newIndex = index + 1;
                 $(this).attr('data-property-id', newIndex);
 
-                // Aggiorna l'etichetta della proprietà
                 $(this).find('.form-label').first().text(`{{_('Property')}} ${newIndex}`);
 
-                // Aggiorna gli attributi di input e select per Property URI, Value e Datatype
                 $(this).find('input, select').each(function() {
                     let oldName = $(this).attr('name');
                     let oldId = $(this).attr('id');
@@ -280,11 +263,9 @@
                     $(this).attr('id', newId);
                 });
 
-                // Aggiorna l'attributo `data-property-id` del pulsante di rimozione
                 $(this).find('.remove-property').attr('data-property-id', newIndex);
             });
 
-            // Ricalcola il numero di proprietà attuali
             propertyCount = $('.custom-property').length;
         }
 
@@ -293,16 +274,13 @@
             var value = $(this).val();
             var valueType = $(`#custom_value_type_${propertyId}`).val();
 
-            // Resetta il datatype su xsd:string ogni volta che il valore cambia
             $(`#custom_datatype_${propertyId}`).val('http://www.w3.org/2001/XMLSchema#string');
 
-            // Chiama validateValue solo se il tipo di valore è 'literal'
             if (valueType === 'literal') {
                 validateValue(propertyId, value);
             }
         });
 
-        // Gestione della visualizzazione dinamica del datatype
         $(document).on('change', '.custom-value-type', function() {
             var propertyId = $(this).attr('id').split('_').pop();
             var selectedValueType = $(this).val();
@@ -326,12 +304,9 @@
             }
         });
 
-        // Valida l'URI dell'entità
         $('#custom_entity_uri').on('input change', function() {
             validateUrlInput($(this));
         });
-
-        // Validazione per i campi Property URI
         $(document).on('input change', '.custom-property input[type="url"]', function() {
             validateUrlInput($(this));
         });
@@ -340,33 +315,26 @@
             var propertyId = $(this).attr('id').split('_').pop();
             var selectedValueType = $(this).val();
             
-            // Trova l'input associato a questo valore
             var valueInput = $(`#custom_value_${propertyId}`);
             
             if (selectedValueType === 'uri') {
-                // Aggiungi il messaggio di errore se non esiste già
                 if (valueInput.next('.invalid-feedback').length === 0) {
                     valueInput.after('<div class="invalid-feedback mb-2">{{ _("Please enter a valid URL") }}</div>');
                 }
-                // Cambia il tipo dell'input in 'url' e aggiungi validazione URL
                 valueInput.attr('type', 'url');
                 valueInput.on('input change', function() {
                     validateUrlInput($(this));
                 });
             } else {
-                // Cambia il tipo dell'input in 'text' se è un literal
                 valueInput.attr('type', 'text');
-                // Rimuovi la validazione URL se non è più un URI
                 valueInput.off('input change', validateUrlInput);
-                valueInput.removeClass('is-invalid');  // Rimuovi eventuali stati di errore
-                valueInput.next('.invalid-feedback').remove();  // Rimuovi il messaggio di errore
+                valueInput.removeClass('is-invalid');
+                valueInput.next('.invalid-feedback').remove();
             }
         });
 
-        // Gestione della visualizzazione dinamica del datatype
         $(document).on('change', '.custom-value-input', function() {
             var propertyId = $(this).attr('id').split('_').pop();
-            // Reset del datatype su xsd:string ogni volta che il valore cambia
             $(`#custom_datatype_${propertyId}`).val('http://www.w3.org/2001/XMLSchema#string');                
         });
 
@@ -381,7 +349,6 @@
             validateConditions(errors);
             validateCardinality(errors);
 
-            // Verifica che almeno una proprietà sia specificata
             if ('{{shacl}}' !== 'True') {
                 let hasAtLeastOneProperty = false;
                 $('.custom-property:visible').each(function() {
@@ -390,7 +357,7 @@
 
                     if (propertyUri && propertyValue) {
                         hasAtLeastOneProperty = true;
-                        return false; // Esce dal ciclo each
+                        return false;
                     }
                 });
 
@@ -400,12 +367,11 @@
                     });
                 }
             } else {
-                // Per SHACL, verifica che ci sia almeno una proprietà compilata
                 let hasProperties = false;
                 $('[data-repeater-list]').each(function() {
                     if ($(this).find('[data-repeater-item]:visible').length > 0) {
                         hasProperties = true;
-                        return false; // Esce dal ciclo each
+                        return false;
                     }
                 });
 

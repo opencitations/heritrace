@@ -10,8 +10,8 @@ from SPARQLWrapper import JSON
 
 @pytest.fixture
 def mock_sparql():
-    """Fixture for a mock SPARQLWrapper."""
-    with patch('heritrace.scripts.clean_missing_entities.SPARQLWrapper') as mock:
+    """Fixture for a mock SPARQLWrapperWithRetry."""
+    with patch('heritrace.scripts.clean_missing_entities.SPARQLWrapperWithRetry') as mock:
         mock_instance = MagicMock()
         mock.return_value = mock_instance
         mock_instance.queryAndConvert = MagicMock()

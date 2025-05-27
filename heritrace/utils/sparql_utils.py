@@ -18,7 +18,7 @@ from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
 from rdflib import RDF, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
-from SPARQLWrapper import JSON, SPARQLWrapper
+from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
@@ -306,7 +306,8 @@ def fetch_data_graph_for_subject(subject: str) -> Graph | ConjunctiveGraph:
 
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
-    results = sparql.query().convert().get("results", {}).get("bindings", [])
+    query_results = sparql.query().convert()
+    results = query_results.get("results", {}).get("bindings", [])
 
     for result in results:
         # Create the appropriate value (Literal or URIRef)
@@ -699,7 +700,7 @@ def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5, includ
 
     # First import referencing entities if needed
     if include_referencing_entities:
-        sparql = SPARQLWrapper(editor.dataset_endpoint)
+        sparql = get_sparql()
         
         # Build query based on database type
         if editor.dataset_is_quadstore:
@@ -747,7 +748,7 @@ def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5, includ
             }}
         """
 
-        sparql = SPARQLWrapper(editor.dataset_endpoint)
+        sparql = get_sparql()
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()

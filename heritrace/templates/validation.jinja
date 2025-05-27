@@ -1,8 +1,8 @@
 <script>
     function getContainerName(input) {
         let containerName = '';
-        let repeaterList = input.closest('[data-repeater-list]');
-        containerName = repeaterList.data('display-name');
+        let repeaterList = input.closest('.newEntityPropertiesContainer').closest('[data-repeater-list]');
+        containerName = repeaterList.data('display-name') || $('#entity_type option:selected').text();
         return containerName;
     }
 
@@ -10,10 +10,7 @@
     function validateRequiredFields(errors) {
         $(':input[required]:visible').each(function() {
             if (!$(this).val()) {
-                let fieldName = $(this).closest('.form-floating').find('label').text() || 
-                                $(this).attr('placeholder') || 
-                                $(this).attr('name') || 
-                                '{{ _("Unknown field") }}';
+                let fieldName = $(this).data('predicate-label');
                 let containerName = getContainerName($(this));
                 errors.push({
                     field: $(this),
@@ -44,12 +41,9 @@
     function validateUrls(errors) {
         $('input[type="url"]:visible').each(function() {
             let url = $(this).val();
+            let fieldName = $(this).data('predicate-label') ;
+            let containerName = getContainerName($(this));
             if (url && !validateUrl(url)) {
-                let fieldName = $(this).closest('.form-floating').find('label').text() || 
-                                $(this).attr('placeholder') || 
-                                $(this).attr('name') || 
-                                '{{ _("Unknown URL field") }}';
-                let containerName = getContainerName($(this));
                 errors.push({
                     field: $(this),
                     message: `{{ _("Please enter a valid URL for") }} "${fieldName}" {{ _("of the") }} ${containerName}`

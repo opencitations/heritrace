@@ -4,11 +4,11 @@ import argparse
 import importlib.util
 import logging
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
-from SPARQLWrapper import JSON, SPARQLWrapper
-
+from heritrace.extensions import SPARQLWrapperWithRetry
 from heritrace.utils.sparql_utils import VIRTUOSO_EXCLUDED_GRAPHS
+from SPARQLWrapper import JSON
 
 
 class MissingEntityCleaner:
@@ -30,7 +30,7 @@ class MissingEntityCleaner:
         """
         self.endpoint = endpoint
         self.is_virtuoso = is_virtuoso
-        self.sparql = SPARQLWrapper(endpoint)
+        self.sparql = SPARQLWrapperWithRetry(endpoint)
         self.sparql.setReturnFormat(JSON)
         self.logger = logging.getLogger(__name__)
 

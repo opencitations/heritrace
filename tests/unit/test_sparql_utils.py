@@ -568,13 +568,12 @@ class TestImportEntityGraph:
 
     def test_import_entity_graph(self):
         """Test importing an entity graph."""
-        # Create a mock editor
         mock_editor = MagicMock()
 
-        # Mock the SPARQLWrapper
-        with patch("heritrace.utils.sparql_utils.SPARQLWrapper") as mock_sparql_wrapper:
-            # Configure mock to return some connected entities
-            mock_sparql_wrapper.return_value.query.return_value.convert.return_value = {
+        # Mock get_sparql to return a mock SPARQLWrapper
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql:
+            mock_sparql_wrapper = mock_get_sparql.return_value
+            mock_sparql_wrapper.query.return_value.convert.return_value = {
                 "results": {
                     "bindings": [
                         {
@@ -585,12 +584,9 @@ class TestImportEntityGraph:
                 }
             }
 
-            # Call the function
             result = import_entity_graph(
                 mock_editor, "http://example.org/person1", max_depth=2
             )
-
-            # Verify the editor was used correctly
             assert mock_editor.import_entity.call_count == 2
             mock_editor.import_entity.assert_any_call(
                 URIRef("http://example.org/person1")
@@ -599,7 +595,6 @@ class TestImportEntityGraph:
                 URIRef("http://example.org/person2")
             )
 
-            # Verify the result
             assert result == mock_editor
 
 
@@ -644,14 +639,11 @@ class TestFetchCurrentStateWithRelatedEntities:
                 person1_graph if uri == "http://example.org/person1" else person2_graph
             )
 
-            # Call the function
             result = fetch_current_state_with_related_entities(provenance)
 
-            # Verify the result is a Graph (not a ConjunctiveGraph)
             assert isinstance(result, Graph)
             assert not isinstance(result, ConjunctiveGraph)
 
-            # Verify all triples were added to the combined graph
             assert len(result) == 2
             assert (
                 URIRef("http://example.org/person1"),
@@ -664,7 +656,6 @@ class TestFetchCurrentStateWithRelatedEntities:
                 Literal("Person 2"),
             ) in result
 
-            # Verify fetch_data_graph_for_subject was called for each entity
             assert mock_fetch.call_count == 2
             mock_fetch.assert_any_call("http://example.org/person1")
             mock_fetch.assert_any_call("http://example.org/person2")

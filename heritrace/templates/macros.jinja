@@ -35,7 +35,8 @@
                 <select class="form-select container-type-selector w-75" 
                         id="{{ unique_id_base }}_container_type"
                         name="{{ unique_id_base }}_container_type"
-                        data-predicate-uri="{{ details.uri }}">
+                        data-predicate-uri="{{ details.uri }}"
+                        data-predicate-label="{{ details.displayName }}">
                     <option value="">{{ _('Select an option') }}</option>
                     {% for shape_info in details.or %}
                         <option value="{{ shape_info.nodeShape }}" 
@@ -52,7 +53,6 @@
                     </button>
                 {% endif %}
             </div>
-            {# Container forms - one for each option #}
             <div class="container-forms d-none w-100">
                 {% for shape_info in details.or %}
                     <div class="container-form d-none" data-shape="{{ shape_info.nodeShape }}" data-class="{{ shape_info.entityType }}">
@@ -117,6 +117,7 @@
                     name="{{ unique_id_base }}" 
                     data-value="{{ details.hasValue|safe }}"
                     data-predicate-uri="{{ details.uri }}"
+                    data-predicate-label="{{ details.displayName }}"
                     data-depth="{{ depth }}"
                     data-mandatory-value="true">
             </div>
@@ -162,6 +163,7 @@
                                 name="{{ unique_id_base }}"
                                 data-date-type="date"
                                 data-predicate-uri="{{ details.uri }}"
+                                data-predicate-label="{{ details.displayName }}"
                                 data-depth="{{ depth }}"
                                 data-datatypes="http://www.w3.org/2001/XMLSchema#date"
                                 {% if 'supportsSearch' in details %}
@@ -187,6 +189,7 @@
                                 name="{{ unique_id_base }}"
                                 data-date-type="month"
                                 data-predicate-uri="{{ details.uri }}"
+                                data-predicate-label="{{ details.displayName }}"
                                 data-depth="{{ depth }}"
                                 data-datatypes="http://www.w3.org/2001/XMLSchema#gYearMonth"
                                 {% if 'supportsSearch' in details %}
@@ -212,6 +215,7 @@
                                 name="{{ unique_id_base }}"
                                 data-date-type="year"
                                 data-predicate-uri="{{ details.uri }}"
+                                data-predicate-label="{{ details.displayName }}"
                                 data-depth="{{ depth }}"
                                 data-datatypes="http://www.w3.org/2001/XMLSchema#gYear"
                                 {% if 'supportsSearch' in details %}
@@ -245,6 +249,7 @@
                             id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
                             name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
                             data-predicate-uri="{{ details.uri }}"
+                            data-predicate-label="{{ details.displayName }}"
                             data-depth="{{ depth }}"
                             {% if details.conditions %}
                                 data-conditions='{{ details.conditions | tojson | safe }}'
@@ -277,6 +282,7 @@
                             id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
                             name="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
                             data-predicate-uri="{{ details.uri }}"
+                            data-predicate-label="{{ details.displayName }}"
                             data-depth="{{ depth }}"
                             {% if details.conditions %}
                                 data-conditions='{{ details.conditions | tojson | safe }}'

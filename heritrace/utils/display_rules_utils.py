@@ -230,6 +230,7 @@ def get_grouped_triples(
     """
     from heritrace.utils.shacl_utils import determine_shape_for_classes
     display_rules = get_display_rules()
+    form_fields = get_form_fields()
 
     grouped_triples = OrderedDict()
     relevant_properties = set()
@@ -238,7 +239,8 @@ def get_grouped_triples(
     
     subject_shape = determine_shape_for_classes([highest_priority_class])
     matching_rule = find_matching_rule(highest_priority_class, subject_shape, display_rules)
-    
+    matching_form_field = form_fields.get((highest_priority_class, subject_shape))
+
     ordered_properties = []
     if display_rules and matching_rule:
         for prop_config in matching_rule.get("displayProperties", []):
@@ -257,6 +259,8 @@ def get_grouped_triples(
                     current_prop_config = prop_config
                     break
             
+            current_form_field = matching_form_field.get(prop_uri)
+
             if current_prop_config:
                 if "displayRules" in current_prop_config:
                     is_ordered = "orderedBy" in current_prop_config
@@ -267,6 +271,7 @@ def get_grouped_triples(
                             "displayName", prop_uri
                         )
                         relevant_properties.add(prop_uri)
+                        object_shape = display_rule_nested.get("shape")
                         process_display_rule(
                             display_name_nested,
                             prop_uri,
@@ -277,6 +282,7 @@ def get_grouped_triples(
                             fetched_values_map,
                             historical_snapshot,
                             subject_shape,
+                            object_shape
                         )
                         if is_ordered:
                             grouped_triples[display_name_nested]["is_draggable"] = True
@@ -310,6 +316,12 @@ def get_grouped_triples(
                 else:
                     display_name_simple = current_prop_config.get("displayName", prop_uri)
                     relevant_properties.add(prop_uri)
+
+                    object_shape = None
+                    for form_field in current_form_field:
+                        object_shape = form_field.get("nodeShape")       
+                        break                  
+
                     process_display_rule(
                         display_name_simple,
                         prop_uri,
@@ -319,7 +331,8 @@ def get_grouped_triples(
                         grouped_triples,
                         fetched_values_map,
                         historical_snapshot,
-                        subject_shape
+                        subject_shape,
+                        object_shape
                     )
                     if "orderedBy" in current_prop_config:
                         if display_name_simple not in grouped_triples:
@@ -359,13 +372,14 @@ def process_display_rule(
     fetched_values_map,
     historical_snapshot=None,
     subject_shape=None,
+    object_shape=None,
 ):
     if display_name not in grouped_triples:
         grouped_triples[display_name] = {
             "property": prop_uri,
             "triples": [],
             "subjectShape": subject_shape,
-            "objectShape": rule.get("shape"),
+            "objectShape": object_shape,
             "intermediateRelation": rule.get("intermediateRelation"),
         }
     for triple in triples:
@@ -386,20 +400,19 @@ def process_display_rule(
                     fetched_values_map[str(result)] = str(triple[2])
                     new_triple = (str(triple[0]), str(triple[1]), str(result))
                     object_uri = str(triple[2])
-                    
                     new_triple_data = {
                         "triple": new_triple,
                         "external_entity": external_entity,
                         "object": object_uri,
                         "subjectShape": subject_shape,
-                        "objectShape": rule.get("shape"),
+                        "objectShape": object_shape,
                     }
                     grouped_triples[display_name]["triples"].append(new_triple_data)
             else:
                 if str(triple[1]) == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type':
                     from heritrace.utils.shacl_utils import determine_shape_for_classes
-                    object_shape = determine_shape_for_classes([triple[2]])
-                    result = get_custom_filter().human_readable_class((triple[2], object_shape))
+                    object_class_shape = determine_shape_for_classes([triple[2]])
+                    result = get_custom_filter().human_readable_class((triple[2], object_class_shape))
                 else:
                     result = triple[2]
                 
@@ -409,7 +422,7 @@ def process_display_rule(
                     "triple": (str(triple[0]), str(triple[1]), result),
                     "object": object_uri,
                     "subjectShape": subject_shape,
-                    "objectShape": rule.get("shape"),
+                    "objectShape": object_shape,
                 }
                 grouped_triples[display_name]["triples"].append(new_triple_data)
 

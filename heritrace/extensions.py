@@ -2,8 +2,10 @@
 
 import json
 import os
+import time
+import logging
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Dict, Any
 from urllib.parse import urlparse, urlunparse
 
 import yaml
@@ -34,6 +36,45 @@ redis_client = None
 display_rules = None
 dataset_is_quadstore = None
 shacl_graph = None
+
+
+class SPARQLWrapperWithRetry(SPARQLWrapper):
+    """
+    Extension of SPARQLWrapper that includes automatic retry functionality.
+    """
+    def __init__(self, endpoint, **kwargs):
+        super().__init__(endpoint, **kwargs)
+        self.max_attempts = kwargs.get('max_attempts', 3)
+        self.initial_delay = kwargs.get('initial_delay', 1.0)
+        self.backoff_factor = kwargs.get('backoff_factor', 2.0)
+    
+    def query(self):
+        """
+        Override the query method to include retry logic.
+        Returns the original SPARQLWrapper.QueryResult so that convert() can be called on it.
+        """
+        logger = logging.getLogger(__name__)
+        
+        attempt = 1
+        delay = self.initial_delay
+        last_exception = None
+        
+        while attempt <= self.max_attempts:
+            try:
+                return super().query()
+            except Exception as e:
+                last_exception = e
+                logger.warning(f"SPARQL query attempt {attempt}/{self.max_attempts} failed: {str(e)}")
+                
+                if attempt < self.max_attempts:
+                    logger.info(f"Retrying in {delay:.2f} seconds...")
+                    time.sleep(delay)
+                    delay *= self.backoff_factor
+                
+                attempt += 1
+        
+        logger.error(f"All {self.max_attempts} SPARQL query attempts failed")
+        raise last_exception
 
 def init_extensions(app: Flask, babel: Babel, login_manager: LoginManager, redis: Redis):
     """
@@ -308,22 +349,18 @@ def init_sparql_services(app: Flask):
     global initialization_done, dataset_endpoint, provenance_endpoint, sparql, provenance_sparql, change_tracking_config
 
     if not initialization_done:
-        # Adjust endpoints for Docker if necessary
         dataset_endpoint = adjust_endpoint_url(app.config['DATASET_DB_URL'])
         provenance_endpoint = adjust_endpoint_url(app.config['PROVENANCE_DB_URL'])
         
-        # Initialize SPARQL wrappers
-        sparql = SPARQLWrapper(dataset_endpoint)
-        provenance_sparql = SPARQLWrapper(provenance_endpoint)
+        sparql = SPARQLWrapperWithRetry(dataset_endpoint)
+        provenance_sparql = SPARQLWrapperWithRetry(provenance_endpoint)
         
-        # Initialize change tracking configuration
         change_tracking_config = initialize_change_tracking_config(
             app,
             adjusted_dataset_endpoint=dataset_endpoint,
             adjusted_provenance_endpoint=provenance_endpoint
         )
         
-        # Initialize other required components
         initialize_counter_handler(app)
         initialize_global_variables(app)
         initialization_done = True
@@ -332,21 +369,17 @@ def init_filters(app: Flask):
     """Initialize custom template filters."""
     global custom_filter
     
-    # Load context from configuration
     with open(os.path.join("resources", "context.json"), "r") as config_file:
         context = json.load(config_file)["@context"]
     
-    # Load display rules from configuration
     display_rules = None
     if app.config["DISPLAY_RULES_PATH"]:
         with open(app.config["DISPLAY_RULES_PATH"], 'r') as f:
             yaml_content = yaml.safe_load(f)
             display_rules = yaml_content.get('rules', [])
     
-    # Create custom filter instance
     custom_filter = Filter(context, display_rules, dataset_endpoint)
     
-    # Register template filters
     app.jinja_env.filters['human_readable_predicate'] = custom_filter.human_readable_predicate
     app.jinja_env.filters['human_readable_class'] = custom_filter.human_readable_class
     app.jinja_env.filters['human_readable_entity'] = custom_filter.human_readable_entity
@@ -406,8 +439,8 @@ def get_dataset_endpoint() -> str:
     global dataset_endpoint
     return dataset_endpoint
 
-def get_sparql() -> SPARQLWrapper:
-    """Get the configured SPARQL wrapper for the dataset endpoint."""
+def get_sparql() -> SPARQLWrapperWithRetry:
+    """Get the configured SPARQL wrapper for the dataset endpoint with built-in retry mechanism."""
 
     global sparql
     return sparql
@@ -418,8 +451,8 @@ def get_provenance_endpoint() -> str:
     global provenance_endpoint
     return provenance_endpoint
 
-def get_provenance_sparql() -> SPARQLWrapper:
-    """Get the configured SPARQL wrapper for the provenance endpoint."""
+def get_provenance_sparql() -> SPARQLWrapperWithRetry:
+    """Get the configured SPARQL wrapper for the provenance endpoint with built-in retry mechanism."""
 
     global provenance_sparql
     return provenance_sparql
