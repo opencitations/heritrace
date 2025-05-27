@@ -2,26 +2,7 @@
     <li class="d-flex align-items-center">
         <span class="flex-grow-1 d-flex flex-column justify-content-center py-3 w-75">
             <span class="object-value word-wrap">
-                {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
-                    {{ (triple[2], entity_shape) | human_readable_class }}
-                {% else %}
-                    {{ triple[2] | human_readable_predicate((entity_type, entity_shape)) }}
-                {% endif %}
-            </span>
-        </span>
-    </li>
-{% endmacro %}
-
-{% macro render_modification_triple(triple, subject) %}
-    <li class="d-flex align-items-center">
-        <span class="flex-grow-1 d-flex flex-column justify-content-center py-3 w-75">
-            <strong>{{ triple[1] | human_readable_predicate((entity_type, entity_shape)) }}:</strong>
-            <span class="object-value word-wrap">
-                {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
-                    {{ (triple[2], entity_shape) | human_readable_class }}
-                {% else %}
-                    {{ triple[2] | human_readable_predicate((entity_type, entity_shape)) }}
-                {% endif %}
+                {{triple[2]}}
             </span>
         </span>
     </li>

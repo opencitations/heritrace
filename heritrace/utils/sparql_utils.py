@@ -438,7 +438,7 @@ def get_deleted_entities_with_filtering(
 
     results_bindings = prov_results["results"]["bindings"]
     if not results_bindings:
-        return [], [], None, [], 0
+        return [], [], None, None, [], 0
 
     deleted_entities = []
     max_workers = max(1, min(os.cpu_count() or 4, len(results_bindings)))

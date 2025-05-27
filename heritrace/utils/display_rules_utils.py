@@ -2,11 +2,13 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote
 
-from heritrace.extensions import get_display_rules, get_form_fields, get_sparql
+from heritrace.extensions import (get_custom_filter, get_display_rules,
+                                  get_form_fields, get_sparql)
 from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateQuery
 from rdflib.plugins.sparql.parser import parseQuery
 from SPARQLWrapper import JSON
+
 
 display_rules = get_display_rules()
 
@@ -394,10 +396,17 @@ def process_display_rule(
                     }
                     grouped_triples[display_name]["triples"].append(new_triple_data)
             else:
+                if str(triple[1]) == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type':
+                    from heritrace.utils.shacl_utils import determine_shape_for_classes
+                    object_shape = determine_shape_for_classes([triple[2]])
+                    result = get_custom_filter().human_readable_class((triple[2], object_shape))
+                else:
+                    result = triple[2]
+                
                 object_uri = str(triple[2])
                 
                 new_triple_data = {
-                    "triple": (str(triple[0]), str(triple[1]), object_uri),
+                    "triple": (str(triple[0]), str(triple[1]), result),
                     "object": object_uri,
                     "subjectShape": subject_shape,
                     "objectShape": rule.get("shape"),

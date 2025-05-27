@@ -1407,7 +1407,7 @@ def generate_modification_text(
     """
     modification_text = "<p><strong>" + gettext("Modifications") + "</strong></p>"
 
-    ordered_properties = get_property_order_from_rules(highest_priority_class)
+    ordered_properties = get_property_order_from_rules(highest_priority_class, entity_shape)
 
     for mod_type, triples in modifications.items():
         modification_text += "<ul class='list-group mb-3'><p>"

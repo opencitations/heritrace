@@ -93,9 +93,10 @@ class Filter:
             str: Human-readable representation of the class
         """
         from heritrace.utils.display_rules_utils import find_matching_rule
-        
+        from heritrace.utils.shacl_utils import determine_shape_for_classes
+
         class_uri, shape_uri = entity_key
-        
+        shape_uri = determine_shape_for_classes([class_uri])
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
 
         if rule and "displayName" in rule:

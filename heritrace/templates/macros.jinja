@@ -379,15 +379,9 @@
                     </span>
                 {% endif %}
             {% else %}
-                {% if shacl and triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]] %}
+                {% if shacl and triple[1] in mandatory_values and object in mandatory_values[triple[1]] %}
                     <div class="d-flex align-items-baseline">
-                        <p style="margin-left: 0.75rem">
-                            {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
-                                {{ (triple[2], grouped_triples_data.get('subjectShape')) | human_readable_class }}
-                            {% else %}
-                                {{ triple[2] | human_readable_predicate((grouped_triples_data.get('subjectClass'), grouped_triples_data.get('subjectShape'))) }}
-                            {% endif %}
-                        </p>
+                        <p style="margin-left: 0.75rem">{{ triple[2] }}</p>
                         <i class="bi bi-question-circle-fill ms-2 text-info" 
                            data-bs-toggle="tooltip" 
                            data-bs-placement="right"
@@ -496,7 +490,7 @@
                         </div>
                     </div>
                 {% else %}
-                    {% set key = (triple[1], entity_type, shape) %}
+                    {% set key = (triple[1], (entity_type, entity_shape), shape) %}
                     {% if predicate_details_map.get(key) %}
                         {% set details = predicate_details_map.get(key) %}
                         {% if details.inputType == "textarea" %}
