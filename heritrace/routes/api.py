@@ -69,6 +69,7 @@ def get_deleted_entities_api():
     Only processes and returns entities whose classes are marked as visible.
     """
     selected_class = request.args.get("class")
+    selected_shape = request.args.get("shape")
     page = int(request.args.get("page", 1))
     per_page = int(request.args.get("per_page", 50))
     sort_property = request.args.get("sort_property", "deletionTime")
@@ -78,9 +79,9 @@ def get_deleted_entities_api():
     if per_page not in allowed_per_page:
         per_page = 50
 
-    deleted_entities, available_classes, selected_class, sortable_properties, total_count = (
+    deleted_entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = (
         get_deleted_entities_with_filtering(
-            page, per_page, sort_property, sort_direction, selected_class
+            page, per_page, sort_property, sort_direction, selected_class, selected_shape
         )
     )
 
@@ -94,6 +95,7 @@ def get_deleted_entities_api():
             "sort_property": sort_property,
             "sort_direction": sort_direction,
             "selected_class": selected_class,
+            "selected_shape": selected_shape,
             "available_classes": available_classes,
             "sortable_properties": sortable_properties,
         }

@@ -403,6 +403,7 @@ def get_deleted_entities_with_filtering(
     sort_property="deletionTime",
     sort_direction="DESC",
     selected_class=None,
+    selected_shape=None,
 ):
     """
     Fetch and process deleted entities from the provenance graph, with filtering and sorting.
@@ -412,11 +413,6 @@ def get_deleted_entities_with_filtering(
     ]
     provenance_sparql = get_provenance_sparql()
     custom_filter = get_custom_filter()
-
-    if selected_class:
-        sortable_properties.extend(
-            get_sortable_properties((selected_class, None))
-        )
 
     prov_query = """
     SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
@@ -444,7 +440,6 @@ def get_deleted_entities_with_filtering(
     if not results_bindings:
         return [], [], None, [], 0
 
-    # Process entities with parallel execution
     deleted_entities = []
     max_workers = max(1, min(os.cpu_count() or 4, len(results_bindings)))
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -457,7 +452,6 @@ def get_deleted_entities_with_filtering(
             if entity_info is not None:
                 deleted_entities.append(entity_info)
 
-    # Calculate class counts from filtered entities
     class_counts = {}
     for entity in deleted_entities:
         for type_uri in entity["entity_types"]:
@@ -466,13 +460,12 @@ def get_deleted_entities_with_filtering(
     available_classes = [
         {
             "uri": class_uri,
-            "label": custom_filter.human_readable_class((class_uri, None)),
+            "label": custom_filter.human_readable_class((class_uri, determine_shape_for_classes([class_uri]))),
             "count": count,
         }
         for class_uri, count in class_counts.items()
     ]
 
-    # Determine the sort key based on sort_property
     reverse_sort = sort_direction.upper() == "DESC"
     if sort_property == "deletionTime":
         deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
@@ -486,7 +479,14 @@ def get_deleted_entities_with_filtering(
     if not selected_class and available_classes:
         selected_class = available_classes[0]["uri"]
 
-    # First filter by class
+    if selected_class:
+        if selected_shape is None:
+            selected_shape = determine_shape_for_classes([selected_class])
+        entity_key = (selected_class, selected_shape)
+        sortable_properties.extend(
+            get_sortable_properties(entity_key)
+        )
+
     if selected_class:
         filtered_entities = [
             entity
@@ -496,17 +496,14 @@ def get_deleted_entities_with_filtering(
     else:
         filtered_entities = deleted_entities
 
-    # Calculate total count for pagination
     total_count = len(filtered_entities)
-
-    # Then paginate the filtered results
     offset = (page - 1) * per_page
     paginated_entities = filtered_entities[offset : offset + per_page]
 
-    return paginated_entities, available_classes, selected_class, sortable_properties, total_count
+    return paginated_entities, available_classes, selected_class, selected_shape, sortable_properties, total_count
 
 
-def process_deleted_entity(result, sortable_properties):
+def process_deleted_entity(result: dict, sortable_properties: list) -> dict | None:
     """
     Process a single deleted entity, filtering by visible classes.
     """
@@ -516,7 +513,6 @@ def process_deleted_entity(result, sortable_properties):
     entity_uri = result["entity"]["value"]
     last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
 
-    # Get entity state at its last valid time
     agnostic_entity = AgnosticEntity(
         res=entity_uri, config=change_tracking_config, related_entities_history=True
     )
@@ -534,17 +530,12 @@ def process_deleted_entity(result, sortable_properties):
         str(o)
         for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))
     ]
-    visible_types = [t for t in entity_types if is_entity_type_visible((t, None))]
-
+    highest_priority_type = get_highest_priority_class(entity_types)
+    shape = determine_shape_for_classes([highest_priority_type])
+    visible_types = [t for t in entity_types if is_entity_type_visible((t, determine_shape_for_classes([t])))]
     if not visible_types:
         return None
 
-    highest_priority_type = get_highest_priority_class(visible_types)
-    shape = determine_shape_for_classes(visible_types)
-    if not highest_priority_type:
-        return None
-
-    # Extract sort values for sortable properties
     sort_values = {}
     for prop in sortable_properties:
         prop_uri = prop["property"]
@@ -600,7 +591,6 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
     sparql = get_sparql()
     display_rules = get_display_rules()
 
-    # Extract intermediate relation classes from display rules
     intermediate_classes = set()
 
     for rule in display_rules:
@@ -609,7 +599,6 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
                 if "intermediateRelation" in prop:
                     intermediate_classes.add(prop["intermediateRelation"]["class"])
 
-    # Query to find regular orphans
     orphan_query = f"""
     SELECT DISTINCT ?entity ?type
     WHERE {{
@@ -641,9 +630,7 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
     """
 
     # Query to find orphaned intermediate relations
-    # Se stiamo cancellando una tripla specifica (predicate e object_value specificati)
     if predicate and object_value:
-        # Verifica se l'object_value è un'entità intermedia
         intermediate_query = f"""
         SELECT DISTINCT ?entity ?type
         WHERE {{

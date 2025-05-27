@@ -121,11 +121,12 @@ def test_time_vault_api(mock_get_deleted_entities, api_client: FlaskClient, app:
     ]
     
     mock_get_deleted_entities.return_value = (
-        mock_deleted_entities,  # deleted_entities
-        mock_available_classes,  # available_classes
-        "http://example.org/TestClass",  # selected_class
-        mock_sortable_properties,  # sortable_properties
-        1,  # total_count
+        mock_deleted_entities,
+        mock_available_classes,
+        "http://example.org/TestClass",
+        "http://example.org/TestShape",
+        mock_sortable_properties,
+        1,
     )
     
     response = api_client.get("/api/time-vault")
@@ -163,11 +164,12 @@ def test_time_vault_api_with_params(mock_get_deleted_entities, api_client: Flask
     ]
     
     mock_get_deleted_entities.return_value = (
-        mock_deleted_entities,  # deleted_entities
-        mock_available_classes,  # available_classes
-        "http://example.org/TestClass",  # selected_class
-        mock_sortable_properties,  # sortable_properties
-        1,  # total_count
+        mock_deleted_entities,
+        mock_available_classes,
+        "http://example.org/TestClass",
+        "http://example.org/TestShape",
+        mock_sortable_properties,
+        1,
     )
     
     response = api_client.get(
@@ -207,11 +209,12 @@ def test_time_vault_api_with_invalid_per_page(mock_get_deleted_entities, api_cli
     ]
     
     mock_get_deleted_entities.return_value = (
-        mock_deleted_entities,  # deleted_entities
-        mock_available_classes,  # available_classes
-        "http://example.org/TestClass",  # selected_class
-        mock_sortable_properties,  # sortable_properties
-        1,  # total_count
+        mock_deleted_entities,
+        mock_available_classes,
+        "http://example.org/TestClass",
+        "http://example.org/TestShape",
+        mock_sortable_properties,
+        1,
     )
     
     response = api_client.get(

@@ -185,6 +185,8 @@ def get_highest_priority_class(subject_classes):
     Returns:
         The highest priority class or None if no classes are provided
     """
+    from heritrace.utils.shacl_utils import determine_shape_for_classes
+    
     if not subject_classes:
         return None
     
@@ -193,7 +195,8 @@ def get_highest_priority_class(subject_classes):
     
     for class_uri in subject_classes:
         class_uri = str(class_uri)
-        entity_key = (class_uri, None)
+        shape = determine_shape_for_classes([class_uri])
+        entity_key = (class_uri, shape)
         priority = get_class_priority(entity_key)
         if priority < highest_priority:
             highest_priority = priority

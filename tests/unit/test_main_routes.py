@@ -78,6 +78,7 @@ def test_time_vault_route_authenticated(
         [],  # initial_entities
         [{"uri": "test_class", "label": "Test Class"}],  # available_classes
         "test_class",  # selected_class
+        None,  # selected_shape
         [],  # sortable_properties
         10,  # total_count
     )
@@ -91,7 +92,7 @@ def test_time_vault_route_authenticated(
         "/time-vault?page=2&per_page=100&class=test_class&sort_property=name&sort_direction=DESC"
     )
     assert response.status_code == 200
-    mock_get_deleted_entities.assert_called_with(2, 100, "name", "DESC", "test_class")
+    mock_get_deleted_entities.assert_called_with(2, 100, "name", "DESC", "test_class", None)
 
 
 def test_dataset_endpoint_route_unauthenticated(client: FlaskClient) -> None:

@@ -74,31 +74,38 @@ def time_vault():
     sort_property = request.args.get("sort_property", "deletionTime")
     sort_direction = request.args.get("sort_direction", "DESC")
     selected_class = request.args.get("class")
+    selected_shape = request.args.get("shape")
 
     allowed_per_page = [50, 100, 200, 500]
 
-    initial_entities, available_classes, selected_class, _, total_count = (
+    initial_entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = (
         get_deleted_entities_with_filtering(
             initial_page,
             initial_per_page,
             sort_property,
             sort_direction,
             selected_class,
+            selected_shape
         )
     )
 
     sortable_properties = [
         {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
     ]
-    sortable_properties.extend(
-        get_sortable_properties(selected_class)
-    )
+    
+    if selected_class is not None:
+        entity_key = (selected_class, selected_shape)
+        sortable_properties.extend(
+            get_sortable_properties(entity_key)
+        )
+    
     sortable_properties = json.dumps(sortable_properties)
 
     return render_template(
         "time_vault.jinja",
         available_classes=available_classes,
         selected_class=selected_class,
+        selected_shape=selected_shape,
         page=initial_page,
         total_entity_pages=(total_count + initial_per_page - 1) // initial_per_page if total_count > 0 else 0,
         per_page=initial_per_page,
