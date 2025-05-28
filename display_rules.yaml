@@ -2409,10 +2409,6 @@ rules:
       }
     displayProperties:
       - *type_property
-      - property: "http://purl.org/dc/terms/format"
-        displayName: "Format"
-        shouldBeDisplayed: true
-        supportsSearch: false
       - property: "http://prismstandard.org/namespaces/basic/2.0/startingPage"
         displayName: "Starting Page"
         shouldBeDisplayed: true

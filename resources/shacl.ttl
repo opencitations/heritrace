@@ -746,6 +746,7 @@ schema:JournalArticleShape
     sh:path frbr:partOf ;
     sh:or (
       [ sh:node schema:IssueShape ]
+      [ sh:node schema:SpecialIssueShape ]
       [ sh:node schema:VolumeShape ]
       [ sh:node schema:JournalShape ]
     ) ;

@@ -10,6 +10,8 @@
         {% if details.intermediateRelation %}
             data-intermediate-relation="{{ details.intermediateRelation.class }}"
             data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"
+            data-target-entity-type="{{ details.intermediateRelation.targetEntityType }}"
+            data-target-shape="{{ details.intermediateRelation.targetShape }}"
         {% endif %}
         {% if details.additionalProperties %}
             data-additional-properties='{{ details.additionalProperties | tojson }}'

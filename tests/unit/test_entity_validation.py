@@ -153,7 +153,7 @@ def test_validate_entity_data_invalid_entity_type(mock_get_form_fields, mock_get
     
     # Verify results
     assert len(errors) == 1
-    assert "Unknown entity type" in errors[0]
+    assert "No form fields found for entity type" in errors[0]
 
 
 @patch('heritrace.routes.entity.get_custom_filter')

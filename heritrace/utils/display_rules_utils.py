@@ -318,9 +318,10 @@ def get_grouped_triples(
                     relevant_properties.add(prop_uri)
 
                     object_shape = None
-                    for form_field in current_form_field:
-                        object_shape = form_field.get("nodeShape")       
-                        break                  
+                    if current_form_field:
+                        for form_field in current_form_field:
+                            object_shape = form_field.get("nodeShape")       
+                            break                  
 
                     process_display_rule(
                         display_name_simple,

@@ -181,11 +181,31 @@ def test_create_entity_get(logged_in_client: FlaskClient) -> None:
     assert "entityForm" in response.data.decode()
 
 
-def test_create_entity_post(logged_in_client: FlaskClient, app: Flask) -> None:
+@patch('heritrace.routes.entity.get_form_fields')
+def test_create_entity_post(mock_get_form_fields, logged_in_client: FlaskClient, app: Flask) -> None:
     """Test the POST method for the create entity route."""
-    # Create entity data
+    mock_form_fields = {
+        ("http://purl.org/spar/fabio/JournalArticle", None): {
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [{
+                "fixed_value": "http://purl.org/spar/fabio/JournalArticle"
+            }],
+            "http://purl.org/dc/terms/title": [{
+                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
+                "minCount": 1,
+                "maxCount": 1
+            }],
+            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [{
+                "datatypes": ["http://www.w3.org/2001/XMLSchema#date"],
+                "minCount": 1,
+                "maxCount": 1
+            }]
+        }
+    }
+    mock_get_form_fields.return_value = mock_form_fields
+    
     entity_data = {
         "entity_type": "http://purl.org/spar/fabio/JournalArticle",
+        "entity_shape": None,
         "properties": {
             "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": "http://purl.org/spar/fabio/JournalArticle",
             "http://purl.org/dc/terms/title": "New Test Article",
@@ -193,17 +213,14 @@ def test_create_entity_post(logged_in_client: FlaskClient, app: Flask) -> None:
         },
     }
 
-    # Post the entity data
     response = logged_in_client.post(
         "/create-entity",
         data={"structured_data": json.dumps(entity_data)},
         content_type="application/x-www-form-urlencoded",
     )
 
-    # Check that the response is successful
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
 
-    # Check that the response contains a redirect URL
     response_data = json.loads(response.data)
     assert "redirect_url" in response_data
     assert response_data["status"] == "success"
@@ -220,14 +237,12 @@ def test_create_entity_post_validation_error(logged_in_client: FlaskClient, app:
         },
     }
 
-    # Post the entity data
     response = logged_in_client.post(
         "/create-entity",
         data={"structured_data": json.dumps(entity_data)},
         content_type="application/x-www-form-urlencoded",
     )
 
-    # Check the response
     assert response.status_code == 400
     response_data = json.loads(response.data)
     assert response_data["status"] == "error"
@@ -264,12 +279,8 @@ def test_restore_version(
                 initial_properties[p] = []
             initial_properties[p].append(o)
 
-        print(f"Initial entity graph: {initial_properties}")
-
-        # Wait a moment to ensure timestamps are different
         time.sleep(1)
 
-        # Now modify the entity to create a second version
         editor = Editor(
             get_dataset_endpoint(),
             get_provenance_endpoint(),
@@ -280,7 +291,6 @@ def test_restore_version(
             dataset_is_quadstore=True,
         )
 
-        # Import the current state of the entity
         entity_graph = fetch_data_graph_for_subject(str(test_entity))
 
         for quad in entity_graph.quads():
@@ -288,10 +298,8 @@ def test_restore_version(
 
         editor.preexisting_finished()
 
-        # Create a graph URI
         graph_uri = URIRef(f"{test_entity}/graph")
 
-        # Add a title
         editor.create(
             test_entity,
             URIRef("http://purl.org/dc/terms/title"),
@@ -299,7 +307,6 @@ def test_restore_version(
             graph_uri,
         )
 
-        # Add a description property
         editor.create(
             test_entity,
             URIRef("http://purl.org/dc/terms/description"),
@@ -309,17 +316,14 @@ def test_restore_version(
 
         editor.save()
 
-        # Check the modified entity graph
         modified_graph = fetch_data_graph_for_subject(str(test_entity))
 
-        # Store the modified state
         modified_properties = {}
         for s, p, o, g in modified_graph.quads():
             if p not in modified_properties:
                 modified_properties[p] = []
             modified_properties[p].append(str(o))
 
-        # Verify that the entity was modified
         assert len(modified_graph) > 0, "Modified graph should not be empty"
         assert URIRef("http://purl.org/dc/terms/title") in [
             p for s, p, o, g in modified_graph.quads()
@@ -328,30 +332,19 @@ def test_restore_version(
             p for s, p, o, g in modified_graph.quads()
         ], "Description should be present in modified graph"
 
-    # Post to restore the original version
     restore_response = logged_in_client.post(
         f"/restore-version/{test_entity}/{original_timestamp}"
     )
-
-    # Check that the response is a redirect
     assert restore_response.status_code == 302
     assert f"/about/{test_entity}" in restore_response.location
 
-    # Verify the entity was restored to its original state
     with app.app_context():
-        # Get the restored entity graph
         restored_graph = fetch_data_graph_for_subject(str(test_entity))
-
-        # Store the restored state
         restored_properties = {}
         for s, p, o, g in restored_graph.quads():
             if p not in restored_properties:
                 restored_properties[p] = []
             restored_properties[p].append(str(o))
-
-        # Instead of checking for exact equality in the number of triples,
-        # verify that the key properties from the modified state have been correctly
-        # removed during restoration
 
         title_found = False
         description_found = False
@@ -362,13 +355,10 @@ def test_restore_version(
             if p == URIRef("http://purl.org/dc/terms/description") and "This is a test description" in str(o):
                 description_found = True
 
-        # These properties should not be present after restoration
         assert not title_found, "Title 'Modified Test Article' should not be present after restoration"
         assert not description_found, "Description should not be present after restoration"
 
-        # If the initial graph had properties, check that at least those properties are preserved
         for predicate, values in initial_properties.items():
-            # Skip checking specific values, just ensure the predicate exists if it did in the initial graph
             if predicate in restored_properties:
                 assert len(restored_properties[predicate]) >= 1, f"Predicate {predicate} should have at least one value"
             else:
@@ -699,11 +689,71 @@ def test_entity_modification_workflow(app: Flask) -> None:
             ), f"I timestamp non sono in ordine crescente: {timestamps[i-1][0]} >= {timestamps[i][0]}"
 
 
-def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None:
+@patch('heritrace.routes.entity.get_form_fields')
+def test_create_nested_entity(mock_get_form_fields, logged_in_client: FlaskClient, app: Flask) -> None:
     """Test creating an entity with nested entities."""
-    # Create entity data with nested entities
+    mock_form_fields = {
+        ("http://purl.org/spar/fabio/JournalArticle", None): {
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [{
+                "fixed_value": "http://purl.org/spar/fabio/JournalArticle"
+            }],
+            "http://purl.org/dc/terms/title": [{
+                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
+                "minCount": 1,
+                "maxCount": 1,
+            }],
+            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [{
+                "datatypes": ["http://www.w3.org/2001/XMLSchema#date"],
+                "minCount": 1,
+                "maxCount": 1,
+            }],
+            "http://purl.org/spar/pro/isDocumentContextFor": [{
+                "subjectShape": "http://purl.org/spar/pro/AuthorShape",
+                "minCount": 0,
+                "maxCount": -1,
+            }]
+        },
+        ("http://purl.org/spar/pro/RoleInTime", "http://purl.org/spar/pro/AuthorShape"): {
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [{
+                "fixed_value": "http://purl.org/spar/pro/RoleInTime"
+            }],
+            "http://purl.org/spar/pro/withRole": [{
+                "fixed_value": "http://purl.org/spar/pro/author",
+                "min": 1,
+                "max": 1,
+            }],
+            "http://purl.org/spar/pro/isHeldBy": [{
+                "subjectShape": "http://schema.org/ResponsibleAgentShape",
+                "min": 1,
+                "max": 1,
+            }]
+        },
+        ("http://xmlns.com/foaf/0.1/Agent", "http://schema.org/ResponsibleAgentShape"): {
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [{
+                "fixed_value": "http://xmlns.com/foaf/0.1/Agent"
+            }],
+            "http://xmlns.com/foaf/0.1/name": [{
+                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
+                "min": 0,
+                "max": 1,
+            }],
+            "http://xmlns.com/foaf/0.1/givenName": [{
+                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
+                "min": 0,
+                "max": 1,
+            }],
+            "http://xmlns.com/foaf/0.1/familyName": [{
+                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
+                "min": 0,
+                "max": 1,
+            }]
+        }
+    }
+    mock_get_form_fields.return_value = mock_form_fields
+    
     entity_data = {
         "entity_type": "http://purl.org/spar/fabio/JournalArticle",
+        "entity_shape": None,
         "properties": {
             "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": "http://purl.org/spar/fabio/JournalArticle",
             "http://purl.org/dc/terms/title": "Article with Authors",
@@ -711,14 +761,18 @@ def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None
             "http://purl.org/spar/pro/isDocumentContextFor": [
                 {
                     "entity_type": "http://purl.org/spar/pro/RoleInTime",
+                    "entity_shape": "http://purl.org/spar/pro/AuthorShape",
                     "properties": {
                         "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": "http://purl.org/spar/pro/RoleInTime",
                         "http://purl.org/spar/pro/withRole": "http://purl.org/spar/pro/author",
                         "http://purl.org/spar/pro/isHeldBy": {
                             "entity_type": "http://xmlns.com/foaf/0.1/Agent",
+                            "entity_shape": "http://schema.org/ResponsibleAgentShape",
                             "properties": {
                                 "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": "http://xmlns.com/foaf/0.1/Agent",
-                                "http://xmlns.com/foaf/0.1/name": "Test Author",
+                                "http://xmlns.com/foaf/0.1/givenName": "Test",
+                                "http://xmlns.com/foaf/0.1/familyName": "Author",
+                                "http://xmlns.com/foaf/0.1/name": "Test Author"
                             },
                         },
                     },
@@ -734,19 +788,15 @@ def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None
         content_type="application/x-www-form-urlencoded",
     )
 
-    # Check that the response is successful
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
 
-    # Get the redirect URL
     response_data = json.loads(response.data)
     assert "redirect_url" in response_data
+    assert response_data["status"] == "success"
     redirect_url = response_data["redirect_url"]
-
-    # Visit the new entity page
     response = logged_in_client.get(redirect_url)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Failed to load entity page: {response.status_code}"
 
-    # Check that the entity and its nested entities were created correctly
     content = response.data.decode()
     assert "Article with Authors" in content
     assert "Test Author" in content

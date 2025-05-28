@@ -10,14 +10,18 @@ function generateUniqueId(prefix) {
 }
 
 // Helper functions for collectFormData
-function createIntermediateEntity(intermediateClass, intermediateShape) {
+function createIntermediateEntity(intermediateClass, intermediateShape, targetEntityType = null, targetShape = null) {
     let entity = {
         "entity_type": intermediateClass,
+        "entity_shape": intermediateShape,
         "properties": {}
     };
     
-    if (intermediateShape) {
-        entity['shape'] = intermediateShape;
+    if (targetEntityType) {
+        entity.targetEntityType = targetEntityType;
+    }
+    if (targetShape) {
+        entity.targetShape = targetShape;
     }
     
     return entity;
@@ -30,12 +34,9 @@ function handleNestedProperties(container, objectClass, shape, shacl, depth) {
     if (Object.keys(nestedProperties).length > 0) {
         let nestedEntity = {
             "entity_type": objectClass,
+            "entity_shape": shape,
             "properties": nestedProperties
         };
-        
-        if (shape) {
-            nestedEntity['shape'] = shape;
-        }
         
         return nestedEntity;
     }
@@ -456,11 +457,11 @@ function collectFormData(container, data, shacl, depth) {
                         let intermediateClass = repeaterItem.data('intermediate-relation');
                         let connectingProperty = repeaterItem.data('connecting-property');
                         let intermediateShape = repeaterItem.data('shape');
+                        let targetEntityType = repeaterItem.data('target-entity-type');
+                        let targetShape = repeaterItem.data('target-shape');
                         
-                        // Create intermediate entity
-                        let intermediateEntity = createIntermediateEntity(intermediateClass, intermediateShape);
+                        let intermediateEntity = createIntermediateEntity(intermediateClass, intermediateShape, targetEntityType, targetShape);
                         
-                        // Check for direct reference
                         let entityReferenceInput = repeaterItem.find('input[data-entity-reference="true"]');
                         let isDirectReference = false;
                         let directReferenceValue = null;
@@ -473,15 +474,14 @@ function collectFormData(container, data, shacl, depth) {
                         }
                         
                         if (isDirectReference && directReferenceValue) {
-                            // Direct reference handling
                             intermediateEntity.properties[connectingProperty] = [directReferenceValue];
                             hasContent = true;
                         } else {
-                            // Nested properties handling using the helper function
+                            let nestedShape = intermediateEntity.targetShape || repeaterItem.data('shape');
                             let nestedEntity = handleNestedProperties(
                                 repeaterItem, 
                                 objectClass, 
-                                repeaterItem.find('[data-object-class]:visible').first().data('shape'), 
+                                nestedShape, 
                                 shacl, 
                                 itemDepth + 1
                             );
@@ -492,7 +492,6 @@ function collectFormData(container, data, shacl, depth) {
                             }
                         }
 
-                        // Enrich entity with metadata
                         intermediateEntity = enrichEntityWithMetadata(
                             intermediateEntity, 
                             repeaterItem.data('additional-properties'), 
@@ -504,24 +503,21 @@ function collectFormData(container, data, shacl, depth) {
                             itemData = intermediateEntity;
                         }
                     } else {                        
-                        // Check for direct reference in nested level
                         let nestedEntityReference = repeaterItem.find('input[data-entity-reference="true"]');
                         if (nestedEntityReference.length > 0 && 
                             parseInt(nestedEntityReference.data('depth')) === depth + 1) {
                             
-                            // Direct reference - just use the URI
                             itemData = nestedEntityReference.val();
                             hasContent = true;
                         } else {
-                            // Standard case for new nested entities
-                            let nestedEntity = createIntermediateEntity(objectClass, repeaterItem.data('shape'));
+                            let nestedEntity = createIntermediateEntity(
+                                objectClass, 
+                                repeaterItem.data('shape')
+                            );
                             
-                            // Collect nested properties
                             collectFormData(repeaterItem, nestedEntity.properties, shacl, itemDepth + 1);
                             
-                            // Only process if there are nested properties
                             if (Object.keys(nestedEntity.properties).length > 0) {
-                                // Enrich with metadata
                                 nestedEntity = enrichEntityWithMetadata(nestedEntity, null, orderedBy, tempId);
                                 
                                 itemData = nestedEntity;
@@ -587,14 +583,13 @@ function collectFormData(container, data, shacl, depth) {
                         let intermediateClass = intermediateContainer.data('intermediate-relation');
                         let connectingProperty = intermediateContainer.data('connecting-property');
                         let intermediateShape = intermediateContainer.data('shape');
+                        let targetEntityType = intermediateContainer.data('target-entity-type');
+                        let targetShape = intermediateContainer.data('target-shape');
                         
-                        // Create and enrich the intermediate entity
-                        let intermediateEntity = createIntermediateEntity(intermediateClass, intermediateShape);
+                        let intermediateEntity = createIntermediateEntity(intermediateClass, intermediateShape, targetEntityType, targetShape);
                         
-                        // Direct reference for the connecting property
                         intermediateEntity.properties[connectingProperty] = [entityReference.val()];
                         
-                        // Enrich with additional properties
                         intermediateEntity = enrichEntityWithMetadata(
                             intermediateEntity, 
                             intermediateContainer.data('additional-properties'), 
@@ -604,7 +599,6 @@ function collectFormData(container, data, shacl, depth) {
                         
                         propArray.push(intermediateEntity);
                     } else {
-                        // Standard direct reference
                         propArray.push(entityReference.val());
                     }
                 }

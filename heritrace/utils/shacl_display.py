@@ -520,7 +520,6 @@ def handle_intermediate_relation(shacl, field_info, prop):
     target_entity_type = intermediate_relation.get("targetEntityType")
     intermediate_class = intermediate_relation.get("class")
 
-    # Query SPARQL per trovare la proprietà collegante
     connecting_property_query = prepareQuery(
         """
         SELECT ?property
@@ -547,12 +546,11 @@ def handle_intermediate_relation(shacl, field_info, prop):
         (str(row.property) for row in connecting_property_results), None
     )
 
-    # Cerca il campo con il connecting_property nella nestedShape
     intermediate_properties = {}
+    target_shape = None
     if "nestedShape" in field_info:
         for nested_field in field_info["nestedShape"]:
-            if nested_field.get("uri") == connecting_property:
-                # Usa le proprietà dalla nestedShape del connecting_property
+            if nested_field.get("uri") == connecting_property and "nestedShape" in nested_field:
                 if "nestedShape" in nested_field:
                     for target_field in nested_field["nestedShape"]:
                         uri = target_field.get("uri")
@@ -560,10 +558,13 @@ def handle_intermediate_relation(shacl, field_info, prop):
                             if uri not in intermediate_properties:
                                 intermediate_properties[uri] = []
                             intermediate_properties[uri].append(target_field)
+                        if target_field.get("subjectShape"):
+                            target_shape = target_field["subjectShape"]
 
     field_info["intermediateRelation"] = {
         "class": intermediate_class,
         "targetEntityType": target_entity_type,
+        "targetShape": target_shape,
         "connectingProperty": connecting_property,
         "properties": intermediate_properties,
     }

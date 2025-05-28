@@ -203,17 +203,23 @@ def test_validate_entity_data_invalid_entity_type(mock_get_custom_filter, mock_g
     errors = validate_entity_data(entity_data)
     
     assert len(errors) == 1
-    assert "Unknown entity type" in errors[0]
+    assert "No form fields found for entity type" in errors[0]
 
 
 def test_validate_entity_data_with_shape(mock_get_custom_filter, mock_get_form_fields):
     """Test validate_entity_data with property shapes."""
-    # Setup mock
-    mock_get_custom_filter.return_value.human_readable_predicate.return_value = "Human Readable Property"
+    # Setup mock for custom filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_predicate.return_value = "Human Readable Property"
     
+    # Create a proper entity key for the test
+    entity_key = ("http://example.org/Person", "http://example.org/EntityShape")
+    mock_filter.human_readable_class.return_value = "Person"
+    mock_get_custom_filter.return_value = mock_filter
+
     # Create form fields with shape definitions
     form_fields = {
-        ("http://example.org/Person", "http://example.org/EntityShape"): {
+        entity_key: {
             "http://example.org/hasAddress": [
                 {
                     "subjectShape": "residential",
@@ -235,7 +241,8 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter, mock_get_form_f
     
     # Test data with shape specified
     entity_data = {
-        "entity_type": "http://example.org/Person",
+        "entity_type": entity_key[0],
+        "entity_shape": entity_key[1],
         "properties": {
             "http://example.org/hasAddress": [
                 {
@@ -255,11 +262,12 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter, mock_get_form_f
     # We need to create a new form fields structure where residential is required
     # and business is optional
     form_fields = {
-        ("http://example.org/Person", "http://example.org/EntityShape"): {
+        entity_key: {
             "http://example.org/hasAddress": [
                 {
                     "min": 1,  # This makes the property required
-                    "max": None
+                    "max": None,
+                    "datatypes": [str(XSD.string)]
                 }
             ],
             "http://example.org/hasResidentialAddress": [
@@ -272,12 +280,13 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter, mock_get_form_f
             ]
         }
     }
-    
+
     mock_get_form_fields.return_value = form_fields
-    
+
     # Entity data missing the required residential address
     entity_data = {
-        "entity_type": "http://example.org/Person",
+        "entity_type": entity_key[0],
+        "entity_shape": entity_key[1],
         "properties": {
             "http://example.org/hasAddress": [
                 {
@@ -290,10 +299,10 @@ def test_validate_entity_data_with_shape(mock_get_custom_filter, mock_get_form_f
     }
     
     errors = validate_entity_data(entity_data)
-    
+
     # Should have one error about missing required property
     assert len(errors) == 1
-    assert "residential" in str(errors[0]) or "required" in str(errors[0])
+    assert "residential" in str(errors[0]).lower() or "required" in str(errors[0]).lower()
 
 
 def test_process_modification_data():
