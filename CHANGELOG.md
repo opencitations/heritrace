@@ -1,3 +1,33 @@
+# [1.1.0](https://github.com/opencitations/heritrace/compare/v1.0.0...v1.1.0) (2025-05-29)
+
+
+### Bug Fixes
+
+* **catalogue:** add support for entity classes with multiple shapes ([44c415f](https://github.com/opencitations/heritrace/commit/44c415f0ed344c99826f625966ffd2e90c02c791))
+* **catalogue:** integrate shape consideration in catalogue operations ([3eb7119](https://github.com/opencitations/heritrace/commit/3eb71193658d72e868624cc356f4238e58c2df68))
+* **display_rules:** ensure consistent objectShape handling in grouped triples ([9704f68](https://github.com/opencitations/heritrace/commit/9704f68c0fe39913faf0dd3839f782177ecb2093))
+* enhance validation and robustness with SPARQLWrapper retry mechanism ([1cb6f1c](https://github.com/opencitations/heritrace/commit/1cb6f1cbb6002e9c6958d5bc912a3204583ba8ce))
+* **entity:** add shape support in validation and related components ([87d582e](https://github.com/opencitations/heritrace/commit/87d582e3503c488252d3ce0d0fe4c05da2b33ab5))
+* **entity:** enhance human readable predicates and entity handling ([30b8c84](https://github.com/opencitations/heritrace/commit/30b8c84e6beaae98ba7df2da0d971d9d7241ef29))
+* **entity:** prevent highest priority class and shape override in deleted entities ([fe9cfef](https://github.com/opencitations/heritrace/commit/fe9cfef616050244df49ba300d1139c994c58d57))
+* **entity:** upgrade to Time Agnostic Library 5.0.1 ([f1f7551](https://github.com/opencitations/heritrace/commit/f1f7551ff1121792d0708b68c5bc7b81f7e71120))
+* **filters:** handle None shape in human_readable_class filter ([fa33ee6](https://github.com/opencitations/heritrace/commit/fa33ee6e3d3798ab013c45ce0a9d50ed46e78d27))
+* handle None case for matching form field in get_grouped_triples ([d6b5477](https://github.com/opencitations/heritrace/commit/d6b54771f54e7815b2672831a3e4cd52a465bab7))
+* improve sorting and shape handling in catalog data retrieval ([9b19f5e](https://github.com/opencitations/heritrace/commit/9b19f5e0ebe4ad48318112ea27804b7eba016b2a))
+* migrate linked resources to async frontend loading ([3cdef89](https://github.com/opencitations/heritrace/commit/3cdef8944a0c7369b6b1b047d043bdfedcc1e2cc))
+* **templates:** improve render_triple consistency for mandatory values ([b1592a9](https://github.com/opencitations/heritrace/commit/b1592a9d2871002e8431c0ac392d3fa659a03f02))
+* **templates:** simplify entity type labels in resource displays ([07aa3bd](https://github.com/opencitations/heritrace/commit/07aa3bdced7604c63ad23c89601352b6914466f7))
+* **time-vault:** enhance entity filtering with shape support ([0787a67](https://github.com/opencitations/heritrace/commit/0787a67474fa62a73af4e3f6eca7cdc9a76aaa64))
+* update about functionality for tuple-based class,shape structure ([3a14790](https://github.com/opencitations/heritrace/commit/3a147906970073d1cfc5d65bfe420411995022ff))
+
+
+### Features
+
+* add a new filter `human_readable_class` to improve the display of class names in templates ([66f8beb](https://github.com/opencitations/heritrace/commit/66f8beb1dc27859c5e7cedc8f880ca4817bc7efe))
+* **entity:** add specialissue shape to part of predicates for journal article ([de242f1](https://github.com/opencitations/heritrace/commit/de242f1e056b1ae4e933ad6d9ad0c21314f90c5c))
+* implement shape-based entity triples determination ([ebc2ca9](https://github.com/opencitations/heritrace/commit/ebc2ca90d97c403b4c777db32ffb1106b510093e))
+* **merge:** add primary source specification for resource merging ([8d61257](https://github.com/opencitations/heritrace/commit/8d61257043a7aa9e7efb370c64c6601a7d13bc36))
+
 # 1.0.0 (2025-05-14)
 
 
