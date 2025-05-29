@@ -515,7 +515,7 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
     last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
 
     agnostic_entity = AgnosticEntity(
-        res=entity_uri, config=change_tracking_config, related_entities_history=True
+        res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
     )
     state, _, _ = agnostic_entity.get_state_at_time(
         (last_valid_snapshot_time, last_valid_snapshot_time)

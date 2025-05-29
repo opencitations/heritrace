@@ -53,7 +53,7 @@ def about(subject):
     default_primary_source = get_default_primary_source(current_user.orcid)
 
     agnostic_entity = AgnosticEntity(
-        res=subject, config=change_tracking_config, related_entities_history=True
+        res=subject, config=change_tracking_config, include_related_objects=False, include_merged_entities=False, include_reverse_relations=False
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
@@ -128,11 +128,6 @@ def about(subject):
             grouped_triples, relevant_properties = get_grouped_triples(
                 subject, triples, valid_predicates, highest_priority_class=highest_priority_class, highest_priority_shape=entity_shape
             )
-
-            current_app.logger.info(f"can_be_added: {can_be_added}")
-            current_app.logger.info(f"can_be_deleted: {can_be_deleted}")
-            current_app.logger.info(f"relevant_properties: {relevant_properties}")
-            current_app.logger.info(f"grouped_triples: {json.dumps(grouped_triples, indent=4)}")
 
             can_be_added = [uri for uri in can_be_added if uri in relevant_properties]
             can_be_deleted = [
@@ -742,7 +737,7 @@ def entity_history(entity_uri):
     change_tracking_config = get_change_tracking_config()
 
     agnostic_entity = AgnosticEntity(
-        res=entity_uri, config=change_tracking_config, related_entities_history=True
+        res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
@@ -983,10 +978,9 @@ def entity_version(entity_uri, timestamp):
         timestamp_dt = datetime.fromisoformat(generation_time)
 
     agnostic_entity = AgnosticEntity(
-        res=entity_uri, config=change_tracking_config, related_entities_history=True
+        res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-
     main_entity_history = history.get(entity_uri, {})
     sorted_timestamps = sorted(
         main_entity_history.keys(), key=lambda t: convert_to_datetime(t)
@@ -1148,7 +1142,7 @@ def restore_version(entity_uri, timestamp):
 
     # Get entity history
     agnostic_entity = AgnosticEntity(
-        res=entity_uri, config=change_tracking_config, related_entities_history=True
+        res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 

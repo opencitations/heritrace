@@ -123,7 +123,9 @@ def test_entity_version(
         agnostic_entity = AgnosticEntity(
             res=str(test_entity),
             config=change_tracking_config,
-            related_entities_history=True,
+            include_related_objects=True,
+            include_merged_entities=True,
+            include_reverse_relations=False,
         )
         _, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
@@ -260,7 +262,9 @@ def test_restore_version(
         agnostic_entity = AgnosticEntity(
             res=str(test_entity),
             config=change_tracking_config,
-            related_entities_history=True,
+            include_related_objects=True,
+            include_merged_entities=True,
+            include_reverse_relations=False,
         )
         history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
@@ -663,7 +667,9 @@ def test_entity_modification_workflow(app: Flask) -> None:
         agnostic_entity = AgnosticEntity(
             res=str(entity_uri),
             config=change_tracking_config,
-            related_entities_history=True,
+            include_related_objects=True,
+            include_merged_entities=True,
+            include_reverse_relations=False,
         )
         history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
