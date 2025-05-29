@@ -1,11 +1,11 @@
 # heritrace/extensions.py
 
 import json
+import logging
 import os
 import time
-import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Dict
 from urllib.parse import urlparse, urlunparse
 
 import yaml
@@ -40,17 +40,22 @@ shacl_graph = None
 
 class SPARQLWrapperWithRetry(SPARQLWrapper):
     """
-    Extension of SPARQLWrapper that includes automatic retry functionality.
+    Extension of SPARQLWrapper that includes automatic retry functionality and timeout handling.
+    Uses SPARQLWrapper's built-in timeout functionality.
     """
     def __init__(self, endpoint, **kwargs):
+        self.max_attempts = kwargs.pop('max_attempts', 3)
+        self.initial_delay = kwargs.pop('initial_delay', 1.0)
+        self.backoff_factor = kwargs.pop('backoff_factor', 2.0)
+        query_timeout = kwargs.pop('timeout', 5.0)
+        
         super().__init__(endpoint, **kwargs)
-        self.max_attempts = kwargs.get('max_attempts', 3)
-        self.initial_delay = kwargs.get('initial_delay', 1.0)
-        self.backoff_factor = kwargs.get('backoff_factor', 2.0)
+        
+        self.setTimeout(int(query_timeout))
     
     def query(self):
         """
-        Override the query method to include retry logic.
+        Override the query method to include retry logic with SPARQLWrapper's built-in timeout.
         Returns the original SPARQLWrapper.QueryResult so that convert() can be called on it.
         """
         logger = logging.getLogger(__name__)
@@ -61,7 +66,9 @@ class SPARQLWrapperWithRetry(SPARQLWrapper):
         
         while attempt <= self.max_attempts:
             try:
-                return super().query()
+                result = super().query()
+                return result
+                    
             except Exception as e:
                 last_exception = e
                 logger.warning(f"SPARQL query attempt {attempt}/{self.max_attempts} failed: {str(e)}")

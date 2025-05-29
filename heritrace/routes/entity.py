@@ -25,6 +25,7 @@ from heritrace.utils.display_rules_utils import (get_class_priority,
 from heritrace.utils.filters import Filter
 from heritrace.utils.primary_source_utils import (
     get_default_primary_source, save_user_default_primary_source)
+from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
     determine_shape_for_classes, fetch_current_state_with_related_entities,
@@ -89,7 +90,9 @@ def about(subject):
             ]
             
             highest_priority_class = get_highest_priority_class(subject_classes)
-            entity_shape = determine_shape_for_classes(subject_classes)
+            entity_shape = determine_shape_for_entity_triples(
+                context_snapshot.triples((URIRef(subject), None, None))
+            )
         else:
             context_snapshot = None
 
@@ -107,10 +110,11 @@ def about(subject):
         if data_graph:
             triples = list(data_graph.triples((None, None, None)))
             subject_classes = [o for s, p, o in data_graph.triples((URIRef(subject), RDF.type, None))]
-            
-            highest_priority_class = get_highest_priority_class(subject_classes)
-            entity_shape = determine_shape_for_classes(subject_classes)
 
+            highest_priority_class = get_highest_priority_class(subject_classes)
+            entity_shape = determine_shape_for_entity_triples(
+                data_graph.triples((URIRef(subject), None, None))
+            )
             
             (
                 can_be_added,
@@ -122,8 +126,13 @@ def about(subject):
             ) = get_valid_predicates(triples, highest_priority_class=highest_priority_class)
 
             grouped_triples, relevant_properties = get_grouped_triples(
-                subject, triples, valid_predicates, highest_priority_class=highest_priority_class
+                subject, triples, valid_predicates, highest_priority_class=highest_priority_class, highest_priority_shape=entity_shape
             )
+
+            current_app.logger.info(f"can_be_added: {can_be_added}")
+            current_app.logger.info(f"can_be_deleted: {can_be_deleted}")
+            current_app.logger.info(f"relevant_properties: {relevant_properties}")
+            current_app.logger.info(f"grouped_triples: {json.dumps(grouped_triples, indent=4)}")
 
             can_be_added = [uri for uri in can_be_added if uri in relevant_properties]
             can_be_deleted = [
@@ -764,7 +773,8 @@ def entity_history(entity_uri):
         entity_classes.add(str(triple[2]))
 
     highest_priority_class = get_highest_priority_class(entity_classes)
-    
+    snapshot_entity_shape = determine_shape_for_entity_triples(context_snapshot)
+
     # Generate timeline events
     events = []
     for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
@@ -794,7 +804,6 @@ def entity_history(entity_uri):
         modifications = metadata.get("hasUpdateQuery", "")
         modification_text = ""
         if modifications:
-            snapshot_entity_shape = determine_shape_for_classes([highest_priority_class])
             parsed_modifications = parse_sparql_update(modifications)
             modification_text = generate_modification_text(
                 parsed_modifications,
@@ -846,16 +855,15 @@ def entity_history(entity_uri):
 
         events.append(event)
 
-    shape = determine_shape_for_classes(entity_classes)
     entity_label = custom_filter.human_readable_entity(
-        entity_uri, (highest_priority_class, shape), context_snapshot
+        entity_uri, (highest_priority_class, snapshot_entity_shape), context_snapshot
     )
 
     timeline_data = {
         "entityUri": entity_uri,
         "entityLabel": entity_label,
         "entityClasses": list(entity_classes),
-        "entityShape": shape,
+        "entityShape": snapshot_entity_shape,
         "events": events,
     }
 
@@ -956,7 +964,6 @@ def entity_version(entity_uri, timestamp):
     try:
         timestamp_dt = datetime.fromisoformat(timestamp)
     except ValueError:
-        # Try to get timestamp from provenance graph
         provenance_sparql = get_provenance_sparql()
         query_timestamp = f"""
             SELECT ?generation_time
@@ -975,13 +982,11 @@ def entity_version(entity_uri, timestamp):
         timestamp = generation_time
         timestamp_dt = datetime.fromisoformat(generation_time)
 
-    # Get entity history
     agnostic_entity = AgnosticEntity(
         res=entity_uri, config=change_tracking_config, related_entities_history=True
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
-    # Find closest snapshot
     main_entity_history = history.get(entity_uri, {})
     sorted_timestamps = sorted(
         main_entity_history.keys(), key=lambda t: convert_to_datetime(t)
@@ -1000,7 +1005,6 @@ def entity_version(entity_uri, timestamp):
     version = main_entity_history[closest_timestamp]
     triples = list(version.triples((URIRef(entity_uri), None, None)))
 
-    # Get metadata
     entity_metadata = provenance.get(entity_uri, {})
     closest_metadata = None
     min_time_diff = None
@@ -1022,21 +1026,18 @@ def entity_version(entity_uri, timestamp):
     if closest_metadata is None or latest_metadata is None:
         abort(404)
 
-    # Check if this is a deletion snapshot
     is_deletion_snapshot = (
         closest_timestamp == latest_timestamp
         and "invalidatedAtTime" in latest_metadata
         and latest_metadata["invalidatedAtTime"]
     ) or len(triples) == 0
 
-    # Use appropriate snapshot for context
     context_version = version
     if is_deletion_snapshot and len(sorted_timestamps) > 1:
         current_index = sorted_timestamps.index(closest_timestamp)
         if current_index > 0:
             context_version = main_entity_history[sorted_timestamps[current_index - 1]]
 
-    # Get subject classes
     if is_deletion_snapshot and len(sorted_timestamps) > 1:
         subject_classes = [
             o
@@ -1048,7 +1049,7 @@ def entity_version(entity_uri, timestamp):
         ]
     
     highest_priority_class = get_highest_priority_class(subject_classes)
-    entity_shape = determine_shape_for_classes(subject_classes)
+    entity_shape = determine_shape_for_entity_triples(context_version)
 
     _, _, _, _, _, valid_predicates = get_valid_predicates(triples, highest_priority_class=highest_priority_class)
     
@@ -1057,10 +1058,10 @@ def entity_version(entity_uri, timestamp):
         triples,
         valid_predicates,
         historical_snapshot=context_version,
-        highest_priority_class=highest_priority_class
+        highest_priority_class=highest_priority_class,
+        highest_priority_shape=entity_shape
     )
 
-    # Calculate version number
     snapshot_times = [
         convert_to_datetime(meta["generatedAtTime"])
         for meta in entity_metadata.values()
@@ -1068,7 +1069,6 @@ def entity_version(entity_uri, timestamp):
     snapshot_times = sorted(set(snapshot_times))
     version_number = snapshot_times.index(timestamp_dt) + 1
 
-    # Find next and previous snapshots
     next_snapshot_timestamp = None
     prev_snapshot_timestamp = None
 
@@ -1082,7 +1082,6 @@ def entity_version(entity_uri, timestamp):
             prev_snapshot_timestamp = snap_time.isoformat()
             break
 
-    # Generate modification text if update query exists
     modifications = ""
     if closest_metadata.get("hasUpdateQuery"):
         sparql_query = closest_metadata["hasUpdateQuery"]

@@ -7,7 +7,7 @@ from heritrace.utils.shacl_display import (apply_display_rules,
                                            extract_shacl_form_fields,
                                            order_form_fields,
                                            process_nested_shapes)
-from rdflib import Graph
+from rdflib import RDF, Graph
 
 
 def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict], app: Flask):
@@ -80,8 +80,76 @@ def determine_shape_for_classes(class_list: List[str]) -> Optional[str]:
         
         for shape in shapes:
             all_shacl_shapes.append((class_uri, shape))
-    
+
     return _find_highest_priority_shape(all_shacl_shapes)
+
+
+def determine_shape_for_entity_triples(entity_triples_iter) -> Optional[str]:
+    """
+    Determine the most appropriate SHACL shape for an entity based on its triples.
+    
+    Uses both class priority and heuristic property matching to distinguish
+    between shapes with the same target class but different properties
+    (e.g., SpecialIssueShape vs IssueShape).
+    
+    Args:
+        entity_triples_iter: Iterator of triples (subject, predicate, object) for the entity
+        
+    Returns:
+        The most appropriate shape URI, or None if no shapes are found
+    """
+    shacl_graph = get_shacl_graph()
+    if not shacl_graph:
+        return None
+    
+    entity_classes = []
+    entity_properties = set()
+    
+    for subject, predicate, obj in entity_triples_iter:
+        if predicate == RDF.type:
+            entity_classes.append(str(obj))
+        entity_properties.add(str(predicate))
+    
+    if not entity_classes:
+        return None
+    
+    candidate_shapes = []
+    
+    for class_uri in entity_classes:
+        query_string = f"""
+            SELECT DISTINCT ?shape WHERE {{
+                ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
+            }}
+        """
+        
+        results = shacl_graph.query(query_string)
+        shapes = [str(row.shape) for row in results]
+        
+        for shape in shapes:
+            candidate_shapes.append((class_uri, shape))
+    
+    if not candidate_shapes:
+        return None
+    
+    if len(candidate_shapes) == 1:
+        return candidate_shapes[0][1]
+    
+    shape_scores = {}
+    
+    for class_uri, shape_uri in candidate_shapes:
+        shape_properties = _get_shape_properties(shacl_graph, shape_uri)
+        property_matches = len(entity_properties.intersection(shape_properties))
+        
+        entity_key = (class_uri, shape_uri)
+        priority = get_class_priority(entity_key)
+        
+        # Combined score: (property_matches, -priority)
+        # Higher property matches is better, lower priority number is better
+        combined_score = (property_matches, -priority)
+        shape_scores[shape_uri] = combined_score
+    
+    best_shape = max(shape_scores.keys(), key=lambda s: shape_scores[s])
+    return best_shape
 
 
 def _find_highest_priority_shape(class_shape_pairs: List[Tuple[str, str]]) -> Optional[str]:
@@ -105,3 +173,31 @@ def _find_highest_priority_shape(class_shape_pairs: List[Tuple[str, str]]) -> Op
             highest_priority_shape = shape
     
     return highest_priority_shape
+
+
+def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:
+    """
+    Extract all properties defined in a SHACL shape.
+    
+    Args:
+        shacl_graph: The SHACL graph
+        shape_uri: URI of the shape to analyze
+        
+    Returns:
+        Set of property URIs defined in the shape
+    """
+    properties = set()
+    
+    query_string = f"""
+        PREFIX sh: <http://www.w3.org/ns/shacl#>
+        SELECT DISTINCT ?property WHERE {{
+            <{shape_uri}> sh:property ?propertyShape .
+            ?propertyShape sh:path ?property .
+        }}
+    """
+    
+    results = shacl_graph.query(query_string)
+    for row in results:
+        properties.add(str(row.property))
+    
+    return properties

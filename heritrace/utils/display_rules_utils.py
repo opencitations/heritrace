@@ -212,7 +212,8 @@ def get_grouped_triples(
     triples: List[Tuple[URIRef, URIRef, URIRef|Literal]], 
     valid_predicates_info: List[str], 
     historical_snapshot: Optional[Graph] = None,
-    highest_priority_class: Optional[str] = None
+    highest_priority_class: Optional[str] = None,
+    highest_priority_shape: Optional[str] = None
 ) -> Tuple[OrderedDict, set, dict]:
     """
     This function groups the triples based on the display rules. 
@@ -228,7 +229,6 @@ def get_grouped_triples(
     Returns:
         Tuple of grouped triples, relevant properties, and fetched values map
     """
-    from heritrace.utils.shacl_utils import determine_shape_for_classes
     display_rules = get_display_rules()
     form_fields = get_form_fields()
 
@@ -237,9 +237,8 @@ def get_grouped_triples(
     fetched_values_map = dict()  # Map of original values to values returned by the query
     primary_properties = valid_predicates_info
     
-    subject_shape = determine_shape_for_classes([highest_priority_class])
-    matching_rule = find_matching_rule(highest_priority_class, subject_shape, display_rules)
-    matching_form_field = form_fields.get((highest_priority_class, subject_shape))
+    matching_rule = find_matching_rule(highest_priority_class, highest_priority_shape, display_rules)
+    matching_form_field = form_fields.get((highest_priority_class, highest_priority_shape))
 
     ordered_properties = []
     if display_rules and matching_rule:
@@ -281,7 +280,7 @@ def get_grouped_triples(
                             grouped_triples,
                             fetched_values_map,
                             historical_snapshot,
-                            subject_shape,
+                            highest_priority_shape,
                             object_shape
                         )
                         if is_ordered:
@@ -302,7 +301,7 @@ def get_grouped_triples(
                             grouped_triples[display_name_nested] = {
                                 "property": prop_uri,
                                 "triples": [],
-                                "subjectShape": subject_shape,
+                                "subjectShape": highest_priority_shape,
                                 "objectShape": display_rule_nested.get("shape")
                             }
                             
@@ -332,12 +331,12 @@ def get_grouped_triples(
                         grouped_triples,
                         fetched_values_map,
                         historical_snapshot,
-                        subject_shape,
+                        highest_priority_shape,
                         object_shape
                     )
                     if "orderedBy" in current_prop_config:
                         if display_name_simple not in grouped_triples:
-                            grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "subjectShape": subject_shape, "objectShape": current_prop_config.get("shape")}
+                            grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "subjectShape": highest_priority_shape, "objectShape": current_prop_config.get("shape")}
                         grouped_triples[display_name_simple]["is_draggable"] = True
                         grouped_triples[display_name_simple]["ordered_by"] = current_prop_config.get("orderedBy")
                         process_ordering(
@@ -348,16 +347,16 @@ def get_grouped_triples(
                             display_name_simple,
                             fetched_values_map,
                             historical_snapshot,
-                            subject_shape
+                            highest_priority_shape
                         )
                     if "intermediateRelation" in current_prop_config:
                         if display_name_simple not in grouped_triples:
-                             grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "subjectShape": subject_shape, "objectShape": current_prop_config.get("shape")}
+                             grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "subjectShape": highest_priority_shape, "objectShape": current_prop_config.get("shape")}
                         grouped_triples[display_name_simple]["intermediateRelation"] = current_prop_config["intermediateRelation"]
             else:
-                process_default_property(prop_uri, triples, grouped_triples)
+                process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape)
         else:
-            process_default_property(prop_uri, triples, grouped_triples)
+            process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape)
 
     grouped_triples = OrderedDict(grouped_triples)
     return grouped_triples, relevant_properties

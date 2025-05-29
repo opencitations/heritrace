@@ -1312,6 +1312,137 @@ class TestGetGroupedTriples:
         assert grouped_triples[display_name]["subjectShape"] == subject_shape
         assert str(grouped_triples[display_name]["triples"][0]["triple"][2]) == "http://example.org/age1"
 
+    def test_current_prop_config_orderedby_without_display_rules(
+        self,
+        mock_triples,
+        mock_valid_predicates_info,
+    ):
+        """Test orderedBy in current_prop_config without displayRules."""
+        self.mock_find_matching_rule.return_value = {
+            "target": {"class": "http://example.org/Person"},
+            "displayProperties": [
+                {
+                    "property": "http://example.org/ordered_prop",
+                    "displayName": "Ordered Property",
+                    "orderedBy": "http://example.org/order_prop",
+                    "shape": "http://example.org/OrderedShape"
+                }
+            ],
+            "priority": 1,
+            "shouldBeDisplayed": True
+        }
+
+        extended_predicates_info = mock_valid_predicates_info + ["http://example.org/ordered_prop"]
+        
+        with patch("heritrace.utils.display_rules_utils.process_display_rule"), \
+             patch("heritrace.utils.display_rules_utils.process_ordering"):
+            
+            grouped_triples, relevant_properties = get_grouped_triples(
+                "http://example.org/person1",
+                mock_triples,
+                extended_predicates_info,
+                highest_priority_class=self.highest_priority_class
+            )
+
+            assert "Ordered Property" in grouped_triples
+            ordered_prop = grouped_triples["Ordered Property"]
+            assert ordered_prop["property"] == "http://example.org/ordered_prop"
+            assert ordered_prop["is_draggable"] is True
+            assert ordered_prop["ordered_by"] == "http://example.org/order_prop"
+
+    def test_current_prop_config_intermediate_relation_without_display_rules(
+        self,
+        mock_triples,
+        mock_valid_predicates_info,
+    ):
+        """Test intermediateRelation in current_prop_config without displayRules."""
+        self.mock_find_matching_rule.return_value = {
+            "target": {"class": "http://example.org/Person"},
+            "displayProperties": [
+                {
+                    "property": "http://example.org/related_prop",
+                    "displayName": "Related Property",
+                    "intermediateRelation": {"class": "http://example.org/IntermediateClass"},
+                    "shape": "http://example.org/RelatedShape"
+                }
+            ],
+            "priority": 1,
+            "shouldBeDisplayed": True
+        }
+
+        extended_predicates_info = mock_valid_predicates_info + ["http://example.org/related_prop"]
+        
+        with patch("heritrace.utils.display_rules_utils.process_display_rule"):
+            
+            grouped_triples, relevant_properties = get_grouped_triples(
+                "http://example.org/person1",
+                mock_triples,
+                extended_predicates_info,
+                highest_priority_class=self.highest_priority_class
+            )
+
+            assert "Related Property" in grouped_triples
+            related_prop = grouped_triples["Related Property"]
+            assert related_prop["property"] == "http://example.org/related_prop"
+            assert related_prop["intermediateRelation"] == {"class": "http://example.org/IntermediateClass"}
+
+    def test_no_current_prop_config_calls_process_default_property(
+        self,
+        mock_triples,
+        mock_valid_predicates_info,
+    ):
+        """Test that process_default_property is called when current_prop_config is None."""
+        self.mock_find_matching_rule.return_value = {
+            "target": {"class": "http://example.org/Person"},
+            "displayProperties": [
+                {
+                    "property": "http://example.org/other_prop",
+                    "displayName": "Other Property"
+                }
+            ],
+            "priority": 1,
+            "shouldBeDisplayed": True
+        }
+
+        extended_predicates_info = mock_valid_predicates_info + ["http://example.org/unknown_prop"]
+        
+        with patch("heritrace.utils.display_rules_utils.process_default_property") as mock_process_default:
+            
+            grouped_triples, relevant_properties = get_grouped_triples(
+                "http://example.org/person1",
+                mock_triples,
+                extended_predicates_info,
+                highest_priority_class=self.highest_priority_class
+            )
+
+            mock_process_default.assert_called()
+            call_args_list = mock_process_default.call_args_list
+            unknown_prop_calls = [call for call in call_args_list if call[0][0] == "http://example.org/unknown_prop"]
+            assert len(unknown_prop_calls) > 0, "process_default_property should be called for unknown_prop"
+
+    def test_no_display_rules_calls_process_default_property(
+        self,
+        mock_triples,
+        mock_valid_predicates_info,
+    ):
+        """Test that process_default_property is called when there are no display rules."""
+        with patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=[]
+        ), patch(
+            "heritrace.utils.display_rules_utils.process_default_property"
+        ) as mock_process_default:
+            
+            grouped_triples, relevant_properties = get_grouped_triples(
+                "http://example.org/person1",
+                mock_triples,
+                mock_valid_predicates_info,
+                highest_priority_class=self.highest_priority_class
+            )
+
+            mock_process_default.assert_called()
+            assert mock_process_default.call_count >= len(mock_valid_predicates_info)
+
 class TestExecuteSparqlQuery:
     """Tests for execute_sparql_query function."""
 

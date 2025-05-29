@@ -3,28 +3,30 @@ Tests for the extensions module.
 """
 
 import json
+import socket
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from flask import Flask, g
 from flask_babel import Babel
 from flask_login import LoginManager
-from heritrace.extensions import (adjust_endpoint_url,
+from heritrace.extensions import (SPARQLWrapperWithRetry, adjust_endpoint_url,
                                   get_change_tracking_config,
                                   get_custom_filter, get_dataset_endpoint,
                                   get_dataset_is_quadstore, get_display_rules,
                                   get_form_fields, get_provenance_endpoint,
                                   get_provenance_sparql, get_shacl_graph,
-                                  get_sparql,
-                                  init_extensions, init_login_manager,
-                                  init_request_handlers, init_sparql_services,
+                                  get_sparql, init_extensions,
+                                  init_login_manager, init_request_handlers,
+                                  init_sparql_services,
                                   initialize_change_tracking_config,
                                   initialize_counter_handler,
                                   initialize_global_variables,
                                   need_initialization, running_in_docker,
                                   update_cache)
 from redis import Redis
+from SPARQLWrapper import SPARQLWrapper
 
 
 @pytest.fixture
@@ -205,6 +207,22 @@ def test_get_counter_handler_not_initialized(app):
                 from heritrace.extensions import get_counter_handler
                 get_counter_handler()
             mock_logger_error.assert_called_once_with("CounterHandler not found in URIGenerator config.")
+
+
+def test_get_counter_handler_success(app):
+    """Test that get_counter_handler returns the counter handler when properly initialized."""
+    mock_counter_handler = MagicMock()
+    
+    mock_uri_generator = MagicMock()
+    mock_uri_generator.counter_handler = mock_counter_handler
+    
+    app.config['URI_GENERATOR'] = mock_uri_generator
+    
+    with app.app_context():
+        from heritrace.extensions import get_counter_handler
+        result = get_counter_handler()
+        
+        assert result is mock_counter_handler
 
 
 def test_init_login_manager_directly(app):
@@ -821,3 +839,163 @@ def test_need_initialization_without_counter_handler(app):
     
     with patch('os.path.exists', return_value=False):
         assert need_initialization(app) is True
+
+
+class TestSPARQLWrapperWithRetry:
+    """Tests for SPARQLWrapperWithRetry class."""
+    
+    def test_init_default_values(self):
+        """Test that SPARQLWrapperWithRetry initializes with correct default values."""
+        wrapper = SPARQLWrapperWithRetry("http://example.com/sparql")
+        
+        assert wrapper.max_attempts == 3
+        assert wrapper.initial_delay == 1.0
+        assert wrapper.backoff_factor == 2.0
+        assert wrapper.timeout == 5
+    
+    def test_init_custom_values(self):
+        """Test that SPARQLWrapperWithRetry initializes with custom values."""
+        wrapper = SPARQLWrapperWithRetry(
+            "http://example.com/sparql",
+            max_attempts=5,
+            initial_delay=2.0,
+            backoff_factor=3.0,
+            timeout=10.0
+        )
+        
+        assert wrapper.max_attempts == 5
+        assert wrapper.initial_delay == 2.0
+        assert wrapper.backoff_factor == 3.0
+        assert wrapper.timeout == 10
+    
+    def test_query_success_first_attempt(self):
+        """Test successful query on first attempt."""
+        wrapper = SPARQLWrapperWithRetry("http://example.com/sparql")
+        mock_result = MagicMock()
+        
+        with patch.object(SPARQLWrapper, 'query', return_value=mock_result):
+            result = wrapper.query()
+            assert result == mock_result
+    
+    def test_query_timeout_then_success(self):
+        """Test query that times out first, then succeeds on retry."""
+        wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=2, initial_delay=0.1)
+        mock_result = MagicMock()
+        
+        timeout_error = socket.timeout("The read operation timed out")
+        side_effects = [timeout_error, mock_result]
+        
+        with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
+             patch('time.sleep') as mock_sleep, \
+             patch('logging.getLogger') as mock_get_logger:
+            
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+            
+            result = wrapper.query()
+            
+            assert result == mock_result
+            mock_logger.warning.assert_called_once()
+            mock_logger.info.assert_called_once_with("Retrying in 0.10 seconds...")
+            mock_sleep.assert_called_once_with(0.1)
+    
+    def test_query_all_attempts_fail_with_timeout(self):
+        """Test query that times out on all attempts."""
+        wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=2, initial_delay=0.1)
+        
+        timeout_error = socket.timeout("The read operation timed out")
+        side_effects = [timeout_error, timeout_error]
+        
+        with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
+             patch('time.sleep') as mock_sleep, \
+             patch('logging.getLogger') as mock_get_logger:
+            
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+            
+            with pytest.raises(socket.timeout):
+                wrapper.query()
+            
+            assert mock_logger.warning.call_count == 2
+            mock_logger.info.assert_called_once_with("Retrying in 0.10 seconds...")
+            mock_logger.error.assert_called_once_with("All 2 SPARQL query attempts failed")
+            mock_sleep.assert_called_once_with(0.1)
+    
+    def test_query_all_attempts_fail_with_exception(self):
+        """Test query that fails with regular exception on all attempts."""
+        wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=3, initial_delay=0.1)
+        
+        test_exception = Exception("Connection failed")
+        side_effects = [test_exception, test_exception, test_exception]
+        
+        with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
+             patch('time.sleep') as mock_sleep, \
+             patch('logging.getLogger') as mock_get_logger:
+            
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+            
+            with pytest.raises(Exception, match="Connection failed"):
+                wrapper.query()
+            
+            assert mock_logger.warning.call_count == 3
+            assert mock_logger.info.call_count == 2 
+            mock_logger.error.assert_called_once_with("All 3 SPARQL query attempts failed")
+            
+            expected_calls = [call(0.1), call(0.2)]  # initial_delay * backoff_factor
+            mock_sleep.assert_has_calls(expected_calls)
+    
+    def test_query_mixed_exceptions(self):
+        """Test query with different exceptions on different attempts."""
+        wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=3, initial_delay=0.1)
+        mock_result = MagicMock()
+        
+        side_effects = [
+            socket.timeout("The read operation timed out"),
+            Exception("Connection error"),
+            mock_result
+        ]
+        
+        with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
+             patch('time.sleep') as mock_sleep, \
+             patch('logging.getLogger') as mock_get_logger:
+            
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+            
+            result = wrapper.query()
+            
+            assert result == mock_result
+            assert mock_logger.warning.call_count == 2
+            assert mock_logger.info.call_count == 2
+    
+    def test_query_delay_backoff(self):
+        """Test that delay increases with backoff factor between retries."""
+        wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=4, initial_delay=0.1, backoff_factor=2.5)
+        mock_result = MagicMock()
+        
+        side_effects = [Exception("Error"), Exception("Error"), Exception("Error"), mock_result]
+        
+        with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
+             patch('time.sleep') as mock_sleep, \
+             patch('logging.getLogger') as mock_get_logger:
+            
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
+            
+            result = wrapper.query()
+            
+            assert result == mock_result
+            # Check sleep calls with correct backoff progression
+            expected_calls = [
+                call(0.1),    # initial_delay
+                call(0.25),   # 0.1 * 2.5
+                call(0.625)   # 0.25 * 2.5
+            ]
+            mock_sleep.assert_has_calls(expected_calls)
+    
+    def test_timeout_set_correctly(self):
+        """Test that timeout is set correctly using SPARQLWrapper's setTimeout method."""
+        with patch.object(SPARQLWrapper, 'setTimeout') as mock_set_timeout:
+            wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", timeout=15.0)
+            mock_set_timeout.assert_called_once_with(15)

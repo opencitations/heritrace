@@ -2,12 +2,26 @@
 Tests for the shacl_utils module.
 """
 
-from unittest.mock import patch
+from collections import namedtuple
+from unittest.mock import MagicMock, patch
 
 from flask import Flask
-from heritrace.utils.shacl_utils import (extract_shacl_form_fields,
+from heritrace.utils.shacl_display import (
+    apply_display_rules_to_nested_shapes, get_shape_target_class,
+    process_query_results)
+from heritrace.utils.shacl_utils import (_get_shape_properties,
+                                         determine_shape_for_entity_triples,
+                                         extract_shacl_form_fields,
                                          get_form_fields_from_shacl)
-from rdflib import Graph
+from heritrace.utils.shacl_validation import validate_new_triple
+from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
+
+FABIO = Namespace("http://purl.org/spar/fabio/")
+DCTERMS = Namespace("http://purl.org/dc/terms/")
+PRISM = Namespace("http://prismstandard.org/namespaces/basic/2.0/")
+PRO = Namespace("http://purl.org/spar/pro/")
+SCHEMA = Namespace("http://schema.org/")
+SH = Namespace("http://www.w3.org/ns/shacl#")
 
 
 class TestShaclUtils:
@@ -70,10 +84,6 @@ class TestShaclUtils:
     @patch('heritrace.utils.shacl_display.process_nested_shapes')
     def test_process_query_results_with_ornodes(self, mock_process_nested_shapes, mock_human_readable_class, mock_get_object_class, mock_get_shape_target_class):
         """Test che process_query_results gestisca correttamente gli orNodes."""
-        from heritrace.utils.shacl_display import process_query_results
-        from collections import namedtuple
-        
-        # Configura i mock per le funzioni chiamate da process_query_results
         mock_get_shape_target_class.return_value = 'entity_type_or_node'
         mock_get_object_class.return_value = 'objectClass1'
         mock_human_readable_class.return_value = 'display_name'
@@ -149,9 +159,6 @@ class TestShaclUtils:
         
     def test_get_shape_target_class_returns_none(self):
         """Test che get_shape_target_class ritorni None quando non trova una targetClass."""
-        from heritrace.utils.shacl_display import get_shape_target_class
-        from rdflib import Graph
-        
         # Crea un grafo vuoto che non contiene alcuna targetClass
         shacl = Graph()
         shape_uri = "http://example.org/shape1"
@@ -164,8 +171,6 @@ class TestShaclUtils:
         
     def test_apply_display_rules_to_nested_shapes_parent_prop_not_dict(self):
         """Test che apply_display_rules_to_nested_shapes ritorni nested_fields quando parent_prop non è un dizionario."""
-        from heritrace.utils.shacl_display import apply_display_rules_to_nested_shapes
-        
         # Prepara i dati di test
         nested_fields = [
             {
@@ -200,9 +205,6 @@ class TestShaclUtils:
     @patch('heritrace.utils.shacl_display.process_nested_shapes')
     def test_process_query_results_update_existing_field(self, mock_process_nested_shapes, mock_human_readable_class, mock_get_object_class, mock_get_shape_target_class):
         """Test che process_query_results aggiorni correttamente un campo esistente con nuovi datatype e condizioni."""
-        from heritrace.utils.shacl_display import process_query_results
-        from collections import namedtuple
-        
         # Configura i mock per le funzioni chiamate da process_query_results
         mock_get_shape_target_class.return_value = 'entity_type_or_node'
         mock_get_object_class.return_value = 'objectClass1'
@@ -310,9 +312,6 @@ class TestShaclUtils:
         
     def test_validate_new_triple_no_shacl(self):
         """Test che validate_new_triple funzioni correttamente quando non c'è SHACL."""
-        from heritrace.utils.shacl_validation import validate_new_triple
-        from rdflib import URIRef, Literal, XSD
-        from unittest.mock import patch, MagicMock
         
         subject = "http://example.org/subject1"
         predicate = "http://example.org/predicate1"
@@ -362,9 +361,6 @@ class TestShaclUtils:
     
     def test_validate_new_triple_entity_types_not_list(self):
         """Test che validate_new_triple gestisca correttamente entity_types quando non è una lista."""
-        from heritrace.utils.shacl_validation import validate_new_triple
-        from unittest.mock import patch, MagicMock
-        from rdflib import URIRef, RDF
         
         subject = "http://example.org/subject1"
         predicate = "http://example.org/predicate1"
@@ -401,11 +397,7 @@ class TestShaclUtils:
                 
     def test_collect_inverse_types(self):
         """Test specifico per verificare la raccolta degli inverse types."""
-        from heritrace.utils.shacl_validation import validate_new_triple
-        from unittest.mock import patch, MagicMock
-        from rdflib import URIRef, RDF, Graph
-        import inspect
-        
+
         # Crea un grafo reale per i dati
         data_graph = Graph()
         
@@ -463,9 +455,6 @@ class TestShaclUtils:
         
     def test_validate_new_triple_inverse_types(self):
         """Test che validate_new_triple gestisca correttamente gli inverse types."""
-        from heritrace.utils.shacl_validation import validate_new_triple
-        from unittest.mock import patch, MagicMock
-        from rdflib import URIRef, RDF, Graph
         
         subject = "http://example.org/subject1"
         predicate = "http://example.org/predicate1"
@@ -562,3 +551,182 @@ class TestShaclUtils:
             # Verifica che gli inverse types siano presenti nella sezione VALUES
             assert f"<{inverse_type1}>" in values_section, f"L'inverse type {inverse_type1} non è presente nella query"
             assert f"<{inverse_type2}>" in values_section, f"L'inverse type {inverse_type2} non è presente nella query"
+
+
+class TestDetermineShapeForEntityTriples:
+    """Test the determine_shape_for_entity_triples function."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.mock_shacl_graph = MagicMock()
+        self.mock_shacl_graph.__bool__ = MagicMock(return_value=True)
+        self.mock_shacl_graph.__len__ = MagicMock(return_value=1)
+        
+    @patch('heritrace.utils.shacl_utils.get_shacl_graph')
+    @patch('heritrace.utils.shacl_utils.get_class_priority')
+    def test_no_shacl_graph(self, mock_get_priority, mock_get_shacl):
+        """Test when no SHACL graph is available."""
+        mock_get_shacl.return_value = None
+        
+        triples = [
+            (URIRef("http://example.org/entity1"), RDF.type, FABIO.JournalIssue)
+        ]
+        
+        result = determine_shape_for_entity_triples(triples)
+        assert result is None
+
+    @patch('heritrace.utils.shacl_utils.get_shacl_graph')
+    @patch('heritrace.utils.shacl_utils.get_class_priority')
+    def test_no_classes_in_triples(self, mock_get_priority, mock_get_shacl):
+        """Test when no rdf:type triples are present."""
+        mock_get_shacl.return_value = self.mock_shacl_graph
+        
+        triples = [
+            (URIRef("http://example.org/entity1"), DCTERMS.title, Literal("Some Title"))
+        ]
+        
+        result = determine_shape_for_entity_triples(triples)
+        assert result is None
+
+    @patch('heritrace.utils.shacl_utils.get_shacl_graph')
+    @patch('heritrace.utils.shacl_utils.get_class_priority')
+    def test_single_candidate_shape(self, mock_get_priority, mock_get_shacl):
+        """Test when only one candidate shape exists."""
+        mock_get_shacl.return_value = self.mock_shacl_graph
+        
+        mock_result = MagicMock()
+        mock_result.shape = URIRef("http://schema.org/JournalShape")
+        self.mock_shacl_graph.query.return_value = [mock_result]
+        
+        triples = [
+            (URIRef("http://example.org/entity1"), RDF.type, FABIO.Journal),
+            (URIRef("http://example.org/entity1"), DCTERMS.title, Literal("Journal Title"))
+        ]
+        
+        result = determine_shape_for_entity_triples(triples)
+        
+        assert self.mock_shacl_graph.query.call_count > 0
+        query_args = self.mock_shacl_graph.query.call_args[0][0]
+        assert str(FABIO.Journal) in query_args
+        assert result == "http://schema.org/JournalShape"
+
+    @patch('heritrace.utils.shacl_utils.get_shacl_graph')
+    @patch('heritrace.utils.shacl_utils.get_class_priority')
+    @patch('heritrace.utils.shacl_utils._get_shape_properties')
+    def test_special_issue_vs_issue_distinction(self, mock_get_properties, mock_get_priority, mock_get_shacl):
+        """Test distinguishing between SpecialIssueShape and IssueShape based on properties."""
+        mock_get_shacl.return_value = self.mock_shacl_graph
+        
+        mock_issue_result = MagicMock()
+        mock_issue_result.shape = URIRef("http://schema.org/IssueShape")
+        mock_special_issue_result = MagicMock()
+        mock_special_issue_result.shape = URIRef("http://schema.org/SpecialIssueShape")
+        self.mock_shacl_graph.query.return_value = [mock_issue_result, mock_special_issue_result]
+        
+        def mock_properties_side_effect(graph, shape_uri):
+            if shape_uri == "http://schema.org/IssueShape":
+                return {
+                    "http://purl.org/spar/fabio/hasSequenceIdentifier",
+                    "http://purl.org/vocab/frbr/core#partOf"
+                }
+            elif shape_uri == "http://schema.org/SpecialIssueShape":
+                return {
+                    "http://purl.org/spar/fabio/hasSequenceIdentifier",
+                    "http://purl.org/vocab/frbr/core#partOf", 
+                    "http://purl.org/dc/terms/title",
+                    "http://purl.org/dc/terms/abstract",
+                    "http://prismstandard.org/namespaces/basic/2.0/keyword",
+                    "http://purl.org/spar/pro/isDocumentContextFor"
+                }
+            return set()
+        
+        mock_get_properties.side_effect = mock_properties_side_effect
+        
+        mock_get_priority.return_value = 1
+        
+        special_issue_triples = [
+            (URIRef("http://example.org/entity1"), RDF.type, FABIO.JournalIssue),
+            (URIRef("http://example.org/entity1"), DCTERMS.title, Literal("Special Issue Title")),
+            (URIRef("http://example.org/entity1"), DCTERMS.abstract, Literal("Abstract")),
+            (URIRef("http://example.org/entity1"), PRISM.keyword, Literal("keyword1"))
+        ]
+        
+        result = determine_shape_for_entity_triples(special_issue_triples)
+        assert result == "http://schema.org/SpecialIssueShape"
+
+
+    @patch('heritrace.utils.shacl_utils.get_shacl_graph')
+    @patch('heritrace.utils.shacl_utils.get_class_priority')
+    def test_no_candidate_shapes(self, mock_get_priority, mock_get_shacl):
+        """Test when no shapes are found for the entity classes."""
+        mock_get_shacl.return_value = self.mock_shacl_graph
+        
+        self.mock_shacl_graph.query.return_value = []
+        
+        triples = [
+            (URIRef("http://example.org/entity1"), RDF.type, URIRef("http://example.org/UnknownClass"))
+        ]
+        
+        result = determine_shape_for_entity_triples(triples)
+        assert result is None
+
+    @patch('heritrace.utils.shacl_utils.get_shacl_graph')
+    @patch('heritrace.utils.shacl_utils.get_class_priority')
+    def test_with_rdflib_graph_iterator(self, mock_get_priority, mock_get_shacl):
+        """Test with actual RDFLib graph iterator (realistic scenario)."""
+        mock_get_shacl.return_value = self.mock_shacl_graph
+        
+        mock_result = MagicMock()
+        mock_result.shape = URIRef("http://schema.org/JournalShape")
+        self.mock_shacl_graph.query.return_value = [mock_result]
+        
+        test_graph = Graph()
+        entity_uri = URIRef("http://example.org/entity1")
+        test_graph.add((entity_uri, RDF.type, FABIO.Journal))
+        test_graph.add((entity_uri, DCTERMS.title, Literal("Journal Title")))
+        
+        result = determine_shape_for_entity_triples(
+            test_graph.triples((entity_uri, None, None))
+        )
+        
+        assert result == "http://schema.org/JournalShape"
+
+
+class TestGetShapeProperties:
+    """Test the _get_shape_properties helper function."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.mock_shacl_graph = MagicMock()
+
+    def test_get_shape_properties(self):
+        """Test extracting properties from a SHACL shape."""
+        mock_results = []
+        properties = [
+            "http://purl.org/dc/terms/title",
+            "http://purl.org/dc/terms/abstract",
+            "http://purl.org/spar/fabio/hasSequenceIdentifier"
+        ]
+        
+        for prop in properties:
+            mock_result = MagicMock()
+            mock_result.property = URIRef(prop)
+            mock_results.append(mock_result)
+        
+        self.mock_shacl_graph.query.return_value = mock_results
+        
+        result = _get_shape_properties(self.mock_shacl_graph, "http://schema.org/TestShape")
+        
+        expected = {
+            "http://purl.org/dc/terms/title",
+            "http://purl.org/dc/terms/abstract", 
+            "http://purl.org/spar/fabio/hasSequenceIdentifier"
+        }
+        assert result == expected
+
+    def test_get_shape_properties_empty(self):
+        """Test when shape has no properties."""
+        self.mock_shacl_graph.query.return_value = []
+        
+        result = _get_shape_properties(self.mock_shacl_graph, "http://schema.org/EmptyShape")
+        assert result == set()
