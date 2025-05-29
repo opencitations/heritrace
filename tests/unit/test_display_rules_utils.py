@@ -817,7 +817,7 @@ class TestGetGroupedTriples:
         """Test getting grouped triples with no display rules."""
         self.get_display_rules_patch.return_value = []
         
-        def mock_process_default_property(prop_uri, triples, grouped_triples):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
             display_name = prop_uri.split("/")[-1]
             if display_name not in grouped_triples:
                 grouped_triples[display_name] = {

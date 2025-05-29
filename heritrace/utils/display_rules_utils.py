@@ -258,7 +258,7 @@ def get_grouped_triples(
                     current_prop_config = prop_config
                     break
             
-            current_form_field = matching_form_field.get(prop_uri)
+            current_form_field = matching_form_field.get(prop_uri) if matching_form_field else None
 
             if current_prop_config:
                 if "displayRules" in current_prop_config:
