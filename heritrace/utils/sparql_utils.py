@@ -1,9 +1,11 @@
 import os
+from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List
 
 from heritrace.editor import Editor
 from heritrace.extensions import (get_change_tracking_config,
+                                  get_classes_with_multiple_shapes,
                                   get_custom_filter, get_dataset_is_quadstore,
                                   get_display_rules, get_provenance_sparql,
                                   get_sparql)
@@ -12,7 +14,8 @@ from heritrace.utils.display_rules_utils import (find_matching_rule,
                                                  get_highest_priority_class,
                                                  get_sortable_properties,
                                                  is_entity_type_visible)
-from heritrace.utils.shacl_utils import determine_shape_for_classes
+from heritrace.utils.shacl_utils import (determine_shape_for_classes,
+                                         determine_shape_for_entity_triples)
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
 from rdflib import RDF, ConjunctiveGraph, Graph, Literal, URIRef
@@ -22,9 +25,70 @@ from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 
+def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_multiple_shapes: set):
+    """
+    Get entities for a class using enhanced shape detection for classes with multiple shapes.
+    
+    Args:
+        class_uri: The class URI to get entities for
+        classes_with_multiple_shapes: Set of classes that have multiple shapes
+        
+    Returns:
+        Dict[str, List]: Dictionary mapping shape URIs to lists of entity info dicts
+    """
+    sparql = get_sparql()
+    
+    if is_virtuoso():
+        query = f"""
+        SELECT DISTINCT ?subject ?p ?o
+        WHERE {{
+            GRAPH ?g {{
+                ?subject a <{class_uri}> .
+                ?subject ?p ?o .
+            }}
+            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+        }}
+        """
+    else:
+        query = f"""
+        SELECT DISTINCT ?subject ?p ?o
+        WHERE {{
+            ?subject a <{class_uri}> .
+            ?subject ?p ?o .
+        }}
+        """
+    
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+    
+    entities_triples = defaultdict(list)
+    for binding in results["results"]["bindings"]:
+        subject = binding["subject"]["value"]
+        predicate = binding["p"]["value"]
+        obj = binding["o"]["value"]
+        entities_triples[subject].append((subject, predicate, obj))
+    
+    shape_to_entities = defaultdict(list)
+    for subject_uri, triples in entities_triples.items():
+        shape_uri = determine_shape_for_entity_triples(triples)
+
+        if shape_uri:
+            entity_key = (class_uri, shape_uri)
+            if is_entity_type_visible(entity_key):
+                shape_to_entities[shape_uri].append({
+                    "uri": subject_uri,
+                    "class": class_uri,
+                    "shape": shape_uri
+                })
+    
+    return shape_to_entities
+
+
 def get_available_classes():
     """
     Fetch and format all available entity classes from the triplestore.
+    Now handles classes with multiple shapes efficiently.
 
     Returns:
         list: List of dictionaries containing class information
@@ -58,28 +122,39 @@ def get_available_classes():
     sparql.setReturnFormat(JSON)
     classes_results = sparql.query().convert()
 
-    # Creare la lista delle classi disponibili
+    classes_with_multiple_shapes = get_classes_with_multiple_shapes()
+
     available_classes = []
     for result in classes_results["results"]["bindings"]:
         class_uri = result["class"]["value"]
-        count = int(result["count"]["value"])
+        total_count = int(result["count"]["value"])
         
-        # Determiniamo la shape per questa classe
-        shape_uri = determine_shape_for_classes([class_uri])
-        
-        # Creiamo la tupla (class_uri, shape_uri) come entity_key
-        entity_key = (class_uri, shape_uri)
-        
-        # Includiamo solo se il tipo di entità è visibile
-        if is_entity_type_visible(entity_key):
-            available_classes.append({
-                "uri": class_uri,
-                "label": custom_filter.human_readable_class(entity_key),
-                "count": count,
-                "shape": shape_uri  # Includiamo la shape determinata
-            })
+        if class_uri in classes_with_multiple_shapes:
+            shape_to_entities = _get_entities_with_enhanced_shape_detection(
+                class_uri, classes_with_multiple_shapes
+            )
+            
+            for shape_uri, entities in shape_to_entities.items():
+                if entities:
+                    entity_key = (class_uri, shape_uri)
+                    available_classes.append({
+                        "uri": class_uri,
+                        "label": custom_filter.human_readable_class(entity_key),
+                        "count": len(entities),
+                        "shape": shape_uri
+                    })
+        else:
+            shape_uri = determine_shape_for_classes([class_uri])
+            entity_key = (class_uri, shape_uri)
+            
+            if is_entity_type_visible(entity_key):
+                available_classes.append({
+                    "uri": class_uri,
+                    "label": custom_filter.human_readable_class(entity_key),
+                    "count": total_count,
+                    "shape": shape_uri
+                })
 
-    # Sort classes by label
     available_classes.sort(key=lambda x: x["label"].lower())
     return available_classes
 
@@ -127,14 +202,69 @@ def get_entities_for_class(
         per_page (int): Number of items per page
         sort_property (str, optional): Property to sort by
         sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
-        selected_shape (str, optional): URI of the shape to use for sorting rules
+        selected_shape (str, optional): URI of the shape to filter by
 
     Returns:
         tuple: (list of entities, total count)
     """
     sparql = get_sparql()
     custom_filter = get_custom_filter()
+    classes_with_multiple_shapes = get_classes_with_multiple_shapes()
 
+    use_shape_filtering = (selected_shape and 
+                          selected_class in classes_with_multiple_shapes)
+
+    if use_shape_filtering:
+        if is_virtuoso():
+            query = f"""
+            SELECT DISTINCT ?subject ?p ?o
+            WHERE {{
+                GRAPH ?g {{
+                    ?subject a <{selected_class}> .
+                    ?subject ?p ?o .
+                }}
+                FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            }}
+            """
+        else:
+            query = f"""
+            SELECT DISTINCT ?subject ?p ?o
+            WHERE {{
+                ?subject a <{selected_class}> .
+                ?subject ?p ?o .
+            }}
+            """
+        
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
+        
+        entities_triples = defaultdict(list)
+        for binding in results["results"]["bindings"]:
+            subject = binding["subject"]["value"]
+            predicate = binding["p"]["value"]
+            obj = binding["o"]["value"]
+            entities_triples[subject].append((subject, predicate, obj))
+        
+        filtered_entities = []
+        for subject_uri, triples in entities_triples.items():
+            entity_shape = determine_shape_for_entity_triples(list(triples))
+            if entity_shape == selected_shape:
+                entity_label = custom_filter.human_readable_entity(
+                    subject_uri, (selected_class, selected_shape), None
+                )
+                filtered_entities.append({"uri": subject_uri, "label": entity_label})
+        
+        if sort_property and sort_direction:
+            reverse_sort = sort_direction.upper() == "DESC"
+            filtered_entities.sort(key=lambda x: x["label"].lower(), reverse=reverse_sort)
+        
+        total_count = len(filtered_entities)
+        offset = (page - 1) * per_page
+        paginated_entities = filtered_entities[offset:offset + per_page]
+        
+        return paginated_entities, total_count
+    
     offset = (page - 1) * per_page
 
     sort_clause = ""
@@ -197,7 +327,7 @@ def get_entities_for_class(
     entities = []
     for result in entities_results["results"]["bindings"]:
         subject_uri = result["subject"]["value"]
-        shape = determine_shape_for_classes([selected_class])
+        shape = selected_shape if selected_shape else determine_shape_for_classes([selected_class])
         entity_label = custom_filter.human_readable_entity(
             subject_uri, (selected_class, shape), None
         )

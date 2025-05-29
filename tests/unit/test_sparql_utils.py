@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from heritrace.utils.sparql_utils import (
+    _get_entities_with_enhanced_shape_detection,
     build_sort_clause,
     fetch_current_state_with_related_entities,
     fetch_data_graph_for_subject,
@@ -659,3 +660,477 @@ class TestFetchCurrentStateWithRelatedEntities:
             assert mock_fetch.call_count == 2
             mock_fetch.assert_any_call("http://example.org/person1")
             mock_fetch.assert_any_call("http://example.org/person2")
+
+
+class TestGetEntitiesWithEnhancedShapeDetection:
+    """Tests for the _get_entities_with_enhanced_shape_detection function."""
+
+    def test_get_entities_with_enhanced_shape_detection_virtuoso(self):
+        """Test enhanced shape detection with Virtuoso."""
+        class_uri = "http://example.org/Person"
+        classes_with_multiple_shapes = {"http://example.org/Person"}
+        
+        mock_sparql_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": "http://example.org/person1"},
+                        "p": {"value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+                        "o": {"value": "http://example.org/Person"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person1"},
+                        "p": {"value": "http://example.org/name"},
+                        "o": {"value": "John Doe"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person2"},
+                        "p": {"value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+                        "o": {"value": "http://example.org/Person"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person2"},
+                        "p": {"value": "http://example.org/age"},
+                        "o": {"value": "30"}
+                    }
+                ]
+            }
+        }
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=True), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples") as mock_determine_shape, \
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
+            
+            mock_determine_shape.side_effect = lambda triples: (
+                "http://example.org/PersonShapeA" if any("name" in str(t) for t in triples)
+                else "http://example.org/PersonShapeB"
+            )
+            
+            result = _get_entities_with_enhanced_shape_detection(class_uri, classes_with_multiple_shapes)
+            
+            mock_sparql.setQuery.assert_called_once()
+            query = mock_sparql.setQuery.call_args[0][0]
+            assert "GRAPH ?g" in query
+            assert "FILTER(?g NOT IN" in query
+            assert f"?subject a <{class_uri}>" in query
+            
+            assert len(result) == 2
+            assert "http://example.org/PersonShapeA" in result
+            assert "http://example.org/PersonShapeB" in result
+            
+            shape_a_entities = result["http://example.org/PersonShapeA"]
+            shape_b_entities = result["http://example.org/PersonShapeB"]
+            
+            assert len(shape_a_entities) == 1
+            assert shape_a_entities[0]["uri"] == "http://example.org/person1"
+            assert shape_a_entities[0]["class"] == class_uri
+            assert shape_a_entities[0]["shape"] == "http://example.org/PersonShapeA"
+            
+            assert len(shape_b_entities) == 1
+            assert shape_b_entities[0]["uri"] == "http://example.org/person2"
+            assert shape_b_entities[0]["class"] == class_uri
+            assert shape_b_entities[0]["shape"] == "http://example.org/PersonShapeB"
+
+    def test_get_entities_with_enhanced_shape_detection_non_virtuoso(self):
+        """Test enhanced shape detection with non-Virtuoso store."""
+        class_uri = "http://example.org/Document"
+        classes_with_multiple_shapes = {"http://example.org/Document"}
+        
+        mock_sparql_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": "http://example.org/doc1"},
+                        "p": {"value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+                        "o": {"value": "http://example.org/Document"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/doc1"},
+                        "p": {"value": "http://example.org/title"},
+                        "o": {"value": "Test Document"}
+                    }
+                ]
+            }
+        }
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples", return_value="http://example.org/DocumentShape"), \
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
+            
+            result = _get_entities_with_enhanced_shape_detection(class_uri, classes_with_multiple_shapes)
+            
+            mock_sparql.setQuery.assert_called_once()
+            query = mock_sparql.setQuery.call_args[0][0]
+            assert "GRAPH ?g" not in query
+            assert "FILTER(?g NOT IN" not in query
+            assert f"?subject a <{class_uri}>" in query
+            
+            assert len(result) == 1
+            assert "http://example.org/DocumentShape" in result
+            assert len(result["http://example.org/DocumentShape"]) == 1
+            assert result["http://example.org/DocumentShape"][0]["uri"] == "http://example.org/doc1"
+
+    def test_get_entities_with_enhanced_shape_detection_invisible_entities(self):
+        """Test that invisible entities are filtered out."""
+        class_uri = "http://example.org/Person"
+        classes_with_multiple_shapes = {"http://example.org/Person"}
+        
+        mock_sparql_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": "http://example.org/person1"},
+                        "p": {"value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+                        "o": {"value": "http://example.org/Person"}
+                    }
+                ]
+            }
+        }
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples", return_value="http://example.org/PersonShape"), \
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=False):
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
+            
+            result = _get_entities_with_enhanced_shape_detection(class_uri, classes_with_multiple_shapes)
+            
+            assert len(result) == 0
+
+
+class TestGetAvailableClassesMultipleShapes:
+    """Tests for the multiple shapes branch in get_available_classes function."""
+
+    def test_get_available_classes_with_multiple_shapes(self):
+        """Test get_available_classes when a class has multiple shapes."""
+        mock_classes_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "class": {"value": "http://example.org/Person"},
+                        "count": {"value": "10"},
+                    },
+                    {
+                        "class": {"value": "http://example.org/Document"},
+                        "count": {"value": "5"},
+                    },
+                ]
+            }
+        }
+
+        mock_shape_to_entities = {
+            "http://example.org/PersonShapeA": [
+                {"uri": "http://example.org/person1", "class": "http://example.org/Person", "shape": "http://example.org/PersonShapeA"},
+                {"uri": "http://example.org/person2", "class": "http://example.org/Person", "shape": "http://example.org/PersonShapeA"}
+            ],
+            "http://example.org/PersonShapeB": [
+                {"uri": "http://example.org/person3", "class": "http://example.org/Person", "shape": "http://example.org/PersonShapeB"}
+            ]
+        }
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value={"http://example.org/Person"}), \
+             patch("heritrace.utils.sparql_utils._get_entities_with_enhanced_shape_detection", return_value=mock_shape_to_entities), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/DocumentShape"), \
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_classes_results
+            
+            mock_filter = mock_get_filter.return_value
+            mock_filter.human_readable_class.side_effect = lambda entity_key: {
+                ("http://example.org/Person", "http://example.org/PersonShapeA"): "Person (Type A)",
+                ("http://example.org/Person", "http://example.org/PersonShapeB"): "Person (Type B)",
+                ("http://example.org/Document", "http://example.org/DocumentShape"): "Document"
+            }.get(entity_key, "Unknown")
+            
+            classes = get_available_classes()
+            
+            assert len(classes) == 3  # 2 person shapes + 1 document shape
+            
+            person_shape_a = next((c for c in classes if c["shape"] == "http://example.org/PersonShapeA"), None)
+            person_shape_b = next((c for c in classes if c["shape"] == "http://example.org/PersonShapeB"), None)
+            document_class = next((c for c in classes if c["uri"] == "http://example.org/Document"), None)
+            
+            assert person_shape_a is not None
+            assert person_shape_a["uri"] == "http://example.org/Person"
+            assert person_shape_a["label"] == "Person (Type A)"
+            assert person_shape_a["count"] == 2
+            assert person_shape_a["shape"] == "http://example.org/PersonShapeA"
+            
+            assert person_shape_b is not None
+            assert person_shape_b["uri"] == "http://example.org/Person"
+            assert person_shape_b["label"] == "Person (Type B)"
+            assert person_shape_b["count"] == 1
+            assert person_shape_b["shape"] == "http://example.org/PersonShapeB"
+            
+            assert document_class is not None
+            assert document_class["uri"] == "http://example.org/Document"
+            assert document_class["label"] == "Document"
+            assert document_class["count"] == 5
+            assert document_class["shape"] == "http://example.org/DocumentShape"
+
+    def test_get_available_classes_multiple_shapes_empty_results(self):
+        """Test get_available_classes when enhanced shape detection returns empty results."""
+        mock_classes_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "class": {"value": "http://example.org/Person"},
+                        "count": {"value": "10"},
+                    }
+                ]
+            }
+        }
+
+        mock_shape_to_entities = {}
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value={"http://example.org/Person"}), \
+             patch("heritrace.utils.sparql_utils._get_entities_with_enhanced_shape_detection", return_value=mock_shape_to_entities):
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_classes_results
+            
+            mock_filter = mock_get_filter.return_value
+            
+            classes = get_available_classes()
+            
+            assert len(classes) == 0
+
+
+class TestGetEntitiesForClassShapeFiltering:
+    """Tests for the shape filtering branch in get_entities_for_class function."""
+
+    def test_get_entities_for_class_with_shape_filtering_virtuoso(self):
+        """Test get_entities_for_class with shape filtering on Virtuoso."""
+        selected_class = "http://example.org/Person"
+        selected_shape = "http://example.org/PersonShapeA"
+        classes_with_multiple_shapes = {"http://example.org/Person"}
+        
+        mock_sparql_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": "http://example.org/person1"},
+                        "p": {"value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+                        "o": {"value": "http://example.org/Person"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person1"},
+                        "p": {"value": "http://example.org/name"},
+                        "o": {"value": "John Doe"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person2"},
+                        "p": {"value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+                        "o": {"value": "http://example.org/Person"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person2"},
+                        "p": {"value": "http://example.org/age"},
+                        "o": {"value": "30"}
+                    }
+                ]
+            }
+        }
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=True), \
+             patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=classes_with_multiple_shapes), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples") as mock_determine_shape:
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
+            
+            mock_filter = mock_get_filter.return_value
+            mock_filter.human_readable_entity.side_effect = lambda uri, entity_key, graph: f"Entity {uri.split('/')[-1]}"
+            
+            mock_determine_shape.side_effect = lambda triples: (
+                selected_shape if any("name" in str(t) for t in triples)
+                else "http://example.org/PersonShapeB"
+            )
+            
+            entities, total_count = get_entities_for_class(
+                selected_class, 1, 10, selected_shape=selected_shape
+            )
+            
+            mock_sparql.setQuery.assert_called_once()
+            query = mock_sparql.setQuery.call_args[0][0]
+            assert "GRAPH ?g" in query
+            assert "FILTER(?g NOT IN" in query
+            assert f"?subject a <{selected_class}>" in query
+            
+            assert total_count == 1
+            assert len(entities) == 1
+            assert entities[0]["uri"] == "http://example.org/person1"
+            assert entities[0]["label"] == "Entity person1"
+
+    def test_get_entities_for_class_with_shape_filtering_non_virtuoso(self):
+        """Test get_entities_for_class with shape filtering on non-Virtuoso."""
+        selected_class = "http://example.org/Document"
+        selected_shape = "http://example.org/DocumentShapeA"
+        classes_with_multiple_shapes = {"http://example.org/Document"}
+        
+        mock_sparql_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": "http://example.org/doc1"},
+                        "p": {"value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
+                        "o": {"value": "http://example.org/Document"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/doc1"},
+                        "p": {"value": "http://example.org/title"},
+                        "o": {"value": "Document Title"}
+                    }
+                ]
+            }
+        }
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=classes_with_multiple_shapes), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples", return_value=selected_shape):
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
+            
+            mock_filter = mock_get_filter.return_value
+            mock_filter.human_readable_entity.return_value = "Test Document"
+            
+            entities, total_count = get_entities_for_class(
+                selected_class, 1, 10, selected_shape=selected_shape
+            )
+            
+            mock_sparql.setQuery.assert_called_once()
+            query = mock_sparql.setQuery.call_args[0][0]
+            assert "GRAPH ?g" not in query
+            assert "FILTER(?g NOT IN" not in query
+            assert f"?subject a <{selected_class}>" in query
+            
+            assert total_count == 1
+            assert len(entities) == 1
+            assert entities[0]["uri"] == "http://example.org/doc1"
+            assert entities[0]["label"] == "Test Document"
+
+    def test_get_entities_for_class_with_shape_filtering_and_sorting(self):
+        """Test get_entities_for_class with shape filtering and sorting."""
+        selected_class = "http://example.org/Person"
+        selected_shape = "http://example.org/PersonShapeA"
+        classes_with_multiple_shapes = {"http://example.org/Person"}
+        
+        mock_sparql_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": "http://example.org/person1"},
+                        "p": {"value": "http://example.org/name"},
+                        "o": {"value": "Alice"}
+                    },
+                    {
+                        "subject": {"value": "http://example.org/person2"},
+                        "p": {"value": "http://example.org/name"},
+                        "o": {"value": "Bob"}
+                    }
+                ]
+            }
+        }
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=classes_with_multiple_shapes), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples", return_value=selected_shape):
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
+            
+            mock_filter = mock_get_filter.return_value
+            mock_filter.human_readable_entity.side_effect = lambda uri, entity_key, graph: uri.split('/')[-1]
+            
+            entities_asc, total_count_asc = get_entities_for_class(
+                selected_class, 1, 10, sort_property="http://example.org/name", 
+                sort_direction="ASC", selected_shape=selected_shape
+            )
+            
+            assert total_count_asc == 2
+            assert len(entities_asc) == 2
+            assert entities_asc[0]["uri"] == "http://example.org/person1"  # Alice should come first
+            assert entities_asc[1]["uri"] == "http://example.org/person2"  # Bob should come second
+            
+            entities_desc, total_count_desc = get_entities_for_class(
+                selected_class, 1, 10, sort_property="http://example.org/name", 
+                sort_direction="DESC", selected_shape=selected_shape
+            )
+            
+            assert total_count_desc == 2
+            assert len(entities_desc) == 2
+            assert entities_desc[0]["uri"] == "http://example.org/person2"  # Bob should come first
+            assert entities_desc[1]["uri"] == "http://example.org/person1"  # Alice should come second
+
+    def test_get_entities_for_class_with_shape_filtering_pagination(self):
+        """Test get_entities_for_class with shape filtering and pagination."""
+        selected_class = "http://example.org/Person"
+        selected_shape = "http://example.org/PersonShapeA"
+        classes_with_multiple_shapes = {"http://example.org/Person"}
+        
+        mock_sparql_results = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": f"http://example.org/person{i}"},
+                        "p": {"value": "http://example.org/name"},
+                        "o": {"value": f"Person {i}"}
+                    } for i in range(1, 6)
+                ]
+            }
+        }
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
+             patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
+             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=classes_with_multiple_shapes), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples", return_value=selected_shape):
+            
+            mock_sparql = mock_get_sparql.return_value
+            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
+            
+            mock_filter = mock_get_filter.return_value
+            mock_filter.human_readable_entity.side_effect = lambda uri, entity_key, graph: f"Entity {uri.split('/')[-1]}"
+            
+            entities_page1, total_count = get_entities_for_class(
+                selected_class, 1, 3, selected_shape=selected_shape
+            )
+            
+            assert total_count == 5
+            assert len(entities_page1) == 3
+            assert entities_page1[0]["uri"] == "http://example.org/person1"
+            assert entities_page1[1]["uri"] == "http://example.org/person2"
+            assert entities_page1[2]["uri"] == "http://example.org/person3"
+            
+            entities_page2, total_count = get_entities_for_class(
+                selected_class, 2, 3, selected_shape=selected_shape
+            )
+            
+            assert total_count == 5
+            assert len(entities_page2) == 2
+            assert entities_page2[0]["uri"] == "http://example.org/person4"
+            assert entities_page2[1]["uri"] == "http://example.org/person5"

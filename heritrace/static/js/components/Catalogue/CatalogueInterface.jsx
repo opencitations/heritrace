@@ -114,7 +114,11 @@ const CatalogueInterface = ({
     const classUri = button.dataset.class;
     const shape = button.dataset.shape;
     
-    if (classUri === state.selectedClass) return;
+    const isSameSelection = classUri === state.selectedClass && 
+                           (shape || null) === (state.selectedShape || null);
+    
+    if (isSameSelection) return;
+    
     setState(prev => ({ ...prev, selectedClass: classUri, selectedShape: shape }));
     fetchData({ class: classUri, shape: shape, page: 1 });
   };
@@ -156,7 +160,10 @@ const CatalogueInterface = ({
     );
   }
 
-  const selectedClassName = sortedClasses.find(c => c.uri === state.selectedClass)?.label;
+  const selectedClassName = sortedClasses.find(c => 
+    c.uri === state.selectedClass && 
+    (c.shape || null) === (state.selectedShape || null)
+  )?.label;
 
   return (
     <div className="row">
@@ -181,20 +188,27 @@ const CatalogueInterface = ({
           </div>
           <div className="card-body p-0">
             <div className="list-group list-group-flush">
-              {sortedClasses.map((cls) => (
-                <button
-                  key={cls.uri}
-                  onClick={handleClassClick}
-                  data-class={cls.uri}
-                  data-shape={cls.shape || ''}
-                  className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${
-                    cls.uri === state.selectedClass ? 'active' : ''
-                  }`}
-                >
-                  <span>{cls.label}</span>
-                  <span className="badge bg-primary rounded-pill">{cls.count}</span>
-                </button>
-              ))}
+              {sortedClasses.map((cls) => {
+                const uniqueKey = `${cls.uri}#${cls.shape || 'default'}`;
+                
+                const isSelected = cls.uri === state.selectedClass && 
+                                 (cls.shape || null) === (state.selectedShape || null);
+                
+                return (
+                  <button
+                    key={uniqueKey}
+                    onClick={handleClassClick}
+                    data-class={cls.uri}
+                    data-shape={cls.shape || ''}
+                    className={`list-group-item list-group-item-action d-flex justify-content-between align-items-center ${
+                      isSelected ? 'active' : ''
+                    }`}
+                  >
+                    <span>{cls.label}</span>
+                    <span className="badge bg-primary rounded-pill">{cls.count}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -106,7 +106,7 @@ def determine_shape_for_entity_triples(entity_triples_iter) -> Optional[str]:
     entity_properties = set()
     
     for subject, predicate, obj in entity_triples_iter:
-        if predicate == RDF.type:
+        if str(predicate) == str(RDF.type):
             entity_classes.append(str(obj))
         entity_properties.add(str(predicate))
     

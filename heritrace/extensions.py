@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import time
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict
 from urllib.parse import urlparse, urlunparse
@@ -36,6 +37,7 @@ redis_client = None
 display_rules = None
 dataset_is_quadstore = None
 shacl_graph = None
+classes_with_multiple_shapes = None
 
 
 class SPARQLWrapperWithRetry(SPARQLWrapper):
@@ -301,6 +303,58 @@ def initialize_counter_handler(app: Flask):
             
     update_cache(app)
 
+def identify_classes_with_multiple_shapes():
+    """
+    Identify classes that have multiple VISIBLE shapes associated with them.
+    Only returns classes where multiple shapes are actually visible to avoid unnecessary processing.
+    
+    Returns:
+        Set[str]: Set of class URIs that have multiple visible shapes
+    """
+    global display_rules, shacl_graph
+    
+    if not display_rules or not shacl_graph:
+        return set()
+    
+    from heritrace.utils.display_rules_utils import is_entity_type_visible
+    
+    class_to_shapes = defaultdict(set)
+    
+    for rule in display_rules:
+        target = rule.get("target", {})
+        
+        if "class" in target:
+            class_uri = target["class"]
+            if shacl_graph:
+                query_string = f"""
+                    SELECT DISTINCT ?shape WHERE {{
+                        ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
+                    }}
+                """
+                results = shacl_graph.query(query_string)
+                for row in results:
+                    shape_uri = str(row.shape)
+                    entity_key = (class_uri, shape_uri)
+                    if is_entity_type_visible(entity_key):
+                        class_to_shapes[class_uri].add(shape_uri)
+        
+        elif "shape" in target:
+            shape_uri = target["shape"]
+            if shacl_graph:
+                query_string = f"""
+                    SELECT DISTINCT ?class WHERE {{
+                        <{shape_uri}> <http://www.w3.org/ns/shacl#targetClass> ?class .
+                    }}
+                """
+                results = shacl_graph.query(query_string)
+                for row in results:
+                    class_uri = str(row[0])
+                    entity_key = (class_uri, shape_uri)
+                    if is_entity_type_visible(entity_key):
+                        class_to_shapes[class_uri].add(shape_uri)
+    
+    return {class_uri for class_uri, shapes in class_to_shapes.items() if len(shapes) > 1}
+
 def initialize_global_variables(app: Flask):
     """
     Initialize all global variables including form fields cache, display rules,
@@ -309,7 +363,7 @@ def initialize_global_variables(app: Flask):
     Args:
         app: Flask application instance
     """
-    global shacl_graph, form_fields_cache, display_rules, dataset_is_quadstore
+    global shacl_graph, form_fields_cache, display_rules, dataset_is_quadstore, classes_with_multiple_shapes
     
     try:
         dataset_is_quadstore = app.config.get('DATASET_IS_QUADSTORE', False)
@@ -344,6 +398,8 @@ def initialize_global_variables(app: Flask):
             except Exception as e:
                 app.logger.error(f"Error initializing form fields from SHACL: {str(e)}")
                 raise RuntimeError(f"Failed to initialize form fields: {str(e)}")
+        
+        classes_with_multiple_shapes = identify_classes_with_multiple_shapes()
                 
         app.logger.info("Global variables initialized successfully")
         
@@ -512,3 +568,9 @@ def get_shacl_graph() -> Graph:
 
     global shacl_graph
     return shacl_graph
+
+def get_classes_with_multiple_shapes() -> set:
+    """Get the set of classes that have multiple visible shapes."""
+    
+    global classes_with_multiple_shapes
+    return classes_with_multiple_shapes or set()
