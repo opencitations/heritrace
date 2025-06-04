@@ -1,57 +1,79 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-5">
-    <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}" alt="Go to the home">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" 
-                 alt="HERITRACE Logo" 
-                 height="30" 
-                 class="me-2">
-            {{ config.APP_TITLE }}
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
+<nav class="heritrace-navbar">
+    <div class="nav-container">
+        <div class="nav-brand-section">
+            <a class="heritrace-brand" href="{{ url_for('main.index') }}" alt="Go to the home">
+                <div class="brand-logo-container">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                         alt="HERITRACE Logo" 
+                         class="brand-logo">
+                </div>
+                <div class="brand-text">
+                    <span class="brand-title">{{ config.APP_TITLE }}</span>
+                </div>
+            </a>
+        </div>
+
+        <button class="heritrace-mobile-toggle d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#heritraceNav" aria-controls="heritraceNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="mobile-toggle-line"></span>
+            <span class="mobile-toggle-line"></span>
+            <span class="mobile-toggle-line"></span>
         </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link" id="catalogue-link" aria-current="page" href="{{ url_for('main.catalogue') }}" alt="{{_('Go to the catalogue')}}">{{_('Catalogue')}}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="create-entity-link" aria-current="page" href="{{ url_for('entity.create_entity') }}" alt="{{_('New Record')}}">{{_('New Record')}}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="time-vault-link" href="{{ url_for('main.time_vault') }}" 
-                    title="Access and restore deleted entities">
-                        {{_('Time Vault')}}
+
+        <div class="collapse navbar-collapse d-lg-flex" id="heritraceNav">
+            <ul class="heritrace-nav-menu">
+                <li class="nav-item-modern">
+                    <a class="nav-link-modern" id="catalogue-link" href="{{ url_for('main.catalogue') }}" alt="{{_('Go to the catalogue')}}">
+                        <span class="nav-icon">📚</span>
+                        <span class="nav-text">{{_('Catalogue')}}</span>
+                        <span class="nav-indicator"></span>
                     </a>
                 </li>
-                {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" id="logout-link" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a>
-                    </li>
-                {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" id="login-link" href="{{ url_for('auth.login') }}">{{ _('Login') }}</a>
-                    </li>
-                {% endif %}
+                <li class="nav-item-modern">
+                    <a class="nav-link-modern" id="create-entity-link" href="{{ url_for('entity.create_entity') }}" alt="{{_('New Record')}}">
+                        <span class="nav-icon">✨</span>
+                        <span class="nav-text">{{_('New Record')}}</span>
+                        <span class="nav-indicator"></span>
+                    </a>
+                </li>
+                <li class="nav-item-modern">
+                    <a class="nav-link-modern" id="time-vault-link" href="{{ url_for('main.time_vault') }}" 
+                    title="Access and restore deleted entities">
+                        <span class="nav-icon">🕰️</span>
+                        <span class="nav-text">{{_('Time Vault')}}</span>
+                        <span class="nav-indicator"></span>
+                    </a>
+                </li>
             </ul>
-            {# <form class="d-flex" action="{{ url_for('main.search') }}" method="GET" role="search">
-                <input class="form-control me-2" type="search" placeholder="{{_('Search')}}" aria-label="Search" name="q">
-                <button class="btn btn-outline-success" type="submit">{{_('Search')}}</button>
-            </form>  #}
+
+            <div class="heritrace-auth-section">
+                {% if current_user.is_authenticated %}
+                    <a class="auth-button logout-btn" id="logout-link" href="{{ url_for('auth.logout') }}">
+                        <span class="auth-icon">👋</span>
+                        <span class="auth-text">{{ _('Logout') }}</span>
+                    </a>
+                {% else %}
+                    <a class="auth-button login-btn" id="login-link" href="{{ url_for('auth.login') }}">
+                        <span class="auth-icon">🔐</span>
+                        <span class="auth-text">{{ _('Login') }}</span>
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </nav>
 
 <script>
     $(document).ready(function() {
+        if (window.location.pathname === '/') {
+            $('.heritrace-navbar').addClass('no-margin');
+        }
+
         function setActiveNavLink() {
             var currentPath = window.location.pathname;
             
-            $('.nav-link').removeClass('active');
+            $('.nav-link-modern').removeClass('active');
 
-            if (currentPath === '/') {
-                $('#home-link').addClass('active');
-            } else if (currentPath.startsWith('/catalogue')) {
+            if (currentPath.startsWith('/catalogue')) {
                 $('#catalogue-link').addClass('active');
             } else if (currentPath.startsWith('/create-entity')) {
                 $('#create-entity-link').addClass('active');
@@ -67,5 +89,9 @@
         }
 
         setActiveNavLink();
+
+        $('.heritrace-mobile-toggle').on('click', function() {
+            $(this).toggleClass('active');
+        });
     });
 </script>
