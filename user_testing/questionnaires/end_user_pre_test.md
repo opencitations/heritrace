@@ -44,7 +44,7 @@
 
 ### Current Tools (check all that apply)
 - [ ] Library systems (Alma, Symphony, Koha, etc.)
-- [ ] Digital collection platforms (ContentDM, Omeka, DSpace)
+- [ ] Digital collection platforms (Research Space, Omeka, Semantic Media Wiki, CLEF)
 - [ ] Citation management software (Zotero, Mendeley, EndNote)
 - [ ] Spreadsheets and databases
 - [ ] None - I manage information manually

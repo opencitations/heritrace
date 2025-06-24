@@ -8,7 +8,7 @@ This protocol evaluates HERITRACE's installation, configuration, and maintenance
 
 **Primary**: Assess installation/configuration ease, SHACL schema comprehension, ORCID integration, maintenance requirements, documentation quality
 
-**Secondary**: Identify configuration errors, performance optimization, security configuration, scaling considerations
+**Secondary**: Identify configuration errors, security configuration, scaling considerations
 
 ## Pre-Testing Setup
 
@@ -26,10 +26,10 @@ This protocol evaluates HERITRACE's installation, configuration, and maintenance
 - Display rules configuration examples
 - Sample valid/invalid entity data for testing
 
-### Prerequisites
-- Basic RDF and semantic web concepts understanding
-- SHACL (Shapes Constraint Language) familiarity
-- SPARQL and triple stores experience
+### Prerequisites (Mandatory)
+- **RDF and semantic web concepts proficiency**
+- **SHACL (Shapes Constraint Language) working knowledge**
+- **SPARQL and triple stores experience**
 - Docker and containerization knowledge
 
 ## Testing Sessions
@@ -62,7 +62,7 @@ This protocol evaluates HERITRACE's installation, configuration, and maintenance
 3. Verify all services running
 4. Test basic navigation
 
-### Session 2: Advanced Configuration (2-3 hours)
+### Session 2: Advanced Configuration (2-2.5 hours)
 
 #### Task 2.1: SHACL Schema Configuration (60 minutes)
 **Materials**: Complete SHACL schema, example entities (valid/invalid)
@@ -86,12 +86,7 @@ This protocol evaluates HERITRACE's installation, configuration, and maintenance
 4. Test authentication workflow
 5. Verify ORCID data retrieval
 
-#### Task 2.4: Performance and Monitoring (30 minutes)
-1. Configure logging levels and output
-2. Set up performance monitoring
-3. Optimize database connections
-4. Configure caching parameters
-5. Set up backup procedures
+
 
 ## Troubleshooting Scenarios
 
@@ -126,7 +121,7 @@ This protocol evaluates HERITRACE's installation, configuration, and maintenance
 - Documentation reference frequency
 - Configuration validation success
 - Database connection success rates
-- Application startup times
+
 
 ### Qualitative Data
 - Problem-solving approaches

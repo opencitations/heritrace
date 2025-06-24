@@ -6,9 +6,9 @@ This framework transforms user testing data into actionable insights for HERITRA
 
 ## Analysis Approach
 
-**Mixed-Methods Integration**: Quantitative (statistical analysis of performance metrics), Qualitative (thematic analysis of interviews, content analysis), Triangulation (cross-validation across data sources)
+**Mixed-Methods Integration**: Quantitative (statistical analysis of completion metrics), Qualitative (thematic analysis of interviews, content analysis), Triangulation (cross-validation across data sources)
 
-## Performance Analysis
+## Task Analysis
 
 ### Task Completion Metrics
 **Input**: Task completion data from testing sessions
@@ -124,7 +124,7 @@ std_deviation = stdev(all_sus_scores)
 
 ### Satisfaction and Engagement
 - Overall and feature-specific satisfaction scores
-- Satisfaction correlation with performance
+- Satisfaction correlation with task completion
 - Engagement indicators and session sustainability
 
 ### Emotional Response Analysis
@@ -186,7 +186,7 @@ sentiment_ratio = positive_mentions / (positive_mentions + negative_mentions)
 - **Contradictory Findings**: Discrepancies requiring investigation
 
 ### Participant Profile Development
-- **Performance Profile**: Quantitative performance summary
+- **Task Profile**: Quantitative task completion summary
 - **Experience Profile**: Qualitative experience summary
 - **Learning Profile**: Skill development patterns
 - **Context Profile**: Professional and institutional factors
@@ -211,12 +211,12 @@ sentiment_ratio = positive_mentions / (positive_mentions + negative_mentions)
 4. Recommendation priorities
 
 ### Detailed Analysis Sections
-- **Performance Analysis**: Task completion, efficiency, error patterns
+- **Task Analysis**: Task completion, efficiency, error patterns
 - **User Experience Report**: Satisfaction, usability, workflow integration
 - **Design Implications**: Interface recommendations, feature prioritization
 
 ### Visualization Standards
-- Performance dashboards
+- Task completion dashboards
 - Heatmaps and journey maps
 - Comparison charts
 - Trend analysis graphics
@@ -275,6 +275,6 @@ priority_score = (impact * 2) - effort  # Higher = more priority
 - Regular assessment cycles
 - Incremental testing of improvements
 - User feedback integration
-- Performance monitoring
+- Usage monitoring
 
 This framework provides a systematic approach to transforming user testing data into actionable insights that drive meaningful improvements to HERITRACE's usability, functionality, and user experience. 

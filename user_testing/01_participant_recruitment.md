@@ -8,10 +8,11 @@
 **Requirements**:
 - Technical background with system administration or development experience
 - Basic familiarity with databases and web technologies
-- Interest in semantic web technologies
+- **Mandatory knowledge of semantic web technologies (RDF, SPARQL, triple stores)**
+- Basic understanding of SHACL validation
 - Available for 3-5 hours of testing
 
-**Experience Levels**: Basic technical skills (minimum) → System administration experience (preferred) → Semantic web exposure (ideal)
+**Experience Levels**: Semantic web fundamentals (minimum) → System administration + semantic web (preferred) → SHACL experience (ideal)
 
 ### End Users (8-12 participants)
 **Profile**: Graduate students, researchers, librarians, archivists, academic professionals
@@ -29,7 +30,7 @@
 ### Inclusion Criteria
 **All Participants**: Current involvement in relevant work, interest in constructive feedback, comfortable with think-aloud protocols
 
-**Technicians**: Technical work or studies in relevant fields, interest in system configuration
+**Technicians**: Technical work with semantic web technologies, system configuration experience
 **End Users**: Academic research or professional work with bibliographic resources
 
 ### Exclusion Criteria
@@ -75,7 +76,7 @@ Contact: [Contact Information]
 
 ### Initial Questionnaire
 - Background: Role, institution, experience level, system familiarity
-- Technical Skills (Technicians): Database administration, SPARQL, system configuration
+- Technical Skills (Technicians): RDF/SPARQL proficiency (mandatory), SHACL knowledge, database administration, system configuration
 - Metadata Experience (End Users): Standards used, cataloging tools, collaboration methods
 - Availability: Session scheduling and time commitment
 

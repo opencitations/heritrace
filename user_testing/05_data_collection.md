@@ -6,11 +6,11 @@ This document outlines data collection methods for HERITRACE user testing, desig
 
 ## Data Collection Framework
 
-**Multi-Method Approach**: Quantitative (task performance, timing, interaction data), Qualitative (think-aloud protocols, observations, interviews), Mixed Methods (video analysis, comparative studies)
+**Multi-Method Approach**: Quantitative (task completion, timing, interaction data), Qualitative (think-aloud protocols, observations, interviews), Mixed Methods (video analysis, comparative studies)
 
 ## Quantitative Data Collection
 
-### Task Performance Metrics
+### Task Completion Metrics
 **Completion Rates**: Overall and task-specific completion rates, partial completion classification, abandonment points
 
 **Recording Template**:
@@ -88,7 +88,7 @@ Significance: [High/Medium/Low]
 ### Multi-Source Synthesis
 **Triangulation Methods**: Combine quantitative metrics with qualitative insights, cross-reference video observations with interview responses, validate findings across multiple sources
 
-**Analysis Levels**: Participant-Level (individual performance profiles, learning curves), System-Level (overall usability trends, feature effectiveness)
+**Analysis Levels**: Participant-Level (individual user profiles, learning curves), System-Level (overall usability trends, feature effectiveness)
 
 ### Quality Assurance
 **Validation Measures**: Multiple observer validation, participant verification of interpretation accuracy, cross-checking quantitative measurements, systematic review of data completeness
@@ -108,7 +108,7 @@ Significance: [High/Medium/Low]
 - Task completion and timing statistics
 - Error frequency and pattern analysis
 - System usability scale results
-- Performance metric summaries
+- Task completion summaries
 
 ### Qualitative Analysis
 - Thematic analysis of interview responses

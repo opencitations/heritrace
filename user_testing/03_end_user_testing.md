@@ -8,7 +8,7 @@ This protocol evaluates HERITRACE's usability, effectiveness, and user experienc
 
 **Primary**: Evaluate ease of use for metadata creation/editing, assess workflow integration, test core functionality, evaluate learning curve, assess visual design and navigation
 
-**Secondary**: Identify common user errors and interface issues, evaluate accessibility compliance, assess system responsiveness, test change tracking and provenance features
+**Secondary**: Identify common user errors and interface issues, evaluate accessibility compliance, test change tracking and provenance features
 
 ## Pre-Testing Setup
 
@@ -123,7 +123,7 @@ This protocol evaluates HERITRACE's usability, effectiveness, and user experienc
 2. **Workflow Integration**: Fit into research workflow, task support, academic activity integration
 3. **Learning and Training**: Proficiency time estimate, training needs, most difficult aspects
 4. **Feature Priorities**: Most/least valuable features, missing important features
-5. **System Performance**: Responsiveness perception, performance issues, importance for tool type
+
 
 ### Usability Questions (1-7 scale)
 **Navigation and Interface**: System navigation intuitive, Information well-organized, Visual design supports work, Error messages helpful

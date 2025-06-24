@@ -44,7 +44,7 @@
 
 ## Semantic Web Technologies
 
-### Knowledge Assessment (1 = Never heard of it, 7 = Expert level)
+### Knowledge Assessment (Minimum level 4 required for participation)
 - RDF (Resource Description Framework): 1 — 2 — 3 — 4 — 5 — 6 — 7
 - SPARQL query language: 1 — 2 — 3 — 4 — 5 — 6 — 7
 - Triple stores/graph databases: 1 — 2 — 3 — 4 — 5 — 6 — 7

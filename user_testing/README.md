@@ -37,20 +37,9 @@ HERITRACE is a semantic editor for GLAM professionals to facilitate metadata enr
 
 ## Objectives
 
-**Primary**: Evaluate usability, validate real-world functionality, assess user experience, measure performance
+**Primary**: Evaluate usability, validate real-world functionality, assess user experience
 
-**Secondary**: Prioritize improvements, determine training needs, assess adoption barriers
-
-## Timeline
-
-| Phase | Duration |
-|-------|----------|
-| Preparation | 1-2 weeks |
-| Technician Testing | 2-3 weeks |
-| End User Testing | 2-3 weeks |
-| Analysis & Reporting | 2-3 weeks |
-
-**Total**: 7-11 weeks
+**Secondary**: Prioritize improvements, assess adoption barriers
 
 ## Success Criteria
 
