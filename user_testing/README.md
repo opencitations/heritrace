@@ -1,117 +1,66 @@
 # HERITRACE User Testing Protocol
 
-This directory contains comprehensive user testing protocols for HERITRACE (Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement).
+This directory contains user testing protocols for HERITRACE (Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement).
 
 ## Overview
 
-HERITRACE is a semantic editor designed for GLAM (Galleries, Libraries, Archives, and Museums) professionals to facilitate metadata enrichment and editing in a semantically robust manner. The user testing protocol is designed to evaluate the system's usability, effectiveness, and user experience across two primary user categories.
+HERITRACE is a semantic editor for GLAM professionals to facilitate metadata enrichment and editing. This protocol evaluates system usability, effectiveness, and user experience across two user categories.
 
 ## User Categories
 
-### 1. Technicians
-Research developers, technical staff, and students with technical backgrounds responsible for:
-- Initial system setup and configuration
-- Database configuration and management
-- SHACL schema customization
-- Display rules configuration
-- Integration setup (ORCID, external databases)
-- System evaluation and feedback
+| Category | Role | Focus |
+|----------|------|-------|
+| **Technicians** (4-6 participants) | System administrators, IT staff, technical librarians | Installation, configuration, database setup, SHACL schema management |
+| **End Users** (8-12 participants) | Researchers, librarians, archivists, academic professionals | Metadata creation/editing, search, research workflows, collaboration |
 
-### 2. End Users
-Graduate students, researchers, and academic professionals who:
-- Create and edit bibliographic metadata
-- Search and browse scholarly collections
-- Manage research resources and citations
-- Track changes and provenance
-- Collaborate on metadata curation
+## Testing Framework
 
-## Testing Framework Structure
+| Document | Purpose |
+|----------|---------|
+| [01_participant_recruitment.md](01_participant_recruitment.md) | Recruitment criteria and strategies |
+| [02_technician_testing.md](02_technician_testing.md) | Configuration and setup testing |
+| [03_end_user_testing.md](03_end_user_testing.md) | Usability and functionality testing |
+| [04_user_scenarios.md](04_user_scenarios.md) | Realistic task scenarios |
+| [05_data_collection.md](05_data_collection.md) | Data collection methods |
+| [06_analysis_framework.md](06_analysis_framework.md) | Analysis and reporting framework |
+| [questionnaires/](questionnaires/) | Pre-test and SUS questionnaires |
 
-- [Participant Recruitment](01_participant_recruitment.md)
-- [Configuration Testing Protocol](02_technician_testing.md)
-- [Usability Testing Protocol](03_end_user_testing.md)
-- [Task-Based Scenarios](04_user_scenarios.md)
-- [Data Collection Methods](05_data_collection.md)
-- [Analysis Framework](06_analysis_framework.md)
-- [Questionnaires and Forms](questionnaires/)
-- [Test Data and Examples](test_data/)
-- [Evaluation Metrics](evaluation_metrics/)
+## Methodology
 
-### How Testing Protocol and Scenarios Work Together
+**Two-Layer Approach**:
+- Testing protocols provide methodological framework
+- User scenarios provide realistic, contextual tasks
 
-**Two-Layer Testing Approach**:
+**Mixed Methods**:
+- Quantitative: Completion rates, timing, error frequencies
+- Qualitative: Think-aloud protocols, interviews, observations
 
-1. **Testing Protocol** (`03_end_user_testing.md`):
-   - Provides the **methodological framework**
-   - Defines session structure and timing
-   - Establishes data collection methods
-   - Sets success criteria and metrics
+## Objectives
 
-2. **User Scenarios** (`04_user_scenarios.md`):
-   - Provides **realistic, contextual content**
-   - Replaces generic tasks with professional scenarios
-   - Matches participant's domain expertise
-   - Includes authentic materials and constraints
+**Primary**: Evaluate usability, validate real-world functionality, assess user experience, measure performance
 
-**Integration Example**:
-Instead of a generic task like "create a new bibliographic record," participants work with realistic scenarios like "Dr. Sarah Chen has provided 8 publications that need institutional repository records" (Scenario A1), providing authentic context, materials, and professional motivation.
-
-## Test Objectives
-
-### Primary Objectives
-1. **Usability Assessment**: Evaluate the ease of use and learning curve for both user categories
-2. **Functionality Validation**: Ensure all core features work as intended in real-world scenarios
-3. **User Experience Evaluation**: Assess overall satisfaction and identify pain points
-4. **Performance Analysis**: Measure task completion times and error rates
-5. **Accessibility Compliance**: Verify the system meets accessibility standards
-
-### Secondary Objectives
-1. **Feature Prioritization**: Identify most and least valuable features
-2. **Training Needs Assessment**: Determine documentation and training requirements
-3. **Workflow Integration**: Evaluate how HERITRACE fits into existing workflows
-4. **Scalability Concerns**: Identify potential issues with larger datasets or user bases
-
-## Testing Methodology
-
-### Mixed Methods Approach
-- **Quantitative**: Task completion rates, time-to-completion, error frequencies
-- **Qualitative**: Think-aloud protocols, interviews, observational notes
-- **Comparative**: Before/after system implementation (where applicable)
-
-### Testing Environment
-- Controlled laboratory setting with screen recording
-- Real-world pilot implementation (for selected participants)
-- Remote testing capabilities for geographically distributed users
+**Secondary**: Prioritize improvements, determine training needs, assess adoption barriers
 
 ## Timeline
 
-| Phase | Duration | Activities |
-|-------|----------|------------|
-| Preparation | 1-2 weeks | Recruitment, setup, materials preparation |
-| Technician Testing | 2-3 weeks | Configuration and setup testing (flexible scheduling) |
-| End User Testing | 2-3 weeks | Usability and functionality testing (flexible scheduling) |
-| Analysis | 1-2 weeks | Data analysis and initial findings |
-| Reporting | 1 week | Final report preparation and presentation |
+| Phase | Duration |
+|-------|----------|
+| Preparation | 1-2 weeks |
+| Technician Testing | 2-3 weeks |
+| End User Testing | 2-3 weeks |
+| Analysis & Reporting | 2-3 weeks |
 
-**Total Duration**: 7-11 weeks (depending on participant availability)
-
-## Expected Deliverables
-
-1. **Comprehensive Test Report**: Detailed findings, recommendations, and metrics
-2. **User Experience Documentation**: Guidelines for optimal user workflows
-3. **Configuration Best Practices**: Technician setup recommendations
-4. **Training Material Specifications**: Requirements for user documentation and training
-5. **Priority Enhancement List**: Ranked list of recommended improvements
+**Total**: 7-11 weeks
 
 ## Success Criteria
 
-### Technician Success Metrics
-- 80%+ successful completion of basic configuration tasks
-- Average setup time appropriate for learning context (flexible timing)
-- 75%+ confidence in system understanding and evaluation
+| Category | Targets |
+|----------|---------|
+| **Technicians** | 80%+ task completion, 75%+ system confidence |
+| **End Users** | 75%+ task completion, SUS score >65, 70%+ satisfaction |
 
-### End User Success Metrics
-- 75%+ task completion rate for core metadata operations
-- Average System Usability Scale (SUS) score above 65
-- 70%+ user satisfaction with interface design and workflow
-- Positive feedback on research workflow integration potential
+## Deliverables
+
+1. Comprehensive test report with findings and recommendations
+2. User experience guidelines and best practices
+3. Prioritized enhancement list and training specifications

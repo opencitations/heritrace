@@ -2,489 +2,175 @@
 
 ## Overview
 
-This document provides a comprehensive testing protocol for end users of HERITRACE, focusing on graduate students, researchers, academic professionals, and information specialists who will use the system for bibliographic metadata creation, editing, and management. The protocol evaluates usability, effectiveness, and user experience for academic research workflows.
+This protocol evaluates HERITRACE's usability, effectiveness, and user experience for academic professionals who create and manage bibliographic metadata.
 
-## Testing Objectives
+## Objectives
 
-### Primary Objectives
-1. **Usability Assessment**: Evaluate ease of use for metadata creation and editing tasks
-2. **Workflow Integration**: Assess how well HERITRACE fits into academic research and scholarly workflows
-3. **Feature Effectiveness**: Test core functionality including entity editing, relationships management, and provenance tracking
-4. **Learning Curve**: Evaluate time and effort required to become proficient with the system (particularly for users new to semantic metadata)
-5. **Interface Design**: Assess visual design, navigation, and information architecture
+**Primary**: Evaluate ease of use for metadata creation/editing, assess workflow integration, test core functionality, evaluate learning curve, assess visual design and navigation
 
-### Secondary Objectives
-1. **Error Prevention**: Identify common user errors and interface design issues
-2. **Accessibility**: Evaluate compliance with accessibility standards and guidelines
-3. **Performance Perception**: Assess user perception of system responsiveness
-4. **Collaborative Features**: Test multi-user workflows and change tracking
-5. **Data Quality**: Evaluate how the system supports high-quality metadata creation
+**Secondary**: Identify common user errors and interface issues, evaluate accessibility compliance, assess system responsiveness, test change tracking and provenance features
 
 ## Pre-Testing Setup
 
 ### Environment Requirements
-
-**Testing Environment:**
 - Pre-configured HERITRACE instance with sample data
-- Flexible testing setup (participant's own computer or provided workstation)
-- Modern web browser (Chrome, Firefox, Safari, or Edge)
+- Modern web browser (Chrome, Firefox, Safari, Edge)
 - Stable internet connection
 - Audio recording capability for think-aloud protocols
 
-**Sample Data Provided:**
-- Collection of 100 sample bibliographic records for editing
-- Mix of books, journal articles, conference papers, and theses
-- Various completion states (complete, incomplete, with errors for correction)
-- Examples of complex relationships (series, collections, authorship)
-- Duplicate entities requiring merge operations
-- Entities with conflicting information for conflict resolution testing
-
-**Pre-Test Questionnaire:**
-Complete the [End User Pre-Test Questionnaire](questionnaires/end_user_pre_test.md) to establish baseline experience and expectations.
+### Sample Data Provided
+- 100 sample bibliographic records (books, articles, papers, theses)
+- Various completion states (complete, incomplete, errors)
+- Complex relationships examples (series, collections, authorship)
+- Duplicate entities for merge testing
+- Conflicting information for resolution testing
 
 ## Testing Sessions
 
-### Integration with User Scenarios
+**Note**: Generic tasks below should be replaced with realistic scenarios from [User Scenarios](04_user_scenarios.md) matching participant experience level.
 
-**Important Note**: The tasks described in each session below provide the methodological framework for testing. For actual testing sessions, these generic tasks should be replaced with **realistic, contextual scenarios** from [User Scenarios](04_user_scenarios.md) that match the participant's professional background and experience level.
+### Session 1: Initial Exploration (1-2 hours)
 
-**Scenario Selection Guidelines**:
-- **Academic Librarians**: Use Academic Library Scenarios (A1-A3)
-- **Archivists**: Use Archive Management Scenarios (AR1-AR2)  
-- **Museum Professionals**: Use Museum Curation Scenarios (M1-M2)
-- **Researchers**: Use Research Project Scenarios (R1-R2)
-
-Each scenario provides realistic context, background materials, and success criteria that replace the generic task descriptions below while maintaining the same testing objectives and data collection methods.
-
-### Session 1: Initial Exploration and Basic Tasks (1-2 hours, flexible timing)
-
-#### Task 1.1: First Impressions and System Overview (20 minutes)
-
+#### Task 1.1: First Impressions (20 minutes)
 **Objective**: Gather initial reactions and assess intuitive understanding
+**Tasks**:
+1. Log into system
+2. Explore interface without specific goals
+3. Understand system purpose
+4. Identify main navigation elements
 
-**Instructions to Participant:**
-"You're being introduced to HERITRACE, a new tool for managing bibliographic metadata. Take some time to explore the interface and get familiar with its layout and features."
+#### Task 1.2: Record Examination (25 minutes)
+**Objective**: Assess metadata display and organization comprehension
+**Tasks**:
+1. Open complex bibliographic record
+2. Examine metadata fields and structure
+3. Understand entity relationships
+4. Identify editing organization
 
-**Tasks:**
-1. Log into the system (simulated authentication)
-2. Explore the main interface without specific goals
-3. Try to understand what the system does
-4. Identify main navigation elements and features
-
-**Success Criteria:**
-- Participant can navigate basic interface elements
-- Basic understanding of system purpose achieved
-- Main functional areas identified
-
-**Data to Collect:**
-- Initial reaction and comments
-- Time spent on different interface areas
-- Questions and confusion points
-- Intuitive vs. counterintuitive elements
-
-#### Task 1.2: Record Examination and Understanding (25 minutes)
-
-**Objective**: Assess comprehension of metadata display and organization
-
-**Instructions to Participant:**
-"You'll be working with some bibliographic records in the system. Start by examining this sample record to understand how information is presented and organized."
-
-**Tasks:**
-1. Open a provided complex bibliographic record
-2. Examine all displayed metadata fields and their structure
-3. Understand relationships to other entities (authors, publications, etc.)
-4. Identify how the data is organized for editing purposes
-
-**Success Criteria:**
-- Participant can interpret all major metadata fields
-- Relationships between entities are understood
-- Data structure comprehension for editing
-- Display organization is logical to participant
-
-**Data to Collect:**
-- Comprehension of metadata fields and structure
-- Questions about field meanings or relationships
-- Time spent examining different sections
-- Understanding of editing-relevant organization
-
-#### Task 1.3: Basic Navigation and Interface Interaction (15 minutes)
-
+#### Task 1.3: Basic Navigation (15 minutes)
 **Objective**: Test fundamental interface usability
+**Tasks**:
+1. Navigate between system sections
+2. Use breadcrumb navigation
+3. Access help features
+4. Test responsive design elements
 
-**Instructions to Participant:**
-"Practice moving around the system. Try to visit different sections and understand how to navigate efficiently."
+### Session 2: Core Functionality (1.5-2 hours)
 
-**Tasks:**
-1. Navigate between different system sections
-2. Use breadcrumb navigation and back/forward
-3. Access help or documentation features
-4. Test responsive design elements (if applicable)
-
-**Success Criteria:**
-- Efficient navigation between sections
-- Successful use of navigation aids
-- Ability to access help when needed
-- Interface responds predictably to interactions
-
-**Data to Collect:**
-- Navigation efficiency and patterns
-- Use of navigation aids
-- Help-seeking behavior
-- Interface response satisfaction
-
-### Session 2: Metadata Creation, Editing, and Entity Management (1.5-2 hours)
-
-#### Task 2.1: Creating a New Bibliographic Record (45 minutes)
-
-**Objective**: Test the metadata creation workflow for new resources
-
-**Instructions to Participant:**
-"You need to create a record for a new journal article that was just published by a colleague or someone in your research field. Use the provided citation information to create a complete record."
-
-**Provided Information:**
-- Complete citation details for a fictional journal article
-- Author information including ORCID IDs
-- Publication details (journal, volume, pages, DOI)
-- Abstract and keywords
-
-**Tasks:**
-1. Initiate new record creation process
+#### Task 2.1: Creating New Record (45 minutes)
+**Objective**: Test metadata creation workflow
+**Materials**: Complete citation details, author information, publication details
+**Tasks**:
+1. Initiate new record creation
 2. Select appropriate resource type
 3. Enter all provided metadata
-4. Establish relationships to existing entities (authors, journal)
-5. Validate and save the record
+4. Establish entity relationships
+5. Validate and save record
 
-**Success Criteria:**
-- Record creation workflow completed successfully
-- All metadata fields populated correctly
-- Appropriate resource type selected
-- Relationships established where applicable
-- Record validates without errors
-
-**Data to Collect:**
-- Time to complete record creation
-- Number of errors or validation issues
-- Use of help or guidance features
-- Confidence level throughout process
-- Workflow satisfaction rating
-
-#### Task 2.2: Editing an Existing Record (30 minutes)
-
-**Objective**: Test metadata editing and update workflows
-
-**Instructions to Participant:**
-"A record in the system has some errors and missing information. Please update and correct the record using the provided information."
-
-**Scenario Setup:**
-- Present a record with obvious errors (wrong dates, missing fields, incorrect relationships)
-- Provide correct information for updates
-
-**Tasks:**
-1. Locate the record requiring updates
+#### Task 2.2: Editing Existing Record (30 minutes)
+**Objective**: Test metadata editing workflows
+**Setup**: Record with errors and missing information
+**Tasks**:
+1. Locate record requiring updates
 2. Identify errors and missing information
 3. Edit metadata fields with corrections
 4. Add missing information
-5. Save changes and verify updates
+5. Save and verify changes
 
-**Success Criteria:**
-- Record successfully located and opened for editing
-- Errors correctly identified and fixed
-- Missing information added appropriately
-- Changes saved successfully
-- Updated record displays correctly
-
-**Data to Collect:**
-- Time to identify and correct errors
-- Editing workflow efficiency
-- Use of validation features
-- Change tracking awareness
-- Overall editing satisfaction
-
-#### Task 2.3: Managing Relationships and Hierarchies (30 minutes)
-
-**Objective**: Test complex relationship management capabilities
-
-**Instructions to Participant:**
-"You need to establish relationships between several related publications: a book, its chapters, and related conference papers. Create and manage these complex relationships."
-
-**Tasks:**
+#### Task 2.3: Managing Relationships (30 minutes)
+**Objective**: Test complex relationship management
+**Tasks**:
 1. Identify resources that should be related
-2. Establish hierarchical relationships (book/chapter)
-3. Create cross-references between related works
-4. Verify relationships display correctly
-5. Navigate through established relationships
+2. Establish hierarchical relationships
+3. Create cross-references between works
+4. Verify relationship displays
+5. Navigate through relationships
 
-**Success Criteria:**
-- Appropriate relationships identified and created
-- Hierarchical structures established correctly
-- Cross-references function properly
-- Relationship navigation works intuitively
-- Complex structures remain comprehensible
+#### Task 2.4: Entity Merging (30 minutes)
+**Objective**: Test duplicate resolution capabilities
+**Setup**: Duplicate entities with conflicting information
+**Tasks**:
+1. Identify duplicate entities
+2. Initiate merge process
+3. Resolve metadata conflicts
+4. Choose/combine information sources
+5. Complete merge and verify results
 
-**Data to Collect:**
-- Time to understand relationship options
-- Success rate for relationship creation
-- Navigation through established relationships
-- Comprehension of hierarchical displays
-- Confidence in relationship management
+#### Task 2.5: Quality Control (15 minutes)
+**Objective**: Test data quality features
+**Tasks**:
+1. Access validation features
+2. Review records for completeness
+3. Address validation warnings
+4. Understand quality indicators
+5. Finalize records
 
-#### Task 2.4: Entity Merging and Conflict Resolution (30 minutes)
+### Session 3: Advanced Features (1-1.5 hours)
 
-**Objective**: Test entity merging capabilities and duplicate resolution
-
-**Instructions to Participant:**
-"You've discovered that there are duplicate entities in the system representing the same author/publication. Use HERITRACE's merge functionality to consolidate these duplicates."
-
-**Scenario Setup:**
-- Present clearly duplicate entities (same author with slight name variations, same publication with different metadata)
-- Include entities with conflicting information that need reconciliation
-
-**Tasks:**
-1. Identify duplicate entities that should be merged
-2. Initiate the merge process between selected entities
-3. Resolve conflicts between different metadata values
-4. Choose or combine information from multiple sources
-5. Complete the merge and verify the result
-
-**Success Criteria:**
-- Duplicate entities correctly identified
-- Merge process completed successfully
-- Conflicts resolved appropriately
-- Merged entity contains complete and accurate information
-- No data loss occurred during merge
-
-**Data to Collect:**
-- Time to understand merge workflow
-- Success rate for conflict resolution
-- Decision-making process for conflicting data
-- Confidence in merge results
-- Satisfaction with merge interface
-
-#### Task 2.5: Quality Control and Validation (15 minutes)
-
-**Objective**: Test data quality features and validation processes
-
-**Instructions to Participant:**
-"Review your created and edited records for quality and completeness. Use any available validation or quality control features."
-
-**Tasks:**
-1. Access quality control or validation features
-2. Review records for completeness and accuracy
-3. Address any validation warnings or errors
-4. Understand quality indicators and recommendations
-5. Finalize records for publication/sharing
-
-**Success Criteria:**
-- Quality control features successfully accessed and used
-- Validation messages understood and addressed
-- Record quality assessed effectively
-- Quality improvements implemented
-- Confidence in record quality achieved
-
-**Data to Collect:**
-- Use of validation features
-- Understanding of quality indicators
-- Time spent on quality control
-- Satisfaction with quality tools
-- Confidence in final record quality
-
-### Session 3: Advanced Features and Collaboration (1-1.5 hours)
-
-#### Task 3.1: Change Tracking and Version History (20 minutes)
-
-**Objective**: Test provenance and change tracking features
-
-**Instructions to Participant:**
-"Examine the change history for records you've modified and understand who made what changes and when."
-
-**Tasks:**
+#### Task 3.1: Change Tracking (20 minutes)
+**Objective**: Test provenance and change tracking
+**Tasks**:
 1. Access change history for modified records
 2. Review provenance information
-3. Compare different versions of records
-4. Understand attribution and timing of changes
-5. Restore a previous version if needed
-
-**Success Criteria:**
-- Change history successfully accessed and understood
-- Provenance information clearly interpreted
-- Version comparison features used effectively
-- Change attribution clearly understood
-- Version restoration completed if applicable
-
-**Data to Collect:**
-- Understanding of change tracking displays
-- Time to interpret version information
-- Use of comparison features
-- Confidence in provenance tracking
-- Perceived value of change tracking
+3. Compare different record versions
+4. Understand change sequence
+5. Restore previous version if needed
 
 ## Post-Testing Interview
 
-### User Experience Assessment
+### Experience Assessment
+1. **Overall Satisfaction**: Experience rating, most liked/frustrating aspects, comparison to current tools
+2. **Workflow Integration**: Fit into research workflow, task support, academic activity integration
+3. **Learning and Training**: Proficiency time estimate, training needs, most difficult aspects
+4. **Feature Priorities**: Most/least valuable features, missing important features
+5. **System Performance**: Responsiveness perception, performance issues, importance for tool type
 
-1. **Overall Satisfaction**
-   - How would you rate your overall experience with HERITRACE? (1-10 scale)
-   - What did you like most about the system?
-   - What frustrated you the most?
-   - How does it compare to tools you currently use?
+### Usability Questions (1-7 scale)
+**Navigation and Interface**: System navigation intuitive, Information well-organized, Visual design supports work, Error messages helpful
 
-2. **Workflow Integration**
-   - How well would HERITRACE fit into your research or academic workflow?
-   - What research tasks would be easier/harder with this system?
-   - How could this tool support your academic or research activities?
+**Functionality**: Metadata workflows efficient, Relationship management intuitive, Entity merging effective, Quality control helpful, Change tracking valuable
 
-3. **Learning and Training**
-   - How long do you think it would take to become proficient with HERITRACE?
-   - What training or support would you need?
-   - What was most difficult to learn or understand?
+**Professional Workflow**: System would improve work quality, System would improve efficiency, Would recommend to colleagues, System addresses real problems
 
-4. **Feature Priorities**
-   - Which features are most valuable for your work?
-   - Which features seemed unnecessary or confusing?
-   - What missing features would be important to add?
-
-5. **System Performance**
-   - How responsive did the system feel?
-   - Were there any performance issues that affected your work?
-   - How important is performance for this type of tool?
-
-### Detailed Usability Questions
-
-**Navigation and Interface:**
-1. The system navigation is intuitive and logical (1-7 scale)
-2. Information is well-organized and easy to find (1-7 scale)
-3. The visual design supports efficient work (1-7 scale)
-4. Error messages are helpful and actionable (1-7 scale)
-
-**Functionality and Features:**
-1. Metadata creation/editing workflows are efficient (1-7 scale)
-2. Relationship management is intuitive (1-7 scale)
-3. Entity merging functionality is effective (1-7 scale)
-4. Quality control features are helpful (1-7 scale)
-5. Change tracking provides valuable information (1-7 scale)
-
-**Professional Workflow:**
-1. This system would improve my metadata work quality (1-7 scale)
-2. This system would make my work more efficient (1-7 scale)
-3. I would recommend this system to colleagues (1-7 scale)
-4. This system addresses real problems in my current workflow (1-7 scale)
-
-## Data Collection Methods
+## Data Collection
 
 ### Quantitative Metrics
-
-**Task Performance:**
 - Task completion rates and success levels
-- Time to complete each major task
-- Number of errors or failed attempts
+- Time to complete major tasks
+- Error frequency and failed attempts
 - Help/documentation access frequency
-- Feature usage patterns and preferences
-
-**Interaction Metrics:**
-- Mouse clicks and keyboard inputs
-- Page views and navigation patterns
-- Search query types and refinements
-- Form completion times and error rates
+- Feature usage patterns
+- Navigation patterns and search queries
 
 ### Qualitative Data
-
-**Think-Aloud Protocol:**
-- Continuous verbalization of thoughts and reactions
-- Problem-solving approaches and reasoning
+- Think-aloud protocol insights
+- Problem-solving approaches
 - Emotional reactions and frustration points
-- Confidence levels and uncertainty expressions
-
-**Observational Notes:**
-- Body language and non-verbal reactions
-- Hesitation points and confusion indicators
-- Workaround behaviors and creative solutions
-- Engagement levels and attention patterns
-
-**Interview Responses:**
-- Detailed feedback on specific features
+- Confidence levels and uncertainty
+- Interview responses and feedback
 - Workflow integration insights
-- Comparison with existing tools
-- Suggestions for improvements
 
-### Screen and Audio Recording
-
-**Recording Setup:**
-- Full screen recording throughout all sessions
+### Recording
+- Full screen recording throughout sessions
 - High-quality audio for think-aloud protocols
 - Optional webcam recording for reactions
-- Backup recording systems for reliability
-
-**Analysis Focus:**
-- User interface interaction patterns
-- Problem-solving behaviors
-- Error recovery strategies
-- Feature discovery and usage
+- Focus on interaction patterns, problem-solving, error recovery
 
 ## Success Criteria
 
-### Task Completion Metrics
+### Task Completion
+- **Minimum**: 70% completion rate (varying experience levels), 75% basic tasks, 65% creation/editing, 55% advanced features
+- **Target**: 85% overall completion, 90% fundamental workflows, 80% creation/editing/merging, 70% collaborative features
+- **Optimal**: 95% core functionality, 85% all features, expected completion times, high confidence (>7/10)
 
-**Minimum Success Thresholds:**
-- 70% task completion rate across all participants (considering varying experience levels)
-- 75% success rate for basic record examination and navigation
-- 65% success rate for record creation and editing
-- 55% success rate for entity merging and advanced features
-
-**Target Success Goals:**
-- 85% overall task completion rate
-- 90% success for fundamental editing workflows
-- 80% success for metadata creation/editing and merging
-- 70% success for collaborative and advanced features
-
-**Optimal Success Targets:**
-- 95% completion rate for core functionality
-- 85% success for all tested features
-- Average task completion time within expected ranges
-- High confidence levels (>7/10) for completed tasks
-
-### User Satisfaction Metrics
-
-**System Usability Scale (SUS):**
-- Target average SUS score: 70+
-- Optimal average SUS score: 80+
-- Minimum acceptable individual scores: 60+
-
-**Custom Satisfaction Measures:**
-- Overall satisfaction rating: 7+ (1-10 scale)
-- Workflow integration rating: 6+ (1-10 scale)
-- Feature usefulness rating: 7+ (1-10 scale)
-- Recommendation likelihood: 70%+ would recommend
+### User Satisfaction
+- **SUS Scores**: Target 70+, Optimal 80+, Minimum individual 60+
+- **Custom Measures**: Overall satisfaction 7+, workflow integration 6+, feature usefulness 7+, 70%+ recommendation rate
 
 ### Quality Indicators
-
-**Interface Usability:**
 - Intuitive navigation without training
 - Self-explanatory feature functionality
 - Effective error prevention and recovery
 - Accessible design for diverse users
-
-**Professional Workflow Support:**
-- Realistic task completion within reasonable timeframes
+- Realistic task completion in reasonable timeframes
 - Quality metadata creation capabilities
-- Effective collaboration and sharing features
-- Integration potential with existing systems
-
-### Risk Assessment
-
-**Critical Usability Issues:**
-- Task completion failures due to interface problems
-- Data loss or corruption during normal operations
-- Accessibility barriers for users with disabilities
-- Fundamental workflow mismatches
-
-**Moderate Concerns:**
-- Extended learning curves for complex features
-- Performance issues affecting productivity
-- Missing features important to specific user groups
-- Integration challenges with existing systems
-
-**Minor Issues:**
-- Cosmetic interface improvements
-- Preference-based feature modifications
-- Documentation and help system enhancements
-- Non-critical feature additions or refinements

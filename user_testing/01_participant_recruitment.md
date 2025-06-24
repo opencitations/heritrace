@@ -1,256 +1,111 @@
 # Participant Recruitment Guidelines
 
-## Overview
+## Target Participants
 
-This document outlines the criteria and procedures for recruiting participants for HERITRACE user testing. The goal is to ensure representative samples from both target user categories: technicians and end users.
+### Technicians (4-6 participants)
+**Profile**: System administrators, IT staff, technical librarians, research developers
 
-## Target User Categories
+**Requirements**:
+- Technical background with system administration or development experience
+- Basic familiarity with databases and web technologies
+- Interest in semantic web technologies
+- Available for 3-5 hours of testing
 
-### Category 1: Technicians
+**Experience Levels**: Basic technical skills (minimum) → System administration experience (preferred) → Semantic web exposure (ideal)
 
-**Primary Characteristics:**
-- System administrators, IT staff, technical librarians, or research developers
-- Some experience with database management or web technologies
-- Basic familiarity with web application configuration
-- Interest in or exposure to semantic web technologies (formal experience not required)
+### End Users (8-12 participants)
+**Profile**: Graduate students, researchers, librarians, archivists, academic professionals
 
-**Experience Level (Flexible):**
-- **Minimum**: Basic technical skills and willingness to learn
-- **Preferred**: Some experience with system administration, database management, or development
-- **Ideal**: Previous exposure to semantic web technologies, triple stores, or research infrastructure
+**Requirements**:
+- Academic research experience or relevant coursework
+- Some exposure to bibliographic metadata or digital collections
+- Interest in research workflows and metadata management
+- Available for 2-4 hours of testing
 
-**Recruitment Targets:**
-- 4-6 participants total
-- Mix of experience levels (including students and early-career researchers)
-- Representation from academic research environments
-
-### Category 2: End Users
-
-**Primary Characteristics:**
-- Graduate students, researchers, librarians, archivists, or academic professionals
-- Some exposure to bibliographic metadata or academic research
-- Basic familiarity with digital collections or research databases
-- Interest in academic research workflows and metadata management
-
-**Experience Level (Flexible):**
-- **Minimum**: Academic research experience or coursework in relevant fields
-- **Preferred**: Some experience with metadata, cataloging, or digital collections
-- **Ideal**: Experience with bibliographic standards and research workflows
-
-**Recruitment Targets:**
-- 8-12 participants total
-- Mix of roles: graduate students, researchers, library/academic staff
-- Mix of experience levels (including students and early-career professionals)
-- Representation from different academic disciplines
+**Experience Levels**: Academic research experience (minimum) → Metadata/cataloging experience (preferred) → Bibliographic standards experience (ideal)
 
 ## Recruitment Criteria
 
 ### Inclusion Criteria
+**All Participants**: Current involvement in relevant work, interest in constructive feedback, comfortable with think-aloud protocols
 
-**For Technicians:**
-- Current involvement in technical work, research development, or academic studies in relevant fields
-- Interest in system configuration and technical evaluation
-- Available for 3-5 hours of testing activities (can be split across sessions)
-- Comfortable with think-aloud protocols and providing feedback
-
-**For End Users:**
-- Current involvement in academic research, graduate studies, or professional work with bibliographic resources
-- Interest in metadata, digital collections, or research workflows
-- Available for 2-4 hours of testing activities (flexible scheduling)
-- Willingness to provide constructive feedback and suggestions
+**Technicians**: Technical work or studies in relevant fields, interest in system configuration
+**End Users**: Academic research or professional work with bibliographic resources
 
 ### Exclusion Criteria
-
-**For Both Categories:**
-- Direct involvement in HERITRACE system development or design
-- Inability to commit to reasonable testing session duration
-- Visual or motor impairments that would prevent standard computer interaction (accommodations will be provided where possible)
-- Conflicts of interest that would compromise objective feedback
+- Direct involvement in HERITRACE development
+- Inability to commit to testing duration
+- Visual/motor impairments preventing standard interaction (accommodations provided where possible)
 
 ## Recruitment Strategies
 
-### Primary Recruitment Channels
-
-1. **Open Citations Network**
-   - OpenCitations collaborators and partners
-   - Research infrastructure network contacts
-   - Semantic web research community
-   - Citation data and bibliometric research groups
-
-2. **Academic Internal Networks**
-   - University department colleagues
-   - Graduate student programs (Computer Science, Information Science, Digital Humanities)
-   - PhD student networks and research groups
-   - Academic library and research support staff
-
-3. **Research Communities**
-   - Digital humanities researchers
-   - Bibliometric and scientometric research groups
-   - Linked data and semantic web communities
-   - Open science and scholarly communication networks
-
-4. **Educational Outreach**
-   - Master's programs in relevant fields
-   - Research methodology courses
-   - Academic workshops and seminars
-   - Student research groups and associations
+### Primary Channels
+1. **Open Citations Network**: Collaborators, semantic web community, citation research groups
+2. **Academic Networks**: University departments, graduate programs, library staff
+3. **Research Communities**: Digital humanities, bibliometrics, linked data communities
+4. **Educational Outreach**: Master's programs, research methodology courses, student groups
 
 ### Recruitment Materials
 
-#### Email Template for Technicians
+#### Email Template - Technicians
+**Subject**: HERITRACE Semantic Editor Testing - Technical Evaluation
 
-```
-Subject: Research Participation Opportunity - HERITRACE Semantic Editor Testing
+We're conducting user testing for HERITRACE, a semantic editor for GLAM institutions. Your technical expertise would be valuable in evaluating system configuration and setup.
 
-Dear [Name],
+**Participation involves**:
+- 3-5 hour testing session (flexible scheduling)
+- System configuration and setup tasks
+- Feedback on technical documentation
 
-We are conducting user testing for HERITRACE, a new semantic editor designed specifically for galleries, libraries, archives, and museums. As a technical professional in the GLAM sector, your expertise would be invaluable in evaluating the system's configuration and setup procedures.
+Contact: [Contact Information]
 
-**What is HERITRACE?**
-HERITRACE is a user-friendly semantic editor that enables domain experts to enrich and edit metadata while maintaining provenance tracking and change management. The system is designed to bridge the gap between semantic web technologies and practical metadata workflows.
+#### Email Template - End Users
+**Subject**: HERITRACE Metadata Editor Testing - Research Participation
 
-**What would you do?**
-- Participate in a 3-5 hour testing session (flexible scheduling, can be split)
-- Complete system configuration and setup tasks
-- Provide feedback on technical documentation and procedures
-- Share your insights on system design and usability
+We're seeking metadata professionals to test HERITRACE, a new semantic editor for bibliographic metadata creation and editing.
 
-**Why participate?**
-- Contribute to open research infrastructure development
-- Gain hands-on experience with semantic web technologies
-- Provide input that will shape the final system design
-- Networking opportunity within the research community
+**Participation involves**:
+- 2-4 hour testing session (flexible scheduling)  
+- Metadata creation and editing tasks
+- Interface design and workflow feedback
 
-**Ideal participants:**
-- Technical background or interest in system configuration
-- Some experience with databases, web applications, or development
-- Willingness to provide constructive feedback
-
-If you're interested or have questions, please reply to this email or contact [Contact Information].
-
-Thank you for considering this opportunity to contribute to open research infrastructure.
-
-Best regards,
-[Research Team]
-```
-
-#### Email Template for End Users
-
-```
-Subject: Research Participation - Testing a New Bibliographic Metadata Editor
-
-Dear [Name],
-
-We're seeking metadata professionals to test HERITRACE, a new semantic editor designed to make bibliographic metadata creation and editing more intuitive and powerful.
-
-**What is HERITRACE?**
-HERITRACE helps librarians, archivists, and curators create rich, interconnected metadata without needing technical expertise in semantic web technologies. It includes features for change tracking, provenance management, and collaborative editing.
-
-**What would you do?**
-- Participate in a 2-4 hour testing session (flexible scheduling)
-- Complete realistic metadata creation and editing tasks
-- Provide feedback on interface design and workflows
-- Share insights about how the tool could support research activities
-
-**Why participate?**
-- Contribute to the development of open research tools
-- Gain experience with innovative metadata management approaches
-- Help shape tools that could benefit the research community
-- Learn about semantic web applications in practice
-
-**We're looking for:**
-- Graduate students, researchers, or academic professionals
-- Some exposure to bibliographic metadata or research databases
-- Interest in research workflows and digital scholarship
-- Willingness to provide thoughtful feedback
-
-Interested? Please reply with a brief description of your academic/research background and any experience with metadata or digital collections.
-
-Thank you for considering this opportunity to contribute to open research infrastructure development.
-
-Best regards,
-[Research Team]
-```
+Contact: [Contact Information]
 
 ## Screening Process
 
-### Initial Screening Questionnaire
-
-**Background Information:**
-1. Current job title and institution
-2. Years of experience in current role
-3. Types of systems/tools currently used
-4. Experience with metadata standards
-5. Technical skill level (self-assessment)
-6. Availability for testing sessions
-
-**Specific Questions for Technicians:**
-7. Experience with database administration
-8. Familiarity with SPARQL or triple stores
-9. Previous system configuration experience
-10. Comfort level with command-line tools
-
-**Specific Questions for End Users:**
-11. Types of materials cataloged/described
-12. Metadata standards used regularly
-13. Current cataloging workflow tools
-14. Collaboration methods for metadata work
+### Initial Questionnaire
+- Background: Role, institution, experience level, system familiarity
+- Technical Skills (Technicians): Database administration, SPARQL, system configuration
+- Metadata Experience (End Users): Standards used, cataloging tools, collaboration methods
+- Availability: Session scheduling and time commitment
 
 ### Follow-up Interview (10-15 minutes)
+- Confirm participant fit and explain procedures
+- Address questions and verify technical requirements
 
-**Purpose:** Confirm fit and provide detailed information about the study
+## Logistics
 
-**Topics to Cover:**
-- Overview of testing procedures and expectations
-- Flexible time commitment and scheduling options
-- Technical requirements (if remote testing)
-- Research contribution and learning opportunities
-- Questions and concerns from participant
+### Scheduling
+- **Technicians**: 3-5 hours total, minimum 1.5-hour blocks
+- **End Users**: 2-4 hours total, flexible sessions
+- Accommodate academic schedules
 
-## Scheduling and Logistics
-
-### Session Scheduling
-
-**Technician Sessions:**
-- 3-5 hours total (flexible split across multiple sessions)
-- Minimum 1.5-hour blocks to maintain context
-- Accommodate academic schedules and availability
-
-**End User Sessions:**
-- 2-4 hours total (flexible single session or split)
-- Regular breaks as needed
-- Work around academic calendars and student schedules
-
-### Preparation Requirements
-
-**For Participants:**
+### Preparation
 - Confirmation email with session details
 - Pre-test questionnaire completion
-- Technical setup verification (for remote sessions)
+- Technical setup verification (remote sessions)
 - Consent form signature
-
-**For Research Team:**
-- Environment setup and testing
-- Recording equipment check
-- Material preparation
-- Backup plan for technical issues
 
 ## Ethical Considerations
 
 ### Informed Consent
-
-**Required Disclosures:**
-- Purpose and scope of the research (contribution to open research infrastructure)
-- How data will be used and stored (research purposes, potential academic publication)
-- Video/audio recording permissions (optional, can participate without recording)
-- Right to withdraw at any time without consequence
-- Contact information for questions and follow-up
+- Research purpose and scope
+- Data use and storage procedures
+- Recording permissions (optional)
+- Right to withdraw without consequence
 
 ### Privacy Protection
-
-**Data Handling:**
-- De-identification of participant data for analysis and reporting
-- Secure storage of recordings and notes
-- Limited access to research team only
-- Clear data retention and deletion timeline
-- Compliance with university research ethics protocols
+- Participant data de-identification
+- Secure storage of recordings
+- Limited access to research team
+- Clear data retention timeline
