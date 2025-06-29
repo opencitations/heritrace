@@ -10,46 +10,43 @@ HERITRACE is a semantic editor for GLAM professionals to facilitate metadata enr
 
 | Category | Role | Focus |
 |----------|------|-------|
-| **Technicians** (4-6 participants) | System administrators, IT staff, technical librarians | Installation, configuration, database setup, SHACL schema management |
-| **End Users** (8-12 participants) | Researchers, librarians, archivists, academic professionals | Metadata creation/editing, search, research workflows, collaboration |
+| **Technicians** (4-6 participants) | Staff responsible for semantic system configuration | SHACL schema customization, display rules configuration |
+| **End Users** (8-12 participants) | Academic professionals working with bibliographic metadata | Metadata creation/editing, search, workflows |
 
 ## Testing Framework
 
 | Document | Purpose |
 |----------|---------|
-| [01_participant_recruitment.md](01_participant_recruitment.md) | Recruitment criteria and strategies |
-| [02_technician_testing.md](02_technician_testing.md) | Configuration and setup testing |
-| [03_end_user_testing.md](03_end_user_testing.md) | Usability and functionality testing |
-| [04_user_scenarios.md](04_user_scenarios.md) | Realistic task scenarios |
-| [05_data_collection.md](05_data_collection.md) | Data collection methods |
-| [06_analysis_framework.md](06_analysis_framework.md) | Analysis and reporting framework |
+| [01_end_user_testing.md](01_end_user_testing.md) | Usability and functionality testing |
+| [02_analysis_framework.md](02_analysis_framework.md) | Analysis and reporting framework |
 | [questionnaires/](questionnaires/) | Pre-test and SUS questionnaires |
 
 ## Methodology
 
-**Two-Layer Approach**:
-- Testing protocols provide methodological framework
-- User scenarios provide realistic, contextual tasks
+**Self-Guided Approach**:
+- Participants conduct autonomous testing with screen and voice recording
+- Specific task scenarios with structured reflection questions
 
 **Mixed Methods**:
-- Quantitative: Completion rates, timing, error frequencies
-- Qualitative: Think-aloud protocols, interviews, observations
+- Quantitative: Task completion rates, SUS scores, error frequencies
+- Qualitative: Self-recorded think-aloud protocols, structured reflection responses
 
-## Objectives
+## Prerequisites
 
-**Primary**: Evaluate usability, validate real-world functionality, assess user experience
+**Technicians**: SHACL validation knowledge (min level 4/7), RDF/SPARQL concepts, configuration file experience
 
-**Secondary**: Prioritize improvements, assess adoption barriers
+**End Users**: Bibliographic metadata experience, web application comfort
 
 ## Success Criteria
 
 | Category | Targets |
 |----------|---------|
-| **Technicians** | 80%+ task completion, 75%+ system confidence |
-| **End Users** | 75%+ task completion, SUS score >65, 70%+ satisfaction |
+| **Technicians** | Technical completion of 3 configuration tasks, SUS score ≥65, complete recordings |
+| **End Users** | 85% creation, 90% addition, 75% correction, 70% merge, 80% restore, SUS score ≥65 |
 
 ## Deliverables
 
-1. Comprehensive test report with findings and recommendations
-2. User experience guidelines and best practices
-3. Prioritized enhancement list and training specifications
+1. Grounded theory analysis report from screen+voice recordings
+2. Task completion analysis with specific HERITRACE improvement recommendations
+3. SUS usability benchmarks and user experience insights
+4. Prioritized HERITRACE development roadmap based on quantified user issues

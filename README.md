@@ -152,7 +152,6 @@ schema:BibliographicResourceShape
     sh:path rdf:type ;
     sh:in (fabio:ArchivalDocument
       fabio:Book
-      fabio:BookChapter
       doco:Part
       fabio:ExpressionCollection
       fabio:BookSeries

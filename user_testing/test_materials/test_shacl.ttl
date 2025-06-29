@@ -1,0 +1,214 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+@prefix datacite: <http://purl.org/spar/datacite/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix fabio: <http://purl.org/spar/fabio/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix literal: <http://www.essepuntato.it/2010/06/literalreification/> .
+@prefix pro: <http://purl.org/spar/pro/> .
+@prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
+@prefix oco: <https://w3id.org/oc/ontology/> .
+@prefix frbr: <http://purl.org/vocab/frbr/core#> .
+
+# TEST VERSION FOR TECHNICIAN TRAINING
+# This schema includes only basic article and journal support
+# Missing properties that technicians should add:
+# - dcterms:abstract
+# - prism:keyword  
+# - frbr:embodiment (page information)
+# - Additional identifier types beyond DOI
+
+# Basic Identifiers (only DOI and ISSN support)
+schema:BasicIdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:in (
+      datacite:doi
+      datacite:issn
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:issn ;
+    ] ;
+    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
+    sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+  ] .
+
+# Basic Agent (no complex identifier validation)
+schema:BasicAgentShape
+  a sh:NodeShape ;
+  sh:targetClass foaf:Agent ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue foaf:Agent ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path foaf:name ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path foaf:givenName ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path foaf:familyName ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+# Basic Agent Role
+schema:BasicAuthorShape
+  a sh:NodeShape ;
+  sh:targetClass pro:RoleInTime ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue pro:RoleInTime ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:withRole ;
+    sh:hasValue pro:author ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isHeldBy ;
+    sh:node schema:BasicAgentShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path oco:hasNext ;
+    sh:node schema:BasicAuthorShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+# Basic Journal
+schema:BasicJournalShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Journal ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Journal ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:BasicIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+  # NOTE: Missing dcterms:description - technicians should add this
+
+# Basic Journal Article (missing several properties)
+schema:BasicJournalArticleShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:JournalArticle ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:JournalArticle ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:BasicIdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:BasicAuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:BasicJournalShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+  # MISSING PROPERTIES (technicians should add these):
+  # - dcterms:abstract
+  # - prism:keyword
+  # - frbr:embodiment (page information)
+  # - More complex author roles (editor, translator, etc.) 
