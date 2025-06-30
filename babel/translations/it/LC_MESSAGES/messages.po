@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT 1.0\n"
 "Report-Msgid-Bugs-To: arcangelo.massari@unibo.it\n"
-"POT-Creation-Date: 2025-04-15 20:21+0200\n"
+"POT-Creation-Date: 2025-06-30 14:45+0200\n"
 "PO-Revision-Date: 2023-09-09 15:01+0200\n"
 "Last-Translator: Arcangelo Massari <arcangelo.massari@unibo.it>\n"
 "Language: it\n"
@@ -18,76 +18,80 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: heritrace/routes/api.py:103 heritrace/routes/api.py:162
-#: heritrace/routes/api.py:222 heritrace/routes/api.py:258
+#: heritrace/routes/api.py:116 heritrace/routes/api.py:175
+#: heritrace/routes/api.py:235 heritrace/routes/api.py:271
 msgid "No resource URI provided"
 msgstr "Nessun URI della risorsa fornito"
 
-#: heritrace/routes/api.py:114 heritrace/routes/api.py:174
+#: heritrace/routes/api.py:127 heritrace/routes/api.py:187
 msgid "Resource Locked"
 msgstr "Risorsa bloccata"
 
-#: heritrace/routes/api.py:116 heritrace/routes/api.py:176
+#: heritrace/routes/api.py:129 heritrace/routes/api.py:189
 #, python-format
 msgid "This resource is currently being edited by %(user)s [%(orcid)s]"
 msgstr ""
 "Questa risorsa è attualmente in fase di modifica da parte di %(user)s "
 "[%(orcid)s]"
 
-#: heritrace/routes/api.py:127 heritrace/routes/api.py:142
-#: heritrace/templates/entity/about.jinja:469
+#: heritrace/routes/api.py:140 heritrace/routes/api.py:155
+#: heritrace/templates/entity/about.jinja:452
 msgid "Error"
 msgstr "Errore"
 
-#: heritrace/routes/api.py:128
+#: heritrace/routes/api.py:141
 msgid "An error occurred while checking the lock"
 msgstr "Si è verificato un errore durante il controllo del blocco"
 
-#: heritrace/routes/api.py:143 heritrace/routes/api.py:205
-#: heritrace/routes/api.py:241 heritrace/routes/api.py:279
+#: heritrace/routes/api.py:156 heritrace/routes/api.py:218
+#: heritrace/routes/api.py:254 heritrace/routes/api.py:292
 msgid "An unexpected error occurred"
 msgstr "Si è verificato un errore inaspettato"
 
-#: heritrace/routes/api.py:195
+#: heritrace/routes/api.py:208
 msgid "Resource is locked by another user"
 msgstr "La risorsa è bloccata da un altro utente"
 
-#: heritrace/routes/api.py:233
+#: heritrace/routes/api.py:246
 msgid "Unable to release lock"
 msgstr "Impossibile rilasciare il blocco"
 
-#: heritrace/routes/api.py:271
+#: heritrace/routes/api.py:284
 msgid "Unable to renew lock"
 msgstr "Impossibile rinnovare il blocco"
 
-#: heritrace/routes/api.py:291
+#: heritrace/routes/api.py:304
 msgid "Value is required."
 msgstr "Il valore è obbligatorio."
 
-#: heritrace/routes/api.py:299
+#: heritrace/routes/api.py:312
 msgid "No matching datatypes found."
 msgstr "Nessun tipo di dati corrispondente trovato."
 
-#: heritrace/routes/api.py:329
+#: heritrace/routes/api.py:342
 msgid "Invalid request: 'changes' and 'entity_type' are required fields"
 msgstr "Richiesta non valida: i campi 'changes' e 'entity_type' sono obbligatori"
 
-#: heritrace/routes/api.py:434 heritrace/routes/api.py:450
+#: heritrace/routes/api.py:448 heritrace/routes/api.py:464
 msgid "An error occurred while checking for orphaned entities"
 msgstr "Si è verificato un errore durante il controllo delle entità orfane"
 
-#: heritrace/routes/api.py:621
+#: heritrace/routes/api.py:661
 #, python-brace-format
 msgid "Failed to save changes to the database: {}"
 msgstr "Salvataggio delle modifiche nel database fallito: {}"
 
-#: heritrace/routes/api.py:629
+#: heritrace/routes/api.py:669
 msgid "Changes applied successfully"
 msgstr "Modifiche applicate con successo"
 
-#: heritrace/routes/api.py:660
+#: heritrace/routes/api.py:700
 msgid "An error occurred while applying changes"
 msgstr "Si è verificato un errore durante l'applicazione delle modifiche"
+
+#: heritrace/routes/api.py:985
+msgid "Invalid or missing URL"
+msgstr "URL non valido o mancante"
 
 #: heritrace/routes/auth.py:51
 msgid "An error occurred during authentication. Please try again"
@@ -106,167 +110,166 @@ msgstr "Bentornato %(name)s!"
 msgid "You have been logged out"
 msgstr "Sei stato disconnesso"
 
-#: heritrace/routes/entity.py:221
+#: heritrace/routes/entity.py:198
 msgid "Text (string)"
 msgstr "Testo (stringa)"
 
-#: heritrace/routes/entity.py:222
+#: heritrace/routes/entity.py:199
 msgid "Whole number (integer)"
 msgstr "Numero intero"
 
-#: heritrace/routes/entity.py:223
+#: heritrace/routes/entity.py:200
 msgid "True or False (boolean)"
 msgstr "Vero o Falso (booleano)"
 
-#: heritrace/routes/entity.py:224
+#: heritrace/routes/entity.py:201
 msgid "Date (YYYY-MM-DD)"
 msgstr "Data (AAAA-MM-GG)"
 
-#: heritrace/routes/entity.py:225
+#: heritrace/routes/entity.py:202
 msgid "Date and Time (YYYY-MM-DDThh:mm:ss)"
 msgstr "Data e Ora (AAAA-MM-GGThh:mm:ss)"
 
-#: heritrace/routes/entity.py:226
+#: heritrace/routes/entity.py:203
 msgid "Decimal number"
 msgstr "Numero decimale"
 
-#: heritrace/routes/entity.py:227
+#: heritrace/routes/entity.py:204
 msgid "Floating point number"
 msgstr "Numero a virgola mobile"
 
-#: heritrace/routes/entity.py:228
+#: heritrace/routes/entity.py:205
 msgid "Double precision floating point number"
 msgstr "Numero a virgola mobile a doppia precisione"
 
-#: heritrace/routes/entity.py:229
+#: heritrace/routes/entity.py:206
 msgid "Time (hh:mm:ss)"
 msgstr "Ora (hh:mm:ss)"
 
-#: heritrace/routes/entity.py:230
+#: heritrace/routes/entity.py:207
 msgid "Year (YYYY)"
 msgstr "Anno (AAAA)"
 
-#: heritrace/routes/entity.py:231
+#: heritrace/routes/entity.py:208
 msgid "Month (MM)"
 msgstr "Mese (MM)"
 
-#: heritrace/routes/entity.py:232
+#: heritrace/routes/entity.py:209
 msgid "Day of the month (DD)"
 msgstr "Giorno del mese (GG)"
 
-#: heritrace/routes/entity.py:233
+#: heritrace/routes/entity.py:210
 msgid "Duration (e.g., P1Y2M3DT4H5M6S)"
 msgstr "Durata (es., P1A2M3GT4H5M6S)"
 
-#: heritrace/routes/entity.py:234
+#: heritrace/routes/entity.py:211
 msgid "Hexadecimal binary"
 msgstr "Binario esadecimale"
 
-#: heritrace/routes/entity.py:235
+#: heritrace/routes/entity.py:212
 msgid "Base64 encoded binary"
 msgstr "Binario codificato in Base64"
 
-#: heritrace/routes/entity.py:236
+#: heritrace/routes/entity.py:213
 msgid "Web address (URL)"
 msgstr "Indirizzo web (URL)"
 
-#: heritrace/routes/entity.py:237
+#: heritrace/routes/entity.py:214
 msgid "Language code (e.g., en, it)"
 msgstr "Codice lingua (es., en, it)"
 
-#: heritrace/routes/entity.py:238
+#: heritrace/routes/entity.py:215
 msgid "Normalized text (no line breaks)"
 msgstr "Testo normalizzato (senza interruzioni di linea)"
 
-#: heritrace/routes/entity.py:239
+#: heritrace/routes/entity.py:216
 msgid "Tokenized text (single word)"
 msgstr "Testo tokenizzato (parola singola)"
 
-#: heritrace/routes/entity.py:240
+#: heritrace/routes/entity.py:217
 msgid "Non-positive integer (0 or negative)"
 msgstr "Numero intero non positivo (0 o negativo)"
 
-#: heritrace/routes/entity.py:241
+#: heritrace/routes/entity.py:218
 msgid "Negative integer"
 msgstr "Numero intero negativo"
 
-#: heritrace/routes/entity.py:242
+#: heritrace/routes/entity.py:219
 msgid "Long integer"
 msgstr "Numero intero lungo"
 
-#: heritrace/routes/entity.py:243
+#: heritrace/routes/entity.py:220
 msgid "Short integer"
 msgstr "Numero intero breve"
 
-#: heritrace/routes/entity.py:244
+#: heritrace/routes/entity.py:221
 msgid "Byte-sized integer"
 msgstr "Numero intero di dimensione byte"
 
-#: heritrace/routes/entity.py:245
+#: heritrace/routes/entity.py:222
 msgid "Non-negative integer (0 or positive)"
 msgstr "Numero intero non negativo (0 o positivo)"
 
-#: heritrace/routes/entity.py:246
+#: heritrace/routes/entity.py:223
 msgid "Positive integer (greater than 0)"
 msgstr "Numero intero positivo (maggiore di 0)"
 
-#: heritrace/routes/entity.py:247
+#: heritrace/routes/entity.py:224
 msgid "Unsigned long integer"
 msgstr "Numero intero lungo senza segno"
 
-#: heritrace/routes/entity.py:248
+#: heritrace/routes/entity.py:225
 msgid "Unsigned integer"
 msgstr "Numero intero senza segno"
 
-#: heritrace/routes/entity.py:249
+#: heritrace/routes/entity.py:226
 msgid "Unsigned short integer"
 msgstr "Numero intero breve senza segno"
 
-#: heritrace/routes/entity.py:250
+#: heritrace/routes/entity.py:227
 msgid "Unsigned byte"
 msgstr "Byte senza segno"
 
-#: heritrace/routes/entity.py:442
+#: heritrace/routes/entity.py:236
+msgid "Invalid primary source URL provided"
+msgstr "URL della fonte primaria non valido"
+
+#: heritrace/routes/entity.py:432
 msgid "Entity created successfully"
 msgstr "Entità creata con successo"
 
-#: heritrace/routes/entity.py:446
+#: heritrace/routes/entity.py:436
 #, python-format
 msgid "An error occurred while creating the entity: %(error)s"
 msgstr "Si è verificato un errore durante la creazione dell'entità: %(error)s"
 
-#: heritrace/routes/entity.py:550
+#: heritrace/routes/entity.py:554
 msgid "Entity type is required"
 msgstr "Il tipo di entità è obbligatorio"
 
-#: heritrace/routes/entity.py:554
-#, python-format
-msgid "Invalid entity type selected: %(entity_type)s"
-msgstr "Tipo di entità selezionato non valido: %(entity_type)s"
-
-#: heritrace/routes/entity.py:573
+#: heritrace/routes/entity.py:584
 #, python-format
 msgid "Unknown property %(prop_uri)s for entity type %(entity_type)s"
 msgstr "Proprietà sconosciuta %(prop_uri)s per il tipo di entità %(entity_type)s"
 
-#: heritrace/routes/entity.py:613 heritrace/routes/entity.py:625
-#: heritrace/routes/entity.py:726 heritrace/utils/shacl_utils.py:1067
-#: heritrace/utils/shacl_utils.py:1079
+#: heritrace/routes/entity.py:618 heritrace/routes/entity.py:628
+#: heritrace/routes/entity.py:713 heritrace/utils/shacl_validation.py:303
+#: heritrace/utils/shacl_validation.py:315
 msgid "values"
 msgstr "valori"
 
-#: heritrace/routes/entity.py:613 heritrace/routes/entity.py:625
-#: heritrace/routes/entity.py:726 heritrace/utils/shacl_utils.py:1067
-#: heritrace/utils/shacl_utils.py:1079
+#: heritrace/routes/entity.py:618 heritrace/routes/entity.py:628
+#: heritrace/routes/entity.py:713 heritrace/utils/shacl_validation.py:303
+#: heritrace/utils/shacl_validation.py:315
 msgid "value"
 msgstr "valore"
 
-#: heritrace/routes/entity.py:616
+#: heritrace/routes/entity.py:621
 #, python-format
 msgid "Property %(prop_uri)s requires at least %(min_count)d %(value)s"
 msgstr "La proprietà %(prop_uri)s richiede almeno %(min_count)d %(value)s"
 
-#: heritrace/routes/entity.py:628
+#: heritrace/routes/entity.py:631
 #, python-format
 msgid "Property %(prop_uri)s allows at most %(max_count)d %(value)s"
 msgstr "La proprietà %(prop_uri)s permette al massimo %(max_count)d %(value)s"
@@ -276,7 +279,7 @@ msgstr "La proprietà %(prop_uri)s permette al massimo %(max_count)d %(value)s"
 msgid "Property %(prop_uri)s requires the value %(mandatory_value)s"
 msgstr "La proprietà %(prop_uri)s richiede il valore %(mandatory_value)s"
 
-#: heritrace/routes/entity.py:684
+#: heritrace/routes/entity.py:678
 #, python-format
 msgid ""
 "Value \"%(value)s\" for property %(prop_uri)s is not of expected type "
@@ -285,7 +288,7 @@ msgstr ""
 "Il valore \"%(value)s\" per la proprietà %(prop_uri)s non è del tipo "
 "atteso %(expected_types)s."
 
-#: heritrace/routes/entity.py:706
+#: heritrace/routes/entity.py:695
 #, python-format
 msgid ""
 "Value \"%(value)s\" is not permitted for property %(prop_uri)s. "
@@ -294,7 +297,7 @@ msgstr ""
 "Il valore \"%(value)s\" non è consentito per la proprietà %(prop_uri)s. I"
 " valori accettabili sono: %(acceptable_values)s"
 
-#: heritrace/routes/entity.py:729
+#: heritrace/routes/entity.py:716
 #, python-format
 msgid ""
 "Missing required property: %(prop_uri)s requires at least %(min_count)d "
@@ -303,64 +306,68 @@ msgstr ""
 "Proprietà obbligatoria mancante: %(prop_uri)s richiede almeno "
 "%(min_count)d %(value)s"
 
-#: heritrace/routes/entity.py:834
+#: heritrace/routes/entity.py:824
 msgid "Snapshot"
 msgstr "Versione"
 
-#: heritrace/routes/entity.py:836
+#: heritrace/routes/entity.py:826
 msgid "Responsible agent"
 msgstr "Agente responsabile"
 
-#: heritrace/routes/entity.py:837 heritrace/templates/entity/version.jinja:107
+#: heritrace/routes/entity.py:827 heritrace/templates/entity/version.jinja:96
 msgid "Primary source"
 msgstr "Fonte primaria"
 
-#: heritrace/routes/entity.py:838 heritrace/templates/entity/version.jinja:112
+#: heritrace/routes/entity.py:828 heritrace/templates/entity/version.jinja:101
 msgid "Description"
 msgstr "Descrizione"
 
-#: heritrace/routes/entity.py:842
+#: heritrace/routes/entity.py:832
 msgid "View version"
 msgstr "Visualizza versione"
 
-#: heritrace/routes/entity.py:1163
+#: heritrace/routes/entity.py:1232
 msgid "Version restored successfully"
 msgstr "Versione ripristinata con successo"
 
-#: heritrace/routes/entity.py:1167
+#: heritrace/routes/entity.py:1236
 #, python-format
 msgid "An error occurred while restoring the version: %(error)s"
 msgstr "Si è verificato un errore durante il ripristino della versione: %(error)s"
 
-#: heritrace/routes/entity.py:1382
+#: heritrace/routes/entity.py:1397
 msgid "Modifications"
 msgstr "Modifiche"
 
-#: heritrace/routes/entity.py:1390
+#: heritrace/routes/entity.py:1403
 msgid "Additions"
 msgstr "Aggiunte"
 
-#: heritrace/routes/entity.py:1392 heritrace/routes/entity.py:1479
+#: heritrace/routes/entity.py:1405 heritrace/routes/entity.py:1493
 msgid "Deletions"
 msgstr "Cancellazioni"
 
-#: heritrace/routes/merge.py:114
+#: heritrace/routes/linked_resources.py:100 heritrace/routes/merge.py:251
+msgid "Invalid limit or offset parameter"
+msgstr "Parametro di limite o offset non valido"
+
+#: heritrace/routes/linked_resources.py:103
+msgid "Missing subject_uri parameter"
+msgstr "URI delle entità mancanti per l'unione."
+
+#: heritrace/routes/linked_resources.py:106 heritrace/routes/merge.py:257
+msgid "Limit must be positive and offset non-negative"
+msgstr "Il limite deve essere positivo e l'offset non negativo"
+
+#: heritrace/routes/merge.py:110
 msgid "Missing entity URIs for merge."
 msgstr "URI delle entità mancanti per l'unione."
 
-#: heritrace/routes/merge.py:118
-msgid "Cannot merge an entity with itself."
-msgstr "Impossibile unire un'entità con se stessa."
+#: heritrace/routes/merge.py:114
+msgid "Invalid primary source URL provided."
+msgstr "Nessun URI della risorsa fornito"
 
-#: heritrace/routes/merge.py:142
-msgid "Could not identify the responsible agent. Merge aborted."
-msgstr "Impossibile identificare l'agente responsabile. Unione annullata."
-
-#: heritrace/routes/merge.py:152
-msgid "Server configuration error. Merge aborted."
-msgstr "Errore di configurazione del server. Unione annullata."
-
-#: heritrace/routes/merge.py:174
+#: heritrace/routes/merge.py:156
 #, python-format
 msgid ""
 "Entities merged successfully. <a href='%(entity2_url)s' "
@@ -371,7 +378,7 @@ msgstr ""
 "target='_blank'>%(entity2)s</a> è stata eliminata e i suoi riferimenti "
 "puntano ora a <a href='%(entity1_url)s' target='_blank'>%(entity1)s</a>."
 
-#: heritrace/routes/merge.py:199
+#: heritrace/routes/merge.py:178
 msgid ""
 "An error occurred during the merge operation. Please check the logs. No "
 "changes were made."
@@ -379,41 +386,38 @@ msgstr ""
 "Si è verificato un errore durante l'operazione di unione. Si prega di "
 "controllare i log. Non sono state apportate modifiche."
 
-#: heritrace/routes/merge.py:216
+#: heritrace/routes/merge.py:194
 msgid "Two entities must be selected for merging/comparison."
 msgstr "Devono essere selezionate due entità per l'unione/confronto."
 
-#: heritrace/routes/merge.py:220
-msgid "Cannot compare or merge an entity with itself."
-msgstr "Impossibile confrontare o unire un'entità con se stessa."
-
-#: heritrace/routes/merge.py:233
+#: heritrace/routes/merge.py:201
 msgid "Could not retrieve details for one or both entities. Check logs."
 msgstr ""
 "Impossibile recuperare i dettagli per una o entrambe le entità. "
 "Controllare i log."
 
-#: heritrace/routes/merge.py:271
+#: heritrace/routes/merge.py:254
 msgid "Missing required parameters (subject_uri, entity_type)"
 msgstr "Parametri obbligatori mancanti (subject_uri, entity_type)"
 
-#: heritrace/routes/merge.py:359
+#: heritrace/routes/merge.py:398
 msgid "An error occurred while finding similar resources"
 msgstr "Si è verificato un errore durante la ricerca di risorse simili"
 
 #: heritrace/templates/catalogue.jinja:27
 #: heritrace/templates/errors/404.jinja:197
-#: heritrace/templates/navigation.jinja:16
+#: heritrace/templates/navigation.jinja:27
 msgid "Catalogue"
 msgstr "Catalogo"
 
-#: heritrace/templates/catalogue.jinja:44
+#: heritrace/templates/catalogue.jinja:45
 msgid "No data available"
 msgstr "Nessun dato disponibile"
 
 #: heritrace/templates/create_entity.jinja:6
 #: heritrace/templates/errors/404.jinja:198
-#: heritrace/templates/navigation.jinja:19
+#: heritrace/templates/navigation.jinja:32
+#: heritrace/templates/navigation.jinja:34
 msgid "New Record"
 msgstr "Nuovo Record"
 
@@ -422,94 +426,94 @@ msgstr "Nuovo Record"
 msgid "Select an entity type"
 msgstr "Seleziona un tipo di entità"
 
-#: heritrace/templates/create_entity.jinja:49
-#: heritrace/templates/create_entity.jinja:201
-#: heritrace/templates/create_entity.jinja:251
+#: heritrace/templates/create_entity.jinja:51
+#: heritrace/templates/create_entity.jinja:206
+#: heritrace/templates/create_entity.jinja:254
 msgid "Property"
 msgstr "Proprietà"
 
-#: heritrace/templates/create_entity.jinja:54
-#: heritrace/templates/create_entity.jinja:207
+#: heritrace/templates/create_entity.jinja:56
+#: heritrace/templates/create_entity.jinja:212
 msgid "Property URI"
 msgstr "URI della proprietà"
 
-#: heritrace/templates/create_entity.jinja:55
-#: heritrace/templates/create_entity.jinja:208
+#: heritrace/templates/create_entity.jinja:57
+#: heritrace/templates/create_entity.jinja:213
 msgid "Please enter a valid URL for the property URI"
 msgstr "Si prega di inserire un URL valido per l'URI della proprietà"
 
-#: heritrace/templates/create_entity.jinja:58
-#: heritrace/templates/create_entity.jinja:211
+#: heritrace/templates/create_entity.jinja:59
+#: heritrace/templates/create_entity.jinja:216
 msgid "Value"
 msgstr "Valore"
 
 #: heritrace/templates/create_entity.jinja:63
-#: heritrace/templates/create_entity.jinja:215
+#: heritrace/templates/create_entity.jinja:220
 msgid "Value Type"
 msgstr "Tipo di valore"
 
 #: heritrace/templates/create_entity.jinja:65
-#: heritrace/templates/create_entity.jinja:217
+#: heritrace/templates/create_entity.jinja:222
 msgid "Literal"
 msgstr "Letterale"
 
 #: heritrace/templates/create_entity.jinja:66
-#: heritrace/templates/create_entity.jinja:218
+#: heritrace/templates/create_entity.jinja:223
 msgid "URI"
 msgstr "URI"
 
-#: heritrace/templates/create_entity.jinja:73
-#: heritrace/templates/create_entity.jinja:224
+#: heritrace/templates/create_entity.jinja:72
+#: heritrace/templates/create_entity.jinja:229
 msgid "Select Datatype"
 msgstr "Seleziona il tipo di dato"
 
-#: heritrace/templates/create_entity.jinja:82
+#: heritrace/templates/create_entity.jinja:81
 msgid "Add Property"
 msgstr "Aggiungi Proprietà"
 
-#: heritrace/templates/create_entity.jinja:87
+#: heritrace/templates/create_entity.jinja:86
 msgid "Add New Record"
 msgstr "Nuovo Record"
 
-#: heritrace/templates/create_entity.jinja:138
+#: heritrace/templates/create_entity.jinja:148
 msgid "No valid datatypes for this value"
 msgstr "Nessun tipo di dato valido per questo valore"
 
-#: heritrace/templates/create_entity.jinja:330
+#: heritrace/templates/create_entity.jinja:322
 msgid "Please enter a valid URL"
 msgstr "Inserisci un URL valido"
 
-#: heritrace/templates/create_entity.jinja:380
+#: heritrace/templates/create_entity.jinja:366
 msgid "Please provide at least one property with a value"
 msgstr "Fornisci almeno una proprietà con un valore"
 
-#: heritrace/templates/create_entity.jinja:395
+#: heritrace/templates/create_entity.jinja:380
 msgid "Please fill out at least one property"
 msgstr "Compila almeno una proprietà"
 
-#: heritrace/templates/create_entity.jinja:460
+#: heritrace/templates/create_entity.jinja:448
 msgid "Validation Errors"
-msgstr "Errori di convalida"
+msgstr "Errori di Validazione"
 
-#: heritrace/templates/create_entity.jinja:462
-#: heritrace/templates/create_entity.jinja:470
-#: heritrace/templates/validation.jinja:348
+#: heritrace/templates/create_entity.jinja:450
+#: heritrace/templates/create_entity.jinja:457
+#: heritrace/templates/validation.jinja:342
 msgid "OK"
 msgstr "OK"
 
-#: heritrace/templates/create_entity.jinja:468
+#: heritrace/templates/create_entity.jinja:455
 msgid "An error occurred"
 msgstr "Si è verificato un errore"
 
-#: heritrace/templates/create_entity.jinja:469
+#: heritrace/templates/create_entity.jinja:456
 msgid "Please try again later"
 msgstr "Riprova più tardi"
 
-#: heritrace/templates/create_entity.jinja:479
+#: heritrace/templates/create_entity.jinja:468
 msgid "Validating data..."
 msgstr "Convalida dei dati in corso..."
 
-#: heritrace/templates/create_entity.jinja:480
+#: heritrace/templates/create_entity.jinja:469
 msgid "Please wait while we validate your data"
 msgstr "Attendi mentre convalidiamo i tuoi dati"
 
@@ -518,47 +522,50 @@ msgid "Made with"
 msgstr "Realizzato con"
 
 #: heritrace/templates/errors/404.jinja:197 heritrace/templates/index.jinja:300
-#: heritrace/templates/navigation.jinja:16
+#: heritrace/templates/navigation.jinja:25
 msgid "Go to the catalogue"
 msgstr "Vai al catalogo"
 
-#: heritrace/templates/entity/about.jinja:917
-#: heritrace/templates/lock_workflow.jinja:16
+#: heritrace/templates/entity/about.jinja:169
+#: heritrace/templates/entity/linked_resources.jinja:43
+#: heritrace/templates/entity/similar_resources.jinja:55
+#: heritrace/templates/lock_workflow.jinja:25
+#: heritrace/templates/primary_source_handler.jinja:53
 msgid "Loading..."
 msgstr "Caricamento..."
 
-#: heritrace/templates/lock_workflow.jinja:76
+#: heritrace/templates/lock_workflow.jinja:85
 msgid "Cancel Editing"
 msgstr "Annulla modifica"
 
-#: heritrace/templates/lock_workflow.jinja:85
+#: heritrace/templates/lock_workflow.jinja:94
 msgid "Unsaved Changes"
 msgstr "Modifiche non salvate"
 
-#: heritrace/templates/lock_workflow.jinja:86
+#: heritrace/templates/lock_workflow.jinja:95
 msgid "You have unsaved changes. Are you sure you want to exit edit mode?"
 msgstr ""
 "Hai modifiche non salvate. Sei sicuro di voler uscire dalla modalità di "
 "modifica?"
 
-#: heritrace/templates/lock_workflow.jinja:91
+#: heritrace/templates/lock_workflow.jinja:100
 msgid "Yes, discard changes"
 msgstr "Sì, scarta le modifiche"
 
-#: heritrace/templates/lock_workflow.jinja:92
+#: heritrace/templates/lock_workflow.jinja:101
 msgid "No, keep editing"
 msgstr "No, continua a modificare"
 
 #: heritrace/templates/entity/about.jinja:66
-#: heritrace/templates/lock_workflow.jinja:136
+#: heritrace/templates/lock_workflow.jinja:145
 msgid "Edit Resource"
 msgstr "Modifica Risorsa"
 
-#: heritrace/templates/lock_workflow.jinja:157
+#: heritrace/templates/lock_workflow.jinja:166
 msgid "Lock Lost"
 msgstr "Blocco perso"
 
-#: heritrace/templates/lock_workflow.jinja:158
+#: heritrace/templates/lock_workflow.jinja:167
 msgid "Your editing session has expired. Any changes will be lost"
 msgstr "La tua sessione di modifica è scaduta. Eventuali modifiche andranno perse"
 
@@ -574,66 +581,142 @@ msgstr "Clicca il pulsante qui sotto per accedere usando il tuo account ORCID"
 msgid "Sign in with ORCID"
 msgstr "Accedi con ORCID"
 
-#: heritrace/templates/macros.jinja:30 heritrace/templates/macros.jinja:389
+#: heritrace/templates/macros.jinja:30
+msgid "This field is required"
+msgstr "Questo campo è obbligatorio"
+
+#: heritrace/templates/macros.jinja:37 heritrace/templates/macros.jinja:407
 msgid "This property has a mandatory value that cannot be modified"
 msgstr "Questa proprietà ha un valore obbligatorio che non può essere modificato"
 
-#: heritrace/templates/macros.jinja:40
+#: heritrace/templates/macros.jinja:48
 msgid "Select an option"
 msgstr "Seleziona un'opzione"
 
-#: heritrace/templates/macros.jinja:52 heritrace/templates/macros.jinja:72
-#: heritrace/templates/macros.jinja:92 heritrace/templates/macros.jinja:234
-#: heritrace/templates/macros.jinja:308 heritrace/templates/macros.jinja:537
+#: heritrace/templates/macros.jinja:60 heritrace/templates/macros.jinja:79
+#: heritrace/templates/macros.jinja:99 heritrace/templates/macros.jinja:247
+#: heritrace/templates/macros.jinja:323 heritrace/templates/macros.jinja:567
 msgid "Delete"
 msgstr "Cancella"
 
-#: heritrace/templates/macros.jinja:143 heritrace/templates/macros.jinja:414
+#: heritrace/templates/macros.jinja:153 heritrace/templates/macros.jinja:444
 msgid "Date"
 msgstr "Data"
 
-#: heritrace/templates/macros.jinja:146 heritrace/templates/macros.jinja:417
+#: heritrace/templates/macros.jinja:156 heritrace/templates/macros.jinja:447
 msgid "Year and Month"
 msgstr "Anno e Mese"
 
-#: heritrace/templates/macros.jinja:149 heritrace/templates/macros.jinja:420
+#: heritrace/templates/macros.jinja:159 heritrace/templates/macros.jinja:450
 msgid "Year"
 msgstr "Anno"
 
-#: heritrace/templates/macros.jinja:152 heritrace/templates/macros.jinja:423
+#: heritrace/templates/macros.jinja:162 heritrace/templates/macros.jinja:453
 msgid "Select Date Type"
 msgstr "Seleziona il formato della data"
 
-#: heritrace/templates/entity/about.jinja:153
-#: heritrace/templates/macros.jinja:334
+#: heritrace/templates/entity/about.jinja:133
+#: heritrace/templates/macros.jinja:349
 #, python-format
 msgid "Add %(element_type)s"
 msgstr "Aggiungi %(element_type)s"
 
-#: heritrace/templates/macros.jinja:366 heritrace/templates/macros.jinja:377
-#: heritrace/templates/macros.jinja:524
+#: heritrace/templates/macros.jinja:383 heritrace/templates/macros.jinja:395
+#: heritrace/templates/macros.jinja:554
 #, python-format
 msgid "Redirection to the entity %(entity)s"
 msgstr "Reindirizzamento all'entità %(entity)s"
 
-#: heritrace/templates/entity/about.jinja:201
-#: heritrace/templates/macros.jinja:526
+#: heritrace/templates/entity/linked_resources.jinja:23
+#: heritrace/templates/macros.jinja:556
 msgid "Visit"
 msgstr "Visita"
 
-#: heritrace/templates/navigation.jinja:24
+#: heritrace/templates/navigation.jinja:42
 msgid "Time Vault"
 msgstr "Archivio Temporale"
 
 #: heritrace/templates/errors/404.jinja:201
-#: heritrace/templates/navigation.jinja:29
+#: heritrace/templates/navigation.jinja:52
 msgid "Logout"
 msgstr "Disconnetti"
 
 #: heritrace/templates/errors/404.jinja:203
-#: heritrace/templates/navigation.jinja:33
+#: heritrace/templates/navigation.jinja:57
 msgid "Login"
 msgstr "Accedi"
+
+#: heritrace/templates/primary_source_handler.jinja:35
+msgid "Source (Optional):"
+msgstr "Fonte (Opzionale):"
+
+#: heritrace/templates/primary_source_handler.jinja:37
+#: heritrace/templates/primary_source_handler.jinja:88
+msgid "Current Default:"
+msgstr "Predefinito attuale:"
+
+#: heritrace/templates/primary_source_handler.jinja:39
+msgid "Preview:"
+msgstr "Anteprima:"
+
+#: heritrace/templates/primary_source_handler.jinja:43
+msgid "No primary source will be recorded"
+msgstr "Nessuna fonte primaria verrà registrata"
+
+#: heritrace/templates/primary_source_handler.jinja:48
+msgid "Enter a valid URL or leave blank"
+msgstr "Inserisci un URL valido o lascia vuoto"
+
+#: heritrace/templates/primary_source_handler.jinja:66
+msgid "Preview failed to load"
+msgstr "Caricamento anteprima fallito"
+
+#: heritrace/templates/primary_source_handler.jinja:85
+msgid "Enter Primary Source"
+msgstr "Inserisci Fonte Primaria"
+
+#: heritrace/templates/primary_source_handler.jinja:87
+msgid ""
+"Please provide the URL of the primary source for this entity, or leave "
+"blank if not applicable"
+msgstr ""
+"Fornisci l'URL della fonte primaria per questa entità, o lascia vuoto se "
+"non applicabile"
+
+#: heritrace/templates/primary_source_handler.jinja:91
+msgid "Loading preview..."
+msgstr "Caricamento anteprima..."
+
+#: heritrace/templates/primary_source_handler.jinja:96
+msgid "Enter the URL"
+msgstr "Inserisci l'URL"
+
+#: heritrace/templates/primary_source_handler.jinja:98
+msgid "Confirm"
+msgstr "Conferma"
+
+#: heritrace/templates/entity/about.jinja:155
+#: heritrace/templates/entity/about.jinja:826
+#: heritrace/templates/entity/merge_confirm.jinja:122
+#: heritrace/templates/primary_source_handler.jinja:99
+msgid "Cancel"
+msgstr "Annulla"
+
+#: heritrace/templates/primary_source_handler.jinja:103
+msgid "Save this URL as my default primary source"
+msgstr "Salva questo URL come mia fonte primaria predefinita"
+
+#: heritrace/templates/primary_source_handler.jinja:115
+msgid "No default source set"
+msgstr "Nessuna fonte predefinita impostata"
+
+#: heritrace/templates/primary_source_handler.jinja:116
+msgid "Source:"
+msgstr "Fonte:"
+
+#: heritrace/templates/primary_source_handler.jinja:132
+msgid "Please enter a valid URL or leave blank."
+msgstr "Inserisci un URL valido o lascia vuoto."
 
 #: heritrace/templates/top_level_search.jinja:88
 #, python-format
@@ -657,214 +740,206 @@ msgstr "Caricamento dati in corso..."
 msgid "We are retrieving the data of the selected entity. Please wait..."
 msgstr "Stiamo recuperando i dati dell'entità selezionata. Attendere prego..."
 
-#: heritrace/templates/validation.jinja:16
-msgid "Unknown field"
-msgstr "Campo sconosciuto"
-
-#: heritrace/templates/validation.jinja:20
+#: heritrace/templates/validation.jinja:17
 msgid "The field"
 msgstr "Il campo"
 
-#: heritrace/templates/validation.jinja:20
-#: heritrace/templates/validation.jinja:55
-#: heritrace/templates/validation.jinja:236
+#: heritrace/templates/validation.jinja:17
+#: heritrace/templates/validation.jinja:49
+#: heritrace/templates/validation.jinja:230
 msgid "of the"
 msgstr "del"
 
-#: heritrace/templates/validation.jinja:20
+#: heritrace/templates/validation.jinja:17
 msgid "is required"
 msgstr "è obbligatorio"
 
-#: heritrace/templates/validation.jinja:51
-msgid "Unknown URL field"
-msgstr "Campo URL sconosciuto"
-
-#: heritrace/templates/validation.jinja:55
+#: heritrace/templates/validation.jinja:49
 msgid "Please enter a valid URL for"
 msgstr "Inserisci un URL valido per"
 
-#: heritrace/templates/validation.jinja:73
+#: heritrace/templates/validation.jinja:67
 msgid "any text"
 msgstr "qualsiasi testo"
 
-#: heritrace/templates/validation.jinja:77
+#: heritrace/templates/validation.jinja:71
 msgid "text without line breaks or tabs"
 msgstr "testo senza interruzioni di riga o tabulazioni"
 
-#: heritrace/templates/validation.jinja:82
+#: heritrace/templates/validation.jinja:76
 msgid "whole number"
 msgstr "numero intero"
 
-#: heritrace/templates/validation.jinja:86
+#: heritrace/templates/validation.jinja:80
 msgid "positive whole number"
 msgstr "numero intero positivo"
 
-#: heritrace/templates/validation.jinja:90
+#: heritrace/templates/validation.jinja:84
 msgid "negative whole number"
 msgstr "numero intero negativo"
 
-#: heritrace/templates/validation.jinja:94
+#: heritrace/templates/validation.jinja:88
 msgid "non-negative whole number"
 msgstr "numero intero non negativo"
 
-#: heritrace/templates/validation.jinja:98
+#: heritrace/templates/validation.jinja:92
 msgid "non-positive whole number"
 msgstr "numero intero non positivo"
 
-#: heritrace/templates/validation.jinja:102
+#: heritrace/templates/validation.jinja:96
 msgid "whole number between -128 and 127"
 msgstr "numero intero tra -128 e 127"
 
-#: heritrace/templates/validation.jinja:106
+#: heritrace/templates/validation.jinja:100
 msgid "whole number between -32768 and 32767"
 msgstr "numero intero tra -32768 e 32767"
 
-#: heritrace/templates/validation.jinja:110
+#: heritrace/templates/validation.jinja:104
 msgid "whole number between -2147483648 and 2147483647"
 msgstr "numero intero tra -2147483648 e 2147483647"
 
-#: heritrace/templates/validation.jinja:114
+#: heritrace/templates/validation.jinja:108
 msgid "whole number between 0 and 255"
 msgstr "numero intero tra 0 e 255"
 
-#: heritrace/templates/validation.jinja:118
+#: heritrace/templates/validation.jinja:112
 msgid "whole number between 0 and 65535"
 msgstr "numero intero tra 0 e 65535"
 
-#: heritrace/templates/validation.jinja:123
+#: heritrace/templates/validation.jinja:117
 msgid "whole number between 0 and 4294967295"
 msgstr "numero intero tra 0 e 4294967295"
 
-#: heritrace/templates/validation.jinja:129
+#: heritrace/templates/validation.jinja:123
 msgid "number (can include decimal point)"
 msgstr "numero (può includere un punto decimale)"
 
-#: heritrace/templates/validation.jinja:133
+#: heritrace/templates/validation.jinja:127
 msgid "duration (e.g. P1Y2M3DT4H5M6S)"
 msgstr "durata (es. P1Y2M3DT4H5M6S)"
 
-#: heritrace/templates/validation.jinja:137
+#: heritrace/templates/validation.jinja:131
 msgid "day and time duration (e.g. P1DT2H3M4S)"
 msgstr "durata giorno e ora (es. P1DT2H3M4S)"
 
-#: heritrace/templates/validation.jinja:141
+#: heritrace/templates/validation.jinja:135
 msgid "year and month duration (e.g. P1Y2M)"
 msgstr "durata anno e mese (es. P1Y2M)"
 
-#: heritrace/templates/validation.jinja:145
+#: heritrace/templates/validation.jinja:139
 msgid "year and month in format YYYY-MM"
 msgstr "anno e mese nel formato YYYY-MM"
 
-#: heritrace/templates/validation.jinja:149
+#: heritrace/templates/validation.jinja:143
 msgid "year in format YYYY"
 msgstr "anno nel formato YYYY"
 
-#: heritrace/templates/validation.jinja:153
+#: heritrace/templates/validation.jinja:147
 msgid "date and time (e.g. 2023-06-15T14:30:00+02:00)"
 msgstr "data e ora (es. 2023-06-15T14:30:00+02:00)"
 
-#: heritrace/templates/validation.jinja:157
+#: heritrace/templates/validation.jinja:151
 msgid "date and time with timezone (e.g. 2023-06-15T14:30:00+02:00)"
 msgstr "data e ora con fuso orario (es. 2023-06-15T14:30:00+02:00)"
 
-#: heritrace/templates/validation.jinja:161
+#: heritrace/templates/validation.jinja:155
 msgid "date in format YYYY-MM-DD"
 msgstr "data nel formato YYYY-MM-DD"
 
-#: heritrace/templates/validation.jinja:165
+#: heritrace/templates/validation.jinja:159
 msgid "time in format HH:MM:SS"
 msgstr "ora nel formato HH:MM:SS"
 
-#: heritrace/templates/validation.jinja:169
+#: heritrace/templates/validation.jinja:163
 msgid "month in format --MM"
 msgstr "mese nel formato --MM"
 
-#: heritrace/templates/validation.jinja:173
+#: heritrace/templates/validation.jinja:167
 msgid "day in format ---DD"
 msgstr "giorno nel formato ---DD"
 
-#: heritrace/templates/validation.jinja:177
+#: heritrace/templates/validation.jinja:171
 msgid "month and day in format --MM-DD"
 msgstr "mese e giorno nel formato --MM-DD"
 
-#: heritrace/templates/validation.jinja:181
+#: heritrace/templates/validation.jinja:175
 msgid "true or false"
 msgstr "vero o falso"
 
-#: heritrace/templates/validation.jinja:185
+#: heritrace/templates/validation.jinja:179
 msgid "hexadecimal digits"
 msgstr "cifre esadecimali"
 
-#: heritrace/templates/validation.jinja:189
+#: heritrace/templates/validation.jinja:183
 msgid "base64 encoded data"
 msgstr "dati codificati in base64"
 
-#: heritrace/templates/validation.jinja:193
+#: heritrace/templates/validation.jinja:187
 msgid "valid URL"
 msgstr "URL valido"
 
-#: heritrace/templates/validation.jinja:198
+#: heritrace/templates/validation.jinja:192
 msgid "qualified name"
 msgstr "nome qualificato"
 
-#: heritrace/templates/validation.jinja:205
+#: heritrace/templates/validation.jinja:199
 msgid "valid XML name"
 msgstr "nome XML valido"
 
-#: heritrace/templates/validation.jinja:210
+#: heritrace/templates/validation.jinja:204
 msgid "list of valid XML names"
 msgstr "elenco di nomi XML validi"
 
-#: heritrace/templates/validation.jinja:214
+#: heritrace/templates/validation.jinja:208
 msgid "valid XML token"
 msgstr "token XML valido"
 
-#: heritrace/templates/validation.jinja:218
+#: heritrace/templates/validation.jinja:212
 msgid "list of valid XML tokens"
 msgstr "elenco di token XML validi"
 
-#: heritrace/templates/validation.jinja:222
+#: heritrace/templates/validation.jinja:216
 msgid "valid XML Name"
 msgstr "Nome XML valido"
 
-#: heritrace/templates/validation.jinja:232
+#: heritrace/templates/validation.jinja:226
 msgid "This field"
 msgstr "Questo campo"
 
-#: heritrace/templates/validation.jinja:236
+#: heritrace/templates/validation.jinja:230
 msgid "Invalid input. Expected"
 msgstr "Inserimento non valido. Atteso"
 
-#: heritrace/templates/validation.jinja:274
+#: heritrace/templates/validation.jinja:268
 msgid "in the"
 msgstr "nel"
 
-#: heritrace/templates/validation.jinja:312
+#: heritrace/templates/validation.jinja:306
 msgid "Unknown property"
 msgstr "Proprietà sconosciuta"
 
-#: heritrace/templates/validation.jinja:318
-#: heritrace/templates/validation.jinja:326
+#: heritrace/templates/validation.jinja:312
+#: heritrace/templates/validation.jinja:320
 msgid "The property"
 msgstr "La proprietà"
 
-#: heritrace/templates/validation.jinja:318
+#: heritrace/templates/validation.jinja:312
 msgid "has too many values"
 msgstr "ha troppi valori"
 
-#: heritrace/templates/validation.jinja:318
+#: heritrace/templates/validation.jinja:312
 msgid "Maximum allowed is"
 msgstr "Il massimo consentito è"
 
-#: heritrace/templates/validation.jinja:326
+#: heritrace/templates/validation.jinja:320
 msgid "has too few values"
 msgstr "ha troppo pochi valori"
 
-#: heritrace/templates/validation.jinja:326
+#: heritrace/templates/validation.jinja:320
 msgid "Minimum required is"
 msgstr "Il minimo richiesto è"
 
-#: heritrace/templates/validation.jinja:346
+#: heritrace/templates/validation.jinja:340
 msgid "Invalid Submission"
 msgstr "Invio non valido"
 
@@ -882,7 +957,7 @@ msgstr "Elimina Risorsa"
 
 #: heritrace/templates/entity/about.jinja:77
 #: heritrace/templates/entity/about.jinja:78
-#: heritrace/templates/entity/version.jinja:41
+#: heritrace/templates/entity/version.jinja:30
 msgid "Time Machine"
 msgstr "Macchina del tempo"
 
@@ -894,42 +969,36 @@ msgstr ""
 "Questa entità è stata eliminata. Puoi visualizzarne la cronologia usando "
 "la macchina del tempo sopra"
 
-#: heritrace/templates/entity/about.jinja:165
+#: heritrace/templates/entity/about.jinja:143
 msgid "There is no information related to this resource in the dataset"
 msgstr "Non ci sono informazioni disponibili su questa risorsa nella banca dati"
 
-#: heritrace/templates/entity/about.jinja:172
+#: heritrace/templates/entity/about.jinja:150
 msgid "Save Changes"
 msgstr "Salva Modifiche"
 
-#: heritrace/templates/entity/about.jinja:177
-#: heritrace/templates/entity/about.jinja:843
-#: heritrace/templates/entity/merge_confirm.jinja:136
-msgid "Cancel"
-msgstr "Annulla"
+#: heritrace/templates/entity/about.jinja:161
+msgid "Resources Referencing This"
+msgstr "Risorse che fanno riferimento a questa"
 
-#: heritrace/templates/entity/about.jinja:183
-msgid "Linked Resources"
-msgstr "Risorse collegate"
-
-#: heritrace/templates/entity/about.jinja:200
-#: heritrace/templates/entity/about.jinja:961
-msgid "View entity"
-msgstr "Visualizza entità"
-
-#: heritrace/templates/entity/about.jinja:213
+#: heritrace/templates/entity/about.jinja:174
 msgid "No resources reference this resource"
 msgstr "Nessuna risorsa fa riferimento a questa risorsa"
 
-#: heritrace/templates/entity/about.jinja:219
-msgid "Similar Resources"
-msgstr "Fonte primaria"
+#: heritrace/templates/entity/about.jinja:179
+#: heritrace/templates/entity/about.jinja:196
+msgid "Load More"
+msgstr "Carica altro"
 
-#: heritrace/templates/entity/about.jinja:225
+#: heritrace/templates/entity/about.jinja:186
+msgid "Similar Resources"
+msgstr "Risorse Simili"
+
+#: heritrace/templates/entity/about.jinja:192
 msgid "No potentially similar resources found"
 msgstr "Nessuna risorsa potenzialmente simile trovata"
 
-#: heritrace/templates/entity/about.jinja:277
+#: heritrace/templates/entity/about.jinja:259
 msgid ""
 "The following resources will become orphaned (they will no longer be "
 "connected to any other resource in the dataset):"
@@ -937,57 +1006,57 @@ msgstr ""
 "Le seguenti risorse diventeranno orfane (non saranno più collegate a "
 "nessun'altra risorsa nel dataset):"
 
-#: heritrace/templates/entity/about.jinja:292
+#: heritrace/templates/entity/about.jinja:274
 msgid "The following intermediate relationships (proxies) will also be removed:"
 msgstr "Le seguenti relazioni intermedie (proxy) saranno rimosse:"
 
-#: heritrace/templates/entity/about.jinja:304
+#: heritrace/templates/entity/about.jinja:286
 msgid "Would you like to delete all these entities now?"
 msgstr "Vorresti eliminare tutte queste entità adesso?"
 
-#: heritrace/templates/entity/about.jinja:307
-#: heritrace/templates/entity/about.jinja:490
+#: heritrace/templates/entity/about.jinja:289
+#: heritrace/templates/entity/about.jinja:473
 msgid "Warning"
 msgstr "Attenzione"
 
-#: heritrace/templates/entity/about.jinja:311
+#: heritrace/templates/entity/about.jinja:293
 msgid "Yes, delete affected entities"
 msgstr "Sì, elimina le entità interessate"
 
-#: heritrace/templates/entity/about.jinja:312
+#: heritrace/templates/entity/about.jinja:294
 msgid "No, keep affected entities"
 msgstr "No, mantieni le entità interessate"
 
-#: heritrace/templates/entity/about.jinja:350
+#: heritrace/templates/entity/about.jinja:332
 msgid "Checking dependencies..."
 msgstr "Controllo delle dipendenze in corso..."
 
-#: heritrace/templates/entity/about.jinja:351
+#: heritrace/templates/entity/about.jinja:333
 msgid "Checking for affected entities. Please wait..."
 msgstr "Controllo delle entità interessate. Attendere prego..."
 
-#: heritrace/templates/entity/about.jinja:393
-#: heritrace/templates/entity/about.jinja:445
+#: heritrace/templates/entity/about.jinja:376
+#: heritrace/templates/entity/about.jinja:428
 msgid "An unexpected error occurred!"
 msgstr "Si è verificato un errore inaspettato!"
 
-#: heritrace/templates/entity/about.jinja:402
+#: heritrace/templates/entity/about.jinja:385
 msgid "Processing..."
 msgstr "Elaborazione in corso..."
 
-#: heritrace/templates/entity/about.jinja:403
+#: heritrace/templates/entity/about.jinja:386
 msgid "Applying changes to the entity. Please wait..."
 msgstr "Applicazione delle modifiche all'entità. Attendere prego..."
 
-#: heritrace/templates/entity/about.jinja:423
+#: heritrace/templates/entity/about.jinja:406
 msgid "Success"
 msgstr "Operazione completata con successo"
 
-#: heritrace/templates/entity/about.jinja:461
+#: heritrace/templates/entity/about.jinja:444
 msgid "Validation Error"
 msgstr "Errore di convalida"
 
-#: heritrace/templates/entity/about.jinja:491
+#: heritrace/templates/entity/about.jinja:474
 msgid ""
 "You cannot add more properties; the limit for each property has been "
 "reached"
@@ -995,35 +1064,35 @@ msgstr ""
 "Non puoi aggiungere altre proprietà; il limite per ogni proprietà è stato"
 " raggiunto"
 
-#: heritrace/templates/entity/about.jinja:771
+#: heritrace/templates/entity/about.jinja:754
 msgid "Undo delete"
 msgstr "Annulla eliminazione"
 
-#: heritrace/templates/entity/about.jinja:772
+#: heritrace/templates/entity/about.jinja:755
 msgid "Revert"
 msgstr "Ripristina"
 
-#: heritrace/templates/entity/about.jinja:835
+#: heritrace/templates/entity/about.jinja:818
 msgid "Are you sure?"
 msgstr "Sei sicuro?"
 
-#: heritrace/templates/entity/about.jinja:836
+#: heritrace/templates/entity/about.jinja:819
 msgid "This will delete this resource and all its data"
 msgstr "Questo eliminerà questa risorsa e tutti i suoi dati"
 
-#: heritrace/templates/entity/about.jinja:837
+#: heritrace/templates/entity/about.jinja:820
 msgid "You can still restore it later using the Time Machine"
 msgstr "Puoi comunque ripristinarla in seguito utilizzando la macchina del tempo"
 
-#: heritrace/templates/entity/about.jinja:842
+#: heritrace/templates/entity/about.jinja:825
 msgid "Yes, delete it!"
 msgstr "Sì, eliminala!"
 
-#: heritrace/templates/entity/about.jinja:886
+#: heritrace/templates/entity/about.jinja:869
 msgid "No Changes Detected"
 msgstr "Nessuna modifica rilevata"
 
-#: heritrace/templates/entity/about.jinja:887
+#: heritrace/templates/entity/about.jinja:870
 msgid ""
 "Oops! It looks like you have not made any changes yet. Try updating a "
 "field first"
@@ -1031,152 +1100,165 @@ msgstr ""
 "Ops! Sembra che tu non abbia ancora apportato modifiche. Prova a "
 "modificare prima un campo"
 
-#: heritrace/templates/entity/about.jinja:921
-msgid "Similarity check not available for this entity."
-msgstr "Controllo di similarità non disponibile per questa entità."
+#: heritrace/templates/entity/linked_resources.jinja:12
+#: heritrace/templates/entity/linked_resources.jinja:22
+#: heritrace/templates/entity/similar_resources.jinja:26
+msgid "View entity"
+msgstr "Visualizza entità"
 
-#: heritrace/templates/entity/about.jinja:967
-msgid "Compare and merge with this entity"
-msgstr "Confronta e unisci con questa entità"
-
-#: heritrace/templates/entity/about.jinja:968
-msgid "Merge"
-msgstr "Unisci"
-
-#: heritrace/templates/entity/about.jinja:982
-#: heritrace/templates/entity/about.jinja:989
-msgid "Error loading similar resources."
+#: heritrace/templates/entity/linked_resources.jinja:44
+msgid "Error loading linked resources."
 msgstr "Errore nel caricamento delle risorse simili."
 
-#: heritrace/templates/entity/merge_confirm.jinja:20
+#: heritrace/templates/entity/merge_confirm.jinja:18
 msgid "No type specified"
 msgstr "Nessun tipo specificato"
 
-#: heritrace/templates/entity/merge_confirm.jinja:25
+#: heritrace/templates/entity/merge_confirm.jinja:23
 msgid "Properties"
 msgstr "Proprietà"
 
-#: heritrace/templates/entity/merge_confirm.jinja:47
+#: heritrace/templates/entity/merge_confirm.jinja:44
 msgid "No properties found for this entity."
 msgstr "Nessuna proprietà trovata per questa entità."
 
-#: heritrace/templates/entity/merge_confirm.jinja:51
+#: heritrace/templates/entity/merge_confirm.jinja:48
 msgid "View full details"
 msgstr "Visualizza dettagli completi"
 
-#: heritrace/templates/entity/merge_confirm.jinja:52
+#: heritrace/templates/entity/merge_confirm.jinja:49
 msgid "View Details"
 msgstr "Visualizza Dettagli"
 
-#: heritrace/templates/entity/merge_confirm.jinja:62
+#: heritrace/templates/entity/merge_confirm.jinja:58
 msgid "Confirm Entity Merge"
 msgstr "Conferma Unione Entità"
 
-#: heritrace/templates/entity/merge_confirm.jinja:91
+#: heritrace/templates/entity/merge_confirm.jinja:83
 msgid "Merge Into"
 msgstr "Unisci In"
 
-#: heritrace/templates/entity/merge_confirm.jinja:101
+#: heritrace/templates/entity/merge_confirm.jinja:91
 msgid "Entity 2 (Merge & Delete)"
 msgstr "Entità 2 (Unisci ed Elimina)"
 
-#: heritrace/templates/entity/merge_confirm.jinja:110
+#: heritrace/templates/entity/merge_confirm.jinja:98
 msgid "Entity 1 (Keep)"
 msgstr "Entità 1 (Mantieni)"
 
-#: heritrace/templates/entity/merge_confirm.jinja:121
+#: heritrace/templates/entity/merge_confirm.jinja:108
 msgid "Properties:"
 msgstr "Proprietà:"
 
-#: heritrace/templates/entity/merge_confirm.jinja:121
+#: heritrace/templates/entity/merge_confirm.jinja:108
 msgid "All properties from Entity 2 will be added to Entity 1."
 msgstr "Tutte le proprietà dell'Entità 2 verranno aggiunte all'Entità 1."
 
-#: heritrace/templates/entity/merge_confirm.jinja:125
+#: heritrace/templates/entity/merge_confirm.jinja:112
 msgid "References:"
 msgstr "Riferimenti:"
 
-#: heritrace/templates/entity/merge_confirm.jinja:125
+#: heritrace/templates/entity/merge_confirm.jinja:112
 msgid "Links pointing to Entity 2 will be updated to point to Entity 1."
 msgstr ""
 "I collegamenti che puntano all'Entità 2 verranno aggiornati per puntare "
 "all'Entità 1."
 
-#: heritrace/templates/entity/merge_confirm.jinja:129
+#: heritrace/templates/entity/merge_confirm.jinja:116
 msgid "Deletion:"
 msgstr "Eliminazione:"
 
-#: heritrace/templates/entity/merge_confirm.jinja:129
+#: heritrace/templates/entity/merge_confirm.jinja:116
 msgid "Entity 2 will be deleted after the merge."
 msgstr "L'Entità 2 verrà eliminata dopo l'unione."
 
-#: heritrace/templates/entity/merge_confirm.jinja:140
+#: heritrace/templates/entity/merge_confirm.jinja:125
 msgid "Confirm Merge"
 msgstr "Conferma Unione"
 
-#: heritrace/templates/entity/version.jinja:29
+#: heritrace/templates/entity/merge_confirm.jinja:142
+msgid "Proceed with Merge"
+msgstr "Procedi con l'unione"
+
+#: heritrace/templates/entity/similar_resources.jinja:9
+msgid "Similarity check not available for this entity."
+msgstr "Controllo di similarità non disponibile per questa entità."
+
+#: heritrace/templates/entity/similar_resources.jinja:32
+msgid "Compare and merge with this entity"
+msgstr "Confronta e unisci con questa entità"
+
+#: heritrace/templates/entity/similar_resources.jinja:33
+msgid "Merge"
+msgstr "Unisci"
+
+#: heritrace/templates/entity/similar_resources.jinja:56
+msgid "Error loading similar resources."
+msgstr "Errore nel caricamento delle risorse simili."
+
+#: heritrace/templates/entity/version.jinja:18
 #, python-format
 msgid "History of <em>%(subject)s</em>"
 msgstr "Cronologia di <em>%(subject)s</em>"
 
-#: heritrace/templates/entity/version.jinja:30
+#: heritrace/templates/entity/version.jinja:19
 #, python-format
 msgid "Version %(version_number)s of <em>%(subject)s</em>"
 msgstr "Versione %(version_number)s di <em>%(subject)s</em>"
 
-#: heritrace/templates/entity/version.jinja:34 heritrace/utils/filters.py:143
+#: heritrace/templates/entity/version.jinja:23 heritrace/utils/filters.py:215
 msgid "Version"
 msgstr "Versione"
 
-#: heritrace/templates/entity/version.jinja:34
+#: heritrace/templates/entity/version.jinja:23
 msgid "of"
 msgstr "di"
 
-#: heritrace/templates/entity/version.jinja:49
+#: heritrace/templates/entity/version.jinja:38
 msgid "Restore this Version"
 msgstr "Ripristina questa versione"
 
-#: heritrace/templates/entity/version.jinja:62
-#: heritrace/templates/entity/version.jinja:67
+#: heritrace/templates/entity/version.jinja:51
+#: heritrace/templates/entity/version.jinja:56
 msgid "Previous version"
 msgstr "Versione precedente"
 
-#: heritrace/templates/entity/version.jinja:77
-#: heritrace/templates/entity/version.jinja:82
+#: heritrace/templates/entity/version.jinja:66
+#: heritrace/templates/entity/version.jinja:71
 msgid "Next version"
 msgstr "Versione successiva"
 
-#: heritrace/templates/entity/version.jinja:94
+#: heritrace/templates/entity/version.jinja:83
 msgid "Metadata of snapshot"
 msgstr "Metadati della versione numero"
 
-#: heritrace/templates/entity/version.jinja:97
+#: heritrace/templates/entity/version.jinja:86
 msgid "Generation time"
 msgstr "Data di generazione"
 
-#: heritrace/templates/entity/version.jinja:99
+#: heritrace/templates/entity/version.jinja:88
 msgid "Invalidation time"
 msgstr "Data di invalidazione"
 
-#: heritrace/templates/entity/version.jinja:102
+#: heritrace/templates/entity/version.jinja:91
 msgid "Attributed to"
 msgstr "Agente responsabile"
 
-#: heritrace/templates/entity/version.jinja:139
+#: heritrace/templates/entity/version.jinja:128
 msgid "This is a deletion snapshot. The entity was deleted at this point in time"
 msgstr ""
 "Questa è un'istantanea di eliminazione. L'entità è stata eliminata in "
 "questo momento"
 
-#: heritrace/templates/entity/version.jinja:143
+#: heritrace/templates/entity/version.jinja:132
 msgid "This snapshot does not exist"
 msgstr "Questa versione non esiste"
 
-#: heritrace/templates/entity/version.jinja:155
+#: heritrace/templates/entity/version.jinja:144
 msgid "Restoring..."
 msgstr "Ripristino in corso..."
 
-#: heritrace/templates/entity/version.jinja:156
+#: heritrace/templates/entity/version.jinja:145
 msgid "Restoring this version. Please wait..."
 msgstr "Ripristino di questa versione in corso. Attendere prego..."
 
@@ -1192,35 +1274,39 @@ msgstr "Errore 404"
 msgid "The page you're loking for can't be found"
 msgstr "La pagina che stai cercando non esiste"
 
-#: heritrace/utils/filters.py:69
+#: heritrace/utils/filters.py:92
 #, python-format
 msgid "Link to the entity %(entity)s"
 msgstr "Reindirizzamento all'entità %(entity)s"
 
-#: heritrace/utils/filters.py:138
+#: heritrace/utils/filters.py:210
 msgid "Unknown"
 msgstr "Sconosciuta"
 
-#: heritrace/utils/filters.py:142 heritrace/utils/filters.py:150
+#: heritrace/utils/filters.py:214 heritrace/utils/filters.py:222
 msgid "Link to the primary source description"
 msgstr "Link alla descrizione della fonte primaria"
 
-#: heritrace/utils/shacl_utils.py:1037
+#: heritrace/utils/shacl_validation.py:265
+msgid "No entity type specified"
+msgstr "Nessun tipo di entità specificato"
+
+#: heritrace/utils/shacl_validation.py:273
 #, python-format
 msgid "The property %(predicate)s is not allowed for resources of type %(s_type)s"
 msgstr "%(predicate)s non è un metadato valido per risorse di tipo %(s_type)s"
 
-#: heritrace/utils/shacl_utils.py:1072
+#: heritrace/utils/shacl_validation.py:308
 #, python-format
 msgid "The property %(predicate)s allows at most %(max_count)s %(value)s"
 msgstr "La proprietà %(predicate)s permette al massimo %(max_count)s %(value)s"
 
-#: heritrace/utils/shacl_utils.py:1084
+#: heritrace/utils/shacl_validation.py:320
 #, python-format
 msgid "The property %(predicate)s requires at least %(min_count)s %(value)s"
 msgstr "La proprietà %(predicate)s richiede almeno %(min_count)s %(value)s"
 
-#: heritrace/utils/shacl_utils.py:1105
+#: heritrace/utils/shacl_validation.py:341
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
@@ -1230,8 +1316,9 @@ msgstr ""
 "<code>%(new_value)s</code> non è un valore valido. La proprietà "
 "<code>%(property)s</code> richiede uno dei seguenti valori: %(o_values)s"
 
-#: heritrace/utils/shacl_utils.py:1146 heritrace/utils/shacl_utils.py:1167
-#: heritrace/utils/shacl_utils.py:1189
+#: heritrace/utils/shacl_validation.py:382
+#: heritrace/utils/shacl_validation.py:401
+#: heritrace/utils/shacl_validation.py:421
 #, python-format
 msgid ""
 "<code>%(new_value)s</code> is not a valid value. The "
@@ -1239,4 +1326,34 @@ msgid ""
 msgstr ""
 "<code>%(new_value)s</code> non è un valore valido. "
 "<code>%(property)s</code> richiede valori di tipo %(o_types)s"
+
+#~ msgid "Invalid entity type selected: %(entity_type)s"
+#~ msgstr "Tipo di entità selezionato non valido: %(entity_type)s"
+
+#~ msgid "Cannot merge an entity with itself."
+#~ msgstr "Impossibile unire un'entità con se stessa."
+
+#~ msgid "Could not identify the responsible agent. Merge aborted."
+#~ msgstr "Impossibile identificare l'agente responsabile. Unione annullata."
+
+#~ msgid "Server configuration error. Merge aborted."
+#~ msgstr "Errore di configurazione del server. Unione annullata."
+
+#~ msgid "Cannot compare or merge an entity with itself."
+#~ msgstr "Impossibile confrontare o unire un'entità con se stessa."
+
+#~ msgid "Unknown field"
+#~ msgstr "Campo sconosciuto"
+
+#~ msgid "Unknown URL field"
+#~ msgstr "Campo URL sconosciuto"
+
+#~ msgid "Linked Resources"
+#~ msgstr "Risorse collegate"
+
+#~ msgid "At least one property with a value is required to create an entity"
+#~ msgstr "È richiesta almeno una proprietà con un valore per creare un'entità"
+
+#~ msgid "At least %(min_count)d item(s) required"
+#~ msgstr "Sono richiesti almeno %(min_count)d elementi"
 
