@@ -2,7 +2,7 @@
 
 [<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
 [![Tests](https://github.com/opencitations/heritrace/actions/workflows/python-tests.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/python-tests.yml)
-[![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-heritrace-coverage-main)](https://opencitations.github.io/heritrace/)
+[![Coverage](https://byob.yarr.is/arcangelo7/badges/opencitations-heritrace-coverage-main)](https://opencitations.github.io/heritrace/coverage/)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/arcangelo7/heritrace)
 [![Flask](https://img.shields.io/badge/Flask-2.3.3-red)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/license-ISC-green)](https://github.com/arcangelo7/heritrace)
@@ -262,7 +262,6 @@ Here are examples of the three possible targeting approaches:
   shouldBeDisplayed: true
   # other properties...
 ```
-
 Here's a complete example configuration for a Journal Article:
 
 ```yaml
@@ -609,3 +608,4 @@ The project is configured with GitHub Actions to automatically run tests on ever
 - Generates a coverage badge for each branch
 
 For more details on the CI/CD setup, see [CI/CD Setup Documentation](.github/CI_CD_SETUP.md).
+
