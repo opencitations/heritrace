@@ -27,7 +27,9 @@ meta_uri_generator = MetaURIGenerator(
 
 # Paths to resource files
 shacl_path = os.path.join(BASE_HERITRACE_DIR, "resources", "shacl.ttl")
-display_rules_path = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
+display_rules_path = os.path.join(
+    BASE_HERITRACE_DIR, "resources", "display_rules.yaml"
+)
 
 
 class TestConfig(object):

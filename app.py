@@ -90,4 +90,13 @@ if __name__ == '__main__':
             'ssl_context': get_ssl_context()
         })
         
+    extra_files = []
+    if app.config.get('SHACL_PATH') and os.path.exists(app.config['SHACL_PATH']):
+        extra_files.append(app.config['SHACL_PATH'])
+    if app.config.get('DISPLAY_RULES_PATH') and os.path.exists(app.config['DISPLAY_RULES_PATH']):
+        extra_files.append(app.config['DISPLAY_RULES_PATH'])
+    
+    if extra_files:
+        run_args['extra_files'] = extra_files
+
     app.run(**run_args)

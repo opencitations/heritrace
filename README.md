@@ -458,7 +458,7 @@ Key configuration elements:
   * `property`: The property to sort by
   * `sortOrder`: Available sort directions (ascending/descending)
 
-> 💡 **Pro Tip**: YAML supports anchors and references to reduce duplication in your configuration file. Since display_rules.yaml can contain many classes with repeated elements, you can define queries and common properties in a single place and reuse them throughout the file:
+> 💡 **Pro Tip**: YAML supports anchors and references to reduce duplication in your configuration file. Since `resources/display_rules.yaml` can contain many classes with repeated elements, you can define queries and common properties in a single place and reuse them throughout the file:
 > 
 > ```yaml
 > # Define reusable queries at the top

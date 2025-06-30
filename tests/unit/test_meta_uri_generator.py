@@ -139,7 +139,6 @@ def test_initialize_counters_with_valid_data(uri_generator_setup):
         call(15, "http://purl.org/spar/fabio/Article"),
         call(15, "http://purl.org/spar/fabio/JournalArticle"),
         call(15, "http://purl.org/spar/fabio/Book"),
-        call(15, "http://purl.org/spar/fabio/BookChapter"),
         call(15, "http://purl.org/spar/fabio/JournalIssue"),
         call(15, "http://purl.org/spar/fabio/JournalVolume"),
         call(15, "http://purl.org/spar/fabio/Journal"),

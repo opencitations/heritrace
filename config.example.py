@@ -7,9 +7,16 @@ from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStra
 # Base directory for the application
 BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# Initialize counter handler for URI generation
+# Redis configuration - will be resolved at runtime
+REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
+REDIS_DB = int(os.environ.get('REDIS_DB', '0'))
+
+# Initialize counter handler for URI generation - using environment variables
 counter_handler = MetaCounterHandler(
-    os.path.join(BASE_HERITRACE_DIR, "counter_handler.db")
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    db=REDIS_DB
 )
 
 # URI generators for different types of resources
@@ -20,7 +27,7 @@ meta_uri_generator = MetaURIGenerator(
 
 # Paths to resource files
 shacl_path = os.path.join(BASE_HERITRACE_DIR, "resources", "shacl.ttl")
-display_rules_path = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
+display_rules_path = os.path.join(BASE_HERITRACE_DIR, "resources", "display_rules.yaml")
 
 
 class Config(object):
@@ -43,6 +50,9 @@ class Config(object):
     # Database endpoints
     DATASET_DB_URL = "http://localhost:8999/sparql"
     PROVENANCE_DB_URL = "http://localhost:8998/sparql"
+
+    # Redis configuration
+    REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
     # Database store types
     DATASET_IS_QUADSTORE = True

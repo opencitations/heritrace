@@ -6,7 +6,7 @@ from flask import Flask
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_display import (
     apply_display_rules_to_nested_shapes, execute_shacl_query,
-    get_object_class, get_property_order, order_fields, process_query_results)
+    get_object_class, order_fields, process_query_results)
 from heritrace.utils.shacl_utils import (get_form_fields_from_shacl,
                                          process_nested_shapes)
 from heritrace.utils.shacl_validation import (convert_to_matching_class,
@@ -768,41 +768,6 @@ def test_convert_to_matching_class_edge_cases(app: Flask):
                                              entity_types=["http://example.org/entity"])
             assert isinstance(result, URIRef)
             assert str(result) == "http://example.org/test"
-
-
-def test_get_property_order(app: Flask):
-    """Test the get_property_order function."""
-    with app.app_context():
-        # Test with matching display rules
-        display_rules = [
-            {
-                "class": "http://example.org/class",
-                "propertyOrder": [
-                    "http://example.org/property1",
-                    "http://example.org/property2"
-                ]
-            }
-        ]
-        
-        result = get_property_order("http://example.org/class", display_rules)
-        assert result == ["http://example.org/property1", "http://example.org/property2"]
-        
-        # Test with non-matching class
-        result = get_property_order("http://example.org/other-class", display_rules)
-        assert result == []
-        
-        # Test with no propertyOrder
-        display_rules = [
-            {
-                "class": "http://example.org/class"
-            }
-        ]
-        result = get_property_order("http://example.org/class", display_rules)
-        assert result == []
-        
-        # Test with None display rules
-        result = get_property_order("http://example.org/class", None)
-        assert result == []
 
 
 def test_order_fields(app: Flask):

@@ -1,9 +1,11 @@
 import os
 from datetime import timedelta
 
-from flask import Blueprint, current_app, flash, redirect, request, session, url_for
+from flask import (Blueprint, current_app, flash, redirect, request, session,
+                   url_for)
 from flask_babel import gettext
-from flask_login import current_user, login_required, login_user, logout_user
+from flask_login import current_user, login_user, logout_user
+from heritrace.apis.orcid import extract_orcid_id, is_orcid_url
 from heritrace.models import User
 from requests_oauthlib import OAuth2Session
 
@@ -54,11 +56,18 @@ def callback():
         return redirect(url_for("auth.login"))
     orcid_id = token["orcid"]
 
-    if orcid_id not in current_app.config["ORCID_WHITELIST"]:
-        flash(
-            gettext("Your ORCID is not authorized to access this application"), "danger"
-        )
-        return redirect(url_for("auth.login"))
+    whitelist = current_app.config["ORCID_WHITELIST"]
+    if whitelist:
+        normalized_whitelist = {
+            extract_orcid_id(item) if is_orcid_url(item) else item for item in whitelist
+        }
+        if orcid_id not in normalized_whitelist:
+            flash(
+                gettext("Your ORCID is not authorized to access this application"),
+                "danger",
+            )
+            return redirect(url_for("auth.login"))
+
     session["user_name"] = token["name"]
     user = User(id=orcid_id, name=token["name"], orcid=orcid_id)
     session.permanent = True

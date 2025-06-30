@@ -8,7 +8,7 @@ def is_orcid_url(url):
     """Check if a URL is an ORCID URL."""
     try:
         parsed = urlparse(url)
-        return parsed.netloc == "orcid.org" or parsed.netloc == "https://orcid.org"
+        return parsed.netloc == "orcid.org"
     except:
         return False
 

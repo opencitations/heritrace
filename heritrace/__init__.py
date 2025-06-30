@@ -1,9 +1,11 @@
+import logging
+import sys
+
 from flask import Flask
 from flask_babel import Babel
 from flask_login import LoginManager
 from heritrace.cli import register_cli_commands
 from redis import Redis
-import logging
 
 
 def create_app(config_object=None):
@@ -18,19 +20,22 @@ def create_app(config_object=None):
     )
     app.logger.setLevel(logging.INFO)
 
-    babel = Babel()
-    login_manager = LoginManager()
-
-    redis_url = app.config.get('REDIS_URL', 'redis://redis:6379') # Default to production if not set
-    redis_client = Redis.from_url(redis_url, decode_responses=True)
-
-    from heritrace.extensions import init_extensions
-    from heritrace.routes import register_blueprints
-
-    init_extensions(app, babel, login_manager, redis_client)
-
-    register_blueprints(app)
-
     register_cli_commands(app)
+
+    is_translate_command = 'translate' in sys.argv
+
+    if not is_translate_command:
+        babel = Babel()
+        login_manager = LoginManager()
+
+        redis_url = app.config.get('REDIS_URL', 'redis://redis:6379') # Default to production if not set
+        redis_client = Redis.from_url(redis_url, decode_responses=True)
+
+        from heritrace.extensions import init_extensions
+        from heritrace.routes import register_blueprints
+
+        init_extensions(app, babel, login_manager, redis_client)
+
+        register_blueprints(app)
 
     return app

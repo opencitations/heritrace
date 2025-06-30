@@ -13,8 +13,10 @@ services:
       - ./config.py:/app/config.py
       - ./pyproject.toml:/app/pyproject.toml
       - ./poetry.lock:/app/poetry.lock
-      - ./display_rules.yaml:/app/display_rules.yaml
+      - ./resources/shacl.ttl:/app/resources/shacl.ttl
+      - ./resources/display_rules.yaml:/app/resources/display_rules.yaml
       - ./change_tracking.json:/app/change_tracking.json
+      - ./cache.json:/app/cache.json
       - ./babel:/app/babel
       - ./webpack.config.js:/app/webpack.config.js
       - docker-venv:/app/.venv
