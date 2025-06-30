@@ -74,16 +74,12 @@ jobs:
       run: |
         poetry run coverage html -d htmlcov
         
-    # Configure GitHub Pages
-    - name: Setup Pages
-      if: matrix.python-version == '3.10'
-      uses: actions/configure-pages@v5
-
     # Upload coverage report as Pages artifact
-    - name: Upload Pages artifact
+    - name: Upload coverage artifact
       if: matrix.python-version == '3.10' && github.ref == 'refs/heads/main'
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
+        name: coverage-report
         path: ${{ env.COVERAGE_REPORT_PATH }}
         
     - name: Generate coverage badge
@@ -118,15 +114,46 @@ jobs:
         actor: arcangelo7
 
   # Add a new job to deploy to GitHub Pages
-  deploy-coverage:
+  deploy-pages:
     needs: CheckCoverage
+    if: always() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    
+    permissions:
+      pages: write
+      id-token: write
     environment:
-      name: ${{ github.repository }}/pages
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-      
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install and Build Docs
+        working-directory: docs
+        run: |
+          npm install
+          npm run build
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: docs/dist/coverage
+        continue-on-error: true
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/dist
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
