@@ -1,0 +1,47 @@
+---
+title: Merging Records
+description: How to merge duplicate entities in HERITRACE.
+---
+import { Image } from 'astro:assets';
+import confirmMergeImage from '../../../assets/confirm_merge.png';
+import similarResourcesImage from '../../../assets/similar_resources.png';
+
+Merging is a powerful tool in HERITRACE for cleaning up your data by consolidating duplicate records. This guide explains the entire process.
+
+### Step 1: Identify and Initiate the Merge
+
+To begin a merge, you first need to navigate to the page of the entity you want to *keep*.
+
+<Image src={similarResourcesImage} alt="The 'Similar Resources' section on an entity page, showing potential duplicates with merge buttons." width={800} height={600} />
+
+1.  From that entity's page, scroll down to the **"Similar Resources"** section at the bottom. This area lists other records that HERITRACE has identified as potential duplicates.
+2.  Review the list and find the record you want to merge into the current one.
+3.  Click the **"Merge"** button next to that record.
+
+### Step 2: Confirm the Merge
+
+After initiating the merge, you will be taken to a confirmation screen that summarizes the action.
+
+<Image src={confirmMergeImage} alt="HERITRACE confirmation screen for merging two entities" width={800} height={600} />
+
+This screen clearly shows:
+-   **Entity 2 (Merge & Delete)**: The record that will be deleted. This is the entity you selected from the "Similar Resources" list.
+-   **Entity 1 (Keep)**: The primary record that will be kept and updated. This is the entity whose page you started on.
+
+Below the two boxes, the system explains the rules that will be applied automatically:
+
+-   **Properties**: All properties from Entity 2 will be added to Entity 1.
+-   **References**: Any links from other records that point to Entity 2 will be updated to point to Entity 1.
+-   **Deletion**: Entity 2 will be deleted after the merge is complete.
+
+### Step 3: Complete the Merge
+
+Click the **"Confirm Merge"** button to finalize the process. HERITRACE will then perform the actions as described.
+
+:::tip[Is it reversible?]
+Merging is a significant action, but it is fully reversible. If you make a mistake, you can easily undo the merge by using the [**Time Machine**](./tracking-changes).
+
+Simply restore the entity you kept to the version before the merge, and HERITRACE will automatically restore the deleted entity and all its previous connections.
+:::
+
+This feature is essential for maintaining a high-quality, accurate, and non-redundant collection. 

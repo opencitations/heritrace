@@ -1,0 +1,232 @@
+---
+title: SHACL Configuration
+description: Define your data model using SHACL for automatic form generation and validation.
+---
+import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Aside type="caution" title="Supported Features">
+HERITRACE implements a specific subset of the SHACL specification. This document outlines the supported features and patterns. Constructs not described here may not be supported. We are continuously working to expand SHACL compatibility in future updates.
+</Aside>
+
+The SHACL (Shapes Constraint Language) file is a cornerstone of HERITRACE, serving two primary functions:
+
+-   **Automatic Form Generation**: The application reads your SHACL schema to dynamically generate forms for creating and editing entities. It uses property definitions to create the appropriate input fields, labels, and validation hints.
+-   **Data Validation**: It enforces the constraints defined in the schema—such as data types, cardinality, and value ranges—to ensure the integrity of all data entered into the system.
+
+In short, your SHACL file acts as a single source of truth that dictates both the data entry interface and the validation rules.
+
+## Official Documentation
+
+For a complete understanding of SHACL and its advanced features, refer to the official W3C documentation:
+
+- <a href="https://www.w3.org/TR/shacl/" target="_blank" rel="noopener noreferrer">SHACL Specification</a>: The official recommendation for the Shapes Constraint Language.
+- <a href="https://www.w3.org/TR/shacl-af/" target="_blank" rel="noopener noreferrer">SHACL Advanced Features</a>: A note detailing SPARQL-based constraints and other extensions.
+
+## File Location
+
+The SHACL schema is located at `resources/shacl.ttl`. You can configure the path in `config.py`:
+```python
+SHACL_PATH = 'resources/shacl.ttl'
+```
+
+## Core Concepts
+
+### Namespaces
+Define the ontologies and vocabularies you'll use at the top of your file.
+
+```ttl
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Domain-specific vocabularies
+@prefix datacite: <http://purl.org/spar/datacite/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix fabio: <http://purl.org/spar/fabio/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix pro: <http://purl.org/spar/pro/> .
+@prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
+```
+
+### Shape Definition
+Each shape targets a specific class and defines its properties.
+
+```ttl
+schema:JournalArticleShape
+    a sh:NodeShape ;
+    sh:targetClass fabio:JournalArticle ;
+    sh:property [
+        # Property constraints go here
+    ] .
+```
+
+## Property Constraints
+
+SHACL constraints define the validation rules for properties on a targeted class.
+
+### Cardinality (`sh:minCount` & `sh:maxCount`)
+Control how many values a property can have.
+
+- `sh:minCount`: The minimum number of values. A value of `1` or more makes the property required.
+- `sh:maxCount`: The maximum number of values. A value of `1` restricts it to a single value.
+
+```ttl
+# A required, single-value property
+sh:property [
+    sh:path dcterms:title ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+] .
+
+# An optional, multi-value property
+sh:property [
+    sh:path prism:keyword ;
+    sh:minCount 0 ; # Not required
+    # No maxCount means unlimited values
+] .
+```
+
+### Datatype (`sh:datatype`)
+Specify the expected data type for a literal value. You can provide alternatives using `sh:or`.
+
+```ttl
+# String value
+sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+] .
+
+# Date value with multiple allowed formats
+sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+        [ sh:datatype xsd:date ]        # 2024-01-15
+        [ sh:datatype xsd:gYearMonth ]  # 2024-01
+        [ sh:datatype xsd:gYear ]       # 2024
+    ) ;
+] .
+```
+
+### Value Range (`sh:in` & `sh:hasValue`)
+Restrict property values to a specific set of options.
+
+- `sh:hasValue`: The property must have at least one value that equals the specified node.
+- `sh:in`: The property value must be one of the members of a provided list.
+
+```ttl
+# The value must be exactly pro:author
+sh:property [
+    sh:path pro:withRole ;
+    sh:hasValue pro:author ;
+] .
+
+# The value must be one of the specified identifier schemes
+sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:in ( datacite:doi datacite:pmid datacite:pmcid ) ;
+] .
+```
+
+### Shape Reference (`sh:node`)
+Specify that a property's value must conform to another shape. This is used to validate complex objects or relationships.
+
+```ttl
+# The value for 'hasIdentifier' must be an entity that validates
+# against the 'JournalArticleIdentifierShape'.
+sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalArticleIdentifierShape ;
+] .
+```
+
+### Conditional Validation (`sh:condition`)
+Apply a constraint only when a specific condition is met. This is useful for creating validation rules that depend on the value of another property.
+
+In the example below, the `sh:pattern` is only checked if the identifier's scheme (`datacite:usesIdentifierScheme`) is `datacite:doi`.
+
+```ttl
+schema:JournalArticleIdentifierShape
+    a sh:NodeShape;
+    sh:targetClass datacite:Identifier;
+    sh:property [
+        sh:path literal:hasLiteralValue;
+        sh:datatype xsd:string;
+        # This constraint only applies if the condition below is met
+        sh:condition [
+            sh:path datacite:usesIdentifierScheme;
+            sh:hasValue datacite:doi;
+        ];
+        # The pattern to validate against
+        sh:pattern "^10\\..+/.+";
+        sh:message "DOI is not valid.";
+    ].
+```
+
+### Pattern Matching (`sh:pattern` & `sh:message`)
+Use regular expressions to validate the format of string literals. You can provide a custom `sh:message` to guide users.
+
+```ttl
+# Validate ISSN format
+sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:condition [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:issn ;
+    ] ;
+    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
+    sh:message "ISSN must be in the format NNNN-NNNC." ;
+] .
+```
+
+## Complex Relationships: The Proxy Pattern
+
+HERITRACE is data-model-agnostic. To handle complex relationships that require their own properties (for instance, defining a person's role in a project or the time frame of a collaboration), you can implement a "proxy pattern." This involves using an intermediate entity to link two other entities, where the intermediate entity holds the attributes of the relationship.
+
+You can define this entire structure using SHACL. The application will interpret it to generate the appropriate forms and validation. The example below shows how to model an author's role, but the same pattern can be applied to any similar scenario in your data model.
+
+Here is how the pattern is implemented:
+
+1.  **Link to the Proxy Shape**: From your primary entity's shape (e.g., a `JournalArticleShape`), use `sh:node` to point to a shape that defines the proxy entity (e.g., `AuthorShape`).
+
+    ```ttl
+    sh:property [
+        sh:path pro:isDocumentContextFor ;
+        sh:node schema:AuthorShape ;
+    ] .
+    ```
+
+2.  **Define the Proxy Shape**: Create the shape for the intermediate entity (e.g., `AuthorShape`). This shape should:
+    - Target the class of the intermediate entity (e.g., `pro:RoleInTime`).
+    - Define constraints for the relationship's attributes (e.g., `sh:hasValue pro:author`).
+    - Link to the final target entity's shape (e.g., `sh:node schema:ResponsibleAgentShape`).
+
+    ```ttl
+    schema:AuthorShape
+        a sh:NodeShape ;
+        sh:targetClass pro:RoleInTime ;
+        sh:property [
+            sh:path pro:withRole ;
+            sh:hasValue pro:author ;
+        ] ;
+        sh:property [
+            sh:path pro:isHeldBy ;
+            sh:node schema:ResponsibleAgentShape ;
+        ] .
+    ```
+
+<Aside type="note" title="Proxy Entities in HERITRACE">
+This pattern is central to how HERITRACE manages complex data.
+- **[Configure proxy relationships in the UI](/configuration/display-rules/#relationship-properties)**
+- **[Manage proxy deletion behavior in settings](/configuration/app-settings/#entity-handling-strategies)**
+</Aside>
+
+## Testing and Updating
+
+- **Reloading**: When running in development mode, the application will automatically restart when it detects changes to `shacl.ttl`, applying your updates instantly.
+- **Update Display Rules**: If you modify properties, remember to update `resources/display_rules.yaml` to reflect those changes in the user interface.
+
+<Aside type="caution" title="Breaking Changes">
+Schema changes can affect existing data. Always backup your database before making significant schema modifications.
+</Aside> 

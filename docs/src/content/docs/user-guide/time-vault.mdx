@@ -1,0 +1,27 @@
+---
+title: Using the Time Vault
+description: How to manage and restore deleted entities from the Time Vault in HERITRACE.
+---
+import { Image } from 'astro:assets';
+import timeVaultImage from '../../../assets/time_vault.png';
+
+The Time Vault in HERITRACE acts as a "recycle bin" or a special catalogue for all entities that have been deleted. This ensures that no data is ever permanently lost and can always be recovered.
+
+<Image src={timeVaultImage} alt="The HERITRACE Time Vault interface, showing a list of deleted resources" width={800} height={600} />
+
+### Navigating the Time Vault
+
+The Time Vault's interface is intentionally similar to the main catalogue, making it easy to use:
+
+-   **Categories Panel**: On the left, you can browse deleted items by their category.
+-   **Deleted Resources List**: On the right, you see the list of deleted items for the selected category.
+-   **Sorting**: You can sort the items using various criteria. In addition to the standard options, you can also sort by **Deletion Time**, which is useful for finding recently deleted items.
+
+### Restoring Deleted Resources
+
+For each item in the list, you have two primary actions:
+
+-   **View Last Valid Version**: This allows you to see the state of the resource right before it was deleted.
+-   **Restore**: This button will immediately restore the entity, making it active in your collection again and removing it from the Time Vault.
+
+This feature provides a safety net, giving you the confidence to manage your collection without fear of irreversible mistakes. 

@@ -1,0 +1,48 @@
+---
+title: Tracking Changes
+description: Using the Time Machine and Time Vault to track history and manage versions in HERITRACE.
+---
+import { Image } from 'astro:assets';
+import timeMachineImage from '../../../assets/time_machine.png';
+import versionImage from '../../../assets/version.png';
+import viewVersionImage from '../../../assets/view_version.png';
+
+HERITRACE meticulously tracks every change made to your data, ensuring a transparent and auditable history for every entity.
+
+### The Time Machine
+
+The "Time Machine" provides a complete version history for each entity. Every time an entity is created, modified, or deleted, HERITRACE generates a new snapshot.
+
+<Image src={timeMachineImage} alt="HERITRACE Time Machine interface" width={800} height={600} />
+
+Each snapshot in the timeline contains detailed provenance metadata:
+-   **Timestamp**: When the change was made.
+-   **Responsible Agent**: Who made the change (logged in via ORCID).
+-   **Primary Source**: The data source that informed the change.
+-   **Modifications**: A clear list of what was added or removed.
+
+### How to View and Restore a Previous Version
+
+Restoring an older version is a safe, two-step process that allows you to inspect a version before you commit to restoring it.
+
+**Step 1: View a Specific Version**
+
+From the timeline, find the snapshot you are interested in and click the **"View version"** button.
+
+<Image src={viewVersionImage} alt="A snapshot in the Time Machine timeline with the 'View version' button highlighted." width={800} height={600} />
+
+**Step 2: Inspect and Restore**
+
+This will take you to a dedicated page showing the entity *exactly as it existed at that point in time*. The page displays a complete reconstruction of the resource, including all its metadata and linked entities from that specific snapshot.
+
+<Image src={versionImage} alt="The detailed page for a specific historical version of a resource." width={800} height={600} />
+
+On this page, you can:
+-   Review the historical state of the entity in detail.
+-   Click the **"Restore this Version"** button to revert the entity to this state.
+
+When you restore a version, HERITRACE also ensures that all linked resources are adjusted accordingly to maintain data consistency across your collection.
+
+### The Time Vault
+
+Deleted entities are not permanently removed from HERITRACE. Instead, they are moved to the [**Time Vault**](../time-vault). This acts as a "recycle bin," allowing you to browse deleted items, review their history, and restore them if needed. This feature ensures that no data is ever lost accidentally. 

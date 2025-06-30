@@ -1,0 +1,217 @@
+---
+title: Running Tests
+description: Execute automated tests and ensure code quality in HERITRACE
+---
+
+import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
+
+HERITRACE uses pytest for testing. This guide covers running tests locally and understanding the testing infrastructure.
+
+## Test Overview
+
+### Test Types
+
+- **Unit Tests**: Test individual functions and classes
+- **Integration Tests**: Test component interactions and database operations
+
+### Test Structure
+
+```
+tests/
+├── conftest.py                      # Pytest configuration and fixtures
+├── unit/                           # Unit tests
+│   ├── test_api.py
+│   ├── test_auth.py
+│   ├── test_editor.py
+│   └── ...
+├── integration/                    # Integration tests
+│   ├── test_entity_integration.py
+│   ├── test_shacl_utils_integration.py
+│   └── ...
+```
+
+## Setting Up Test Environment
+
+### Prerequisites
+
+- Poetry for dependency management
+- Docker for test databases
+- Python 3.10+ (supports 3.10, 3.11, 3.12, 3.13)
+
+### Test Database Setup
+
+Tests require dedicated databases running on different ports:
+
+<Tabs>
+  <TabItem label="Linux/MacOS">
+    ```bash
+    # Make scripts executable
+    chmod +x ./tests/start-test-databases.sh
+    chmod +x ./tests/stop-test-databases.sh
+    
+    # Start test databases
+    ./tests/start-test-databases.sh
+    ```
+    
+    This creates:
+    - Test Dataset database on port 9999
+    - Test Provenance database on port 9998
+    - Test Redis instance on port 6380 (database 1)
+  </TabItem>
+  <TabItem label="Windows PowerShell">
+    ```powershell
+    # Start test databases
+    .\tests\Start-TestDatabases.ps1
+    ```
+    
+    This creates:
+    - Test Dataset database on port 9999
+    - Test Provenance database on port 9998
+    - Test Redis instance on port 6380 (database 1)
+  </TabItem>
+</Tabs>
+
+<Aside type="caution" title="Port Separation">
+Test databases use different ports (9998, 9999) than development databases (8998, 8999) to avoid conflicts.
+</Aside>
+
+## Running Tests
+
+### Install Dependencies
+
+```bash
+# Install all dependencies including development tools
+poetry install --with dev
+```
+
+### Basic Test Execution
+
+<Tabs>
+  <TabItem label="All Tests">
+    ```bash
+    # Run all tests
+    poetry run pytest
+    
+    # Run with verbose output
+    poetry run pytest -v
+    
+    # Run with detailed output
+    poetry run pytest -vvv
+    ```
+  </TabItem>
+  <TabItem label="Specific Test Files">
+    ```bash
+    # Run unit tests only
+    poetry run pytest tests/unit/
+    
+    # Run integration tests only
+    poetry run pytest tests/integration/
+    
+    # Run specific test file
+    poetry run pytest tests/unit/test_api.py
+    ```
+  </TabItem>
+  <TabItem label="Specific Test Cases">
+    ```bash
+    # Run specific test function
+    poetry run pytest tests/unit/test_api.py::test_get_entity
+    
+    # Run tests matching pattern
+    poetry run pytest -k "test_entity"
+    
+    # Run tests with specific marker
+    poetry run pytest -m "integration"
+    ```
+  </TabItem>
+</Tabs>
+
+### Coverage Analysis
+
+<Tabs>
+  <TabItem label="Basic Coverage">
+    ```bash
+    # Run tests with coverage
+    poetry run pytest --cov=heritrace
+    
+    # Coverage with missing lines
+    poetry run pytest --cov=heritrace --cov-report=term-missing
+    ```
+  </TabItem>
+  <TabItem label="HTML Coverage Report">
+    ```bash
+    # Generate HTML coverage report
+    poetry run pytest --cov=heritrace --cov-report=html
+    
+    # Open the report
+    open htmlcov/index.html  # macOS
+    xdg-open htmlcov/index.html  # Linux
+    start htmlcov/index.html  # Windows
+    ```
+  </TabItem>
+  <TabItem label="XML Coverage">
+    ```bash
+    # Generate XML coverage (for CI/CD)
+    poetry run pytest --cov=heritrace --cov-report=xml
+    ```
+  </TabItem>
+</Tabs>
+
+## Test Configuration
+
+### Test Settings
+
+Tests use a separate configuration file:
+
+```python
+# tests/test_config.py
+class TestConfig(Config):
+    TESTING = True
+    DATASET_DB_URL = 'http://localhost:9999/sparql'
+    PROVENANCE_DB_URL = 'http://localhost:9998/sparql'
+    SECRET_KEY = 'test-secret-key'
+    
+    # Disable external services in tests
+    ORCID_CLIENT_ID = 'test-client-id'
+    ORCID_CLIENT_SECRET = 'test-client-secret'
+```
+
+### Fixtures
+
+Common test fixtures are defined in `conftest.py`:
+
+```python
+@pytest.fixture
+def app():
+    """Create application instance for testing."""
+    app = create_app(TestConfig)
+    return app
+
+@pytest.fixture
+def client(app):
+    """Create test client."""
+    return app.test_client()
+
+@pytest.fixture
+def dataset_db():
+    """Dataset database connection."""
+    # Database setup logic
+```
+
+## Cleanup
+
+### Stop Test Databases
+
+When finished testing:
+
+<Tabs>
+  <TabItem label="Linux/MacOS">
+    ```bash
+    ./tests/stop-test-databases.sh
+    ```
+  </TabItem>
+  <TabItem label="Windows PowerShell">
+    ```powershell
+    .\tests\Stop-TestDatabases.ps1
+    ```
+  </TabItem>
+</Tabs>

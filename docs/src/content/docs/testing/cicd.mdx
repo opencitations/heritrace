@@ -1,0 +1,45 @@
+---
+title: CI/CD Pipeline
+description: Continuous integration pipeline for HERITRACE using GitHub Actions.
+---
+import { Aside } from '@astrojs/starlight/components';
+
+This guide covers the continuous integration (CI) pipeline used in HERITRACE to ensure code quality and automate testing.
+
+## GitHub Actions Workflow
+
+HERITRACE uses GitHub Actions to automatically run tests. The workflow is defined in `.github/workflows/python-tests.yml` and is triggered on every push to any branch, and on pull requests to the `main` branch.
+
+### Workflow Steps
+
+The CI pipeline performs the following steps:
+
+1.  **Set up Python**: It tests the project against multiple Python versions (3.10, 3.11, 3.12, and 3.13) to ensure compatibility.
+2.  **Install Dependencies**: It uses Poetry to install project dependencies, including development dependencies.
+3.  **Start Test Databases**: It runs the `./tests/start-test-databases.sh` script to set up the required Virtuoso and Redis databases for the integration tests.
+4.  **Run Tests**: It executes the test suite using `pytest` and generates a coverage report.
+5.  **Upload Coverage Report**: The HTML coverage report is uploaded as a build artifact, allowing for inspection and analysis for all branches and Python versions.
+6.  **Generate Coverage Badge**: A coverage badge is generated for each branch using the results from the Python 3.10 test run. This provides a quick visual indicator of the test coverage status directly in the `README.md` file.
+
+### Coverage Badge Setup
+
+The workflow uses the <a href="https://github.com/marketplace/actions/bring-your-own-badge" target="_blank">BYOB (Bring Your Own Badge) GitHub Action</a> to generate coverage badges. To set this up:
+
+1.  Create a Personal Access Token (PAT) with access to the repository where badges will be stored.
+2.  Add the token as a secret in your GitHub repository:
+    - Go to your GitHub repository.
+    - Click on "Settings" > "Secrets and variables" > "Actions".
+    - Click "New repository secret".
+    - **Name**: `GIST_PAT`
+    - **Value**: Your Personal Access Token
+    - Click "Add secret".
+
+The badge will be generated for each branch and will include the branch name in the badge label.
+
+## Customizing the Workflow
+
+You can customize the workflow by editing the `.github/workflows/python-tests.yml` file. Common customizations include:
+
+- Changing the Python versions tested.
+- Modifying the branches that trigger the workflow.
+- Adjusting the coverage reporting settings.

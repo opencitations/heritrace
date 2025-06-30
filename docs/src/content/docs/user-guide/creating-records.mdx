@@ -1,0 +1,22 @@
+---
+title: Creating New Records
+description: A guide to adding new entities and metadata to your collection in HERITRACE.
+---
+import { Image } from 'astro:assets';
+import creationImage from '../../../assets/creation.png';
+
+Adding new records in HERITRACE is a guided process designed to ensure data quality and consistency.
+
+<Image src={creationImage} alt="HERITRACE creation interface" width={800} height={600} />
+
+### Creation Workflow
+
+1.  **Select Entity Type**: Start by choosing the type of entity you want to create from the "New Record" dropdown. The form will dynamically display the relevant metadata fields for that type.
+
+2.  **Fill in Metadata**: Complete the required fields. You will receive real-time validation feedback to help you enter correct information.
+
+3.  **Link to Existing Entities**: When entering information like an author's name or an identifier, HERITRACE actively searches for existing entities in the collection. This disambiguation feature helps prevent duplicate records by suggesting existing entities you can link to. For example, typing a name might bring up a list of authors already in the system.
+
+4.  **Save the Record**: Once you have filled in the information and resolved any validation issues, you can save the new record.
+
+This workflow streamlines data entry, reduces errors, and helps maintain a clean, duplicate-free dataset. 

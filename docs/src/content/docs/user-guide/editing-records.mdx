@@ -1,0 +1,54 @@
+---
+title: Editing Existing Records
+description: How to modify metadata and manage relationships for entities in HERITRACE.
+---
+import { Image } from 'astro:assets';
+import resourceImage from '../../../assets/resource.png';
+import resourcesReferencingThisImage from '../../../assets/resources_referencing_this.png';
+import similarResourcesImage from '../../../assets/similar_resources.png';
+
+Once you open an entity from the catalogue, you are presented with its detailed record page, where you can manage all its metadata.
+
+<Image src={resourceImage} alt="HERITRACE resource interface" width={800} height={600} />
+
+### Modifying Metadata
+
+On the entity page, you can perform several actions:
+
+-   **Inline Editing**: Most fields can be edited directly on the page. Click on the value you want to change to activate the editing controls, such as text inputs or dropdowns.
+-   **Add New Fields**: You can add more metadata by selecting new properties to add to the resource.
+-   **Manage Relationships**: Link to other entities, or modify existing relationships.
+-   **Real-time Validation**: As you edit, the system validates your input, ensuring data consistency.
+
+:::note
+Entities are managed independently. When you are on a resource's page (e.g., a bibliographic record), you can only edit the metadata directly associated with that resource, such as its title or publication date.
+
+You cannot perform nested edits. To modify a linked entity (like an author or an identifier), you must navigate to that entity's specific page.
+:::
+
+### Actions
+
+A set of action buttons at the top of the page provides quick access to key operations:
+- **Save/Cancel**: Save your changes or cancel the edit to discard them.
+- **Delete**: Remove the entity (it will be moved to the [Time Vault](../time-vault), not permanently deleted).
+- **Time Machine**: Access the entity's complete version history. 
+
+### Viewing Incoming Links
+
+Below the main metadata section, you will find the "Resources Referencing This" area. This section is very useful as it shows you all the other items in your collection that link *to* the current entity you are viewing.
+
+<Image src={resourcesReferencingThisImage} alt="HERITRACE interface showing resources that reference the current entity" width={800} height={600} />
+
+For example, if you are viewing a journal issue, this section will list all the articles that are part of that issue. This helps you see the connections between your records and quickly navigate to related items by clicking the "Visit" button. 
+
+### Handling Duplicates with Similar Resources
+
+Finally, at the bottom of the page, the "Similar Resources" section helps you keep your data clean by identifying potential duplicates.
+
+<Image src={similarResourcesImage} alt="HERITRACE interface showing a list of similar resources for potential merging" width={800} height={600} />
+
+This feature automatically lists other entities in the collection that appear to be similar to the one you are currently viewing. You can review this list to identify records that should be consolidated.
+
+If you find a duplicate, you can combine it with the current entity using the "Merge" button. This action helps de-duplicate your collection and ensure data accuracy.
+
+For more details, see the guide on [Merging Records](../merging-records). 

@@ -1,0 +1,55 @@
+---
+title: HERITRACE Documentation
+description: Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement
+template: splash
+hero:
+  tagline: A semantic editor designed for professionals in galleries, libraries, archives, and museums (GLAM)
+  image:
+    file: ../../assets/logo.png
+    alt: "HERITRACE logo - semantic editor for GLAM institutions"
+  actions:
+    - text: Quick Start
+      link: /getting-started/quick-start/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/opencitations/heritrace
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is HERITRACE?
+
+HERITRACE facilitates non-technical domain experts in enriching and editing metadata in a semantically robust manner. It is developed with a focus on user-friendliness, provenance management, change tracking, customization, and integration with heterogeneous data sources.
+
+<CardGrid>
+	<Card title="For End Users" icon="open-book">
+		Intuitive interface for managing semantic metadata without knowing anything about the Semantic Web.
+	</Card>
+	<Card title="For Developers" icon="setting">
+		SHACL-based customization, YAML configuration, and seamless RDF data integration.
+	</Card>
+	<Card title="GLAM Focused" icon="star">
+		Designed specifically for galleries, libraries, archives, and museums.
+	</Card>
+	<Card title="Semantic Web" icon="puzzle">
+		Built on RDF, SHACL, and SPARQL for robust semantic data management.
+	</Card>
+</CardGrid>
+
+## Key Features
+
+- **User-Friendly Interface**: Non-technical domain experts can easily enrich and edit metadata
+- **Provenance Management**: Complete tracking of who made changes, when, what modifications were made, and data sources used
+- **Customizable Schemas**: SHACL-based data models and YAML display rules
+- **RDF Data Integration**: Seamless import of existing RDF data from triplestores without modification
+- **Secure Authentication**: ORCID-based access control ensuring only authorized personnel can make changes
+- **Version Control**: Full versioning and rollback capabilities through Time Machine functionality
+
+## Quick Links
+
+- [Quick Start Guide](/getting-started/quick-start/) - Set up HERITRACE in your environment
+- [Configuration](/configuration/app-settings/) - Customize HERITRACE for your needs
+- [User Guide](/user-guide/overview/) - Learn how to use HERITRACE effectively
+- [Testing](/testing/running-tests/) - Run tests and contribute to development
