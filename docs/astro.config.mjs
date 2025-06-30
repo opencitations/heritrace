@@ -6,7 +6,7 @@ import starlightImageZoom from 'starlight-image-zoom';
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://opencitations.github.io',
-	base: '/heritrace/',
+	base: '/heritrace',
 	integrations: [
 		starlight({
 			title: 'HERITRACE',
