@@ -62,6 +62,8 @@ The application will be available at `https://127.0.0.1:5000`
 
 > **Note:** Your browser will show an SSL certificate warning in development mode - click "Advanced" and proceed to continue.
 
+For more detailed setup instructions, see: [**Detailed Quick Start**](https://opencitations.github.io/heritrace/getting-started/quick-start/)
+
 ## 🎯 Customization
 
 HERITRACE is data model agnostic: use SHACL to define forms and validation constraints for your domain, and YAML display rules to customize the visual presentation.
@@ -73,7 +75,6 @@ HERITRACE is data model agnostic: use SHACL to define forms and validation const
 ## 🔧 Development
 
 For development setup and testing:
-- [**Detailed Quick Start**](https://opencitations.github.io/heritrace/getting-started/quick-start/)
 - [**Testing Guide**](https://opencitations.github.io/heritrace/testing/running-tests/)
 - [**CI/CD Pipeline**](https://opencitations.github.io/heritrace/testing/cicd/)
 
