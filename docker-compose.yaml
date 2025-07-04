@@ -5,6 +5,7 @@ services:
       - "5000:5000"
     environment:
       - REDIS_HOST=redis
+      # FLASK_ENV can be 'production', 'development', or 'demo'
       - FLASK_ENV=production
     volumes:
       - ./heritrace:/app/heritrace

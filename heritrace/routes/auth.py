@@ -7,6 +7,7 @@ from flask_babel import gettext
 from flask_login import current_user, login_user, logout_user
 from heritrace.apis.orcid import extract_orcid_id, is_orcid_url
 from heritrace.models import User
+from heritrace.utils.demo_utils import generate_synthetic_orcid
 from requests_oauthlib import OAuth2Session
 
 auth_bp = Blueprint("auth", __name__)
@@ -15,6 +16,20 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/login")
 def login():
     if current_user.is_authenticated:
+        return redirect(url_for("main.catalogue"))
+
+    if os.environ.get("FLASK_ENV") == "demo":
+        user_id_from_env = os.environ.get("USER_ID", "demo_user")
+        synthetic_orcid = generate_synthetic_orcid(user_id_from_env)
+        user_name = f"Demo User ({user_id_from_env})"
+
+        user = User(id=synthetic_orcid, name=user_name, orcid=synthetic_orcid)
+        session["user_name"] = user_name
+        session.permanent = True
+        current_app.permanent_session_lifetime = timedelta(days=30)
+        login_user(user)
+
+        flash(gettext("Running in DEMO MODE. Logged in as %(name)s.", name=user_name), "warning")
         return redirect(url_for("main.catalogue"))
 
     callback_url = url_for("auth.callback", _external=True, _scheme="https")

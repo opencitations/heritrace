@@ -18,8 +18,12 @@ Basic SHACL schema with:
 ### `test_display_rules.yaml`
 Basic display configuration missing abstract, keyword, and page displays.
 
-### `test_data.ttl`
+### `test_data.nq.gz`
 Sample articles and journals with missing properties for testing.
+
+- **`test_data.nq.gz`**: Compressed N-Quads format used by the testing infrastructure with Virtuoso Utilities bulk loader for optimal performance
+
+The infrastructure automatically uses `test_data.nq.gz` for data loading via Virtuoso Utilities bulk loader.
 
 ## Testing Tasks
 
@@ -34,13 +38,15 @@ Sample articles and journals with missing properties for testing.
 - **Realistic scenarios** - based on actual HERITRACE features
 - **Incremental complexity** - tasks build logically
 - **Immediate testing** - technicians see results of changes
+- **Optimized data loading** - N-Quads format with Virtuoso Utilities bulk loader
 
 ## Usage
 
-1. **Setup** test HERITRACE instance with these materials
-2. **Guide** technicians through sequential tasks
-3. **Compare** solutions against reference implementations
-4. **Evaluate** syntax, functionality, and completeness
+1. **Setup** test HERITRACE instance with these materials using Virtuoso Utilities
+2. **Automatic loading** of test_data.nq.gz via bulk loader during environment startup
+3. **Guide** technicians through sequential tasks
+4. **Compare** solutions against reference implementations
+5. **Evaluate** syntax, functionality, and completeness
 
 ## Expected Solutions
 
@@ -63,4 +69,4 @@ abstract_property:
   supportsSearch: true
 ```
 
-Integrates with main technician testing protocol (`../02_technician_testing.md`). 
+Integrates with main technician testing protocol (`../02_technician_testing.md`) and infrastructure (`../infrastructure/`). 

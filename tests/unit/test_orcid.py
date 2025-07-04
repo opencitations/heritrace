@@ -49,29 +49,29 @@ def test_extract_orcid_id_exception():
 
 
 @responses.activate
-def test_get_orcid_data_non_200_response():
+def test_get_orcid_data_non_200_response(app):
     orcid_id = "0000-0002-1825-0097"
     responses.add(
         responses.GET, f"https://pub.orcid.org/v3.0/{orcid_id}/person", status=404
     )
-
-    assert get_orcid_data(orcid_id) is None
+    with app.app_context():
+        assert get_orcid_data(orcid_id) is None
 
 
 @responses.activate
-def test_get_orcid_data_exception():
+def test_get_orcid_data_exception(app):
     orcid_id = "0000-0002-1825-0097"
     responses.add(
         responses.GET,
         f"https://pub.orcid.org/v3.0/{orcid_id}/person",
         body=Exception("Connection error"),
     )
-
-    assert get_orcid_data(orcid_id) is None
+    with app.app_context():
+        assert get_orcid_data(orcid_id) is None
 
 
 @responses.activate
-def test_get_orcid_data_success():
+def test_get_orcid_data_success(app):
     orcid_id = "0000-0002-1825-0097"
     mock_response = {
         "name": {"given-names": {"value": "John"}, "family-name": {"value": "Doe"}},
@@ -85,12 +85,12 @@ def test_get_orcid_data_success():
         json=mock_response,
         status=200,
     )
-
-    result = get_orcid_data(orcid_id)
-    assert result["name"] == "John Doe"
-    assert result["other_names"] == ["Johnny"]
-    assert result["biography"] == "Researcher"
-    assert result["orcid"] == orcid_id
+    with app.app_context():
+        result = get_orcid_data(orcid_id)
+        assert result["name"] == "John Doe"
+        assert result["other_names"] == ["Johnny"]
+        assert result["biography"] == "Researcher"
+        assert result["orcid"] == orcid_id
 
 
 def test_format_orcid_attribution_invalid_url():
@@ -100,19 +100,19 @@ def test_format_orcid_attribution_invalid_url():
 
 
 @responses.activate
-def test_format_orcid_attribution_no_data():
+def test_format_orcid_attribution_no_data(app):
     orcid_id = "0000-0002-1825-0097"
     url = f"https://orcid.org/{orcid_id}"
     responses.add(
         responses.GET, f"https://pub.orcid.org/v3.0/{orcid_id}/person", status=404
     )
-
-    result = format_orcid_attribution(url)
-    assert result == f'<a href="{url}" target="_blank">{url}</a>'
+    with app.app_context():
+        result = format_orcid_attribution(url)
+        assert result == f'<a href="{url}" target="_blank">{url}</a>'
 
 
 @responses.activate
-def test_format_orcid_attribution_success():
+def test_format_orcid_attribution_success(app):
     orcid_id = "0000-0002-1825-0097"
     url = f"https://orcid.org/{orcid_id}"
     mock_response = {
@@ -125,7 +125,7 @@ def test_format_orcid_attribution_success():
         json=mock_response,
         status=200,
     )
-
-    result = format_orcid_attribution(url)
-    expected = f'<a href="{url}" target="_blank" class="orcid-attribution"><img src="/static/images/orcid-logo.png" alt="ORCID iD" class="orcid-icon mx-1 mb-1" style="width: 16px; height: 16px;">John Doe [orcid:{orcid_id}]</a>'
-    assert result == expected
+    with app.app_context():
+        result = format_orcid_attribution(url)
+        expected = f'<a href="{url}" target="_blank" class="orcid-attribution"><img src="/static/images/orcid-logo.png" alt="ORCID iD" class="orcid-icon mx-1 mb-1" style="width: 16px; height: 16px;">John Doe [orcid:{orcid_id}]</a>'
+        assert result == expected

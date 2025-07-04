@@ -2,6 +2,7 @@ from functools import lru_cache
 from urllib.parse import urlparse
 
 import requests
+from flask import current_app
 
 
 def is_orcid_url(url):
@@ -30,12 +31,22 @@ def get_orcid_data(orcid_id):
     """
     Fetch researcher data from ORCID API with caching.
 
+    In demo mode, this function returns synthetic data without calling the external API.
+
     Args:
         orcid_id (str): The ORCID identifier
 
     Returns:
         dict: Researcher data including name and other details
     """
+    if current_app.config.get("ENV") == "demo":
+        return {
+            "name": f"Demo User ({orcid_id})",
+            "other_names": [],
+            "biography": "This is a synthetic user account for demo purposes.",
+            "orcid": orcid_id,
+        }
+
     headers = {"Accept": "application/json"}
 
     try:
