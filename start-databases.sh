@@ -113,7 +113,8 @@ launch_virtuoso_db() {
         --dba-password "dba" \
         --detach \
         --force-remove \
-        --wait-ready
+        --wait-ready \
+        --enable-write-permissions
     
     if [ $? -eq 0 ]; then
         print_success "Database $name started successfully"

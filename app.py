@@ -84,7 +84,7 @@ if __name__ == '__main__':
         'port': 5000
     }
     
-    if env == 'development':
+    if env in ['development', 'demo']:
         run_args.update({
             'debug': True,
             'ssl_context': get_ssl_context()

@@ -147,7 +147,8 @@ function Launch-VirtuosoDatabase {
             --dba-password "dba" `
             --detach `
             --force-remove `
-            --wait-ready
+            --wait-ready `
+            --enable-write-permissions
         
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Database $Name started successfully"
