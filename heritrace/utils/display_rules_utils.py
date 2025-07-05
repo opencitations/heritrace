@@ -76,6 +76,7 @@ def get_class_priority(entity_key):
     """
     Returns the priority of a specific entity key (class_uri, shape_uri).
     Calculates the priority directly from the display rules.
+    Classes without defined rules receive the lowest priority (highest number).
     
     Args:
         entity_key: A tuple (class_uri, shape_uri)
@@ -84,7 +85,7 @@ def get_class_priority(entity_key):
     shape_uri = entity_key[1]
         
     rule = find_matching_rule(class_uri, shape_uri)
-    return rule.get("priority", 0) if rule else 0
+    return rule.get("priority", 0) if rule else float('inf')
 
 
 def is_entity_type_visible(entity_key):
