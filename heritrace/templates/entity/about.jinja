@@ -113,8 +113,9 @@
                         data-object-class="{{ object_class }}"
                         {% if has_details and details.max %}data-max-items="{{ details.max }}"{% endif %}
                         {% if has_details and details.min %}data-min-items="{{ details.min }}"{% endif %}
-                        {% if predicate in mandatory_values %}data-skip-collect="true"{% endif %}>
-                        {% if predicate in can_be_added and has_details %}
+                        {% if predicate in mandatory_values %}data-skip-collect="true"{% endif %}
+                        {% if data.get('is_virtual') %}data-is-virtual="true" data-virtual-implementation="{{ data.get('virtual_implementation', {}) | tojson | e }}"{% endif %}>
+                        {% if predicate in can_be_added and has_details and not data.get('is_virtual') %}
                             {% set unique_id_base = (((entity_type, object_shape) | human_readable_class) | replace(" ", "") + "_" + (predicate | human_readable_predicate((entity_type, object_shape))) | replace(" ", "") | string) + "_" + namespace_render_repeater_item.counter | string %}
                             {{ render_repeater_item(entity_type=entity_type, prop=predicate, details=details, form_fields=form_fields, depth=0, unique_id_base=unique_id_base, index=None, is_template=True) }}
                             {% set namespace_render_repeater_item.counter = namespace_render_repeater_item.counter + 1 %}

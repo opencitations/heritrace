@@ -25,25 +25,34 @@ class Filter:
         self._query_lock = threading.Lock()
 
     def human_readable_predicate(self, predicate_uri: str, entity_key: tuple[str, str], is_link=False):
-        """Get human readable label for a predicate in the context of an entity.
+        """
+        Converts a predicate URI to human-readable format using display rules.
         
         Args:
-            predicate_uri: URI of the predicate to get label for
-            entity_key: Tuple of (class_uri, shape_uri) for the entity context
-            is_link: Whether to format as a link
+            predicate_uri (str): The predicate URI to convert
+            entity_key (tuple): A tuple containing (class_uri, shape_uri)
+            is_link (bool): Whether to generate a hyperlink for the predicate
             
         Returns:
-            str: Human readable label for the predicate
+            str: Human-readable representation of the predicate
         """
         from heritrace.utils.display_rules_utils import find_matching_rule
-        
+
         class_uri, shape_uri = entity_key
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
         
         if rule:
             if "displayProperties" in rule:
                 for display_property in rule["displayProperties"]:
-                    if display_property["property"] == str(predicate_uri):
+                    property_uri = None
+                    if "property" in display_property:
+                        property_uri = display_property["property"]
+                    elif "virtual_property" in display_property:
+                        property_uri = display_property["virtual_property"]
+                    else:
+                        continue
+                    
+                    if property_uri == str(predicate_uri):
                         if "displayRules" in display_property:
                             return display_property["displayRules"][0]["displayName"]
                         elif "displayName" in display_property:

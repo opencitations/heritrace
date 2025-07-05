@@ -231,26 +231,6 @@ def process_nested_shapes(
     return nested_fields
 
 
-def get_property_order(entity_type, display_rules):
-    """
-    Recupera l'ordine delle proprietà per un tipo di entità dalle regole di visualizzazione.
-
-    Argomenti:
-        entity_type (str): L'URI del tipo di entità.
-
-    Restituisce:
-        list: Una lista di URI di proprietà nell'ordine desiderato.
-    """
-    if not display_rules:
-        return []
-        
-    for rule in display_rules:
-        if rule.get("class") == entity_type and "propertyOrder" in rule:
-            return rule["propertyOrder"]
-        elif rule.get("class") == entity_type:
-            return [prop["property"] for prop in rule.get("displayProperties", [])]
-    return []
-
 
 def order_fields(fields, property_order):
     """
@@ -296,14 +276,15 @@ def order_form_fields(form_fields, display_rules):
             entity_class = target.get("class")
             entity_shape = target.get("shape")
             
+            ordered_properties = []
+            for prop_rule in rule.get("displayProperties", []):
+                if "property" in prop_rule:
+                    ordered_properties.append(prop_rule["property"])
+            
             # Case 1: Both class and shape are specified (exact match)
             if entity_class and entity_shape:
                 entity_key = (entity_class, entity_shape)
                 if entity_key in form_fields:
-                    ordered_properties = [
-                        prop_rule["property"]
-                        for prop_rule in rule.get("displayProperties", [])
-                    ]
                     ordered_form_fields[entity_key] = OrderedDict()
                     for prop in ordered_properties:
                         if prop in form_fields[entity_key]:
@@ -318,10 +299,6 @@ def order_form_fields(form_fields, display_rules):
                 for key in form_fields:
                     if key[0] == entity_class:  # Check if class part of tuple matches
                         entity_key = key
-                        ordered_properties = [
-                            prop_rule["property"]
-                            for prop_rule in rule.get("displayProperties", [])
-                        ]
                         ordered_form_fields[entity_key] = OrderedDict()
                         for prop in ordered_properties:
                             if prop in form_fields[entity_key]:
@@ -336,10 +313,6 @@ def order_form_fields(form_fields, display_rules):
                 for key in form_fields:
                     if key[1] == entity_shape:  # Check if shape part of tuple matches
                         entity_key = key
-                        ordered_properties = [
-                            prop_rule["property"]
-                            for prop_rule in rule.get("displayProperties", [])
-                        ]
                         ordered_form_fields[entity_key] = OrderedDict()
                         for prop in ordered_properties:
                             if prop in form_fields[entity_key]:
@@ -398,7 +371,12 @@ def apply_rule_to_entity(shacl, form_fields, entity_key, rule):
         rule: The display rule to apply
     """
     for prop in rule.get("displayProperties", []):
-        prop_uri = prop["property"]
+        prop_uri = None
+        if "property" in prop:
+            prop_uri = prop["property"]
+        else:
+            continue
+            
         if prop_uri in form_fields[entity_key]:
             for field_info in form_fields[entity_key][prop_uri]:
                 add_display_information(field_info, prop)
@@ -450,10 +428,18 @@ def apply_display_rules_to_nested_shapes(nested_fields, parent_prop, shape_uri):
                 for nested_rule in rule["nestedDisplayRules"]:
                     # Check both predicate and uri keys to be more flexible
                     field_key = field.get("predicate", field.get("uri"))
-                    if field_key == nested_rule["property"]:
+                    
+                    # Get the property URI from nested rule, handling different property key types
+                    rule_property = None
+                    if "property" in nested_rule:
+                        rule_property = nested_rule["property"]
+                    else:
+                        continue  # Skip if no property URI found
+                    
+                    if field_key == rule_property:
                         # Apply display properties from the rule to the field
                         for key, value in nested_rule.items():
-                            if key != "property":
+                            if key not in ["property", "virtual_property"]:
                                 field[key] = value
             break
 
@@ -583,6 +569,12 @@ def handle_sub_display_rules(shacl, form_fields, entity_key, field_info_list, pr
     new_field_info_list = []
     entity_class = entity_key[0] if isinstance(entity_key, tuple) else entity_key
 
+    prop_uri = None
+    if "property" in prop:
+        prop_uri = prop["property"]
+    else:
+        return
+
     for original_field in field_info_list:
         # Trova la display rule corrispondente allo shape del campo
         matching_rule = next(
@@ -599,7 +591,7 @@ def handle_sub_display_rules(shacl, form_fields, entity_key, field_info_list, pr
                 "entityType": entity_class,
                 "entityKey": entity_key,  # Store the tuple key
                 "objectClass": original_field.get("objectClass"),
-                "uri": prop["property"],
+                "uri": prop_uri,
                 "datatype": original_field.get("datatype"),
                 "min": original_field.get("min"),
                 "max": original_field.get("max"),
@@ -631,7 +623,7 @@ def handle_sub_display_rules(shacl, form_fields, entity_key, field_info_list, pr
             # Se non c'è una regola corrispondente, mantieni il campo originale
             new_field_info_list.append(original_field)
 
-    form_fields[entity_key][prop["property"]] = new_field_info_list
+    form_fields[entity_key][prop_uri] = new_field_info_list
 
 
 def get_shape_target_class(shacl, shape_uri):

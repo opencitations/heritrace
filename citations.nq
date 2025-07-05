@@ -1,0 +1,5 @@
+<https://w3id.org/oc/meta/ci/0001>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/spar/cito/Citation>	<https://w3id.org/oc/meta/ci/> .
+<https://w3id.org/oc/meta/ci/0001>	<http://purl.org/spar/cito/hasCitingEntity>	<https://w3id.org/oc/meta/br/0911083>	<https://w3id.org/oc/meta/ci/> .
+<https://w3id.org/oc/meta/ci/0001>	<http://purl.org/spar/cito/hasCitedEntity>	<https://w3id.org/oc/meta/br/09110108>	<https://w3id.org/oc/meta/ci/> .
+<https://w3id.org/oc/meta/br/0911083>	<http://purl.org/spar/cito/cites>	<https://w3id.org/oc/meta/br/09110108>	<https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/09110108>	<http://purl.org/spar/cito/isCitedBy>	<https://w3id.org/oc/meta/br/0911083>	<https://w3id.org/oc/meta/br/> .

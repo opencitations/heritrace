@@ -4,11 +4,11 @@ from urllib.parse import unquote
 
 from heritrace.extensions import (get_custom_filter, get_display_rules,
                                   get_form_fields, get_sparql)
+from heritrace.utils.virtual_properties import process_virtual_properties
 from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateQuery
 from rdflib.plugins.sparql.parser import parseQuery
 from SPARQLWrapper import JSON
-
 
 display_rules = get_display_rules()
 
@@ -240,21 +240,35 @@ def get_grouped_triples(
     matching_rule = find_matching_rule(highest_priority_class, highest_priority_shape, display_rules)
     matching_form_field = form_fields.get((highest_priority_class, highest_priority_shape))
 
+    virtual_triples = process_virtual_properties(
+        str(subject), matching_rule, historical_snapshot
+    )
+        
+    all_triples = triples + virtual_triples
+    
+    all_property_uris = set(primary_properties)
+    virtual_property_uris = set(str(triple[1]) for triple in virtual_triples)
+    all_property_uris.update(virtual_property_uris)
+
     ordered_properties = []
     if display_rules and matching_rule:
         for prop_config in matching_rule.get("displayProperties", []):
-            if prop_config["property"] not in ordered_properties:
-                ordered_properties.append(prop_config["property"])
+            prop_uri = prop_config.get("property") or prop_config.get("virtual_property")
+            if prop_uri and prop_uri not in ordered_properties:
+                ordered_properties.append(prop_uri)
     
-    for prop_uri in primary_properties:
+    for prop_uri in all_property_uris:
         if prop_uri not in ordered_properties:
             ordered_properties.append(prop_uri)
 
     for prop_uri in ordered_properties:
+        is_virtual = prop_uri in virtual_property_uris
+        
         if display_rules and matching_rule:
             current_prop_config = None
             for prop_config in matching_rule.get("displayProperties", []):
-                if prop_config["property"] == prop_uri:
+                config_prop_uri = prop_config.get("property") or prop_config.get("virtual_property")
+                if config_prop_uri == prop_uri:
                     current_prop_config = prop_config
                     break
             
@@ -276,14 +290,15 @@ def get_grouped_triples(
                             prop_uri,
                             display_rule_nested,
                             subject,
-                            triples,
+                            all_triples,
                             grouped_triples,
                             fetched_values_map,
                             historical_snapshot,
                             highest_priority_shape,
-                            object_shape
+                            object_shape,
+                            is_virtual=is_virtual
                         )
-                        if is_ordered:
+                        if is_ordered and not is_virtual:  # Virtual properties don't support ordering yet
                             grouped_triples[display_name_nested]["is_draggable"] = True
                             grouped_triples[display_name_nested]["ordered_by"] = order_property
                             process_ordering(
@@ -302,8 +317,11 @@ def get_grouped_triples(
                                 "property": prop_uri,
                                 "triples": [],
                                 "subjectShape": highest_priority_shape,
-                                "objectShape": display_rule_nested.get("shape")
+                                "objectShape": display_rule_nested.get("shape"),
+                                "is_virtual": is_virtual
                             }
+                        else:
+                            grouped_triples[display_name_nested]["is_virtual"] = is_virtual
                             
                         if "intermediateRelation" in display_rule_nested or "intermediateRelation" in current_prop_config:
                             # Set intermediateRelation from the appropriate source
@@ -327,16 +345,23 @@ def get_grouped_triples(
                         prop_uri,
                         current_prop_config,
                         subject,
-                        triples,
+                        all_triples,
                         grouped_triples,
                         fetched_values_map,
                         historical_snapshot,
                         highest_priority_shape,
-                        object_shape
+                        object_shape,
+                        is_virtual=is_virtual
                     )
-                    if "orderedBy" in current_prop_config:
+                    if "orderedBy" in current_prop_config and not is_virtual:  # Virtual properties don't support ordering yet
                         if display_name_simple not in grouped_triples:
-                            grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "subjectShape": highest_priority_shape, "objectShape": current_prop_config.get("shape")}
+                            grouped_triples[display_name_simple] = {
+                                "property": prop_uri, 
+                                "triples": [], 
+                                "subjectShape": highest_priority_shape, 
+                                "objectShape": current_prop_config.get("shape"),
+                                "is_virtual": is_virtual
+                            }
                         grouped_triples[display_name_simple]["is_draggable"] = True
                         grouped_triples[display_name_simple]["ordered_by"] = current_prop_config.get("orderedBy")
                         process_ordering(
@@ -351,12 +376,21 @@ def get_grouped_triples(
                         )
                     if "intermediateRelation" in current_prop_config:
                         if display_name_simple not in grouped_triples:
-                             grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "subjectShape": highest_priority_shape, "objectShape": current_prop_config.get("shape")}
+                             grouped_triples[display_name_simple] = {
+                                 "property": prop_uri, 
+                                 "triples": [], 
+                                 "subjectShape": highest_priority_shape, 
+                                 "objectShape": current_prop_config.get("shape"),
+                                 "is_virtual": is_virtual
+                             }
                         grouped_triples[display_name_simple]["intermediateRelation"] = current_prop_config["intermediateRelation"]
+                        grouped_triples[display_name_simple]["is_virtual"] = is_virtual
             else:
-                process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape)
+                if not is_virtual:  # Only process non-virtual properties in default mode
+                    process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape)
         else:
-            process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape)
+            if not is_virtual:  # Only process non-virtual properties in default mode
+                process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape)
 
     grouped_triples = OrderedDict(grouped_triples)
     return grouped_triples, relevant_properties
@@ -373,6 +407,7 @@ def process_display_rule(
     historical_snapshot=None,
     subject_shape=None,
     object_shape=None,
+    is_virtual=False
 ):
     if display_name not in grouped_triples:
         grouped_triples[display_name] = {
@@ -381,6 +416,7 @@ def process_display_rule(
             "subjectShape": subject_shape,
             "objectShape": object_shape,
             "intermediateRelation": rule.get("intermediateRelation"),
+            "is_virtual": is_virtual
         }
     for triple in triples:
         if str(triple[1]) == prop_uri:
@@ -406,23 +442,25 @@ def process_display_rule(
                         "object": object_uri,
                         "subjectShape": subject_shape,
                         "objectShape": object_shape,
+                        "is_virtual": is_virtual,
                     }
                     grouped_triples[display_name]["triples"].append(new_triple_data)
             else:
                 if str(triple[1]) == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type':
-                    from heritrace.utils.shacl_utils import determine_shape_for_classes
+                    from heritrace.utils.shacl_utils import \
+                        determine_shape_for_classes
                     object_class_shape = determine_shape_for_classes([triple[2]])
                     result = get_custom_filter().human_readable_class((triple[2], object_class_shape))
                 else:
                     result = triple[2]
                 
                 object_uri = str(triple[2])
-                
                 new_triple_data = {
-                    "triple": (str(triple[0]), str(triple[1]), result),
+                    "triple": (str(triple[0]), str(triple[1]), str(result)),
                     "object": object_uri,
                     "subjectShape": subject_shape,
                     "objectShape": object_shape,
+                    "is_virtual": is_virtual,
                 }
                 grouped_triples[display_name]["triples"].append(new_triple_data)
 
