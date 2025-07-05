@@ -205,6 +205,9 @@ def get_highest_priority_class(subject_classes):
             highest_priority = priority
             highest_priority_class = class_uri
     
+    if highest_priority_class is None and subject_classes:
+        highest_priority_class = str(subject_classes[0])
+    
     return highest_priority_class
 
 
@@ -226,9 +229,17 @@ def get_grouped_triples(
         valid_predicates_info: List of valid predicates for the subject
         historical_snapshot: Optional historical snapshot graph
         highest_priority_class: The highest priority class URI for the subject
+        highest_priority_shape: The highest priority shape URI for the subject
     
     Returns:
         Tuple of grouped triples, relevant properties, and fetched values map
+        
+    Note:
+        relevant_properties contains all properties that should be considered 
+        "relevant" for UI operations (adding/deleting). This includes:
+        - Properties configured in display rules when rules exist and match
+        - ALL valid properties when no display rules exist or no rules match
+        This ensures users can always interact with entities even without display rules.
     """
     display_rules = get_display_rules()
     form_fields = get_form_fields()
@@ -240,7 +251,6 @@ def get_grouped_triples(
     
     matching_rule = find_matching_rule(highest_priority_class, highest_priority_shape, display_rules)
     matching_form_field = form_fields.get((highest_priority_class, highest_priority_shape))
-
     ordered_properties = []
     if display_rules and matching_rule:
         for prop_config in matching_rule.get("displayProperties", []):
@@ -355,8 +365,12 @@ def get_grouped_triples(
                              grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "subjectShape": highest_priority_shape, "objectShape": current_prop_config.get("shape")}
                         grouped_triples[display_name_simple]["intermediateRelation"] = current_prop_config["intermediateRelation"]
             else:
+                # Property without specific configuration - add to relevant_properties
+                relevant_properties.add(prop_uri)
                 process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape)
         else:
+            # No display rules or no matching rule - add all properties to relevant_properties
+            relevant_properties.add(prop_uri)
             process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape)
 
     grouped_triples = OrderedDict(grouped_triples)

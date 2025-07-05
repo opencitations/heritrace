@@ -15,7 +15,7 @@ from resources.datatypes import DATATYPE_MAPPING
 def get_valid_predicates(
     triples: List[Tuple[URIRef, URIRef, Union[URIRef, Literal]]],
     highest_priority_class: URIRef
-) -> Tuple[List[URIRef], List[URIRef], Dict, Dict, Dict, List[str]]:
+) -> Tuple[List[str], List[str], Dict, Dict, Dict, List[str]]:
     shacl = get_shacl_graph()
 
     existing_predicates = [triple[1] for triple in triples]
@@ -39,10 +39,11 @@ def get_valid_predicates(
         }
         for predicate in set(existing_predicates)
     ]
+
     if not s_types:
         return (
-            existing_predicates,
-            existing_predicates,
+            [str(predicate) for predicate in existing_predicates],
+            [str(predicate) for predicate in existing_predicates],
             default_datatypes,
             dict(),
             dict(),
@@ -50,8 +51,8 @@ def get_valid_predicates(
         )
     if not shacl:
         return (
-            existing_predicates,
-            existing_predicates,
+            [str(predicate) for predicate in existing_predicates],
+            [str(predicate) for predicate in existing_predicates],
             default_datatypes,
             dict(),
             dict(),
@@ -90,6 +91,23 @@ def get_valid_predicates(
         },
     )
     results = shacl.query(query)
+    
+    # Convert results to list to properly check if there are any results
+    # SPARQL iterators can be misleading about their emptiness
+    results_list = list(results)
+    
+    # If there are no results, it means there are no shapes defined for this class
+    # In this case, everything is allowed - behave as if there is no SHACL
+    if not results_list:
+        return (
+            [str(predicate) for predicate in existing_predicates],
+            [str(predicate) for predicate in existing_predicates],
+            default_datatypes,
+            dict(),
+            dict(),
+            [str(predicate) for predicate in existing_predicates],
+        )
+    
     valid_predicates = [
         {
             str(row.predicate): {
@@ -101,7 +119,7 @@ def get_valid_predicates(
                 ),
             }
         }
-        for row in results
+        for row in results_list
     ]
 
     can_be_added = set()
@@ -128,7 +146,7 @@ def get_valid_predicates(
                     can_be_deleted.add(predicate)
 
     datatypes = defaultdict(list)
-    for row in results:
+    for row in results_list:
         if row.datatype:
             datatypes[str(row.predicate)].append(str(row.datatype))
         else:
@@ -253,8 +271,12 @@ def validate_new_triple(
     shacl = get_shacl_graph()
     custom_filter = get_custom_filter()
     results = shacl.query(query)
-    property_exists = [row.path for row in results]
-    shapes = [row.shape for row in results if row.shape is not None]
+    
+    # Convert results to list to properly check if there are any results
+    # SPARQL iterators can be misleading about their emptiness
+    results_list = list(results)
+    property_exists = [row.path for row in results_list]
+    shapes = [row.shape for row in results_list if row.shape is not None]
     current_shape = shapes[0] if shapes else None
     if not property_exists:
         if not s_types:
@@ -266,24 +288,30 @@ def validate_new_triple(
                 ),
             )
         
-        return (
-            None,
-            old_value,
-            gettext(
-                "The property %(predicate)s is not allowed for resources of type %(s_type)s",
-                predicate=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
-                s_type=custom_filter.human_readable_class((highest_priority_class, current_shape)),
-            ),
-        )
-    datatypes = [row.datatype for row in results if row.datatype is not None]
-    classes = [row.a_class for row in results if row.a_class]
-    classes.extend([row.classIn for row in results if row.classIn])
-    optional_values_str = [row.optionalValues for row in results if row.optionalValues]
+        # If there are no shapes defined for this class, everything is allowed
+        # Behave as if there is no SHACL
+        if validators.url(new_value):
+            return URIRef(new_value), old_value, ""
+        else:
+            # Preserve the datatype of the old value if it's a Literal
+            if (
+                old_value is not None
+                and isinstance(old_value, Literal)
+                and old_value.datatype
+            ):
+                return Literal(new_value, datatype=old_value.datatype), old_value, ""
+            else:
+                return Literal(new_value, datatype=XSD.string), old_value, ""
+            
+    datatypes = [row.datatype for row in results_list if row.datatype is not None]
+    classes = [row.a_class for row in results_list if row.a_class]
+    classes.extend([row.classIn for row in results_list if row.classIn])
+    optional_values_str = [row.optionalValues for row in results_list if row.optionalValues]
     optional_values_str = optional_values_str[0] if optional_values_str else ""
     optional_values = [value for value in optional_values_str.split(",") if value]
 
-    max_count = [row.maxCount for row in results if row.maxCount]
-    min_count = [row.minCount for row in results if row.minCount]
+    max_count = [row.maxCount for row in results_list if row.maxCount]
+    min_count = [row.minCount for row in results_list if row.minCount]
     max_count = int(max_count[0]) if max_count else None
     min_count = int(min_count[0]) if min_count else None
 
@@ -348,7 +376,7 @@ def validate_new_triple(
         )
 
     # Check pattern constraints
-    for row in results:
+    for row in results_list:
         if row.pattern:
             # Check if there are conditions for this pattern
             condition_paths = row.conditionPaths.split(",") if row.conditionPaths else []

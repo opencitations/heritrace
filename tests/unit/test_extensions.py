@@ -6,6 +6,7 @@ import json
 import socket
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, call, patch
+import os
 
 import pytest
 from flask import Flask, g
@@ -45,6 +46,14 @@ def babel():
 def login_manager():
     """Create a LoginManager instance."""
     return LoginManager()
+
+
+@pytest.fixture
+def cleanup_nonexistent_config():
+    """Fixture to clean up nonexistent_config.json file after test."""
+    yield
+    if os.path.exists('nonexistent_config.json'):
+        os.remove('nonexistent_config.json')
 
 
 def test_init_extensions(app, babel, login_manager, mock_redis):
@@ -358,7 +367,7 @@ def test_update_cache(app):
     assert kwargs['indent'] == 4
 
 
-def test_initialize_change_tracking_config(app):
+def test_initialize_change_tracking_config(app, cleanup_nonexistent_config):
     """Test that initialize_change_tracking_config correctly initializes the change tracking configuration."""
 
     # Set up required config values
@@ -430,7 +439,7 @@ def test_initialize_change_tracking_config(app):
         assert 'cache_triplestore_url' in config
 
 
-def test_initialize_change_tracking_config_exceptions(app):
+def test_initialize_change_tracking_config_exceptions(app, cleanup_nonexistent_config):
     """Test exception handling in initialize_change_tracking_config function."""
     
     # Set up required config values

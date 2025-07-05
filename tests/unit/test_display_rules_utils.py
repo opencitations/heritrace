@@ -227,15 +227,15 @@ class TestInitialization:
 
         assert get_class_priority(("http://example.org/Person", None)) == 10
         assert get_class_priority(("http://example.org/Organization", None)) == 5
-        assert get_class_priority(("http://example.org/Unknown", None)) == 0
+        assert get_class_priority(("http://example.org/Unknown", None)) == float('inf')
 
     def test_get_class_priority_no_rules(self, monkeypatch):
-        """Test that get_class_priority returns 0 when there are no rules."""
+        """Test that get_class_priority returns float('inf') when there are no rules."""
         monkeypatch.setattr(
             "heritrace.utils.display_rules_utils.get_display_rules", lambda: {}
         )
 
-        assert get_class_priority(("http://example.org/Person", None)) == 0
+        assert get_class_priority(("http://example.org/Person", None)) == float('inf')
 
 
 class TestIsEntityTypeVisible:
@@ -841,6 +841,114 @@ class TestGetGroupedTriples:
             assert isinstance(grouped_triples, dict)
             assert isinstance(relevant_properties, set)
             assert len(grouped_triples) > 0
+            # Verify bug fix: relevant_properties should contain all valid predicates when no rules exist
+            assert relevant_properties == set(mock_valid_predicates_info), \
+                f"Expected all valid predicates in relevant_properties, got {relevant_properties}"
+
+    def test_get_grouped_triples_no_matching_rule(
+        self, mock_triples, mock_valid_predicates_info
+    ):
+        """Test getting grouped triples when display rules exist but no rule matches the entity class/shape."""
+        # Set up display rules for a different class that won't match
+        self.get_display_rules_patch.return_value = [
+            {
+                "target": {
+                    "class": "http://example.org/DifferentClass"
+                },
+                "priority": 1,
+                "shouldBeDisplayed": True,
+                "displayProperties": [
+                    {
+                        "property": "http://example.org/differentProperty",
+                        "displayName": "Different Property"
+                    }
+                ]
+            }
+        ]
+        
+        # Mock find_matching_rule to return None (no matching rule)
+        self.mock_find_matching_rule.return_value = None
+        
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+            display_name = prop_uri.split("/")[-1]
+            if display_name not in grouped_triples:
+                grouped_triples[display_name] = {
+                    "property": prop_uri,
+                    "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                    "subjectShape": self.subject_shape,
+                    "objectShape": None,
+                }
+
+        with patch(
+            "heritrace.utils.display_rules_utils.process_default_property",
+            side_effect=mock_process_default_property,
+        ):
+            result = get_grouped_triples(
+                "http://example.org/person1",
+                mock_triples,
+                mock_valid_predicates_info,
+                highest_priority_class=self.highest_priority_class
+            )
+            grouped_triples, relevant_properties = result
+            assert isinstance(grouped_triples, dict)
+            assert isinstance(relevant_properties, set)
+            assert len(grouped_triples) > 0
+            # Verify bug fix: relevant_properties should contain all valid predicates when no matching rule exists
+            assert relevant_properties == set(mock_valid_predicates_info), \
+                f"Expected all valid predicates in relevant_properties, got {relevant_properties}"
+
+    def test_type_consistency_for_filtering_in_entity_about(
+        self, mock_triples, mock_valid_predicates_info
+    ):
+        """Test that verifies type consistency between can_be_added/can_be_deleted and relevant_properties.
+        
+        This test simulates the scenario in entity.py where can_be_added and can_be_deleted 
+        are filtered by relevant_properties. Both should contain the same data types (strings)
+        to ensure the filtering works correctly.
+        """
+        # Simulate no display rules (the scenario where the bug occurred)
+        self.get_display_rules_patch.return_value = []
+        
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+            display_name = prop_uri.split("/")[-1]
+            if display_name not in grouped_triples:
+                grouped_triples[display_name] = {
+                    "property": prop_uri,
+                    "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                    "subjectShape": self.subject_shape,
+                    "objectShape": None,
+                }
+
+        with patch(
+            "heritrace.utils.display_rules_utils.process_default_property",
+            side_effect=mock_process_default_property,
+        ):
+            result = get_grouped_triples(
+                "http://example.org/person1",
+                mock_triples,
+                mock_valid_predicates_info,
+                highest_priority_class=self.highest_priority_class
+            )
+            grouped_triples, relevant_properties = result
+            
+            # Simulate the filtering that happens in entity.py
+            # This would fail before the fix due to type mismatch
+            mock_can_be_added = mock_valid_predicates_info.copy()  # These are strings
+            mock_can_be_deleted = mock_valid_predicates_info.copy()  # These are strings
+            
+            # This filtering should work because both are strings now
+            filtered_can_be_added = [uri for uri in mock_can_be_added if uri in relevant_properties]
+            filtered_can_be_deleted = [uri for uri in mock_can_be_deleted if uri in relevant_properties]
+            
+            # Verify the filtering works correctly
+            assert filtered_can_be_added == mock_valid_predicates_info, \
+                f"Filtering failed for can_be_added: {filtered_can_be_added} != {mock_valid_predicates_info}"
+            assert filtered_can_be_deleted == mock_valid_predicates_info, \
+                f"Filtering failed for can_be_deleted: {filtered_can_be_deleted} != {mock_valid_predicates_info}"
+            
+            # Verify all items in relevant_properties are strings
+            assert all(isinstance(prop, str) for prop in relevant_properties), \
+                f"relevant_properties should contain only strings, got: {[type(prop) for prop in relevant_properties]}"
 
     def test_get_grouped_triples_with_intermediate_relation(
         self,
