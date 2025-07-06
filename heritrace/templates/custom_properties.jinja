@@ -1,0 +1,401 @@
+<script>
+/**
+ * Custom Properties Management
+ * Handles the dynamic creation and management of custom properties
+ * for both entity creation and editing modes.
+ */
+
+class CustomPropertiesManager {
+    constructor() {
+        this.propertyCounter = 0;
+        this.dataTypeOptions = {{ datatype_options|tojson|safe }};
+        this.translations = {
+            property: '{{ _("Property") }}',
+            customProperty: '{{ _("Custom Property") }}',
+            propertyURI: '{{ _("Property URI") }}',
+            value: '{{ _("Value") }}',
+            valueType: '{{ _("Value Type") }}',
+            literal: '{{ _("Literal") }}',
+            uri: '{{ _("URI") }}',
+            selectDatatype: '{{ _("Select Datatype") }}',
+            validUrlError: '{{ _("Please enter a valid URL for the property URI") }}',
+            noValidDatatypes: '{{ _("No valid datatypes for this value") }}',
+            delete: '{{ _("Delete") }}'
+        };
+        this.validateApiUrl = '{{ url_for("api.validate_literal") }}';
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+    }
+
+    bindEvents() {
+        $(document).on('click', '#add-property', () => {
+            this.addProperty();
+        });
+
+        $(document).on('click', '.remove-property', (e) => {
+            this.removeProperty($(e.target).closest('.custom-property'));
+        });
+
+        $(document).on('change', '.custom-value-type', (e) => {
+            this.handleValueTypeChange($(e.target));
+        });
+
+        $(document).on('input', '.custom-value-input', (e) => {
+            this.handleValueInputChange($(e.target));
+        });
+
+        $(document).on('focus', '.custom-datatype-section select', (e) => {
+            this.handleDatatypeFocus($(e.target));
+        });
+
+        $(document).on('input change', '.custom-property input[type="url"]', (e) => {
+            this.validateUrlInput($(e.target));
+            this.updatePropertyTitle($(e.target));
+        });
+    }
+
+    addProperty() {
+        this.propertyCounter++;
+        const propertyId = this.propertyCounter;
+        
+        const propertyHtml = this.generatePropertyHtml(propertyId);
+        $('#custom-properties').append(propertyHtml);
+        
+        const $valueTypeSelect = $(`#custom_value_type_${propertyId}`);
+        this.handleValueTypeChange($valueTypeSelect);
+    }
+
+    removeProperty($property) {
+        const propertyId = $property.data('property-id');
+        $property.remove();
+        this.updatePropertyLabels();
+    }
+
+    generatePropertyHtml(propertyId) {
+        const datatypeOptions = this.dataTypeOptions
+            .map(option => `<option value="${option.uri}">${option.label}</option>`)
+            .join('');
+
+        return `
+            <div class="mb-3 custom-property added-in-edit-mode" data-property-id="${propertyId}">
+                <div class="d-flex align-items-baseline w-100 mb-2">
+                    <h6 class="form-label property-title" id="property_title_${propertyId}">${this.translations.customProperty}</h6>
+                </div>
+                
+                <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100" style="position: relative;">
+                    <div class="position-relative w-75">
+                        <input type="url" class="form-control mb-2" id="custom_property_${propertyId}" name="custom_property_${propertyId}" placeholder="${this.translations.propertyURI}" required>
+                        <div class="invalid-feedback mb-2">${this.translations.validUrlError}</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-property" data-property-id="${propertyId}">
+                        <i class="bi bi-trash me-1"></i> ${this.translations.delete}
+                    </button>
+                </div>
+                
+                <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100" style="position: relative;">
+                    <div class="position-relative w-75">
+                        <input type="text" class="form-control custom-value-input mb-2" id="custom_value_${propertyId}" name="custom_value_${propertyId}" placeholder="${this.translations.value}">
+                        <div class="invalid-feedback mb-2">${this.translations.validUrlError}</div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100" style="position: relative;">
+                    <div class="position-relative w-75 mb-2">
+                        <label for="custom_value_type_${propertyId}" class="form-label">${this.translations.valueType}</label>
+                        <select class="form-select custom-value-type" id="custom_value_type_${propertyId}" name="custom_value_type_${propertyId}">
+                            <option value="literal">${this.translations.literal}</option>
+                            <option value="uri">${this.translations.uri}</option>
+                        </select>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100 custom-datatype-section" id="custom_datatype_section_${propertyId}" style="position: relative;">
+                    <div class="position-relative w-75 mt-2">
+                        <label for="custom_datatype_${propertyId}" class="form-label">${this.translations.selectDatatype}</label>
+                        <select class="form-select" id="custom_datatype_${propertyId}" name="custom_datatype_${propertyId}">
+                            ${datatypeOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    updatePropertyLabels() {
+        $('.custom-property').each((index, element) => {
+            const newIndex = index + 1;
+            const $property = $(element);
+            
+            $property.attr('data-property-id', newIndex);
+
+            // Update all input and select IDs and names
+            $property.find('input, select').each((i, input) => {
+                const $input = $(input);
+                const oldName = $input.attr('name');
+                const oldId = $input.attr('id');
+                
+                if (oldName) {
+                    const newName = oldName.replace(/\d+/, newIndex);
+                    $input.attr('name', newName);
+                }
+                
+                if (oldId) {
+                    const newId = oldId.replace(/\d+/, newIndex);
+                    $input.attr('id', newId);
+                }
+            });
+
+            $property.find('.remove-property').attr('data-property-id', newIndex);
+            
+            $property.find('.property-title').attr('id', `property_title_${newIndex}`);
+            
+            const currentTitle = $property.find('.property-title').text();
+            if (!currentTitle || currentTitle === `${this.translations.property} ${index + 1}`) {
+                const $uriInput = $property.find('input[type="url"]');
+                if ($uriInput.val()) {
+                    this.updatePropertyTitleFromInput($uriInput);
+                } else {
+                    $property.find('.property-title').text(this.translations.customProperty);
+                }
+            }
+        });
+
+        this.propertyCounter = $('.custom-property').length;
+    }
+
+    handleValueTypeChange($select) {
+        const propertyId = $select.attr('id').split('_').pop();
+        const selectedValueType = $select.val();
+        const $valueInput = $(`#custom_value_${propertyId}`);
+        const $datatypeSection = $(`#custom_datatype_section_${propertyId}`);
+        
+        if (selectedValueType === 'literal') {
+            $datatypeSection.addClass('d-flex').show();
+            $valueInput.removeClass('is-invalid');
+            $valueInput.attr('type', 'text');
+            // Rimuovi l'event handler per la validazione URI
+            $valueInput.off('input change');
+            this.validateValue(propertyId, $valueInput.val(), this.validateApiUrl);
+        } else {
+            $datatypeSection.removeClass('d-flex').hide();
+            $valueInput.attr('type', 'url');
+            $valueInput.on('input change', () => this.validateUrlInput($valueInput));
+            
+            // Rivalidate immediately if there's already a value
+            if ($valueInput.val() && $valueInput.val().trim()) {
+                this.validateUrlInput($valueInput);
+            }
+        }
+    }
+
+    handleValueInputChange($input) {
+        const propertyId = $input.attr('id').split('_').pop();
+        const value = $input.val();
+        const valueType = $(`#custom_value_type_${propertyId}`).val();
+
+        // Reset to default datatype
+        $(`#custom_datatype_${propertyId}`).val('http://www.w3.org/2001/XMLSchema#string');
+
+        if (valueType === 'literal') {
+            this.validateValue(propertyId, value, this.validateApiUrl);
+        }
+    }
+
+    handleDatatypeFocus($select) {
+        const propertyId = $select.attr('id').split('_').pop();
+        const value = $(`#custom_value_${propertyId}`).val();
+
+        if (value) {
+            this.validateValue(propertyId, value, this.validateApiUrl);
+        }
+    }
+
+    validateValue(propertyId, value, validateApiUrl) {
+        if (!value.trim()) {
+            $(`#custom_datatype_${propertyId} option`).show();
+            return;
+        }
+
+        if (!validateApiUrl) {
+            console.warn('Validate API URL not provided');
+            return;
+        }
+
+        $.ajax({
+            url: validateApiUrl,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ value: value }),
+            success: (response) => {
+                const $select = $(`#custom_datatype_${propertyId}`);
+                
+                $select.find('option').hide();
+                
+                response.valid_datatypes.forEach((datatypeUri) => {
+                    $select.find(`option[value="${datatypeUri}"]`).show();
+                });
+                
+                if (!response.valid_datatypes.includes($select.val())) {
+                    $select.val(response.valid_datatypes[0]);
+                }
+                
+                if (response.valid_datatypes.length === 0) {
+                    $select.append($('<option>', {
+                        value: '',
+                        text: this.translations.noValidDatatypes,
+                        disabled: true,
+                        selected: true
+                    }));
+                }
+            },
+            error: (response) => {
+                console.error(response.responseJSON?.error || 'Validation error');
+            }
+        });
+    }
+
+    validateUrlInput($input) {
+        const value = $input.val();
+        const $feedback = $input.next('.invalid-feedback');
+        
+        try {
+            if (value && value.trim()) {
+                new URL(value);
+                $input.removeClass('is-invalid');
+            } else {
+                $input.removeClass('is-invalid');
+            }
+        } catch (e) {
+            $input.addClass('is-invalid');
+        }
+    }
+
+    updatePropertyTitle($input) {
+        this.updatePropertyTitleFromInput($input);
+    }
+
+    updatePropertyTitleFromInput($input) {
+        const uri = $input.val();
+        const propertyId = $input.attr('id').split('_').pop();
+        const $title = $(`#property_title_${propertyId}`);
+        
+        if (uri && uri.trim()) {
+            try {
+                new URL(uri);
+                
+                const readableTitle = this.uriToReadableTitle(uri);
+                $title.text(readableTitle);
+            } catch (e) {
+                $title.text(this.translations.customProperty);
+            }
+        } else {
+            $title.text(this.translations.customProperty);
+        }
+    }
+
+    uriToReadableTitle(uri) {
+        try {
+            const url = new URL(uri);
+            
+            let lastPart = '';
+            
+            // Prima prova con il fragment
+            if (url.hash) {
+                lastPart = url.hash.substring(1);
+            } else {
+                // Pulisci il pathname rimuovendo slash finali
+                const cleanPath = url.pathname.replace(/\/+$/, '');
+                const pathParts = cleanPath.split('/').filter(part => part.length > 0);
+                if (pathParts.length > 0) {
+                    lastPart = pathParts[pathParts.length - 1];
+                }
+            }
+            
+            // Se non c'è una parte finale significativa, prova con il search params
+            if (!lastPart) {
+                lastPart = url.searchParams.get('property') || url.searchParams.get('pred') || '';
+            }
+            
+            // Se ancora non abbiamo nulla, usa l'hostname
+            if (!lastPart) {
+                lastPart = url.hostname.replace('www.', '');
+            }
+            
+            // Converte camelCase e snake_case in spazi e rendi tutto minuscolo
+            let readable = lastPart
+                .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase
+                .replace(/_/g, ' ') // snake_case
+                .replace(/-/g, ' ') // kebab-case
+                .replace(/\./g, ' ') // dots
+                .toLowerCase()
+                .trim();
+            
+            return readable || this.translations.customProperty;
+        } catch (e) {
+            return this.translations.customProperty;
+        }
+    }
+
+    reset() {
+        this.propertyCounter = 0;
+        $('.custom-property').remove();
+    }
+
+    collectCustomProperties() {
+        const properties = {};
+        
+        $('.custom-property:visible').each((index, element) => {
+            const $property = $(element);
+            const propertyId = $property.data('property-id');
+            const propertyUri = $property.find(`#custom_property_${propertyId}`).val();
+            const propertyValue = $property.find(`#custom_value_${propertyId}`).val();
+            const valueType = $property.find(`#custom_value_type_${propertyId}`).val();
+            const datatype = $property.find(`#custom_datatype_${propertyId}`).val();
+
+            if (propertyUri && propertyValue) {
+                if (!properties[propertyUri]) {
+                    properties[propertyUri] = [];
+                }
+                
+                if (valueType === 'uri') {
+                    properties[propertyUri].push({
+                        value: propertyValue,
+                        type: 'uri'
+                    });
+                } else {
+                    properties[propertyUri].push({
+                        value: propertyValue,
+                        type: 'literal',
+                        datatype: datatype
+                    });
+                }
+            }
+        });
+
+        return properties;
+    }
+
+    hasAtLeastOneProperty() {
+        let hasProperty = false;
+        $('.custom-property:visible').each((index, element) => {
+            const $property = $(element);
+            const propertyId = $property.data('property-id');
+            const propertyUri = $property.find(`#custom_property_${propertyId}`).val();
+            const propertyValue = $property.find(`#custom_value_${propertyId}`).val();
+
+            if (propertyUri && propertyValue) {
+                hasProperty = true;
+                return false; // break
+            }
+        });
+        return hasProperty;
+    }
+}
+
+// Export for use in other scripts
+window.CustomPropertiesManager = CustomPropertiesManager;
+</script> 

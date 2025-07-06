@@ -821,11 +821,11 @@ $(document).ready(function() {
 
     $(document).on({
         mouseenter: function() {
-            $(this).closest('[data-repeater-item]').addClass('highlight-delete');
+            $(this).closest('[data-repeater-item], .custom-property').addClass('highlight-delete');
         },
         mouseleave: function() {
-            const $item = $(this).closest('[data-repeater-item]');
+            const $item = $(this).closest('[data-repeater-item], .custom-property');
             $item.removeClass('highlight-delete');
         }
-    }, '.repeater-delete-btn, .delete-button');
+    }, '.repeater-delete-btn, .delete-button, .remove-property');
 });

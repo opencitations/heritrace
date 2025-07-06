@@ -573,3 +573,12 @@
         </div>
     </div>
 {% endmacro %}
+
+{% macro render_custom_properties_form() %}
+    <div id="custom-properties"></div>
+    <div class="my-3 text-start">
+        <button type="button" id="add-property" class="add-button">
+            <i class="bi bi-plus-circle"></i>{{ _('Add Property') }}
+        </button>
+    </div>
+{% endmacro %}

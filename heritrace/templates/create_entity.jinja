@@ -1,4 +1,4 @@
-{% from 'macros.jinja' import render_form_field with context %}
+{% from 'macros.jinja' import render_form_field, render_custom_properties_form with context %}
 
 {% extends "_base.jinja" %}
 {% block content %}
@@ -45,40 +45,7 @@
         {% endfor %}
     {% else %}
         <div id="custom-entity-form">
-            <div id="custom-properties">
-                <div class="mb-3 custom-property" data-property-id="1">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <label for="custom_property_1" class="form-label mb-0">{{_('Property')}} 1</label>
-                        <button type="button" class="btn btn-danger btn-sm remove-property" data-property-id="1">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                    <input type="url" class="form-control mb-2" id="custom_property_1" name="custom_property_1" placeholder="{{ _('Property URI') }}" required>
-                    <div class="invalid-feedback mb-2">{{_('Please enter a valid URL for the property URI')}}</div>
-
-                    <input type="text" class="form-control custom-value-input mb-2" id="custom_value_1" name="custom_value_1" placeholder="{{ _('Value') }}">
-                    <div class="invalid-feedback mb-2"></div>
-
-                    <div class="mb-2">
-                        <label for="custom_value_type_1" class="form-label">{{ _('Value Type') }}</label>
-                        <select class="form-select custom-value-type" id="custom_value_type_1" name="custom_value_type_1">
-                            <option value="literal">{{ _('Literal') }}</option>
-                            <option value="uri">{{ _('URI') }}</option>
-                        </select>
-                        <div class="invalid-feedback"></div>
-                    </div>
-
-                    <div class="mt-2 custom-datatype-section" id="custom_datatype_section_1">
-                        <label for="custom_datatype_1" class="form-label">{{ _('Select Datatype') }}</label>
-                        <select class="form-select" id="custom_datatype_1" name="custom_datatype_1">
-                            {% for label, uri in datatype_options.items() %}
-                                <option value="{{ uri }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <button type="button" id="add-property" class="btn btn-secondary mb-3">{{_('Add Property')}}</button>
+            {{ render_custom_properties_form() }}
         </div>
     {% endif %}
     <div class="mt-5">
@@ -99,6 +66,7 @@
 <script src="{{ url_for('static', filename='js/search_entity.js') }}"></script>
 
 {% include 'validation.jinja' %}
+{% include 'custom_properties.jinja' %}
 
 <script>
 
@@ -118,55 +86,6 @@
     };
 
     $(document).ready(function() {
-        function validateValue(propertyId, value) {
-            if (!value.trim()) {
-                $(`#custom_datatype_${propertyId} option`).show();
-                return;
-            }
-
-            $.ajax({
-                url: '{{ url_for("api.validate_literal") }}',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ value: value }),
-                success: function(response) {
-                    var select = $(`#custom_datatype_${propertyId}`);
-                    
-                    select.find('option').hide();
-                    
-                    response.valid_datatypes.forEach(function(datatypeUri) {
-                        select.find(`option[value="${datatypeUri}"]`).show();
-                    });
-                    
-                    if (!response.valid_datatypes.includes(select.val())) {
-                        select.val(response.valid_datatypes[0]);
-                    }
-                    
-                    if (response.valid_datatypes.length === 0) {
-                        select.append($('<option>', {
-                            value: '',
-                            text: '{{ _("No valid datatypes for this value") }}',
-                            disabled: true,
-                            selected: true
-                        }));
-                    }
-                },
-                error: function(response) {
-                    console.error(response.responseJSON.error);
-                }
-            });
-        }
-
-        function toggleRemoveButtons() {
-            let propertyCount = $('.custom-property').length;
-            if (propertyCount === 1) {
-                $('.custom-property .remove-property').hide();
-            } else {
-                $('.custom-property .remove-property').show();
-            }
-        }
-
-
         $(window).on('pageshow', function(event) {
             initializeForm();
         });
@@ -196,149 +115,7 @@
 
         updateOrderedElementsNumbering();
 
-        let propertyCount = 1;
-
-        $('#add-property').click(function() {
-            propertyCount++;
-            let newProperty = `
-                <div class="mb-3 custom-property" data-property-id="${propertyCount}">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <label for="custom_property_${propertyCount}" class="form-label mb-0">{{_('Property')}} ${propertyCount}</label>
-                        <button type="button" class="btn btn-danger btn-sm remove-property" data-property-id="${propertyCount}">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                    <!-- Input per l'URI della proprietà -->
-                    <input type="url" class="form-control mb-2" id="custom_property_${propertyCount}" name="custom_property_${propertyCount}" placeholder="{{ _('Property URI') }}">
-                    <div class="invalid-feedback mb-2">{{_('Please enter a valid URL for the property URI')}}</div>
-
-                    <!-- Input per il valore -->
-                    <input type="text" class="form-control mb-2 custom-value-input" id="custom_value_${propertyCount}" name="custom_value_${propertyCount}" placeholder="{{ _('Value') }}">
-
-                    <!-- Selettore per URI o Literal -->
-                    <div class="mb-2">
-                        <label for="custom_value_type_${propertyCount}" class="form-label">{{ _('Value Type') }}</label>
-                        <select class="form-select custom-value-type" id="custom_value_type_${propertyCount}" name="custom_value_type_${propertyCount}">
-                            <option value="literal">{{ _('Literal') }}</option>
-                            <option value="uri">{{ _('URI') }}</option>
-                        </select>
-                    </div>
-
-                    <!-- Sezione per datatype, mostrata solo se l'utente sceglie Literal -->
-                    <div class="mt-2 custom-datatype-section" id="custom_datatype_section_${propertyCount}">
-                        <label for="custom_datatype_${propertyCount}" class="form-label">{{ _('Select Datatype') }}</label>
-                        <select class="form-select" id="custom_datatype_${propertyCount}" name="custom_datatype_${propertyCount}">
-                            {% for label, uri in datatype_options.items() %}
-                                <option value="{{ uri }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-            `;
-            $('#custom-properties').append(newProperty);
-            toggleRemoveButtons();
-        });
-
-        $('#custom-properties').on('click', '.remove-property', function() {
-            let propertyId = $(this).data('property-id');
-            $(`div[data-property-id="${propertyId}"]`).remove();
-            updatePropertyLabels();
-            toggleRemoveButtons();
-        });
-
-        function updatePropertyLabels() {
-            $('.custom-property').each(function(index) {
-                let newIndex = index + 1;
-                $(this).attr('data-property-id', newIndex);
-
-                $(this).find('.form-label').first().text(`{{_('Property')}} ${newIndex}`);
-
-                $(this).find('input, select').each(function() {
-                    let oldName = $(this).attr('name');
-                    let oldId = $(this).attr('id');
-                    let newName = oldName.replace(/\d+/, newIndex);
-                    let newId = oldId.replace(/\d+/, newIndex);
-                    
-                    $(this).attr('name', newName);
-                    $(this).attr('id', newId);
-                });
-
-                $(this).find('.remove-property').attr('data-property-id', newIndex);
-            });
-
-            propertyCount = $('.custom-property').length;
-        }
-
-        $(document).on('input', '.custom-value-input', function() {
-            var propertyId = $(this).attr('id').split('_').pop();
-            var value = $(this).val();
-            var valueType = $(`#custom_value_type_${propertyId}`).val();
-
-            $(`#custom_datatype_${propertyId}`).val('http://www.w3.org/2001/XMLSchema#string');
-
-            if (valueType === 'literal') {
-                validateValue(propertyId, value);
-            }
-        });
-
-        $(document).on('change', '.custom-value-type', function() {
-            var propertyId = $(this).attr('id').split('_').pop();
-            var selectedValueType = $(this).val();
-            var valueInput = $(`#custom_value_${propertyId}`);
-            var datatypeSection = $(`#custom_datatype_section_${propertyId}`);
-            
-            if (selectedValueType === 'literal') {
-                datatypeSection.show();
-                validateValue(propertyId, valueInput.val());
-            } else {
-                datatypeSection.hide();
-            }
-        });
-        
-        $(document).on('focus', '.custom-datatype-section select', function() {
-            var propertyId = $(this).attr('id').split('_').pop();
-            var value = $(`#custom_value_${propertyId}`).val();
-
-            if (value) {
-                validateValue(propertyId, value);
-            }
-        });
-
-        $('#custom_entity_uri').on('input change', function() {
-            validateUrlInput($(this));
-        });
-        $(document).on('input change', '.custom-property input[type="url"]', function() {
-            validateUrlInput($(this));
-        });
-
-        $(document).on('change', '.custom-value-type', function() {
-            var propertyId = $(this).attr('id').split('_').pop();
-            var selectedValueType = $(this).val();
-            
-            var valueInput = $(`#custom_value_${propertyId}`);
-            
-            if (selectedValueType === 'uri') {
-                if (valueInput.next('.invalid-feedback').length === 0) {
-                    valueInput.after('<div class="invalid-feedback mb-2">{{ _("Please enter a valid URL") }}</div>');
-                }
-                valueInput.attr('type', 'url');
-                valueInput.on('input change', function() {
-                    validateUrlInput($(this));
-                });
-            } else {
-                valueInput.attr('type', 'text');
-                valueInput.off('input change', validateUrlInput);
-                valueInput.removeClass('is-invalid');
-                valueInput.next('.invalid-feedback').remove();
-            }
-        });
-
-        $(document).on('change', '.custom-value-input', function() {
-            var propertyId = $(this).attr('id').split('_').pop();
-            $(`#custom_datatype_${propertyId}`).val('http://www.w3.org/2001/XMLSchema#string');                
-        });
-
-        toggleRemoveButtons();
+        const customPropertiesManager = new CustomPropertiesManager();
 
         $('#submitForm').click(function(){
             let errors = [];
@@ -350,18 +127,7 @@
             validateCardinality(errors);
 
             if ('{{shacl}}' !== 'True') {
-                let hasAtLeastOneProperty = false;
-                $('.custom-property:visible').each(function() {
-                    let propertyUri = $(this).find('input[type="url"]').val();
-                    let propertyValue = $(this).find('.custom-value-input').val();
-
-                    if (propertyUri && propertyValue) {
-                        hasAtLeastOneProperty = true;
-                        return false;
-                    }
-                });
-
-                if (!hasAtLeastOneProperty) {
+                if (!customPropertiesManager.hasAtLeastOneProperty()) {
                     errors.push({
                         message: '{{ _("Please provide at least one property with a value") }}'
                     });
@@ -404,7 +170,8 @@
                         structuredData = {
                             properties: {}
                         };
-                        collectFormData(null, structuredData.properties, '{{ shacl }}', 0);
+                        const customProperties = customPropertiesManager.collectCustomProperties();
+                        Object.assign(structuredData.properties, customProperties);
                     }
 
                     showLoadingIndicator();

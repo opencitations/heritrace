@@ -17,6 +17,7 @@ show_usage() {
     echo "Actions:"
     echo "  start <user_id>     - Start user environment"
     echo "  stop <user_id>      - Stop user environment"
+    echo "  restart <user_id>   - Restart user environment (stop + start)"
     echo "  reset <user_id>     - Reset user environment to initial state"
     echo "  delete <user_id>    - Completely delete a user environment"
     echo "  status [user_id]    - Show status of environments"
@@ -26,6 +27,7 @@ show_usage() {
     echo ""
     echo "Examples:"
     echo "  $0 start user001"
+    echo "  $0 restart user001"
     echo "  $0 status"
     echo "  $0 export user001"
 }
@@ -112,14 +114,18 @@ start_environment() {
     cd - > /dev/null
     
     echo "Waiting for HERITRACE to start..."
-    sleep 10
-    
     for i in {1..30}; do
-        if curl -s "http://localhost:$USER_PORT" > /dev/null; then
-            echo "✓ HERITRACE is ready at http://localhost:$USER_PORT"
+        if curl -s --fail --insecure "https://localhost:$USER_PORT" > /dev/null; then
+            echo "✓ HERITRACE is ready at https://localhost:$USER_PORT"
             break
         fi
+        echo "  Attempt $i/30 - waiting for HERITRACE to respond..."
         sleep 2
+        if [ $i -eq 30 ]; then
+            echo "Error: Timed out waiting for HERITRACE to start at https://localhost:$USER_PORT"
+            echo "Check the logs with: cd $user_dir && docker compose logs"
+            exit 1
+        fi
     done
     
     echo ""
@@ -151,6 +157,26 @@ stop_environment() {
     docker stop "$PROV_DB_NAME" 2>/dev/null || true
     
     echo "Environment stopped for $user_id"
+}
+
+restart_environment() {
+    local user_id=$1
+    local user_dir="users/$user_id"
+    
+    if [ ! -d "$user_dir" ]; then
+        echo "Error: Environment for $user_id not found"
+        exit 1
+    fi
+    
+    echo "Restarting environment for $user_id..."
+    
+    echo "Stopping environment..."
+    stop_environment "$user_id"
+    
+    echo "Starting environment..."
+    start_environment "$user_id"
+    
+    echo "Restart completed for $user_id"
 }
 
 reset_environment() {
@@ -259,9 +285,9 @@ show_status() {
         
         if $heritrace_running && $dataset_running && $prov_running; then
             echo "Environment for $user_id: RUNNING"
-            echo "URL: http://localhost:$USER_PORT"
-            echo "Dataset DB: http://localhost:$DATASET_PORT"
-            echo "Provenance DB: http://localhost:$PROV_PORT"
+            echo "URL: https://localhost:$USER_PORT"
+            echo "Dataset DB: https://localhost:$DATASET_PORT"
+            echo "Provenance DB: https://localhost:$PROV_PORT"
         elif $heritrace_running || $dataset_running || $prov_running; then
             echo "Environment for $user_id: PARTIALLY RUNNING"
             echo "HERITRACE: $heritrace_running"
@@ -302,7 +328,7 @@ show_status() {
                 fi
                 
                 if $heritrace_running && $dataset_running && $prov_running; then
-                    echo "$user_id: RUNNING (http://localhost:$USER_PORT)"
+                    echo "$user_id: RUNNING (https://localhost:$USER_PORT)"
                 elif $heritrace_running || $dataset_running || $prov_running; then
                     echo "$user_id: PARTIALLY RUNNING"
                 else
@@ -355,7 +381,7 @@ HERITRACE Test Export - User $user_id
 
 Export Date: $(date)
 User Type: $USER_TYPE
-Original URL: http://localhost:$USER_PORT
+Original URL: https://localhost:$USER_PORT
 
 Files Exported:
 - final_dataset.ttl: Complete dataset after user modifications
@@ -428,6 +454,14 @@ case $ACTION in
             exit 1
         fi
         stop_environment "$USER_ID"
+        ;;
+    restart)
+        if [ -z "$USER_ID" ]; then
+            echo "Error: user_id required for restart action"
+            show_usage
+            exit 1
+        fi
+        restart_environment "$USER_ID"
         ;;
     reset)
         if [ -z "$USER_ID" ]; then

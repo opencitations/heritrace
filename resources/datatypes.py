@@ -2,6 +2,51 @@ from rdflib import XSD
 
 from resources.datatypes_validation import *
 
+def get_datatype_options():
+    """
+    Returns an ordered list of datatype options with human-readable names mapped to their XSD URIs.
+    This function requires Flask-Babel to be initialized for translations.
+    Ordered by frequency of use (most common first).
+    """
+    from flask_babel import gettext
+    
+    return [
+        # Most common types first
+        {"label": gettext("Text (string)"), "uri": str(XSD.string)},
+        {"label": gettext("Web address (URL)"), "uri": str(XSD.anyURI)},
+        {"label": gettext("Whole number (integer)"), "uri": str(XSD.integer)},
+        {"label": gettext("True or False (boolean)"), "uri": str(XSD.boolean)},
+        {"label": gettext("Date (YYYY-MM-DD)"), "uri": str(XSD.date)},
+        {"label": gettext("Decimal number"), "uri": str(XSD.decimal)},
+        {"label": gettext("Date and Time (YYYY-MM-DDThh:mm:ss)"), "uri": str(XSD.dateTime)},
+        {"label": gettext("Year (YYYY)"), "uri": str(XSD.gYear)},
+        {"label": gettext("Floating point number"), "uri": str(XSD.float)},
+        {"label": gettext("Time (hh:mm:ss)"), "uri": str(XSD.time)},
+        {"label": gettext("Normalized text (no line breaks)"), "uri": str(XSD.normalizedString)},
+        {"label": gettext("Language code (e.g., en, it)"), "uri": str(XSD.language)},
+        {"label": gettext("Double precision floating point number"), "uri": str(XSD.double)},
+        {"label": gettext("Tokenized text (single word)"), "uri": str(XSD.token)},
+        # Less common numeric types
+        {"label": gettext("Non-negative integer (0 or positive)"), "uri": str(XSD.nonNegativeInteger)},
+        {"label": gettext("Positive integer (greater than 0)"), "uri": str(XSD.positiveInteger)},
+        {"label": gettext("Non-positive integer (0 or negative)"), "uri": str(XSD.nonPositiveInteger)},
+        {"label": gettext("Negative integer"), "uri": str(XSD.negativeInteger)},
+        {"label": gettext("Long integer"), "uri": str(XSD.long)},
+        {"label": gettext("Short integer"), "uri": str(XSD.short)},
+        {"label": gettext("Byte-sized integer"), "uri": str(XSD.byte)},
+        {"label": gettext("Unsigned integer"), "uri": str(XSD.unsignedInt)},
+        {"label": gettext("Unsigned long integer"), "uri": str(XSD.unsignedLong)},
+        {"label": gettext("Unsigned short integer"), "uri": str(XSD.unsignedShort)},
+        {"label": gettext("Unsigned byte"), "uri": str(XSD.unsignedByte)},
+        # Date/time variations
+        {"label": gettext("Month (MM)"), "uri": str(XSD.gMonth)},
+        {"label": gettext("Day of the month (DD)"), "uri": str(XSD.gDay)},
+        {"label": gettext("Duration (e.g., P1Y2M3DT4H5M6S)"), "uri": str(XSD.duration)},
+        # Rarely used types
+        {"label": gettext("Hexadecimal binary"), "uri": str(XSD.hexBinary)},
+        {"label": gettext("Base64 encoded binary"), "uri": str(XSD.base64Binary)},
+    ]
+
 DATATYPE_MAPPING = [
     [XSD.string, validate_string, "text"],
     # Una stringa che non può contenere caratteri di interruzione (ad es. newline).

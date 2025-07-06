@@ -1,4 +1,4 @@
-{% from 'macros.jinja' import render_triple, render_repeater_item with context %}
+{% from 'macros.jinja' import render_triple, render_repeater_item, render_custom_properties_form with context %}
 
 {% set unique_counter = namespace(value=0) %}
 
@@ -143,6 +143,14 @@
     {% endif %}
 </div>
 
+{% set entity_key = (entity_type, entity_shape) %}
+{% set has_form_fields = entity_key in form_fields %}
+{% if shacl and not is_deleted and not has_form_fields %}
+<div class="custom-properties-section mt-5 mb-5" style="display: none;">
+    {{ render_custom_properties_form() }}
+</div>
+{% endif %}
+
 <div class="row g-3 mb-5">
     <div class="col-12 col-sm-6">
         <button class="btn btn-outline-primary w-100" id="saveChangesBtn" style="display: none;">
@@ -215,6 +223,7 @@
 </script>
 
 {% include 'validation.jinja' %}
+{% include 'custom_properties.jinja' %}
 
 <script src="{{ url_for('static', filename='js/resource_loader.js') }}"></script>
 {% include 'entity/similar_resources.jinja' %}
@@ -519,8 +528,9 @@
             dateDisplay.text(dateInput.val());
         });
 
-        // Rimuovi gli elementi aggiunti durante la modalità di modifica
         $('.added-in-edit-mode').remove();
+        
+        customPropertiesManager.reset();
 
         // Ripristina l'ordine originale degli elementi
         $('[data-repeater-list][data-ordered-by]').each(function() {
@@ -600,6 +610,9 @@
         
         collectFormData($('.triples'), structuredData.properties, shacl, 0);
 
+        const customProperties = customPropertiesManager.collectCustomProperties();
+        Object.assign(structuredData.properties, customProperties);
+
         Object.keys(structuredData.properties).forEach(function (predicate) {
             structuredData.properties[predicate].forEach(function (property) {
                 if (property.orderedBy) {
@@ -648,6 +661,8 @@
         }
     }
 
+    let customPropertiesManager;
+
     $(document).ready(function () {
         $('[data-repeater-create]').addClass('d-none');         
 
@@ -659,6 +674,24 @@
                 toggleEditForm($(this).closest('.property-value'));
             }
         });
+
+        $('#editEntityBtn').click(function() {
+            var buttonText = $(this).text().trim();
+            var cancelEditingText = '{{ _("Cancel Editing") }}';
+            var isCurrentlyInEditMode = buttonText === cancelEditingText;
+            
+            if (!isCurrentlyInEditMode) {
+                // Entering edit mode
+                $('.custom-properties-section').css('display', 'block');
+            } else {
+                // Exiting edit mode
+                $('.custom-properties-section').css('display', 'none');
+                customPropertiesManager.reset();
+                restoreOriginalValues();
+            }
+        });
+    
+        customPropertiesManager = new CustomPropertiesManager();
 
         $('.cancel-button').click(function () {
             toggleEditForm($(this).closest('.property-value'));

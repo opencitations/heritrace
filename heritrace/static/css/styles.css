@@ -95,7 +95,8 @@ footer.bg-dark {
 .redirection-btn,
 .undo-delete-button,
 .change-entity,
-.merge-btn {
+.merge-btn,
+.remove-property {
   font-size: 1rem;
   position: absolute;
   top: 0;
@@ -107,7 +108,8 @@ footer.bg-dark {
   transition: background-color 0.2s, color 0.2s, border 0.2s;
 }
 
-.repeater-delete-btn:hover {
+.repeater-delete-btn:hover,
+.remove-property:hover {
   background-color: #dc3545;
   color: #fff;
   border-color: #dc3545;
@@ -208,11 +210,13 @@ footer.bg-dark {
 }
 
 /* Stile per l'elemento padre quando il pulsante di cancellazione è in hover */
-[data-repeater-item].highlight-delete {
+[data-repeater-item].highlight-delete,
+.custom-property.highlight-delete {
   position: relative;
 }
 
-[data-repeater-item].highlight-delete::before {
+[data-repeater-item].highlight-delete::before,
+.custom-property.highlight-delete::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -226,15 +230,18 @@ footer.bg-dark {
   );
   opacity: 0;
   animation: deleteWarningPulse 2s ease-out infinite;
+  pointer-events: none;
 }
 
-[data-repeater-item].highlight-delete::after {
+[data-repeater-item].highlight-delete::after,
+.custom-property.highlight-delete::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
   border-radius: 4px;
   animation: deleteBorderPulse 2s ease-out infinite;
+  pointer-events: none;
 }
 
 @keyframes deleteWarningPulse {

@@ -32,7 +32,7 @@ from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject, get_entity_types, parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
-from resources.datatypes import DATATYPE_MAPPING
+from resources.datatypes import DATATYPE_MAPPING, get_datatype_options
 from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
@@ -138,6 +138,8 @@ def about(subject):
 
     form_fields = get_form_fields()
 
+    datatype_options = get_datatype_options()
+
     predicate_details_map = {}
     for entity_type_key, predicates in form_fields.items():
         for predicate_uri, details_list in predicates.items():
@@ -170,6 +172,7 @@ def about(subject):
         is_deleted=is_deleted,
         context=context_snapshot,
         default_primary_source=default_primary_source,
+        datatype_options=datatype_options,
     )
 
 
@@ -193,39 +196,7 @@ def create_entity():
         reverse=True,
     )
 
-
-    datatype_options = {
-        gettext("Text (string)"): XSD.string,
-        gettext("Whole number (integer)"): XSD.integer,
-        gettext("True or False (boolean)"): XSD.boolean,
-        gettext("Date (YYYY-MM-DD)"): XSD.date,
-        gettext("Date and Time (YYYY-MM-DDThh:mm:ss)"): XSD.dateTime,
-        gettext("Decimal number"): XSD.decimal,
-        gettext("Floating point number"): XSD.float,
-        gettext("Double precision floating point number"): XSD.double,
-        gettext("Time (hh:mm:ss)"): XSD.time,
-        gettext("Year (YYYY)"): XSD.gYear,
-        gettext("Month (MM)"): XSD.gMonth,
-        gettext("Day of the month (DD)"): XSD.gDay,
-        gettext("Duration (e.g., P1Y2M3DT4H5M6S)"): XSD.duration,
-        gettext("Hexadecimal binary"): XSD.hexBinary,
-        gettext("Base64 encoded binary"): XSD.base64Binary,
-        gettext("Web address (URL)"): XSD.anyURI,
-        gettext("Language code (e.g., en, it)"): XSD.language,
-        gettext("Normalized text (no line breaks)"): XSD.normalizedString,
-        gettext("Tokenized text (single word)"): XSD.token,
-        gettext("Non-positive integer (0 or negative)"): XSD.nonPositiveInteger,
-        gettext("Negative integer"): XSD.negativeInteger,
-        gettext("Long integer"): XSD.long,
-        gettext("Short integer"): XSD.short,
-        gettext("Byte-sized integer"): XSD.byte,
-        gettext("Non-negative integer (0 or positive)"): XSD.nonNegativeInteger,
-        gettext("Positive integer (greater than 0)"): XSD.positiveInteger,
-        gettext("Unsigned long integer"): XSD.unsignedLong,
-        gettext("Unsigned integer"): XSD.unsignedInt,
-        gettext("Unsigned short integer"): XSD.unsignedShort,
-        gettext("Unsigned byte"): XSD.unsignedByte,
-    }
+    datatype_options = get_datatype_options()
 
     if request.method == "POST":
         structured_data = json.loads(request.form.get("structured_data", "{}"))
@@ -762,11 +733,7 @@ def entity_history(entity_uri):
     else:
         context_snapshot = history[entity_uri][sorted_timestamps[-1]]
 
-    entity_classes = set()
-    classes = list(context_snapshot.triples((URIRef(entity_uri), RDF.type, None)))
-    for triple in classes:
-        entity_classes.add(str(triple[2]))
-
+    entity_classes = [str(triple[2]) for triple in context_snapshot.triples((URIRef(entity_uri), RDF.type, None))]
     highest_priority_class = get_highest_priority_class(entity_classes)
     snapshot_entity_shape = determine_shape_for_entity_triples(context_snapshot)
 

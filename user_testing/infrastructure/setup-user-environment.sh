@@ -61,13 +61,19 @@ services:
       - REDIS_HOST=redis-$USER_ID
     volumes:
       - ../../../../heritrace:/app/heritrace
-      - ./resources:/app/resources
       - ../../../../app.py:/app/app.py
       - ./config.py:/app/config.py
       - ../../../../pyproject.toml:/app/pyproject.toml
       - ../../../../poetry.lock:/app/poetry.lock
       - ../../../../babel:/app/babel
       - ../../../../webpack.config.js:/app/webpack.config.js
+      # Mount individual resources files
+      - ../../../../resources/context.json:/app/resources/context.json:ro
+      - ../../../../resources/datatypes.py:/app/resources/datatypes.py:ro
+      - ../../../../resources/datatypes_validation.py:/app/resources/datatypes_validation.py:ro
+      - ./resources/shacl.ttl:/app/resources/shacl.ttl:ro
+      - ./resources/display_rules.yaml:/app/resources/display_rules.yaml:ro
+      - ./resources/__init__.py:/app/resources/__init__.py:ro
       - "user-$USER_ID-venv:/app/.venv"
       - "user-$USER_ID-node-modules:/app/node_modules"
     depends_on:
@@ -182,10 +188,7 @@ mkdir -p "$USER_DIR/resources"
 cp "../test_materials/test_shacl.ttl" "$USER_DIR/resources/shacl.ttl"
 cp "../test_materials/test_display_rules.yaml" "$USER_DIR/resources/display_rules.yaml"
 
-# Copy required Python resources for all users
-cp "../../resources/context.json" "$USER_DIR/resources/"
-cp "../../resources/datatypes.py" "$USER_DIR/resources/"
-cp "../../resources/datatypes_validation.py" "$USER_DIR/resources/"
+# Create __init__.py for Python module (datatypes.py and datatypes_validation.py are mounted from source)
 touch "$USER_DIR/resources/__init__.py"
 
 # Create user access info
