@@ -17,9 +17,9 @@ HERITRACE is a semantic editor for GLAM professionals to facilitate metadata enr
 
 | Document | Purpose |
 |----------|---------|
-| [01_end_user_testing.md](01_end_user_testing.md) | Usability and functionality testing |
-| [02_analysis_framework.md](02_analysis_framework.md) | Analysis and reporting framework |
-| [questionnaires/](questionnaires/) | Pre-test and SUS questionnaires |
+| [01_end_user_testing.md](01_end_user_testing.md) | End user usability and functionality testing (60 minutes) |
+| [02_technician_testing.md](02_technician_testing.md) | Technician configuration and SHACL testing (60 minutes) |
+| [sus_questionnaire.md](sus_questionnaire.md) | SUS usability questionnaire |
 
 ## Methodology
 
@@ -33,20 +33,14 @@ HERITRACE is a semantic editor for GLAM professionals to facilitate metadata enr
 
 ## Prerequisites
 
-**Technicians**: SHACL validation knowledge (min level 4/7), RDF/SPARQL concepts, configuration file experience
+**Technicians**: Working knowledge of SHACL (Shapes Constraint Language), technical experience with semantic systems configuration
 
-**End Users**: Bibliographic metadata experience, web application comfort
-
-## Success Criteria
-
-| Category | Targets |
-|----------|---------|
-| **Technicians** | Technical completion of 3 configuration tasks, SUS score ≥65, complete recordings |
-| **End Users** | 85% creation, 90% addition, 75% correction, 70% merge, 80% restore, SUS score ≥65 |
+**End Users**: Knowledge of bibliographic resource structure and metadata, basic web application experience
 
 ## Deliverables
 
-1. Grounded theory analysis report from screen+voice recordings
-2. Task completion analysis with specific HERITRACE improvement recommendations
-3. SUS usability benchmarks and user experience insights
-4. Prioritized HERITRACE development roadmap based on quantified user issues
+1. Screen and voice recordings analysis for both user categories
+2. Task completion rates and performance metrics
+3. SUS usability scores and user experience insights  
+4. HERITRACE improvement recommendations based on identified user issues
+5. Development priorities for enhanced usability and configuration workflows
