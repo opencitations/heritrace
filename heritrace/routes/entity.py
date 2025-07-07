@@ -358,14 +358,22 @@ def create_entity():
                                 default_graph_uri,
                             )
         else:
+            entity_type = structured_data.get("entity_type")
             properties = structured_data.get("properties", {})
 
-            entity_uri = generate_unique_uri()
+            entity_uri = generate_unique_uri(entity_type)
             editor.import_entity(entity_uri)
             editor.preexisting_finished()
 
             default_graph_uri = (
                 URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
+            )
+
+            editor.create(
+                entity_uri,
+                RDF.type,
+                URIRef(entity_type),
+                default_graph_uri,
             )
 
             for predicate, values in properties.items():

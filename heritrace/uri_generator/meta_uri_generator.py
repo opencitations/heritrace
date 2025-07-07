@@ -37,6 +37,7 @@ class MetaURIGenerator(URIGenerator):
             "http://purl.org/spar/fabio/Manifestation": "re",
             "http://xmlns.com/foaf/0.1/Agent": "ra",
             "http://purl.org/spar/datacite/Identifier": "id",
+            "http://www.w3.org/2002/07/owl#Thing": "en",
         }
 
     def generate_uri(self, entity_type: str) -> str:

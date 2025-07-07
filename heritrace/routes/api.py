@@ -23,7 +23,7 @@ from heritrace.utils.sparql_utils import (find_orphaned_entities,
 from heritrace.utils.strategies import (OrphanHandlingStrategy,
                                         ProxyHandlingStrategy)
 from heritrace.utils.uri_utils import generate_unique_uri
-from rdflib import RDF, XSD, Graph, URIRef
+from rdflib import RDF, XSD, Graph, Literal, URIRef
 from resources.datatypes import DATATYPE_MAPPING
 
 api_bp = Blueprint("api", __name__)
@@ -801,17 +801,35 @@ def create_logic(
                     parent_entity_type=entity_type,  # Pass the current entity type as parent_entity_type
                 )
             else:
-                # Use validate_new_triple to validate and get the correctly typed value
-                object_value, _, error_message = validate_new_triple(
-                    subject, predicate, value, "create", entity_types=entity_type
-                )
-                if error_message:
-                    raise ValueError(error_message)
-
-                if object_value is not None:
+                if value.get("is_custom_property", False):
+                    # Handle custom properties directly without validation
+                    if value["type"] == "uri":
+                        object_value = URIRef(value["value"])
+                    elif value["type"] == "literal":
+                        datatype = (
+                            URIRef(value["datatype"])
+                            if "datatype" in value
+                            else XSD.string
+                        )
+                        object_value = Literal(value["value"], datatype=datatype)
+                    else:
+                        raise ValueError(f"Unknown custom property type: {value['type']}")
+                        
                     editor.create(
                         URIRef(subject), URIRef(predicate), object_value, graph_uri
                     )
+                else:
+                    # Use validate_new_triple to validate and get the correctly typed value
+                    object_value, _, error_message = validate_new_triple(
+                        subject, predicate, value, "create", entity_types=entity_type
+                    )
+                    if error_message:
+                        raise ValueError(error_message)
+
+                    if object_value is not None:
+                        editor.create(
+                            URIRef(subject), URIRef(predicate), object_value, graph_uri
+                        )
 
     return subject
 

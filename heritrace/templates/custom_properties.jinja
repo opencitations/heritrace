@@ -363,11 +363,13 @@ class CustomPropertiesManager {
                 
                 if (valueType === 'uri') {
                     properties[propertyUri].push({
+                        is_custom_property: true,
                         value: propertyValue,
                         type: 'uri'
                     });
                 } else {
                     properties[propertyUri].push({
+                        is_custom_property: true,
                         value: propertyValue,
                         type: 'literal',
                         datatype: datatype

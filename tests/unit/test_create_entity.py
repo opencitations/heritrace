@@ -87,6 +87,7 @@ def test_create_entity_without_shacl(mock_get_form_fields, mock_editor, logged_i
     app.config["URI_GENERATOR"].generate_uri.return_value = "http://example.org/test/123"
     
     data = {
+        "entity_type": "http://example.org/Thing",  # Add entity_type since it's required
         "properties": {
             "http://example.org/hasName": [
                 {"type": "literal", "value": "John Doe", "datatype": str(XSD.string)},

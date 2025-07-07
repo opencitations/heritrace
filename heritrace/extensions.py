@@ -379,13 +379,12 @@ def initialize_global_variables(app: Flask):
                 except Exception as e:
                     app.logger.error(f"Error loading display rules: {str(e)}")
                     raise RuntimeError(f"Failed to load display rules: {str(e)}")
+        else:
+            display_rules = []
         
         if app.config.get('SHACL_PATH'):
             if not os.path.exists(app.config['SHACL_PATH']):
                 app.logger.warning(f"SHACL file not found at: {app.config['SHACL_PATH']}")
-                return
-                
-            if form_fields_cache is not None:
                 return
                 
             try:
@@ -398,6 +397,9 @@ def initialize_global_variables(app: Flask):
             except Exception as e:
                 app.logger.error(f"Error initializing form fields from SHACL: {str(e)}")
                 raise RuntimeError(f"Failed to initialize form fields: {str(e)}")
+        else:
+            shacl_graph = Graph()
+            form_fields_cache = {}
         
         classes_with_multiple_shapes = identify_classes_with_multiple_shapes()
                 

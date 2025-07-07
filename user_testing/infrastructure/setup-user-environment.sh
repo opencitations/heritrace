@@ -133,7 +133,7 @@ counter_handler = MetaCounterHandler(
 )
 
 meta_uri_generator = MetaURIGenerator(
-    "https://w3id.org/oc/meta", "prefix", counter_handler
+    "https://w3id.org/oc/meta", "$USER_ID", counter_handler
 )
 
 class Config:

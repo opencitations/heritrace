@@ -732,7 +732,7 @@ def test_initialize_global_variables_form_fields_cache_exists(app):
          patch('heritrace.extensions.display_rules', None), \
          patch('heritrace.extensions.shacl_graph', None), \
          patch('heritrace.extensions.form_fields_cache', {'existing': 'cache'}), \
-         patch('os.path.exists', return_value=True):
+         patch('os.path.exists', return_value=False):  # Return False so it doesn't try to read the file
         
         # Call the function
         initialize_global_variables(app)

@@ -145,7 +145,7 @@
 
 {% set entity_key = (entity_type, entity_shape) %}
 {% set has_form_fields = entity_key in form_fields %}
-{% if shacl and not is_deleted and not has_form_fields %}
+{% if not is_deleted and (not shacl or (shacl and not has_form_fields)) %}
 <div class="custom-properties-section mt-5 mb-5" style="display: none;">
     {{ render_custom_properties_form() }}
 </div>
