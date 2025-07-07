@@ -19,7 +19,7 @@ Participants must complete:
 - Modern web browser
 
 ### Sample Data Provided
-- 50 sample bibliographic records (books, articles, papers)
+- ParaText dataset: 17,799 quadruples and 562 bibliographic resources
 - Examples of incomplete records needing editing
 - Duplicate entities for merge testing
 
@@ -36,42 +36,33 @@ There are no right or wrong approaches - we want to understand your natural work
 
 ## Metadata Management Tasks (60 minutes)
 
-### Task 1: Create New Publication Record (15 minutes)
+### Task 1: Edit Existing Publication Record (10 minutes)
 ```
-"Task 1: Add a new journal article to the repository. Think aloud as you work through this process."
-```
+"Task 1: Browse the catalogue to find a Review Article entity type and modify the publication record for 'Conti Bizzarro, F. (2009). Da Esiodo a Saffo e Alceo: due contributi dell'Istituto Papirologico \"G. Vitelli\" [Review Article]. Vichiana, ser. 4, 11(1), 103-107.'
 
-**Scenario**: Add a new journal article to the repository.
+Please make these specific changes:
+1. Add a new author 'Vittoria Castrillo' as the first author (before Ferruccio Conti Bizzarro)
+2. Remove the keyword 'subject>ancient tradition'
 
-### Task 2: Add Missing Information (10 minutes)
-```
-"Task 2: Add additional information to the article you just created. Continue thinking aloud about your process."
-```
-
-**Scenario**: Add additional metadata to the publication created in Task 1.
-
-### Task 3: Correct Publication Error (12 minutes)
-```
-"Task 3: Make corrections to the publication record. Describe your approach and any challenges you encounter."
+Think aloud as you work through this process."
 ```
 
-**Scenario**: A researcher reported multiple errors in Task 1's record that need correction.
-
-### Task 4: Identify and Merge Duplicate Author (15 minutes)
+### Task 2: Merge Duplicate Author Entities (12 minutes)
 ```
-"Task 4: Handle duplicate author entities. Think aloud about how you approach this type of data cleanup."
+"Task 2: Return to the publication from Task 1 and visit the author page for Ferruccio Conti Bizzarro. You'll notice there is a similar entity that is actually a duplication. Use the integrated functionality to merge it. Think aloud about how you approach this data cleanup process."
 ```
 
-**Scenario**: Discover that author exists as a separate author entity and merge with the existing author entity.
-
-### Task 5: Restore Previous Version (8 minutes)
+### Task 3: Restore Previous Version (8 minutes)
 ```
-"Task 5: Use version control to restore previous state. Describe what you expect and how you navigate this process."
+"Task 3: You realize that the modifications you made in Task 1 were incorrect - adding Vittoria Castrillo as author and removing the keyword were mistakes. Use the integrated Time Machine system to restore the previous version before those changes. Think aloud about how you approach this process and what you expect from the version control functionality."
 ```
 
-**Scenario**: Realize that some changes made in Task 3 were incorrect and need to restore the publication to its state after Task 2.
+### Task 4: Create New Publication Record (13 minutes)
+```
+"Task 4: Add this specific journal article to the repository: https://doi.org/10.1162/qss_a_00292. Include as many metadata fields as possible. You have access to the article's webpage to gather information. Think aloud as you work through this process."
+```
 
-### **Immediate Reflection (15 minutes)**
+### **Immediate Reflection (5 minutes)**
 ```
 "Without stopping the recording, please answer these questions aloud:
 
@@ -88,18 +79,3 @@ Take your time with each answer - we want your complete thoughts."
 **Participants must submit**:
 - Complete screen+voice recording file
 - SUS questionnaire ([questionnaires/sus_questionnaire.md](questionnaires/sus_questionnaire.md))
-
-## Data Analysis Approach
-
-**Grounded Theory Analysis** of recordings:
-- **Open coding**: Extract user mental models, expectations, frustrations from natural verbalizations
-- **Axial coding**: Connect themes around metadata workflow integration, system comprehension, task effectiveness
-- **Selective coding**: Develop theory about end user adoption factors and barriers
-
-**Quantitative measures**:
-- Task completion rates and timing
-- Error frequency and recovery patterns
-- Feature usage and discovery patterns
-- SUS usability scores
-
-**Integration**: Combine qualitative insights about user mental models with quantitative task performance to understand both user behavior and underlying motivations.

@@ -50,6 +50,14 @@ start_environment() {
     
     echo "Starting environment for $user_id..."
     
+    echo "Creating Docker network if it doesn't exist..."
+    if ! docker network ls --format "{{.Name}}" | grep -q "^$NETWORK_NAME$"; then
+        docker network create "$NETWORK_NAME"
+        echo "✓ Created network: $NETWORK_NAME"
+    else
+        echo "✓ Network already exists: $NETWORK_NAME"
+    fi
+    
     echo "Starting Dataset Virtuoso container..."
     virtuoso-launch \
         --name "$DATASET_DB_NAME" \
@@ -156,6 +164,9 @@ stop_environment() {
     docker stop "$DATASET_DB_NAME" 2>/dev/null || true
     docker stop "$PROV_DB_NAME" 2>/dev/null || true
     
+    echo "Removing Docker network..."
+    docker network rm "$NETWORK_NAME" 2>/dev/null || echo "  (Network may not exist or be in use)"
+    
     echo "Environment stopped for $user_id"
 }
 
@@ -214,6 +225,10 @@ reset_environment() {
     docker volume rm -f "${user_id}_user-${user_id}-venv" 2>/dev/null || true
     docker volume rm -f "${user_id}_user-${user_id}-node-modules" 2>/dev/null || true
     
+    # Remove the network
+    echo "Removing Docker network..."
+    docker network rm "$NETWORK_NAME" 2>/dev/null || echo "  (Network may not exist)"
+    
     echo "Environment reset for $user_id. Use 'start' to restart with fresh data."
 }
 
@@ -247,6 +262,9 @@ delete_environment() {
     docker volume rm -f "${user_id}_user-${user_id}-redis" >/dev/null 2>&1 || true
     docker volume rm -f "${user_id}_user-${user_id}-venv" >/dev/null 2>&1 || true
     docker volume rm -f "${user_id}_user-${user_id}-node-modules" >/dev/null 2>&1 || true
+    
+    echo "Removing Docker network..."
+    docker network rm "$NETWORK_NAME" >/dev/null 2>&1 || echo "  (Network may not exist)"
     
     # Remove the user directory
     echo "Removing user directory $user_dir..."

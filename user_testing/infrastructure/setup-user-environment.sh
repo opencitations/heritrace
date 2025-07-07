@@ -133,7 +133,7 @@ counter_handler = MetaCounterHandler(
 )
 
 meta_uri_generator = MetaURIGenerator(
-    "https://w3id.org/oc/meta", "$USER_ID", counter_handler
+    "https://w3id.org/oc/meta", "09110", counter_handler
 )
 
 class Config:
@@ -185,8 +185,18 @@ cp "../test_materials/test_data.nq.gz" "$USER_DIR/data/"
 
 # Use only files needed by the application (in resources/)
 mkdir -p "$USER_DIR/resources"
-cp "../test_materials/test_shacl.ttl" "$USER_DIR/resources/shacl.ttl"
-cp "../test_materials/test_display_rules.yaml" "$USER_DIR/resources/display_rules.yaml"
+
+# For technicians: use test/simplified versions of SHACL and display rules
+# For end users: use complete production versions
+if [ "$USER_TYPE" == "technician" ]; then
+    echo "Using test versions of SHACL and display rules for technician user"
+    cp "../test_materials/test_shacl.ttl" "$USER_DIR/resources/shacl.ttl"
+    cp "../test_materials/test_display_rules.yaml" "$USER_DIR/resources/display_rules.yaml"
+else
+    echo "Using complete versions of SHACL and display rules for end user"
+    cp "../../resources/shacl.ttl" "$USER_DIR/resources/shacl.ttl"
+    cp "../../resources/display_rules.yaml" "$USER_DIR/resources/display_rules.yaml"
+fi
 
 # Create __init__.py for Python module (datatypes.py and datatypes_validation.py are mounted from source)
 touch "$USER_DIR/resources/__init__.py"
