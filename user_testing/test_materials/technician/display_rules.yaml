@@ -1,130 +1,3 @@
-queries:
-  basic_identifier_query: &basic_identifier_query |
-    PREFIX datacite: <http://purl.org/spar/datacite/>
-    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-    SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
-    WHERE {
-        [[subject]] datacite:hasIdentifier ?identifier.
-        VALUES (?identifier) {([[value]])}
-        ?identifier datacite:usesIdentifierScheme ?scheme;
-                    literal:hasLiteralValue ?literal.
-    }
-
-  basic_author_query: &basic_author_query |
-    PREFIX pro: <http://purl.org/spar/pro/>
-    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-    SELECT DISTINCT ?formattedName ?ra WHERE {
-      [[value]] pro:isHeldBy ?ra;
-          pro:withRole pro:author.
-      OPTIONAL { ?ra foaf:name ?name. }
-      OPTIONAL { ?ra foaf:familyName ?familyName. }
-      OPTIONAL { ?ra foaf:givenName ?givenName. }
-      
-      BIND(
-        IF(BOUND(?name), ?name,
-            IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                    IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                )
-            )
-        ) AS ?nameDisplay
-      )
-      
-      BIND(STR(?ra) AS ?uriString)
-      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-      BIND(CONCAT(?nameDisplay, " [omid:", ?omid, "]") AS ?formattedName)
-    }
-
-  basic_journal_query: &basic_journal_query |
-    PREFIX fabio: <http://purl.org/spar/fabio/>
-    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    SELECT ?journalDisplay ?journal
-    WHERE {
-      [[subject]] frbr:partOf ?journal.
-      ?journal a fabio:Journal;
-              dcterms:title ?journalName.
-      
-      BIND(STR(?journal) AS ?uriString)
-      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-      BIND(CONCAT(?journalName, " [omid:", ?omid, "]") AS ?journalDisplay)
-    }
-
-common_properties:
-  type_property: &type_property
-    property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-    displayName: "Type"
-    shouldBeDisplayed: true
-    supportsSearch: false
-
-  title_property: &title_property
-    property: "http://purl.org/dc/terms/title"
-    displayName: "Title"
-    shouldBeDisplayed: true
-    inputType: "textarea"
-    supportsSearch: true
-    minCharsForSearch: 2
-    searchTarget: "self"
-
-  # NOTE: Abstract property missing - technicians will add this
-  # abstract_property: &abstract_property
-  #   property: "http://purl.org/dc/terms/abstract"
-  #   displayName: "Abstract"
-  #   shouldBeDisplayed: true
-  #   inputType: "textarea"
-  #   supportsSearch: true
-  #   minCharsForSearch: 4
-  #   searchTarget: "self"
-
-  identifier_property: &identifier_property
-    property: "http://purl.org/spar/datacite/hasIdentifier"
-    displayName: "Identifier"
-    shouldBeDisplayed: true
-    fetchValueFromQuery: *basic_identifier_query
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: "parent"
-
-  basic_authors_property: &basic_authors_property
-    property: "http://purl.org/spar/pro/isDocumentContextFor"
-    orderedBy: "https://w3id.org/oc/ontology/hasNext"
-    intermediateRelation:
-      class: "http://purl.org/spar/pro/RoleInTime"
-      targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
-    displayRules:
-      - shape: "http://schema.org/BasicAuthorShape"
-        displayName: "Author"
-        fetchValueFromQuery: *basic_author_query
-
-  publication_date_property: &publication_date_property
-    property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
-    displayName: "Publication Date"
-    shouldBeDisplayed: true
-    supportsSearch: false
-
-  journal_container_property: &journal_container_property
-    property: "http://purl.org/vocab/frbr/core#partOf"
-    displayName: "Journal"
-    shouldBeDisplayed: true
-    fetchValueFromQuery: *basic_journal_query
-    supportsSearch: true
-
-  # NOTE: Keyword property missing - technicians will add this
-  # keyword_property: &keyword_property  
-  #   property: "http://prismstandard.org/namespaces/basic/2.0/keyword"
-  #   displayName: "Keyword"
-  #   shouldBeDisplayed: true
-  #   inputType: "tag"
-  #   supportsSearch: false
-  #   minCharsForSearch: 3
-  #   searchTarget: "self"
-
-  # NOTE: Page/embodiment property missing - technicians will add this
-  # embodiment_property: &embodiment_property
-  #   property: "http://purl.org/vocab/frbr/core#embodiment"
-  #   displayName: "Page"
-  #   shouldBeDisplayed: true
-
 rules:
   - target:
       class: "http://purl.org/spar/fabio/JournalArticle"
@@ -200,13 +73,87 @@ rules:
         BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
       }
     displayProperties:
-      - *type_property
-      - *identifier_property
-      - *title_property
-      # NOTE: Missing abstract, keyword, embodiment properties - technicians should add these
-      - *basic_authors_property
-      - *publication_date_property
-      - *journal_container_property
+      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        displayName: "Type"
+        shouldBeDisplayed: true
+        supportsSearch: false
+      - property: "http://purl.org/spar/datacite/hasIdentifier"
+        displayName: "Identifier"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: |
+          PREFIX datacite: <http://purl.org/spar/datacite/>
+          PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+          SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
+          WHERE {
+              [[subject]] datacite:hasIdentifier ?identifier.
+              VALUES (?identifier) {([[value]])}
+              ?identifier datacite:usesIdentifierScheme ?scheme;
+                          literal:hasLiteralValue ?literal.
+          }
+        supportsSearch: true
+        minCharsForSearch: 3
+        searchTarget: "parent"
+      - property: "http://purl.org/dc/terms/title"
+        displayName: "Title"
+        shouldBeDisplayed: true
+        inputType: "textarea"
+        supportsSearch: true
+        minCharsForSearch: 2
+        searchTarget: "self"
+      - property: "http://purl.org/spar/pro/isDocumentContextFor"
+        orderedBy: "https://w3id.org/oc/ontology/hasNext"
+        intermediateRelation:
+          class: "http://purl.org/spar/pro/RoleInTime"
+          targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
+        displayRules:
+          - shape: "http://schema.org/AuthorShape"
+            displayName: "Author"
+            fetchValueFromQuery: |
+              PREFIX pro: <http://purl.org/spar/pro/>
+              PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+              SELECT DISTINCT ?formattedName ?ra WHERE {
+                [[value]] pro:isHeldBy ?ra;
+                    pro:withRole pro:author.
+                OPTIONAL { ?ra foaf:name ?name. }
+                OPTIONAL { ?ra foaf:familyName ?familyName. }
+                OPTIONAL { ?ra foaf:givenName ?givenName. }
+                
+                BIND(
+                  IF(BOUND(?name), ?name,
+                      IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                          IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                              IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                          )
+                      )
+                  ) AS ?nameDisplay
+                )
+                
+                BIND(STR(?ra) AS ?uriString)
+                BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+                BIND(CONCAT(?nameDisplay, " [omid:", ?omid, "]") AS ?formattedName)
+              }
+      - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
+        displayName: "Publication Date"
+        shouldBeDisplayed: true
+        supportsSearch: false
+      - property: "http://purl.org/vocab/frbr/core#partOf"
+        displayName: "Journal"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: |
+          PREFIX fabio: <http://purl.org/spar/fabio/>
+          PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+          PREFIX dcterms: <http://purl.org/dc/terms/>
+          SELECT ?journalDisplay ?journal
+          WHERE {
+            [[subject]] frbr:partOf ?journal.
+            ?journal a fabio:Journal;
+                    dcterms:title ?journalName.
+            
+            BIND(STR(?journal) AS ?uriString)
+            BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+            BIND(CONCAT(?journalName, " [omid:", ?omid, "]") AS ?journalDisplay)
+          }
+        supportsSearch: true
     sortableBy:
       - property: "http://purl.org/dc/terms/title"
         sortOrder: ["asc", "desc"]
@@ -233,10 +180,33 @@ rules:
         BIND(CONCAT(?title, " [omid:", ?omid, "]") AS ?display)
       }
     displayProperties:
-      - *type_property
-      - *identifier_property
-      - *title_property
-      # NOTE: Missing description property - technicians should add this
+      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        displayName: "Type"
+        shouldBeDisplayed: true
+        supportsSearch: false
+      - property: "http://purl.org/spar/datacite/hasIdentifier"
+        displayName: "Identifier"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: |
+          PREFIX datacite: <http://purl.org/spar/datacite/>
+          PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+          SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
+          WHERE {
+              [[subject]] datacite:hasIdentifier ?identifier.
+              VALUES (?identifier) {([[value]])}
+              ?identifier datacite:usesIdentifierScheme ?scheme;
+                          literal:hasLiteralValue ?literal.
+          }
+        supportsSearch: true
+        minCharsForSearch: 3
+        searchTarget: "parent"
+      - property: "http://purl.org/dc/terms/title"
+        displayName: "Title"
+        shouldBeDisplayed: true
+        inputType: "textarea"
+        supportsSearch: true
+        minCharsForSearch: 2
+        searchTarget: "self"
     sortableBy:
       - property: "http://purl.org/dc/terms/title"
         sortOrder: ["asc", "desc"]
@@ -260,7 +230,10 @@ rules:
         BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
       }
     displayProperties:
-      - *type_property
+      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        displayName: "Type"
+        shouldBeDisplayed: true
+        supportsSearch: false
       - property: "http://purl.org/spar/datacite/usesIdentifierScheme"
         displayName: "Identifier Scheme"
         shouldBeDisplayed: true
@@ -302,7 +275,10 @@ rules:
         )
       }
     displayProperties:
-      - *type_property
+      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        displayName: "Type"
+        shouldBeDisplayed: true
+        supportsSearch: false
       - property: "http://purl.org/spar/pro/isHeldBy"
         displayName: "Held By"
         shouldBeDisplayed: true
@@ -347,7 +323,10 @@ rules:
         BIND(CONCAT(?agentName, " [omid:", ?omid, "]") AS ?display)
       }
     displayProperties:
-      - *type_property
+      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+        displayName: "Type"
+        shouldBeDisplayed: true
+        supportsSearch: false
       - property: "http://xmlns.com/foaf/0.1/name"
         displayName: "Name"
         shouldBeDisplayed: true

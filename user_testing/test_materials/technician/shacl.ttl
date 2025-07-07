@@ -14,16 +14,57 @@
 @prefix oco: <https://w3id.org/oc/ontology/> .
 @prefix frbr: <http://purl.org/vocab/frbr/core#> .
 
-# TEST VERSION FOR TECHNICIAN TRAINING
-# This schema includes only basic article and journal support
-# Missing properties that technicians should add:
-# - dcterms:abstract
-# - prism:keyword  
-# - frbr:embodiment (page information)
-# - Additional identifier types beyond DOI
 
-# Basic Identifiers (only DOI and ISSN support)
-schema:BasicIdentifierShape
+schema:JournalArticleShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:JournalArticle ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:JournalArticle ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:IdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:JournalShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+
+schema:IdentifierShape
   a sh:NodeShape ;
   sh:targetClass datacite:Identifier ;
   sh:property [
@@ -72,8 +113,8 @@ schema:BasicIdentifierShape
     sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
   ] .
 
-# Basic Agent (no complex identifier validation)
-schema:BasicAgentShape
+
+schema:AgentShape
   a sh:NodeShape ;
   sh:targetClass foaf:Agent ;
   sh:property [
@@ -101,8 +142,8 @@ schema:BasicAgentShape
     sh:maxCount 1 ;
   ] .
 
-# Basic Agent Role
-schema:BasicAuthorShape
+
+schema:AuthorShape
   a sh:NodeShape ;
   sh:targetClass pro:RoleInTime ;
   sh:property [
@@ -119,19 +160,18 @@ schema:BasicAuthorShape
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
-    sh:node schema:BasicAgentShape ;
+    sh:node schema:AgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path oco:hasNext ;
-    sh:node schema:BasicAuthorShape ;
+    sh:node schema:AuthorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
 
-# Basic Journal
-schema:BasicJournalShape
+schema:JournalShape
   a sh:NodeShape ;
   sh:targetClass fabio:Journal ;
   sh:property [
@@ -154,61 +194,6 @@ schema:BasicJournalShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
-    sh:node schema:BasicIdentifierShape ;
+    sh:node schema:IdentifierShape ;
     sh:minCount 0 ;
   ] .
-  # NOTE: Missing dcterms:description - technicians should add this
-
-# Basic Journal Article (missing several properties)
-schema:BasicJournalArticleShape
-  a sh:NodeShape ;
-  sh:targetClass fabio:JournalArticle ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:JournalArticle ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:title ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path datacite:hasIdentifier ;
-    sh:node schema:BasicIdentifierShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path prism:publicationDate ;
-    sh:or (
-      [ sh:datatype xsd:date ]
-      [ sh:datatype xsd:gYearMonth ]
-      [ sh:datatype xsd:gYear ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:BasicAuthorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path frbr:partOf ;
-    sh:node schema:BasicJournalShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] .
-  # MISSING PROPERTIES (technicians should add these):
-  # - dcterms:abstract
-  # - prism:keyword
-  # - frbr:embodiment (page information)
-  # - More complex author roles (editor, translator, etc.) 

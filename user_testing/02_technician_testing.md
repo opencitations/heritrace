@@ -6,10 +6,10 @@
 
 ## Pre-Requirements
 
-Participants must complete:
-- Pre-test questionnaire ([questionnaires/technician_pre_test.md](questionnaires/technician_pre_test.md)) 
-- Technical requirements verification
-- SHACL knowledge assessment (minimum level 4/7)
+Participants must have:
+- Working knowledge of SHACL (Shapes Constraint Language)
+- Technical experience with semantic systems configuration
+- Reviewed HERITRACE documentation: https://opencitations.github.io/heritrace/
 
 ## Equipment Setup Instructions
 
@@ -21,41 +21,45 @@ Participants must complete:
 
 ## Testing Session Structure
 
-### **Warm-up Exploration (max 10 minutes)**
+### **Warm-up Exploration (max 5 minutes)**
 ```
 "Start your screen and voice recording now. 
 
-Begin by exploring this HERITRACE system using the test materials provided. Think aloud as you navigate - describe what you see, what you expect, and any questions that arise.
+You are working with a HERITRACE system that has been partially configured. Some entities already have complete SHACL schemas and display rules that allow end users to work with them effectively, while other entities are missing these configurations.
 
-Your goal is to get familiar with the interface and understand the current configuration."
+Begin by exploring this HERITRACE system using the test materials provided. Think aloud as you navigate. Describe what you see, what you expect, and any questions that arise.
+
+Your goal is to get familiar with the interface, understand the current configuration state, and identify which entities are fully configured versus those that need additional configuration work."
 ```
 
-### **Configuration Tasks (35 minutes total)**
+### **Configuration Tasks (40 minutes total)**
 
-**Task 1: Add Abstract Support (15 minutes)**
+**Task 1: Add Abstract Display Support (20 minutes)**
 ```
-"Your institution needs to add abstract support to journal articles. 
+"Your institution has provided preexisting data with a partial configuration for journal articles. The data contains abstracts associated with journal articles using the dcterms:abstract property, but these abstracts are not being displayed in the interface because the specific display rule is missing.
 
-Think aloud as you work through this. Describe your approach, what you're looking for, and any challenges you encounter.
+Currently, in the display rules for 'fabio:JournalArticle' entities, various properties are defined but the abstract property is not configured for display.
 
-Add the dcterms:abstract property with appropriate validation rules."
-```
+Your task is to configure the display rules for the dcterms:abstract property with the following requirements:
 
-**Task 2: Add Keywords Support (10 minutes)**  
-```
-"Now add support for multiple keywords per article using prism:keyword.
+1. The property display name should be "Abstract"
+2. The property must be visible to users
+3. The input type must be a textarea (multi-line text area)
+4. The property should not be searchable, meaning that users should not be able to look for similar journal articles based on their abstracts.
 
-Continue thinking aloud about your process and any difficulties."
-```
+Think aloud as you work through this. Describe your approach, what you're looking for, and any challenges you encounter. Consult the documentation to understand how to properly configure display rules.
 
-**Task 3: Configure Display Rules (10 minutes)**
-```
-"Configure the display rules so that abstracts and keywords appear properly in the interface.
-
-Describe what you expect to happen and whether the results match your expectations."
+Once completed, verify from the user interface that the abstracts present in the data become visible to end users."
 ```
 
-### **Immediate Reflection (10 minutes)**
+**Task 2: Add SHACL Validation for Abstract (20 minutes)**  
+```
+"Currently, there's nothing preventing users from adding multiple abstracts to a journal article. You need to modify the SHACL shape for journal articles to specify that there can be at most one abstract.
+
+Continue thinking aloud about your process and any difficulties you encounter when working with SHACL constraints."
+```
+
+### **Immediate Reflection (5 minutes)**
 ```
 "Without stopping the recording, please answer these questions aloud:
 
@@ -67,12 +71,9 @@ Describe what you expect to happen and whether the results match your expectatio
 Take your time with each answer - we want your complete thoughts."
 ```
 
-### **Final Wrap-up (5 minutes)**
+### **SUS Questionnaire Completion (5 minutes)**
 ```
-"Final thoughts for your institution:
-- Would you recommend HERITRACE for bibliographic metadata management?
-- What would need to change for real-world deployment?
-- Any other observations about the configuration process?"
+"Now please complete the SUS (System Usability Scale) questionnaire provided."
 ```
 
 ## Post-Session Requirements
@@ -81,27 +82,4 @@ Take your time with each answer - we want your complete thoughts."
 - Complete screen+voice recording file
 - Modified SHACL schema files
 - Modified display rules files
-- SUS questionnaire (sus_questionnaire.md)
-
-## Data Analysis Approach
-
-**Grounded Theory Analysis** of recordings:
-- **Open coding**: Extract concepts, frustrations, successes from verbalizations
-- **Axial coding**: Connect emerging themes around usability, workflow integration, technical barriers
-- **Selective coding**: Develop theory about technician adoption factors
-
-**Quantitative measures**:
-- Task completion rates
-- Time to completion  
-- Error frequency
-- SUS usability scores
-
-**Integration**: Combine qualitative insights with quantitative metrics to understand both what happens and why it happens from the technician perspective.
-
-## Success Criteria
-
-**Technical completion**: Participant successfully adds abstract and keyword support with working display rules
-
-**Usability threshold**: Average SUS score ≥ 65 for acceptable usability
-
-**Qualitative insights**: Rich verbalization data capturing decision-making processes, expectations, and pain points for grounded theory analysis
+- Completed SUS questionnaire

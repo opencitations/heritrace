@@ -6,9 +6,10 @@
 
 ## Pre-Requirements
 
-Participants must complete:
-- Pre-test questionnaire ([questionnaires/end_user_pre_test.md](questionnaires/end_user_pre_test.md))
-- Basic web application experience verification
+Participants must have:
+- Knowledge of bibliographic resource structure and metadata
+- Basic web application experience
+- Reviewed HERITRACE documentation: https://opencitations.github.io/heritrace/
 
 ## Equipment Setup Instructions
 
@@ -34,9 +35,16 @@ You'll be working through several metadata management tasks. Think aloud through
 There are no right or wrong approaches - we want to understand your natural workflow."
 ```
 
-## Metadata Management Tasks (60 minutes)
+### **Warm-up Exploration (max 5 minutes)**
+```
+"Begin by exploring this HERITRACE system. Think aloud as you navigate. Describe what you see, what you expect, and any questions that arise.
 
-### Task 1: Edit Existing Publication Record (10 minutes)
+Your goal is to get familiar with the interface and understand how to browse and work with bibliographic metadata in this system."
+```
+
+## Metadata Management Tasks (45 minutes)
+
+### Task 1: Edit Existing Publication Record (8 minutes)
 ```
 "Task 1: Browse the catalogue to find a Review Article entity type and modify the publication record for 'Conti Bizzarro, F. (2009). Da Esiodo a Saffo e Alceo: due contributi dell'Istituto Papirologico \"G. Vitelli\" [Review Article]. Vichiana, ser. 4, 11(1), 103-107.'
 
@@ -47,17 +55,17 @@ Please make these specific changes:
 Think aloud as you work through this process."
 ```
 
-### Task 2: Merge Duplicate Author Entities (12 minutes)
+### Task 2: Merge Duplicate Author Entities (10 minutes)
 ```
 "Task 2: Return to the publication from Task 1 and visit the author page for Ferruccio Conti Bizzarro. You'll notice there is a similar entity that is actually a duplication. Use the integrated functionality to merge it. Think aloud about how you approach this data cleanup process."
 ```
 
-### Task 3: Restore Previous Version (8 minutes)
+### Task 3: Restore Previous Version (7 minutes)
 ```
 "Task 3: You realize that the modifications you made in Task 1 were incorrect - adding Vittoria Castrillo as author and removing the keyword were mistakes. Use the integrated Time Machine system to restore the previous version before those changes. Think aloud about how you approach this process and what you expect from the version control functionality."
 ```
 
-### Task 4: Create New Publication Record (13 minutes)
+### Task 4: Create New Publication Record (12 minutes)
 ```
 "Task 4: Add this specific journal article to the repository: https://doi.org/10.1162/qss_a_00292. Include as many metadata fields as possible. You have access to the article's webpage to gather information. Think aloud as you work through this process."
 ```
@@ -74,8 +82,13 @@ Think aloud as you work through this process."
 Take your time with each answer - we want your complete thoughts."
 ```
 
+### **SUS Questionnaire Completion (5 minutes)**
+```
+"Now please complete the SUS (System Usability Scale) questionnaire provided."
+```
+
 ## Post-Session Requirements
 
 **Participants must submit**:
 - Complete screen+voice recording file
-- SUS questionnaire ([questionnaires/sus_questionnaire.md](questionnaires/sus_questionnaire.md))
+- Completed SUS questionnaire

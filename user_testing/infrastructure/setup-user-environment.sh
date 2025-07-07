@@ -180,22 +180,22 @@ class Config:
     PROXY_HANDLING_STRATEGY = ProxyHandlingStrategy.DELETE
 EOF
 
-# Copy test data for bulk loading
-cp "../test_materials/test_data.nq.gz" "$USER_DIR/data/"
+# Copy test data for bulk loading (same for both user types)
+cp "../test_materials/technician/test_data.nq.gz" "$USER_DIR/data/"
 
 # Use only files needed by the application (in resources/)
 mkdir -p "$USER_DIR/resources"
 
-# For technicians: use test/simplified versions of SHACL and display rules
-# For end users: use complete production versions
+# For technicians: use simplified versions of SHACL and display rules  
+# For end users: use complete versions with all features
 if [ "$USER_TYPE" == "technician" ]; then
-    echo "Using test versions of SHACL and display rules for technician user"
-    cp "../test_materials/test_shacl.ttl" "$USER_DIR/resources/shacl.ttl"
-    cp "../test_materials/test_display_rules.yaml" "$USER_DIR/resources/display_rules.yaml"
+    echo "Using simplified versions of SHACL and display rules for technician user"
+    cp "../test_materials/technician/shacl.ttl" "$USER_DIR/resources/shacl.ttl"
+    cp "../test_materials/technician/display_rules.yaml" "$USER_DIR/resources/display_rules.yaml"
 else
     echo "Using complete versions of SHACL and display rules for end user"
-    cp "../../resources/shacl.ttl" "$USER_DIR/resources/shacl.ttl"
-    cp "../../resources/display_rules.yaml" "$USER_DIR/resources/display_rules.yaml"
+    cp "../test_materials/end_user/shacl.ttl" "$USER_DIR/resources/shacl.ttl"
+    cp "../test_materials/end_user/display_rules.yaml" "$USER_DIR/resources/display_rules.yaml"
 fi
 
 # Create __init__.py for Python module (datatypes.py and datatypes_validation.py are mounted from source)
