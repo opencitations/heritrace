@@ -1,0 +1,67 @@
+"""
+Configuration module for the HERITRACE application.
+"""
+import os
+from heritrace.uri_generator.meta_uri_generator import MetaURIGenerator
+from heritrace.meta_counter_handler import MetaCounterHandler
+from heritrace.utils.strategies import ProxyHandlingStrategy, OrphanHandlingStrategy
+
+
+# Initialize counter handler and URI generator
+counter_handler = MetaCounterHandler(host="redis", port=6379, db=0)
+meta_uri_generator = MetaURIGenerator(
+    "https://w3id.org/oc/meta", "09110", counter_handler
+)
+
+
+class Config:
+    """Base configuration class for the HERITRACE application."""
+    
+    # Flask configuration
+    SECRET_KEY = 'test-key'
+    APP_TITLE = 'HERITRACE'
+    APP_SUBTITLE = '{{PACKAGE_TYPE_TITLE}} Testing Environment'
+    
+    # Database configuration
+    DATASET_DB_URL = 'http://heritrace-dataset:8890/sparql'
+    PROVENANCE_DB_URL = 'http://heritrace-provenance:8890/sparql'
+    
+    DATASET_DB_TRIPLESTORE = 'virtuoso'
+    PROVENANCE_DB_TRIPLESTORE = 'virtuoso'
+    DATASET_IS_QUADSTORE = True
+    PROVENANCE_IS_QUADSTORE = True
+    DATASET_DB_TEXT_INDEX_ENABLED = True
+    
+    # Redis configuration
+    REDIS_URL = 'redis://redis:6379/0'
+    
+    # URI Generator and Counter Handler
+    URI_GENERATOR = meta_uri_generator
+    COUNTER_HANDLER = counter_handler
+    
+    # Application paths
+    SHACL_PATH = '/app/resources/shacl.ttl'
+    DISPLAY_RULES_PATH = '/app/resources/display_rules.yaml'
+    CHANGE_TRACKING_CONFIG = '/app/change_tracking.json'
+    CACHE_FILE = '/app/cache.json'
+    CACHE_VALIDITY_DAYS = 7
+    
+    # ORCID configuration
+    ORCID_CLIENT_ID = 'DEMO_CLIENT_ID'
+    ORCID_CLIENT_SECRET = 'DEMO_CLIENT_SECRET'
+    ORCID_AUTHORIZE_URL = 'https://sandbox.orcid.org/oauth/authorize'
+    ORCID_TOKEN_URL = 'https://sandbox.orcid.org/oauth/token'
+    ORCID_SCOPE = '/authenticate'
+    ORCID_WHITELIST = []
+    
+    # Internationalization
+    LANGUAGES = ['en', 'it']
+    BABEL_TRANSLATION_DIRECTORIES = '/app/babel/translations'
+    
+    # Dataset information
+    PRIMARY_SOURCE = 'https://example.com'
+    DATASET_GENERATION_TIME = '2022-12-25T00:00:00+00:00'
+    
+    # Entity handling strategies
+    ORPHAN_HANDLING_STRATEGY = OrphanHandlingStrategy.DELETE
+    PROXY_HANDLING_STRATEGY = ProxyHandlingStrategy.DELETE

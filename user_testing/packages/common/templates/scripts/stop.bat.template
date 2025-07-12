@@ -1,0 +1,30 @@
+@echo off
+
+REM HERITRACE {{PACKAGE_TYPE_TITLE}} Testing - Windows Stop Script
+REM Usage: stop.bat
+
+echo 🛑 Stopping HERITRACE {{PACKAGE_TYPE_TITLE}} Testing Environment
+echo ==============================================
+
+set COMPOSE_CMD=docker compose
+
+REM Stop and remove containers
+echo 🐳 Stopping Docker containers...
+%COMPOSE_CMD% down
+
+if errorlevel 1 (
+    echo ❌ Error stopping containers!
+    pause
+    exit /b 1
+)
+
+echo ✅ All services stopped!
+echo.
+echo 💡 Your test data is preserved in Docker volumes.
+echo    To restart, simply run: start.bat
+echo.
+echo 🗑️  To completely reset (delete all data):
+echo    %COMPOSE_CMD% down -v
+echo.
+echo Press any key to continue...
+pause >nul

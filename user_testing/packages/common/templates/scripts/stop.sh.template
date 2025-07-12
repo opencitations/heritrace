@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# HERITRACE {{PACKAGE_TYPE_TITLE}} Testing - Stop Script
+# Usage: ./stop.sh
+
+set -e
+
+echo "🛑 Stopping HERITRACE {{PACKAGE_TYPE_TITLE}} Testing Environment"
+echo "=============================================="
+
+# Use docker compose
+COMPOSE_CMD="docker compose"
+
+# Stop and remove containers
+echo "🐳 Stopping Docker containers..."
+$COMPOSE_CMD down
+
+echo "✅ All services stopped!"
+echo ""
+echo "💡 Your test data is preserved in Docker volumes."
+echo "   To restart, simply run: ./start.sh"
+echo ""
+echo "🗑️  To completely reset (delete all data):"
+echo "   $COMPOSE_CMD down -v"

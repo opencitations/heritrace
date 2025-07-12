@@ -1,0 +1,34 @@
+FROM node:18-bullseye AS node_builder
+
+WORKDIR /app
+COPY package*.json ./
+COPY webpack.config.js ./
+COPY heritrace/static/js/ ./heritrace/static/js/
+
+RUN npm install
+RUN npm run build
+
+FROM python:3.11-bullseye
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock ./
+
+RUN pip install poetry
+RUN poetry config virtualenvs.create false
+RUN poetry install --only main --no-root
+
+COPY app.py ./
+COPY heritrace/ ./heritrace/
+COPY babel/ ./babel/
+COPY resources/ ./resources/
+COPY redis.conf ./
+COPY README.md ./
+
+COPY --from=node_builder /app/heritrace/static/ ./heritrace/static/
+
+COPY config.py .

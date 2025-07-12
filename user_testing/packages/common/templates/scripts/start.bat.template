@@ -1,0 +1,113 @@
+@echo off
+
+REM HERITRACE {{PACKAGE_TYPE_TITLE}} Testing - Windows Startup Script
+REM Usage: start.bat
+
+echo 🚀 Starting HERITRACE {{PACKAGE_TYPE_TITLE}} Testing Environment
+echo ==============================================
+
+REM Check if Docker is running
+docker info >nul 2>&1
+if errorlevel 1 (
+    echo ❌ Error: Docker is not running!
+    echo    Please start Docker Desktop and try again.
+    pause
+    exit /b 1
+)
+
+REM Check if Docker Compose is available
+docker compose version >nul 2>&1
+if errorlevel 1 (
+    echo ❌ Error: Docker Compose is not available!
+    echo    Please ensure Docker Compose v2 is installed and accessible.
+    pause
+    exit /b 1
+)
+
+echo ✅ Docker check passed!
+
+REM Create necessary directories if they don't exist
+if not exist "exports" mkdir "exports"
+
+set COMPOSE_BAKE=true
+set COMPOSE_CMD=docker compose
+
+REM Check for port conflicts
+call scripts\\check-ports.bat 5000 8890 8891 6379
+if errorlevel 1 (
+    echo ❌ Error: Port conflicts detected!
+    echo    Please ensure no other applications are using ports 5000, 8890, 8891, or 6379.
+    pause
+    exit /b 1
+)
+
+REM Start the services
+echo 🐳 Starting Docker containers...
+echo    This may take a few minutes on first run...
+
+%COMPOSE_CMD% up -d
+
+if errorlevel 1 (
+    echo ❌ Failed to start containers!
+    pause
+    exit /b 1
+)
+
+REM Wait for services to be ready
+echo ⏳ Waiting for services to be ready...
+echo    This can take 2-3 minutes for database initialization...
+
+timeout /t 30 /nobreak >nul
+
+REM Check Redis readiness
+echo    Checking Redis Cache...
+docker exec heritrace-redis redis-cli ping >nul 2>&1
+if errorlevel 1 (
+    echo    ℹ️ Redis check skipped (normal)
+) else (
+    echo    ✅ Redis Cache is ready!
+)
+
+REM Check HERITRACE application
+echo    Checking HERITRACE application...
+
+REM Try to access the application with certificate validation disabled
+curl -k -s -f https://localhost:5000 >nul 2>&1
+if errorlevel 1 (
+    echo    ⏳ Waiting for HERITRACE application to be fully ready...
+    timeout /t 15 /nobreak >nul
+    
+    REM Try one more time
+    curl -k -s -f https://localhost:5000 >nul 2>&1
+    if errorlevel 1 (
+        echo    ⚠️ HERITRACE application may not be fully ready, but continuing...
+    ) else (
+        echo    ✅ HERITRACE application is ready!
+    )
+) else (
+    echo    ✅ HERITRACE application is ready!
+)
+
+echo.
+echo 🎉 HERITRACE {{PACKAGE_TYPE_TITLE}} Testing should be ready!
+echo ==============================================
+echo ✅ All services started
+echo.
+echo 📖 Access Instructions:
+echo    1. Open your web browser
+echo    2. Go to: https://localhost:5000
+echo    3. Accept the SSL certificate warning (it's safe for testing)
+echo    4. You'll be automatically logged in as a demo user
+echo.
+echo 🔧 Useful Commands:
+echo    - Stop the environment: stop.bat
+echo    - Export test results: export-results.bat
+echo.
+echo ⚠️  Important: The SSL certificate is self-signed for testing.
+echo    Your browser will show a security warning - this is normal.
+echo    Click 'Advanced' and 'Proceed to localhost' to continue.
+echo.
+echo Happy testing! 🧪
+echo.
+echo Press any key to continue...
+pause >nul
