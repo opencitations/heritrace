@@ -1,3 +1,8 @@
 FROM openlink/virtuoso-opensource-7:7.2-alpine@sha256:f0fc5b84db39e607a7a65c6eda30d15651cb3646bec6d89ee4a8307778789764
 
 RUN apk add --no-cache python3 py3-requests
+
+COPY data /data
+COPY scripts /scripts
+
+ENTRYPOINT ["/scripts/provenance_entrypoint.sh"]

@@ -29,13 +29,11 @@ services:
       - "host.docker.internal:host-gateway"
       
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.5-alpine@sha256:0c0142c3cd69bc030ea09fecfa1c1c0c7d0e7d6081be6bb4957804f23d2cf57a
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
-      - ./redis.conf:/etc/redis/redis.conf:ro
-    command: redis-server /etc/redis/redis.conf
+      - ./redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

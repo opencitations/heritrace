@@ -1,22 +1,16 @@
 services:
-  virtuoso-dataset:
-    build:
-      context: .
-      dockerfile: Dockerfile.virtuoso
+  heritrace-dataset:
+    image: arcangelo7/heritrace-testing-virtuoso-dataset:1.0.0
     container_name: heritrace-dataset
     environment:
       - DBA_PASSWORD=dba
       - DAV_PASSWORD=dba
-      - SPARQL_UPDATE=true
       - CONTAINER_TYPE=dataset
     ports:
       - "8890:8890"
       - "1111:1111"
     volumes:
       - ./dataset_database:/database
-      - ./data:/data:ro
-      - ./scripts:/scripts:ro
-    entrypoint: /scripts/virtuoso_entrypoint.sh
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
       interval: 30s
@@ -25,24 +19,18 @@ services:
     networks:
       - heritrace-network
 
-  virtuoso-provenance:
-    build:
-      context: .
-      dockerfile: Dockerfile.provenance
+  heritrace-provenance:
+    image: arcangelo7/heritrace-testing-virtuoso-provenance:1.0.0
     container_name: heritrace-provenance
     environment:
       - DBA_PASSWORD=dba
       - DAV_PASSWORD=dba
-      - SPARQL_UPDATE=true
       - CONTAINER_TYPE=provenance
     ports:
       - "8891:8890"
       - "1112:1111" 
     volumes:
       - ./prov_database:/database
-      - ./data:/data:ro
-      - ./scripts:/scripts:ro
-    entrypoint: /scripts/provenance_entrypoint.sh
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
       interval: 30s
@@ -57,7 +45,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - ./redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 15s
@@ -67,9 +55,7 @@ services:
       - heritrace-network
 
   heritrace:
-    build:
-      context: .
-      dockerfile: Dockerfile.heritrace
+    image: arcangelo7/heritrace-testing:1.0.0
     container_name: heritrace-app
     environment:
       - FLASK_ENV=demo
@@ -78,12 +64,12 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./exports:/app/exports
-      - ./resources:/app/resources:ro
+      - ./resources/display_rules.yaml:/app/resources/display_rules.yaml
+      - ./resources/shacl.ttl:/app/resources/shacl.ttl
     depends_on:
-      virtuoso-dataset:
+      heritrace-dataset:
         condition: service_healthy
-      virtuoso-provenance:
+      heritrace-provenance:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -96,8 +82,6 @@ services:
       retries: 5
 
 volumes:
-  dataset-data:
-  provenance-data:
   redis-data:
 
 networks:

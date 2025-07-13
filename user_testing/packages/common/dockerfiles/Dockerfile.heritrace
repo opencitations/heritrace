@@ -26,8 +26,6 @@ COPY app.py ./
 COPY heritrace/ ./heritrace/
 COPY babel/ ./babel/
 COPY resources/ ./resources/
-COPY redis.conf ./
-COPY README.md ./
 
 COPY --from=node_builder /app/heritrace/static/ ./heritrace/static/
 

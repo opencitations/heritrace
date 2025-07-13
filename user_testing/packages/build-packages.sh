@@ -35,7 +35,7 @@ generate_script_from_template() {
 
 prepare_package() {
     local package_type=$1
-    local build_package_dir="$BUILD_DIR/heritrace-$package_type-testing"
+    local build_package_dir="$BUILD_DIR/heritrace-$package_type-local"
     
     local package_type_title
     if [ "$package_type" = "enduser" ]; then
@@ -61,7 +61,12 @@ prepare_package() {
     cp "common/dockerfiles/Dockerfile.virtuoso" "$build_package_dir/"
     cp "common/dockerfiles/Dockerfile.provenance" "$build_package_dir/"
     cp "common/dockerfiles/Dockerfile.heritrace" "$build_package_dir/"
-    cp "common/templates/docker-compose.yml" "$build_package_dir/"
+    
+    if [ "$package_type" = "enduser" ]; then
+        cp "common/templates/docker-compose-enduser.yml" "$build_package_dir/docker-compose.yml"
+    else
+        cp "common/templates/docker-compose-technician.yml" "$build_package_dir/docker-compose.yml"
+    fi
     
     echo "   Copying common data directory..."
     mkdir -p "$build_package_dir/data"
@@ -76,7 +81,6 @@ prepare_package() {
     cp ../../poetry.lock "$build_package_dir/"
     cp ../../package*.json "$build_package_dir/"
     cp ../../webpack.config.js "$build_package_dir/"
-    cp ../../redis.conf "$build_package_dir/"
     
     cp -r ../../heritrace "$build_package_dir/"
     cp -r ../../babel "$build_package_dir/"
@@ -104,6 +108,16 @@ prepare_package() {
     cp "common/scripts/virtuoso_entrypoint.sh" "$build_package_dir/scripts/"
     cp "common/scripts/provenance_entrypoint.sh" "$build_package_dir/scripts/"
     
+    echo "   Adding Docker Hub scripts and compose files..."
+    cp "common/scripts/push-to-dockerhub.sh" "$build_package_dir/"
+    chmod +x "$build_package_dir/push-to-dockerhub.sh"
+    
+    if [ "$package_type" = "enduser" ]; then
+        cp "common/templates/docker-compose-dockerhub-enduser.yml" "$build_package_dir/docker-compose-dockerhub.yml"
+    else
+        cp "common/templates/docker-compose-dockerhub-technician.yml" "$build_package_dir/docker-compose-dockerhub.yml"
+    fi
+    
     find "$build_package_dir" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
     find "$build_package_dir" -name "*.pyc" -delete 2>/dev/null || true
     
@@ -122,30 +136,29 @@ echo "📦 Creating ZIP packages..."
 
 cd "$BUILD_DIR"
 
-echo "   Creating heritrace-enduser-testing.zip..."
-zip -r heritrace-enduser-testing.zip heritrace-enduser-testing/ >/dev/null
-mv heritrace-enduser-testing.zip ../
+echo "   Creating heritrace-enduser-local.zip..."
+zip -r heritrace-enduser-local.zip heritrace-enduser-local/ >/dev/null
+mv heritrace-enduser-local.zip ../
 
-echo "   Creating heritrace-technician-testing.zip..."
-zip -r heritrace-technician-testing.zip heritrace-technician-testing/ >/dev/null
-mv heritrace-technician-testing.zip ../
+echo "   Creating heritrace-technician-local.zip..."
+zip -r heritrace-technician-local.zip heritrace-technician-local/ >/dev/null
+mv heritrace-technician-local.zip ../
 
 cd ..
 
-ENDUSER_SIZE=$(du -h heritrace-enduser-testing.zip | cut -f1)
-TECHNICIAN_SIZE=$(du -h heritrace-technician-testing.zip | cut -f1)
+ENDUSER_SIZE=$(du -h heritrace-enduser-local.zip | cut -f1)
+TECHNICIAN_SIZE=$(du -h heritrace-technician-local.zip | cut -f1)
 
 echo ""
 echo "🎉 Package build completed!"
 echo "=========================="
 echo "📦 Created packages:"
-echo "   📚 heritrace-enduser-testing.zip ($ENDUSER_SIZE)"
-echo "   🔧 heritrace-technician-testing.zip ($TECHNICIAN_SIZE)"
+echo "   📚 heritrace-enduser-local.zip ($ENDUSER_SIZE)"
+echo "   🔧 heritrace-technician-local.zip ($TECHNICIAN_SIZE)"
 echo ""
 echo "💡 Each package contains:"
 echo "   - start.sh / start.bat - One-click startup"
 echo "   - stop.sh / stop.bat - Clean shutdown"
-echo "   - export-results.sh/.bat - Export test results"
 echo "   - README.md - Complete user instructions"
 echo "   - A standalone Docker setup with all dependencies"
 

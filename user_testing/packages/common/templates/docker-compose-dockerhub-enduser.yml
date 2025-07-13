@@ -1,0 +1,86 @@
+services:
+  heritrace-dataset:
+    image: arcangelo7/heritrace-testing-virtuoso-dataset:1.0.0
+    container_name: heritrace-dataset
+    environment:
+      - DBA_PASSWORD=dba
+      - DAV_PASSWORD=dba
+      - CONTAINER_TYPE=dataset
+    ports:
+      - "8890:8890"
+      - "1111:1111"
+    volumes:
+      - ./dataset_database:/database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - heritrace-network
+
+  heritrace-provenance:
+    image: arcangelo7/heritrace-testing-virtuoso-provenance:1.0.0
+    container_name: heritrace-provenance
+    environment:
+      - DBA_PASSWORD=dba
+      - DAV_PASSWORD=dba
+      - CONTAINER_TYPE=provenance
+    ports:
+      - "8891:8890"
+      - "1112:1111" 
+    volumes:
+      - ./prov_database:/database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - heritrace-network
+    
+  redis:
+    image: redis:7.4.5-alpine@sha256:0c0142c3cd69bc030ea09fecfa1c1c0c7d0e7d6081be6bb4957804f23d2cf57a
+    container_name: heritrace-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    networks:
+      - heritrace-network
+
+  heritrace:
+    image: arcangelo7/heritrace-testing:1.0.0
+    container_name: heritrace-app
+    environment:
+      - FLASK_ENV=demo
+      - PYTHONPATH=/app
+    command: ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000", "--cert=adhoc"]
+    ports:
+      - "5000:5000"
+    depends_on:
+      heritrace-dataset:
+        condition: service_healthy
+      heritrace-provenance:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - heritrace-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--no-check-certificate", "--spider", "https://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  redis-data:
+
+networks:
+  heritrace-network:
+    driver: bridge
