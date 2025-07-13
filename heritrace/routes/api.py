@@ -740,6 +740,42 @@ def create_logic(
     temp_id_to_uri=None,
     parent_entity_type=None,
 ):
+    """
+    Recursively creates an entity and its properties based on a dictionary.
+
+    This function handles the creation of a main entity and any nested entities
+    defined within its properties. It validates each triple before creation and
+    can link the new entity to a parent entity.
+
+    Args:
+        editor (Editor): The editor instance for graph operations.
+        data (Dict[str, dict]): A dictionary describing the entity to create.
+        subject (URIRef, optional): The subject URI of the entity. If None, a new URI is generated.
+        graph_uri (str, optional): The named graph URI for the operations.
+        parent_subject (URIRef, optional): The subject URI of the parent entity.
+        parent_predicate (URIRef, optional): The predicate URI linking the parent to this entity.
+        temp_id_to_uri (Dict, optional): A dictionary mapping temporary frontend IDs to backend URIs.
+        parent_entity_type (str, optional): The RDF type of the parent entity, for validation.
+
+    Example of `data` structure:
+    {
+        "entity_type": "http://purl.org/spar/fabio/JournalArticle",
+        "properties": {
+            "http://purl.org/spar/pro/isDocumentContextFor": [
+                {
+                    "entity_type": "http://purl.org/spar/pro/RoleInTime",
+                    "properties": {
+                        "http://purl.org/spar/pro/isHeldBy": [
+                            "https://w3id.org/oc/meta/ra/09110374"
+                        ],
+                        "http://purl.org/spar/pro/withRole": "http://purl.org/spar/pro/author"
+                    },
+                    "tempId": "temp-1"
+                }
+            ]
+        }
+    }
+    """
     entity_type = data.get("entity_type")
     properties = data.get("properties", {})
     temp_id = data.get("tempId")
@@ -787,49 +823,61 @@ def create_logic(
         if not isinstance(values, list):
             values = [values]
         for value in values:
+            # CASE 1: Nested Entity.
+            # If the value is a dictionary containing 'entity_type', it's a nested entity
+            # that needs to be created recursively.
             if isinstance(value, dict) and "entity_type" in value:
-                # For nested entities, create them first
+                # A new URI is generated for the nested entity.
                 nested_subject = generate_unique_uri(value["entity_type"])
+                # The function calls itself to create the nested entity. The current entity
+                # becomes the parent for the nested one.
                 create_logic(
                     editor,
                     value,
                     nested_subject,
                     graph_uri,
-                    subject,
-                    predicate,
+                    subject,  # Current entity is the parent subject
+                    predicate,  # The predicate linking parent to child
                     temp_id_to_uri,
-                    parent_entity_type=entity_type,  # Pass the current entity type as parent_entity_type
+                    parent_entity_type=entity_type,
                 )
+            # CASE 2: Custom Property.
+            # If the value is a dictionary marked as 'is_custom_property', it's a property
+            # that is not defined in the SHACL shape and should be added without validation.
+            elif isinstance(value, dict) and value.get("is_custom_property", False):
+                # The property is created directly based on its type ('uri' or 'literal').
+                if value["type"] == "uri":
+                    object_value = URIRef(value["value"])
+                elif value["type"] == "literal":
+                    datatype = (
+                        URIRef(value["datatype"])
+                        if "datatype" in value
+                        else XSD.string
+                    )
+                    object_value = Literal(value["value"], datatype=datatype)
+                else:
+                    raise ValueError(f"Unknown custom property type: {value['type']}")
+                
+                editor.create(
+                    URIRef(subject), URIRef(predicate), object_value, graph_uri
+                )
+            # CASE 3: Standard Property.
+            # This is the default case for all other properties. The value can be a
+            # simple literal (e.g., a string, number) or a URI string.
             else:
-                if value.get("is_custom_property", False):
-                    # Handle custom properties directly without validation
-                    if value["type"] == "uri":
-                        object_value = URIRef(value["value"])
-                    elif value["type"] == "literal":
-                        datatype = (
-                            URIRef(value["datatype"])
-                            if "datatype" in value
-                            else XSD.string
-                        )
-                        object_value = Literal(value["value"], datatype=datatype)
-                    else:
-                        raise ValueError(f"Unknown custom property type: {value['type']}")
-                        
+                # The value is validated against the SHACL shape for the current entity type.
+                # `validate_new_triple` checks if the triple is valid and returns the
+                # correctly typed RDF object (e.g., Literal, URIRef).
+                object_value, _, error_message = validate_new_triple(
+                    subject, predicate, value, "create", entity_types=entity_type
+                )
+                if error_message:
+                    raise ValueError(error_message)
+
+                if object_value is not None:
                     editor.create(
                         URIRef(subject), URIRef(predicate), object_value, graph_uri
                     )
-                else:
-                    # Use validate_new_triple to validate and get the correctly typed value
-                    object_value, _, error_message = validate_new_triple(
-                        subject, predicate, value, "create", entity_types=entity_type
-                    )
-                    if error_message:
-                        raise ValueError(error_message)
-
-                    if object_value is not None:
-                        editor.create(
-                            URIRef(subject), URIRef(predicate), object_value, graph_uri
-                        )
 
     return subject
 
