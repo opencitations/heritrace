@@ -14,86 +14,17 @@ mkdir -p "$BUILD_DIR"
 
 echo "📁 Preparing build environment..."
 
-create_scripts() {
-    local package_dir=$1
+generate_script_from_template() {
+    local template_file=$1
+    local output_file=$2
+    local package_type=$3
+    local package_type_title=$4
     
-    cat > "$package_dir/start.sh" << 'EOF'
-#!/bin/bash
-
-echo "🚀 Starting HERITRACE testing environment..."
-docker compose up -d
-
-echo "⏳ Waiting for services to be ready..."
-echo "This may take a minute or two for the first run."
-
-attempt=1
-max_attempts=30
-until docker ps | grep "heritrace-app" | grep -q "(healthy)" || [ $attempt -gt $max_attempts ]
-do
-    echo "Waiting for HERITRACE to be ready... ($attempt/$max_attempts)"
-    sleep 10
-    ((attempt++))
-done
-
-if [ $attempt -gt $max_attempts ]; then
-    echo "❌ HERITRACE did not become healthy in the expected time."
-    echo "Please check docker logs with: docker logs heritrace-app"
-    exit 1
-fi
-
-echo "✅ HERITRACE is ready!"
-echo "🌐 Open https://localhost:5000 in your browser"
-echo "   (You may need to accept the self-signed certificate warning)"
-EOF
-    chmod +x "$package_dir/start.sh"
+    sed "s/{{PACKAGE_TYPE}}/$package_type/g; s/{{PACKAGE_TYPE_TITLE}}/$package_type_title/g" "$template_file" > "$output_file"
     
-    cat > "$package_dir/stop.sh" << 'EOF'
-#!/bin/bash
-
-echo "🛑 Stopping HERITRACE testing environment..."
-docker compose down
-
-echo "✅ All services stopped"
-EOF
-    chmod +x "$package_dir/stop.sh"
-    
-    cat > "$package_dir/start.bat" << 'EOF'
-@echo off
-echo 🚀 Starting HERITRACE testing environment...
-docker compose up -d
-
-echo ⏳ Waiting for services to be ready...
-echo This may take a minute or two for the first run.
-
-set attempt=1
-set max_attempts=30
-:wait_loop
-docker ps | findstr "heritrace-app" | findstr "(healthy)" > nul
-if %errorlevel% equ 0 goto :healthy
-if %attempt% gtr %max_attempts% goto :not_healthy
-echo Waiting for HERITRACE to be ready... (%attempt%/%max_attempts%)
-timeout /t 10 /nobreak > nul
-set /a attempt+=1
-goto :wait_loop
-
-:not_healthy
-echo ❌ HERITRACE did not become healthy in the expected time.
-echo Please check docker logs with: docker logs heritrace-app
-exit /b 1
-
-:healthy
-echo ✅ HERITRACE is ready!
-echo 🌐 Open https://localhost:5000 in your browser
-echo    (You may need to accept the self-signed certificate warning)
-EOF
-    
-    cat > "$package_dir/stop.bat" << 'EOF'
-@echo off
-echo 🛑 Stopping HERITRACE testing environment...
-docker compose down
-
-echo ✅ All services stopped
-EOF
+    if [[ "$output_file" == *.sh ]]; then
+        chmod +x "$output_file"
+    fi
 }
 
 echo "🎁 Building enduser online package..."
@@ -102,7 +33,10 @@ mkdir -p "$ENDUSER_DIR"
 
 cp "common/templates/docker-compose-dockerhub-enduser.yml" "$ENDUSER_DIR/docker-compose.yml"
 
-create_scripts "$ENDUSER_DIR"
+generate_script_from_template "common/templates/scripts/start.sh.template" "$ENDUSER_DIR/start.sh" "enduser" "End User"
+generate_script_from_template "common/templates/scripts/stop.sh.template" "$ENDUSER_DIR/stop.sh" "enduser" "End User"
+generate_script_from_template "common/templates/scripts/start.bat.template" "$ENDUSER_DIR/start.bat" "enduser" "End User"
+generate_script_from_template "common/templates/scripts/stop.bat.template" "$ENDUSER_DIR/stop.bat" "enduser" "End User"
 
 cp "enduser/README.md" "$ENDUSER_DIR/README.md"
 
@@ -122,7 +56,10 @@ mkdir -p "$TECHNICIAN_DIR/resources"
 
 cp "common/templates/docker-compose-dockerhub-technician.yml" "$TECHNICIAN_DIR/docker-compose.yml"
 
-create_scripts "$TECHNICIAN_DIR"
+generate_script_from_template "common/templates/scripts/start.sh.template" "$TECHNICIAN_DIR/start.sh" "technician" "Technician"
+generate_script_from_template "common/templates/scripts/stop.sh.template" "$TECHNICIAN_DIR/stop.sh" "technician" "Technician"
+generate_script_from_template "common/templates/scripts/start.bat.template" "$TECHNICIAN_DIR/start.bat" "technician" "Technician"
+generate_script_from_template "common/templates/scripts/stop.bat.template" "$TECHNICIAN_DIR/stop.bat" "technician" "Technician"
 
 cp "technician/README.md" "$TECHNICIAN_DIR/README.md"
 

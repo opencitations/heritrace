@@ -33,11 +33,14 @@ set COMPOSE_BAKE=true
 set COMPOSE_CMD=docker compose
 
 REM Check for port conflicts
-call scripts\\check-ports.bat 5000 8890 8891 6379
-if errorlevel 1 (
-    echo ❌ Error: Port conflicts detected!
-    echo    Please ensure no other applications are using ports 5000, 8890, 8891, or 6379.
-    pause
+echo Checking for port conflicts...
+set "PORT=5000"
+
+netstat -ano | findstr ":%PORT%" >nul
+if %errorlevel% equ 0 (
+        echo ^> ERROR: Port %PORT% is already in use.
+    echo    This port is required for the HERITRACE web interface.
+    echo    Please stop the service using this port and try again.
     exit /b 1
 )
 
@@ -59,34 +62,10 @@ echo    This can take 2-3 minutes for database initialization...
 
 timeout /t 30 /nobreak >nul
 
-REM Check Redis readiness
-echo    Checking Redis Cache...
-docker exec heritrace-redis redis-cli ping >nul 2>&1
-if errorlevel 1 (
-    echo    ℹ️ Redis check skipped (normal)
-) else (
-    echo    ✅ Redis Cache is ready!
-)
+REM Wait for the application to be ready...
+call :wait_for_service "https://localhost:5000" "HERITRACE Application"
 
-REM Check HERITRACE application
-echo    Checking HERITRACE application...
-
-REM Try to access the application with certificate validation disabled
-curl -k -s -f https://localhost:5000 >nul 2>&1
-if errorlevel 1 (
-    echo    ⏳ Waiting for HERITRACE application to be fully ready...
-    timeout /t 15 /nobreak >nul
-    
-    REM Try one more time
-    curl -k -s -f https://localhost:5000 >nul 2>&1
-    if errorlevel 1 (
-        echo    ⚠️ HERITRACE application may not be fully ready, but continuing...
-    ) else (
-        echo    ✅ HERITRACE application is ready!
-    )
-) else (
-    echo    ✅ HERITRACE application is ready!
-)
+echo    ✅ HERITRACE application is ready!
 
 echo.
 echo 🎉 HERITRACE {{PACKAGE_TYPE_TITLE}} Testing should be ready!
@@ -101,7 +80,6 @@ echo    4. You'll be automatically logged in as a demo user
 echo.
 echo 🔧 Useful Commands:
 echo    - Stop the environment: stop.bat
-echo    - Export test results: export-results.bat
 echo.
 echo ⚠️  Important: The SSL certificate is self-signed for testing.
 echo    Your browser will show a security warning - this is normal.
