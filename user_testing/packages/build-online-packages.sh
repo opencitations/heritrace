@@ -63,10 +63,6 @@ mkdir -p "$ENDUSER_DIR/prov_database"
 cp "common/templates/virtuoso_dataset.ini" "$ENDUSER_DIR/dataset_database/virtuoso.ini"
 cp "common/templates/virtuoso_provenance.ini" "$ENDUSER_DIR/prov_database/virtuoso.ini"
 
-mkdir -p "$ENDUSER_DIR/resources"
-cp "enduser/resources/display_rules.yaml" "$ENDUSER_DIR/resources/"
-cp "enduser/resources/shacl.ttl" "$ENDUSER_DIR/resources/"
-
 cp "common/scripts/export-data.sh" "$ENDUSER_DIR/"
 cp "common/scripts/export-data.bat" "$ENDUSER_DIR/"
 chmod +x "$ENDUSER_DIR/export-data.sh"
@@ -110,24 +106,35 @@ mv heritrace-technician-testing.zip ../
 
 cd ..
 
-ENDUSER_SIZE=$(du -h heritrace-enduser-testing.zip | cut -f1)
-TECHNICIAN_SIZE=$(du -h heritrace-technician-testing.zip | cut -f1)
+print_summary() {
+    ENDUSER_SIZE=$(du -h heritrace-enduser-testing.zip | cut -f1)
+    TECHNICIAN_SIZE=$(du -h heritrace-technician-testing.zip | cut -f1)
 
-echo ""
-echo "🎉 Online Package build completed!"
-echo "=================================="
-echo "📦 Created packages:"
-echo "   📚 heritrace-enduser-testing.zip ($ENDUSER_SIZE)"
-echo "   🔧 heritrace-technician-testing.zip ($TECHNICIAN_SIZE)"
-echo ""
-echo "💡 Each package contains:"
-echo "   - docker-compose.yml - Pre-configured Docker setup"
-echo "   - start.sh / start.bat - One-click startup scripts"
-echo "   - stop.sh / stop.bat - Clean shutdown scripts"
-echo "   - README.md - Complete user instructions"
+    echo ""
+    echo "🎉 Online Package build completed!"
+    echo "=================================="
+    echo "📦 Created packages:"
+    echo "   📚 heritrace-enduser-testing.zip ($ENDUSER_SIZE)"
+    echo "   🔧 heritrace-technician-testing.zip ($TECHNICIAN_SIZE)"
+    echo ""
+    echo "💡 Each package contains:"
+    echo "   - docker-compose.yml - Pre-configured Docker setup"
+    echo "   - start.sh / start.bat - One-click startup scripts"
+    echo "   - stop.sh / stop.bat - Clean shutdown scripts"
+    echo "   - README.md - Complete user instructions"
 
-echo ""
-echo "🧹 Cleaning up build directory..."
-rm -rf "$BUILD_DIR"
+    if [ -f "heritrace-enduser-testing.zip" ]; then
+        echo "   - export-data.sh/bat - Script to export all data"
+    fi
+    if [ -f "heritrace-technician-testing.zip" ]; then
+        echo "   - export-resources.sh/bat - Script to export SHACL and display rules"
+    fi
 
-echo "✅ Build complete!"
+    echo ""
+    echo "🧹 Cleaning up build directory..."
+    rm -rf "$BUILD_DIR"
+
+    echo "✅ Build complete!"
+}
+
+print_summary
