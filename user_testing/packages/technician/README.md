@@ -27,10 +27,9 @@ This package contains everything needed to test HERITRACE from a technician's pe
 
 1.  Run `start.sh` (Linux/Mac) or `start.bat` (Windows). This will download the necessary Docker images and start the application.
 2.  Wait for the script to confirm that the services are ready. This may take a minute or two on the first run.
-3.  Open your browser at https://localhost:5000.
-4.  You may need to accept a self-signed certificate warning in your browser. This is expected and safe for this testing environment.
-5.  Follow the testing protocol instructions below.
-6.  When finished, run `stop.sh` or `stop.bat` to shut down all services.
+3.  Open your browser at http://localhost:5000.
+4.  Follow the testing protocol instructions below.
+5.  When finished, run `stop.sh` or `stop.bat` to shut down all services.
 
 ## Configuration Files
 

@@ -55,7 +55,7 @@ services:
     environment:
       - FLASK_ENV=demo
       - PYTHONPATH=/app
-    command: ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000", "--cert=adhoc"]
+    command: ["python3", "app.py"]
     ports:
       - "5000:5000"
     volumes:
@@ -71,7 +71,7 @@ services:
     networks:
       - heritrace-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--no-check-certificate", "--spider", "https://localhost:5000"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000"]
       interval: 30s
       timeout: 10s
       retries: 5

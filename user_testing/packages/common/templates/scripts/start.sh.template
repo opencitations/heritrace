@@ -72,7 +72,7 @@ wait_for_service() {
 }
 
 echo "   Waiting for the application to be ready..."
-wait_for_service "https://localhost:5000" "HERITRACE Application"
+wait_for_service "http://localhost:5000" "HERITRACE Application"
 
 echo ""
 echo "🎉 HERITRACE {{PACKAGE_TYPE_TITLE}} Testing is ready!"
@@ -81,15 +81,11 @@ echo "✅ All services are running"
 echo ""
 echo "📖 Access Instructions:"
 echo "   1. Open your web browser"
-echo "   2. Go to: https://localhost:5000"
-echo "   3. Accept the SSL certificate warning (it's safe for testing)"
-echo "   4. You'll be automatically logged in as a demo user"
+echo "   2. Go to: http://localhost:5000"
+echo "   3. You'll be automatically logged in as a demo user"
 echo ""
 echo "🔧 Useful Commands:"
 echo "   - Stop the environment: ./stop.sh"
-echo ""
-echo "⚠️  Important: The SSL certificate is self-signed for testing."
-echo "   Your browser will show a security warning - this is normal."
-echo "   Click 'Advanced' and 'Proceed to localhost' to continue."
+
 echo ""
 echo "Happy testing! 🧪"
