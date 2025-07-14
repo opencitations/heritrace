@@ -63,7 +63,7 @@ set db_type=%~3
 
 echo    Exporting %db_type% data from %container%...
 
-set sparql_query=CONSTRUCT { ?s ?p ?o } WHERE { GRAPH ?g { ?s ?p ?o } }
+set "sparql_query=CONSTRUCT { ?s ?p ?o } WHERE { GRAPH ?g { ?s ?p ?o } FILTER(?g NOT IN (<http://localhost:8890/DAV/>, <http://www.openlinksw.com/schemas/virtrdf#>, <http://www.w3.org/2002/07/owl#>, <http://www.w3.org/ns/ldp#>, <urn:activitystreams-owl:map>, <urn:core:services:sparql>)) }"
 
 docker exec %container% curl -s -X POST -H "Content-Type: application/sparql-query" -H "Accept: text/turtle" --data "%sparql_query%" http://localhost:8890/sparql > "%output_file%"
 

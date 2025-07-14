@@ -37,7 +37,7 @@ export_virtuoso_data() {
 
     echo "   Exporting $db_type data from $container..."
     
-    local sparql_query="CONSTRUCT { ?s ?p ?o } WHERE { GRAPH ?g { ?s ?p ?o } }"
+    local sparql_query="CONSTRUCT { ?s ?p ?o } WHERE { GRAPH ?g { ?s ?p ?o } FILTER(?g NOT IN (<http://localhost:8890/DAV/>, <http://www.openlinksw.com/schemas/virtrdf#>, <http://www.w3.org/2002/07/owl#>, <http://www.w3.org/ns/ldp#>, <urn:activitystreams-owl:map>, <urn:core:services:sparql>)) }"
 
     docker exec "$container" curl -s -X POST http://localhost:8890/sparql \
         -H "Content-Type: application/sparql-query" \
