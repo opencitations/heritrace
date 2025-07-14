@@ -12,7 +12,6 @@ from virtuoso_utils import (
     DEFAULT_VIRTUOSO_USER,
     DEFAULT_VIRTUOSO_PASSWORD,
     wait_for_virtuoso,
-    setup_fulltext_indexing,
     set_permissions
 )
 
@@ -27,10 +26,6 @@ def main():
     
     if not wait_for_virtuoso(args.host):
         print("❌ Virtuoso is not ready. Exiting.")
-        sys.exit(1)
-    
-    if not setup_fulltext_indexing(args):
-        print("❌ Failed to set up full-text indexing. Exiting.")
         sys.exit(1)
     
     if not set_permissions(args):

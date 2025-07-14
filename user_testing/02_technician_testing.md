@@ -21,7 +21,7 @@ Participants must have:
 
 ## Testing Session Structure
 
-### **Warm-up Exploration (max 5 minutes)**
+### **Warm-up Exploration (max 2 minutes)**
 ```
 "Start your screen and voice recording now. 
 
@@ -32,9 +32,9 @@ Begin by exploring this HERITRACE system using the test materials provided. Thin
 Your goal is to get familiar with the interface, understand the current configuration state, and identify which entities are fully configured versus those that need additional configuration work."
 ```
 
-### **Configuration Tasks (40 minutes total)**
+### **Configuration Tasks (45 minutes total)**
 
-**Task 1: Add Abstract Display Support (20 minutes)**
+**Task 1: Add Abstract Display Support (23 minutes)**
 ```
 "Your institution has provided preexisting data with a partial configuration for journal articles. The data contains abstracts associated with journal articles using the dcterms:abstract property, but these abstracts are not being displayed in the interface because the specific display rule is missing.
 
@@ -52,16 +52,21 @@ Think aloud as you work through this. Describe your approach, what you're lookin
 Once completed, verify from the user interface that the abstracts present in the data become visible to end users."
 ```
 
-**Task 2: Add SHACL Validation for Abstract (20 minutes)**  
+**Task 2: Add SHACL Validation for Abstract (22 minutes)**  
 ```
 "Currently, there's nothing preventing users from adding multiple abstracts to a journal article. You need to modify the SHACL shape for journal articles to specify that there can be at most one abstract.
 
 Continue thinking aloud about your process and any difficulties you encounter when working with SHACL constraints."
 ```
 
-### **Immediate Reflection (5 minutes)**
+### **SUS Questionnaire Completion (3 minutes)**
 ```
-"Without stopping the recording, please answer these questions aloud:
+"Now please complete the SUS (System Usability Scale) questionnaire provided."
+```
+
+### **Written Reflection (10 minutes)**
+```
+"After completing the SUS, please provide written answers to the following questions.
 
 1. How effectively did HERITRACE support you in these configuration tasks?
 2. What were the most useful features that helped you accomplish your work?
@@ -71,11 +76,6 @@ Continue thinking aloud about your process and any difficulties you encounter wh
 Take your time with each answer - we want your complete thoughts."
 ```
 
-### **SUS Questionnaire Completion (5 minutes)**
-```
-"Now please complete the SUS (System Usability Scale) questionnaire provided."
-```
-
 ## Post-Session Requirements
 
 **Participants must submit**:
@@ -83,3 +83,4 @@ Take your time with each answer - we want your complete thoughts."
 - Modified SHACL schema files
 - Modified display rules files
 - Completed SUS questionnaire
+- Written answers to reflection questions

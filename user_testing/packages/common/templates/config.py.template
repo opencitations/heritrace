@@ -30,7 +30,7 @@ class Config:
     PROVENANCE_DB_TRIPLESTORE = 'virtuoso'
     DATASET_IS_QUADSTORE = True
     PROVENANCE_IS_QUADSTORE = True
-    DATASET_DB_TEXT_INDEX_ENABLED = True
+    DATASET_DB_TEXT_INDEX_ENABLED = False
     
     # Redis configuration
     REDIS_URL = 'redis://redis:6379/0'

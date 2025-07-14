@@ -90,8 +90,24 @@
 
         setActiveNavLink();
 
-        $('.heritrace-mobile-toggle').on('click', function() {
-            $(this).toggleClass('active');
+        var $navCollapse = $('#heritraceNav');
+        var $toggleButton = $('.heritrace-mobile-toggle');
+
+        $navCollapse.on('show.bs.collapse', function () {
+            $toggleButton.addClass('active');
+        });
+
+        $navCollapse.on('hide.bs.collapse', function () {
+            $toggleButton.removeClass('active');
+        });
+
+        $(document).on('click', function(event) {
+            var $navbar = $('.heritrace-navbar');
+
+            // Check if the navbar is open and the click is outside the navbar
+            if ($navCollapse.hasClass('show') && !$navbar.is(event.target) && $navbar.has(event.target).length === 0) {
+                $toggleButton.trigger('click');
+            }
         });
     });
 </script>

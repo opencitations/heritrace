@@ -85,68 +85,7 @@ def run_isql_command(args, sql_command, capture=True):
         print(f"Error running ISQL command: {e}")
         return False, "", str(e)
 
-def setup_fulltext_indexing(args):
-    """
-    Set up full-text indexing for the Virtuoso database.
-    
-    Args:
-        args: Command line arguments with connection details
-        
-    Returns:
-        True if setup was successful, False otherwise
-    """
-    print("Setting up full-text indexing...")
-    
-    print("1. Dropping existing full-text index tables if they exist...")
-    sql_command = """
-    drop table DB.DBA.VTLOG_DB_DBA_RDF_OBJ;
-    drop table DB.DBA.RDF_OBJ_RO_FLAGS_WORDS;
-    """
-    success, stdout, stderr = run_isql_command(args, sql_command)
-    
-    print("2. Adding full-text indexing rules...")
-    sql_command = "DB.DBA.RDF_OBJ_FT_RULE_ADD(null, null, 'All literals');"
-    success, stdout, stderr = run_isql_command(args, sql_command)
-    
-    if not success:
-        print(f"❌ Failed to add full-text indexing rules:")
-        print(stderr)
-        return False
-    
-    print("3. Creating full-text index structure...")
-    sql_command = """
-    DB.DBA.vt_create_text_index (
-      fix_identifier_case ('DB.DBA.RDF_OBJ'),
-      fix_identifier_case ('RO_FLAGS'),
-      fix_identifier_case ('RO_ID'),
-      0, 0, vector (), 1, '*ini*', 'UTF-8-QR');
-    """
-    success, stdout, stderr = run_isql_command(args, sql_command)
-    
-    if not success:
-        print(f"❌ Failed to create full-text index structure:")
-        print(stderr)
-        return False
-    
-    print("4. Enabling batch updates for the index...")
-    sql_command = "DB.DBA.vt_batch_update (fix_identifier_case ('DB.DBA.RDF_OBJ'), 'ON', 1);"
-    success, stdout, stderr = run_isql_command(args, sql_command)
-    
-    if not success:
-        print(f"❌ Failed to enable batch updates for the index:")
-        print(stderr)
-        return False
-    
-    print("5. Filling the full-text index...")
-    sql_command = "DB.DBA.RDF_OBJ_FT_RECOVER();"
-    success, stdout, stderr = run_isql_command(args, sql_command)
-    
-    if not success:
-        print(f"❌ Failed to fill the full-text index:")
-        print(stderr)
-        return False
-    
-    return True
+
 
 def set_permissions(args):
     """

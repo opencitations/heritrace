@@ -35,7 +35,7 @@ You'll be working through several metadata management tasks. Think aloud through
 There are no right or wrong approaches - we want to understand your natural workflow."
 ```
 
-### **Warm-up Exploration (max 5 minutes)**
+### **Warm-up Exploration (max 2 minutes)**
 ```
 "Begin by exploring this HERITRACE system. Think aloud as you navigate. Describe what you see, what you expect, and any questions that arise.
 
@@ -65,14 +65,20 @@ Think aloud as you work through this process."
 "Task 3: You realize that the modifications you made in Task 1 were incorrect - adding Vittoria Castrillo as author and removing the keyword were mistakes. Use the integrated Time Machine system to restore the previous version before those changes. Think aloud about how you approach this process and what you expect from the version control functionality."
 ```
 
-### Task 4: Create New Publication Record (12 minutes)
+### Task 4: Create New Publication Record (20 minutes)
+```
 ```
 "Task 4: Add this specific journal article to the repository: https://doi.org/10.1162/qss_a_00292. Include as many metadata fields as possible. You have access to the article's webpage to gather information. Think aloud as you work through this process."
 ```
 
-### **Immediate Reflection (5 minutes)**
+### **SUS Questionnaire Completion (3 minutes)**
 ```
-"Without stopping the recording, please answer these questions aloud:
+"Now please complete the SUS (System Usability Scale) questionnaire provided."
+```
+
+### **Written Reflection (10 minutes)**
+```
+"After completing the SUS, please provide written answers to the following questions.
 
 1. How effectively did HERITRACE support you in these metadata management tasks?
 2. What were the most useful features for your bibliographic workflow?
@@ -82,13 +88,9 @@ Think aloud as you work through this process."
 Take your time with each answer - we want your complete thoughts."
 ```
 
-### **SUS Questionnaire Completion (5 minutes)**
-```
-"Now please complete the SUS (System Usability Scale) questionnaire provided."
-```
-
 ## Post-Session Requirements
 
 **Participants must submit**:
 - Complete screen+voice recording file
 - Completed SUS questionnaire
+- Written answers to reflection questions

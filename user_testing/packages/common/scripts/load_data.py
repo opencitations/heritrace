@@ -18,7 +18,6 @@ from virtuoso_utils import (
     DEFAULT_VIRTUOSO_PASSWORD,
     wait_for_virtuoso,
     run_isql_command,
-    setup_fulltext_indexing,
     set_permissions
 )
 
@@ -189,17 +188,11 @@ def main():
     
     print("✅ RDF loader completed successfully.")
     
-    print("Setting up full-text indexing...")
-    if not setup_fulltext_indexing(args):
-        print("❌ Failed to set up full-text indexing. Exiting.")
-        sys.exit(1)
-    
     print("Setting database permissions...")
     if not set_permissions(args):
         print("❌ Failed to set permissions. Exiting.")
         sys.exit(1)
         
-    print("✅ Full-text indexing completed successfully.")
     print("✅ Data loading completed successfully.")
     print("ℹ️ Note: For optimal performance, consider restarting Virtuoso after this operation.")
 
