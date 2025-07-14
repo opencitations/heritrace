@@ -17,6 +17,8 @@ Participants must have:
 - Computer with screen recording software (OBS, QuickTime, etc.)
 - Microphone for voice recording
 - Access to HERITRACE instance with test data
+- 1GB RAM minimum
+- 5GB free disk space
 - Modern web browser
 
 ### Sample Data Provided
@@ -46,27 +48,25 @@ Your goal is to get familiar with the interface and understand how to browse and
 
 ### Task 1: Edit Existing Publication Record (8 minutes)
 ```
-"Task 1: Browse the catalogue to find a Review Article entity type and modify the publication record for 'Conti Bizzarro, F. (2009). Da Esiodo a Saffo e Alceo: due contributi dell'Istituto Papirologico \"G. Vitelli\" [Review Article]. Vichiana, ser. 4, 11(1), 103-107.'
+"Task 1: Your first task is to locate a specific bibliographic record of the type 'Journal Article': 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.'. We are specifying that this is the fourth article in the list because the catalog's interface deliberately lacks advanced search tools, as HERITRACE's primary focus is on editing, not searching.
 
-Please make these specific changes:
-1. Add a new author 'Vittoria Castrillo' as the first author (before Ferruccio Conti Bizzarro)
-2. Remove the keyword 'subject>ancient tradition'
+Please make the following change:
+1. Add 'Carolyn Scagel' as the first author, with 'Carolyn' as the given name and 'Scagel' as the family name.
 
 Think aloud as you work through this process."
 ```
 
 ### Task 2: Merge Duplicate Author Entities (10 minutes)
 ```
-"Task 2: Return to the publication from Task 1 and visit the author page for Ferruccio Conti Bizzarro. You'll notice there is a similar entity that is actually a duplication. Use the integrated functionality to merge it. Think aloud about how you approach this data cleanup process."
+"Task 2: Return to the 'Journal Article' from Task 1. You'll notice that the author 'Richard Carew' is duplicated. Navigate to the author page for 'Richard Carew' and use the available tools to merge the duplicates. Think aloud about how you approach this data cleanup process."
 ```
 
 ### Task 3: Restore Previous Version (7 minutes)
 ```
-"Task 3: You realize that the modifications you made in Task 1 were incorrect - adding Vittoria Castrillo as author and removing the keyword were mistakes. Use the integrated Time Machine system to restore the previous version before those changes. Think aloud about how you approach this process and what you expect from the version control functionality."
+"Task 3: You realize that the modification you made in Task 1 was incorrect. Use the integrated Time Machine system to restore the record to the version before you added 'Carolyn Scagel' as an author. Think aloud about how you approach this process and what you expect from the version control functionality."
 ```
 
 ### Task 4: Create New Publication Record (20 minutes)
-```
 ```
 "Task 4: Add this specific journal article to the repository: https://doi.org/10.1162/qss_a_00292. Include as many metadata fields as possible. You have access to the article's webpage to gather information. Think aloud as you work through this process."
 ```

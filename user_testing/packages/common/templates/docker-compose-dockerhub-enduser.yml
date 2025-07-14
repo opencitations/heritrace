@@ -1,6 +1,6 @@
 services:
   heritrace-dataset:
-    image: arcangelo7/heritrace-testing-virtuoso-dataset:1.0.1
+    image: arcangelo7/heritrace-testing-virtuoso-dataset:1.0.0
     container_name: heritrace-dataset
     environment:
       - DBA_PASSWORD=dba
@@ -18,7 +18,7 @@ services:
       - heritrace-network
 
   heritrace-provenance:
-    image: arcangelo7/heritrace-testing-virtuoso-provenance:1.0.1
+    image: arcangelo7/heritrace-testing-virtuoso-provenance:1.0.0
     container_name: heritrace-provenance
     environment:
       - DBA_PASSWORD=dba
@@ -50,7 +50,7 @@ services:
       - heritrace-network
 
   heritrace:
-    image: arcangelo7/heritrace-testing:1.0.1
+    image: arcangelo7/heritrace-testing:1.0.0
     container_name: heritrace-app
     environment:
       - FLASK_ENV=demo

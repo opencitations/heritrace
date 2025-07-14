@@ -15,8 +15,8 @@ This package contains everything needed to test HERITRACE from a technician's pe
 ## Requirements
 
 - Docker and Docker Compose. For installation, see the <a href="https://docs.docker.com/get-docker/" target="_blank">official documentation</a>.
-- 4GB RAM minimum
-- 10GB free disk space
+- 1GB RAM minimum
+- 5GB free disk space
 - Modern web browser
 - Computer with screen recording software (OBS, QuickTime, etc.)
 - Microphone for voice recording

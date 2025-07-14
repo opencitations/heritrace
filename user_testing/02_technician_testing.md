@@ -17,6 +17,8 @@ Participants must have:
 - Computer with screen recording software (OBS, QuickTime, etc.)
 - Microphone for voice recording
 - Access to test HERITRACE instance
+- 1GB RAM minimum
+- 5GB free disk space
 - Test materials provided
 
 ## Testing Session Structure
