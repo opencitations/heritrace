@@ -19,9 +19,27 @@ generate_script_from_template() {
     local output_file=$2
     local package_type=$3
     local package_type_title=$4
-    
-    sed "s/{{PACKAGE_TYPE}}/$package_type/g; s/{{PACKAGE_TYPE_TITLE}}/$package_type_title/g" "$template_file" > "$output_file"
-    
+
+    local export_message
+    if [ "$package_type" = "enduser" ]; then
+        export_message="echo \"   - Export all modified data: ./export-data.sh\""
+    else
+        export_message="echo \"   - Export the modified resources (Shacl and Display Rules): ./export-resources.sh\""
+    fi
+
+    local export_command
+    if [ "$package_type" = "enduser" ]; then
+        export_command="   - Export all modified data: ./export-data.sh"
+    else
+        export_command="   - Export the modified resources (Shacl and Display Rules): ./export-resources.sh"
+    fi
+
+    sed -e "s/{{PACKAGE_TYPE}}/$package_type/g" \
+        -e "s/{{PACKAGE_TYPE_TITLE}}/$package_type_title/g" \
+        -e "s|{{EXPORT_MESSAGE}}|$export_message|g" \
+        -e "s|{{EXPORT_COMMAND}}|$export_command|g" \
+        "$template_file" > "$output_file"
+
     if [[ "$output_file" == *.sh ]]; then
         chmod +x "$output_file"
     fi
@@ -49,6 +67,10 @@ mkdir -p "$ENDUSER_DIR/resources"
 cp "enduser/resources/display_rules.yaml" "$ENDUSER_DIR/resources/"
 cp "enduser/resources/shacl.ttl" "$ENDUSER_DIR/resources/"
 
+cp "common/scripts/export-data.sh" "$ENDUSER_DIR/"
+cp "common/scripts/export-data.bat" "$ENDUSER_DIR/"
+chmod +x "$ENDUSER_DIR/export-data.sh"
+
 echo "🎁 Building technician online package..."
 TECHNICIAN_DIR="$BUILD_DIR/heritrace-technician-testing"
 mkdir -p "$TECHNICIAN_DIR"
@@ -70,6 +92,10 @@ cp "common/templates/virtuoso_provenance.ini" "$TECHNICIAN_DIR/prov_database/vir
 
 cp "technician/resources/display_rules.yaml" "$TECHNICIAN_DIR/resources/"
 cp "technician/resources/shacl.ttl" "$TECHNICIAN_DIR/resources/"
+
+cp "common/scripts/export-resources.sh" "$TECHNICIAN_DIR/"
+cp "common/scripts/export-resources.bat" "$TECHNICIAN_DIR/"
+chmod +x "$TECHNICIAN_DIR/export-resources.sh"
 
 echo "📦 Creating ZIP packages..."
 cd "$BUILD_DIR"

@@ -20,5 +20,5 @@ echo ""
 echo "💡 Your test data is preserved in Docker volumes."
 echo "   To restart, simply run: ./start.sh"
 echo ""
-echo "🗑️  To completely reset (delete all data):"
-echo "   $COMPOSE_CMD down -v"
+echo "📝 Once the test is complete, don't forget to export the results!"
+{{EXPORT_MESSAGE}}

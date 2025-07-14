@@ -86,6 +86,8 @@ echo "   3. You'll be automatically logged in as a demo user"
 echo ""
 echo "🔧 Useful Commands:"
 echo "   - Stop the environment: ./stop.sh"
+echo "{{EXPORT_COMMAND}}"
 
 echo ""
+echo "📝 Remember to export your results after completing the testing tasks!"
 echo "Happy testing! 🧪"

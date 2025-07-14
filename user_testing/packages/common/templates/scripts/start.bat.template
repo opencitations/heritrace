@@ -79,7 +79,9 @@ echo    3. You'll be automatically logged in as a demo user
 echo.
 echo 🔧 Useful Commands:
 echo    - Stop the environment: stop.bat
+echo {{EXPORT_COMMAND}}
 echo.
+echo 📝 Remember to export your results after completing the testing tasks!
 echo Happy testing! 🧪
 echo.
 echo Press any key to continue...

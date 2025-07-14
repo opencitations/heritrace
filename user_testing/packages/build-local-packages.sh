@@ -25,9 +25,27 @@ generate_script_from_template() {
     local output_file=$2
     local package_type=$3
     local package_type_title=$4
-    
-    sed "s/{{PACKAGE_TYPE}}/$package_type/g; s/{{PACKAGE_TYPE_TITLE}}/$package_type_title/g" "$template_file" > "$output_file"
-    
+
+    local export_message
+    if [ "$package_type" = "enduser" ]; then
+        export_message="echo \"   - Export all modified data: ./export-data.sh\""
+    else
+        export_message="echo \"   - Export the modified resources (Shacl and Display Rules): ./export-resources.sh\""
+    fi
+
+    local export_command
+    if [ "$package_type" = "enduser" ]; then
+        export_command="   - Export all modified data: ./export-data.sh"
+    else
+        export_command="   - Export the modified resources (Shacl and Display Rules): ./export-resources.sh"
+    fi
+
+    sed -e "s/{{PACKAGE_TYPE}}/$package_type/g" \
+        -e "s/{{PACKAGE_TYPE_TITLE}}/$package_type_title/g" \
+        -e "s|{{EXPORT_MESSAGE}}|$export_message|g" \
+        -e "s|{{EXPORT_COMMAND}}|$export_command|g" \
+        "$template_file" > "$output_file"
+
     if [[ "$output_file" == *.sh ]]; then
         chmod +x "$output_file"
     fi
@@ -108,6 +126,16 @@ prepare_package() {
     cp "common/scripts/virtuoso_entrypoint.sh" "$build_package_dir/scripts/"
     cp "common/scripts/provenance_entrypoint.sh" "$build_package_dir/scripts/"
     
+    if [ "$package_type" = "enduser" ]; then
+        cp "common/scripts/export-data.sh" "$build_package_dir/"
+        cp "common/scripts/export-data.bat" "$build_package_dir/"
+        chmod +x "$build_package_dir/export-data.sh"
+    else
+        cp "common/scripts/export-resources.sh" "$build_package_dir/"
+        cp "common/scripts/export-resources.bat" "$build_package_dir/"
+        chmod +x "$build_package_dir/export-resources.sh"
+    fi
+    
     echo "   Adding Docker Hub scripts and compose files..."
     cp "common/scripts/push-to-dockerhub.sh" "$build_package_dir/"
     chmod +x "$build_package_dir/push-to-dockerhub.sh"
@@ -120,8 +148,6 @@ prepare_package() {
     
     find "$build_package_dir" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
     find "$build_package_dir" -name "*.pyc" -delete 2>/dev/null || true
-    
-    mkdir -p "$build_package_dir/exports"
     
     chmod +x "$build_package_dir"/*.sh 2>/dev/null || true
     chmod +x "$build_package_dir"/scripts/*.sh 2>/dev/null || true
