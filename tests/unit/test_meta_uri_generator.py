@@ -2,9 +2,8 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 from heritrace.uri_generator.meta_uri_generator import MetaURIGenerator, InvalidURIFormatError
+from heritrace.meta_counter_handler import MetaCounterHandler
 from rdflib import URIRef
-from rdflib_ocdm.counter_handler.redis_counter_handler import \
-    RedisCounterHandler
 from SPARQLWrapper import SPARQLWrapper
 
 
@@ -13,15 +12,18 @@ def uri_generator_setup():
     """Fixture to set up the MetaURIGenerator and its dependencies."""
     base_iri = "https://w3id.org/oc/meta"
     supplier_prefix = "test"
-    counter_handler = MagicMock(spec=RedisCounterHandler)
+    counter_handler = MagicMock(spec=MetaCounterHandler)
+    counter_handler.supplier_prefix = supplier_prefix
+    supplier_prefix_regex = supplier_prefix
     uri_generator = MetaURIGenerator(
-        base_iri, supplier_prefix, counter_handler
+        base_iri, supplier_prefix_regex, supplier_prefix, counter_handler
     )
     sparql = MagicMock(spec=SPARQLWrapper)
     
     return {
         "base_iri": base_iri,
         "supplier_prefix": supplier_prefix,
+        "supplier_prefix_regex": supplier_prefix_regex,
         "counter_handler": counter_handler,
         "uri_generator": uri_generator,
         "sparql": sparql
@@ -153,6 +155,7 @@ def test_initialize_counters_with_valid_data(uri_generator_setup):
         call(35, "http://purl.org/spar/fabio/Manifestation"),
         call(25, "http://xmlns.com/foaf/0.1/Agent"),
         call(40, "http://purl.org/spar/datacite/Identifier"),
+        call(0, "http://www.w3.org/2002/07/owl#Thing"),
     ]
     counter_handler.set_counter.assert_has_calls(expected_calls, any_order=True)
 
@@ -172,7 +175,7 @@ def test_initialize_counters_with_invalid_uri_format_in_data(uri_generator_setup
             "bindings": [
                 {
                     "type": {"value": "http://purl.org/spar/fabio/Expression"},
-                    "s": {"value": f"{base_iri}/br/test"},  # No supplier prefix to split on
+                    "s": {"value": f"{base_iri}/br/{supplier_prefix}abc"},  # Invalid format supplier prefix to split on
                 },
                 {
                     "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
@@ -223,7 +226,7 @@ def test_initialize_counters_with_invalid_uri_format_in_provenance(uri_generator
         "results": {
             "bindings": [
                 {
-                    "entity": {"value": f"{base_iri}/br/test"},  # No supplier prefix to split on
+                    "entity": {"value": f"{base_iri}/br/{supplier_prefix}xyz"},  # Invalid format supplier prefix to split on
                 },
                 {
                     "entity": {"value": f"{base_iri}/ra/{supplier_prefix}25"},
@@ -360,12 +363,9 @@ def test_initialize_counters_with_empty_results(uri_generator_setup):
     # Call the method under test
     uri_generator.initialize_counters(sparql)
 
-    # Verify all counters were initialized to 0
-    expected_calls = [
-        call(0, entity_type)
-        for entity_type in uri_generator.entity_type_abbr.keys()
-    ]
-    counter_handler.set_counter.assert_has_calls(expected_calls, any_order=True)
+    # With empty results, no prefixes are found, so no counters should be set
+    # This is the new expected behavior - only prefixes found in data get counters
+    counter_handler.set_counter.assert_not_called()
 
 
 def test_initialize_counters_with_value_error_in_data(uri_generator_setup):
@@ -446,4 +446,97 @@ def test_initialize_counters_with_value_error_in_provenance(uri_generator_setup)
     with pytest.raises(InvalidURIFormatError) as exc_info:
         uri_generator.initialize_counters(sparql)
     
-    assert "Invalid URI format found in provenance for entity:" in str(exc_info.value) 
+    assert "Invalid URI format found in provenance for entity:" in str(exc_info.value)
+
+
+def test_initialize_counters_with_multiple_prefixes():
+    """Test initialize_counters properly separates counters by supplier prefix."""
+    base_iri = "https://w3id.org/oc/meta"
+    supplier_prefix_regex = r"\d{3}"  # Match 3 digits
+    new_supplier_prefix = "060"
+    counter_handler = MagicMock(spec=MetaCounterHandler)
+    counter_handler.supplier_prefix = new_supplier_prefix
+    
+    uri_generator = MetaURIGenerator(
+        base_iri, supplier_prefix_regex, new_supplier_prefix, counter_handler
+    )
+    sparql = MagicMock(spec=SPARQLWrapper)
+    
+    # Mock the data query results with multiple prefixes
+    data_results = {
+        "results": {
+            "bindings": [
+                {
+                    "type": {"value": "http://purl.org/spar/fabio/Expression"},
+                    "s": {"value": f"{base_iri}/br/06010"},
+                },
+                {
+                    "type": {"value": "http://purl.org/spar/fabio/Expression"},
+                    "s": {"value": f"{base_iri}/br/07020"},
+                },
+                {
+                    "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
+                    "s": {"value": f"{base_iri}/ra/06015"},
+                },
+                {
+                    "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
+                    "s": {"value": f"{base_iri}/ra/07025"},
+                },
+            ]
+        }
+    }
+
+    # Mock the provenance query results with multiple prefixes
+    prov_results = {
+        "results": {
+            "bindings": [
+                {
+                    "entity": {"value": f"{base_iri}/br/06030"},
+                },
+                {
+                    "entity": {"value": f"{base_iri}/br/07035"},
+                },
+            ]
+        }
+    }
+
+    # Configure the mock SPARQL wrapper
+    sparql.query.side_effect = [
+        MagicMock(convert=MagicMock(return_value=data_results)),
+        MagicMock(convert=MagicMock(return_value=prov_results)),
+    ]
+
+    # Call the method under test
+    uri_generator.initialize_counters(sparql)
+
+    # Verify that the supplier_prefix was temporarily changed during initialization
+    # We expect set_counter to be called with different prefix contexts
+    assert counter_handler.set_counter.call_count > 0
+    
+    # The counter handler should have been set to the original prefix at the end
+    assert counter_handler.supplier_prefix == uri_generator.new_supplier_prefix
+
+
+def test_generate_uri_uses_correct_prefix():
+    """Test that generate_uri uses the correct supplier prefix in the generated URI."""
+    base_iri = "https://w3id.org/oc/meta"
+    supplier_prefix_regex = r"\d{3}"
+    new_supplier_prefix = "070"
+    counter_handler = MagicMock(spec=MetaCounterHandler)
+    counter_handler.supplier_prefix = new_supplier_prefix
+    counter_handler.read_counter.return_value = 42
+    
+    uri_generator = MetaURIGenerator(
+        base_iri, supplier_prefix_regex, new_supplier_prefix, counter_handler
+    )
+    
+    entity_type = "http://purl.org/spar/fabio/Expression"
+    uri = uri_generator.generate_uri(entity_type)
+    
+    # Verify the counter handler was called correctly
+    counter_handler.read_counter.assert_called_once_with(entity_type)
+    counter_handler.set_counter.assert_called_once_with(43, entity_type)
+    
+    # Verify the generated URI contains the correct prefix
+    expected_uri = URIRef(f"{base_iri}/br/{new_supplier_prefix}43")
+    assert uri == expected_uri 

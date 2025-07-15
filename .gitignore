@@ -12,6 +12,7 @@ heritrace/static/dist/
 .vscode/
 .venv/
 tests/test_cache.json
+redis-data
 
 # Unit test / coverage reports
 .coverage
@@ -27,6 +28,3 @@ nosetests.xml
 # Virtuoso lock files
 tests/test_dataset_db/*
 tests/test_provenance_db/*
-
-.cursor
-.windsurfrules

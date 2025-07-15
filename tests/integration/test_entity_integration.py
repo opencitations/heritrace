@@ -506,7 +506,7 @@ def test_generate_unique_uri(app: Flask) -> None:
 
             # Create a MetaURIGenerator instance
             meta_generator = MetaURIGenerator(
-                "http://example.org", "test", counter_handler
+                "http://example.org", "test", "test", counter_handler
             )
 
             # Set the MetaURIGenerator as the application's URI generator

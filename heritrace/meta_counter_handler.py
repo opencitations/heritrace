@@ -3,7 +3,7 @@ import redis
 
 
 class MetaCounterHandler:
-    def __init__(self, host='localhost', port=6379, db=0, password=None) -> None:
+    def __init__(self, host='localhost', port=6379, db=0, password=None, supplier_prefix="060") -> None:
         """
         Constructor of the ``MetaCounterHandler`` class.
 
@@ -15,12 +15,14 @@ class MetaCounterHandler:
         :type db: int
         :param password: Redis password if required
         :type password: str
+        :param supplier_prefix: Supplier prefix for counter separation
+        :type supplier_prefix: str
         """
         self.redis_client = redis.Redis(host=host, port=port, db=db, password=password)
 
         self.base_iri = "https://w3id.org/oc/meta/"
         self.short_names = ["ar", "br", "id", "ra", "re"]
-        self.supplier_prefix = "060"
+        self.supplier_prefix = supplier_prefix
 
         self.entity_type_abbr = {
             "http://purl.org/spar/fabio/Expression": "br",
@@ -73,7 +75,7 @@ class MetaCounterHandler:
             raise ValueError("new_value must be a non negative integer!")
 
         namespace, processed_entity_name = self._process_entity_name(entity_name)
-        key = f"{namespace}:{processed_entity_name}"
+        key = f"{namespace}:{self.supplier_prefix}:{processed_entity_name}"
         self.redis_client.set(key, new_value)
 
     def read_counter(self, entity_name: str) -> int:
@@ -85,7 +87,7 @@ class MetaCounterHandler:
         :return: The requested counter value.
         """
         namespace, processed_entity_name = self._process_entity_name(entity_name)
-        key = f"{namespace}:{processed_entity_name}"
+        key = f"{namespace}:{self.supplier_prefix}:{processed_entity_name}"
         result = self.redis_client.get(key)
 
         if result:
@@ -102,7 +104,7 @@ class MetaCounterHandler:
         :return: The newly-updated (already incremented) counter value.
         """
         namespace, processed_entity_name = self._process_entity_name(entity_name)
-        key = f"{namespace}:{processed_entity_name}"
+        key = f"{namespace}:{self.supplier_prefix}:{processed_entity_name}"
         new_count = self.redis_client.incr(key)
         return new_count
 

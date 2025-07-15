@@ -22,7 +22,10 @@ counter_handler = MetaCounterHandler(
 # URI generators for different types of resources
 default_uri_generator = DefaultURIGenerator("https://example.com")
 meta_uri_generator = MetaURIGenerator(
-    "https://w3id.org/oc/meta", "test", counter_handler
+    base_iri="https://w3id.org/oc/meta",
+    supplier_prefix_regex="test",
+    new_supplier_prefix="test",
+    counter_handler=counter_handler,
 )
 
 # Paths to resource files

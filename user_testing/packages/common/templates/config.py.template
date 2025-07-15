@@ -8,9 +8,12 @@ from heritrace.utils.strategies import ProxyHandlingStrategy, OrphanHandlingStra
 
 
 # Initialize counter handler and URI generator
-counter_handler = MetaCounterHandler(host="redis", port=6379, db=0)
+counter_handler = MetaCounterHandler(host="redis", port=6379, db=0, supplier_prefix="060")
 meta_uri_generator = MetaURIGenerator(
-    "https://w3id.org/oc/meta", "09110", counter_handler
+    base_iri="https://w3id.org/oc/meta/",
+    supplier_prefix_regex="06[1-9]+0",
+    new_supplier_prefix="060",
+    counter_handler=counter_handler,
 )
 
 
@@ -59,8 +62,8 @@ class Config:
     BABEL_TRANSLATION_DIRECTORIES = '/app/babel/translations'
     
     # Dataset information
-    PRIMARY_SOURCE = 'https://example.com'
-    DATASET_GENERATION_TIME = '2022-12-25T00:00:00+00:00'
+    PRIMARY_SOURCE = 'https://api.crossref.org/snapshots/monthly/2025/04'
+    DATASET_GENERATION_TIME = '2025-04-01T00:00:00+00:00'
     
     # Entity handling strategies
     ORPHAN_HANDLING_STRATEGY = OrphanHandlingStrategy.DELETE
