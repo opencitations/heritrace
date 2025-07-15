@@ -10,6 +10,14 @@ RUN npm run build
 
 FROM python:3.11-bullseye
 
+ARG DOCKER_METADATA_AUTHOR
+ARG DOCKER_METADATA_DESCRIPTION
+ARG DOCKER_METADATA_VERSION
+
+LABEL org.opencontainers.image.authors=$DOCKER_METADATA_AUTHOR
+LABEL org.opencontainers.image.description=$DOCKER_METADATA_DESCRIPTION
+LABEL org.opencontainers.image.version=$DOCKER_METADATA_VERSION
+
 RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*

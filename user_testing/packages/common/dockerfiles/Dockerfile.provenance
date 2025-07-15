@@ -1,5 +1,13 @@
 FROM openlink/virtuoso-opensource-7:7.2-alpine@sha256:f0fc5b84db39e607a7a65c6eda30d15651cb3646bec6d89ee4a8307778789764
 
+ARG DOCKER_METADATA_AUTHOR
+ARG DOCKER_METADATA_DESCRIPTION
+ARG DOCKER_METADATA_VERSION
+
+LABEL org.opencontainers.image.authors=$DOCKER_METADATA_AUTHOR
+LABEL org.opencontainers.image.description=$DOCKER_METADATA_DESCRIPTION
+LABEL org.opencontainers.image.version=$DOCKER_METADATA_VERSION
+
 RUN apk add --no-cache python3 py3-requests curl
 
 COPY data /data

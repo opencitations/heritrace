@@ -23,7 +23,14 @@ echo "🔐 Ensuring you are logged in to Docker Hub..."
 docker login
 
 echo "🔨 Building Docker images..."
-docker compose build
+DOCKER_METADATA_AUTHOR="Arcangelo Massari"
+DOCKER_METADATA_DESCRIPTION="Heritrace User Testing Environment - A comprehensive testing suite for HERITRACE, the semantic data editor for galleries, libraries, archives, and museums (GLAM) professionals. This environment enables usability testing of metadata editing workflows, provenance management, and semantic data integration features."
+DOCKER_METADATA_VERSION=$VERSION
+
+docker compose build \
+    --build-arg DOCKER_METADATA_AUTHOR="$DOCKER_METADATA_AUTHOR" \
+    --build-arg DOCKER_METADATA_DESCRIPTION="$DOCKER_METADATA_DESCRIPTION" \
+    --build-arg DOCKER_METADATA_VERSION="$DOCKER_METADATA_VERSION"
 
 PROJECT_NAME=$(basename "$PWD")
 HERITRACE_IMAGE="${PROJECT_NAME}-heritrace"
