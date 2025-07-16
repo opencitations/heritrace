@@ -678,23 +678,7 @@ common_properties:
     minCharsForSearch: 2
     searchTarget: "self"
 
-  abstract_property: &abstract_property
-    property: "http://purl.org/dc/terms/abstract"
-    displayName: "Abstract"
-    shouldBeDisplayed: true
-    inputType: "textarea"
-    supportsSearch: true
-    minCharsForSearch: 4
-    searchTarget: "self"
 
-  keyword_property: &keyword_property  
-    property: "http://prismstandard.org/namespaces/basic/2.0/keyword"
-    displayName: "Keyword"
-    shouldBeDisplayed: true
-    inputType: "tag"
-    supportsSearch: false
-    minCharsForSearch: 3
-    searchTarget: "self"
 
   description_property: &description_property
     property: "http://purl.org/dc/terms/description"
@@ -1005,8 +989,6 @@ rules:
       - *identifier_property
       - *title_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1128,8 +1110,6 @@ rules:
       - *identifier_property
       - *title_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1232,8 +1212,6 @@ rules:
       - *identifier_property
       - *title_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1429,8 +1407,6 @@ rules:
       - *title_property
       - *has_sequence_identifier_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1512,8 +1488,6 @@ rules:
       - *identifier_property
       - *title_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1601,8 +1575,6 @@ rules:
       - *identifier_property
       - *title_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property_container
       - *publication_date_property
     sortableBy:
@@ -1716,8 +1688,6 @@ rules:
       - *identifier_property
       - *title_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1826,8 +1796,6 @@ rules:
       - *identifier_property
       - *title_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -2025,8 +1993,6 @@ rules:
       - *identifier_property
       - *title_property
       - *description_property
-      - *abstract_property
-      - *keyword_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property

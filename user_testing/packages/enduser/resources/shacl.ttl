@@ -564,17 +564,6 @@ schema:ExpressionShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -631,17 +620,6 @@ schema:JournalArticleShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
@@ -727,17 +705,6 @@ schema:BookShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -798,17 +765,6 @@ schema:ProceedingsPaperShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
@@ -888,17 +844,6 @@ schema:ProceedingsShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
@@ -1073,17 +1018,6 @@ schema:SpecialIssueShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -1224,17 +1158,6 @@ schema:ReviewShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path dcterms:description ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -1312,17 +1235,6 @@ schema:ReviewArticleShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
@@ -1406,17 +1318,6 @@ schema:ThesisShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
