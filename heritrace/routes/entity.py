@@ -797,6 +797,18 @@ def entity_history(entity_uri):
                 custom_filter=custom_filter,
             )
 
+        # Check if this version can be restored (not the latest version and there are multiple versions)
+        can_restore = len(sorted_metadata) > 1 and i + 1 < len(sorted_metadata)
+        restore_button = ""
+        if can_restore:
+            restore_button = f"""
+                <form action='/restore-version/{entity_uri}/{metadata["generatedAtTime"]}' method='post' class='d-inline restore-form'>
+                    <button type='submit' class='btn btn-success restore-btn'>
+                        <i class='bi bi-arrow-counterclockwise me-1'></i>{gettext('Restore')}
+                    </button>
+                </form>
+            """
+
         event = {
             "start_date": {
                 "year": date.year,
@@ -815,7 +827,10 @@ def entity_history(entity_uri):
                     <div class="modifications mb-3">
                         {modification_text}
                     </div>
-                    <a href='/entity-version/{entity_uri}/{metadata["generatedAtTime"]}' class='btn btn-outline-primary mt-2 view-version' target='_self'>{gettext('View version')}</a>
+                    <div class="d-flex gap-2 mt-2">
+                        <a href='/entity-version/{entity_uri}/{metadata["generatedAtTime"]}' class='btn btn-outline-primary view-version' target='_self'>{gettext('View version')}</a>
+                        {restore_button}
+                    </div>
                 """,
             },
             "autolink": False,

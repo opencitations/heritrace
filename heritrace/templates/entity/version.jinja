@@ -34,7 +34,7 @@
     <div class="col-sm-6 col-12">
         {% if next_snapshot_timestamp %}
             <form action="{{ url_for('entity.restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post" id="restoreVersionForm">
-                <button type="submit" class="btn btn-outline-warning w-100" id="restoreVersionBtn">
+                <button type="submit" class="btn btn-success w-100" id="restoreVersionBtn">
                     <i class="bi bi-arrow-counterclockwise me-2"></i> {{ _('Restore this Version') }}
                 </button>
             </form>

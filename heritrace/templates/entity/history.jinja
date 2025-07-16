@@ -61,6 +61,13 @@
     .tl-slider-container-mask {
         background-color: rgb(250, 250, 250);
     }
+    .restore-form {
+        display: inline-block;
+        margin: 0;
+    }
+    .restore-btn {
+        white-space: nowrap;
+    }
 </style>
 
 <div id="breadcrumb-root"></div>
@@ -77,4 +84,23 @@
 </script>
 <script src="{{ url_for('static', filename='dist/timeline.bundle.js') }}"></script>
 <script src="{{ url_for('static', filename='dist/navigation.bundle.js') }}"></script>
+<script>
+    $(document).ready(function() {
+        $(document).on('submit', '.restore-form', function(e) {
+            e.preventDefault();
+            
+            Swal.fire({
+                title: "{{ _('Restoring...') }}",
+                html: "{{ _('Restoring this version. Please wait...') }}",
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            this.submit();
+        });
+    });
+</script>
 {% endblock %}
