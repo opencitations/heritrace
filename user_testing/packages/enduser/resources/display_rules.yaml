@@ -96,91 +96,7 @@ queries:
         ) AS ?formattedName)
     }
 
-  translator_query: &translator_query |
-    PREFIX pro: <http://purl.org/spar/pro/>
-    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-    PREFIX datacite: <http://purl.org/spar/datacite/>
-    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-    SELECT DISTINCT ?formattedName ?ra WHERE {
-      [[value]] pro:isHeldBy ?ra;
-          pro:withRole pro:translator.
-      OPTIONAL { ?ra foaf:name ?name. }
-      OPTIONAL { ?ra foaf:familyName ?familyName. }
-      OPTIONAL { ?ra foaf:givenName ?givenName. }
-      
-      {
-        SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-        WHERE {
-          OPTIONAL {
-            ?ra datacite:hasIdentifier ?identifier .
-            ?identifier datacite:usesIdentifierScheme ?scheme ;
-                      literal:hasLiteralValue ?value .
-            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-          }
-        }
-        GROUP BY ?ra
-      }
 
-      BIND(
-        IF(BOUND(?name), ?name,
-            IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                    IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                )
-            )
-        ) AS ?nameDisplay
-      )
-      
-      BIND(STR(?ra) AS ?uriString)
-      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?nameDisplay, " [omid:", ?omid, "]")
-        ) AS ?formattedName)
-    }
-
-  collaborator_query: &collaborator_query |
-    PREFIX pro: <http://purl.org/spar/pro/>
-    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-    PREFIX datacite: <http://purl.org/spar/datacite/>
-    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-    SELECT DISTINCT ?formattedName ?ra WHERE {
-      [[value]] pro:isHeldBy ?ra;
-          pro:withRole pro:contributor.
-      OPTIONAL { ?ra foaf:name ?name. }
-      OPTIONAL { ?ra foaf:familyName ?familyName. }
-      OPTIONAL { ?ra foaf:givenName ?givenName. }
-      
-      {
-        SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-        WHERE {
-          OPTIONAL {
-            ?ra datacite:hasIdentifier ?identifier .
-            ?identifier datacite:usesIdentifierScheme ?scheme ;
-                      literal:hasLiteralValue ?value .
-            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-          }
-        }
-        GROUP BY ?ra
-      }
-
-      BIND(
-        IF(BOUND(?name), ?name,
-            IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                    IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                )
-            )
-        ) AS ?nameDisplay
-      )
-      
-      BIND(STR(?ra) AS ?uriString)
-      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?nameDisplay, " [omid:", ?omid, "]")
-        ) AS ?formattedName)
-    }
 
   publisher_query: &publisher_query |
     PREFIX pro: <http://purl.org/spar/pro/>
@@ -680,15 +596,6 @@ common_properties:
 
 
 
-  description_property: &description_property
-    property: "http://purl.org/dc/terms/description"
-    displayName: "Description"
-    shouldBeDisplayed: true
-    inputType: "textarea"
-    supportsSearch: true    
-    minCharsForSearch: 4
-    searchTarget: "self"
-    
   container_property: &container_property
     property: "http://purl.org/vocab/frbr/core#partOf"
     supportsSearch: false
@@ -718,12 +625,6 @@ common_properties:
       - shape: "http://schema.org/EditorShape"
         displayName: "Editor"
         fetchValueFromQuery: *editor_query
-      - shape: "http://schema.org/CollaboratorShape"
-        displayName: "Collaborator"
-        fetchValueFromQuery: *collaborator_query
-      - shape: "http://schema.org/TranslatorShape"
-        displayName: "Translator"
-        fetchValueFromQuery: *translator_query
       - shape: "http://schema.org/PublisherShape"
         displayName: "Publisher"
         fetchValueFromQuery: *publisher_query
@@ -741,9 +642,6 @@ common_properties:
       - shape: "http://schema.org/PublisherShape"
         displayName: "Publisher"
         fetchValueFromQuery: *publisher_query
-      - shape: "http://schema.org/CollaboratorShape"
-        displayName: "Collaborator"
-        fetchValueFromQuery: *collaborator_query
 
   publication_date_property: &publication_date_property
     property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
@@ -988,7 +886,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1109,7 +1006,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1211,7 +1107,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1259,7 +1154,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
     sortableBy:
       *sortableByTitle
 
@@ -1283,7 +1177,6 @@ rules:
     displayProperties:
       - *type_property
       - *has_sequence_identifier_property
-      - *description_property
       - property: "http://purl.org/vocab/frbr/core#partOf"
         supportsSearch: true
         displayRules:
@@ -1344,7 +1237,6 @@ rules:
     displayProperties:
       - *type_property
       - *has_sequence_identifier_property
-      - *description_property
       - *container_property
 
   - target:
@@ -1406,7 +1298,6 @@ rules:
       - *identifier_property
       - *title_property
       - *has_sequence_identifier_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1487,7 +1378,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1541,28 +1431,10 @@ rules:
             }
           }
         }
-        OPTIONAL {
-          SELECT (GROUP_CONCAT(?collabName; SEPARATOR = ", ") AS ?collabList)
-          WHERE {
-            [[uri]] pro:isDocumentContextFor ?collabRole .
-            ?collabRole pro:withRole pro:contributor ;
-                        pro:isHeldBy ?collab .
-            OPTIONAL { ?collab foaf:name ?collabName . }
-            OPTIONAL {
-              ?collab foaf:familyName ?familyName .
-              OPTIONAL { ?collab foaf:givenName ?givenName . }
-              BIND(CONCAT(
-                ?familyName,
-                COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-              ) AS ?collabName)
-            }
-          }
-        }
         
         BIND(CONCAT(
           ?title,
           IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, " (Ed.)"), ""),
-          IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, " (Collab.)"), ""),
           IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
           "."
         ) AS ?displayWithDot)
@@ -1574,7 +1446,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property_container
       - *publication_date_property
     sortableBy:
@@ -1687,7 +1558,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1795,7 +1665,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
@@ -1903,7 +1772,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
     sortableBy:
@@ -1992,7 +1860,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-      - *description_property
       - *document_context_property
       - *publication_date_property
       - *embodiment_property

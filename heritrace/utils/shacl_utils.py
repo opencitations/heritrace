@@ -47,6 +47,9 @@ def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict], app: Fla
     if display_rules:
         form_fields = apply_display_rules(shacl, form_fields, display_rules)
     
+    # Step 3.5: Ensure all form fields have displayName, using fallback for those without display rules
+    ensure_display_names(form_fields)
+    
     # Step 4: Order the form fields according to the display rules
     ordered_form_fields = order_form_fields(form_fields, display_rules)        
     return ordered_form_fields
@@ -201,3 +204,20 @@ def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:
         properties.add(str(row.property))
     
     return properties
+
+
+def ensure_display_names(form_fields):
+    """
+    Ensures all form fields have a displayName, using URI formatting as fallback.
+    
+    Args:
+        form_fields: Dictionary of form fields to process
+    """
+    from heritrace.utils.filters import format_uri_as_readable
+    
+    for entity_key, predicates in form_fields.items():
+        for predicate_uri, details_list in predicates.items():
+            for field_info in details_list:
+                # Only add displayName if not already present
+                if not field_info.get("displayName"):
+                    field_info["displayName"] = format_uri_as_readable(predicate_uri)

@@ -59,7 +59,7 @@ prepare_package() {
     if [ "$package_type" = "enduser" ]; then
         package_type_title="End User"
     else
-        package_type_title="Technician"
+        package_type_title="Configurator"
     fi
     
     echo "🎁 Building $package_type package..."

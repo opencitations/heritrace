@@ -161,6 +161,11 @@ rules:
         sortOrder: ["desc", "asc"]
 
   - target:
+      class: "http://purl.org/spar/fabio/Expression"
+    priority: 2
+    shouldBeDisplayed: false
+
+  - target:
       class: "http://purl.org/spar/fabio/Journal"
     priority: 1
     shouldBeDisplayed: true

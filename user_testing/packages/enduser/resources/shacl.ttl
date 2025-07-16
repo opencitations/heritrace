@@ -52,13 +52,7 @@ schema:IdentifierShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or (
-      [ sh:node schema:BibliographicResourceShape ]
-      [ sh:node schema:ResponsibleAgentShape ]
-    ) ;
-  ] .
+  .
 
 schema:JournalArticleIdentifierShape
   a sh:NodeShape ;
@@ -128,10 +122,7 @@ schema:JournalArticleIdentifierShape
     sh:pattern "^W[1-9]\\d*$" ;
     sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
   ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:node schema:JournalArticleShape ;
-  ] .
+  .
 
 schema:JournalIdentifierShape
   a sh:NodeShape ;
@@ -201,10 +192,7 @@ schema:JournalIdentifierShape
     sh:pattern "^S\\d+$" ;
     sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 " ;
   ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:node schema:JournalShape ;
-  ] .
+  .
 
 schema:SeriesAndProceedingsIdentifierShape
   a sh:NodeShape ;
@@ -287,12 +275,7 @@ schema:SeriesAndProceedingsIdentifierShape
     sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
     sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
   ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or (
-      [ sh:node schema:ProceedingsShape ]
-    ) ;
-  ] .
+  .
 
 schema:BookIdentifierShape
   a sh:NodeShape ;
@@ -375,10 +358,7 @@ schema:BookIdentifierShape
     sh:pattern "^W[1-9]\\d*$" ;
     sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
   ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or schema:BookShape ;
-  ] .
+  .
   
 schema:AgentIdentifierShape
   a sh:NodeShape ;
@@ -506,22 +486,11 @@ schema:AgentRoleShape
   ] ;
   sh:property [
     sh:path pro:withRole ;
-    sh:in (pro:publisher pro:author pro:editor pro:translator pro:contributor) ;
+    sh:in (pro:publisher pro:author pro:editor) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
-  sh:property [
-    sh:path [sh:inversePath oco:hasNext] ;
-    sh:node schema:AgentRoleShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath pro:isDocumentContextFor] ;
-    sh:node schema:BibliographicResourceShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] .
+  .
 
 # Bibliographic resources
 
@@ -562,11 +531,6 @@ schema:ExpressionShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
@@ -622,11 +586,6 @@ schema:JournalArticleShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path frbr:partOf ;
     sh:or (
       [ sh:node schema:IssueShape ]
@@ -665,16 +624,6 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] .
@@ -705,11 +654,6 @@ schema:BookShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -727,16 +671,6 @@ schema:BookShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -765,11 +699,6 @@ schema:ProceedingsPaperShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
@@ -805,17 +734,7 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
     sh:node schema:PublisherShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -846,11 +765,6 @@ schema:ProceedingsShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -868,11 +782,6 @@ schema:ProceedingsShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:PublisherShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -906,11 +815,6 @@ schema:JournalShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] .
 
 schema:VolumeShape
   a sh:NodeShape ;
@@ -939,11 +843,6 @@ schema:VolumeShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] .
 
 schema:IssueShape
   a sh:NodeShape ;
@@ -975,11 +874,6 @@ schema:IssueShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] .
 
 schema:SpecialIssueShape
   a sh:NodeShape ;
@@ -1018,11 +912,6 @@ schema:SpecialIssueShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1050,17 +939,7 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
     sh:node schema:PublisherShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -1091,11 +970,6 @@ schema:ReferenceBookShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1113,16 +987,6 @@ schema:ReferenceBookShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -1158,11 +1022,6 @@ schema:ReviewShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1180,16 +1039,6 @@ schema:ReviewShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -1237,11 +1086,6 @@ schema:ReviewArticleShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path frbr:partOf ;
     sh:or (
       [ sh:node schema:IssueShape ]
@@ -1279,16 +1123,6 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
@@ -1320,11 +1154,6 @@ schema:ThesisShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
     sh:path prism:publicationDate ;
     sh:or (
       [ sh:datatype xsd:date ]
@@ -1343,16 +1172,6 @@ schema:ThesisShape
   sh:property [
     sh:path pro:isDocumentContextFor ;
     sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
@@ -1390,10 +1209,7 @@ schema:ResourceEmbodimentShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
-  sh:property [
-    sh:path [sh:inversePath frbr:embodiment] ;
-    sh:node schema:BibliographicResourceShape ;
-  ] .
+  .
 
 # Responsible agent
 
@@ -1428,10 +1244,7 @@ schema:ResponsibleAgentShape
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
-  sh:property [
-    sh:path [sh:inversePath pro:isHeldBy] ;
-    sh:node schema:AgentRoleShape ;
-  ] .
+  .
 
 # Agent Roles
 
@@ -1519,62 +1332,6 @@ schema:PublisherShape
     sh:maxCount 1 ;
   ] .
 
-schema:TranslatorShape
-  a sh:NodeShape ;
-  sh:targetClass pro:RoleInTime ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue pro:RoleInTime ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:withRole ;
-    sh:hasValue pro:translator ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:isHeldBy ;
-    sh:node schema:ResponsibleAgentShape ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path oco:hasNext ;
-    sh:node schema:TranslatorShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] .
-
-schema:CollaboratorShape
-  a sh:NodeShape ;
-  sh:targetClass pro:RoleInTime ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue pro:RoleInTime ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:withRole ;
-    sh:hasValue pro:contributor ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:isHeldBy ;
-    sh:node schema:ResponsibleAgentShape ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path oco:hasNext ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] .
-
 # Document components
 
 schema:AbstractShape
@@ -1586,15 +1343,4 @@ schema:AbstractShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath frbr:part] ;
-    sh:node schema:BibliographicResourceShape ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] .
+  .

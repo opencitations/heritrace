@@ -1,6 +1,6 @@
-# HERITRACE Technician Testing Package
+# HERITRACE Configurator Testing Package
 
-This package contains everything needed to test HERITRACE from a technician's perspective with pre-built Docker images.
+This package contains everything needed to test HERITRACE from a configurator's perspective with pre-built Docker images.
 
 ## Contents
 
@@ -44,7 +44,7 @@ This package contains everything needed to test HERITRACE from a technician's pe
 
 ---
 
-# Technician Testing Protocol
+# Configurator Testing Protocol
 
 **Duration**: 60 minutes maximum
 **Format**: Self-guided with screen and voice recording
@@ -65,7 +65,7 @@ This package contains everything needed to test HERITRACE from a technician's pe
 
 **Task 1: Add Abstract Display Support (23 minutes)**
 
-> "Your institution has provided preexisting data with a partial configuration for journal articles. The data contains abstracts associated with journal articles using the dcterms:abstract property, but these abstracts are not being displayed in the interface because the specific display rule is missing.
+> "Your institution wants to enable users to add abstracts to journal articles using the dcterms:abstract property. Currently, users cannot add abstracts because the configuration is missing.
 > 
 > Currently, in the display rules for 'fabio:JournalArticle' entities, various properties are defined but the abstract property is not configured for display.
 > 
@@ -78,7 +78,7 @@ This package contains everything needed to test HERITRACE from a technician's pe
 > 
 > Think aloud as you work through this. Describe your approach, what you're looking for, and any challenges you encounter. Consult the documentation to understand how to properly configure display rules.
 > 
-> Once completed, verify from the user interface that the abstracts present in the data become visible to end users."
+> Once completed, verify from the user interface that users can now add abstracts to journal articles where they previously could not."
 
 **Task 2: Add SHACL Validation for Abstract (22 minutes)**  
 

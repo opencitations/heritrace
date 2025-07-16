@@ -76,10 +76,13 @@ mkdir -p "$TECHNICIAN_DIR/resources"
 
 cp "common/templates/docker-compose-dockerhub-technician.yml" "$TECHNICIAN_DIR/docker-compose.yml"
 
-generate_script_from_template "common/templates/scripts/start.sh.template" "$TECHNICIAN_DIR/start.sh" "technician" "Technician"
-generate_script_from_template "common/templates/scripts/stop.sh.template" "$TECHNICIAN_DIR/stop.sh" "technician" "Technician"
-generate_script_from_template "common/templates/scripts/start.bat.template" "$TECHNICIAN_DIR/start.bat" "technician" "Technician"
-generate_script_from_template "common/templates/scripts/stop.bat.template" "$TECHNICIAN_DIR/stop.bat" "technician" "Technician"
+generate_script_from_template "common/templates/scripts/start.sh.template" "$TECHNICIAN_DIR/start.sh" "technician" "Configurator"
+generate_script_from_template "common/templates/scripts/stop.sh.template" "$TECHNICIAN_DIR/stop.sh" "technician" "Configurator"
+generate_script_from_template "common/templates/scripts/start.bat.template" "$TECHNICIAN_DIR/start.bat" "technician" "Configurator"
+generate_script_from_template "common/templates/scripts/stop.bat.template" "$TECHNICIAN_DIR/stop.bat" "technician" "Configurator"
+
+# Generate config.py for technician package
+generate_script_from_template "common/templates/config.py.template" "$TECHNICIAN_DIR/config.py" "technician" "Configurator"
 
 cp "technician/README.md" "$TECHNICIAN_DIR/README.md"
 cp "../sus_questionnaire.md" "$TECHNICIAN_DIR/sus_questionnaire.md"

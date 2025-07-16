@@ -820,9 +820,12 @@ def test_format_triple_modification(app: Flask) -> None:
             if str(predicate_uri) == "http://purl.org/dc/terms/title":
                 return "title"
                 
+            # Import the standalone function from the module
+            from heritrace.utils.filters import split_namespace
+            
             # entity_key is now a tuple (class_uri, shape_uri)
             url = predicate_uri  # Use the predicate_uri directly
-            first_part, last_part = self.split_ns(url)
+            first_part, last_part = split_namespace(url)
             if first_part in self.context:
                 if last_part.islower():
                     return last_part

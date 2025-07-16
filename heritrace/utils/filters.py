@@ -49,40 +49,13 @@ class Filter:
                         elif "displayName" in display_property:
                             return display_property["displayName"]
 
-        return self._format_uri_as_readable(predicate_uri, is_link)
-
-    def _format_uri_as_readable(self, uri, is_link=False):
-        """
-        Format an URI in a human-readable way.
-        
-        This is a common fallback method used when no specific display rules are found.
-        
-        Args:
-            uri (str): The URI to format
-            is_link (bool): Whether to generate a hyperlink for the URI
-            
-        Returns:
-            str: Human-readable representation of the URI
-        """
-        first_part, last_part = self.split_ns(uri)
+        first_part, _ = split_namespace(predicate_uri)
         if first_part in self.context:
-            if last_part.islower():
-                return last_part
-            else:
-                words = []
-                word = ""
-                for char in last_part:
-                    if char.isupper() and word:
-                        words.append(word)
-                        word = char
-                    else:
-                        word += char
-                words.append(word)
-                return " ".join(words).lower()
-        elif validators.url(uri) and is_link:
-            return f"<a href='{url_for('entity.about', subject=quote(uri))}' alt='{gettext('Link to the entity %(entity)s', entity=uri)}'>{uri}</a>"
+            return format_uri_as_readable(predicate_uri)
+        elif validators.url(predicate_uri) and is_link:
+            return f"<a href='{url_for('entity.about', subject=quote(predicate_uri))}' alt='{gettext('Link to the entity %(entity)s', entity=predicate_uri)}'>{predicate_uri}</a>"
         else:
-            return str(uri)
+            return str(predicate_uri)
 
     def human_readable_class(self, entity_key):
         """
@@ -105,7 +78,7 @@ class Filter:
         if rule and "displayName" in rule:
             return rule["displayName"]
 
-        return self._format_uri_as_readable(class_uri)
+        return format_uri_as_readable(class_uri)
 
     def human_readable_entity(
         self, uri: str, entity_key: tuple[str, str | None], graph: Graph | ConjunctiveGraph = None
@@ -180,21 +153,6 @@ class Filter:
         dt = dateutil.parser.parse(dt_str)
         return format_datetime(dt, format="long")
 
-    def split_ns(self, ns: str) -> Tuple[str, str]:
-        parsed = urlparse(ns)
-        if parsed.fragment:
-            first_part = parsed.scheme + "://" + parsed.netloc + parsed.path + "#"
-            last_part = parsed.fragment
-        else:
-            first_part = (
-                parsed.scheme
-                + "://"
-                + parsed.netloc
-                + "/".join(parsed.path.split("/")[:-1])
-                + "/"
-            )
-            last_part = parsed.path.split("/")[-1]
-        return first_part, last_part
 
     def human_readable_primary_source(self, primary_source: str | None) -> str:
         if primary_source is None:
@@ -257,3 +215,57 @@ class Filter:
 
         # If it's not a URL at all, just return the raw value
         return url
+
+
+def split_namespace(uri: str) -> Tuple[str, str]:
+    """
+    Split a URI into namespace and local part.
+    
+    Args:
+        uri: The URI to split
+        
+    Returns:
+        Tuple of (namespace, local_part)
+    """
+    parsed = urlparse(uri)
+    if parsed.fragment:
+        first_part = parsed.scheme + "://" + parsed.netloc + parsed.path + "#"
+        last_part = parsed.fragment
+    else:
+        first_part = (
+            parsed.scheme
+            + "://"
+            + parsed.netloc
+            + "/".join(parsed.path.split("/")[:-1])
+            + "/"
+        )
+        last_part = parsed.path.split("/")[-1]
+    return first_part, last_part
+
+
+def format_uri_as_readable(uri: str) -> str:
+    """
+    Format a URI as human-readable text by extracting and formatting the local part.
+    
+    Args:
+        uri: The URI to format
+        
+    Returns:
+        Human-readable string
+    """
+    _, last_part = split_namespace(uri)
+    
+    if last_part.islower():
+        return last_part
+    else:
+        # Convert CamelCase to space-separated words
+        words = []
+        word = ""
+        for char in last_part:
+            if char.isupper() and word:
+                words.append(word)
+                word = char
+            else:
+                word += char
+        words.append(word)
+        return " ".join(words).lower()

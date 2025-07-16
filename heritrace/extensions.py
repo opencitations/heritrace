@@ -450,7 +450,8 @@ def init_filters(app: Flask):
     app.jinja_env.filters['human_readable_entity'] = custom_filter.human_readable_entity
     app.jinja_env.filters['human_readable_primary_source'] = custom_filter.human_readable_primary_source
     app.jinja_env.filters['format_datetime'] = custom_filter.human_readable_datetime
-    app.jinja_env.filters['split_ns'] = custom_filter.split_ns
+    from heritrace.utils.filters import split_namespace
+    app.jinja_env.filters['split_ns'] = split_namespace
     app.jinja_env.filters['format_source_reference'] = custom_filter.format_source_reference
     app.jinja_env.filters['format_agent_reference'] = custom_filter.format_agent_reference
 
