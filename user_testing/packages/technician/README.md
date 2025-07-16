@@ -52,7 +52,7 @@ This package contains everything needed to test HERITRACE from a technician's pe
 
 ### **Warm-up Exploration (max 2 minutes)**
 
-> "Start your screen and voice recording now. 
+> "**IMPORTANT: Start your screen recording software now and ensure it captures both your screen and microphone audio.** Make sure the recording includes your voice as you think aloud throughout the session.
 > 
 > You are working with a HERITRACE system that has been partially configured. Some entities already have complete SHACL schemas and display rules that allow end users to work with them effectively, while other entities are missing these configurations.
 > 

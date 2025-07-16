@@ -84,7 +84,7 @@ def determine_shape_for_classes(class_list: List[str]) -> Optional[str]:
     return _find_highest_priority_shape(all_shacl_shapes)
 
 
-def determine_shape_for_entity_triples(entity_triples_iter) -> Optional[str]:
+def determine_shape_for_entity_triples(entity_triples: list) -> Optional[str]:
     """
     Determine the most appropriate SHACL shape for an entity based on its triples.
     
@@ -93,7 +93,7 @@ def determine_shape_for_entity_triples(entity_triples_iter) -> Optional[str]:
     (e.g., SpecialIssueShape vs IssueShape).
     
     Args:
-        entity_triples_iter: Iterator of triples (subject, predicate, object) for the entity
+        entity_triples: List of triples (subject, predicate, object) for the entity
         
     Returns:
         The most appropriate shape URI, or None if no shapes are found
@@ -105,7 +105,7 @@ def determine_shape_for_entity_triples(entity_triples_iter) -> Optional[str]:
     entity_classes = []
     entity_properties = set()
     
-    for subject, predicate, obj in entity_triples_iter:
+    for subject, predicate, obj in entity_triples:
         if str(predicate) == str(RDF.type):
             entity_classes.append(str(obj))
         entity_properties.add(str(predicate))

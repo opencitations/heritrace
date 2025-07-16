@@ -91,7 +91,7 @@ def about(subject):
             
             highest_priority_class = get_highest_priority_class(subject_classes)
             entity_shape = determine_shape_for_entity_triples(
-                context_snapshot.triples((URIRef(subject), None, None))
+                list(context_snapshot.triples((URIRef(subject), None, None)))
             )
         else:
             context_snapshot = None
@@ -113,7 +113,7 @@ def about(subject):
 
             highest_priority_class = get_highest_priority_class(subject_classes)
             entity_shape = determine_shape_for_entity_triples(
-                data_graph.triples((URIRef(subject), None, None))
+                list(data_graph.triples((URIRef(subject), None, None)))
             )
             
             (
@@ -751,7 +751,10 @@ def entity_history(entity_uri):
 
     entity_classes = [str(triple[2]) for triple in context_snapshot.triples((URIRef(entity_uri), RDF.type, None))]
     highest_priority_class = get_highest_priority_class(entity_classes)
-    snapshot_entity_shape = determine_shape_for_entity_triples(context_snapshot)
+    
+    snapshot_entity_shape = determine_shape_for_entity_triples(
+        list(context_snapshot.triples((URIRef(entity_uri), None, None)))
+    )
 
     # Generate timeline events
     events = []
@@ -1026,7 +1029,10 @@ def entity_version(entity_uri, timestamp):
         ]
     
     highest_priority_class = get_highest_priority_class(subject_classes)
-    entity_shape = determine_shape_for_entity_triples(context_version)
+    
+    entity_shape = determine_shape_for_entity_triples(
+        list(context_version.triples((URIRef(entity_uri), None, None)))
+    )
 
     _, _, _, _, _, valid_predicates = get_valid_predicates(triples, highest_priority_class=highest_priority_class)
     

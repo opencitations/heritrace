@@ -1,6 +1,6 @@
 # HERITRACE End User Testing Package
 
-This package contains everything needed to test HERITRACE as an end user with pre-built Docker images.
+This package contains everything needed to test HERITRACE as an end user.
 
 ## Contents
 
@@ -33,13 +33,6 @@ This package contains everything needed to test HERITRACE as an end user with pr
 5.  After completing your testing, you can export the database data using `export-data.sh` (Linux/Mac) or `export-data.bat` (Windows). This will create a file named `export.zip` in the current directory.
 6.  When finished, run `stop.sh` or `stop.bat` to shut down all services.
 
-**Available Actions**:
-- `start.sh` / `start.bat` - Start the testing environment
-- `stop.sh` / `stop.bat` - Stop the testing environment  
-- `export-data.sh` / `export-data.bat` - Export your testing data
-
-Do not modify `docker-compose.yml` or any other configuration files.
-
 ---
 
 # End User Testing Protocol
@@ -51,11 +44,11 @@ Do not modify `docker-compose.yml` or any other configuration files.
 
 ### **Session Start**
 
-> "Start your screen and voice recording now. 
+> "**IMPORTANT: Start your screen recording software now and ensure it captures both your screen and microphone audio.** Make sure the recording includes your voice as you think aloud throughout the session.
 > 
-> You'll be working through several metadata management tasks. Think aloud throughout - describe what you're doing, what you expect, and any questions or reactions you have.
+> You'll be working through several metadata management tasks. Think aloud throughout. Describe what you're doing, what you expect, and any questions or reactions you have.
 > 
-> There are no right or wrong approaches - we want to understand your natural workflow."
+> There are no right or wrong approaches. We want to understand your natural workflow."
 
 ### **Warm-up Exploration (max 2 minutes)**
 
@@ -67,7 +60,7 @@ Do not modify `docker-compose.yml` or any other configuration files.
 
 ### Task 1: Edit Existing Publication Record (8 minutes)
 
-> "Task 1: Your first task is to locate a specific bibliographic record of the type 'Journal Article': 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.'. We are specifying that this is the fourth article in the list because the catalog's interface deliberately lacks advanced search tools, as HERITRACE's primary focus is on editing, not searching.
+> "Task 1: Your first task is to edit a specific bibliographic record for a Journal Article. Look for the record that appears as 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' in the interface. This should be the fourth item in the list. We're providing the exact position since browsing functionality is not part of this usability test. HERITRACE is focused on metadata editing, not on browsing.
 > 
 > Please make the following change:
 > 1. Add 'Carolyn Scagel' as the first author, with 'Carolyn' as the given name and 'Scagel' as the family name.
@@ -76,7 +69,7 @@ Do not modify `docker-compose.yml` or any other configuration files.
 
 ### Task 2: Merge Duplicate Author Entities (10 minutes)
 
-> "Task 2: Return to the 'Journal Article' from Task 1. Navigate to the author page for 'Richard Carew'. You'll notice that there are similar authors named 'Richard Carew' that are actually the same person. Use the available tools to merge the duplicates. Think aloud about how you approach this data cleanup process."
+> "Task 2: Return to the 'Journal Article' from Task 1. Navigate to the author page for 'Richard Carew'. Your task is to merge any duplicate author entities you find. Think aloud about how you approach this data cleanup process."
 
 ### Task 3: Restore Previous Version (7 minutes)
 
@@ -84,7 +77,21 @@ Do not modify `docker-compose.yml` or any other configuration files.
 
 ### Task 4: Create New Publication Record (20 minutes)
 
-> "Task 4: Add this specific journal article to the repository: https://doi.org/10.1162/qss_a_00292. Include as many metadata fields as possible. You have access to the article's webpage to gather information. Think aloud as you work through this process."
+> "Task 4: Add this specific journal article to the repository: https://doi.org/10.1162/qss_a_00292. You must include the following metadata fields:
+> 
+> - **DOI**: The DOI identifier
+> - **Title**: Complete article title
+> - **Authors**: All authors in the correct order, with given name and family name separated for each author
+> - **ORCID identifiers**: Each author must have their ORCID identifier
+> - **Publisher**: Article publisher
+> - **Pages**: Page numbers (start and end)
+> - **Date**: Publication date
+> - **Issue**: Issue number
+> - **Volume**: Volume number
+> - **Journal**: Journal name
+> - **ISSN**: Journal ISSN identifier
+> 
+> You have access to the article's webpage to gather this information. Think aloud as you work through this process."
 
 ### **SUS Questionnaire Completion (3 minutes)**
 
