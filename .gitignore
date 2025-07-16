@@ -13,6 +13,10 @@ heritrace/static/dist/
 .venv/
 tests/test_cache.json
 redis-data
+heritrace-*-local/
+heritrace-*-local.zip
+heritrace-*-testing/
+heritrace-*-testing.zip
 
 # Unit test / coverage reports
 .coverage

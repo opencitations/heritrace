@@ -24,12 +24,21 @@ This package contains everything needed to test HERITRACE as an end user with pr
 
 ## Quick Start
 
+**IMPORTANT**: Do not modify any files in this package. The system is pre-configured and ready to use. Only use the provided scripts to start, stop, and export data.
+
 1.  Run `start.sh` (Linux/Mac) or `start.bat` (Windows). This will download the necessary Docker images and start the application.
 2.  Wait for the script to confirm that the services are ready. This may take a minute or two on the first run.
 3.  Open your browser at http://localhost:5000.
 4.  Follow the testing protocol instructions below.
 5.  After completing your testing, you can export the database data using `export-data.sh` (Linux/Mac) or `export-data.bat` (Windows). This will create a file named `export.zip` in the current directory.
 6.  When finished, run `stop.sh` or `stop.bat` to shut down all services.
+
+**Available Actions**:
+- `start.sh` / `start.bat` - Start the testing environment
+- `stop.sh` / `stop.bat` - Stop the testing environment  
+- `export-data.sh` / `export-data.bat` - Export your testing data
+
+Do not modify `docker-compose.yml` or any other configuration files.
 
 ---
 
@@ -67,7 +76,7 @@ This package contains everything needed to test HERITRACE as an end user with pr
 
 ### Task 2: Merge Duplicate Author Entities (10 minutes)
 
-> "Task 2: Return to the 'Journal Article' from Task 1. You'll notice that the author 'Richard Carew' is duplicated. Navigate to the author page for 'Richard Carew' and use the available tools to merge the duplicates. Think aloud about how you approach this data cleanup process."
+> "Task 2: Return to the 'Journal Article' from Task 1. Navigate to the author page for 'Richard Carew'. You'll notice that there are similar authors named 'Richard Carew' that are actually the same person. Use the available tools to merge the duplicates. Think aloud about how you approach this data cleanup process."
 
 ### Task 3: Restore Previous Version (7 minutes)
 

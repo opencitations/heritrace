@@ -35,10 +35,11 @@ This package contains everything needed to test HERITRACE from a technician's pe
 
 ## Configuration Files
 
-The `resources` directory contains configuration files that you'll need to modify during the test:
+**Files you should modify during testing**:
+- `resources/display_rules.yaml`: Controls how properties are displayed in the UI
+- `resources/shacl.ttl`: Defines validation rules for entities
 
-- `display_rules.yaml`: Controls how properties are displayed in the UI
-- `shacl.ttl`: Defines validation rules for entities
+**Do not modify any other files** including `docker-compose.yml`, script files, or any files outside the `resources` directory.
 
 ---
 

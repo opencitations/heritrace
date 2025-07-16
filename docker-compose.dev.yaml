@@ -1,6 +1,8 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
       - "5000:5000"
     environment:
@@ -17,8 +19,6 @@ services:
       - ./resources/display_rules.yaml:/app/resources/display_rules.yaml
       - ./babel:/app/babel
       - ./webpack.config.js:/app/webpack.config.js
-      - docker-venv:/app/.venv
-      - docker-node-modules:/app/node_modules
     depends_on:
       redis:
         condition: service_healthy
@@ -40,5 +40,3 @@ services:
 
 volumes:
   redis-data:
-  docker-venv:
-  docker-node-modules:

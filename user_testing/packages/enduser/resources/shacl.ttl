@@ -291,7 +291,6 @@ schema:SeriesAndProceedingsIdentifierShape
     sh:path [sh:inversePath datacite:hasIdentifier] ;
     sh:or (
       [ sh:node schema:ProceedingsShape ]
-      [ sh:node schema:SeriesShape ]
     ) ;
   ] .
 
@@ -549,8 +548,6 @@ schema:ExpressionShape
       [ sh:hasValue fabio:Review ]
       [ sh:hasValue fabio:ReviewArticle ]
       [ sh:hasValue fabio:Thesis ]
-      [ sh:hasValue fabio:Series ]
-      [ sh:hasValue fabio:Article ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -610,96 +607,6 @@ schema:ExpressionShape
     sh:maxCount 1 ;
   ] .
 
-schema:ArticleShape
-  a sh:NodeShape ;
-  sh:targetClass fabio:Article ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Article ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:title ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path prism:publicationDate ;
-    sh:or (
-      [ sh:datatype xsd:date ]
-      [ sh:datatype xsd:gYearMonth ]
-      [ sh:datatype xsd:gYear ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path frbr:embodiment ;
-    sh:node schema:ResourceEmbodimentShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:AuthorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:PublisherShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:TranslatorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path datacite:hasIdentifier ;
-    sh:node schema:JournalArticleIdentifierShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path frbr:partOf ;
-    sh:node schema:SeriesShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] .
-  
 schema:JournalArticleShape
   a sh:NodeShape ;
   sh:targetClass fabio:JournalArticle ;
@@ -1558,73 +1465,6 @@ schema:ThesisShape
     sh:minCount 0 ;
   ] .
 
-schema:SeriesShape
-  a sh:NodeShape ;
-  sh:targetClass fabio:Series ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Series ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:title ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:abstract ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:keyword ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path prism:publicationDate ;
-    sh:or (
-      [ sh:datatype xsd:date ]
-      [ sh:datatype xsd:gYearMonth ]
-      [ sh:datatype xsd:gYear ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:PublisherShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:CollaboratorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path datacite:hasIdentifier ;
-    sh:node schema:SeriesAndProceedingsIdentifierShape ;
-    sh:minCount 0 ;
-  ] .
 
 # Resource embodiment
 
