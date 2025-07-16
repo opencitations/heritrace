@@ -50,6 +50,17 @@ export_virtuoso_data() {
 export_virtuoso_data "$DATASET_CONTAINER" "${DATA_DIR}/data.ttl" "dataset"
 export_virtuoso_data "$PROVENANCE_CONTAINER" "${PROVENANCE_DIR}/data.ttl" "provenance"
 
+echo "📋 Including testing questionnaires and responses..."
+if [ -f "sus_questionnaire.md" ]; then
+    cp "sus_questionnaire.md" "$EXPORT_DIR/"
+    echo "   ✅ SUS questionnaire included"
+fi
+
+if [ -f "written_responses_template.md" ]; then
+    cp "written_responses_template.md" "$EXPORT_DIR/"
+    echo "   ✅ Written responses template included"
+fi
+
 echo ""
 echo "✅ All data exported successfully!"
 echo ""

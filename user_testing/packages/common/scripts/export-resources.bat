@@ -43,6 +43,17 @@ if exist "%DISPLAY_RULES_FILE%" (
     echo    - Found display_rules.yaml
 )
 
+echo Including testing questionnaires and responses...
+if exist "sus_questionnaire.md" (
+    copy "sus_questionnaire.md" "%EXPORT_DIR%\" >nul
+    echo    - Found SUS questionnaire
+)
+
+if exist "written_responses_template.md" (
+    copy "written_responses_template.md" "%EXPORT_DIR%\" >nul
+    echo    - Found written responses template
+)
+
 echo Creating zip archive...
 powershell -command "Compress-Archive -Path '%EXPORT_DIR%\*' -DestinationPath '%ZIP_FILE%' -Force" > nul
 

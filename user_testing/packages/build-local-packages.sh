@@ -68,6 +68,8 @@ prepare_package() {
     
     echo "   Copying $package_type-specific files..."
     cp -r "$package_type"/* "$build_package_dir/"
+    cp "../sus_questionnaire.md" "$build_package_dir/sus_questionnaire.md"
+    cp "../written_responses_template.md" "$build_package_dir/written_responses_template.md"
     
     echo "   Generating scripts from templates..."
     generate_script_from_template "common/templates/scripts/start.sh.template" "$build_package_dir/start.sh" "$package_type" "$package_type_title"
@@ -186,6 +188,8 @@ echo "💡 Each package contains:"
 echo "   - start.sh / start.bat - One-click startup"
 echo "   - stop.sh / stop.bat - Clean shutdown"
 echo "   - README.md - Complete user instructions"
+echo "   - sus_questionnaire.md - SUS usability questionnaire"
+echo "   - written_responses_template.md - Written reflection questions template"
 echo "   - A standalone Docker setup with all dependencies"
 
 echo ""

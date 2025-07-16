@@ -57,6 +57,8 @@ generate_script_from_template "common/templates/scripts/start.bat.template" "$EN
 generate_script_from_template "common/templates/scripts/stop.bat.template" "$ENDUSER_DIR/stop.bat" "enduser" "End User"
 
 cp "enduser/README.md" "$ENDUSER_DIR/README.md"
+cp "../sus_questionnaire.md" "$ENDUSER_DIR/sus_questionnaire.md"
+cp "../written_responses_template.md" "$ENDUSER_DIR/written_responses_template.md"
 
 mkdir -p "$ENDUSER_DIR/dataset_database"
 mkdir -p "$ENDUSER_DIR/prov_database"
@@ -80,6 +82,8 @@ generate_script_from_template "common/templates/scripts/start.bat.template" "$TE
 generate_script_from_template "common/templates/scripts/stop.bat.template" "$TECHNICIAN_DIR/stop.bat" "technician" "Technician"
 
 cp "technician/README.md" "$TECHNICIAN_DIR/README.md"
+cp "../sus_questionnaire.md" "$TECHNICIAN_DIR/sus_questionnaire.md"
+cp "../written_responses_template.md" "$TECHNICIAN_DIR/written_responses_template.md"
 
 mkdir -p "$TECHNICIAN_DIR/dataset_database"
 mkdir -p "$TECHNICIAN_DIR/prov_database"
@@ -122,6 +126,8 @@ print_summary() {
     echo "   - start.sh / start.bat - One-click startup scripts"
     echo "   - stop.sh / stop.bat - Clean shutdown scripts"
     echo "   - README.md - Complete user instructions"
+    echo "   - sus_questionnaire.md - SUS usability questionnaire"
+    echo "   - written_responses_template.md - Written reflection questions template"
 
     if [ -f "heritrace-enduser-testing.zip" ]; then
         echo "   - export-data.sh/bat - Script to export all data"

@@ -42,6 +42,17 @@ if "%PROVENANCE_CONTAINER%"=="" (
 call :export_virtuoso_data "%DATASET_CONTAINER%" "%DATA_DIR%\data.ttl" "dataset"
 call :export_virtuoso_data "%PROVENANCE_CONTAINER%" "%PROVENANCE_DIR%\data.ttl" "provenance"
 
+echo Including testing questionnaires and responses...
+if exist "sus_questionnaire.md" (
+    copy "sus_questionnaire.md" "%EXPORT_DIR%\" > nul
+    echo    SUS questionnaire included
+)
+
+if exist "written_responses_template.md" (
+    copy "written_responses_template.md" "%EXPORT_DIR%\" > nul
+    echo    Written responses template included
+)
+
 echo.
 echo All data exported successfully!
 echo.

@@ -2,14 +2,6 @@
 
 This package contains everything needed to test HERITRACE as an end user.
 
-## Contents
-
-- `docker-compose.yml` - Configuration for Docker containers
-- `start.sh` / `start.bat` - Scripts to start the environment
-- `stop.sh` / `stop.bat` - Scripts to stop the environment
-- `export-data.sh` / `export-data.bat` - Scripts to export database data
-- `README.md` - These instructions
-
 ## Requirements
 
 - Docker and Docker Compose. For installation, see the <a href="https://docs.docker.com/get-docker/" target="_blank">official documentation</a>.
@@ -24,14 +16,15 @@ This package contains everything needed to test HERITRACE as an end user.
 
 ## Quick Start
 
-**IMPORTANT**: Do not modify any files in this package. The system is pre-configured and ready to use. Only use the provided scripts to start, stop, and export data.
+**IMPORTANT**: The system is pre-configured and ready to use. During testing, you will modify data through the web interface. Only use the provided scripts to start, stop, and export data. Do not modify configuration files directly.
 
 1.  Run `start.sh` (Linux/Mac) or `start.bat` (Windows). This will download the necessary Docker images and start the application.
 2.  Wait for the script to confirm that the services are ready. This may take a minute or two on the first run.
 3.  Open your browser at http://localhost:5000.
 4.  Follow the testing protocol instructions below.
-5.  After completing your testing, you can export the database data using `export-data.sh` (Linux/Mac) or `export-data.bat` (Windows). This will create a file named `export.zip` in the current directory.
-6.  When finished, run `stop.sh` or `stop.bat` to shut down all services.
+5.  After completing your testing, fill out the `sus_questionnaire.md` and `written_responses_template.md` files with your responses.
+6.  Export the database data using `export-data.sh` (Linux/Mac) or `export-data.bat` (Windows). This will create a file named `export.zip` in the current directory that includes your completed questionnaires and responses.
+7.  When finished, run `stop.sh` or `stop.bat` to shut down all services.
 
 ---
 
@@ -60,11 +53,11 @@ This package contains everything needed to test HERITRACE as an end user.
 
 ### Task 1: Edit Existing Publication Record (8 minutes)
 
-> "Task 1: Your first task is to edit a specific bibliographic record for a Journal Article. Look for the record that appears as 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' in the interface. This should be the fourth item in the list. We're providing the exact position since browsing functionality is not part of this usability test. HERITRACE is focused on metadata editing, not on browsing.
+> "Task 1: Your first task is to edit a specific bibliographic record for a Journal Article. Look for the record that appears as 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' in the interface. This should be the fourth item in the Catalogue list. We're providing the exact position since browsing functionality is not part of this usability test. HERITRACE is focused on metadata editing, not on browsing.
 > 
 > Please make the following change:
-> 1. Add 'Carolyn Scagel' as the first author, with 'Carolyn' as the given name and 'Scagel' as the family name.
-> 
+> 1. Add 'Carolyn Scagel' as the first author, specifying that this is the author with ORCID identifier 0000-0002-4269-6240, with 'Carolyn' as the given name and 'Scagel' as the family name.
+>
 > Think aloud as you work through this process."
 
 ### Task 2: Merge Duplicate Author Entities (10 minutes)
@@ -95,23 +88,19 @@ This package contains everything needed to test HERITRACE as an end user.
 
 ### **SUS Questionnaire Completion (3 minutes)**
 
-> "Now please complete the SUS (System Usability Scale) questionnaire provided."
+> "Now please complete the SUS (System Usability Scale) questionnaire provided in the `sus_questionnaire.md` file included in this package."
 
 ### **Written Reflection (10 minutes)**
 
-> "After completing the SUS, please provide written answers to the following questions.
-> 
-> 1. How effectively did HERITRACE support you in these metadata management tasks?
-> 2. What were the most useful features for your bibliographic workflow?
-> 3. What were the main weaknesses or frustrating aspects you encountered?
-> 4. What additional features would have made this more useful for your academic work?
-> 
-> Take your time with each answer - we want your complete thoughts."
+> "After completing the SUS, please fill out the `written_responses_template.md` file with your written answers to the reflection questions about your experience with HERITRACE's metadata management features."
 
 ## Post-Session Requirements
 
 **Participants must submit**:
 - Complete screen+voice recording file
-- Completed SUS questionnaire
-- Written answers to reflection questions
-- The `export.zip` file generated by `export-data.sh` (Linux/Mac) or `export-data.bat` (Windows).
+- The `export.zip` file generated by `export-data.sh` (Linux/Mac) or `export-data.bat` (Windows)
+
+**Note**: The `export.zip` file automatically includes:
+- Your database modifications and testing data
+- Your completed SUS questionnaire (`sus_questionnaire.md`)
+- Your written responses to reflection questions (`written_responses_template.md`)

@@ -43,6 +43,17 @@ if [ -f "$DISPLAY_RULES_FILE" ]; then
     echo "   - Found display_rules.yaml"
 fi
 
+echo "📋 Including testing questionnaires and responses..."
+if [ -f "sus_questionnaire.md" ]; then
+    cp "sus_questionnaire.md" "$EXPORT_DIR/"
+    echo "   - Found SUS questionnaire"
+fi
+
+if [ -f "written_responses_template.md" ]; then
+    cp "written_responses_template.md" "$EXPORT_DIR/"
+    echo "   - Found written responses template"
+fi
+
 echo "🔄 Creating zip archive..."
 (cd "$EXPORT_DIR" && zip -r "$ZIP_FILE" ./* >/dev/null)
 
