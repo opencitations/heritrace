@@ -286,9 +286,6 @@ def create_entity():
                             values_by_shape[shape] = []
                         values_by_shape[shape].append(value)
 
-                    # Colleziona i link di ordinamento da creare successivamente
-                    ordering_links = []
-                    
                     # Ora processa ogni gruppo di valori per shape separatamente
                     for shape, shape_values in values_by_shape.items():
                         previous_entity = None
@@ -317,19 +314,14 @@ def create_entity():
                                     default_graph_uri,
                                 )
 
-                            # Memorizza i link di ordinamento per crearli successivamente
                             if previous_entity:
-                                ordering_links.append((previous_entity, URIRef(ordered_by), nested_uri))
+                                editor.create(
+                                    previous_entity,
+                                    URIRef(ordered_by),
+                                    nested_uri,
+                                    default_graph_uri,
+                                )
                             previous_entity = nested_uri
-                    
-                    # Crea tutti i link di ordinamento dopo aver completato la creazione delle entità
-                    for prev_entity, order_predicate, next_entity in ordering_links:
-                        editor.create(
-                            prev_entity,
-                            order_predicate,
-                            next_entity,
-                            default_graph_uri,
-                        )
                 else:
                     # Gestisci le proprietà non ordinate
                     for value in values:

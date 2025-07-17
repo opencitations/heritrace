@@ -264,7 +264,13 @@ function initSortable(element) {
             let orderedBy = null;
             let shape = null;
             $(evt.from).find('.property-value').each(function() {
-                new_order.push($(this).data('old-object-id'));
+                const objectId = $(this).data('old-object-id');
+                const tempId = $(this).data('temp-id');
+                if (objectId) {
+                    new_order.push(objectId);
+                } else if (tempId) {
+                    new_order.push(tempId);
+                }
                 predicate = $(this).data('property-id');
                 orderedBy = $(this).data('ordered_by');
                 shape = $(this).data('shape');
@@ -275,11 +281,10 @@ function initSortable(element) {
                 return;
             }
 
-            // Cerca un'azione di ordinamento esistente per questo predicato e forma
+            // Cerca un'azione di ordinamento esistente per questo predicato
             let existingOrderIndex = pendingChanges.findIndex(change => 
                 change.action === 'order' && 
-                change.predicate === predicate &&
-                change.shape === shape
+                change.predicate === predicate
             );
 
             if (existingOrderIndex !== -1) {

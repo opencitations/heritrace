@@ -613,32 +613,35 @@
         const customProperties = customPropertiesManager.collectCustomProperties();
         Object.assign(structuredData.properties, customProperties);
 
+        // Collect ordering information for each predicate
+        var processedPredicates = {};
         Object.keys(structuredData.properties).forEach(function (predicate) {
             structuredData.properties[predicate].forEach(function (property) {
-                if (property.orderedBy) {
-                    // Create the new order array
+                if (property.orderedBy && !processedPredicates[predicate]) {
+                    processedPredicates[predicate] = true;
+                    
+                    // Create the new order array - collect ALL entities for this predicate
                     var newOrder = [];
+                    var orderedBy = property.orderedBy;
                     var shape = property.shape || '';
 
                     // Iterate through the elements in the repeater list and collect their IDs or values
-                    $('[data-repeater-list]').find('[data-repeater-item]').each(function () {
+                    $(`[data-repeater-list][data-uri="${predicate}"]`).find('[data-repeater-item]').each(function () {
                         $item = $(this)
-                        if ($item.data('shape') == shape) {
-                            var objectId = $item.data('old-object-id');
-                            var tempId = $item.data('temp-id');
-                            if (objectId) {
-                                newOrder.push(objectId);
-                            } else if (tempId) {
-                                newOrder.push(tempId);
-                            }
+                        // Collect all items regardless of shape - they're all part of the same ordered list
+                        var objectId = $item.data('old-object-id');
+                        var tempId = $item.data('temp-id');
+                        if (objectId) {
+                            newOrder.push(objectId);
+                        } else if (tempId) {
+                            newOrder.push(tempId);
                         }
                     });
 
                     var existingOrderIndex = pendingChanges.findIndex(function(change) {
                         return change.action === 'order' && 
                             change.subject === subject && 
-                            change.predicate === predicate &&
-                            change.shape === shape;
+                            change.predicate === predicate;
                     });
 
                     if (existingOrderIndex !== -1) {
@@ -646,7 +649,7 @@
                         pendingChanges[existingOrderIndex].object = newOrder;
                     } else {
                         // Add a new order action
-                        storePendingChange('order', subject, predicate, newOrder, property.orderedBy, shape, entity_type);
+                        storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type);
                     }
                 }
             });
@@ -752,8 +755,8 @@
             
             // Se l'elemento fa parte di una lista ordinata, aggiorna l'ordine
             if (orderedBy) {
-                // Trova tutti gli elementi della stessa lista ordinata (stesso predicato e shape)
-                const list = $(`[data-property-id="${predicate}"][data-shape="${shape || ''}"]`).not('.marked-for-deletion');
+                // Trova tutti gli elementi della stessa lista ordinata (stesso predicato, tutte le shape)
+                const list = $(`[data-property-id="${predicate}"]`).not('.marked-for-deletion');
                 
                 // Crea un nuovo array di ordine escludendo l'elemento cancellato
                 const newOrder = [];
@@ -764,12 +767,11 @@
                     }
                 });
                 
-                // Cerca un'azione di ordinamento esistente per questo predicato e forma
+                // Cerca un'azione di ordinamento esistente per questo predicato
                 let existingOrderIndex = pendingChanges.findIndex(change => 
                     change.action === 'order' && 
                     change.subject === subject && 
-                    change.predicate === predicate &&
-                    change.shape === shape
+                    change.predicate === predicate
                 );
 
                 if (existingOrderIndex !== -1) {
@@ -809,8 +811,8 @@
                     
                     // Se l'elemento fa parte di una lista ordinata, aggiorna l'ordine
                     if (orderedBy) {
-                        // Trova tutti gli elementi della stessa lista ordinata (stesso predicato e shape)
-                        const list = $(`[data-property-id="${predicate}"][data-shape="${shape || ''}"]`).not('.marked-for-deletion');
+                        // Trova tutti gli elementi della stessa lista ordinata (stesso predicato, tutte le shape)
+                        const list = $(`[data-property-id="${predicate}"]`).not('.marked-for-deletion');
                         
                         // Crea un nuovo array di ordine includendo l'elemento ripristinato
                         const newOrder = [];
@@ -822,12 +824,11 @@
                         });
                         newOrder.push(object_value);
                         
-                        // Cerca un'azione di ordinamento esistente per questo predicato e forma
+                        // Cerca un'azione di ordinamento esistente per questo predicato
                         let existingOrderIndex = pendingChanges.findIndex(change => 
                             change.action === 'order' && 
                             change.subject === subject && 
-                            change.predicate === predicate &&
-                            change.shape === shape
+                            change.predicate === predicate
                         );
 
                         if (existingOrderIndex !== -1) {
