@@ -53,8 +53,8 @@ cp "common/templates/docker-compose-dockerhub-enduser.yml" "$ENDUSER_DIR/docker-
 
 generate_script_from_template "common/templates/scripts/start.sh.template" "$ENDUSER_DIR/start.sh" "enduser" "End User"
 generate_script_from_template "common/templates/scripts/stop.sh.template" "$ENDUSER_DIR/stop.sh" "enduser" "End User"
-generate_script_from_template "common/templates/scripts/start.bat.template" "$ENDUSER_DIR/start.bat" "enduser" "End User"
-generate_script_from_template "common/templates/scripts/stop.bat.template" "$ENDUSER_DIR/stop.bat" "enduser" "End User"
+generate_script_from_template "common/templates/scripts/start.cmd.template" "$ENDUSER_DIR/start.cmd" "enduser" "End User"
+generate_script_from_template "common/templates/scripts/stop.cmd.template" "$ENDUSER_DIR/stop.cmd" "enduser" "End User"
 
 cp "enduser/README.md" "$ENDUSER_DIR/README.md"
 cp "../sus_questionnaire.md" "$ENDUSER_DIR/sus_questionnaire.md"
@@ -66,7 +66,7 @@ cp "common/templates/virtuoso_dataset.ini" "$ENDUSER_DIR/dataset_database/virtuo
 cp "common/templates/virtuoso_provenance.ini" "$ENDUSER_DIR/prov_database/virtuoso.ini"
 
 cp "common/scripts/export-data.sh" "$ENDUSER_DIR/"
-cp "common/scripts/export-data.bat" "$ENDUSER_DIR/"
+cp "common/scripts/export-data.cmd" "$ENDUSER_DIR/"
 chmod +x "$ENDUSER_DIR/export-data.sh"
 
 echo "🎁 Building technician online package..."
@@ -78,8 +78,8 @@ cp "common/templates/docker-compose-dockerhub-technician.yml" "$TECHNICIAN_DIR/d
 
 generate_script_from_template "common/templates/scripts/start.sh.template" "$TECHNICIAN_DIR/start.sh" "technician" "Configurator"
 generate_script_from_template "common/templates/scripts/stop.sh.template" "$TECHNICIAN_DIR/stop.sh" "technician" "Configurator"
-generate_script_from_template "common/templates/scripts/start.bat.template" "$TECHNICIAN_DIR/start.bat" "technician" "Configurator"
-generate_script_from_template "common/templates/scripts/stop.bat.template" "$TECHNICIAN_DIR/stop.bat" "technician" "Configurator"
+generate_script_from_template "common/templates/scripts/start.cmd.template" "$TECHNICIAN_DIR/start.cmd" "technician" "Configurator"
+generate_script_from_template "common/templates/scripts/stop.cmd.template" "$TECHNICIAN_DIR/stop.cmd" "technician" "Configurator"
 
 # Generate config.py for technician package
 generate_script_from_template "common/templates/config.py.template" "$TECHNICIAN_DIR/config.py" "technician" "Configurator"
@@ -97,7 +97,7 @@ cp "technician/resources/display_rules.yaml" "$TECHNICIAN_DIR/resources/"
 cp "technician/resources/shacl.ttl" "$TECHNICIAN_DIR/resources/"
 
 cp "common/scripts/export-resources.sh" "$TECHNICIAN_DIR/"
-cp "common/scripts/export-resources.bat" "$TECHNICIAN_DIR/"
+cp "common/scripts/export-resources.cmd" "$TECHNICIAN_DIR/"
 chmod +x "$TECHNICIAN_DIR/export-resources.sh"
 
 echo "📦 Creating ZIP packages..."
@@ -126,17 +126,17 @@ print_summary() {
     echo ""
     echo "💡 Each package contains:"
     echo "   - docker-compose.yml - Pre-configured Docker setup"
-    echo "   - start.sh / start.bat - One-click startup scripts"
-    echo "   - stop.sh / stop.bat - Clean shutdown scripts"
+    echo "   - start.sh / start.cmd - One-click startup scripts"
+    echo "   - stop.sh / stop.cmd - Clean shutdown scripts"
     echo "   - README.md - Complete user instructions"
     echo "   - sus_questionnaire.md - SUS usability questionnaire"
     echo "   - written_responses_template.md - Written reflection questions template"
 
     if [ -f "heritrace-enduser-testing.zip" ]; then
-        echo "   - export-data.sh/bat - Script to export all data"
+        echo "   - export-data.sh/cmd - Script to export all data"
     fi
     if [ -f "heritrace-technician-testing.zip" ]; then
-        echo "   - export-resources.sh/bat - Script to export SHACL and display rules"
+        echo "   - export-resources.sh/cmd - Script to export SHACL and display rules"
     fi
 
     echo ""

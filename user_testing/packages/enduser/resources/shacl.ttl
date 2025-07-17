@@ -814,7 +814,7 @@ schema:JournalShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
+  ] .
 
 schema:VolumeShape
   a sh:NodeShape ;
@@ -842,7 +842,7 @@ schema:VolumeShape
     sh:node schema:JournalShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
+  ] .
 
 schema:IssueShape
   a sh:NodeShape ;
@@ -873,7 +873,7 @@ schema:IssueShape
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
+  ] .
 
 schema:SpecialIssueShape
   a sh:NodeShape ;
