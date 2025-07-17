@@ -93,7 +93,7 @@ For a detailed overview of features and technical foundation, see our [**User Gu
 
 ## 📄 Paper
 
-Massari, A., & Peroni, S. (2025). HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions. *Umanistica Digitale* (in copyediting). *arXiv preprint arXiv:2501.16197*. https://doi.org/10.48550/arXiv.2501.16197
+Massari, A., & Peroni, S. (2025). HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions. *Umanistica Digitale*, 9(20), 317–340. https://doi.org/10.6092/issn.2532-8816/21218
 
 *[Arcangelo Massari](https://www.unibo.it/sitoweb/arcangelo.massari/en) is a PhD candidate in [Cultural Heritage in the digital ecosystem](https://phd.unibo.it/chede/en) at the University of Bologna.*
 

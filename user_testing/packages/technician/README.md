@@ -11,7 +11,10 @@ This package contains everything needed to test HERITRACE configuration features
 - `start.sh` / `start.bat` - Start environment
 - `stop.sh` / `stop.bat` - Stop environment
 - `export-resources.sh` / `export-resources.bat` - Export modified resources
+- `sus_questionnaire.md` - SUS (System Usability Scale) questionnaire
+- `written_responses_template.md` - Written reflection template
 - `README.md` - These instructions
+
 
 ## Requirements
 
@@ -40,7 +43,7 @@ This package contains everything needed to test HERITRACE configuration features
 - `resources/display_rules.yaml`: Controls property display in UI
 - `resources/shacl.ttl`: Defines entity validation rules
 
-**Do not modify**: `docker-compose.yml`, script files, or any files outside the `resources` directory.
+**Do not modify**: `docker-compose.yml`, script files, or any configuration files outside the `resources` directory.
 
 ---
 
@@ -71,13 +74,13 @@ This package contains everything needed to test HERITRACE configuration features
 > 
 > Your task is to modify the SHACL shape to:
 > 1. Include the `dcterms:abstract` property for `fabio:JournalArticle`.
-> 2. Add a constraint to allow a maximum of one abstract.
+ > 2. Add a constraint to allow a maximum of one abstract and a minimum of zero (i.e., the abstract is optional).
 >
 > Continue thinking aloud about your process and any difficulties you encounter when working with SHACL constraints."
 
 > **Note on Hot-Reloading**: After modifying configuration files, manually reload the browser page to see UI changes. The backend detects changes automatically, but the frontend requires a refresh.
 >
-> **Note on Debugging**: If the application breaks after modifying SHACL files, run `docker logs heritrace-technician-app-1` to see detailed error messages.
+> **Note on Debugging**: If the application breaks after modifying SHACL files, run `docker logs heritrace-app` to see detailed error messages.
 
 **Task 2: Add Abstract Display Support (23 minutes)**
 
@@ -86,9 +89,8 @@ This package contains everything needed to test HERITRACE configuration features
 > Configure display rules for the dcterms:abstract property with these requirements:
 > 
 > 1. Property display name: "Abstract"
-> 2. Property must be visible to users
-> 3. Input type: textarea (multi-line text area)
-> 4. Property should not be searchable
+> 2. Input type: appropriate for long-form text
+> 3. Property should appear under the title in the display order
 > 
 > Think aloud as you work. Describe your approach, what you're looking for, and any challenges. Consult the documentation to understand display rule configuration.
 > 
