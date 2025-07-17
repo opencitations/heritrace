@@ -74,8 +74,8 @@ prepare_package() {
     echo "   Generating scripts from templates..."
     generate_script_from_template "common/templates/scripts/start.sh.template" "$build_package_dir/start.sh" "$package_type" "$package_type_title"
     generate_script_from_template "common/templates/scripts/stop.sh.template" "$build_package_dir/stop.sh" "$package_type" "$package_type_title"
-    generate_script_from_template "common/templates/scripts/start.bat.template" "$build_package_dir/start.bat" "$package_type" "$package_type_title"
-    generate_script_from_template "common/templates/scripts/stop.bat.template" "$build_package_dir/stop.bat" "$package_type" "$package_type_title"
+    generate_script_from_template "common/templates/scripts/start.cmd.template" "$build_package_dir/start.cmd" "$package_type" "$package_type_title"
+    generate_script_from_template "common/templates/scripts/stop.cmd.template" "$build_package_dir/stop.cmd" "$package_type" "$package_type_title"
     
     echo "   Copying common Docker files and data..."
     cp "common/dockerfiles/Dockerfile.virtuoso" "$build_package_dir/"
@@ -130,11 +130,11 @@ prepare_package() {
     
     if [ "$package_type" = "enduser" ]; then
         cp "common/scripts/export-data.sh" "$build_package_dir/"
-        cp "common/scripts/export-data.bat" "$build_package_dir/"
+        cp "common/scripts/export-data.cmd" "$build_package_dir/"
         chmod +x "$build_package_dir/export-data.sh"
     else
         cp "common/scripts/export-resources.sh" "$build_package_dir/"
-        cp "common/scripts/export-resources.bat" "$build_package_dir/"
+        cp "common/scripts/export-resources.cmd" "$build_package_dir/"
         chmod +x "$build_package_dir/export-resources.sh"
     fi
     
@@ -179,8 +179,8 @@ echo "📦 Created package:"
 echo "   📚 heritrace-enduser-local.zip ($ENDUSER_SIZE)"
 echo ""
 echo "💡 The package contains:"
-echo "   - start.sh / start.bat - One-click startup"
-echo "   - stop.sh / stop.bat - Clean shutdown"
+echo "   - start.sh / start.cmd - One-click startup"
+echo "   - stop.sh / stop.cmd - Clean shutdown"
 echo "   - README.md - Complete user instructions"
 echo "   - sus_questionnaire.md - SUS usability questionnaire"
 echo "   - written_responses_template.md - Written reflection questions template"
