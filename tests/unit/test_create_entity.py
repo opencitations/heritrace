@@ -315,16 +315,25 @@ def test_create_entity_with_direct_uri_reference(mock_get_form_fields, mock_edit
     app.config["URI_GENERATOR"] = MagicMock()
     app.config["URI_GENERATOR"].generate_uri.return_value = "http://example.org/test/123"
     
-    # Test data with direct URI references
+    # Test data with explicit metadata for existing entity references
     data = {
         "entity_type": "http://example.org/Person",
         "properties": {
             "http://example.org/hasAddress": [
-                "http://example.org/addresses/existing-address-1",
-                "http://example.org/addresses/existing-address-2"
+                {
+                    "is_existing_entity": True,
+                    "entity_uri": "http://example.org/addresses/existing-address-1"
+                },
+                {
+                    "is_existing_entity": True,
+                    "entity_uri": "http://example.org/addresses/existing-address-2"
+                }
             ],
             "http://example.org/hasContact": [
-                "http://example.org/contacts/existing-contact"
+                {
+                    "is_existing_entity": True,
+                    "entity_uri": "http://example.org/contacts/existing-contact"
+                }
             ]
         }
     }
@@ -397,7 +406,10 @@ def test_create_entity_with_single_value_properties(mock_get_form_fields, mock_e
         "properties": {
             "http://example.org/hasName": "John Doe",  # Single string value
             "http://example.org/hasAge": 30,  # Single integer value
-            "http://example.org/hasBestFriend": "http://example.org/persons/existing-friend"  # Single URI reference
+            "http://example.org/hasBestFriend": {  # Existing entity reference with explicit metadata
+                "is_existing_entity": True,
+                "entity_uri": "http://example.org/persons/existing-friend"
+            }
         }
     }
 

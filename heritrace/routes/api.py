@@ -11,15 +11,16 @@ from heritrace.editor import Editor
 from heritrace.extensions import (get_custom_filter, get_dataset_endpoint,
                                   get_provenance_endpoint)
 from heritrace.services.resource_lock_manager import LockStatus
-from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.primary_source_utils import \
     save_user_default_primary_source
+from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.shacl_validation import validate_new_triple
 from heritrace.utils.sparql_utils import (find_orphaned_entities,
                                           get_available_classes,
                                           get_catalog_data,
                                           get_deleted_entities_with_filtering,
-                                          import_entity_graph)
+                                          import_entity_graph,
+                                          import_referenced_entities)
 from heritrace.utils.strategies import (OrphanHandlingStrategy,
                                         ProxyHandlingStrategy)
 from heritrace.utils.uri_utils import generate_unique_uri
@@ -532,6 +533,13 @@ def apply_changes():
             subject, 
             include_referencing_entities=has_entity_deletion
         )
+        
+        for change in changes:
+            if change["action"] == "create":
+                data = change.get("data")
+                if data:
+                    import_referenced_entities(editor, data)
+        
         editor.preexisting_finished()
 
         graph_uri = None
@@ -841,7 +849,17 @@ def create_logic(
                     temp_id_to_uri,
                     parent_entity_type=entity_type,
                 )
-            # CASE 2: Custom Property.
+            # CASE 2: Existing Entity Reference.
+            elif isinstance(value, dict) and value.get("is_existing_entity", False):
+                entity_uri = value.get("entity_uri")
+                if entity_uri:
+                    object_value = URIRef(entity_uri)
+                    editor.create(
+                        URIRef(subject), URIRef(predicate), object_value, graph_uri
+                    )
+                else:
+                    raise ValueError("Missing entity_uri in existing entity reference")
+            # CASE 3: Custom Property.
             # If the value is a dictionary marked as 'is_custom_property', it's a property
             # that is not defined in the SHACL shape and should be added without validation.
             elif isinstance(value, dict) and value.get("is_custom_property", False):
@@ -861,7 +879,7 @@ def create_logic(
                 editor.create(
                     URIRef(subject), URIRef(predicate), object_value, graph_uri
                 )
-            # CASE 3: Standard Property.
+            # CASE 4: Standard Property.
             # This is the default case for all other properties. The value can be a
             # simple literal (e.g., a string, number) or a URI string.
             else:

@@ -29,7 +29,8 @@ from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
     determine_shape_for_classes, fetch_current_state_with_related_entities,
-    fetch_data_graph_for_subject, get_entity_types, parse_sparql_update)
+    fetch_data_graph_for_subject, get_entity_types, import_referenced_entities,
+    parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from resources.datatypes import DATATYPE_MAPPING, get_datatype_options
@@ -228,6 +229,9 @@ def create_entity():
             properties = structured_data.get("properties", {})
 
             entity_uri = generate_unique_uri(entity_type)
+            
+            import_referenced_entities(editor, structured_data)
+            
             editor.preexisting_finished()
 
             default_graph_uri = (
@@ -304,7 +308,7 @@ def create_entity():
                                     value,
                                     default_graph_uri
                                 )
-                            else:
+                            elif isinstance(value, dict) and value.get("is_existing_entity", False):
                                 # If it's a direct URI value (reference to existing entity)
                                 nested_uri = URIRef(value)
                                 editor.create(
@@ -339,18 +343,26 @@ def create_entity():
                                 value,
                                 default_graph_uri
                             )
-                        else:
-                            # Handle both URI references and literal values
-                            if validators.url(str(value)):
-                                object_value = URIRef(value)
+                        elif isinstance(value, dict) and value.get("is_existing_entity", False):
+                            entity_ref_uri = value.get("entity_uri")
+                            if entity_ref_uri:
+                                object_value = URIRef(entity_ref_uri)
+                                editor.create(
+                                    entity_uri,
+                                    URIRef(predicate),
+                                    object_value,
+                                    default_graph_uri,
+                                )
                             else:
-                                datatype_uris = []
-                                if matching_field_def:
-                                    datatype_uris = matching_field_def.get(
-                                        "datatypes", []
-                                    )
-                                datatype = determine_datatype(value, datatype_uris)
-                                object_value = Literal(value, datatype=datatype)
+                                raise ValueError("Missing entity_uri in existing entity reference")
+                        else:
+                            datatype_uris = []
+                            if matching_field_def:
+                                datatype_uris = matching_field_def.get(
+                                    "datatypes", []
+                                )
+                            datatype = determine_datatype(value, datatype_uris)
+                            object_value = Literal(value, datatype=datatype)
                             editor.create(
                                 entity_uri,
                                 URIRef(predicate),
@@ -363,6 +375,9 @@ def create_entity():
 
             entity_uri = generate_unique_uri(entity_type)
             editor.import_entity(entity_uri)
+            
+            import_referenced_entities(editor, structured_data)
+            
             editor.preexisting_finished()
 
             default_graph_uri = (
@@ -486,18 +501,18 @@ def create_nested_entity(
                     create_nested_entity(
                         editor, nested_uri, value, graph_uri
                     )
+            elif isinstance(value, dict) and value.get("is_existing_entity", False):
+                existing_entity_uri = value.get("entity_uri")
+                if existing_entity_uri:
+                    editor.create(entity_uri, URIRef(predicate), URIRef(existing_entity_uri), graph_uri)
             else:
-                # Handle simple properties
+                # Handle simple properties (literals only)
                 datatype = XSD.string  # Default to string if not specified
                 datatype_uris = []
                 if field_definitions:
                     datatype_uris = field_definitions[0].get("datatypes", [])
                 datatype = determine_datatype(value, datatype_uris)
-                object_value = (
-                    URIRef(value)
-                    if validators.url(value)
-                    else Literal(value, datatype=datatype)
-                )
+                object_value = Literal(value, datatype=datatype)
                 editor.create(entity_uri, URIRef(predicate), object_value, graph_uri)
 
 

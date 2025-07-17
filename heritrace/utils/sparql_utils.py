@@ -875,6 +875,7 @@ def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5, includ
             WHERE {{
                 <{current_subject}> ?p ?o .
                 FILTER(isIRI(?o))
+                FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
             }}
         """
 
@@ -914,3 +915,61 @@ def get_entity_types(subject_uri: str) -> List[str]:
     results = sparql.query().convert()
 
     return [result["type"]["value"] for result in results["results"]["bindings"]]
+
+
+def collect_referenced_entities(data, existing_entities=None):
+    """
+    Recursively collect all URIs of existing entities referenced in the structured data.
+    
+    This function traverses the structured data to find explicit references to existing entities
+    that need to be imported into the editor before calling preexisting_finished().
+    
+    Args:
+        data: The structured data (can be dict, list, or string)
+        existing_entities: Set to collect URIs (created if None)
+        
+    Returns:
+        Set of URIs (strings) of existing entities that should be imported
+    """
+    
+    if existing_entities is None:
+        existing_entities = set()
+
+    if isinstance(data, dict):
+        if data.get("is_existing_entity") is True and "entity_uri" in data:
+            existing_entities.add(data["entity_uri"])
+        
+        # If it's an entity with entity_type, it's a new entity being created
+        elif "entity_type" in data:
+            properties = data.get("properties", {})
+            for prop_values in properties.values():
+                collect_referenced_entities(prop_values, existing_entities)
+        else:
+            for value in data.values():
+                collect_referenced_entities(value, existing_entities)
+                
+    elif isinstance(data, list):
+        for item in data:
+            collect_referenced_entities(item, existing_entities)
+                
+    return existing_entities
+
+
+def import_referenced_entities(editor, structured_data):
+    """
+    Import all existing entities referenced in structured data into the editor.
+    
+    This function should be called before editor.preexisting_finished() to ensure
+    that all existing entities that will be linked have their snapshots created.
+    
+    Args:
+        editor: The Editor instance
+        structured_data: The structured data containing entity references
+    """
+    referenced_entities = collect_referenced_entities(structured_data)
+    for entity_uri in referenced_entities:
+        try:
+            editor.import_entity(entity_uri)
+        except Exception as e:
+            print(f"Warning: Could not import entity {entity_uri}: {e}")
+            continue
