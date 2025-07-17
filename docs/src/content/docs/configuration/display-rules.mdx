@@ -8,6 +8,10 @@ The `resources/display_rules.yaml` file is the heart of HERITRACE's user interfa
 
 In short, this file lets you transform raw RDF data into a user-friendly and intuitive experience for domain experts.
 
+<Aside type="note" title="Display Rules and SHACL Integration">
+Display Rules work in conjunction with SHACL schemas. While Display Rules control presentation and user interface behavior, SHACL schemas define data validation and available properties. **Display Rules cannot override SHACL constraints** - they can only style and configure properties that are already defined in SHACL shapes. For detailed information about their interaction, see the [SHACL and Display Rules Interaction section](/heritrace/configuration/shacl/#shacl-and-display-rules-interaction).
+</Aside>
+
 ## File Location
 
 By default, the display rules file is `resources/display_rules.yaml` in the project's root directory. You can change this path in your `config.py` file:

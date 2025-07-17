@@ -222,11 +222,63 @@ This pattern is central to how HERITRACE manages complex data.
 - **[Manage proxy deletion behavior in settings](/heritrace/configuration/app-settings/#entity-handling-strategies)**
 </Aside>
 
+## SHACL and Display Rules Interaction
+
+Understanding how SHACL and Display Rules work together is crucial for effective HERITRACE configuration. While both components are individually optional, their interaction follows specific rules that determine data validation, form generation, and user interface behavior.
+
+### Configuration Interaction Matrix
+
+| Scenario | SHACL Schema | Display Rules | Entity Creation Method | Property Constraints | Form Generation | Display Names |
+|----------|--------------|---------------|----------------------|---------------------|-----------------|---------------|
+| **Full Configuration** | ✅ Present | ✅ Present | SHACL-based forms (predefined entity types) | ✅ SHACL constraints enforced | ✅ Generated from SHACL + Display Rules styling | ✅ From Display Rules with URI fallback |
+| **SHACL Only** | ✅ Present | ❌ Absent | SHACL-based forms (predefined entity types) | ✅ SHACL constraints enforced | ✅ Generated from SHACL only | ✅ Auto-generated from URI |
+| **Display Rules Only** | ❌ Absent | ✅ Present | Custom properties form (free-form) | ❌ No validation | ✅ Custom properties form | ✅ From Display Rules (if class matches) or URI |
+| **Neither Present** | ❌ Absent | ❌ Absent | Custom properties form (free-form) | ❌ No validation | ✅ Custom properties form | ✅ Auto-generated from URI |
+
+### Key Interaction Rules
+
+#### 1. **SHACL Has Precedence Over Properties**
+- **Rule**: When a SHACL shape exists for an entity class, **only properties defined in that shape** are available for entity creation and editing.
+- **Implication**: You cannot add arbitrary properties through Display Rules if they're not defined in the corresponding SHACL shape.
+- **Example**: If `JournalArticleShape` only defines `dcterms:title` and `dcterms:abstract`, you cannot create display rules for `prism:keyword` unless you first add it to the SHACL shape.
+
+#### 2. **Entity Creation Methods**
+- **Rule**: The presence of SHACL determines the entity creation method available to users.
+- **With SHACL**: Users get structured forms with predefined entity types and properties, limited to what's defined in SHACL shapes.
+- **Without SHACL**: Users get a flexible custom properties form where they can define any property URI and value.
+- **Example**: With SHACL, you select "Journal Article" from a dropdown and fill predefined fields. Without SHACL, you manually enter property URIs like `dcterms:title` and their values.
+
+#### 3. **Display Name Fallback Chain**
+- **Rule**: Display names for properties follow this priority order:
+  1. **Display Rules**: `displayName` from matching display rule
+  2. **Auto-generated from URI**: Automatic formatting of property URI using `format_uri_as_readable()`
+- **Note**: The system always provides readable names by converting URIs like `dcterms:title` to `title` or `hasPublicationDate` to `has publication date`.
+
+#### 4. **Shape Priority Determines Specificity**
+- **Rule**: When multiple SHACL shapes target the same class, Display Rules priority determines which shape to use.
+- **Implication**: Lower priority numbers (higher priority) in Display Rules affect SHACL shape selection.
+- **Example**: Both `RegularIssueShape` and `SpecialIssueShape` target `fabio:JournalIssue`, but the Display Rule with `priority: 1` determines which shape applies.
+
+#### 5. **Validation Always Follows SHACL**
+- **Rule**: Data validation constraints come exclusively from SHACL shapes, never from Display Rules.
+- **Implication**: Display Rules control presentation and behavior, but cannot override or add validation constraints.
+
+### Best Practices for Combined Configuration
+
+1. **Define SHACL First**: Always start by defining your SHACL shapes before creating Display Rules.
+
+2. **Align Properties**: Ensure Display Rules only reference properties that exist in the corresponding SHACL shapes.
+
+3. **Test Iteratively**: When modifying SHACL shapes, verify that existing Display Rules still function correctly.
+
+4. **Use Consistent Priorities**: Align Display Rules priorities with your intended SHACL shape precedence.
+
 ## Testing and Updating
 
 - **Reloading**: When running in development mode, the application will automatically restart when it detects changes to `shacl.ttl`, applying your updates instantly.
 - **Update Display Rules**: If you modify properties, remember to update `resources/display_rules.yaml` to reflect those changes in the user interface.
+- **Validation Testing**: After SHACL changes, test form generation and validation to ensure all constraints work as expected.
 
 <Aside type="caution" title="Breaking Changes">
-Schema changes can affect existing data. Always backup your database before making significant schema modifications.
+Schema changes can affect existing data. Always backup your database before making significant schema modifications. Changes to SHACL shapes may invalidate existing Display Rules configurations.
 </Aside> 
