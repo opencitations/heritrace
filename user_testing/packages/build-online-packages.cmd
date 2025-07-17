@@ -21,6 +21,8 @@ copy "common\templates\docker-compose-dockerhub-enduser.yml" "%ENDUSER_DIR%\dock
 
 call :generate_script_from_template "common\templates\scripts\start.cmd.template" "%ENDUSER_DIR%\start.cmd" "enduser" "End User"
 call :generate_script_from_template "common\templates\scripts\stop.cmd.template" "%ENDUSER_DIR%\stop.cmd" "enduser" "End User"
+call :generate_script_from_template "common\templates\scripts\start.sh.template" "%ENDUSER_DIR%\start.sh" "enduser" "End User"
+call :generate_script_from_template "common\templates\scripts\stop.sh.template" "%ENDUSER_DIR%\stop.sh" "enduser" "End User"
 
 copy "enduser\README.md" "%ENDUSER_DIR%\README.md"
 copy "..\sus_questionnaire.md" "%ENDUSER_DIR%\sus_questionnaire.md"
@@ -31,6 +33,7 @@ mkdir "%ENDUSER_DIR%\prov_database"
 copy "common\templates\virtuoso_dataset.ini" "%ENDUSER_DIR%\dataset_database\virtuoso.ini"
 copy "common\templates\virtuoso_provenance.ini" "%ENDUSER_DIR%\prov_database\virtuoso.ini"
 
+copy "common\scripts\export-data.sh" "%ENDUSER_DIR%\"
 copy "common\scripts\export-data.cmd" "%ENDUSER_DIR%\"
 
 echo [PKG] Building technician online package...
@@ -42,6 +45,8 @@ copy "common\templates\docker-compose-dockerhub-technician.yml" "%TECHNICIAN_DIR
 
 call :generate_script_from_template "common\templates\scripts\start.cmd.template" "%TECHNICIAN_DIR%\start.cmd" "technician" "Configurator"
 call :generate_script_from_template "common\templates\scripts\stop.cmd.template" "%TECHNICIAN_DIR%\stop.cmd" "technician" "Configurator"
+call :generate_script_from_template "common\templates\scripts\start.sh.template" "%TECHNICIAN_DIR%\start.sh" "technician" "Configurator"
+call :generate_script_from_template "common\templates\scripts\stop.sh.template" "%TECHNICIAN_DIR%\stop.sh" "technician" "Configurator"
 
 REM Generate config.py for technician package
 call :generate_script_from_template "common\templates\config.py.template" "%TECHNICIAN_DIR%\config.py" "technician" "Configurator"
@@ -58,6 +63,7 @@ copy "common\templates\virtuoso_provenance.ini" "%TECHNICIAN_DIR%\prov_database\
 copy "technician\resources\display_rules.yaml" "%TECHNICIAN_DIR%\resources\"
 copy "technician\resources\shacl.ttl" "%TECHNICIAN_DIR%\resources\"
 
+copy "common\scripts\export-resources.sh" "%TECHNICIAN_DIR%\"
 copy "common\scripts\export-resources.cmd" "%TECHNICIAN_DIR%\"
 
 echo [ZIP] Creating ZIP packages...
@@ -78,7 +84,7 @@ rmdir /s /q "%BUILD_DIR%"
 
 echo [DONE] Build complete!
 pause
-goto :eof
+exit /b 0
 
 :generate_script_from_template
 set template_file=%~1
@@ -94,8 +100,12 @@ if "%package_type%"=="enduser" (
     set export_command=   - Export the modified resources ^(Shacl and Display Rules^): double-click export-resources.cmd
 )
 
-powershell -command "(Get-Content '%template_file%') -replace '{{PACKAGE_TYPE}}', '%package_type%' -replace '{{PACKAGE_TYPE_TITLE}}', '%package_type_title%' -replace '{{EXPORT_MESSAGE}}', '%export_message%' -replace '{{EXPORT_COMMAND}}', '%export_command%' | Set-Content '%output_file%'"
-goto :eof
+if exist "%template_file%" (
+    powershell -command "(Get-Content '%template_file%') -replace '{{PACKAGE_TYPE}}', '%package_type%' -replace '{{PACKAGE_TYPE_TITLE}}', '%package_type_title%' -replace '{{EXPORT_MESSAGE}}', '%export_message%' -replace '{{EXPORT_COMMAND}}', '%export_command%' | Set-Content '%output_file%'"
+) else (
+    echo    Template file not found: %template_file%
+)
+exit /b 0
 
 :print_summary
 for %%A in (heritrace-enduser-testing.zip) do set ENDUSER_SIZE=%%~zA
@@ -125,4 +135,4 @@ if exist "heritrace-enduser-testing.zip" (
 if exist "heritrace-technician-testing.zip" (
     echo    - export-resources.cmd - Script to export SHACL and display rules (double-click to run)
 )
-goto :eof
+exit /b 0

@@ -41,6 +41,8 @@ if %errorlevel% equ 0 (
         echo [ERROR] Port %PORT% is already in use.
     echo    This port is required for the HERITRACE web interface.
     echo    Please stop the service using this port and try again.
+    echo.
+    pause
     exit /b 1
 )
 

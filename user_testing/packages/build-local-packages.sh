@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # HERITRACE User Testing Package Builder
-# This script creates two standalone ZIP packages for user testing
+# This script creates a standalone ZIP package for end user testing
 
 set -e
 
@@ -140,6 +140,7 @@ prepare_package() {
     
     echo "   Adding Docker Hub scripts and compose files..."
     cp "common/scripts/push-to-dockerhub.sh" "$build_package_dir/"
+    cp "common/scripts/push-to-dockerhub.cmd" "$build_package_dir/"
     chmod +x "$build_package_dir/push-to-dockerhub.sh"
     
     if [ "$package_type" = "enduser" ]; then
@@ -158,7 +159,6 @@ prepare_package() {
 }
 
 prepare_package "enduser"
-prepare_package "technician"
 
 echo "📦 Creating ZIP packages..."
 
@@ -168,23 +168,17 @@ echo "   Creating heritrace-enduser-local.zip..."
 zip -r heritrace-enduser-local.zip heritrace-enduser-local/ >/dev/null
 mv heritrace-enduser-local.zip ../
 
-echo "   Creating heritrace-technician-local.zip..."
-zip -r heritrace-technician-local.zip heritrace-technician-local/ >/dev/null
-mv heritrace-technician-local.zip ../
-
 cd ..
 
 ENDUSER_SIZE=$(du -h heritrace-enduser-local.zip | cut -f1)
-TECHNICIAN_SIZE=$(du -h heritrace-technician-local.zip | cut -f1)
 
 echo ""
 echo "🎉 Package build completed!"
 echo "=========================="
-echo "📦 Created packages:"
+echo "📦 Created package:"
 echo "   📚 heritrace-enduser-local.zip ($ENDUSER_SIZE)"
-echo "   🔧 heritrace-technician-local.zip ($TECHNICIAN_SIZE)"
 echo ""
-echo "💡 Each package contains:"
+echo "💡 The package contains:"
 echo "   - start.sh / start.bat - One-click startup"
 echo "   - stop.sh / stop.bat - Clean shutdown"
 echo "   - README.md - Complete user instructions"

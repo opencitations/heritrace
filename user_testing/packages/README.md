@@ -38,16 +38,25 @@ Double-click `build-local-packages.cmd` or run from command prompt:
 build-local-packages.cmd
 ```
 
-This will create `heritrace-technician-local.zip` and `heritrace-enduser-local.zip`.
+This will create `heritrace-enduser-local.zip`.
 
 ### 2. Push to Docker Hub
 
-Next, unzip one of the generated packages (e.g., the technician package) and run the script to push the Docker images to Docker Hub.
+Next, unzip the generated enduser package and run the script to push the Docker images to Docker Hub.
 
+**Linux/macOS:**
 ```bash
-unzip heritrace-technician-local.zip
-cd heritrace-technician-local
+unzip heritrace-enduser-local.zip
+cd heritrace-enduser-local
 ./push-to-dockerhub.sh
+cd ..
+```
+
+**Windows:**
+```cmd
+powershell -command "Expand-Archive -Path 'heritrace-enduser-local.zip' -DestinationPath '.' -Force"
+cd heritrace-enduser-local
+push-to-dockerhub.cmd
 cd ..
 ```
 

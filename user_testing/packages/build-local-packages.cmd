@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 REM HERITRACE User Testing Package Builder
-REM This script creates two standalone ZIP packages for user testing
+REM This script creates a standalone ZIP package for end user testing
 
 echo [BUILD] Building HERITRACE User Testing Packages
 echo ============================================
@@ -21,7 +21,6 @@ mkdir "%BUILD_DIR%"
 echo [FILES] Preparing build environment...
 
 call :prepare_package "enduser"
-call :prepare_package "technician"
 
 echo [ZIP] Creating ZIP packages...
 
@@ -30,25 +29,19 @@ cd "%BUILD_DIR%"
 echo    Creating heritrace-enduser-local.zip...
 powershell -command "Compress-Archive -Path 'heritrace-enduser-local' -DestinationPath '..\heritrace-enduser-local.zip' -Force"
 
-echo    Creating heritrace-technician-local.zip...
-powershell -command "Compress-Archive -Path 'heritrace-technician-local' -DestinationPath '..\heritrace-technician-local.zip' -Force"
-
 cd ..
 
 for %%A in (heritrace-enduser-local.zip) do set ENDUSER_SIZE=%%~zA
-for %%A in (heritrace-technician-local.zip) do set TECHNICIAN_SIZE=%%~zA
 
 set /a ENDUSER_SIZE_KB=%ENDUSER_SIZE%/1024
-set /a TECHNICIAN_SIZE_KB=%TECHNICIAN_SIZE%/1024
 
 echo.
 echo [SUCCESS] Package build completed!
 echo ==========================
-echo [PKG] Created packages:
+echo [PKG] Created package:
 echo    [USER] heritrace-enduser-local.zip (%ENDUSER_SIZE_KB% KB)
-echo    [TECH] heritrace-technician-local.zip (%TECHNICIAN_SIZE_KB% KB)
 echo.
-echo [INFO] Each package contains:
+echo [INFO] The package contains:
 echo    - start.cmd - One-click startup (double-click to run)
 echo    - stop.cmd - Clean shutdown (double-click to run)
 echo    - README.md - Complete user instructions
@@ -86,6 +79,8 @@ copy "..\written_responses_template.md" "%build_package_dir%\written_responses_t
 echo    Generating scripts from templates...
 call :generate_script_from_template "common\templates\scripts\start.cmd.template" "%build_package_dir%\start.cmd" "%package_type%" "%package_type_title%"
 call :generate_script_from_template "common\templates\scripts\stop.cmd.template" "%build_package_dir%\stop.cmd" "%package_type%" "%package_type_title%"
+call :generate_script_from_template "common\templates\scripts\start.sh.template" "%build_package_dir%\start.sh" "%package_type%" "%package_type_title%"
+call :generate_script_from_template "common\templates\scripts\stop.sh.template" "%build_package_dir%\stop.sh" "%package_type%" "%package_type_title%"
 
 echo    Copying common Docker files and data...
 copy "common\dockerfiles\Dockerfile.virtuoso" "%build_package_dir%\"
@@ -138,13 +133,16 @@ copy "common\scripts\virtuoso_entrypoint.sh" "%build_package_dir%\scripts\"
 copy "common\scripts\provenance_entrypoint.sh" "%build_package_dir%\scripts\"
 
 if "%package_type%"=="enduser" (
+    copy "common\scripts\export-data.sh" "%build_package_dir%\"
     copy "common\scripts\export-data.cmd" "%build_package_dir%\"
 ) else (
+    copy "common\scripts\export-resources.sh" "%build_package_dir%\"
     copy "common\scripts\export-resources.cmd" "%build_package_dir%\"
 )
 
 echo    Adding Docker Hub scripts and compose files...
 copy "common\scripts\push-to-dockerhub.sh" "%build_package_dir%\"
+copy "common\scripts\push-to-dockerhub.cmd" "%build_package_dir%\"
 
 if "%package_type%"=="enduser" (
     copy "common\templates\docker-compose-dockerhub-enduser.yml" "%build_package_dir%\docker-compose-dockerhub.yml"
@@ -173,5 +171,9 @@ if "%package_type%"=="enduser" (
     set export_command=   - Export the modified resources ^(Shacl and Display Rules^): double-click export-resources.cmd
 )
 
-powershell -command "(Get-Content '%template_file%') -replace '{{PACKAGE_TYPE}}', '%package_type%' -replace '{{PACKAGE_TYPE_TITLE}}', '%package_type_title%' -replace '{{EXPORT_MESSAGE}}', '%export_message%' -replace '{{EXPORT_COMMAND}}', '%export_command%' | Set-Content '%output_file%'"
+if exist "%template_file%" (
+    powershell -command "(Get-Content '%template_file%') -replace '{{PACKAGE_TYPE}}', '%package_type%' -replace '{{PACKAGE_TYPE_TITLE}}', '%package_type_title%' -replace '{{EXPORT_MESSAGE}}', '%export_message%' -replace '{{EXPORT_COMMAND}}', '%export_command%' | Set-Content '%output_file%'"
+) else (
+    echo    Template file not found: %template_file%
+)
 goto :eof
