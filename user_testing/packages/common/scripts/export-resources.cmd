@@ -3,7 +3,7 @@
 REM HERITRACE Testing - Resources Export Script
 REM This script exports the modified resources (Shuffle and Display Rules) from Docker volumes
 
-echo 📦 HERITRACE Resources Export
+echo [PACK] HERITRACE Resources Export
 echo ==============================================
 
 set "ROOT_DIR=%~dp0"
@@ -61,3 +61,8 @@ echo Cleaning up temporary directory...
 if exist "%EXPORT_DIR%" rmdir /s /q "%EXPORT_DIR%"
 
 echo Successfully exported resources to: %ZIP_FILE%
+
+echo.
+echo Press any key to continue...
+pause >nul
+exit /b 0

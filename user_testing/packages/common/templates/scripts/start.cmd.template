@@ -1,15 +1,15 @@
 @echo off
 
 REM HERITRACE {{PACKAGE_TYPE_TITLE}} Testing - Windows Startup Script
-REM Usage: start.bat
+REM Usage: start.cmd
 
-echo 🚀 Starting HERITRACE {{PACKAGE_TYPE_TITLE}} Testing Environment
+echo [START] Starting HERITRACE {{PACKAGE_TYPE_TITLE}} Testing Environment
 echo ==============================================
 
 REM Check if Docker is running
 docker info >nul 2>&1
 if errorlevel 1 (
-    echo ❌ Error: Docker is not running!
+    echo [ERROR] Error: Docker is not running!
     echo    Please start Docker Desktop and try again.
     pause
     exit /b 1
@@ -18,13 +18,13 @@ if errorlevel 1 (
 REM Check if Docker Compose is available
 docker compose version >nul 2>&1
 if errorlevel 1 (
-    echo ❌ Error: Docker Compose is not available!
+    echo [ERROR] Error: Docker Compose is not available!
     echo    Please ensure Docker Compose v2 is installed and accessible.
     pause
     exit /b 1
 )
 
-echo ✅ Docker check passed!
+echo [OK] Docker check passed!
 
 REM Create necessary directories if they don't exist
 if not exist "exports" mkdir "exports"
@@ -38,26 +38,26 @@ set "PORT=5000"
 
 netstat -ano | findstr ":%PORT%" >nul
 if %errorlevel% equ 0 (
-        echo ^> ERROR: Port %PORT% is already in use.
+        echo [ERROR] Port %PORT% is already in use.
     echo    This port is required for the HERITRACE web interface.
     echo    Please stop the service using this port and try again.
     exit /b 1
 )
 
 REM Start the services
-echo 🐳 Starting Docker containers...
+echo [DOCK] Starting Docker containers...
 echo    This may take a few minutes on first run...
 
 %COMPOSE_CMD% up -d
 
 if errorlevel 1 (
-    echo ❌ Failed to start containers!
+    echo [ERROR] Failed to start containers!
     pause
     exit /b 1
 )
 
 REM Wait for services to be ready
-echo ⏳ Waiting for services to be ready...
+echo [WAIT] Waiting for services to be ready...
 echo    This can take 2-3 minutes for database initialization...
 
 timeout /t 30 /nobreak >nul
@@ -65,28 +65,42 @@ timeout /t 30 /nobreak >nul
 REM Wait for the application to be ready...
 call :wait_for_service "http://localhost:5000" "HERITRACE Application"
 
-echo    ✅ HERITRACE application is ready!
+echo    [OK] HERITRACE application is ready!
 
 echo.
-echo 🎉 HERITRACE {{PACKAGE_TYPE_TITLE}} Testing should be ready!
+echo [SUCCESS] HERITRACE {{PACKAGE_TYPE_TITLE}} Testing should be ready!
 echo ==============================================
-echo ✅ All services started
+echo [OK] All services started
 echo.
-echo 📖 Access Instructions:
+echo [ACCESS] Access Instructions:
 echo    1. Open your web browser
 echo    2. Go to: http://localhost:5000
 echo    3. You'll be automatically logged in as a demo user
 echo.
-echo 🔧 Useful Commands:
-echo    - Stop the environment: stop.bat
+echo [COMMANDS] Useful Commands:
+echo    - Stop the environment: double-click stop.cmd
 echo {{EXPORT_COMMAND}}
 echo.
-echo 📚 Need Help?
+echo [HELP] Need Help?
 echo    - Read the README.md file for testing instructions
 echo    - Visit the official documentation: https://opencitations.github.io/heritrace/
 echo.
-echo 📝 Remember to export your results after completing the testing tasks!
-echo Happy testing! 🧪
+echo [EXPORT] Remember to export your results after completing the testing tasks!
+echo Happy testing!
 echo.
 echo Press any key to continue...
 pause >nul
+
+:wait_for_service
+set url=%~1
+set service_name=%~2
+echo    Waiting for %service_name%...
+
+:wait_loop
+powershell -command "try { $response = Invoke-WebRequest -Uri '%url%' -UseBasicParsing -TimeoutSec 5; if ($response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
+if %errorlevel% equ 0 goto :wait_done
+timeout /t 5 /nobreak >nul
+goto :wait_loop
+
+:wait_done
+exit /b 0

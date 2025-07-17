@@ -6,8 +6,15 @@ This directory contains scripts to package the application for user testing.
 
 To generate a complete local package for testing, run the following script:
 
+**Linux/macOS:**
 ```bash
 ./build-local-packages.sh
+```
+
+**Windows:**
+Double-click `build-local-packages.cmd` or run from command prompt:
+```cmd
+build-local-packages.cmd
 ```
 
 This will create a self-contained package with all the necessary files for local testing.
@@ -20,8 +27,15 @@ This approach provides a minimal package for testers, with most of the applicati
 
 First, you need to generate a local package, which contains the necessary scripts to push the Docker images.
 
+**Linux/macOS:**
 ```bash
 ./build-local-packages.sh
+```
+
+**Windows:**
+Double-click `build-local-packages.cmd` or run from command prompt:
+```cmd
+build-local-packages.cmd
 ```
 
 This will create `heritrace-technician-local.zip` and `heritrace-enduser-local.zip`.
@@ -41,8 +55,15 @@ cd ..
 
 Once the images are on Docker Hub, you can generate the lightweight online package:
 
+**Linux/macOS:**
 ```bash
 ./build-online-packages.sh
+```
+
+**Windows:**
+Double-click `build-online-packages.cmd` or run from command prompt:
+```cmd
+build-online-packages.cmd
 ```
 
 This creates a minimal set of files for the end-user, who will pull the required Docker images to run the application.
