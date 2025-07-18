@@ -5,8 +5,11 @@ var pendingChanges = [];
 
 var tempIdCounter = 0;
 
+// Debouncing for form initialization
+let initializeFormTimeout = null;
+
 function generateUniqueId(prefix) {
-    return prefix + '_' + Math.random().toString(36).substr(2, 9);
+    return prefix + '_' + Math.random().toString(36).substring(2, 11);
 }
 
 // Helper functions for collectFormData
@@ -135,25 +138,139 @@ function updateOrderedElementsNumbering() {
 }
 
 function initializeMandatoryElements(container) {
-    container.find(':input').each(function() {
-        $(this).prop('disabled', false);
+    console.log(`🔧 [DEBUG] initializeMandatoryElements called`);
+    
+    PerformanceDebugger.measure('enable_inputs', () => {
+        container.find(':input').each(function() {
+            $(this).prop('disabled', false);
+        });
     });
 
-    container.find('[data-repeater-list]').each(function() {
-        var list = $(this);
-        var minItems = parseInt(list.data('min-items') || 0);
-        var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
-        if (minItems > 0 && currentItems === 0) {
-            // Simulate click on add button for mandatory elements of the initial structure
-            var addButton = list.find('[data-repeater-create] .initial-structure-add');
-            for (var i = 0; i < minItems; i++) {
-                addButton.click();
+    const repeaterLists = container.find('[data-repeater-list]');
+    console.log(`📊 [DEBUG] Found ${repeaterLists.length} repeater lists`);
+    
+    PerformanceDebugger.measure('process_repeater_lists', () => {
+        repeaterLists.each(function() {
+            var list = $(this);
+            var minItems = parseInt(list.data('min-items') || 0);
+            var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
+            console.log(`📊 [DEBUG] List ${list.data('repeater-list')}: minItems=${minItems}, currentItems=${currentItems}`);
+            
+            if (minItems > 0 && currentItems === 0) {
+                // Simulate click on add button for mandatory elements of the initial structure
+                var addButton = list.find('[data-repeater-create] .initial-structure-add');
+                console.log(`🔧 [DEBUG] Creating ${minItems} mandatory items for ${list.data('repeater-list')}`);
+                for (var i = 0; i < minItems; i++) {
+                    addButton.click();
+                }
             }
-        }
+        });
     });
 }
 
+// Batched version of initializeMandatoryElements for better performance
+function initializeMandatoryElementsBatched(container) {
+    console.log(`🔧 [DEBUG] initializeMandatoryElementsBatched called`);
+    
+    // Enable inputs in batch
+    PerformanceDebugger.measure('enable_inputs_batched', () => {
+        const inputs = container.find(':input').get();
+        inputs.forEach(input => {
+            input.disabled = false;
+        });
+    });
+
+    const repeaterLists = container.find('[data-repeater-list]');
+    console.log(`📊 [DEBUG] Found ${repeaterLists.length} repeater lists`);
+    
+    if (repeaterLists.length === 0) {
+        return;
+    }
+    
+    // Process repeater lists in batches using requestAnimationFrame
+    const listsToProcess = [];
+    repeaterLists.each(function() {
+        const list = $(this);
+        const minItems = parseInt(list.data('min-items') || 0);
+        const currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
+        
+        if (minItems > 0 && currentItems === 0) {
+            listsToProcess.push({
+                list: list,
+                minItems: minItems,
+                addButton: list.find('[data-repeater-create] .initial-structure-add')
+            });
+        }
+    });
+    
+    if (listsToProcess.length === 0) {
+        return;
+    }
+    
+    // Process lists in chunks to avoid blocking the UI
+    let currentListIndex = 0;
+    
+    function processBatch() {
+        const startTime = performance.now();
+        
+        // Process up to 3 lists or until we've used 16ms (60fps frame budget)
+        let processedCount = 0;
+        while (currentListIndex < listsToProcess.length && 
+               processedCount < 3 && 
+               (performance.now() - startTime) < 16) {
+            
+            const listInfo = listsToProcess[currentListIndex];
+            console.log(`🔧 [DEBUG] Creating ${listInfo.minItems} mandatory items for ${listInfo.list.data('repeater-list')}`);
+            
+            // Create items in a batch
+            for (let i = 0; i < listInfo.minItems; i++) {
+                listInfo.addButton.click();
+            }
+            
+            currentListIndex++;
+            processedCount++;
+        }
+        
+        // If there are more lists to process, schedule next batch
+        if (currentListIndex < listsToProcess.length) {
+            requestAnimationFrame(processBatch);
+        }
+    }
+    
+    // Start processing
+    requestAnimationFrame(processBatch);
+}
+
+// Performance debugging utilities
+const PerformanceDebugger = {
+    timers: new Map(),
+    
+    start(label) {
+        this.timers.set(label, performance.now());
+        console.log(`🟡 [PERF] Started: ${label}`);
+    },
+    
+    end(label) {
+        const startTime = this.timers.get(label);
+        if (startTime) {
+            const duration = performance.now() - startTime;
+            console.log(`🟢 [PERF] Finished: ${label} - ${duration.toFixed(2)}ms`);
+            this.timers.delete(label);
+            return duration;
+        }
+        return 0;
+    },
+    
+    measure(label, fn) {
+        this.start(label);
+        const result = fn();
+        this.end(label);
+        return result;
+    }
+};
+
 function initializeForm() {
+    PerformanceDebugger.start('initializeForm_total');
     let selectedUri;
     let selectedShape;
     if ($('#entity_type').length) {
@@ -182,37 +299,54 @@ function initializeForm() {
     }
 
     if (selectedUri) {
+        console.log(`🔍 [DEBUG] Processing entity: ${selectedUri}, shape: ${selectedShape}`);
+        
+        // Cache jQuery objects to avoid repeated selections
+        const $propertyGroups = $('.property-group');
+        
         // Hide all property groups
-        $('.property-group').hide();
+        PerformanceDebugger.measure('hide_property_groups', () => {
+            $propertyGroups.hide();
+        });
 
-        // Implementa una logica simile a find_matching_rule in display_rules_utils.py
+        // Count total property groups for debugging
+        const totalGroups = $propertyGroups.length;
+        console.log(`📊 [DEBUG] Total property groups: ${totalGroups}`);
+        
+        // Find matching property group
         let selectedGroup = null;
         let classMatch = null;
         let shapeMatch = null;
         
-        // Cerca tutti i gruppi di proprietà disponibili
-        $('.property-group').each(function() {
-            const groupUri = $(this).data('uri');
-            const groupShape = $(this).data('shape');
-            
-            // Caso 1: Corrispondenza esatta sia per classe che per shape
-            if (selectedUri && selectedShape && 
-                groupUri === selectedUri && 
-                groupShape === selectedShape) {
-                // La corrispondenza esatta ha sempre la precedenza più alta
-                selectedGroup = $(this);
-                return false; // Interrompe il ciclo each
-            }
-            
-            // Caso 2: Solo la classe corrisponde
-            if (selectedUri && groupUri === selectedUri && !groupShape) {
-                classMatch = $(this);
-            }
-            
-            // Caso 3: Solo lo shape corrisponde
-            if (selectedShape && groupShape === selectedShape && !groupUri) {
-                shapeMatch = $(this);
-            }
+        const matchingTime = PerformanceDebugger.measure('find_matching_group', () => {
+            // Cerca tutti i gruppi di proprietà disponibili
+            $propertyGroups.each(function() {
+                const $this = $(this);
+                const groupUri = $this.data('uri');
+                const groupShape = $this.data('shape');
+                
+                // Caso 1: Corrispondenza esatta sia per classe che per shape
+                if (selectedUri && selectedShape && 
+                    groupUri === selectedUri && 
+                    groupShape === selectedShape) {
+                    // La corrispondenza esatta ha sempre la precedenza più alta
+                    selectedGroup = $this;
+                    console.log(`✅ [DEBUG] Found exact match: ${groupUri} + ${groupShape}`);
+                    return false; // Interrompe il ciclo each
+                }
+                
+                // Caso 2: Solo la classe corrisponde
+                if (selectedUri && groupUri === selectedUri && !groupShape) {
+                    classMatch = $this;
+                    console.log(`⚠️ [DEBUG] Found class match: ${groupUri}`);
+                }
+                
+                // Caso 3: Solo lo shape corrisponde
+                if (selectedShape && groupShape === selectedShape && !groupUri) {
+                    shapeMatch = $this;
+                    console.log(`⚠️ [DEBUG] Found shape match: ${groupShape}`);
+                }
+            });
         });
         
         // Se non abbiamo trovato una corrispondenza esatta, usa la migliore disponibile
@@ -223,17 +357,44 @@ function initializeForm() {
         
         // Mostra solo il gruppo selezionato
         if (selectedGroup && selectedGroup.length > 0) {
-            selectedGroup.show();
+            PerformanceDebugger.measure('show_selected_group', () => {
+                selectedGroup.show();
+            });
             
-            // Inizializza gli elementi obbligatori ricorsivamente
-            initializeMandatoryElements(selectedGroup);
+            // Count elements in selected group for debugging
+            const elementsInGroup = selectedGroup.find('*').length;
+            console.log(`📊 [DEBUG] Elements in selected group: ${elementsInGroup}`);
+            
+            // Initialize mandatory elements with batching and debouncing
+            PerformanceDebugger.measure('initialize_mandatory_elements', () => {
+                initializeMandatoryElementsBatched(selectedGroup);
+            });
         } else {
-            console.log(`Nessun gruppo di proprietà trovato per URI=${selectedUri}${selectedShape ? ' e shape=' + selectedShape : ''}`);
+            console.log(`❌ [DEBUG] Nessun gruppo di proprietà trovato per URI=${selectedUri}${selectedShape ? ' e shape=' + selectedShape : ''}`);
         }
     } else {
         // Se non è selezionato alcun tipo, disabilita tutti gli input
-        $('.property-group :input').prop('disabled', true);
+        PerformanceDebugger.measure('disable_inputs', () => {
+            $('.property-group :input').prop('disabled', true);
+        });
     }
+    
+    const totalTime = PerformanceDebugger.end('initializeForm_total');
+    console.log(`🎯 [PERF] initializeForm total time: ${totalTime.toFixed(2)}ms`);
+}
+
+// Debounced version of initializeForm
+function initializeFormDebounced() {
+    // Clear any existing timeout
+    if (initializeFormTimeout) {
+        clearTimeout(initializeFormTimeout);
+    }
+    
+    // Set a new timeout
+    initializeFormTimeout = setTimeout(() => {
+        initializeForm();
+        initializeFormTimeout = null;
+    }, 50); // 50ms delay to prevent rapid successive calls
 }
 
 function storePendingChange(action, subject, predicate, object, newObject = null, shape = null, entity_type = null) {
@@ -340,84 +501,111 @@ function showAppropriateDateInput(selector) {
 }
 
 function initializeNewItem($newItem, isInitialStructure = false) {
+    console.log(`🔧 [DEBUG] initializeNewItem called, isInitialStructure=${isInitialStructure}`);
+    PerformanceDebugger.start('initializeNewItem_total');
+    
     $newItem.addClass('added-in-edit-mode');
 
     if ($newItem.hasClass('draggable')) {
         $newItem.attr('data-temp-id', 'temp-' + (++tempIdCounter));
     }
     
+    // Batch DOM operations by collecting all elements first
+    const inputs = $newItem.find('input, select, textarea').get();
+    const nestedHeaders = $newItem.find('.nested-form-header').get();
+    const dateSelectors = $newItem.find('.date-type-selector').get();
+    const searchInputs = $newItem.find('input[data-supports-search="True"], textarea[data-supports-search="True"]').get();
+    
     // Aggiorna ID in batch
-    $newItem.find('input, select, textarea').each(function() {
-        const $elem = $(this);
-        const elemId = $elem.attr('id');
-        
-        if (elemId) {
-            const newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
-            $elem.attr({
-                'id': newId,
-                'name': newId
-            });
-        }
+    PerformanceDebugger.measure('update_ids', () => {
+        inputs.forEach(elem => {
+            const $elem = $(elem);
+            const elemId = $elem.attr('id');
+            
+            if (elemId) {
+                const newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
+                elem.id = newId;
+                elem.name = newId;
+            }
 
-        // Reset valori
-        if ($elem.is('select')) {
-            $elem.find('option:first').prop('selected', true);
-        } else {
-            $elem.val('');
-        }
+            // Reset valori
+            if (elem.tagName === 'SELECT') {
+                elem.selectedIndex = 0;
+            } else {
+                elem.value = '';
+            }
+        });
     });
 
     // Inizializza nested forms in batch
-    $newItem.find('.nested-form-header').each(function() {
-        const $header = $(this);
-        const $toggleBtn = $header.find('.toggle-btn');
-        const $collapseDiv = $header.next('.nested-form-container');
-        
-        const newId = generateUniqueId('nested_form');
-        $toggleBtn.attr({
-            'data-bs-target': '#' + newId,
-            'aria-controls': newId
+    PerformanceDebugger.measure('initialize_nested_forms', () => {
+        nestedHeaders.forEach(header => {
+            const $header = $(header);
+            const $toggleBtn = $header.find('.toggle-btn');
+            const $collapseDiv = $header.next('.nested-form-container');
+            
+            const newId = generateUniqueId('nested_form');
+            $toggleBtn.attr({
+                'data-bs-target': '#' + newId,
+                'aria-controls': newId
+            });
+            $collapseDiv.attr('id', newId);
         });
-        $collapseDiv.attr('id', newId);
     });
 
-    // Inizializza struttura iniziale se necessario
+    // Inizializza struttura iniziale se necessario (defer to avoid blocking)
     if (isInitialStructure) {
-        $newItem.find('[data-repeater-list]').each(function() {
-            const $nestedList = $(this);
-            const minItems = parseInt($nestedList.data('min-items') || 0);
+        PerformanceDebugger.measure('initialize_initial_structure', () => {
+            const nestedLists = $newItem.find('[data-repeater-list]').get();
             
-            if (minItems > 0) {
-                const templateKey = $nestedList.data('repeater-list');
-                const $template = initialCopies[templateKey].clone(true, true);
+            // Process nested lists in smaller batches
+            nestedLists.forEach(nestedList => {
+                const $nestedList = $(nestedList);
+                const minItems = parseInt($nestedList.data('min-items') || 0);
                 
-                for (let i = 0; i < minItems; i++) {
-                    const $nestedItem = $template.clone(true, true);
-                    initializeNewItem($nestedItem, true);
-                    $nestedList.append($nestedItem);
+                if (minItems > 0) {
+                    const templateKey = $nestedList.data('repeater-list');
+                    const $template = initialCopies[templateKey].clone(true, true);
+                    
+                    console.log(`🔧 [DEBUG] Creating ${minItems} nested items for ${templateKey}`);
+                    for (let i = 0; i < minItems; i++) {
+                        const $nestedItem = $template.clone(true, true);
+                        initializeNewItem($nestedItem, true);
+                        $nestedList.append($nestedItem);
+                    }
                 }
-            }
+            });
         });
     }
 
     // Inizializza date inputs
-    $newItem.find('.date-type-selector').each(function() {
-        showAppropriateDateInput($(this));
+    PerformanceDebugger.measure('initialize_date_inputs', () => {
+        dateSelectors.forEach(selector => {
+            showAppropriateDateInput($(selector));
+        });
     });
 
-    setRequiredForVisibleFields($newItem, isInitialStructure);
+    PerformanceDebugger.measure('set_required_fields', () => {
+        setRequiredForVisibleFields($newItem, isInitialStructure);
+    });
 
-    $newItem.find('input[data-supports-search="True"], textarea[data-supports-search="True"]').each(function() {
-        enhanceInputWithSearch($(this));
+    PerformanceDebugger.measure('enhance_search_inputs', () => {
+        searchInputs.forEach(input => {
+            enhanceInputWithSearch($(input));
+        });
+        
+        // Apply top-level search for depth=0 inputs
+        const entityType = $('#entity_type').val();
+        if (entityType) {
+            const topLevelSearchInputs = $newItem.find('input[data-depth="0"][data-supports-search="True"], textarea[data-depth="0"][data-supports-search="True"]').get();
+            topLevelSearchInputs.forEach(input => {
+                enhanceTopLevelSearch($(input), entityType);
+            });
+        }
     });
     
-    // Apply top-level search for depth=0 inputs
-    const entityType = $('#entity_type').val();
-    if (entityType) {
-        $newItem.find('input[data-depth="0"][data-supports-search="True"], textarea[data-depth="0"][data-supports-search="True"]').each(function() {
-            enhanceTopLevelSearch($(this), entityType);
-        });
-    }
+    const totalTime = PerformanceDebugger.end('initializeNewItem_total');
+    console.log(`🎯 [PERF] initializeNewItem total time: ${totalTime.toFixed(2)}ms`);
 }
 
 // Funzione ricorsiva per raccogliere i dati dai campi del form
@@ -432,7 +620,7 @@ function collectFormData(container, data, shacl, depth) {
 
             let predicateUri = repeaterList.find('[data-repeater-item]:first').data('predicate-uri');
             let orderedBy = repeaterList.data('ordered-by');
-            repeaterList.children('[data-repeater-item]:visible').each(function(index) {
+            repeaterList.children('[data-repeater-item]:visible').each(function() {
                 let repeaterItem = $(this);
                 
                 if (repeaterItem.data('skip-collect')) {
@@ -740,7 +928,7 @@ $(document).ready(function() {
 
     // Initialize all tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 
@@ -772,7 +960,7 @@ $(document).ready(function() {
         initializeNewItem($newItem, isInitialStructure);
         
         // Aggiorna UI e binding
-        const $newItemCollapse = $newItem.find('.collapse').addClass('show');
+        $newItem.find('.collapse').addClass('show');
         $newItem.find('.toggle-btn').removeClass('collapsed');
     
         updateButtons($list, true);
