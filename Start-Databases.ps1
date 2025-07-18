@@ -148,7 +148,8 @@ function Launch-VirtuosoDatabase {
             --detach `
             --force-remove `
             --wait-ready `
-            --enable-write-permissions
+            --enable-write-permissions `
+            --network heritrace-network
         
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Database $Name started successfully"
@@ -167,13 +168,24 @@ function Launch-VirtuosoDatabase {
 
 Write-Info "Setting up Virtuoso databases using launch_virtuoso..."
 
+$networkExists = docker network ls | Select-String "heritrace-network"
+if (-not $networkExists) {
+    Write-Info "Creating Docker network: heritrace-network"
+    docker network create heritrace-network
+    if ($LASTEXITCODE -eq 0) {
+        Write-Success "Docker network created successfully"
+    } else {
+        Write-Error "Failed to create Docker network"
+        exit 1
+    }
+} else {
+    Write-Info "Docker network heritrace-network already exists"
+}
+
 if (-not (Setup-VirtuosoUtilities)) {
     Write-Error "Failed to setup virtuoso-utilities. Exiting."
     exit 1
 }
-
-Write-Info "Creating Docker network (if needed)..."
-docker network create virtuoso-net 2>$null
 $CURRENT_DIR = (Get-Location).Path
 
 $datasetDbPath = Join-Path -Path $CURRENT_DIR -ChildPath "database"

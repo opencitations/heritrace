@@ -133,6 +133,12 @@ DATASET_DB_TEXT_INDEX_ENABLED = True
   </TabItem>
 </Tabs>
 
+<Aside type="tip" title="Database Deployment Recommendations">
+For optimal performance, it is recommended to deploy your databases using Docker containers on the **heritrace-network** Docker network. This reduces latency between the application and database containers.
+
+While the system functions correctly with external databases, using Docker containers on the same network provides better performance regardless of which triplestore you choose (Virtuoso, Blazegraph, or others).
+</Aside>
+
 <Aside type="tip" title="Pro Tip: Managing Virtuoso with `virtuoso-utilities`">
 For comprehensive management of your Virtuoso instance—including launching the server, bulk-loading data, exporting dumps, and rebuilding the full-text index—we highly recommend using <a href="https://github.com/opencitations/virtuoso_utilities" target="_blank" rel="noopener noreferrer">**virtuoso-utilities**</a>.
 
