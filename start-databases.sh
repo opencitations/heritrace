@@ -100,7 +100,7 @@ launch_virtuoso_db() {
     print_info "  HTTP Port: $http_port"
     print_info "  ISQL Port: $isql_port"
     print_info "  Data Directory: $data_dir"
-    print_info "  Memory Limit: 4g"
+    print_info "  Memory Limit: 1g"
     
     mkdir -p "$data_dir"
     
@@ -109,7 +109,7 @@ launch_virtuoso_db() {
         --http-port "$http_port" \
         --isql-port "$isql_port" \
         --data-dir "$data_dir" \
-        --memory "4g" \
+        --memory "1g" \
         --dba-password "dba" \
         --detach \
         --force-remove \

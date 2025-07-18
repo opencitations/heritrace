@@ -282,8 +282,7 @@ def create_entity():
                     # Gestisci le proprietà ordinate per shape
                     values_by_shape = {}
                     for value in values:
-                        # Ottieni la shape dell'entità
-                        shape = value.get("shape")
+                        shape = value.get("entity_shape")
                         if not shape:
                             shape = "default_shape"
                         if shape not in values_by_shape:
@@ -356,13 +355,17 @@ def create_entity():
                             else:
                                 raise ValueError("Missing entity_uri in existing entity reference")
                         else:
-                            datatype_uris = []
-                            if matching_field_def:
-                                datatype_uris = matching_field_def.get(
-                                    "datatypes", []
-                                )
-                            datatype = determine_datatype(value, datatype_uris)
-                            object_value = Literal(value, datatype=datatype)
+                            # Handle simple properties - check if it's a URI or literal
+                            if validators.url(str(value)):
+                                object_value = URIRef(value)
+                            else:
+                                datatype_uris = []
+                                if matching_field_def:
+                                    datatype_uris = matching_field_def.get(
+                                        "datatypes", []
+                                    )
+                                datatype = determine_datatype(value, datatype_uris)
+                                object_value = Literal(value, datatype=datatype)
                             editor.create(
                                 entity_uri,
                                 URIRef(predicate),
@@ -506,13 +509,16 @@ def create_nested_entity(
                 if existing_entity_uri:
                     editor.create(entity_uri, URIRef(predicate), URIRef(existing_entity_uri), graph_uri)
             else:
-                # Handle simple properties (literals only)
-                datatype = XSD.string  # Default to string if not specified
-                datatype_uris = []
-                if field_definitions:
-                    datatype_uris = field_definitions[0].get("datatypes", [])
-                datatype = determine_datatype(value, datatype_uris)
-                object_value = Literal(value, datatype=datatype)
+                # Handle simple properties - check if it's a URI or literal
+                if validators.url(str(value)):
+                    object_value = URIRef(value)
+                else:
+                    datatype = XSD.string  # Default to string if not specified
+                    datatype_uris = []
+                    if field_definitions:
+                        datatype_uris = field_definitions[0].get("datatypes", [])
+                    datatype = determine_datatype(value, datatype_uris)
+                    object_value = Literal(value, datatype=datatype)
                 editor.create(entity_uri, URIRef(predicate), object_value, graph_uri)
 
 

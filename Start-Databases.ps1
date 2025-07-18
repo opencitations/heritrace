@@ -130,7 +130,7 @@ function Launch-VirtuosoDatabase {
     Write-Info "  HTTP Port: $HttpPort"
     Write-Info "  ISQL Port: $IsqlPort"
     Write-Info "  Data Directory: $DataDir"
-    Write-Info "  Memory Limit: 4g"
+    Write-Info "  Memory Limit: 1g"
     
     if (-not (Test-Path -Path $DataDir)) {
         Write-Info "Creating data directory: $DataDir"
@@ -143,7 +143,7 @@ function Launch-VirtuosoDatabase {
             --http-port $HttpPort `
             --isql-port $IsqlPort `
             --data-dir $DataDir `
-            --memory "4g" `
+            --memory "1g" `
             --dba-password "dba" `
             --detach `
             --force-remove `
