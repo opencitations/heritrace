@@ -135,22 +135,63 @@ function updateOrderedElementsNumbering() {
 }
 
 function initializeMandatoryElements(container) {
-    container.find(':input').each(function() {
-        $(this).prop('disabled', false);
-    });
+    // Batch enable all inputs first
+    container.find(':input').prop('disabled', false);
 
+    // Collect all operations to batch them
+    var operationsQueue = [];
+    
     container.find('[data-repeater-list]').each(function() {
         var list = $(this);
         var minItems = parseInt(list.data('min-items') || 0);
         var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
+        
         if (minItems > 0 && currentItems === 0) {
-            // Simulate click on add button for mandatory elements of the initial structure
             var addButton = list.find('[data-repeater-create] .initial-structure-add');
-            for (var i = 0; i < minItems; i++) {
-                addButton.click();
+            if (addButton.length) {
+                operationsQueue.push({
+                    button: addButton,
+                    count: minItems
+                });
             }
         }
     });
+
+    // Process operations asynchronously to prevent UI blocking
+    if (operationsQueue.length > 0) {
+        processOperationsAsync(operationsQueue);
+    }
+}
+
+function processOperationsAsync(operationsQueue) {
+    if (operationsQueue.length === 0) return;
+    
+    var currentOperation = operationsQueue.shift();
+    var button = currentOperation.button;
+    var count = currentOperation.count;
+    
+    // Process clicks in smaller batches with timeouts
+    var batchSize = Math.min(count, 3); // Process max 3 at a time
+    var processed = 0;
+    
+    function processBatch() {
+        for (var i = 0; i < batchSize && processed < count; i++) {
+            button.click();
+            processed++;
+        }
+        
+        if (processed < count) {
+            // Use setTimeout to yield control back to the browser
+            setTimeout(processBatch, 10);
+        } else {
+            // Move to next operation
+            setTimeout(function() {
+                processOperationsAsync(operationsQueue);
+            }, 10);
+        }
+    }
+    
+    processBatch();
 }
 
 function initializeForm() {
