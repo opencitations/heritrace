@@ -138,56 +138,35 @@ function updateOrderedElementsNumbering() {
 }
 
 function initializeMandatoryElements(container) {
-    console.log(`🔧 [DEBUG] initializeMandatoryElements called`);
-    
-    PerformanceDebugger.measure('enable_inputs', () => {
-        container.find(':input').each(function() {
-            $(this).prop('disabled', false);
-        });
-    });
 
     const repeaterLists = container.find('[data-repeater-list]');
-    console.log(`📊 [DEBUG] Found ${repeaterLists.length} repeater lists`);
-    
-    PerformanceDebugger.measure('process_repeater_lists', () => {
-        repeaterLists.each(function() {
-            var list = $(this);
-            var minItems = parseInt(list.data('min-items') || 0);
-            var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
-            console.log(`📊 [DEBUG] List ${list.data('repeater-list')}: minItems=${minItems}, currentItems=${currentItems}`);
-            
-            if (minItems > 0 && currentItems === 0) {
-                // Simulate click on add button for mandatory elements of the initial structure
-                var addButton = list.find('[data-repeater-create] .initial-structure-add');
-                console.log(`🔧 [DEBUG] Creating ${minItems} mandatory items for ${list.data('repeater-list')}`);
-                for (var i = 0; i < minItems; i++) {
-                    addButton.click();
-                }
+    repeaterLists.each(function() {
+        var list = $(this);
+        var minItems = parseInt(list.data('min-items') || 0);
+        var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
+        
+        if (minItems > 0 && currentItems === 0) {
+            // Simulate click on add button for mandatory elements of the initial structure
+            var addButton = list.find('[data-repeater-create] .initial-structure-add');
+            for (var i = 0; i < minItems; i++) {
+                addButton.click();
             }
-        });
+        }
     });
 }
 
 // Batched version of initializeMandatoryElements for better performance
 function initializeMandatoryElementsBatched(container) {
-    console.log(`🔧 [DEBUG] initializeMandatoryElementsBatched called`);
-    
-    // Enable inputs in batch
-    PerformanceDebugger.measure('enable_inputs_batched', () => {
-        const inputs = container.find(':input').get();
-        inputs.forEach(input => {
-            input.disabled = false;
-        });
+    const inputs = container.find(':input').get();
+    inputs.forEach(input => {
+        input.disabled = false;
     });
 
     const repeaterLists = container.find('[data-repeater-list]');
-    console.log(`📊 [DEBUG] Found ${repeaterLists.length} repeater lists`);
-    
     if (repeaterLists.length === 0) {
         return;
     }
     
-    // Process repeater lists in batches using requestAnimationFrame
     const listsToProcess = [];
     repeaterLists.each(function() {
         const list = $(this);
@@ -207,70 +186,23 @@ function initializeMandatoryElementsBatched(container) {
         return;
     }
     
-    // Process lists in chunks to avoid blocking the UI
     let currentListIndex = 0;
     
     function processBatch() {
-        const startTime = performance.now();
-        
-        // Process up to 3 lists or until we've used 16ms (60fps frame budget)
-        let processedCount = 0;
-        while (currentListIndex < listsToProcess.length && 
-               processedCount < 3 && 
-               (performance.now() - startTime) < 16) {
-            
+        const listsToProcessLength = listsToProcess.length;
+        while (currentListIndex < listsToProcessLength) {
             const listInfo = listsToProcess[currentListIndex];
-            console.log(`🔧 [DEBUG] Creating ${listInfo.minItems} mandatory items for ${listInfo.list.data('repeater-list')}`);
-            
-            // Create items in a batch
             for (let i = 0; i < listInfo.minItems; i++) {
                 listInfo.addButton.click();
             }
-            
             currentListIndex++;
-            processedCount++;
-        }
-        
-        // If there are more lists to process, schedule next batch
-        if (currentListIndex < listsToProcess.length) {
-            requestAnimationFrame(processBatch);
         }
     }
     
-    // Start processing
-    requestAnimationFrame(processBatch);
+    processBatch();
 }
 
-// Performance debugging utilities
-const PerformanceDebugger = {
-    timers: new Map(),
-    
-    start(label) {
-        this.timers.set(label, performance.now());
-        console.log(`🟡 [PERF] Started: ${label}`);
-    },
-    
-    end(label) {
-        const startTime = this.timers.get(label);
-        if (startTime) {
-            const duration = performance.now() - startTime;
-            console.log(`🟢 [PERF] Finished: ${label} - ${duration.toFixed(2)}ms`);
-            this.timers.delete(label);
-            return duration;
-        }
-        return 0;
-    },
-    
-    measure(label, fn) {
-        this.start(label);
-        const result = fn();
-        this.end(label);
-        return result;
-    }
-};
-
 function initializeForm() {
-    PerformanceDebugger.start('initializeForm_total');
     let selectedUri;
     let selectedShape;
     if ($('#entity_type').length) {
@@ -501,9 +433,6 @@ function showAppropriateDateInput(selector) {
 }
 
 function initializeNewItem($newItem, isInitialStructure = false) {
-    console.log(`🔧 [DEBUG] initializeNewItem called, isInitialStructure=${isInitialStructure}`);
-    PerformanceDebugger.start('initializeNewItem_total');
-    
     $newItem.addClass('added-in-edit-mode');
 
     if ($newItem.hasClass('draggable')) {
@@ -517,95 +446,78 @@ function initializeNewItem($newItem, isInitialStructure = false) {
     const searchInputs = $newItem.find('input[data-supports-search="True"], textarea[data-supports-search="True"]').get();
     
     // Aggiorna ID in batch
-    PerformanceDebugger.measure('update_ids', () => {
-        inputs.forEach(elem => {
-            const $elem = $(elem);
-            const elemId = $elem.attr('id');
-            
-            if (elemId) {
-                const newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
-                elem.id = newId;
-                elem.name = newId;
-            }
+    inputs.forEach(elem => {
+        const $elem = $(elem);
+        const elemId = $elem.attr('id');
+        
+        if (elemId) {
+            const newId = generateUniqueId(elemId.replace(/_[a-zA-Z0-9]+$/, ''));
+            elem.id = newId;
+            elem.name = newId;
+        }
 
-            // Reset valori
-            if (elem.tagName === 'SELECT') {
-                elem.selectedIndex = 0;
-            } else {
-                elem.value = '';
-            }
-        });
+        // Reset valori
+        if (elem.tagName === 'SELECT') {
+            elem.selectedIndex = 0;
+        } else {
+            elem.value = '';
+        }
     });
 
     // Inizializza nested forms in batch
-    PerformanceDebugger.measure('initialize_nested_forms', () => {
-        nestedHeaders.forEach(header => {
-            const $header = $(header);
-            const $toggleBtn = $header.find('.toggle-btn');
-            const $collapseDiv = $header.next('.nested-form-container');
-            
-            const newId = generateUniqueId('nested_form');
-            $toggleBtn.attr({
-                'data-bs-target': '#' + newId,
-                'aria-controls': newId
-            });
-            $collapseDiv.attr('id', newId);
+    nestedHeaders.forEach(header => {
+        const $header = $(header);
+        const $toggleBtn = $header.find('.toggle-btn');
+        const $collapseDiv = $header.next('.nested-form-container');
+        
+        const newId = generateUniqueId('nested_form');
+        $toggleBtn.attr({
+            'data-bs-target': '#' + newId,
+            'aria-controls': newId
         });
+        $collapseDiv.attr('id', newId);
     });
 
-    // Inizializza struttura iniziale se necessario (defer to avoid blocking)
+    // Inizializza struttura iniziale se necessario
     if (isInitialStructure) {
-        PerformanceDebugger.measure('initialize_initial_structure', () => {
-            const nestedLists = $newItem.find('[data-repeater-list]').get();
+        const nestedLists = $newItem.find('[data-repeater-list]').get();
+        
+        nestedLists.forEach(nestedList => {
+            const $nestedList = $(nestedList);
+            const minItems = parseInt($nestedList.data('min-items') || 0);
             
-            // Process nested lists in smaller batches
-            nestedLists.forEach(nestedList => {
-                const $nestedList = $(nestedList);
-                const minItems = parseInt($nestedList.data('min-items') || 0);
+            if (minItems > 0) {
+                const templateKey = $nestedList.data('repeater-list');
+                const $template = initialCopies[templateKey].clone(true, true);
                 
-                if (minItems > 0) {
-                    const templateKey = $nestedList.data('repeater-list');
-                    const $template = initialCopies[templateKey].clone(true, true);
-                    
-                    console.log(`🔧 [DEBUG] Creating ${minItems} nested items for ${templateKey}`);
-                    for (let i = 0; i < minItems; i++) {
-                        const $nestedItem = $template.clone(true, true);
-                        initializeNewItem($nestedItem, true);
-                        $nestedList.append($nestedItem);
-                    }
+                for (let i = 0; i < minItems; i++) {
+                    const $nestedItem = $template.clone(true, true);
+                    initializeNewItem($nestedItem, true);
+                    $nestedList.append($nestedItem);
                 }
-            });
+            }
         });
     }
 
     // Inizializza date inputs
-    PerformanceDebugger.measure('initialize_date_inputs', () => {
-        dateSelectors.forEach(selector => {
-            showAppropriateDateInput($(selector));
-        });
+    dateSelectors.forEach(selector => {
+        showAppropriateDateInput($(selector));
     });
 
-    PerformanceDebugger.measure('set_required_fields', () => {
-        setRequiredForVisibleFields($newItem, isInitialStructure);
-    });
+    setRequiredForVisibleFields($newItem, isInitialStructure);
 
-    PerformanceDebugger.measure('enhance_search_inputs', () => {
-        searchInputs.forEach(input => {
-            enhanceInputWithSearch($(input));
-        });
-        
-        // Apply top-level search for depth=0 inputs
-        const entityType = $('#entity_type').val();
-        if (entityType) {
-            const topLevelSearchInputs = $newItem.find('input[data-depth="0"][data-supports-search="True"], textarea[data-depth="0"][data-supports-search="True"]').get();
-            topLevelSearchInputs.forEach(input => {
-                enhanceTopLevelSearch($(input), entityType);
-            });
-        }
+    searchInputs.forEach(input => {
+        enhanceInputWithSearch($(input));
     });
     
-    const totalTime = PerformanceDebugger.end('initializeNewItem_total');
-    console.log(`🎯 [PERF] initializeNewItem total time: ${totalTime.toFixed(2)}ms`);
+    // Apply top-level search for depth=0 inputs
+    const entityType = $('#entity_type').val();
+    if (entityType) {
+        const topLevelSearchInputs = $newItem.find('input[data-depth="0"][data-supports-search="True"], textarea[data-depth="0"][data-supports-search="True"]').get();
+        topLevelSearchInputs.forEach(input => {
+            enhanceTopLevelSearch($(input), entityType);
+        });
+    }
 }
 
 // Funzione ricorsiva per raccogliere i dati dai campi del form
