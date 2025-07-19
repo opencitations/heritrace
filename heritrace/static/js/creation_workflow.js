@@ -485,12 +485,13 @@ function collectFormData(container, data, shacl, depth) {
                 let tempId = repeaterItem.data('temp-id');
                 let entityReference = repeaterItem.find('input[data-entity-reference="true"]');
                 
-                if (predicateUri && objectClass && itemDepth === depth) {
+                // Allow processing of entity references regardless of depth, or normal items at current depth
+                if (predicateUri && objectClass && (itemDepth === depth || entityReference.length > 0)) {
                     let itemData = {};
                     let hasContent = false;
                     
-                    // Handle direct entity reference at current depth
-                    if (entityReference.length > 0 && parseInt(entityReference.data('depth')) === depth) {
+                    // Handle direct entity reference
+                    if (entityReference.length > 0) {
                         // Se non è una relazione intermedia, gestisci come riferimento diretto
                         if (!repeaterItem.data('intermediate-relation')) {
                             let entityUri = entityReference.val();
@@ -519,9 +520,8 @@ function collectFormData(container, data, shacl, depth) {
                         let isDirectReference = false;
                         let directReferenceValue = null;
                         
-                        if (entityReferenceInput.length > 0 && 
-                            parseInt(entityReferenceInput.data('depth')) === itemDepth + 1) {
-                            
+                        
+                        if (entityReferenceInput.length > 0) {
                             isDirectReference = true;
                             directReferenceValue = entityReferenceInput.val();
                         }
@@ -623,8 +623,11 @@ function collectFormData(container, data, shacl, depth) {
             let entityReference = $(this);
             let refDepth = parseInt(entityReference.data('depth'));
             
-            // Process only references at current depth that are not already processed in repeater items
-            if (refDepth === depth && !entityReference.closest('[data-repeater-item]').length) {
+            // Process references that are not already processed in repeater items
+            // For entity references, we should collect them regardless of depth in edit mode
+            const isInRepeaterItem = entityReference.closest('[data-repeater-item]').length > 0;
+            
+            if (!isInRepeaterItem) {
                 // Determine if this reference is part of an intermediate relation
                 let propertiesContainer = entityReference.closest('.newEntityPropertiesContainer');
                 let predicateUri = entityReference.data('predicate-uri');

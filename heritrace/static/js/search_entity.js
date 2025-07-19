@@ -481,7 +481,9 @@ function handleEntitySelection(container, entity) {
         .val(entity.entity.value)
         .attr('data-entity-reference', 'true')
         .attr('data-class', objectClass)
-        .attr('data-depth', originalDepth); // Preserve the original depth
+        .attr('data-depth', originalDepth) // Preserve the original depth
+        .attr('data-predicate-uri', input.data('predicate-uri')) // Copy predicate URI from original input
+        .attr('data-predicate-label', input.data('predicate-label')); // Copy predicate label from original input
 
     // Create the display for the selected entity
     createEntityDisplay(entity, propertiesContainer, function(display) {
