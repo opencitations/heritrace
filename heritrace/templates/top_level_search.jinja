@@ -35,12 +35,12 @@ function searchSimilarTopLevelEntities(term, entityType, predicateUri, minCharsF
     // 2. Term length >= minCharsForSearch, AND
     // 3. Text index is enabled, AND
     // 4. Triplestore is virtuoso
-    if (term.length >= 4 && term.length >= minCharsForSearch && window.dataset_db_text_index_enabled && window.dataset_db_triplestore === 'virtuoso') {
+    if (term.length >= minCharsForSearch && window.dataset_db_text_index_enabled && window.dataset_db_triplestore === 'virtuoso') {
         sparqlQuery = `
             SELECT DISTINCT ?entity ?scoreValue WHERE {
                 ?entity a <${entityType}> .
                 ?entity <${predicateUri}> ?text .
-                ?text bif:contains "'${term}*'" OPTION (score ?scoreValue) .
+                ?text bif:contains "'${term}'" OPTION (score ?scoreValue) .
                 FILTER(?scoreValue > 0.2)
             }
             ORDER BY DESC(?scoreValue) ASC(?entity)

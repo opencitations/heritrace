@@ -67,7 +67,7 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
     // 1. Term length >= 4 (Virtuoso requirement), AND
     // 2. Text index is enabled, AND
     // 3. Triplestore is virtuoso
-    if (term.length >= 4 && dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso') {
+    if (dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso') {
         query = `
             SELECT DISTINCT ?entity ?scoreValue WHERE {
                 ${searchTarget === 'parent' ? `
@@ -79,7 +79,7 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                     ${entityType ? `?entity a <${entityType}> .` : ''}
                     ${predicate ? `?entity <${predicate}> ?text .` : ''}
                 `}
-                ?text bif:contains "'${term}*'" OPTION (score ?scoreValue) .
+                ?text bif:contains "'${term}'" OPTION (score ?scoreValue) .
                 FILTER(?scoreValue > 0.2)
             }
             ORDER BY DESC(?scoreValue) ASC(?entity)
