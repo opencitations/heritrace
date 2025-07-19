@@ -118,6 +118,40 @@ function Setup-VirtuosoUtilities {
     return $true
 }
 
+function Rebuild-TextIndex {
+    param(
+        [string]$ContainerName,
+        [int]$Port
+    )
+    
+    Write-Info "Rebuilding text index for $ContainerName..."
+    
+    if (-not (Test-Command "virtuoso-rebuild-index")) {
+        Write-Warning "virtuoso-rebuild-index command not found, skipping text index rebuild"
+        return $true
+    }
+    
+    try {
+        virtuoso-rebuild-index `
+            --password "dba" `
+            --docker-container $ContainerName `
+            --restart-container
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "Text index rebuilt and container restarted for $ContainerName"
+            return $true
+        }
+        else {
+            Write-Warning "Failed to rebuild text index for $ContainerName (database will still function normally)"
+            return $true
+        }
+    }
+    catch {
+        Write-Warning "Failed to rebuild text index for $ContainerName (database will still function normally): $_"
+        return $true
+    }
+}
+
 function Launch-VirtuosoDatabase {
     param(
         [string]$Name,
@@ -153,6 +187,7 @@ function Launch-VirtuosoDatabase {
         
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Database $Name started successfully"
+            Rebuild-TextIndex -ContainerName $Name -Port $IsqlPort
             return $true
         }
         else {

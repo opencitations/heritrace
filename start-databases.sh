@@ -90,6 +90,31 @@ setup_virtuoso_utilities() {
     return 0
 }
 
+rebuild_text_index() {
+    local container_name=$1
+    local port=$2
+    
+    print_info "Rebuilding text index for $container_name..."
+    
+    if ! command_exists virtuoso-rebuild-index; then
+        print_warning "virtuoso-rebuild-index command not found, skipping text index rebuild"
+        return 0
+    fi
+    
+    virtuoso-rebuild-index \
+        --password "dba" \
+        --docker-container "$container_name" \
+        --restart-container
+    
+    if [ $? -eq 0 ]; then
+        print_success "Text index rebuilt and container restarted for $container_name"
+        return 0
+    else
+        print_warning "Failed to rebuild text index for $container_name (database will still function normally)"
+        return 0
+    fi
+}
+
 launch_virtuoso_db() {
     local name=$1
     local http_port=$2
@@ -119,6 +144,7 @@ launch_virtuoso_db() {
     
     if [ $? -eq 0 ]; then
         print_success "Database $name started successfully"
+        rebuild_text_index "$name" "$isql_port"
         return 0
     else
         print_error "Failed to start database $name"
