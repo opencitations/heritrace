@@ -12,7 +12,6 @@ services:
       - ./resources:/app/resources
       - ./app.py:/app/app.py
       - ./config.py:/app/config.py
-      - ./cache.json:/app/cache.json
       - ./pyproject.toml:/app/pyproject.toml
       - ./poetry.lock:/app/poetry.lock
       - ./resources/shacl.ttl:/app/resources/shacl.ttl

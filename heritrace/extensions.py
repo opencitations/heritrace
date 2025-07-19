@@ -236,32 +236,25 @@ def need_initialization(app: Flask):
     if not hasattr(uri_generator, "counter_handler"):
         return False
 
-    cache_file = app.config['CACHE_FILE']
     cache_validity_days = app.config['CACHE_VALIDITY_DAYS']
-
-    if not os.path.exists(cache_file):
-        return True
     
     try:
-        with open(cache_file, 'r', encoding='utf8') as f:
-            cache = json.load(f)
+        last_init_str = redis_client.get('heritrace:last_initialization')
+        if not last_init_str:
+            return True
         
-        last_init = datetime.fromisoformat(cache['last_initialization'])
+        last_init = datetime.fromisoformat(last_init_str.decode('utf-8'))
         return datetime.now() - last_init > timedelta(days=cache_validity_days)
     except Exception:
         return True
 
 def update_cache(app: Flask):
     """
-    Update the cache file with current initialization timestamp.
+    Update Redis with current initialization timestamp.
     """
-    cache_file = app.config['CACHE_FILE']
-    cache = {
-        'last_initialization': datetime.now().isoformat(),
-        'version': '1.0'
-    }
-    with open(cache_file, 'w', encoding='utf8') as f:
-        json.dump(cache, f, ensure_ascii=False, indent=4)
+    current_time = datetime.now().isoformat()
+    redis_client.set('heritrace:last_initialization', current_time)
+    redis_client.set('heritrace:cache_version', '1.0')
 
 def initialize_counter_handler(app: Flask):
     """

@@ -307,32 +307,29 @@ def test_need_initialization(app):
     mock_uri_generator = MagicMock()
     mock_uri_generator.counter_handler = MagicMock()
     app.config['URI_GENERATOR'] = mock_uri_generator
-    
-    # Test when cache file doesn't exist
-    app.config['CACHE_FILE'] = 'nonexistent_cache_file.json'
     app.config['CACHE_VALIDITY_DAYS'] = 7
     
-    with patch('os.path.exists', return_value=False):
-        assert need_initialization(app) is True
+    # Mock Redis client
+    mock_redis = MagicMock()
     
-    # Test when cache file exists but is invalid
-    with patch('os.path.exists', return_value=True), \
-         patch('heritrace.extensions.open', MagicMock()), \
-         patch('json.load', side_effect=Exception('Invalid JSON')):
+    with patch('heritrace.extensions.redis_client', mock_redis):
+        # Test when Redis key doesn't exist
+        mock_redis.get.return_value = None
         assert need_initialization(app) is True
-    
-    # Test when cache file exists and is valid but expired
-    mock_cache = {'last_initialization': (datetime.now() - timedelta(days=10)).isoformat()}
-    with patch('os.path.exists', return_value=True), \
-         patch('heritrace.extensions.open', MagicMock()), \
-         patch('json.load', return_value=mock_cache):
+        
+        # Test when Redis returns invalid data
+        mock_redis.get.side_effect = Exception('Redis error')
         assert need_initialization(app) is True
-    
-    # Test when cache file exists and is valid and not expired
-    mock_cache = {'last_initialization': datetime.now().isoformat()}
-    with patch('os.path.exists', return_value=True), \
-         patch('heritrace.extensions.open', MagicMock()), \
-         patch('json.load', return_value=mock_cache):
+        
+        # Test when cache exists but is expired
+        expired_time = (datetime.now() - timedelta(days=10)).isoformat()
+        mock_redis.get.return_value = expired_time.encode('utf-8')
+        mock_redis.get.side_effect = None
+        assert need_initialization(app) is True
+        
+        # Test when cache exists and is not expired
+        current_time = datetime.now().isoformat()
+        mock_redis.get.return_value = current_time.encode('utf-8')
         assert need_initialization(app) is False
     
     # Test when URI generator doesn't have counter_handler
@@ -341,30 +338,30 @@ def test_need_initialization(app):
 
 
 def test_update_cache(app):
-    """Test that update_cache correctly updates the cache file."""
-
-    # Set up the cache file path
-    app.config['CACHE_FILE'] = 'test_cache_file.json'
+    """Test that update_cache correctly updates Redis with cache information."""
     
-    # Mock the open function
-    mock_open = MagicMock()
-    mock_json_dump = MagicMock()
+    # Mock Redis client
+    mock_redis = MagicMock()
     
-    with patch('heritrace.extensions.open', mock_open), \
-         patch('json.dump', mock_json_dump):
+    with patch('heritrace.extensions.redis_client', mock_redis):
         update_cache(app)
     
-    # Check that open was called with the correct arguments
-    mock_open.assert_called_once_with('test_cache_file.json', 'w', encoding='utf8')
+    # Check that Redis set was called for both keys
+    assert mock_redis.set.call_count == 2
     
-    # Check that json.dump was called with the correct arguments
-    assert mock_json_dump.call_count == 1
-    args, kwargs = mock_json_dump.call_args
-    assert len(args) == 2
-    assert 'last_initialization' in args[0]
-    assert args[0]['version'] == '1.0'
-    assert kwargs['ensure_ascii'] is False
-    assert kwargs['indent'] == 4
+    # Check the calls made to Redis
+    calls = mock_redis.set.call_args_list
+    
+    # First call should be for last_initialization
+    first_call_args = calls[0][0]
+    assert first_call_args[0] == 'heritrace:last_initialization'
+    # The timestamp should be a valid ISO format string
+    assert isinstance(first_call_args[1], str)
+    
+    # Second call should be for cache_version
+    second_call_args = calls[1][0]
+    assert second_call_args[0] == 'heritrace:cache_version'
+    assert second_call_args[1] == '1.0'
 
 
 def test_initialize_change_tracking_config(app, cleanup_nonexistent_config):
