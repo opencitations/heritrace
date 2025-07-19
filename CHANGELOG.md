@@ -1,3 +1,47 @@
+# [1.2.0](https://github.com/opencitations/heritrace/compare/v1.1.0...v1.2.0) (2025-07-19)
+
+
+### Bug Fixes
+
+* add text index rebuilding functionality for Virtuoso databases starting scripts ([59bb1db](https://github.com/opencitations/heritrace/commit/59bb1db5ea01bc628cc0166ddda15811a9e4031b))
+* **api:** Handle non-dict values in create_logic ([71dabd2](https://github.com/opencitations/heritrace/commit/71dabd26cb12d5a2415f6c745645ccef35f31789))
+* **config:** update configuration paths and enhance application startup ([dd9ade0](https://github.com/opencitations/heritrace/commit/dd9ade09ef4c174ae77558eba2169060f0cdbd80))
+* **creation_workflow:** prevente UI blocking through asynchronous batch processing ([3691c48](https://github.com/opencitations/heritrace/commit/3691c48ddc9dbbf3abe5b647cb561131d1fa15f6))
+* debug settings in demo mode and virtuoso-utilities in start databases scripts ([5b6ad43](https://github.com/opencitations/heritrace/commit/5b6ad43aa550ad1f230e0ee22d3361ad83805a7b))
+* **display-rules:** re-add display rules that were accidentaly removed after being moved to the resources folder ([c6615af](https://github.com/opencitations/heritrace/commit/c6615af58a0054f3af0970d8663d013068e64595))
+* **display-rules:** update priority handling in get_class_priority function ([e6932cf](https://github.com/opencitations/heritrace/commit/e6932cf0bf9061237be403a1cff3eb6e01dac2f4))
+* Draft privacy notice for user testing, update docs for Docker network usage, and improve database launch scripts ([0e262e2](https://github.com/opencitations/heritrace/commit/0e262e2326653edf7f9d17f0d7ee71840b17ed47))
+* enable custom entities creation and make SHACL components optional ([cf8306c](https://github.com/opencitations/heritrace/commit/cf8306c675d2a245347fde67f61a54418eae253b))
+* enhance UI tooltips ([e2eb3c6](https://github.com/opencitations/heritrace/commit/e2eb3c64de75a48a6eb7179e172b22178b2d048d))
+* ensure predicate display names in form details when display rules are missing ([ef2bb57](https://github.com/opencitations/heritrace/commit/ef2bb57ae344224bb0bff5afcb3d1efe442f9aae))
+* Fix bug in entity creation and sorting; add dev Dockerfile; update user testing docs and simplify data model ([68d6d01](https://github.com/opencitations/heritrace/commit/68d6d01ee2a876ab13229855f614b35781c54e37))
+* Fix depth mismatch preventing entity references from being collected when using top level search. ([00dacef](https://github.com/opencitations/heritrace/commit/00dacef9e752998fb8ba2efbbe7b595d330c2d45))
+* Fix SHACL shape determination by converting generators to lists ([96bf71b](https://github.com/opencitations/heritrace/commit/96bf71bc86587a1d4c5c4a2d52c07b96e5213935))
+* reduce memory limit from 4g to 1g in database launch scripts and prevent URIs from being stored as string literals in entity creation ([998202b](https://github.com/opencitations/heritrace/commit/998202b22ae85a65bdd7a2832436e2ae4b747d12))
+* remove HTTPS/SSL from demo environment and simplify startup process ([b982200](https://github.com/opencitations/heritrace/commit/b982200b5976c1b638cc0882f31e550132aa9f88))
+* rename batch scripts to CMD for Windows compatibility ([de791fc](https://github.com/opencitations/heritrace/commit/de791fc7b25d7f9d8c3f1b4ee07f1f072d812671))
+* resolve entity ordering issues with mixed existing and new entities ([753e4ce](https://github.com/opencitations/heritrace/commit/753e4ceaf16fea346bac2ce353fa63014f0d0162))
+* resolve provenance snapshot issue for linked existing entities ([0d37405](https://github.com/opencitations/heritrace/commit/0d37405bcfdae4e46338f3004c43ff90e27a121f))
+* **shacl-validation:** ensure consistent string types for predicates and improve handling of SHACL absence ([27193f0](https://github.com/opencitations/heritrace/commit/27193f09fb94c8ae0440b46affef9a1a8a657b8e))
+* support multiple prefixes in meta counter handler and URI generator, update tests, and improve self-signed certificate creation ([bfaea5b](https://github.com/opencitations/heritrace/commit/bfaea5b3311d9884a5008cfca2d327a39834ad61))
+* update Time Agnostic Library and resolve string literal quote handling ([077d066](https://github.com/opencitations/heritrace/commit/077d066bb75b07874c6e09b5e03645cecf9d6839))
+* update Virtuoso SPARQL query on text index to use exact term matching instead of wildcard for search ([7a792e5](https://github.com/opencitations/heritrace/commit/7a792e56d8f50262de7f18e99fa0ad12200e182f))
+* **user-testing:** only expose 5000 port and other stuff: ([318de7d](https://github.com/opencitations/heritrace/commit/318de7d214d75290cb00445484a0a38e1eb99bc2))
+
+
+### Features
+
+* add Docker image metadata labels and build args for author, description and version ([c126d7a](https://github.com/opencitations/heritrace/commit/c126d7a240bb59ad6825bf0e6b700a52dd191521))
+* add version restore functionality with UI feedback in entity history timeline ([d75b565](https://github.com/opencitations/heritrace/commit/d75b56547ad01d398e46533c85c52a16b27c672e))
+* **custom-properties:** implement dynamic custom properties management in entity creation and editing ([db7c6c8](https://github.com/opencitations/heritrace/commit/db7c6c8e6d4b5fbfa7e5ba05c3856edf587e2a30))
+* **demo:** introduce demo mode functionality and environment management and environment management script for user testing ([93268ba](https://github.com/opencitations/heritrace/commit/93268bac2cc992abaf04eccde6de31e5b21b926c))
+* **docs:** initialize HERITRACE documentation structure and assets ([20f63d1](https://github.com/opencitations/heritrace/commit/20f63d1e30e52bce1dc73e3f8fcde488ed897d7c))
+* enhance user testing scripts for improved Windows compatibility and user guidance ([e48b315](https://github.com/opencitations/heritrace/commit/e48b3151b9f1837199af0f726ed44abd0ac5e60d))
+* **user-testing:** add comprehensive user testing protocols and documentation for HERITRACE ([647e678](https://github.com/opencitations/heritrace/commit/647e678323755c63b89753b62c029f3575a893cf))
+* **user-testing:** enhance analysis framework with detailed metrics and calculations ([5590a4d](https://github.com/opencitations/heritrace/commit/5590a4d41f006bc8c5d96f9717d7f2402976e640))
+* **user-testing:** enhance user testing documentation and add new testing materials ([37d1fc0](https://github.com/opencitations/heritrace/commit/37d1fc0e096ddcbd6863dc7fd357795c651068e9))
+* **user-testing:** Introduce Docker-based user testing packaging ([478591a](https://github.com/opencitations/heritrace/commit/478591aa3ecc0f87b2c7c71a0e87c65d06b89fa4))
+
 # [1.1.0](https://github.com/opencitations/heritrace/compare/v1.0.0...v1.1.0) (2025-05-29)
 
 
