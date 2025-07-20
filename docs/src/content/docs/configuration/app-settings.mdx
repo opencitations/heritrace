@@ -5,23 +5,62 @@ description: Configure HERITRACE application settings and integrations
 
 import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
 
-HERITRACE uses a Python configuration file (`config.py`) to manage all application settings. This page covers all available configuration options.
+HERITRACE supports two configuration methods: a Python configuration file (`config.py`) for development, and Docker environment variables for containerized deployments. This page covers all available configuration options.
 
-## Configuration Setup
+## Configuration Methods
 
-### Initial Setup
+HERITRACE can be configured using either:
 
-1. Copy the template configuration:
-   ```bash
-   cp config.example.py config.py
-   ```
+1. **Python Configuration File** (`config.py`) - Traditional method, ideal for development
+2. **Docker Environment Variables** - Modern approach, recommended for production and Docker deployments
 
-2. Edit `config.py` with your specific settings
+<Tabs>
+  <TabItem label="Docker Environment Variables (Recommended)">
+    When using Docker (as shown in the [Quick Start guide](/heritrace/getting-started/quick-start/)), configuration is handled through environment variables in your `docker-compose.yml` file:
 
-3. Restart the application to apply changes
+    ```yaml
+    environment:
+      # Application settings
+      - FLASK_ENV=production
+      - APP_TITLE=HERITRACE
+      - APP_SUBTITLE=A semantic editor for heritage data
+      
+      # Security (REQUIRED: Change this!)
+      - SECRET_KEY=your-secure-secret-key-here
+      
+      # Database endpoints
+      - DATASET_DB_URL=http://host.docker.internal:8999/sparql
+      - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
+      - DATASET_DB_TRIPLESTORE=virtuoso
+      - PROVENANCE_DB_TRIPLESTORE=virtuoso
+      
+      # ORCID authentication
+      - ORCID_CLIENT_ID=your-client-id
+      - ORCID_CLIENT_SECRET=your-client-secret
+      - ORCID_WHITELIST=0000-0000-0000-0000,0000-0000-0000-0001
+    ```
+
+  </TabItem>
+  <TabItem label="Python Configuration File">
+    ### Initial Setup
+
+    1. Copy the template configuration:
+       ```bash
+       cp config.example.py config.py
+       ```
+
+    2. Edit `config.py` with your specific settings
+
+    3. Restart the application to apply changes
+  </TabItem>
+</Tabs>
+
+<Aside type="tip" title="Configuration Priority">
+When using Docker, environment variables take precedence over `config.py` settings. This allows you to override specific settings without modifying the configuration file.
+</Aside>
 
 <Aside type="tip" title="Configuration Management">
-Keep your `config.py` file out of version control if it contains sensitive information. Use environment variables for production deployments.
+Keep sensitive information (like ORCID credentials and secret keys) out of version control. Use environment variables for production deployments.
 </Aside>
 
 ## Core Application Settings

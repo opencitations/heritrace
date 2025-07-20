@@ -3,7 +3,7 @@ import redis
 
 
 class MetaCounterHandler:
-    def __init__(self, host='localhost', port=6379, db=0, password=None, supplier_prefix="060") -> None:
+    def __init__(self, host=None, port=6379, db=0, password=None, supplier_prefix="060") -> None:
         """
         Constructor of the ``MetaCounterHandler`` class.
 
@@ -18,7 +18,15 @@ class MetaCounterHandler:
         :param supplier_prefix: Supplier prefix for counter separation
         :type supplier_prefix: str
         """
-        self.redis_client = redis.Redis(host=host, port=port, db=db, password=password)
+        # Force localhost if someone passes 'redis' or None
+        if host is None or host == 'redis':
+            host = 'localhost'
+        # Store connection parameters for lazy initialization
+        self.host = host
+        self.port = port
+        self.db = db
+        self.password = password
+        self._redis_client = None
 
         self.base_iri = "https://w3id.org/oc/meta/"
         self.short_names = ["ar", "br", "id", "ra", "re"]
@@ -44,6 +52,18 @@ class MetaCounterHandler:
             "http://xmlns.com/foaf/0.1/Agent": "ra",
             "http://purl.org/spar/datacite/Identifier": "id",
         }
+
+    @property
+    def redis_client(self):
+        """Lazy initialization of Redis client."""
+        if self._redis_client is None:
+            self._redis_client = redis.Redis(
+                host=self.host, 
+                port=self.port, 
+                db=self.db, 
+                password=self.password
+            )
+        return self._redis_client
 
     def _process_entity_name(self, entity_name: str) -> tuple:
         """

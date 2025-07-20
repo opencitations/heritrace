@@ -1,9 +1,9 @@
 services:
   web:
-    image: arcangelo7/heritrace:2.0.2
-    command: ["/app/.venv/bin/python", "app.py"]
+    build: .
     ports:
       - "5000:5000"
+      - "6379:6379"
     environment:
       # Application settings
       - FLASK_ENV=production
@@ -41,25 +41,10 @@ services:
       - ./display_rules.yaml:/app/display_rules.yaml
       # Expose config file for advanced customization (optional)
       - ./config.py:/app/config.py
-    depends_on:
-      redis:
-        condition: service_healthy
+      # Redis data persistence
+      - ./redis-data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    networks:
-      - heritrace-network
-
-  redis:
-    image: redis:7.4.5-alpine@sha256:0c0142c3cd69bc030ea09fecfa1c1c0c7d0e7d6081be6bb4957804f23d2cf57a
-    ports:
-      - "6379:6379"
-    volumes:
-      - ./redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
     networks:
       - heritrace-network
 

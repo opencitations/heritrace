@@ -3,8 +3,7 @@ from collections import defaultdict
 
 from heritrace.uri_generator.uri_generator import URIGenerator
 from rdflib import URIRef
-from rdflib_ocdm.counter_handler.redis_counter_handler import \
-    RedisCounterHandler
+from heritrace.meta_counter_handler import MetaCounterHandler
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 
@@ -15,7 +14,7 @@ class InvalidURIFormatError(Exception):
 
 class MetaURIGenerator(URIGenerator):
     def __init__(
-        self, base_iri: str, supplier_prefix_regex: str, new_supplier_prefix: str, counter_handler: RedisCounterHandler
+        self, base_iri: str, supplier_prefix_regex: str, new_supplier_prefix: str, counter_handler: MetaCounterHandler
     ):
         self.base_iri = base_iri
         self.supplier_prefix_regex = supplier_prefix_regex

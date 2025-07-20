@@ -28,7 +28,7 @@ def create_app(config_object=None):
         babel = Babel()
         login_manager = LoginManager()
 
-        redis_url = app.config.get('REDIS_URL', 'redis://redis:6379') # Default to production if not set
+        redis_url = 'redis://localhost:6379/0'  # Internal Redis service
         redis_client = Redis.from_url(redis_url, decode_responses=True)
 
         from heritrace.extensions import init_extensions

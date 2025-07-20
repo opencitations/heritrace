@@ -7,21 +7,17 @@ from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStra
 # Base directory for the application
 BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# Redis configuration - will be resolved at runtime
-REDIS_HOST = os.environ.get('REDIS_HOST', 'redis')
-REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
-REDIS_DB = int(os.environ.get('REDIS_DB', '0'))
+# URI generators for different types of resources
+default_uri_generator = DefaultURIGenerator("https://example.com")
 
-# Initialize counter handler for URI generation - using environment variables
+# Initialize counter handler for URI generation - using internal Redis
 counter_handler = MetaCounterHandler(
-    host=REDIS_HOST,
-    port=REDIS_PORT,
-    db=REDIS_DB,
+    host='localhost',
+    port=6379,
+    db=0,
     supplier_prefix="09110"
 )
 
-# URI generators for different types of resources
-default_uri_generator = DefaultURIGenerator("https://example.com")
 meta_uri_generator = MetaURIGenerator(
     "https://w3id.org/oc/meta", 
     supplier_prefix_regex="0[6|9][1-9]+0", 
@@ -54,8 +50,6 @@ class Config(object):
     DATASET_DB_URL = os.environ.get("DATASET_DB_URL", "http://localhost:8999/sparql")
     PROVENANCE_DB_URL = os.environ.get("PROVENANCE_DB_URL", "http://localhost:8998/sparql")
 
-    # Redis configuration
-    REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
     # Database store types
     DATASET_IS_QUADSTORE = os.environ.get("DATASET_IS_QUADSTORE", "true").lower() == "true"
