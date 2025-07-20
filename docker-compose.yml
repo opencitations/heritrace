@@ -37,6 +37,8 @@ services:
     volumes:
       # Expose resources folder for customization (SHACL schema, display rules)
       - ./resources:/app/resources
+      # Expose config file for advanced customization (optional)
+      - ./config.py:/app/config.py
     depends_on:
       redis:
         condition: service_healthy

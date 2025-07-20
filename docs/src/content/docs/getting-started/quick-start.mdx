@@ -25,18 +25,39 @@ This method uses official Docker images published to Docker Hub and GitHub Conta
 
 #### 1. Download Configuration Files
 
+Create a new directory for HERITRACE:
 ```bash
-# Create a new directory for HERITRACE
 mkdir heritrace && cd heritrace
-
-# Download HERITRACE configuration
-curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
-
-# Optionally download database start scripts for quick setup
-curl -o start-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/start-databases.sh      # Linux/MacOS
-curl -o Start-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Start-Databases.ps1  # Windows
-chmod +x start-databases.sh  # Linux/MacOS only
 ```
+
+Download HERITRACE configuration:
+```bash
+curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
+```
+
+Optionally download database management scripts for quick setup:
+
+<Tabs>
+  <TabItem label="Linux/MacOS">
+    ```bash
+    curl -o start-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/start-databases.sh
+    ```
+    ```bash
+    curl -o stop-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/stop-databases.sh
+    ```
+    ```bash
+    chmod +x start-databases.sh stop-databases.sh
+    ```
+  </TabItem>
+  <TabItem label="Windows">
+    ```bash
+    curl -o Start-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Start-Databases.ps1
+    ```
+    ```bash
+    curl -o Stop-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Stop-Databases.ps1
+    ```
+  </TabItem>
+</Tabs>
 
 #### 2. Configure ORCID Authentication
 
@@ -55,18 +76,31 @@ chmod +x start-databases.sh  # Linux/MacOS only
 #### 3. Launch Options
 
 **Option A: Quick start with provided databases**
-```bash
-# Start databases first
-./start-databases.sh  # or .\Start-Databases.ps1 on Windows
 
-# Start HERITRACE (edit docker-compose.yml first!)
+Start databases first:
+
+<Tabs>
+  <TabItem label="Linux/MacOS">
+    ```bash
+    ./start-databases.sh
+    ```
+  </TabItem>
+  <TabItem label="Windows">
+    ```bash
+    .\Start-Databases.ps1
+    ```
+  </TabItem>
+</Tabs>
+
+Start HERITRACE (edit docker-compose.yml first!):
+```bash
 docker compose up
 ```
 
 **Option B: Use your existing databases**
+
+Edit docker-compose.yml with your database URLs, then start HERITRACE:
 ```bash
-# Edit docker-compose.yml with your database URLs
-# Then start HERITRACE
 docker compose up
 ```
 
@@ -86,6 +120,8 @@ This method requires <a href="https://git-scm.com/downloads" target="_blank" rel
 
 ```bash
 git clone https://github.com/opencitations/heritrace.git
+```
+```bash
 cd heritrace
 ```
 
@@ -105,13 +141,18 @@ Configure ORCID authentication in `config.py` (edit the file directly with your 
 Make sure Docker Engine (Linux/MacOS) or Docker Desktop (Windows) is running before executing these commands.
 :::
 
-```bash
-# Linux/MacOS
-./start-databases.sh
-
-# Windows
-.\Start-Databases.ps1
-```
+<Tabs>
+  <TabItem label="Linux/MacOS">
+    ```bash
+    ./start-databases.sh
+    ```
+  </TabItem>
+  <TabItem label="Windows">
+    ```bash
+    .\Start-Databases.ps1
+    ```
+  </TabItem>
+</Tabs>
 
 This starts two Virtuoso database instances:
 - Dataset database on port 8999
@@ -119,11 +160,13 @@ This starts two Virtuoso database instances:
 
 #### 4. Launch HERITRACE
 
+Development Mode (with hot reload):
 ```bash
-# Development Mode (with hot reload)
 docker compose -f docker-compose.dev.yaml up --build
+```
 
-# Production Mode
+Production Mode:
+```bash
 docker compose up
 ```
 
@@ -181,22 +224,24 @@ When you're done, stop the services:
 
 <Tabs>
   <TabItem label="Stop Application">
+    Press Ctrl+C in the terminal running docker compose, or run:
     ```bash
-    # Press Ctrl+C in the terminal running docker compose
-    # Or run:
     docker compose down
     ```
   </TabItem>
   <TabItem label="Stop Databases">
-    **Linux/MacOS:**
-    ```bash
-    ./stop-databases.sh
-    ```
-    
-    **Windows:**
-    ```powershell
-    .\Stop-Databases.ps1
-    ```
+    <Tabs>
+      <TabItem label="Linux/MacOS">
+        ```bash
+        ./stop-databases.sh
+        ```
+      </TabItem>
+      <TabItem label="Windows">
+        ```powershell
+        .\Stop-Databases.ps1
+        ```
+      </TabItem>
+    </Tabs>
   </TabItem>
 </Tabs>
 
@@ -218,11 +263,13 @@ If you get port conflicts, check if other services are running on the required p
     ```
   </TabItem>
   <TabItem label="Windows">
+    Check ports using netstat:
     ```cmd
-    # Check ports using netstat
     netstat -ano | findstr ":5000 :6379 :8998 :8999"
+    ```
     
-    # Or using PowerShell
+    Or using PowerShell:
+    ```powershell
     Get-NetTCPConnection | Where-Object {$_.LocalPort -in 5000,6379,8998,8999}
     ```
   </TabItem>
