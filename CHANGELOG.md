@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/opencitations/heritrace/compare/v1.3.0...v1.3.1) (2025-07-20)
+
+
+### Bug Fixes
+
+* clean version tagging for Docker images and update docker-compose configuration ([b57460b](https://github.com/opencitations/heritrace/commit/b57460be750c052e65223487655b000a058b4688))
+
 # [1.3.0](https://github.com/opencitations/heritrace/compare/v1.2.0...v1.3.0) (2025-07-20)
 
 
