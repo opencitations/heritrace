@@ -34,7 +34,7 @@ services:
       
       # Provenance settings
       - DATASET_GENERATION_TIME=2024-01-01T00:00:00+00:00
-      - PRIMARY_SOURCE=https://example.org
+      - PRIMARY_SOURCE=https://example.org 
     volumes:
       # Expose resources folder for customization (SHACL schema, display rules)
       - ./resources:/app/resources
