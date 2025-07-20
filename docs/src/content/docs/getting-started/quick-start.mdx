@@ -10,20 +10,86 @@ This guide will get HERITRACE running on your local machine in just a few steps.
 ## Prerequisites
 
 - <a href="https://docs.docker.com/get-docker/" target="_blank" rel="noopener noreferrer">Docker and Docker Compose installed</a>
-- <a href="https://git-scm.com/downloads" target="_blank" rel="noopener noreferrer">Git</a> for cloning the repository
 - Modern web browser
 
-## 1. Clone the Repository
+## Installation Methods
+
+Choose between using pre-built Docker images (recommended for quick setup) or building from source (for development):
+
+<Tabs>
+  <TabItem label="Pre-built Images (Recommended)">
+    
+### Quick Setup with Pre-built Images
+
+This method uses official Docker images published to Docker Hub and GitHub Container Registry, eliminating the need to build locally. Configuration is done directly in the docker-compose.yml file.
+
+#### 1. Download Configuration Files
+
+```bash
+# Create a new directory for HERITRACE
+mkdir heritrace && cd heritrace
+
+# Download HERITRACE configuration
+curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
+
+# Optionally download database start scripts for quick setup
+curl -o start-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/start-databases.sh      # Linux/MacOS
+curl -o Start-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Start-Databases.ps1  # Windows
+chmod +x start-databases.sh  # Linux/MacOS only
+```
+
+#### 2. Configure ORCID Authentication
+
+**Required:** Edit `docker-compose.yml` to configure:
+
+1. **ORCID authentication** (get from [ORCID Developer Tools](https://orcid.org/developer-tools)):
+   - Create an ORCID account at <a href="https://orcid.org/register" target="_blank" rel="noopener noreferrer">orcid.org</a> if you don't have one
+   - Create a new application and set redirect URI to: `https://127.0.0.1:5000/auth/callback`
+   - Update in docker-compose.yml: `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_WHITELIST` (comma-separated ORCID IDs)
+
+2. **Security**: Change `SECRET_KEY` to a secure random value
+
+3. **Database endpoints** (optional for quick start):
+   - Update `DATASET_DB_URL` and `PROVENANCE_DB_URL` if using your own databases
+
+#### 3. Launch Options
+
+**Option A: Quick start with provided databases**
+```bash
+# Start databases first
+./start-databases.sh  # or .\Start-Databases.ps1 on Windows
+
+# Start HERITRACE (edit docker-compose.yml first!)
+docker compose up
+```
+
+**Option B: Use your existing databases**
+```bash
+# Edit docker-compose.yml with your database URLs
+# Then start HERITRACE
+docker compose up
+```
+
+:::note
+- Pre-built images are automatically pulled from Docker Hub. The first run will download the images (~2GB total).
+- The `resources` folder will be created automatically with default SHACL schema and display rules for customization.
+:::
+
+  </TabItem>
+  <TabItem label="Build from Source">
+
+### Development Setup - Build from Source
+
+This method requires <a href="https://git-scm.com/downloads" target="_blank" rel="noopener noreferrer">Git</a> and is recommended for development or customization.
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/opencitations/heritrace.git
-```
-
-```bash
 cd heritrace
 ```
 
-## 2. Configure the Application
+#### 2. Configure the Application
 
 Copy the example configuration file:
 
@@ -31,74 +97,49 @@ Copy the example configuration file:
 cp config.example.py config.py
 ```
 
-**Required:** Configure ORCID authentication (mandatory for the application to work):
+Configure ORCID authentication in `config.py` (edit the file directly with your credentials).
 
-1. **Create an ORCID account** at <a href="https://orcid.org/register" target="_blank" rel="noopener noreferrer">orcid.org</a> if you don't have one
-2. **Get ORCID credentials** at <a href="https://orcid.org/developer-tools" target="_blank" rel="noopener noreferrer">ORCID Developer Tools</a>:
-   - Create a new application
-   - Set redirect URI to: `https://127.0.0.1:5000/auth/callback`
-   - Note your Client ID and Client Secret
-
-3. **Edit `config.py`** with your ORCID credentials:
-
-```python
-# Required ORCID configuration
-ORCID_CLIENT_ID = 'APP-XXXXXXXXXX'  # From ORCID registration
-ORCID_CLIENT_SECRET = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'  # From ORCID
-ORCID_WHITELIST = ['0000-0000-0000-0000']  # Your ORCID ID
-
-# Optional: Customize display (can be changed later)
-APP_TITLE = 'Your HERITRACE Instance'
-# Optional for startup, but important for security
-SECRET_KEY = 'your-secure-secret-key-here'
-```
-
-## 3. Start the Databases
+#### 3. Start the Databases
 
 :::note
 Make sure Docker Engine (Linux/MacOS) or Docker Desktop (Windows) is running before executing these commands.
 :::
 
-<Tabs>
-  <TabItem label="Linux/MacOS">
-    ```bash
-    ./start-databases.sh
-    ```
-  </TabItem>
-  <TabItem label="Windows">
-    ```powershell
-    .\Start-Databases.ps1
-    ```
-  </TabItem>
-</Tabs>
+```bash
+# Linux/MacOS
+./start-databases.sh
+
+# Windows
+.\Start-Databases.ps1
+```
 
 This starts two Virtuoso database instances:
 - Dataset database on port 8999
 - Provenance database on port 8998
 
-## 4. Launch HERITRACE
+#### 4. Launch HERITRACE
 
-<Tabs>
-  <TabItem label="Development Mode">
-    ```bash
-    docker compose -f docker-compose.dev.yaml up --build
-    ```
-  </TabItem>
-  <TabItem label="Production Mode">
-    ```bash
-    docker compose up
-    ```
+```bash
+# Development Mode (with hot reload)
+docker compose -f docker-compose.dev.yaml up --build
+
+# Production Mode
+docker compose up
+```
+
   </TabItem>
 </Tabs>
 
 :::note
-This automatically starts all required services including:
+Both installation methods automatically start all required services including:
 - HERITRACE web application (port 5000)
 - Redis for resource locking and counters (port 6379)
 - All dependencies are managed automatically by Docker Compose
+
+For the pre-built images method, the `resources` folder is exposed as a volume for easy customization of SHACL schemas and display rules.
 :::
 
-## 5. Access the Application
+## Access the Application
 
 Open your browser and navigate to:
 

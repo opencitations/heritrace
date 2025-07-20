@@ -1,0 +1,67 @@
+services:
+  web:
+    image: arcangelomassari/heritrace:latest
+    ports:
+      - "5000:5000"
+    environment:
+      # Application settings
+      - FLASK_ENV=production
+      - APP_TITLE=HERITRACE
+      - APP_SUBTITLE=A semantic editor for heritage data
+      
+      # Security (REQUIRED: Change this!)
+      - SECRET_KEY=your-secure-secret-key-here
+      
+      # Database endpoints (REQUIRED: Configure these to point to your databases)
+      - DATASET_DB_URL=http://localhost:8999/sparql
+      - PROVENANCE_DB_URL=http://localhost:8998/sparql
+      - DATASET_DB_TRIPLESTORE=virtuoso
+      - PROVENANCE_DB_TRIPLESTORE=virtuoso
+      
+      # Database settings
+      - DATASET_DB_TEXT_INDEX_ENABLED=true
+      - DATASET_IS_QUADSTORE=true
+      - PROVENANCE_IS_QUADSTORE=true
+      
+      # ORCID authentication (REQUIRED: Get from https://orcid.org/developer-tools)
+      - ORCID_CLIENT_ID=your-client-id
+      - ORCID_CLIENT_SECRET=your-client-secret
+      - ORCID_WHITELIST=0000-0000-0000-0000,0000-0000-0000-0001  # Comma-separated ORCID IDs
+      - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
+      - ORCID_TOKEN_URL=https://orcid.org/oauth/token
+      - ORCID_API_URL=https://pub.orcid.org/v2.1
+      
+      # Provenance settings
+      - DATASET_GENERATION_TIME=2024-01-01T00:00:00+00:00
+      - PRIMARY_SOURCE=https://example.org
+    volumes:
+      # Expose resources folder for customization (SHACL schema, display rules)
+      - ./resources:/app/resources
+    depends_on:
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - heritrace-network
+
+  redis:
+    image: redis:7.4.5-alpine@sha256:0c0142c3c1c0c7d0e7d6081be6bb4957804f23d2cf57a
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - heritrace-network
+
+networks:
+  heritrace-network:
+    driver: bridge
+
+volumes:
+  redis-data:

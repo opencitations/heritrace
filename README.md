@@ -17,9 +17,52 @@ Complete documentation is available at: **[https://opencitations.github.io/herit
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Docker and Docker Compose
-- Python 3.10+ (for development)
+### Option 1: Using Pre-built Docker Images (Recommended)
+
+**Prerequisites:** Docker and Docker Compose
+
+```bash
+# Download HERITRACE configuration
+curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
+
+# Optionally download database start scripts for quick setup
+curl -o start-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/start-databases.sh      # Linux/MacOS
+curl -o Start-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Start-Databases.ps1  # Windows
+chmod +x start-databases.sh  # Linux/MacOS only
+```
+
+**⚠️ Required:** Edit `docker-compose.yml` to configure:
+
+1. **ORCID authentication** (get from [ORCID Developer Tools](https://orcid.org/developer-tools)):
+   - Set redirect URI to: `https://127.0.0.1:5000/auth/callback`
+   - Update: `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_WHITELIST` (comma-separated ORCID IDs)
+
+2. **Security**: Change `SECRET_KEY` to a secure random value
+
+3. **Database endpoints** (optional for quick start):
+   - Update `DATASET_DB_URL` and `PROVENANCE_DB_URL` if using your own databases
+
+**Launch Options:**
+
+**Option A: Quick start with provided databases**
+```bash
+# Start databases first
+./start-databases.sh  # or .\Start-Databases.ps1 on Windows
+
+# Start HERITRACE (edit docker-compose.yml first!)
+docker compose up
+```
+
+**Option B: Use your existing databases**
+```bash
+# Edit docker-compose.yml with your database URLs
+# Then start HERITRACE
+docker compose up
+```
+
+### Option 2: Building from Source
+
+**Prerequisites:** Docker, Docker Compose, and Python 3.10+ (for development)
 
 ### 1. Clone and Configure
 ```bash
@@ -28,17 +71,7 @@ cd heritrace
 cp config.example.py config.py
 ```
 
-**⚠️ Required:** Configure ORCID authentication in `config.py`:
-1. Create ORCID account at [orcid.org](https://orcid.org/register)
-2. Get credentials at [ORCID Developer Tools](https://orcid.org/developer-tools)
-3. Set redirect URI to: `https://127.0.0.1:5000/auth/callback`
-4. Update `config.py`:
-```python
-ORCID_CLIENT_ID = 'APP-XXXXXXXXXX'
-ORCID_CLIENT_SECRET = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
-ORCID_WHITELIST = ['0000-0000-0000-0000']  # Your ORCID ID
-SECRET_KEY = 'your-secure-secret-key-here'
-```
+Configure ORCID authentication in `config.py` (same as Option 1 above).
 
 ### 2. Start Databases
 ```bash

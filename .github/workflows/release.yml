@@ -95,4 +95,24 @@ jobs:
           build-args: |
             DOCKER_METADATA_AUTHOR=Arcangelo Massari
             DOCKER_METADATA_DESCRIPTION=HERITRACE - Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement. A semantic data editor for galleries, libraries, archives, and museums (GLAM) professionals.
-            DOCKER_METADATA_VERSION=${{ github.ref_name }} 
+            DOCKER_METADATA_VERSION=${{ github.ref_name }}
+
+      - name: Update docker-compose.yml with latest version
+        run: |
+          # Extract the latest version tag from semantic-release output
+          VERSION=$(git describe --tags --abbrev=0)
+          
+          # Update docker-compose.yml with the new version
+          sed -i "s|image: ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace:.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace:${VERSION}|g" docker-compose.yml
+          
+      - name: Commit updated docker-compose file
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docker-compose.yml
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "ci: update docker-compose.yml with latest release version"
+            git push
+          fi 

@@ -6,11 +6,14 @@ import { Aside } from '@astrojs/starlight/components';
 
 This guide covers the continuous integration (CI) pipeline used in HERITRACE to ensure code quality and automate testing.
 
-## GitHub Actions Workflow
+## GitHub Actions Workflows
 
-HERITRACE uses GitHub Actions to automatically run tests. The workflow is defined in `.github/workflows/python-tests.yml` and is triggered on every push to any branch, and on pull requests to the `main` branch.
+HERITRACE uses GitHub Actions for continuous integration and release automation. The project includes two main workflows:
 
-### Workflow Steps
+1. **Testing Workflow** (`.github/workflows/python-tests.yml`): Triggered on every push to any branch and on pull requests to the `main` branch
+2. **Release Workflow** (`.github/workflows/release.yml`): Triggered on pushes to `main` branch containing `[release]` in the commit message
+
+### Testing Workflow Steps
 
 The CI pipeline performs the following steps:
 
@@ -36,10 +39,45 @@ The workflow uses the <a href="https://github.com/marketplace/actions/bring-your
 
 The badge will be generated for each branch and will include the branch name in the badge label.
 
-## Customizing the Workflow
+## Release Workflow
 
-You can customize the workflow by editing the `.github/workflows/python-tests.yml` file. Common customizations include:
+The release workflow automates the creation of releases and publication of Docker images. It is triggered when a commit to the `main` branch contains `[release]` in the commit message.
 
-- Changing the Python versions tested.
-- Modifying the branches that trigger the workflow.
-- Adjusting the coverage reporting settings.
+### Release Workflow Steps
+
+1. **Semantic Release**: Uses semantic-release to automatically create GitHub releases based on conventional commit messages
+2. **Docker Image Building**: Builds multi-platform Docker images (AMD64 and ARM64)
+3. **Docker Hub Publishing**: Publishes images to Docker Hub under the configured username
+4. **GitHub Container Registry**: Publishes images to GitHub Container Registry (`ghcr.io`)
+
+### Required Secrets
+
+To enable Docker publishing, the following secrets must be configured in your GitHub repository:
+
+- `DOCKER_HUB_USERNAME`: Your Docker Hub username
+- `DOCKER_HUB_ACCESS_TOKEN`: Docker Hub access token for authentication
+
+The workflow automatically uses the `GITHUB_TOKEN` for GitHub Container Registry authentication.
+
+### Docker Image Tags
+
+The workflow generates multiple tags for each image:
+
+- `latest`: For the main branch
+- Version tags: `v1.0.0`, `1.0.0`, `1.0`, `1` (based on semantic versioning)
+- Branch tags: For feature branches
+- PR tags: For pull requests
+
+### Published Images
+
+Images are published to:
+
+- **Docker Hub**: `[username]/heritrace`
+- **GitHub Container Registry**: `ghcr.io/[owner]/[repository]`
+
+## Customizing the Workflows
+
+You can customize the workflows by editing the respective files:
+
+- `.github/workflows/python-tests.yml` for testing configuration
+- `.github/workflows/release.yml` for release and Docker publishing
