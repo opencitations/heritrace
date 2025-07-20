@@ -16,13 +16,17 @@ REDIS_DB = int(os.environ.get('REDIS_DB', '0'))
 counter_handler = MetaCounterHandler(
     host=REDIS_HOST,
     port=REDIS_PORT,
-    db=REDIS_DB
+    db=REDIS_DB,
+    supplier_prefix="09110"
 )
 
 # URI generators for different types of resources
 default_uri_generator = DefaultURIGenerator("https://example.com")
 meta_uri_generator = MetaURIGenerator(
-    "https://w3id.org/oc/meta", "prefix", counter_handler
+    "https://w3id.org/oc/meta", 
+    supplier_prefix_regex="0[6|9][1-9]+0", 
+    new_supplier_prefix="09110", 
+    counter_handler=counter_handler
 )
 
 # Paths to resource files

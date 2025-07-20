@@ -26,10 +26,6 @@ Download HERITRACE configuration:
 curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
 ```
 
-Optionally download config file for advanced customization:
-```bash
-curl -o config.py https://raw.githubusercontent.com/opencitations/heritrace/main/config.example.py
-```
 
 Optionally download database management scripts for quick setup:
 ```bash
@@ -58,9 +54,6 @@ chmod +x start-databases.sh stop-databases.sh
 
 3. **Database endpoints** (optional for quick start):
    - Update `DATASET_DB_URL` and `PROVENANCE_DB_URL` if using your own databases
-
-4. **Advanced customization** (optional):
-   - Download `config.py` for Python-level configuration beyond environment variables
 
 **Launch Options:**
 

@@ -57,8 +57,11 @@ jobs:
         id: version
         run: |
           VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "latest")
+          # Remove 'v' prefix for Docker image tagging
+          VERSION_CLEAN=${VERSION#v}
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Latest version: ${VERSION}"
+          echo "VERSION_CLEAN=${VERSION_CLEAN}" >> $GITHUB_OUTPUT
+          echo "Latest version: ${VERSION} (clean: ${VERSION_CLEAN})"
         
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -84,7 +87,7 @@ jobs:
             ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace
             ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=${{ steps.version.outputs.VERSION }},enable=${{ steps.version.outputs.VERSION != 'latest' }}
+            type=raw,value=${{ steps.version.outputs.VERSION_CLEAN }},enable=${{ steps.version.outputs.VERSION != 'latest' }}
             type=raw,value=latest,enable={{is_default_branch}}
           flavor: |
             latest=false
@@ -106,9 +109,11 @@ jobs:
         run: |
           # Extract the latest version tag from semantic-release output
           VERSION=$(git describe --tags --abbrev=0)
+          # Remove 'v' prefix for Docker image tagging
+          VERSION_CLEAN=${VERSION#v}
           
           # Update docker-compose.yml with the new version
-          sed -i "s|image: ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace:.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace:${VERSION}|g" docker-compose.yml
+          sed -i "s|image: ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace:.*|image: ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace:${VERSION_CLEAN}|g" docker-compose.yml
           
       - name: Commit updated docker-compose file
         run: |

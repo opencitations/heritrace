@@ -1,6 +1,7 @@
 services:
   web:
-    image: arcangelomassari/heritrace:latest
+    image: arcangelo7/heritrace:v1.3.0
+    command: ["/app/.venv/bin/python", "app.py"]
     ports:
       - "5000:5000"
     environment:
@@ -48,7 +49,7 @@ services:
       - heritrace-network
 
   redis:
-    image: redis:7.4.5-alpine@sha256:0c0142c3c1c0c7d0e7d6081be6bb4957804f23d2cf57a
+    image: redis:7.4.5-alpine@sha256:0c0142c3cd69bc030ea09fecfa1c1c0c7d0e7d6081be6bb4957804f23d2cf57a
     ports:
       - "6379:6379"
     volumes:
