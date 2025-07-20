@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/opencitations/heritrace/compare/v2.0.0...v2.0.1) (2025-07-20)
+
+
+### Bug Fixes
+
+* [release] remove resources directory from Dockerfile and Dockerfile.dev ([293e8bf](https://github.com/opencitations/heritrace/commit/293e8bffcf536229ec9f0f760b0ddd5d535bf99b))
+
 # [2.0.0](https://github.com/opencitations/heritrace/compare/v1.3.1...v2.0.0) (2025-07-20)
 
 
