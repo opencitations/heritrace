@@ -3,15 +3,16 @@ FROM nikolaik/python-nodejs:python3.13-nodejs23-slim
 WORKDIR /app
 
 # Create necessary directories
-RUN mkdir -p /app/heritrace /app/resources /app/babel
+RUN mkdir -p /app/heritrace /app/babel
 
 # Copy necessary files for Poetry to install the package
 COPY pyproject.toml poetry.toml poetry.lock README.md ./
 COPY heritrace ./heritrace
 
-# Copy configuration files and resources
+# Copy configuration files and babel
 COPY config.example.py ./config.py
-COPY resources ./resources
+COPY shacl.ttl ./shacl.ttl
+COPY display_rules.yaml ./display_rules.yaml
 COPY babel ./babel
 
 # Install Python dependencies with Poetry (main dependencies only)
