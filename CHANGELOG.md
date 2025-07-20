@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/opencitations/heritrace/compare/v2.0.1...v2.0.2) (2025-07-20)
+
+
+### Bug Fixes
+
+* [release] update Dockerfile to run frontend build during image build ([b614de4](https://github.com/opencitations/heritrace/commit/b614de409388e7c20086178be83b7b5023335da8))
+
 ## [2.0.1](https://github.com/opencitations/heritrace/compare/v2.0.0...v2.0.1) (2025-07-20)
 
 
