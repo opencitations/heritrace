@@ -52,6 +52,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+      - name: Get latest version tag
+        id: version
+        run: |
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "latest")
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Latest version: ${VERSION}"
         
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -77,12 +84,10 @@ jobs:
             ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace
             ghcr.io/${{ github.repository }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=raw,value=${{ steps.version.outputs.VERSION }},enable=${{ steps.version.outputs.VERSION != 'latest' }}
             type=raw,value=latest,enable={{is_default_branch}}
+          flavor: |
+            latest=false
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
