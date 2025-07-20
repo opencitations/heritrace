@@ -14,8 +14,8 @@ services:
       - SECRET_KEY=your-secure-secret-key-here
       
       # Database endpoints (REQUIRED: Configure these to point to your databases)
-      - DATASET_DB_URL=http://localhost:8999/sparql
-      - PROVENANCE_DB_URL=http://localhost:8998/sparql
+      - DATASET_DB_URL=http://host.docker.internal:8999/sparql
+      - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
       
@@ -54,7 +54,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - ./redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

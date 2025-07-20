@@ -28,7 +28,7 @@ COPY webpack.config.js ./
 COPY app.py ./
 
 # Build frontend assets
-# We'll run this at runtime via the command
+RUN npm run build
 
 ENV FLASK_APP=app.py
 
