@@ -1,3 +1,13 @@
+# [2.0.0](https://github.com/opencitations/heritrace/compare/v1.3.1...v2.0.0) (2025-07-20)
+
+
+* refactor!: [release] reorganize resources structure and move config files to root ([c83895d](https://github.com/opencitations/heritrace/commit/c83895da29197b981f42c87b2e1ed86e8af14d93))
+
+
+### BREAKING CHANGES
+
+* Moved application code files (context.json, datatypes.py, datatypes_validation.py) from resources/ to  heritrace/utils/, and moved optional config files (shacl.ttl, display_rules.yaml) to project root. Updated Docker volumes to expose only optional config files individually.
+
 ## [1.3.1](https://github.com/opencitations/heritrace/compare/v1.3.0...v1.3.1) (2025-07-20)
 
 
