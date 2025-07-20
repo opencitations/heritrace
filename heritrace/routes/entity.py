@@ -33,7 +33,7 @@ from heritrace.utils.sparql_utils import (
     parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
-from resources.datatypes import DATATYPE_MAPPING, get_datatype_options
+from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
 from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 

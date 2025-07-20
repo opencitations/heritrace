@@ -43,8 +43,8 @@ class Config:
     COUNTER_HANDLER = counter_handler
     
     # Application paths
-    SHACL_PATH = '/app/resources/shacl.ttl'
-    DISPLAY_RULES_PATH = '/app/resources/display_rules.yaml'
+    SHACL_PATH = '/app/shacl.ttl'
+    DISPLAY_RULES_PATH = '/app/display_rules.yaml'
     CHANGE_TRACKING_CONFIG = '/app/change_tracking.json'
     CACHE_FILE = '/app/cache.json'
     CACHE_VALIDITY_DAYS = 7

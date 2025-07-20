@@ -856,7 +856,7 @@ def test_format_triple_modification(app: Flask) -> None:
     with app.app_context():
         with app.test_request_context():
             # Load context from configuration
-            with open(os.path.join("resources", "context.json"), "r") as config_file:
+            with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "heritrace", "utils", "context.json"), "r") as config_file:
                 context = json.load(config_file)["@context"]
 
             # Load display rules from configuration

@@ -9,7 +9,7 @@ from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from rdflib import RDF, XSD, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
-from resources.datatypes import DATATYPE_MAPPING
+from heritrace.utils.datatypes import DATATYPE_MAPPING
 
 
 def get_valid_predicates(

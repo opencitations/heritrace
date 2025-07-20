@@ -25,7 +25,7 @@ from heritrace.utils.strategies import (OrphanHandlingStrategy,
                                         ProxyHandlingStrategy)
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, Graph, Literal, URIRef
-from resources.datatypes import DATATYPE_MAPPING
+from heritrace.utils.datatypes import DATATYPE_MAPPING
 
 api_bp = Blueprint("api", __name__)
 

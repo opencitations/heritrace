@@ -169,7 +169,7 @@ def validate_gYearMonth(value):
         match = pattern.match(value)
         if match:
             year, month = map(int, match.groups())
-            return 1582 <= year <= 9999 and 1 <= month <= 12
+            return year <= 9999 and 1 <= month <= 12
         return False
     except Exception:
         return False

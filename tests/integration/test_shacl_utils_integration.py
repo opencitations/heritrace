@@ -24,7 +24,7 @@ def shacl_graph(app: Flask):
     with app.app_context():
         # Load SHACL graph directly from file
         graph = Graph()
-        shacl_path = os.path.join(BASE_HERITRACE_DIR, "resources", "shacl.ttl")
+        shacl_path = os.path.join(BASE_HERITRACE_DIR, "shacl.ttl")
         graph.parse(shacl_path, format="turtle")
         return graph
 

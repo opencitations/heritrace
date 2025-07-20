@@ -199,7 +199,7 @@ schema:JournalIdentifierShape
       sh:hasValue datacite:openalex ;
     ] ;
     sh:pattern "^S\\d+$" ;
-    sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 " ;
+    sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326" ;
   ] ;
   sh:property [
     sh:path [sh:inversePath datacite:hasIdentifier] ;
@@ -478,7 +478,7 @@ schema:AgentIdentifierShape
       sh:path datacite:usesIdentifierScheme ;
       sh:hasValue datacite:ror ;
     ] ;
-    sh:pattern "^((https:\\/\\/)?ror\\.org\\/)?0[a-hj-km-np-tv-z|0-9]{6}[0-9]{2}$" ;
+    sh:pattern "^((https:\\/\\/)?ror\\.org\\/)?0[a-hj-km-np-tv-z0-9]{6}[0-9]{2}$" ;
     sh:message "ROR ID must be in the format '0XXXXXXXX' where X is a digit or lowercase letter (excluding i, l, o), optionally prefixed with 'https://ror.org/'. For example: 04wxnsj81 or https://ror.org/04wxnsj81" ;
   ] .
 

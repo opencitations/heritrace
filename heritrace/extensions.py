@@ -427,7 +427,7 @@ def init_filters(app: Flask):
     """Initialize custom template filters."""
     global custom_filter
     
-    with open(os.path.join("resources", "context.json"), "r") as config_file:
+    with open(os.path.join(os.path.dirname(__file__), "utils", "context.json"), "r") as config_file:
         context = json.load(config_file)["@context"]
     
     display_rules = None

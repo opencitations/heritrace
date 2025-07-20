@@ -65,8 +65,8 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./resources/display_rules.yaml:/app/resources/display_rules.yaml
-      - ./resources/shacl.ttl:/app/resources/shacl.ttl
+      - ./display_rules.yaml:/app/display_rules.yaml
+      - ./shacl.ttl:/app/shacl.ttl
     depends_on:
       heritrace-dataset:
         condition: service_healthy

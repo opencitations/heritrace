@@ -1,6 +1,6 @@
 from rdflib import XSD
 
-from resources.datatypes_validation import *
+from heritrace.utils.datatypes_validation import *
 
 def get_datatype_options():
     """

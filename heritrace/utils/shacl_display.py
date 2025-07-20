@@ -62,7 +62,7 @@ COMMON_SPARQL_QUERY = prepareQuery(
 def process_query_results(shacl, results, display_rules, processed_shapes, app: Flask, depth=0):
     form_fields = defaultdict(dict)
 
-    with open(os.path.join("resources", "context.json"), "r") as config_file:
+    with open(os.path.join(os.path.dirname(__file__), "context.json"), "r") as config_file:
         context = json.load(config_file)["@context"]
     
     custom_filter = Filter(context, display_rules, app.config['DATASET_DB_URL'])

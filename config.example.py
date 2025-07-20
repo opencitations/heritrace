@@ -30,8 +30,8 @@ meta_uri_generator = MetaURIGenerator(
 )
 
 # Paths to resource files
-shacl_path = os.path.join(BASE_HERITRACE_DIR, "resources", "shacl.ttl")
-display_rules_path = os.path.join(BASE_HERITRACE_DIR, "resources", "display_rules.yaml")
+shacl_path = os.path.join(BASE_HERITRACE_DIR, "shacl.ttl")
+display_rules_path = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
 
 
 class Config(object):
@@ -43,7 +43,6 @@ class Config(object):
     SECRET_KEY = os.environ.get("SECRET_KEY", "generate-a-secure-random-key")  # CHANGE THIS IN PRODUCTION!
 
     # Cache settings
-    CACHE_FILE = os.environ.get("CACHE_FILE", "cache.json")
     CACHE_VALIDITY_DAYS = int(os.environ.get("CACHE_VALIDITY_DAYS", "7"))
 
     # Database configuration
