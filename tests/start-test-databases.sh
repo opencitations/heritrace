@@ -113,7 +113,8 @@ launch_virtuoso_db() {
         --detach \
         --force-remove \
         --wait-ready \
-        --enable-write-permissions
+        --enable-write-permissions \
+        --memory "1g"
     
     if [ $? -eq 0 ]; then
         print_success "Test database $name started successfully"
@@ -150,7 +151,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Start Redis for resource locking on port 6380
+# Start Redis for resource locking on port 6379 (same as production)
 if [ "$(docker ps -a -q -f name=test-redis)" ]; then
     print_info "Removing existing test-redis container..."
     docker rm -f test-redis
@@ -158,7 +159,7 @@ fi
 
 print_info "Starting test-redis container..."
 docker run -d --name test-redis \
-  -p 6380:6379 \
+  -p 6379:6379 \
   redis:7-alpine
 
 if [ $? -ne 0 ]; then
@@ -169,4 +170,4 @@ fi
 print_success "All test databases started successfully."
 print_info "Dataset DB: http://localhost:9999/sparql"
 print_info "Provenance DB: http://localhost:9998/sparql"
-print_info "Redis: localhost:6380" 
+print_info "Redis: localhost:6379" 

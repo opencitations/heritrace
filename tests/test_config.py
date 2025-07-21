@@ -9,7 +9,7 @@ BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 # Redis configuration for testing - using Docker container name
 REDIS_TEST_HOST = 'localhost'  # Use container name in Docker network
-REDIS_TEST_PORT = 6380  # Default Redis port inside Docker
+REDIS_TEST_PORT = 6379  # Same port as production for tests
 REDIS_TEST_DB = 1      # Different database number for tests
 
 # Initialize counter handler for URI generation
