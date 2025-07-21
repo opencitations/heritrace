@@ -1,9 +1,8 @@
 services:
   web:
-    build: .
+    image: arcangelo7/heritrace:latest
     ports:
       - "5000:5000"
-      - "6379:6379"
     environment:
       # Application settings
       - FLASK_ENV=production
@@ -20,7 +19,7 @@ services:
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
       
       # Database settings
-      - DATASET_DB_TEXT_INDEX_ENABLED=true
+      - DATASET_DB_TEXT_INDEX_ENABLED=false
       - DATASET_IS_QUADSTORE=true
       - PROVENANCE_IS_QUADSTORE=true
       
@@ -37,10 +36,8 @@ services:
       - PRIMARY_SOURCE=https://example.org 
     volumes:
       # Expose configuration files for customization (optional)
-      - ./shacl.ttl:/app/shacl.ttl
-      - ./display_rules.yaml:/app/display_rules.yaml
-      # Expose config file for advanced customization (optional)
-      - ./config.py:/app/config.py
+      # - ./shacl.ttl:/app/shacl.ttl
+      # - ./display_rules.yaml:/app/display_rules.yaml
       # Redis data persistence
       - ./redis-data:/data
     extra_hosts:
@@ -51,6 +48,3 @@ services:
 networks:
   heritrace-network:
     driver: bridge
-
-volumes:
-  redis-data:
