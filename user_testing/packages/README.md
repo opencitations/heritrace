@@ -1,68 +1,33 @@
-# User Testing Packages
+# HERITRACE Test Database Packages
 
-This directory contains scripts to package the application for user testing.
+This directory contains scripts specifically for building and managing test databases for HERITRACE user testing.
 
-## Local Package
+**PURPOSE**: These scripts create Docker packages containing a subset of OpenCitations Meta data for testing purposes. The main HERITRACE application uses the official Docker Hub image `arcangelo7/heritrace`.
 
-To generate a complete local package for testing, run the following script:
+## Build Test Database Packages
 
-**Linux/macOS:**
-```bash
-./build-local-packages.sh
-```
-
-**Windows:**
-Double-click `build-local-packages.cmd` or run from command prompt:
-```cmd
-build-local-packages.cmd
-```
-
-This will create a self-contained package with all the necessary files for local testing.
-
-## Online Package (Docker-based)
-
-This approach provides a minimal package for testers, with most of the application services running in Docker containers.
-
-### 1. Generate and Prepare the Local Package
-
-First, you need to generate a local package, which contains the necessary scripts to push the Docker images.
+To create packages containing test database Docker files and scripts:
 
 **Linux/macOS:**
 ```bash
-./build-local-packages.sh
+./build-test-databases.sh
 ```
 
 **Windows:**
-Double-click `build-local-packages.cmd` or run from command prompt:
+Double-click `build-test-databases.cmd` or run from command prompt:
 ```cmd
-build-local-packages.cmd
+build-test-databases.cmd
 ```
 
-This will create `heritrace-enduser-local.zip`.
+This will create `heritrace-enduser-local.zip` containing:
+- Docker files for building Virtuoso test databases (dataset and provenance)
+- Test data subset from OpenCitations Meta
+- Scripts to push test database images to Docker Hub
+- Complete testing environment using official HERITRACE image
 
-### 2. Push to Docker Hub
+## Online Testing Packages
 
-Next, unzip the generated enduser package and run the script to push the Docker images to Docker Hub.
-
-**Linux/macOS:**
-```bash
-unzip heritrace-enduser-local.zip
-cd heritrace-enduser-local
-./push-to-dockerhub.sh
-cd ..
-```
-
-**Windows:**
-```cmd
-powershell -command "Expand-Archive -Path 'heritrace-enduser-local.zip' -DestinationPath '.' -Force"
-cd heritrace-enduser-local
-push-to-dockerhub.cmd
-cd ..
-```
-
-### 3. Build Online Package
-
-Once the images are on Docker Hub, you can generate the lightweight online package:
+For lightweight packages that only pull from Docker Hub (no local building):
 
 **Linux/macOS:**
 ```bash
@@ -75,4 +40,23 @@ Double-click `build-online-packages.cmd` or run from command prompt:
 build-online-packages.cmd
 ```
 
-This creates a minimal set of files for the end-user, who will pull the required Docker images to run the application.
+This creates minimal packages using published Docker images:
+- **Main app**: `arcangelo7/heritrace` (official image)
+- **Dataset DB**: `arcangelo7/heritrace-testing-virtuoso-dataset:1.0.0` (test database)
+- **Provenance DB**: `arcangelo7/heritrace-testing-virtuoso-provenance:1.0.0` (test database)
+
+## Push Test Databases to Docker Hub
+
+To build and push the test database images to Docker Hub:
+
+**Linux/macOS:**
+```bash
+cd common/scripts
+./push-to-dockerhub.sh [version] [docker_username]
+```
+
+**Windows:**
+```cmd
+cd common\scripts
+push-to-dockerhub.cmd [version] [docker_username]
+```

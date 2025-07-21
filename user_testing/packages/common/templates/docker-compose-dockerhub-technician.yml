@@ -42,7 +42,7 @@ services:
       # Application settings
       - FLASK_ENV=demo
       - APP_TITLE=HERITRACE
-      - APP_SUBTITLE=End User Testing Environment
+      - APP_SUBTITLE=Configurator Testing Environment
       
       # Security (using default for demo)
       - SECRET_KEY=demo-secret-key-change-in-production
@@ -53,7 +53,7 @@ services:
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
       
-      # Database settings 
+      # Database settings
       - DATASET_DB_TEXT_INDEX_ENABLED=true
       - DATASET_IS_QUADSTORE=true
       - PROVENANCE_IS_QUADSTORE=true
@@ -73,6 +73,10 @@ services:
       # Provenance settings
       - DATASET_GENERATION_TIME=2024-09-16T00:00:00+02:00
       - PRIMARY_SOURCE=https://doi.org/10.5281/zenodo.13768531
+    volumes:
+      # Configuration files for customization
+      - ./resources/shacl.ttl:/app/resources/shacl.ttl
+      - ./resources/display_rules.yaml:/app/resources/display_rules.yaml
     ports:
       - "5000:5000"
     depends_on:
