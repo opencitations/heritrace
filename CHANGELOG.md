@@ -1,3 +1,16 @@
+# [2.1.0](https://github.com/opencitations/heritrace/compare/v2.0.2...v2.1.0) (2025-07-21)
+
+
+### Bug Fixes
+
+* **docker:** [release] docker-compose mush use the docker hub image ([344fca8](https://github.com/opencitations/heritrace/commit/344fca82c1bf5f066b329bf0c76b8a54384f4692))
+* **tests:** update Redis port in test configuration to match production ([de2bbbc](https://github.com/opencitations/heritrace/commit/de2bbbc0492174cfd3c18b0c0a0f90d3004c8f5e))
+
+
+### Features
+
+* integrate Redis as internal service within application container ([349bb45](https://github.com/opencitations/heritrace/commit/349bb45781d0167f7c5721b4bd8121670db076cd))
+
 ## [2.0.2](https://github.com/opencitations/heritrace/compare/v2.0.1...v2.0.2) (2025-07-20)
 
 
