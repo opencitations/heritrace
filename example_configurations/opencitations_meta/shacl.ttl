@@ -1,0 +1,1346 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+@prefix datacite: <http://purl.org/spar/datacite/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix doco: <http://purl.org/spar/doco/> .
+@prefix fabio: <http://purl.org/spar/fabio/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix frbr: <http://purl.org/vocab/frbr/core#> .
+@prefix literal: <http://www.essepuntato.it/2010/06/literalreification/> .
+@prefix oco: <https://w3id.org/oc/ontology/> .
+@prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
+@prefix pro: <http://purl.org/spar/pro/> .
+
+# Identifiers
+
+schema:IdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:in (
+      datacite:crossref
+      datacite:datacite
+      datacite:doi
+      datacite:isbn
+      datacite:issn
+      datacite:jid
+      datacite:openalex
+      datacite:orcid
+      datacite:pmcid
+      datacite:pmid
+      datacite:viaf
+      datacite:wikidata
+      datacite:wikipedia
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  .
+
+schema:JournalArticleIdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      datacite:doi
+      datacite:openalex
+      datacite:pmcid
+      datacite:pmid
+    ) ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:pmid ;
+    ] ;
+    sh:pattern "^[1-9]\\d*$" ;
+    sh:message "PMID must contain only numbers. For example: 39288764" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:pmcid ;
+    ] ;
+    sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
+    sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:openalex ;
+    ] ;
+    sh:pattern "^W[1-9]\\d*$" ;
+    sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
+  ] ;
+  .
+
+schema:JournalIdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      datacite:doi
+      datacite:issn
+      datacite:jid
+      datacite:openalex
+    ) ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:issn ;
+    ] ;
+    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
+    sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:jid ;
+    ] ;
+    sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
+    sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
+  ] ;  
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:openalex ;
+    ] ;
+    sh:pattern "^S\\d+$" ;
+    sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 " ;
+  ] ;
+  .
+
+schema:SeriesAndProceedingsIdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:in (
+      datacite:doi
+      datacite:isbn
+      datacite:issn
+      datacite:jid      
+      datacite:openalex
+    ) ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:issn ;
+    ] ;
+    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
+    sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:jid ;
+    ] ;
+    sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
+    sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
+  ] ;  
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:openalex ;
+    ] ;
+    sh:pattern "^S\\d+$" ;
+    sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 " ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:isbn ;
+    ] ;
+    sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
+    sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
+  ] ;
+  .
+
+schema:BookIdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:in (
+      datacite:doi
+      datacite:isbn
+      datacite:openalex
+      datacite:pmcid
+      datacite:pmid
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:doi ;
+    ] ;
+    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:pmid ;
+    ] ;
+    sh:pattern "^[1-9]\\d*$" ;
+    sh:message "PMID must contain only numbers. For example: 39288764" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:pmcid ;
+    ] ;
+    sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
+    sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:isbn ;
+    ] ;
+    sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
+    sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:openalex ;
+    ] ;
+    sh:pattern "^W[1-9]\\d*$" ;
+    sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
+  ] ;
+  .
+  
+schema:AgentIdentifierShape
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue datacite:Identifier ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:in (
+      datacite:crossref
+      datacite:orcid
+      datacite:ror
+      datacite:viaf
+      datacite:wikidata
+      datacite:wikipedia
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:orcid ;
+    ] ;
+    sh:pattern "^([0-9]{4}-){3}[0-9]{3}[0-9X]$" ;
+    sh:message "ORCID must be in the format 'XXXX-XXXX-XXXX-XXXX' where X is a digit or 'X'. For example: 0000-0002-1825-0097" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:viaf ;
+    ] ;
+    sh:pattern "^[1-9]\\d{1,21}$" ;
+    sh:message "VIAF ID must be a string of 2 to 22 digits, not starting with 0. For example: 12345678" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:crossref ;
+    ] ;
+    sh:pattern "^\\d+$" ;
+    sh:message "Crossref ID must be a string of one or more digits. For example: 98765432" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:wikidata ;
+    ] ;
+    sh:pattern "^Q[1-9]\\d*$" ;
+    sh:message "Wikidata ID must start with 'Q' followed by a non-zero digit and optionally more digits. For example: Q42" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:wikipedia ;
+    ] ;
+    sh:pattern "^[1-9][0-9]*$" ;
+    sh:message "Wikipedia ID must be a string of digits not starting with 0. For example: 123456" ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:condition [
+      sh:path datacite:usesIdentifierScheme ;
+      sh:hasValue datacite:ror ;
+    ] ;
+    sh:pattern "^((https:\\/\\/)?ror\\.org\\/)?0[a-hj-km-np-tv-z|0-9]{6}[0-9]{2}$" ;
+    sh:message "ROR ID must be in the format '0XXXXXXXX' where X is a digit or lowercase letter (excluding i, l, o), optionally prefixed with 'https://ror.org/'. For example: 04wxnsj81 or https://ror.org/04wxnsj81" ;
+  ] .
+
+# Agent roles
+
+schema:AgentRoleShape
+  a sh:NodeShape ;
+  sh:targetClass pro:RoleInTime ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue pro:RoleInTime ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path oco:hasNext ;
+    sh:node schema:AgentRoleShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isHeldBy ;
+    sh:node schema:ResponsibleAgentShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:withRole ;
+    sh:in (pro:publisher pro:author pro:editor) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  .
+
+# Bibliographic resources
+
+schema:ExpressionShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Expression ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:or (
+      [ sh:hasValue fabio:JournalArticle ]
+      [ sh:hasValue fabio:Book ]
+      [ sh:hasValue fabio:ProceedingsPaper ]
+      [ sh:hasValue fabio:AcademicProceedings ]
+      [ sh:hasValue fabio:Journal ]
+      [ sh:hasValue fabio:JournalVolume ]
+      [ sh:hasValue fabio:JournalIssue ]
+      [ sh:hasValue fabio:ReferenceBook ]
+      [ sh:hasValue fabio:Review ]
+      [ sh:hasValue fabio:ReviewArticle ]
+      [ sh:hasValue fabio:Thesis ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:IdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:embodiment ;
+    sh:node schema:ResourceEmbodimentShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AgentRoleShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:BibliographicResourceShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:JournalArticleShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:JournalArticle ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalArticleIdentifierShape ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:JournalArticle ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:or (
+      [ sh:node schema:IssueShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:VolumeShape ]
+      [ sh:node schema:JournalShape ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:embodiment ;
+    sh:node schema:ResourceEmbodimentShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:BookShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Book ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:BookIdentifierShape ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Book ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:ProceedingsPaperShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:ProceedingsPaper ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:ProceedingsPaper ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:ProceedingsShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:embodiment ;
+    sh:node schema:ResourceEmbodimentShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalArticleIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:ProceedingsShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:AcademicProceedings ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:AcademicProceedings ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:SeriesAndProceedingsIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:JournalShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Journal ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Journal ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalIdentifierShape ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:VolumeShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:JournalVolume ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:JournalVolume ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path fabio:hasSequenceIdentifier ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:JournalShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:IssueShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:JournalIssue ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:JournalIssue ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path fabio:hasSequenceIdentifier ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:or (
+      [ sh:node schema:VolumeShape ]
+      [ sh:node schema:JournalShape ]
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:SpecialIssueShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:JournalIssue ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:JournalIssue ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path fabio:hasSequenceIdentifier ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:or (
+      [ sh:node schema:VolumeShape ]
+      [ sh:node schema:JournalShape ]
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:embodiment ;
+    sh:node schema:ResourceEmbodimentShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalArticleIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:ReferenceBookShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:ReferenceBook ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:ReferenceBook ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:BookIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:ReviewShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Review ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Review ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalIdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path frbr:embodiment ;
+    sh:node schema:ResourceEmbodimentShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:node schema:JournalShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:ReviewArticleShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:ReviewArticle ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:ReviewArticle ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:partOf ;
+    sh:or (
+      [ sh:node schema:IssueShape ]
+      [ sh:node schema:VolumeShape ]
+      [ sh:node schema:JournalShape ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path frbr:embodiment ;
+    sh:node schema:ResourceEmbodimentShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:JournalArticleIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+
+schema:ThesisShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Thesis ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Expression ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Thesis ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:title ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:publicationDate ;
+    sh:or (
+      [ sh:datatype xsd:date ]
+      [ sh:datatype xsd:gYearMonth ]
+      [ sh:datatype xsd:gYear ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:BookIdentifierShape ;
+    sh:minCount 0 ;
+  ] .
+
+
+# Resource embodiment
+
+schema:ResourceEmbodimentShape
+  a sh:NodeShape ;
+  sh:targetClass fabio:Manifestation ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue fabio:Manifestation ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:startingPage ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path prism:endingPage ;
+    sh:datatype xsd:string ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  .
+
+# Responsible agent
+
+schema:ResponsibleAgentShape
+  a sh:NodeShape ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue foaf:Agent ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:targetClass foaf:Agent ;
+  sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:AgentIdentifierShape ;
+  ] ;
+  sh:property [
+    sh:path foaf:name ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path foaf:givenName ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path foaf:familyName ;
+    sh:datatype xsd:string ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] ;
+  .
+
+# Agent Roles
+
+schema:AuthorShape
+  a sh:NodeShape ;
+  sh:targetClass pro:RoleInTime ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue pro:RoleInTime ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:withRole ;
+    sh:hasValue pro:author ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isHeldBy ;
+    sh:node schema:ResponsibleAgentShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path oco:hasNext ;
+    sh:node schema:AuthorShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:EditorShape
+  a sh:NodeShape ;
+  sh:targetClass pro:RoleInTime ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue pro:RoleInTime ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:withRole ;
+    sh:hasValue pro:editor ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isHeldBy ;
+    sh:node schema:ResponsibleAgentShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path oco:hasNext ;
+    sh:node schema:EditorShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:PublisherShape
+  a sh:NodeShape ;
+  sh:targetClass pro:RoleInTime ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue pro:RoleInTime ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:withRole ;
+    sh:hasValue pro:publisher ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path pro:isHeldBy ;
+    sh:node schema:ResponsibleAgentShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path oco:hasNext ;
+    sh:node schema:PublisherShape ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+# Document components
+
+schema:AbstractShape
+  a sh:NodeShape ;
+  sh:targetClass doco:Abstract ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue doco:Abstract ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  .
