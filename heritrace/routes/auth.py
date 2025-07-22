@@ -29,7 +29,7 @@ def login():
         current_app.permanent_session_lifetime = timedelta(days=30)
         login_user(user)
 
-        flash(gettext("Running in DEMO MODE. Logged in as %(name)s.", name=user_name), "warning")
+        flash(gettext("Welcome! You've been automatically logged in to the demo"), "info")
         return redirect(url_for("main.catalogue"))
 
     callback_url = url_for("auth.callback", _external=True, _scheme="https")

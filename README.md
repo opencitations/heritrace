@@ -41,16 +41,10 @@ curl -o Stop-Databases.ps1 https://raw.githubusercontent.com/opencitations/herit
 chmod +x start-databases.sh stop-databases.sh
 ```
 
-**⚠️ Required:** Edit `docker-compose.yml` environment variables to configure:
+**Demo Mode:** HERITRACE runs in demo mode by default (`FLASK_ENV=demo`) for immediate testing without authentication setup.
 
-1. **ORCID authentication** (get from [ORCID Developer Tools](https://orcid.org/developer-tools)):
-   - Set redirect URI to: `https://127.0.0.1:5000/auth/callback`
-   - Update: `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, `ORCID_WHITELIST` (comma-separated ORCID IDs)
-
-2. **Security**: Change `SECRET_KEY` to a secure random value
-
-3. **Database endpoints** (optional for quick start):
-   - Update `DATASET_DB_URL` and `PROVENANCE_DB_URL` if using your own databases
+**Optional Configuration:** Edit `docker-compose.yml` to customize:
+- **Database endpoints**: Update `DATASET_DB_URL` and `PROVENANCE_DB_URL` if using your own databases
 
 **Launch Options:**
 
@@ -65,7 +59,7 @@ or on Windows:
 .\Start-Databases.ps1
 ```
 
-Start HERITRACE (edit docker-compose.yml first!):
+Start HERITRACE:
 ```bash
 docker compose up
 ```
@@ -98,7 +92,7 @@ or on Windows:
 .\Stop-Databases.ps1
 ```
 
-For more detailed setup instructions, see: [**Detailed Quick Start**](https://opencitations.github.io/heritrace/getting-started/quick-start/)
+For production setup with ORCID authentication and advanced configuration, see: [**Application Settings**](https://opencitations.github.io/heritrace/configuration/app-settings/)
 
 ## 🎯 Customization
 

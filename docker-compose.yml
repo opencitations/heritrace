@@ -5,7 +5,7 @@ services:
       - "5000:5000"
     environment:
       # Application settings
-      - FLASK_ENV=production
+      - FLASK_ENV=demo
       - APP_TITLE=HERITRACE
       - APP_SUBTITLE=A semantic editor for heritage data
       
