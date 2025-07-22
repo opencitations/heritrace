@@ -2,13 +2,14 @@ FROM nikolaik/python-nodejs:python3.13-nodejs23-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y redis-server && \
+RUN apt-get update && apt-get install -y redis-server=7:7.0.* && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /app/heritrace /app/babel
 
 COPY pyproject.toml poetry.toml poetry.lock README.md ./
 COPY heritrace ./heritrace
+COPY default_components ./default_components
 
 COPY config.example.py ./config.py
 COPY shacl.ttl ./shacl.ttl

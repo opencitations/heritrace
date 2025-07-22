@@ -47,8 +47,8 @@ services:
       # - ./shacl.ttl:/app/shacl.ttl
       # - ./display_rules.yaml:/app/display_rules.yaml
       
-      # Default components (always mounted)
-      - ./default_components:/app/default_components
+      # Default components
+      # - ./default_components:/app/default_components
       
       # Mount custom components (optional - create your own directory)
       # - ./custom_components:/app/custom_components
