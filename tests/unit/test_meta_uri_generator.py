@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, call, patch
 
 import pytest
-from heritrace.uri_generator.meta_uri_generator import MetaURIGenerator, InvalidURIFormatError
-from heritrace.meta_counter_handler import MetaCounterHandler
+from default_components.meta_uri_generator import MetaURIGenerator, InvalidURIFormatError
+from default_components.meta_counter_handler import MetaCounterHandler
 from rdflib import URIRef
 from SPARQLWrapper import SPARQLWrapper
 
@@ -15,9 +15,7 @@ def uri_generator_setup():
     counter_handler = MagicMock(spec=MetaCounterHandler)
     counter_handler.supplier_prefix = supplier_prefix
     supplier_prefix_regex = supplier_prefix
-    uri_generator = MetaURIGenerator(
-        base_iri, supplier_prefix_regex, supplier_prefix, counter_handler
-    )
+    uri_generator = MetaURIGenerator(counter_handler)
     sparql = MagicMock(spec=SPARQLWrapper)
     
     return {
@@ -50,7 +48,7 @@ def test_generate_uri(uri_generator_setup):
     counter_handler.set_counter.assert_called_once_with(43, entity_type)
     
     # Verify the generated URI is correct
-    expected_uri = URIRef(f"{base_iri}/br/{supplier_prefix}43")
+    expected_uri = URIRef(f"{base_iri}/br/0911043")
     assert uri == expected_uri
     
     # Test with a different entity type
@@ -63,7 +61,7 @@ def test_generate_uri(uri_generator_setup):
     counter_handler.read_counter.assert_called_once_with(entity_type)
     counter_handler.set_counter.assert_called_once_with(100, entity_type)
     
-    expected_uri = URIRef(f"{base_iri}/ra/{supplier_prefix}100")
+    expected_uri = URIRef(f"{base_iri}/ra/09110100")
     assert uri == expected_uri
 
 
@@ -82,23 +80,23 @@ def test_initialize_counters_with_valid_data(uri_generator_setup):
             "bindings": [
                 {
                     "type": {"value": "http://purl.org/spar/fabio/Expression"},
-                    "s": {"value": f"{base_iri}/br/{supplier_prefix}10"},
+                    "s": {"value": f"{base_iri}/br/0611010"},
                 },
                 {
                     "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
-                    "s": {"value": f"{base_iri}/ra/{supplier_prefix}20"},
+                    "s": {"value": f"{base_iri}/ra/0611020"},
                 },
                 {
                     "type": {"value": "http://purl.org/spar/fabio/Manifestation"},
-                    "s": {"value": f"{base_iri}/re/{supplier_prefix}30"},
+                    "s": {"value": f"{base_iri}/re/0611030"},
                 },
                 {
                     "type": {"value": "http://purl.org/spar/datacite/Identifier"},
-                    "s": {"value": f"{base_iri}/id/{supplier_prefix}40"},
+                    "s": {"value": f"{base_iri}/id/0611040"},
                 },
                 {
                     "type": {"value": "http://purl.org/spar/pro/RoleInTime"},
-                    "s": {"value": f"{base_iri}/ar/{supplier_prefix}50"},
+                    "s": {"value": f"{base_iri}/ar/0611050"},
                 },
             ]
         }
@@ -109,13 +107,13 @@ def test_initialize_counters_with_valid_data(uri_generator_setup):
         "results": {
             "bindings": [
                 {
-                    "entity": {"value": f"{base_iri}/br/{supplier_prefix}15"},
+                    "entity": {"value": f"{base_iri}/br/0611015"},
                 },
                 {
-                    "entity": {"value": f"{base_iri}/ra/{supplier_prefix}25"},
+                    "entity": {"value": f"{base_iri}/ra/0611025"},
                 },
                 {
-                    "entity": {"value": f"{base_iri}/re/{supplier_prefix}35"},
+                    "entity": {"value": f"{base_iri}/re/0611035"},
                 },
             ]
         }
@@ -136,6 +134,12 @@ def test_initialize_counters_with_valid_data(uri_generator_setup):
     assert sparql.query.call_count == 2
 
     # Verify counter values were set correctly
+    # The counters should be set for the 06110 prefix based on the max values found:
+    # br (Expression): max(10, 15) = 15
+    # ra (Agent): max(20, 25) = 25  
+    # re (Manifestation): max(30, 35) = 35
+    # ar (RoleInTime): max(50, 0) = 50
+    # id (Identifier): max(40, 0) = 40
     expected_calls = [
         call(15, "http://purl.org/spar/fabio/Expression"),
         call(15, "http://purl.org/spar/fabio/Article"),
@@ -175,11 +179,11 @@ def test_initialize_counters_with_invalid_uri_format_in_data(uri_generator_setup
             "bindings": [
                 {
                     "type": {"value": "http://purl.org/spar/fabio/Expression"},
-                    "s": {"value": f"{base_iri}/br/{supplier_prefix}abc"},  # Invalid format supplier prefix to split on
+                    "s": {"value": f"{base_iri}/br/06110abc"},  # Invalid format - matches regex but has non-integer suffix
                 },
                 {
                     "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
-                    "s": {"value": f"{base_iri}/ra/{supplier_prefix}20"},
+                    "s": {"value": f"{base_iri}/ra/0611020"},
                 },
             ]
         }
@@ -226,10 +230,10 @@ def test_initialize_counters_with_invalid_uri_format_in_provenance(uri_generator
         "results": {
             "bindings": [
                 {
-                    "entity": {"value": f"{base_iri}/br/{supplier_prefix}xyz"},  # Invalid format supplier prefix to split on
+                    "entity": {"value": f"{base_iri}/br/06110xyz"},  # Invalid format - matches regex but has non-integer suffix
                 },
                 {
-                    "entity": {"value": f"{base_iri}/ra/{supplier_prefix}25"},
+                    "entity": {"value": f"{base_iri}/ra/0611025"},
                 },
             ]
         }
@@ -267,7 +271,7 @@ def test_initialize_counters_with_non_matching_entity_type(uri_generator_setup):
                 },
                 {
                     "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
-                    "s": {"value": f"{base_iri}/ra/{supplier_prefix}20"},
+                    "s": {"value": f"{base_iri}/ra/0611020"},
                 },
             ]
         }
@@ -316,10 +320,10 @@ def test_initialize_counters_with_non_matching_abbreviation_in_provenance(uri_ge
         "results": {
             "bindings": [
                 {
-                    "entity": {"value": f"{base_iri}/unknown/{supplier_prefix}15"},
+                    "entity": {"value": f"{base_iri}/unknown/0611015"},
                 },
                 {
-                    "entity": {"value": f"{base_iri}/ra/{supplier_prefix}25"},
+                    "entity": {"value": f"{base_iri}/ra/0611025"},
                 },
             ]
         }
@@ -383,7 +387,7 @@ def test_initialize_counters_with_value_error_in_data(uri_generator_setup):
             "bindings": [
                 {
                     "type": {"value": "http://purl.org/spar/fabio/Expression"},
-                    "s": {"value": f"{base_iri}/br/{supplier_prefix}abc"},  # Non-integer
+                    "s": {"value": f"{base_iri}/br/06110abc"},  # Non-integer suffix
                 },
             ]
         }
@@ -430,7 +434,7 @@ def test_initialize_counters_with_value_error_in_provenance(uri_generator_setup)
         "results": {
             "bindings": [
                 {
-                    "entity": {"value": f"{base_iri}/br/{supplier_prefix}xyz"},  # Non-integer
+                    "entity": {"value": f"{base_iri}/br/06110xyz"},  # Non-integer suffix
                 },
             ]
         }
@@ -452,14 +456,12 @@ def test_initialize_counters_with_value_error_in_provenance(uri_generator_setup)
 def test_initialize_counters_with_multiple_prefixes():
     """Test initialize_counters properly separates counters by supplier prefix."""
     base_iri = "https://w3id.org/oc/meta"
-    supplier_prefix_regex = r"\d{3}"  # Match 3 digits
-    new_supplier_prefix = "060"
+    supplier_prefix_regex = r"0[6|9][1-9]+0"  # Match the actual regex pattern
+    new_supplier_prefix = "09110"
     counter_handler = MagicMock(spec=MetaCounterHandler)
     counter_handler.supplier_prefix = new_supplier_prefix
     
-    uri_generator = MetaURIGenerator(
-        base_iri, supplier_prefix_regex, new_supplier_prefix, counter_handler
-    )
+    uri_generator = MetaURIGenerator(counter_handler)
     sparql = MagicMock(spec=SPARQLWrapper)
     
     # Mock the data query results with multiple prefixes
@@ -468,19 +470,19 @@ def test_initialize_counters_with_multiple_prefixes():
             "bindings": [
                 {
                     "type": {"value": "http://purl.org/spar/fabio/Expression"},
-                    "s": {"value": f"{base_iri}/br/06010"},
+                    "s": {"value": f"{base_iri}/br/0611010"},
                 },
                 {
                     "type": {"value": "http://purl.org/spar/fabio/Expression"},
-                    "s": {"value": f"{base_iri}/br/07020"},
+                    "s": {"value": f"{base_iri}/br/0912020"},
                 },
                 {
                     "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
-                    "s": {"value": f"{base_iri}/ra/06015"},
+                    "s": {"value": f"{base_iri}/ra/0611015"},
                 },
                 {
                     "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
-                    "s": {"value": f"{base_iri}/ra/07025"},
+                    "s": {"value": f"{base_iri}/ra/0912025"},
                 },
             ]
         }
@@ -491,10 +493,10 @@ def test_initialize_counters_with_multiple_prefixes():
         "results": {
             "bindings": [
                 {
-                    "entity": {"value": f"{base_iri}/br/06030"},
+                    "entity": {"value": f"{base_iri}/br/0611030"},
                 },
                 {
-                    "entity": {"value": f"{base_iri}/br/07035"},
+                    "entity": {"value": f"{base_iri}/br/0912035"},
                 },
             ]
         }
@@ -520,15 +522,13 @@ def test_initialize_counters_with_multiple_prefixes():
 def test_generate_uri_uses_correct_prefix():
     """Test that generate_uri uses the correct supplier prefix in the generated URI."""
     base_iri = "https://w3id.org/oc/meta"
-    supplier_prefix_regex = r"\d{3}"
-    new_supplier_prefix = "070"
+    supplier_prefix_regex = r"0[6|9][1-9]+0"
+    new_supplier_prefix = "09110"
     counter_handler = MagicMock(spec=MetaCounterHandler)
     counter_handler.supplier_prefix = new_supplier_prefix
     counter_handler.read_counter.return_value = 42
     
-    uri_generator = MetaURIGenerator(
-        base_iri, supplier_prefix_regex, new_supplier_prefix, counter_handler
-    )
+    uri_generator = MetaURIGenerator(counter_handler)
     
     entity_type = "http://purl.org/spar/fabio/Expression"
     uri = uri_generator.generate_uri(entity_type)

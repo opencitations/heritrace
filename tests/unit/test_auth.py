@@ -115,7 +115,7 @@ def test_callback_http_to_https(client: FlaskClient, app: Flask):
 
         with app.test_request_context():
             expected_url = url_for("auth.login")
-        response = client.get("/auth/callback", base_url="http://localhost")
+        response = client.get("/auth/callback", base_url="http://localhost:5000")
 
         assert response.status_code == 302
         assert response.location == expected_url
@@ -133,7 +133,7 @@ def test_callback_already_https(client: FlaskClient, app: Flask):
 
         with app.test_request_context():
             expected_url = url_for("auth.login")
-        response = client.get("/auth/callback", base_url="https://localhost")
+        response = client.get("/auth/callback", base_url="https://localhost:5000")
 
         assert response.status_code == 302
         assert response.location == expected_url

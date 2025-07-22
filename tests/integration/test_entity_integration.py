@@ -9,17 +9,19 @@ import time
 import uuid
 from datetime import datetime
 from typing import Generator
+from unittest.mock import patch
 
 import pytest
 import yaml
 from bs4 import BeautifulSoup
+from default_components.meta_counter_handler import MetaCounterHandler
+from default_components.meta_uri_generator import MetaURIGenerator
 from flask import Flask
 from flask.testing import FlaskClient
 from heritrace.editor import Editor
 from heritrace.extensions import (get_change_tracking_config,
                                   get_dataset_endpoint,
                                   get_provenance_endpoint)
-from heritrace.meta_counter_handler import MetaCounterHandler
 from heritrace.routes.entity import (compute_graph_differences,
                                      determine_datatype,
                                      format_triple_modification,
@@ -27,14 +29,11 @@ from heritrace.routes.entity import (compute_graph_differences,
                                      get_entities_to_restore,
                                      validate_entity_data)
 from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
-from heritrace.uri_generator.meta_uri_generator import MetaURIGenerator
 from heritrace.utils.filters import Filter
 from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
 from rdflib import RDF, XSD, ConjunctiveGraph, Literal, URIRef
-from SPARQLWrapper import JSON, POST, SPARQLWrapper
-from tests.test_config import REDIS_TEST_DB, REDIS_TEST_HOST, REDIS_TEST_PORT
+
 from time_agnostic_library.agnostic_entity import AgnosticEntity
-from unittest.mock import patch
 
 
 @pytest.fixture
@@ -497,17 +496,11 @@ def test_generate_unique_uri(app: Flask) -> None:
             assert str(uri2).startswith("http://example.org/")
             assert uri1 != uri2  # URIs should be different
             
-            # Create a counter handler with the test Redis configuration
-            counter_handler = MetaCounterHandler(
-                host=REDIS_TEST_HOST,
-                port=REDIS_TEST_PORT,
-                db=REDIS_TEST_DB
-            )
+            # Create a counter handler with default configuration
+            counter_handler = MetaCounterHandler()
 
             # Create a MetaURIGenerator instance
-            meta_generator = MetaURIGenerator(
-                "http://example.org", "test", "test", counter_handler
-            )
+            meta_generator = MetaURIGenerator(counter_handler)
 
             # Set the MetaURIGenerator as the application's URI generator
             app.config["URI_GENERATOR"] = meta_generator
@@ -519,13 +512,13 @@ def test_generate_unique_uri(app: Flask) -> None:
             uri3 = generate_unique_uri(entity_type)
             assert uri3 is not None
             assert isinstance(uri3, URIRef)
-            assert str(uri3).startswith("http://example.org/br/test")
+            assert str(uri3).startswith("https://w3id.org/oc/meta/br/09110")
 
             # Generate another URI to ensure the counter is incremented
             uri4 = generate_unique_uri(entity_type)
             assert uri4 is not None
             assert isinstance(uri4, URIRef)
-            assert str(uri4).startswith("http://example.org/br/test")
+            assert str(uri4).startswith("https://w3id.org/oc/meta/br/09110")
             assert uri3 != uri4  # URIs should be different
 
         finally:
@@ -822,7 +815,7 @@ def test_format_triple_modification(app: Flask) -> None:
                 
             # Import the standalone function from the module
             from heritrace.utils.filters import split_namespace
-            
+
             # entity_key is now a tuple (class_uri, shape_uri)
             url = predicate_uri  # Use the predicate_uri directly
             first_part, last_part = split_namespace(url)
