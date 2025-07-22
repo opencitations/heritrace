@@ -96,17 +96,11 @@ docker compose up
 Open your browser and navigate to:
 
 ```
-https://127.0.0.1:5000
+http://127.0.0.1:5000
 ```
 
-:::caution[SSL Certificate Warning]
-**Development Mode**: HERITRACE uses a self-signed SSL certificate, so your browser will show a security warning. Click "Advanced" and "Proceed to 127.0.0.1:5000 (unsafe)" to continue.
-
-The following image shows an example of this warning:
-
-![Browser 'Your connection is not private' warning](../../../assets/connection_not_private.png)
-
-**Demo Mode**: Authentication is bypassed for immediate testing. **Production Mode**: Requires ORCID authentication setup - see [Application Settings](/heritrace/configuration/app-settings/) for configuration details.
+:::note[Demo vs Production Mode]
+**Demo Mode**: Runs on HTTP with authentication bypassed for immediate testing. **Production Mode**: Requires HTTPS, valid SSL certificates, and ORCID authentication setup - see [Application Settings](/heritrace/configuration/app-settings/) for configuration details.
 :::
 
 ## Pre-configured Data Model

@@ -72,9 +72,8 @@ docker compose up
 ```
 
 
-The application will be available at `https://127.0.0.1:5000`
+The application will be available at `http://127.0.0.1:5000`
 
-> **Note:** Your browser will show an SSL certificate warning in development mode - click "Advanced" and proceed to continue.
 
 **Stopping the application:**
 
