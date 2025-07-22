@@ -17,15 +17,12 @@ Complete documentation is available at: **[https://opencitations.github.io/herit
 
 ## 🚀 Quick Start
 
-### Option 1: Using Pre-built Docker Images (Recommended)
-
 **Prerequisites:** Docker and Docker Compose
 
 Download HERITRACE configuration:
 ```bash
 curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
 ```
-
 
 Optionally download database management scripts for quick setup:
 ```bash
@@ -44,7 +41,7 @@ curl -o Stop-Databases.ps1 https://raw.githubusercontent.com/opencitations/herit
 chmod +x start-databases.sh stop-databases.sh
 ```
 
-**⚠️ Required:** Edit `docker-compose.yml` to configure:
+**⚠️ Required:** Edit `docker-compose.yml` environment variables to configure:
 
 1. **ORCID authentication** (get from [ORCID Developer Tools](https://orcid.org/developer-tools)):
    - Set redirect URI to: `https://127.0.0.1:5000/auth/callback`
@@ -80,47 +77,6 @@ Edit docker-compose.yml with your database URLs, then start HERITRACE:
 docker compose up
 ```
 
-### Option 2: Building from Source
-
-**Prerequisites:** Docker, Docker Compose, and Python 3.10+ (for development)
-
-### 1. Clone and Configure
-
-```bash
-git clone https://github.com/opencitations/heritrace.git
-```
-```bash
-cd heritrace
-```
-```bash
-cp config.example.py config.py
-```
-
-Configure ORCID authentication in `config.py` (same as Option 1 above).
-
-### 2. Start Databases
-
-Unix/Linux/MacOS:
-```bash
-./start-databases.sh
-```
-
-Windows PowerShell:
-```bash
-.\Start-Databases.ps1
-```
-
-### 3. Launch Application
-
-Development mode:
-```bash
-docker compose -f docker-compose.dev.yaml up --build
-```
-
-Production mode:
-```bash
-docker compose up
-```
 
 The application will be available at `https://127.0.0.1:5000`
 

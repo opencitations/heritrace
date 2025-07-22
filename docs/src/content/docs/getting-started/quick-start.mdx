@@ -12,18 +12,11 @@ This guide will get HERITRACE running on your local machine in just a few steps.
 - <a href="https://docs.docker.com/get-docker/" target="_blank" rel="noopener noreferrer">Docker and Docker Compose installed</a>
 - Modern web browser
 
-## Installation Methods
+## Quick Setup
 
-Choose between using pre-built Docker images (recommended for quick setup) or building from source (for development):
+This method uses official Docker images published to Docker Hub and GitHub Container Registry. All configuration is done through environment variables in the docker-compose.yml file.
 
-<Tabs>
-  <TabItem label="Pre-built Images (Recommended)">
-    
-### Quick Setup with Pre-built Images
-
-This method uses official Docker images published to Docker Hub and GitHub Container Registry, eliminating the need to build locally. Configuration is done directly in the docker-compose.yml file.
-
-#### 1. Download Configuration Files
+### 1. Download Configuration Files
 
 Create a new directory for HERITRACE:
 ```bash
@@ -59,7 +52,7 @@ Optionally download database management scripts for quick setup:
   </TabItem>
 </Tabs>
 
-#### 2. Configure ORCID Authentication
+### 2. Configure Environment Variables
 
 **Required:** Edit `docker-compose.yml` to configure:
 
@@ -104,83 +97,6 @@ Edit docker-compose.yml with your database URLs, then start HERITRACE:
 docker compose up
 ```
 
-:::note
-- Pre-built images are automatically pulled from Docker Hub. The first run will download the images (~2GB total).
-- The `resources` folder will be created automatically with default SHACL schema and display rules for customization.
-:::
-
-  </TabItem>
-  <TabItem label="Build from Source">
-
-### Development Setup - Build from Source
-
-This method requires <a href="https://git-scm.com/downloads" target="_blank" rel="noopener noreferrer">Git</a> and is recommended for development or customization.
-
-#### 1. Clone the Repository
-
-```bash
-git clone https://github.com/opencitations/heritrace.git
-```
-```bash
-cd heritrace
-```
-
-#### 2. Configure the Application
-
-Copy the example configuration file:
-
-```bash
-cp config.example.py config.py
-```
-
-Configure ORCID authentication in `config.py` (edit the file directly with your credentials).
-
-#### 3. Start the Databases
-
-:::note
-Make sure Docker Engine (Linux/MacOS) or Docker Desktop (Windows) is running before executing these commands.
-:::
-
-<Tabs>
-  <TabItem label="Linux/MacOS">
-    ```bash
-    ./start-databases.sh
-    ```
-  </TabItem>
-  <TabItem label="Windows">
-    ```bash
-    .\Start-Databases.ps1
-    ```
-  </TabItem>
-</Tabs>
-
-This starts two Virtuoso database instances:
-- Dataset database on port 8999
-- Provenance database on port 8998
-
-#### 4. Launch HERITRACE
-
-Development Mode (with hot reload):
-```bash
-docker compose -f docker-compose.dev.yaml up --build
-```
-
-Production Mode:
-```bash
-docker compose up
-```
-
-  </TabItem>
-</Tabs>
-
-:::note
-Both installation methods automatically start all required services including:
-- HERITRACE web application (port 5000)
-- Redis for resource locking and counters (port 6379)
-- All dependencies are managed automatically by Docker Compose
-
-For the pre-built images method, the `resources` folder is exposed as a volume for easy customization of SHACL schemas and display rules.
-:::
 
 ## Access the Application
 
@@ -204,19 +120,18 @@ The following image shows an example of this warning:
 
 HERITRACE comes preloaded with validation and display rules based on a customized version of the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank" rel="noopener noreferrer">OpenCitations Data Model (OCDM)</a>:
 
-- **SHACL Schema** (`resources/shacl.ttl`): Defines the data model, classes, and properties.
-- **YAML Display Rules** (`resources/display_rules.yaml`): Configure how entities appear in the interface
-
-These rules can be fully customized for your specific needs while maintaining semantic integrity.
+- **SHACL Schema** (`./shacl.ttl`): Defines the data model, classes, and properties.
+- **YAML Display Rules** (`./display_rules.yaml`): Configure how entities appear in the interface
+- **Default Components** (`default_components/`): Contains the default URI generator and counter handler implementations
 
 ## What's Next?
 
 Now that HERITRACE is running, you can:
 
 1. **Explore the Interface**: Navigate through the metadata management features with the preconfigured data model
-2. **Configure Schemas**: Customize the [SHACL schema](/heritrace/configuration/shacl/) for your data model
-3. **Set Display Rules**: Modify the [YAML display rules](/heritrace/configuration/display-rules/) for your interface
-4. **Advanced Configuration**: Review [additional settings](/heritrace/configuration/app-settings/) for production use
+2. **Advanced Configuration**: Review [additional settings](/heritrace/configuration/app-settings/) for production use
+3. **Configure Schemas**: Customize the [SHACL schema](/heritrace/configuration/shacl/) for your data model
+4. **Set Display Rules**: Modify the [YAML display rules](/heritrace/configuration/display-rules/) for your interface
 
 ## Stopping the Application
 
@@ -278,4 +193,4 @@ If you get port conflicts, check if other services are running on the required p
 ### Need Help?
 - Review [configuration options](/heritrace/configuration/app-settings/) for advanced setup
 - Use `docker compose logs` to check application logs for specific errors
-- Visit the <a href="https://github.com/opencitations/heritrace" target="_blank" rel="noopener noreferrer">GitHub repository</a> for issues and support 
+- Visit the <a href="https://github.com/opencitations/heritrace" target="_blank" rel="noopener noreferrer">GitHub repository</a> for issues and support

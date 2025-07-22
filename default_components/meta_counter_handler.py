@@ -1,26 +1,23 @@
 import urllib.parse
 import redis
+import os
 
 
 class MetaCounterHandler:
-    def __init__(self, host=None, port=6379, db=0, password=None, supplier_prefix="060") -> None:
+    def __init__(self) -> None:
         """
         Constructor of the ``MetaCounterHandler`` class.
-
-        :param host: Redis host address
-        :type host: str
-        :param port: Redis port number
-        :type port: int
-        :param db: Redis database number
-        :type db: int
-        :param password: Redis password if required
-        :type password: str
-        :param supplier_prefix: Supplier prefix for counter separation
-        :type supplier_prefix: str
+        Configure these values directly in this script.
         """
-        # Force localhost if someone passes 'redis' or None
+        host = 'redis'
+        port = 6379
+        db = 0
+        password = None
+        supplier_prefix = '09110'
+        
         if host is None or host == 'redis':
             host = 'localhost'
+            
         # Store connection parameters for lazy initialization
         self.host = host
         self.port = port

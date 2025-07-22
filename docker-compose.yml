@@ -33,11 +33,26 @@ services:
       
       # Provenance settings
       - DATASET_GENERATION_TIME=2024-01-01T00:00:00+00:00
-      - PRIMARY_SOURCE=https://example.org 
+      - PRIMARY_SOURCE=https://example.org
+      
+      # Entity handling strategies (Options: ASK, DELETE, KEEP)
+      - ORPHAN_HANDLING_STRATEGY=ASK
+      - PROXY_HANDLING_STRATEGY=ASK
+      
+      # Component classes - specify custom implementations via these variables
+      - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
+      - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator 
     volumes:
       # Expose configuration files for customization (optional)
       # - ./shacl.ttl:/app/shacl.ttl
       # - ./display_rules.yaml:/app/display_rules.yaml
+      
+      # Default components (always mounted)
+      - ./default_components:/app/default_components
+      
+      # Mount custom components (optional - create your own directory)
+      # - ./custom_components:/app/custom_components
+      
       # Redis data persistence
       - ./redis-data:/data
     extra_hosts:

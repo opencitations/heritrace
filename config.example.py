@@ -1,44 +1,34 @@
 import os
 
-from heritrace.meta_counter_handler import MetaCounterHandler
-from heritrace.uri_generator import DefaultURIGenerator, MetaURIGenerator
 from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
 
-# Base directory for the application
 BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-# URI generators for different types of resources
-default_uri_generator = DefaultURIGenerator("https://example.com")
+def _load_class(class_path: str):
+    """Dynamically load a class from a module path."""
+    module_path, class_name = class_path.rsplit('.', 1)
+    module = __import__(module_path, fromlist=[class_name])
+    return getattr(module, class_name)
 
-# Initialize counter handler for URI generation - using internal Redis
-counter_handler = MetaCounterHandler(
-    host='localhost',
-    port=6379,
-    db=0,
-    supplier_prefix="09110"
-)
+counter_handler_class_path = os.environ.get('COUNTER_HANDLER_CLASS', 'default_components.meta_counter_handler.MetaCounterHandler')
+uri_generator_class_path = os.environ.get('URI_GENERATOR_CLASS', 'default_components.meta_uri_generator.MetaURIGenerator')
 
-meta_uri_generator = MetaURIGenerator(
-    "https://w3id.org/oc/meta", 
-    supplier_prefix_regex="0[6|9][1-9]+0", 
-    new_supplier_prefix="09110", 
-    counter_handler=counter_handler
-)
+counter_handler_class = _load_class(counter_handler_class_path)
+uri_generator_class = _load_class(uri_generator_class_path)
 
-# Paths to resource files
+counter_handler = counter_handler_class()
+meta_uri_generator = uri_generator_class(counter_handler)
+
 shacl_path = os.path.join(BASE_HERITRACE_DIR, "shacl.ttl")
 display_rules_path = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
 
 
 class Config(object):
-    # Application display settings
     APP_TITLE = os.environ.get("APP_TITLE", "HERITRACE")
     APP_SUBTITLE = os.environ.get("APP_SUBTITLE", "Heritage Enhanced Repository Interface")
 
-    # Security settings
-    SECRET_KEY = os.environ.get("SECRET_KEY", "generate-a-secure-random-key")  # CHANGE THIS IN PRODUCTION!
+    SECRET_KEY = os.environ.get("SECRET_KEY", "generate-a-secure-random-key")
 
-    # Cache settings
     CACHE_VALIDITY_DAYS = int(os.environ.get("CACHE_VALIDITY_DAYS", "7"))
 
     # Database configuration
@@ -50,13 +40,11 @@ class Config(object):
     DATASET_DB_URL = os.environ.get("DATASET_DB_URL", "http://localhost:8999/sparql")
     PROVENANCE_DB_URL = os.environ.get("PROVENANCE_DB_URL", "http://localhost:8998/sparql")
 
-
     # Database store types
     DATASET_IS_QUADSTORE = os.environ.get("DATASET_IS_QUADSTORE", "true").lower() == "true"
     PROVENANCE_IS_QUADSTORE = os.environ.get("PROVENANCE_IS_QUADSTORE", "true").lower() == "true"
 
-    # Data management settings
-    DATASET_GENERATION_TIME = os.environ.get("DATASET_GENERATION_TIME", "2024-01-01T00:00:00+00:00")
+    DATASET_GENERATION_TIME = os.environ.get("DATASET_GENERATION_TIME", "2024-12-25T00:00:00+00:00")
     URI_GENERATOR = meta_uri_generator
     COUNTER_HANDLER = counter_handler
 
@@ -66,7 +54,6 @@ class Config(object):
         BASE_HERITRACE_DIR, "babel", "translations"
     )
 
-    # Data model and tracking
     CHANGE_TRACKING_CONFIG = os.path.join(BASE_HERITRACE_DIR, "change_tracking.json")
     PRIMARY_SOURCE = os.environ.get("PRIMARY_SOURCE", "https://doi.org/your-doi")
     SHACL_PATH = shacl_path
@@ -85,6 +72,10 @@ class Config(object):
     _orcid_whitelist_str = os.environ.get("ORCID_WHITELIST", "your-allowed-orcid-1,your-allowed-orcid-2")
     ORCID_WHITELIST = [orcid.strip() for orcid in _orcid_whitelist_str.split(",") if orcid.strip()]
 
-    # Entity handling configuration
-    ORPHAN_HANDLING_STRATEGY = OrphanHandlingStrategy.ASK
-    PROXY_HANDLING_STRATEGY = ProxyHandlingStrategy.DELETE
+    # Entity handling configuration - strategies can be configured via environment variables
+    # Available options: ASK, DELETE, KEEP
+    _orphan_strategy_str = os.environ.get("ORPHAN_HANDLING_STRATEGY", "ASK").upper()
+    ORPHAN_HANDLING_STRATEGY = getattr(OrphanHandlingStrategy, _orphan_strategy_str, OrphanHandlingStrategy.ASK)
+    
+    _proxy_strategy_str = os.environ.get("PROXY_HANDLING_STRATEGY", "DELETE").upper()
+    PROXY_HANDLING_STRATEGY = getattr(ProxyHandlingStrategy, _proxy_strategy_str, ProxyHandlingStrategy.DELETE)

@@ -17,6 +17,7 @@ heritrace-*-local/
 heritrace-*-local.zip
 heritrace-*-testing/
 heritrace-*-testing.zip
+.env
 
 # Unit test / coverage reports
 .coverage

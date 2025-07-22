@@ -2,42 +2,32 @@ FROM nikolaik/python-nodejs:python3.13-nodejs23-slim
 
 WORKDIR /app
 
-# Install Redis
 RUN apt-get update && apt-get install -y redis-server && \
     rm -rf /var/lib/apt/lists/*
 
-# Create necessary directories
 RUN mkdir -p /app/heritrace /app/babel
 
-# Copy necessary files for Poetry to install the package
 COPY pyproject.toml poetry.toml poetry.lock README.md ./
 COPY heritrace ./heritrace
 
-# Copy configuration files and babel
 COPY config.example.py ./config.py
 COPY shacl.ttl ./shacl.ttl
 COPY display_rules.yaml ./display_rules.yaml
 COPY babel ./babel
 
-# Install Python dependencies with Poetry (main dependencies only)
 RUN poetry config virtualenvs.in-project true
 RUN poetry install --only main
 
-# Install Node.js dependencies
 COPY package.json package-lock.json ./
 RUN npm install
 
-# Copy webpack config and app entry point
 COPY webpack.config.js ./
 COPY app.py ./
 
-# Build frontend assets
 RUN npm run build
 
-# Create data directory for Redis
 RUN mkdir -p /data
 
-# Create startup script
 RUN echo '#!/bin/bash\n\
 set -e\n\
 echo "Starting Redis..."\n\

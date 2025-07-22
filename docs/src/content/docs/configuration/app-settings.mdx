@@ -5,168 +5,124 @@ description: Configure HERITRACE application settings and integrations
 
 import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
 
-HERITRACE supports two configuration methods: a Python configuration file (`config.py`) for development, and Docker environment variables for containerized deployments. This page covers all available configuration options.
+HERITRACE is configured through Docker environment variables.
 
-## Configuration Methods
+## Configuration Method
 
-HERITRACE can be configured using either:
+Configure settings in your `docker-compose.yml` file:
 
-1. **Python Configuration File** (`config.py`) - Traditional method, ideal for development
-2. **Docker Environment Variables** - Modern approach, recommended for production and Docker deployments
+```yaml
+environment:
+  # Application settings
+  - FLASK_ENV=production
+  - APP_TITLE=HERITRACE
+  - APP_SUBTITLE=A semantic editor for heritage data
+  
+  # Security (REQUIRED: Change this!)
+  - SECRET_KEY=your-secure-secret-key-here
+  
+  # Database endpoints
+  - DATASET_DB_URL=http://host.docker.internal:8999/sparql
+  - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
+  - DATASET_DB_TRIPLESTORE=virtuoso
+  - PROVENANCE_DB_TRIPLESTORE=virtuoso
+  
+  # ORCID authentication
+  - ORCID_CLIENT_ID=your-client-id
+  - ORCID_CLIENT_SECRET=your-client-secret
+  - ORCID_WHITELIST=0000-0000-0000-0000,0000-0000-0000-0001
+```
 
-<Tabs>
-  <TabItem label="Docker Environment Variables (Recommended)">
-    When using Docker (as shown in the [Quick Start guide](/heritrace/getting-started/quick-start/)), configuration is handled through environment variables in your `docker-compose.yml` file:
-
-    ```yaml
-    environment:
-      # Application settings
-      - FLASK_ENV=production
-      - APP_TITLE=HERITRACE
-      - APP_SUBTITLE=A semantic editor for heritage data
-      
-      # Security (REQUIRED: Change this!)
-      - SECRET_KEY=your-secure-secret-key-here
-      
-      # Database endpoints
-      - DATASET_DB_URL=http://host.docker.internal:8999/sparql
-      - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
-      - DATASET_DB_TRIPLESTORE=virtuoso
-      - PROVENANCE_DB_TRIPLESTORE=virtuoso
-      
-      # ORCID authentication
-      - ORCID_CLIENT_ID=your-client-id
-      - ORCID_CLIENT_SECRET=your-client-secret
-      - ORCID_WHITELIST=0000-0000-0000-0000,0000-0000-0000-0001
-    ```
-
-  </TabItem>
-  <TabItem label="Python Configuration File">
-    ### Initial Setup
-
-    1. Copy the template configuration:
-       ```bash
-       cp config.example.py config.py
-       ```
-
-    2. Edit `config.py` with your specific settings
-
-    3. Restart the application to apply changes
-  </TabItem>
-</Tabs>
-
-<Aside type="tip" title="Configuration Priority">
-When using Docker, environment variables take precedence over `config.py` settings. This allows you to override specific settings without modifying the configuration file.
-</Aside>
-
-<Aside type="tip" title="Configuration Management">
-Keep sensitive information (like ORCID credentials and secret keys) out of version control. Use environment variables for production deployments.
+<Aside type="tip">
+Keep sensitive credentials secure. Use Docker secrets or external secret management for production.
 </Aside>
 
 ## Core Application Settings
 
 ### Basic Configuration
 
-```python
-class Config(object):
-    # Application Identity
-    APP_TITLE = 'Your App Title'
-    APP_SUBTITLE = 'Your App Subtitle'
-    
-    # Security
-    SECRET_KEY = 'your-secret-key-here'  # REQUIRED: Change this!
-    
-    # Performance Caching
-    CACHE_FILE = 'cache.json'
-    CACHE_VALIDITY_DAYS = 7
-```
+| Environment Variable | Type | Description | Required | Default |
+|---------------------|------|-------------|----------|---------|
+| `APP_TITLE` | String | Main application title shown in UI | No | `HERITRACE` |
+| `APP_SUBTITLE` | String | Subtitle displayed in interface | No | `Heritage Enhanced Repository Interface` |
+| `SECRET_KEY` | String | Flask secret key for security | **Yes** | `generate-a-secure-random-key` |
+| `CACHE_VALIDITY_DAYS` | Integer | Days until the performance cache expires | No | `7` |
 
-| Setting | Type | Description | Required |
-|---------|------|-------------|----------|
-| `APP_TITLE` | String | Main application title shown in UI | No |
-| `APP_SUBTITLE` | String | Subtitle displayed in interface | No |
-| `SECRET_KEY` | String | Flask secret key for security | **Yes** |
-| `CACHE_FILE` | String | Path to the performance cache file. | No |
-| `CACHE_VALIDITY_DAYS` | Integer | Days until the performance cache expires. | No |
-
-<Aside type="caution" title="Security Warning">
-Always set a unique, secure `SECRET_KEY`. Never use the example value in production.
+<Aside type="caution">
+Set a unique `SECRET_KEY` in production.
 </Aside>
 
-### Performance Caching Explained
-
-The application uses a specific caching mechanism to improve startup performance. Here's how it works:
-
--   **Purpose**: The cache's primary role is to prevent the application from running an expensive SPARQL query on every startup. This query initializes the entity counters (used for URI generation) by reading the entire provenance database and populating a Redis instance.
--   **`CACHE_FILE`**: This file (e.g., `cache.json`) does not store application data. Instead, it holds a single timestamp that marks the last time the counter initialization was successfully performed.
--   **`CACHE_VALIDITY_DAYS`**: This setting determines how long the timestamp in `CACHE_FILE` is considered valid. After this period, the application will run the initialization query again to refresh the counters in Redis and update the timestamp.
-
-If `cache.json` is missing or the timestamp is older than `CACHE_VALIDITY_DAYS`, the application will perform the full initialization. This makes the first startup or periodic restarts potentially slower, but subsequent restarts will be much faster.
+<Aside type="note">
+The performance cache prevents slow initialization queries from running on every startup. After `CACHE_VALIDITY_DAYS`, the application will reinitialize counters from the database.
+</Aside>
 
 ## Database Configuration
 
-HERITRACE is designed to be compatible with any SPARQL 1.1 compliant triplestore, including popular options like GraphDB, Apache Jena, and Fuseki. However, the application has been specifically tested and optimized for **Virtuoso** and **Blazegraph**.
+Compatible with SPARQL 1.1 triplestores. Tested with **Virtuoso** and **Blazegraph**.
 
-The full-text search feature is used for **internal query optimization**. When `DATASET_DB_TEXT_INDEX_ENABLED` is `True`, HERITRACE leverages the database's native text indexing to accelerate SPARQL queries that filter on literal values. This is a performance enhancement and does not expose a direct search functionality to the end-user. This optimization is currently implemented only for Virtuoso and Blazegraph.
+When `DATASET_DB_TEXT_INDEX_ENABLED` is enabled, uses database text indexing to optimize SPARQL queries on literals. Available for Virtuoso and Blazegraph only.
 
 ### Triplestore Settings
 
-```python
-# Triplestore Types
-DATASET_DB_TRIPLESTORE = 'virtuoso'      # 'virtuoso' or 'blazegraph'
-PROVENANCE_DB_TRIPLESTORE = 'virtuoso'   # 'virtuoso' or 'blazegraph'
+```yaml
+environment:
+  # Triplestore Types
+  - DATASET_DB_TRIPLESTORE=virtuoso      # 'virtuoso' or 'blazegraph'
+  - PROVENANCE_DB_TRIPLESTORE=virtuoso   # 'virtuoso' or 'blazegraph'
 
-# Database URLs  
-DATASET_DB_URL = 'http://localhost:8999/sparql'
-PROVENANCE_DB_URL = 'http://localhost:8998/sparql'
+  # Database URLs  
+  - DATASET_DB_URL=http://localhost:8999/sparql
+  - PROVENANCE_DB_URL=http://localhost:8998/sparql
 
-# Storage Types
-DATASET_IS_QUADSTORE = True
-PROVENANCE_IS_QUADSTORE = True
+  # Storage Types
+  - DATASET_IS_QUADSTORE=true
+  - PROVENANCE_IS_QUADSTORE=true
 
-# Features
-DATASET_DB_TEXT_INDEX_ENABLED = True
+  # Features
+  - DATASET_DB_TEXT_INDEX_ENABLED=true
 ```
 
 ### Database Options
 
 <Tabs>
   <TabItem label="Virtuoso (Recommended)">
-    ```python
-    DATASET_DB_TRIPLESTORE = 'virtuoso'
-    PROVENANCE_DB_TRIPLESTORE = 'virtuoso'
-    DATASET_DB_TEXT_INDEX_ENABLED = True
+    ```yaml
+    environment:
+      - DATASET_DB_TRIPLESTORE=virtuoso
+      - PROVENANCE_DB_TRIPLESTORE=virtuoso
+      - DATASET_DB_TEXT_INDEX_ENABLED=true
     ```
     
-    Virtuoso is the recommended database for its performance, stability, and active maintenance.
+    **Pros:**
+    - Mature and battle-tested database
+    - Open source and SPARQL 1.1 compliant
+    - Excellent performance even with large datasets
+    - Full-text indexing and named graph support
     
-    **Features:**
-    - **Actively Supported**: Benefits from continuous development and community support.
-    - **Internal Query Optimization**: Uses its powerful full-text index to accelerate internal queries on text literals when enabled.
-    - **Proven Scalability**: Reliable for production environments with large datasets.
-    - **Named Graph Support**: Fully compatible with quad-store setups.
+    **Cons:**
+    - Complex configuration
+    - Poor documentation
 
     <a href="https://github.com/openlink/virtuoso-opensource" target="_blank" rel="noopener noreferrer">**Visit the Virtuoso GitHub Repository**</a>
 
   </TabItem>
   <TabItem label="Blazegraph">
-    ```python
-    DATASET_DB_TRIPLESTORE = 'blazegraph' 
-    PROVENANCE_DB_TRIPLESTORE = 'blazegraph'
-    DATASET_DB_TEXT_INDEX_ENABLED = True
+    ```yaml
+    environment:
+      - DATASET_DB_TRIPLESTORE=blazegraph 
+      - PROVENANCE_DB_TRIPLESTORE=blazegraph
+      - DATASET_DB_TEXT_INDEX_ENABLED=true
     ```
     
-    Blazegraph is an open-source alternative that also supports named graphs and text indexing for query optimization.
+    **Pros:**
+    - Simple to configure
+    - Open source and SPARQL 1.1 compliant
+    - Full-text indexing and named graph support
     
-    **Features:**
-    - **Open Source**: Fully open-source and community-driven.
-    - **Internal Query Optimization**: Supports full-text indexing to speed up internal queries.
-    - **Named Graph Support**: Compatible with quad-store setups.
-    
-    <Aside type="caution" title="Important Considerations">
-    - **Maintenance**: Blazegraph is no longer actively maintained, which may pose a risk for long-term projects.
-    - **Scalability**: While the official documentation claims support for up to 50 billion triples, it may exhibit performance degradation with datasets exceeding 10 billion triples.
-    </Aside>
+    **Cons:**
+    - No longer actively maintained
+    - Performance degrades  and may stop accepting triples with large datasets
+    - Poor documentation
     
     <a href="https://github.com/blazegraph/database" target="_blank" rel="noopener noreferrer">**Visit the Blazegraph GitHub Repository**</a>
   </TabItem>
@@ -186,67 +142,85 @@ This Python package automates many complex tasks that can be challenging to conf
 
 ### Storage Configuration
 
-| Setting | Options | Description |
-|---------|---------|-------------|
-| `DATASET_IS_QUADSTORE` | `True`/`False` | Enable named graph support |
-| `PROVENANCE_IS_QUADSTORE` | `True`/`False` | Enable provenance named graphs |
-| `DATASET_DB_TEXT_INDEX_ENABLED` | `True`/`False` | Enable internal query optimization using the database's full-text search index. |
+| Environment Variable | Options | Description |
+|---------------------|---------|-------------|
+| `DATASET_IS_QUADSTORE` | `true`/`false` | Enable named graph support |
+| `PROVENANCE_IS_QUADSTORE` | `true`/`false` | Enable provenance named graphs |
+| `DATASET_DB_TEXT_INDEX_ENABLED` | `true`/`false` | Enable internal query optimization using the database's full-text search index |
 
 ## Schema and Display Configuration
 
 These settings control the data model's constraints and its presentation in the user interface.
 
-```python
-# Schema and Display
-SHACL_PATH = shacl_path
-DISPLAY_RULES_PATH = display_rules_path
-```
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `SHACL_PATH` | Path to the [SHACL schema file](/heritrace/configuration/shacl/) that defines data validation rules | `./shacl.ttl` |
+| `DISPLAY_RULES_PATH` | Path to the YAML display rules file that controls how entities are rendered | `./display_rules.yaml` |
 
-| Setting              | Description                                                                                              | Default                |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `SHACL_PATH`         | Path to the [SHACL schema file](/heritrace/configuration/shacl/) that defines data validation rules.               | `resources/shacl.ttl`  |
-| `DISPLAY_RULES_PATH` | Path to the YAML display rules file that controls how entities are rendered. | `resources/display_rules.yaml`   |
+<Aside type="note" title="File Customization">
+You can expose SHACL and display rules files as Docker volumes to customize them directly.
+</Aside>
 
 ## Data Provenance and Versioning
 
 These settings configure how the application handles data provenance and versioning, aligning with the <a href="https://www.w3.org/TR/prov-o/" target="_blank" rel="noopener noreferrer">W3C PROV Ontology</a>.
 
-```python
-# Provenance and Versioning
-DATASET_GENERATION_TIME = '2024-09-16T00:00:00+02:00'
-PRIMARY_SOURCE = 'https://doi.org/your-doi'
-CHANGE_TRACKING_CONFIG = os.path.join(BASE_HERITRACE_DIR, 'change_tracking.json')
+```yaml
+environment:
+  # Provenance and Versioning
+  - DATASET_GENERATION_TIME=2024-09-16T00:00:00+02:00
+  - PRIMARY_SOURCE=https://doi.org/your-doi
 ```
 
-| Setting                   | Description                                                                                                                                                                                          | Default                |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `PRIMARY_SOURCE`          | Defines the default primary source (DOI/URL). This value is used for the `prov:hadPrimarySource` property. It's used for the initial dataset import and proposed as the default when creating or modifying entities. | Required               |
-| `DATASET_GENERATION_TIME`   | Specifies the creation timestamp for a pre-existing dataset. This value is used for the `prov:generatedAtTime` property in the initial historical snapshot.                                          | Current time           |
-| `CHANGE_TRACKING_CONFIG`  | Path to the change tracking configuration. This file is **generated automatically** by the underlying <a href="https://github.com/opencitations/time-agnostic-library" target="_blank" rel="noopener noreferrer">time-agnostic-library</a> based on the provenance database endpoint. The default location is generally sufficient. | `change_tracking.json` |
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `PRIMARY_SOURCE` | Defines the default primary source (DOI/URL). This value is used for the `prov:hadPrimarySource` property. It's used for the initial dataset import and proposed as the default when creating or modifying entities | Required |
+| `DATASET_GENERATION_TIME` | Specifies the creation timestamp for a pre-existing dataset. This value is used for the `prov:generatedAtTime` property in the initial historical snapshot | Current time |
 
-## URI Generation
+## URI Generation and Counter Handling
 
-The `URI_GENERATOR` and `COUNTER_HANDLER` settings work together to define how new, unique identifiers are created for entities within the system.
+HERITRACE uses a pluggable architecture for URI generation and counter management, allowing you to customize how unique identifiers are created for entities.
 
-```python
-# URI Generation
-URI_GENERATOR = meta_uri_generator
-COUNTER_HANDLER = counter_handler
+```yaml
+environment:
+  # Component classes - specify custom implementations via these variables
+  - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
+  - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
 ```
+
+### Custom Components
+
+You can create custom URI generators and counter handlers by:
+
+1. **Creating custom components**: Write your own Python classes in a `custom_components/` directory
+2. **Mounting the volume**: Add `- ./custom_components:/app/custom_components` to your docker-compose volumes
+3. **Updating environment variables**: Set the class paths to your custom implementations
+
+Example:
+```yaml
+environment:
+  - COUNTER_HANDLER_CLASS=custom_components.my_counter.FileCounterHandler
+  - URI_GENERATOR_CLASS=custom_components.my_uri.UUIDURIGenerator
+volumes:
+  - ./custom_components:/app/custom_components
+```
+
+### Default Components Configuration
+
+The default components are configured through environment variables within their respective Python files:
+
+- **MetaCounterHandler**: Configure Redis connection settings directly in `default_components/meta_counter_handler.py`
+- **MetaURIGenerator**: Configure base IRI, supplier prefix, and regex patterns directly in `default_components/meta_uri_generator.py`
 
 ### URI_GENERATOR
 
-This setting specifies the class responsible for generating new URIs. Whenever a new entity is created, HERITRACE calls the `generate_uri` method of the object assigned to this setting.
+The `URI_GENERATOR` component is responsible for creating unique URIs for new entities. A custom URI generator should implement the following methods:
 
-A valid URI generator class must inherit from the abstract base class `heritrace.uri_generator.URIGenerator` and implement the `generate_uri(entity_type)` method. The abstract class also defines an `initialize_counters(sparql)` method.
+- **`generate_uri(entity_type: str | None = None) -> str`**: Generates a new URI for the given entity type
+- **`initialize_counters(sparql) -> None`**: Initializes any required state from existing data in the database
 
--   **`generate_uri(entity_type)`**: This is the core method responsible for returning a new, unique URI as a string based on the entity's type.
--   **`initialize_counters(sparql)`**: This method is specifically for URI strategies that use sequential counters. It's called at application startup to query the database and determine the last-used identifier, preventing duplicates. If your `URI_GENERATOR` does not rely on counters (e.g., if it uses UUIDs), this method can have an empty implementation (`pass`).
-
-This structure allows you to implement custom URI generation schemes tailored to your specific project needs. HERITRACE's default implementation is `MetaURIGenerator`, designed to create URIs compliant with the OpenCitations Meta standard.
-
-<Aside type="note" title="Example: A UUID-Based URI Generator">
-Here is an example of a generator that uses UUIDs instead of counters. This approach guarantees uniqueness without needing a persistent counter.
+<Aside type="note" title="Example: UUID-Based URI Generator">
+Here is an example of a custom generator that uses UUIDs instead of counters:
 
 ```python
 import uuid
@@ -338,22 +312,20 @@ class InMemoryCounterHandler:
 
 ### Basic Setup
 
-```python
-# ORCID OAuth Configuration
-ORCID_CLIENT_ID = 'your-client-id'
-ORCID_CLIENT_SECRET = 'your-client-secret'
+```yaml
+environment:
+  # ORCID OAuth Configuration
+  - ORCID_CLIENT_ID=your-client-id
+  - ORCID_CLIENT_SECRET=your-client-secret
 
-# ORCID Endpoints
-ORCID_AUTHORIZE_URL = 'https://orcid.org/oauth/authorize'
-ORCID_TOKEN_URL = 'https://orcid.org/oauth/token'
-ORCID_API_URL = 'https://pub.orcid.org/v2.1'
-ORCID_SCOPE = '/authenticate'
+  # ORCID Endpoints
+  - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
+  - ORCID_TOKEN_URL=https://orcid.org/oauth/token
+  - ORCID_API_URL=https://pub.orcid.org/v2.1
+  - ORCID_SCOPE=/authenticate
 
-# Access Control
-ORCID_WHITELIST = [
-    'your-allowed-orcid-1',
-    'https://orcid.org/your-allowed-orcid-2' # Full URLs are also supported
-]
+  # Access Control
+  - ORCID_WHITELIST=your-allowed-orcid-1,your-allowed-orcid-2
 ```
 
 ### Setting Up ORCID
@@ -369,48 +341,32 @@ ORCID_WHITELIST = [
     - **For local development**: `https://127.0.0.1:5000/auth/callback`
     - **For production**: `https://your-domain.com/auth/callback`
 
-4.  **Add Credentials to `config.py`**:
-    Update your `config.py` with the credentials from ORCID.
-    ```python
-    ORCID_CLIENT_ID = 'APP-XXXXXXXXXX'  # From ORCID registration
-    ORCID_CLIENT_SECRET = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+4.  **Add Credentials to `docker-compose.yml`**:
+    Update your environment variables with the credentials from ORCID.
+    ```yaml
+    environment:
+      - ORCID_CLIENT_ID=APP-XXXXXXXXXX  # From ORCID registration
+      - ORCID_CLIENT_SECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     ```
 
 5.  **Whitelist Your ORCID ID**:
-    To enable access, you must add authorized ORCID iDs to the `ORCID_WHITELIST`. The application automatically extracts the ID from full ORCID URLs, so you can use either format.
+    To enable access, you must add authorized ORCID IDs to the `ORCID_WHITELIST`. The application automatically extracts the ID from full ORCID URLs, so you can use either format.
 
-    ```python
-    # Allow specific researchers by ID or full URL
-    ORCID_WHITELIST = [
-        '0000-0002-1825-0097',                # Josiah Carberry (ID only)
-        'https://orcid.org/0000-0001-5109-3700' # Another researcher (Full URL)
-    ]
+    ```yaml
+    environment:
+      # Allow specific researchers by ID or full URL (comma-separated)
+      - ORCID_WHITELIST=0000-0002-1825-0097,https://orcid.org/0000-0001-5109-3700
     ```
-
-## Internationalization
-
-<Aside type="caution" title="Work in Progress">
-HERITRACE includes support for multiple languages, although this functionality is still under active development. While the framework is in place to handle translations, the application does not yet provide a user interface for switching languages. The settings below are for development purposes.
-</Aside>
-
-```python
-# Language Support
-LANGUAGES = ['en', 'it']
-BABEL_TRANSLATION_DIRECTORIES = os.path.join(
-    BASE_HERITRACE_DIR, 
-    'babel', 
-    'translations'
-)
-```
 
 ## Entity Handling Strategies
 
 HERITRACE provides configurable strategies to manage how the application handles entities that are left without connections after a deletion. These strategies apply to two distinct types of entities: **orphans** and **proxies**.
 
-```python
-# Entity Handling Strategies
-ORPHAN_HANDLING_STRATEGY = OrphanHandlingStrategy.ASK
-PROXY_HANDLING_STRATEGY = ProxyHandlingStrategy.DELETE
+```yaml
+environment:
+  # Entity Handling Strategies
+  - ORPHAN_HANDLING_STRATEGY=ASK  # Options: ASK, DELETE, KEEP
+  - PROXY_HANDLING_STRATEGY=ASK   # Options: ASK, DELETE, KEEP
 ```
 
 ### Strategy Options
@@ -428,8 +384,8 @@ PROXY_HANDLING_STRATEGY = ProxyHandlingStrategy.DELETE
     A **proxy** (or **intermediate**) entity is a resource that links two other entities, often to add specific attributes to their relationship. For example, a `pro:RoleInTime` entity can connect a `foaf:Person` to a `fabio:Book`, defining their role as an `author`.
 
     When the primary relationship (e.g., the book's author entry) is deleted, this strategy determines what happens to the intermediate `pro:RoleInTime` entity:
-    - `DELETE`: (Default) Automatically deletes the intermediate entity.
-    - `ASK`: Prompts the user for confirmation before deleting.
+    - `ASK`: (Default) Prompts the user for confirmation before deleting.
+    - `DELETE`: Automatically deletes the intermediate entity.
     - `KEEP`: Retains the intermediate entity in the database.
 
     #### Defining a Proxy Relationship

@@ -1,9 +1,9 @@
 import re
+import os
 from collections import defaultdict
 
 from heritrace.uri_generator.uri_generator import URIGenerator
 from rdflib import URIRef
-from heritrace.meta_counter_handler import MetaCounterHandler
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 
@@ -13,14 +13,21 @@ class InvalidURIFormatError(Exception):
 
 
 class MetaURIGenerator(URIGenerator):
-    def __init__(
-        self, base_iri: str, supplier_prefix_regex: str, new_supplier_prefix: str, counter_handler: MetaCounterHandler
-    ):
-        self.base_iri = base_iri
-        self.supplier_prefix_regex = supplier_prefix_regex
-        self.new_supplier_prefix = new_supplier_prefix
+    def __init__(self, counter_handler):
+        """
+        Initialize MetaURIGenerator with hardcoded configuration.
+        Configure these values directly in this script.
+        
+        :param counter_handler: Counter handler instance for URI generation
+        """
+        # Configuration - modify these values directly
+        self.base_iri = 'https://w3id.org/oc/meta'
+        self.supplier_prefix_regex = '0[6|9][1-9]+0'
+        self.new_supplier_prefix = '09110'
+        
         self.counter_handler = counter_handler
-        self.counter_handler.supplier_prefix = new_supplier_prefix
+        self.counter_handler.supplier_prefix = self.new_supplier_prefix
+        
         self.entity_type_abbr = {
             "http://purl.org/spar/fabio/Expression": "br",
             "http://purl.org/spar/fabio/Article": "br",
