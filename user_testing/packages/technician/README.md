@@ -66,53 +66,53 @@ This package contains everything needed to test HERITRACE configuration features
 
 ### **Warm-up Exploration (2 minutes)**
 
-> "**IMPORTANT: Start your screen recording software now and ensure it captures both screen and microphone audio.** Think aloud throughout the session.
-> 
-> You are working with a partially configured HERITRACE system. Some entities have complete SHACL schemas and display rules, while others are missing these configurations.
-> 
-> Explore the system and think aloud as you navigate. Describe what you see, what you expect, and any questions that arise.
-> 
-> Your goal is to understand the interface, identify the current configuration state, and distinguish between fully configured entities and those needing additional work."
+**IMPORTANT: Start your screen recording software now and ensure it captures both screen and microphone audio.** Think aloud throughout the session.
+
+You are working with a partially configured HERITRACE system. Some entities have complete SHACL schemas and display rules, while others are missing these configurations.
+
+Explore the system and think aloud as you navigate. Describe what you see, what you expect, and any questions that arise.
+
+Your goal is to understand the interface, identify the current configuration state, and distinguish between fully configured entities and those needing additional work.
 
 ### **Configuration Tasks (45 minutes total)**
 
 **Task 1: Add SHACL Validation for Abstract (22 minutes)**  
 
-> "Your institution wants to enable users to add abstracts to journal articles using the `dcterms:abstract` property. To do this, you must first extend the SHACL shape for `fabio:JournalArticle` to include the abstract property.
->
-> As part of this configuration, you also need to ensure that users can add at most one abstract per journal article.
-> 
-> Your task is to modify the SHACL shape to:
-> 1. Include the `dcterms:abstract` property for `fabio:JournalArticle`.
- > 2. Add a constraint to allow a maximum of one abstract and a minimum of zero (i.e., the abstract is optional).
->
-> Continue thinking aloud about your process and any difficulties you encounter when working with SHACL constraints."
+Your institution wants to enable users to add abstracts to journal articles using the `dcterms:abstract` property. To do this, you must first extend the SHACL shape for `fabio:JournalArticle` to include the abstract property.
 
-> **Note on Hot-Reloading**: After modifying configuration files, manually reload the browser page to see UI changes. The backend detects changes automatically, but the frontend requires a refresh.
->
-> **Note on Debugging**: If the application breaks after modifying SHACL files, run `docker logs heritrace-app` to see detailed error messages.
+As part of this configuration, you also need to ensure that users can add at most one abstract per journal article.
+
+Your task is to modify the SHACL shape to:
+1. Include the `dcterms:abstract` property for `fabio:JournalArticle`.
+2. Add a constraint to allow a maximum of one abstract and a minimum of zero (i.e., the abstract is optional).
+
+Continue thinking aloud about your process and any difficulties you encounter when working with SHACL constraints.
+
+**Note on Hot-Reloading**: After modifying configuration files, manually reload the browser page to see UI changes. The backend detects changes automatically, but the frontend requires a refresh.
+
+**Note on Debugging**: If the application breaks after modifying SHACL files, run `docker logs heritrace-app` to see detailed error messages.
 
 **Task 2: Add Abstract Display Support (23 minutes)**
 
-> "After Task 1, you can add abstracts to journal articles. However, the default text input is not ideal for long-form text. Without specific display rules, the user experience is suboptimal.
-> 
-> Configure display rules for the dcterms:abstract property with these requirements:
-> 
-> 1. Property display name: "Abstract"
-> 2. Input type: appropriate for long-form text
-> 3. Property should appear under the title in the display order
-> 
-> Think aloud as you work. Describe your approach, what you're looking for, and any challenges. Consult the documentation to understand display rule configuration.
-> 
-> Once completed, verify in the UI that the 'Abstract' input has changed from a simple text field to a multi-line textarea."
+After Task 1, you can add abstracts to journal articles. However, the default text input is not ideal for long-form text. Without specific display rules, the user experience is suboptimal.
+
+Configure display rules for the dcterms:abstract property with these requirements:
+
+1. Property display name: "Abstract"
+2. Input type: appropriate for long-form text
+3. Property should appear under the title in the display order
+
+Think aloud as you work. Describe your approach, what you're looking for, and any challenges. Consult the documentation to understand display rule configuration.
+
+Once completed, verify in the UI that the 'Abstract' input has changed from a simple text field to a multi-line textarea.
 
 ### **SUS Questionnaire Completion (3 minutes)**
 
-> "Now please complete the SUS (System Usability Scale) questionnaire provided in the `sus_questionnaire.md` file included in this package."
+Now please complete the SUS (System Usability Scale) questionnaire provided in the `sus_questionnaire.md` file included in this package.
 
 ### **Written Reflection (10 minutes)**
 
-> "After completing the SUS, please fill out the `written_responses_template.md` file with your written answers to the reflection questions about your experience with HERITRACE's configuration features."
+After completing the SUS, please fill out the `written_responses_template.md` file with your written answers to the reflection questions about your experience with HERITRACE's configuration features.
 
 ## Post-Session Requirements
 

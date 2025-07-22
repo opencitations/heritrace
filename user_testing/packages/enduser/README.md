@@ -47,62 +47,62 @@ This package contains everything needed to test HERITRACE as an end user.
 
 ### **Session Start**
 
-> "**IMPORTANT: Start your screen recording software now and ensure it captures both your screen and microphone audio.** Make sure the recording includes your voice as you think aloud throughout the session.
-> 
-> You'll be working through several metadata management tasks. Think aloud throughout. Describe what you're doing, what you expect, and any questions or reactions you have.
-> 
-> There are no right or wrong approaches. We want to understand your natural workflow."
+**IMPORTANT: Start your screen recording software now and ensure it captures both your screen and microphone audio.** Make sure the recording includes your voice as you think aloud throughout the session.
+
+You'll be working through several metadata management tasks. Think aloud throughout. Describe what you're doing, what you expect, and any questions or reactions you have.
+
+There are no right or wrong approaches. We want to understand your natural workflow.
 
 ### **Warm-up Exploration (max 2 minutes)**
 
-> "Begin by exploring this HERITRACE system. Think aloud as you navigate. Describe what you see, what you expect, and any questions that arise.
-> 
-> Your goal is to get familiar with the interface and understand how to browse and work with bibliographic metadata in this system."
+Begin by exploring this HERITRACE system. Think aloud as you navigate. Describe what you see, what you expect, and any questions that arise.
+
+Your goal is to get familiar with the interface and understand how to browse and work with bibliographic metadata in this system.
 
 ## Metadata Management Tasks (45 minutes)
 
 ### Task 1: Edit Existing Publication Record (8 minutes)
 
-> "Task 1: Your first task is to edit a specific bibliographic record for a Journal Article. Look for the record that appears as 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' in the interface. This should be the fourth item in the Catalogue list. We're providing the exact position since browsing functionality is not part of this usability test. HERITRACE is focused on metadata editing, not on browsing.
-> 
-> Please make the following change:
-> 1. Add 'Carolyn Scagel' as the first author, specifying that this is the author with ORCID identifier 0000-0002-4269-6240, with 'Carolyn' as the given name and 'Scagel' as the family name.
->
-> Think aloud as you work through this process."
+**Task 1**: Your first task is to edit a specific bibliographic record for a Journal Article. Look for the record that appears as 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' in the interface. This should be the fourth Journal Article item in the Catalogue list. We're providing the exact position since browsing functionality is not part of this usability test. HERITRACE is focused on metadata editing, not on browsing.
+
+Please make the following change:
+1. Add 'Carolyn Scagel' as the first author, specifying that this is the author with ORCID identifier 0000-0002-4269-6240, with 'Carolyn' as the given name and 'Scagel' as the family name.
+
+Think aloud as you work through this process.
 
 ### Task 2: Merge Duplicate Author Entities (10 minutes)
 
-> "Task 2: Return to the 'Journal Article' from Task 1. Navigate to the author page for 'Richard Carew'. Your task is to merge any duplicate author entities you find. Think aloud about how you approach this data cleanup process."
+**Task 2**: Return to the 'Journal Article' from Task 1. Navigate to the author page for 'Richard Carew'. Your task is to merge any duplicate author entities you find. Think aloud about how you approach this data cleanup process.
 
 ### Task 3: Restore Previous Version (7 minutes)
 
-> "Task 3: You realize that the modification you made in Task 1 was incorrect. Use the integrated Time Machine system to restore the record to the version before you added 'Carolyn Scagel' as an author. Think aloud about how you approach this process and what you expect from the version control functionality."
+**Task 3**: You realize that the modification you made in Task 1 was incorrect. Use the integrated Time Machine system to restore the record to the version before you added 'Carolyn Scagel' as an author. Think aloud about how you approach this process and what you expect from the version control functionality.
 
 ### Task 4: Create New Publication Record (20 minutes)
 
-> "Task 4: Add this specific journal article to the repository: https://doi.org/10.1162/qss_a_00292. You must include the following metadata fields:
-> 
-> - **DOI**: The DOI identifier
-> - **Title**: Complete article title
-> - **Authors**: All authors in the correct order, with given name and family name separated for each author
-> - **ORCID identifiers**: Each author must have their ORCID identifier
-> - **Publisher**: Article publisher
-> - **Pages**: Page numbers (start and end)
-> - **Date**: Publication date
-> - **Issue**: Issue number
-> - **Volume**: Volume number
-> - **Journal**: Journal name
-> - **ISSN**: Journal ISSN identifier
-> 
-> You have access to the article's webpage to gather this information. Think aloud as you work through this process."
+**Task 4**: Add this specific journal article to the repository: https://doi.org/10.6092/issn.2532-8816/21218. You must include the following metadata fields:
+
+- **DOI**: The DOI identifier
+- **Title**: Complete article title
+- **Authors**: All authors in the correct order, with given name and family name separated for each author
+- **ORCID identifiers**: Each author must have their ORCID identifier
+- **Publisher**: Article publisher
+- **Pages**: Page numbers (start and end)
+- **Date**: Publication date
+- **Issue**: Issue number
+- **Volume**: Volume number
+- **Journal**: Journal name
+- **ISSN**: Journal ISSN identifier
+
+You have access to the article's webpage to gather this information. Think aloud as you work through this process.
 
 ### **SUS Questionnaire Completion (3 minutes)**
 
-> "Now please complete the SUS (System Usability Scale) questionnaire provided in the `sus_questionnaire.md` file included in this package."
+Now please complete the SUS (System Usability Scale) questionnaire provided in the `sus_questionnaire.md` file included in this package.
 
 ### **Written Reflection (10 minutes)**
 
-> "After completing the SUS, please fill out the `written_responses_template.md` file with your written answers to the reflection questions about your experience with HERITRACE's metadata management features."
+After completing the SUS, please fill out the `written_responses_template.md` file with your written answers to the reflection questions about your experience with HERITRACE's metadata management features.
 
 ## Post-Session Requirements
 

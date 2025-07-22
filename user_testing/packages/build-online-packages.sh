@@ -81,9 +81,6 @@ generate_script_from_template "common/templates/scripts/stop.sh.template" "$TECH
 generate_script_from_template "common/templates/scripts/start.cmd.template" "$TECHNICIAN_DIR/start.cmd" "technician" "Configurator"
 generate_script_from_template "common/templates/scripts/stop.cmd.template" "$TECHNICIAN_DIR/stop.cmd" "technician" "Configurator"
 
-# Generate config.py for technician package
-generate_script_from_template "common/templates/config.py.template" "$TECHNICIAN_DIR/config.py" "technician" "Configurator"
-
 cp "technician/README.md" "$TECHNICIAN_DIR/README.md"
 cp "../sus_questionnaire.md" "$TECHNICIAN_DIR/sus_questionnaire.md"
 cp "../written_responses_template.md" "$TECHNICIAN_DIR/written_responses_template.md"

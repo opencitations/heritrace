@@ -48,9 +48,6 @@ call :generate_script_from_template "common\templates\scripts\stop.cmd.template"
 call :generate_script_from_template "common\templates\scripts\start.sh.template" "%TECHNICIAN_DIR%\start.sh" "technician" "Configurator"
 call :generate_script_from_template "common\templates\scripts\stop.sh.template" "%TECHNICIAN_DIR%\stop.sh" "technician" "Configurator"
 
-REM Generate config.py for technician package
-call :generate_script_from_template "common\templates\config.py.template" "%TECHNICIAN_DIR%\config.py" "technician" "Configurator"
-
 copy "technician\README.md" "%TECHNICIAN_DIR%\README.md"
 copy "..\sus_questionnaire.md" "%TECHNICIAN_DIR%\sus_questionnaire.md"
 copy "..\written_responses_template.md" "%TECHNICIAN_DIR%\written_responses_template.md"

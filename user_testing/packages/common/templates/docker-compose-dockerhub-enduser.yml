@@ -36,7 +36,7 @@ services:
       - heritrace-network
     
   heritrace:
-    image: arcangelo7/heritrace:2.0.2
+    image: arcangelo7/heritrace:2.1.0
     container_name: heritrace-app
     environment:
       # Application settings
@@ -44,35 +44,19 @@ services:
       - APP_TITLE=HERITRACE
       - APP_SUBTITLE=End User Testing Environment
       
-      # Security (using default for demo)
-      - SECRET_KEY=demo-secret-key-change-in-production
-      
-      # Database endpoints (pointing to internal services)
       - DATASET_DB_URL=http://heritrace-dataset:8890/sparql
       - PROVENANCE_DB_URL=http://heritrace-provenance:8890/sparql
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
       
       # Database settings 
-      - DATASET_DB_TEXT_INDEX_ENABLED=true
+      - DATASET_DB_TEXT_INDEX_ENABLED=false
       - DATASET_IS_QUADSTORE=true
       - PROVENANCE_IS_QUADSTORE=true
-      
-      # Cache settings
-      - CACHE_VALIDITY_DAYS=7
-      
-      # ORCID authentication (demo settings - replace with real values)
-      - ORCID_CLIENT_ID=demo-client-id
-      - ORCID_CLIENT_SECRET=demo-client-secret
-      - ORCID_WHITELIST=0000-0000-0000-0000,0000-0000-0000-0001
-      - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
-      - ORCID_TOKEN_URL=https://orcid.org/oauth/token
-      - ORCID_API_URL=https://pub.orcid.org/v2.1
-      - ORCID_SCOPE=/authenticate
-      
+            
       # Provenance settings
-      - DATASET_GENERATION_TIME=2024-09-16T00:00:00+02:00
-      - PRIMARY_SOURCE=https://doi.org/10.5281/zenodo.13768531
+      - DATASET_GENERATION_TIME=2025-04-01T00:00:00+02:00
+      - PRIMARY_SOURCE=https://api.crossref.org/snapshots/monthly/2025/04
     ports:
       - "5000:5000"
     depends_on:
