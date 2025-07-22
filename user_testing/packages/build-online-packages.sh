@@ -60,6 +60,10 @@ cp "enduser/README.md" "$ENDUSER_DIR/README.md"
 cp "../sus_questionnaire.md" "$ENDUSER_DIR/sus_questionnaire.md"
 cp "../written_responses_template.md" "$ENDUSER_DIR/written_responses_template.md"
 
+mkdir -p "$ENDUSER_DIR/config"
+cp "enduser/config/display_rules.yaml" "$ENDUSER_DIR/config/"
+cp "enduser/config/shacl.ttl" "$ENDUSER_DIR/config/"
+
 mkdir -p "$ENDUSER_DIR/dataset_database"
 mkdir -p "$ENDUSER_DIR/prov_database"
 cp "common/templates/virtuoso_dataset.ini" "$ENDUSER_DIR/dataset_database/virtuoso.ini"
@@ -72,7 +76,7 @@ chmod +x "$ENDUSER_DIR/export-data.sh"
 echo "🎁 Building technician online package..."
 TECHNICIAN_DIR="$BUILD_DIR/heritrace-technician-testing"
 mkdir -p "$TECHNICIAN_DIR"
-mkdir -p "$TECHNICIAN_DIR/resources"
+mkdir -p "$TECHNICIAN_DIR/config"
 
 cp "common/templates/docker-compose-dockerhub-technician.yml" "$TECHNICIAN_DIR/docker-compose.yml"
 
@@ -90,8 +94,8 @@ mkdir -p "$TECHNICIAN_DIR/prov_database"
 cp "common/templates/virtuoso_dataset.ini" "$TECHNICIAN_DIR/dataset_database/virtuoso.ini"
 cp "common/templates/virtuoso_provenance.ini" "$TECHNICIAN_DIR/prov_database/virtuoso.ini"
 
-cp "technician/resources/display_rules.yaml" "$TECHNICIAN_DIR/resources/"
-cp "technician/resources/shacl.ttl" "$TECHNICIAN_DIR/resources/"
+cp "technician/config/display_rules.yaml" "$TECHNICIAN_DIR/config/"
+cp "technician/config/shacl.ttl" "$TECHNICIAN_DIR/config/"
 
 cp "common/scripts/export-resources.sh" "$TECHNICIAN_DIR/"
 cp "common/scripts/export-resources.cmd" "$TECHNICIAN_DIR/"

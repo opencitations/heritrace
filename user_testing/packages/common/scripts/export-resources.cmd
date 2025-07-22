@@ -11,10 +11,10 @@ set "ROOT_DIR=%~dp0"
 set "EXPORT_DIR=%ROOT_DIR%export"
 set "ZIP_FILE=%cd%\export.zip"
 
-set "SOURCE_DIR=.\resources"
+set "SOURCE_DIR=.\config"
 
 if not exist "%SOURCE_DIR%" (
-    echo Error: 'resources' directory not found in the current location.
+    echo Error: 'config' directory not found in the current location.
     pause
     exit /b 1
 )
@@ -23,7 +23,7 @@ set "SHACL_FILE=%SOURCE_DIR%\shacl.ttl"
 set "DISPLAY_RULES_FILE=%SOURCE_DIR%\display_rules.yaml"
 
 if not exist "%SHACL_FILE%" if not exist "%DISPLAY_RULES_FILE%" (
-    echo Error: Neither 'shacl.ttl' nor 'display_rules.yaml' found in the 'resources' directory.
+    echo Error: Neither 'shacl.ttl' nor 'display_rules.yaml' found in the 'config' directory.
     pause
     exit /b 1
 )

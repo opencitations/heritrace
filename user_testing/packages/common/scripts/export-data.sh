@@ -22,11 +22,18 @@ mkdir -p "$DATA_DIR" "$PROVENANCE_DIR"
 
 echo "🔄 Exporting database data..."
 
-DATASET_CONTAINER=$(docker ps --filter "name=dataset" --format "{{.Names}}" | head -n 1)
-PROVENANCE_CONTAINER=$(docker ps --filter "name=provenance" --format "{{.Names}}" | head -n 1)
+DATASET_CONTAINER=$(docker ps --filter "name=heritrace-dataset" --format "{{.Names}}" | head -n 1)
+PROVENANCE_CONTAINER=$(docker ps --filter "name=heritrace-provenance" --format "{{.Names}}" | head -n 1)
 
-if [ -z "$DATASET_CONTAINER" ] || [ -z "$PROVENANCE_CONTAINER" ]; then
-    echo "❌ Error: Virtuoso containers not found. Make sure the application is running."
+if [ -z "$DATASET_CONTAINER" ]; then
+    echo "❌ Error: Dataset container not found or not running."
+    echo "   Please start the application with ./start.sh and try again."
+    exit 1
+fi
+
+if [ -z "$PROVENANCE_CONTAINER" ]; then
+    echo "❌ Error: Provenance container not found or not running."
+    echo "   Please start the application with ./start.sh and try again."
     exit 1
 fi
 

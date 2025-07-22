@@ -57,6 +57,9 @@ services:
       # Provenance settings
       - DATASET_GENERATION_TIME=2025-04-01T00:00:00+02:00
       - PRIMARY_SOURCE=https://api.crossref.org/snapshots/monthly/2025/04
+    volumes:
+      - ./config/shacl.ttl:/app/shacl.ttl
+      - ./config/display_rules.yaml:/app/display_rules.yaml
     ports:
       - "5000:5000"
     depends_on:

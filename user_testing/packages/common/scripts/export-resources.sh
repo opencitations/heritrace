@@ -13,10 +13,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/"
 EXPORT_DIR="${ROOT_DIR}export"
 ZIP_FILE="$(pwd)/export.zip"
 
-SOURCE_DIR="./resources"
+SOURCE_DIR="./config"
 
 if [ ! -d "$SOURCE_DIR" ]; then
-    echo "❌ Error: 'resources' directory not found in the current location."
+    echo "❌ Error: 'config' directory not found in the current location."
     exit 1
 fi
 
@@ -24,7 +24,7 @@ SHACL_FILE="${SOURCE_DIR}/shacl.ttl"
 DISPLAY_RULES_FILE="${SOURCE_DIR}/display_rules.yaml"
 
 if [ ! -f "$SHACL_FILE" ] && [ ! -f "$DISPLAY_RULES_FILE" ]; then
-    echo "❌ Error: Neither 'shacl.ttl' nor 'display_rules.yaml' found in the 'resources' directory."
+    echo "❌ Error: Neither 'shacl.ttl' nor 'display_rules.yaml' found in the 'config' directory."
     exit 1
 fi
 

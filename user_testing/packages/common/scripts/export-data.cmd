@@ -24,17 +24,19 @@ mkdir "%PROVENANCE_DIR%"
 
 echo Exporting database data...
 
-for /f "tokens=*" %%i in ('docker ps --filter "name=dataset" --format "{{.Names}}" ^| findstr "."') do set DATASET_CONTAINER=%%i
-for /f "tokens=*" %%i in ('docker ps --filter "name=provenance" --format "{{.Names}}" ^| findstr "."') do set PROVENANCE_CONTAINER=%%i
+for /f "tokens=*" %%i in ('docker ps --filter "name=heritrace-dataset" --format "{{.Names}}" ^| findstr "."') do set DATASET_CONTAINER=%%i
+for /f "tokens=*" %%i in ('docker ps --filter "name=heritrace-provenance" --format "{{.Names}}" ^| findstr "."') do set PROVENANCE_CONTAINER=%%i
 
 if "%DATASET_CONTAINER%"=="" (
-    echo Error: Dataset container not found. Make sure the application is running.
+    echo Error: Dataset container not found or not running.
+    echo    Please start the application with start.cmd and try again.
     pause
     exit /b 1
 )
 
 if "%PROVENANCE_CONTAINER%"=="" (
-    echo Error: Provenance container not found. Make sure the application is running.
+    echo Error: Provenance container not found or not running.
+    echo    Please start the application with start.cmd and try again.
     pause
     exit /b 1
 )

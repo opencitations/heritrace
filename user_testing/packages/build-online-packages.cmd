@@ -28,6 +28,10 @@ copy "enduser\README.md" "%ENDUSER_DIR%\README.md"
 copy "..\sus_questionnaire.md" "%ENDUSER_DIR%\sus_questionnaire.md"
 copy "..\written_responses_template.md" "%ENDUSER_DIR%\written_responses_template.md"
 
+mkdir "%ENDUSER_DIR%\config"
+copy "enduser\config\display_rules.yaml" "%ENDUSER_DIR%\config\"
+copy "enduser\config\shacl.ttl" "%ENDUSER_DIR%\config\"
+
 mkdir "%ENDUSER_DIR%\dataset_database"
 mkdir "%ENDUSER_DIR%\prov_database"
 copy "common\templates\virtuoso_dataset.ini" "%ENDUSER_DIR%\dataset_database\virtuoso.ini"
@@ -39,7 +43,7 @@ copy "common\scripts\export-data.cmd" "%ENDUSER_DIR%\"
 echo [PKG] Building technician online package...
 set TECHNICIAN_DIR=%BUILD_DIR%\heritrace-technician-testing
 mkdir "%TECHNICIAN_DIR%"
-mkdir "%TECHNICIAN_DIR%\resources"
+mkdir "%TECHNICIAN_DIR%\config"
 
 copy "common\templates\docker-compose-dockerhub-technician.yml" "%TECHNICIAN_DIR%\docker-compose.yml"
 
@@ -57,8 +61,8 @@ mkdir "%TECHNICIAN_DIR%\prov_database"
 copy "common\templates\virtuoso_dataset.ini" "%TECHNICIAN_DIR%\dataset_database\virtuoso.ini"
 copy "common\templates\virtuoso_provenance.ini" "%TECHNICIAN_DIR%\prov_database\virtuoso.ini"
 
-copy "technician\resources\display_rules.yaml" "%TECHNICIAN_DIR%\resources\"
-copy "technician\resources\shacl.ttl" "%TECHNICIAN_DIR%\resources\"
+copy "technician\config\display_rules.yaml" "%TECHNICIAN_DIR%\config\"
+copy "technician\config\shacl.ttl" "%TECHNICIAN_DIR%\config\"
 
 copy "common\scripts\export-resources.sh" "%TECHNICIAN_DIR%\"
 copy "common\scripts\export-resources.cmd" "%TECHNICIAN_DIR%\"

@@ -5,7 +5,7 @@ This package contains everything needed to test HERITRACE configuration features
 ## Contents
 
 - `docker-compose.yml` - Docker container configuration
-- `resources/` - Configuration files to modify:
+- `config/` - Configuration files to modify:
   - `display_rules.yaml` - Controls property display in UI
   - `shacl.ttl` - Defines entity validation rules
 - `start.sh` / `start.cmd` - Start environment (run script or double-click .cmd)
@@ -50,10 +50,10 @@ This package contains everything needed to test HERITRACE configuration features
 ## Configuration Files
 
 **Modify during testing**:
-- `resources/display_rules.yaml`: Controls property display in UI
-- `resources/shacl.ttl`: Defines entity validation rules
+- `config/display_rules.yaml`: Controls property display in UI
+- `config/shacl.ttl`: Defines entity validation rules
 
-**Do not modify**: `docker-compose.yml`, script files, or any configuration files outside the `resources` directory.
+**Do not modify**: `docker-compose.yml`, script files, or any configuration files outside the `config` directory.
 
 ---
 
