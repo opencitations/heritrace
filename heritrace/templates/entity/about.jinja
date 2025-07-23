@@ -102,7 +102,7 @@
                 {% if data['triples'] or predicate in can_be_added %}
                     
                     {%if data['triples'] %}
-                        <h6 class="item-label">{{ display_name | human_readable_predicate((data.get("subjectClass"), data.get("subjectShape"))) }}</h6>
+                        <h6 class="item-label">{{ display_name }}</h6>
                     {% endif %}
                     {% set object_class = details.objectClass if has_details and details.objectClass else '' %}
 

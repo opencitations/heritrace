@@ -115,7 +115,7 @@
         {% for display_name, data in grouped_triples.items() %}
             <div class="predicate-group mb-4">
                 {% if data['triples'] %}
-                    <span class="fw-bold">{{ display_name | human_readable_predicate((entity_type, entity_shape)) }}</span>
+                    <span class="fw-bold">{{ display_name }}</span>
                     {% for triple_data in data['triples'] %}
                         {{ render_triple(triple_data['triple'], subject) }}
                     {% endfor %}
