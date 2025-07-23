@@ -304,17 +304,27 @@ function initSortable(element) {
             let predicate = null;
             let orderedBy = null;
             let shape = null;
+            
+            // Get the shape from the first item to determine which shape group this is
+            let firstItem = $(evt.from).find('.property-value').first();
+            if (firstItem.length > 0) {
+                predicate = firstItem.data('property-id');
+                orderedBy = firstItem.data('ordered_by');
+                shape = firstItem.data('shape') || '';
+            }
+            
+            // Only collect items with the same shape
             $(evt.from).find('.property-value').each(function() {
-                const objectId = $(this).data('old-object-id');
-                const tempId = $(this).data('temp-id');
-                if (objectId) {
-                    new_order.push(objectId);
-                } else if (tempId) {
-                    new_order.push(tempId);
+                const itemShape = $(this).data('shape') || '';
+                if (itemShape === shape) {
+                    const objectId = $(this).data('old-object-id');
+                    const tempId = $(this).data('temp-id');
+                    if (objectId) {
+                        new_order.push(objectId);
+                    } else if (tempId) {
+                        new_order.push(tempId);
+                    }
                 }
-                predicate = $(this).data('property-id');
-                orderedBy = $(this).data('ordered_by');
-                shape = $(this).data('shape');
             });
             updateOrderedElementsNumbering();
 
@@ -322,10 +332,11 @@ function initSortable(element) {
                 return;
             }
 
-            // Cerca un'azione di ordinamento esistente per questo predicato
+            // Cerca un'azione di ordinamento esistente per questo predicato e shape
             let existingOrderIndex = pendingChanges.findIndex(change => 
                 change.action === 'order' && 
-                change.predicate === predicate
+                change.predicate === predicate &&
+                change.shape === shape
             );
 
             if (existingOrderIndex !== -1) {

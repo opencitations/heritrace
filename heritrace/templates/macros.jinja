@@ -354,7 +354,7 @@
 {% endmacro %}
 
 {% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data, display_name, object_class) %}
-    {% set shape = grouped_triples_data.get('shape') %}
+    {% set shape = grouped_triples_data.get('objectShape') %}
     {% set intermediate_relation = grouped_triples_data.get('intermediateRelation', {}) %}
     {% set target_entity_type = intermediate_relation.get('targetEntityType') if intermediate_relation else None %}
     {% set is_virtual = grouped_triples_data.get('is_virtual', False) %}
