@@ -1501,9 +1501,8 @@ def format_triple_modification(
         str: HTML text describing the modification
     """
     predicate = triple[1]
-    predicate_label = custom_filter.human_readable_predicate(predicate, (highest_priority_class, entity_shape))
     object_value = triple[2]
-
+    
     # Determine which snapshot to use for context
     relevant_snapshot = None
     if (
@@ -1520,6 +1519,16 @@ def format_triple_modification(
             ]
     else:
         relevant_snapshot = current_snapshot
+    
+    object_shape_uri = None
+    if validators.url(str(object_value)) and relevant_snapshot:
+        object_triples = list(relevant_snapshot.triples((URIRef(object_value), None, None)))
+        if object_triples:
+            object_shape_uri = determine_shape_for_entity_triples(object_triples)
+    
+    predicate_label = custom_filter.human_readable_predicate(
+        predicate, (highest_priority_class, entity_shape), object_shape_uri=object_shape_uri
+    )
 
     object_label = get_object_label(
         object_value,
@@ -1572,7 +1581,7 @@ def get_object_label(
         if snapshot:
             object_classes = [
                 str(o)
-                for s, p, o in snapshot.triples(
+                for _, _, o in snapshot.triples(
                     (URIRef(object_value), RDF.type, None)
                 )
             ]

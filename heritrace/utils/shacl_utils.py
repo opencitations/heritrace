@@ -91,9 +91,10 @@ def determine_shape_for_entity_triples(entity_triples: list) -> Optional[str]:
     """
     Determine the most appropriate SHACL shape for an entity based on its triples.
     
-    Uses both class priority and heuristic property matching to distinguish
-    between shapes with the same target class but different properties
-    (e.g., SpecialIssueShape vs IssueShape).
+    Uses a multi-criteria scoring system to distinguish between shapes:
+    1. sh:hasValue constraint matches (highest priority)
+    2. Property matching - number of shape properties present in entity
+    3. Class priority - predefined priority ordering
     
     Args:
         entity_triples: List of triples (subject, predicate, object) for the entity
@@ -143,12 +144,14 @@ def determine_shape_for_entity_triples(entity_triples: list) -> Optional[str]:
         shape_properties = _get_shape_properties(shacl_graph, shape_uri)
         property_matches = len(entity_properties.intersection(shape_properties))
         
+        hasvalue_matches = _check_hasvalue_constraints(shacl_graph, shape_uri, entity_triples)
+        
         entity_key = (class_uri, shape_uri)
         priority = get_class_priority(entity_key)
         
-        # Combined score: (property_matches, -priority)
-        # Higher property matches is better, lower priority number is better
-        combined_score = (property_matches, -priority)
+        # Combined score: (hasvalue_matches, property_matches, -priority)
+        # hasValue matches are most important, then property matches, then priority
+        combined_score = (hasvalue_matches, property_matches, -priority)
         shape_scores[shape_uri] = combined_score
     
     best_shape = max(shape_scores.keys(), key=lambda s: shape_scores[s])
@@ -204,6 +207,48 @@ def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:
         properties.add(str(row.property))
     
     return properties
+
+
+def _check_hasvalue_constraints(shacl_graph: Graph, shape_uri: str, entity_triples: list) -> int:
+    """
+    Check how many sh:hasValue constraints the entity satisfies for a given shape.
+    
+    Args:
+        shacl_graph: The SHACL graph
+        shape_uri: URI of the shape to check
+        entity_triples: List of triples (subject, predicate, object) for the entity
+        
+    Returns:
+        Number of hasValue constraints satisfied by the entity
+    """
+    # Get all hasValue constraints for this shape
+    query_string = f"""
+        PREFIX sh: <http://www.w3.org/ns/shacl#>
+        SELECT DISTINCT ?property ?value WHERE {{
+            <{shape_uri}> sh:property ?propertyShape .
+            ?propertyShape sh:path ?property .
+            ?propertyShape sh:hasValue ?value .
+        }}
+    """
+    
+    results = shacl_graph.query(query_string)
+    constraints = [(str(row.property), str(row.value)) for row in results]
+    
+    if not constraints:
+        return 0
+    
+    # Create a set of (predicate, object) pairs from entity triples
+    entity_property_values = set()
+    for _, predicate, obj in entity_triples:
+        entity_property_values.add((str(predicate), str(obj)))
+    
+    # Count how many constraints are satisfied
+    satisfied_constraints = 0
+    for property_uri, required_value in constraints:
+        if (property_uri, required_value) in entity_property_values:
+            satisfied_constraints += 1
+    
+    return satisfied_constraints
 
 
 def ensure_display_names(form_fields):

@@ -807,7 +807,7 @@ def test_format_triple_modification(app: Flask) -> None:
 
     # Create a custom filter class that doesn't rely on url_for
     class TestFilter(Filter):
-        def human_readable_predicate(self, predicate_uri, entity_key, is_link=False):
+        def human_readable_predicate(self, predicate_uri, entity_key, is_link=False, object_shape_uri=None):
             # Override to avoid using url_for
             # Special handling for the title predicate in the test
             if str(predicate_uri) == "http://purl.org/dc/terms/title":

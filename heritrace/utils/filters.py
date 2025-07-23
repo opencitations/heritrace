@@ -24,13 +24,14 @@ class Filter:
         self.sparql.setReturnFormat(JSON)
         self._query_lock = threading.Lock()
 
-    def human_readable_predicate(self, predicate_uri: str, entity_key: tuple[str, str], is_link=False):
+    def human_readable_predicate(self, predicate_uri: str, entity_key: tuple[str, str], is_link=False, object_shape_uri: str = None):
         """Get human readable label for a predicate in the context of an entity.
         
         Args:
             predicate_uri: URI of the predicate to get label for
             entity_key: Tuple of (class_uri, shape_uri) for the entity context
             is_link: Whether to format as a link
+            object_shape_uri: Shape URI of the object entity (for shape-specific display rules)
             
         Returns:
             str: Human readable label for the predicate
@@ -45,6 +46,10 @@ class Filter:
                 for display_property in rule["displayProperties"]:
                     if display_property["property"] == str(predicate_uri):
                         if "displayRules" in display_property:
+                            if object_shape_uri:
+                                for display_rule in display_property["displayRules"]:
+                                    if display_rule.get("shape") == object_shape_uri:
+                                        return display_rule["displayName"]
                             return display_property["displayRules"][0]["displayName"]
                         elif "displayName" in display_property:
                             return display_property["displayName"]
