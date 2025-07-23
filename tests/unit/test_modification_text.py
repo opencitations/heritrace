@@ -19,14 +19,18 @@ def mock_custom_filter():
 @pytest.fixture
 def mock_display_rules():
     """Create mock display rules."""
-    return {
-        "http://example.org/Person": {
+    return [
+        {
+            "target": {
+                "class": "http://example.org/Person"
+            },
             "properties": [
                 "http://example.org/name",
                 "http://example.org/age"
-            ]
+            ],
+            "priority": 0
         }
-    }
+    ]
 
 
 @pytest.fixture

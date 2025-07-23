@@ -31,7 +31,7 @@ def test_get_object_label_rdf_type(mock_get_form_fields):
     mock_custom_filter.human_readable_class.return_value = "Person"
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, "http://example.org/EntityShape", snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, None, None, snapshot, mock_custom_filter, (entity_type, "http://example.org/EntityShape"))
     
     # Verify
     assert label == "Person"
@@ -54,7 +54,7 @@ def test_get_object_label_uri(mock_get_form_fields, mock_custom_filter):
     ]
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, "http://example.org/EntityShape", snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, None, "http://example.org/Person", snapshot, mock_custom_filter)
     
     # Verify
     assert label == "Human Readable Entity"
@@ -74,13 +74,11 @@ def test_get_object_label_uri_no_snapshot(mock_get_form_fields, mock_custom_filt
     snapshot = None
     
     # Execute
-    label = get_object_label(object_value, predicate, entity_type, "http://example.org/EntityShape", snapshot, mock_custom_filter)
+    label = get_object_label(object_value, predicate, None, None, snapshot, mock_custom_filter)
     
     # Verify
-    assert label == "Human Readable Entity"
-    mock_custom_filter.human_readable_entity.assert_called_once_with(
-            object_value, (None, None), snapshot
-        )
+    assert label == "http://example.org/some-entity"  # Should return the URI as string when no class/shape info
+    # No mock assertion needed since it should return the URI directly
 
 
 @patch('heritrace.routes.entity.get_form_fields')

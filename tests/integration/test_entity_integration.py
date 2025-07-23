@@ -874,11 +874,9 @@ def test_format_triple_modification(app: Flask) -> None:
                 triple,
                 "http://purl.org/spar/fabio/JournalArticle",
                 "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
-                "Additions",
-                None,
-                str(subject),
-                None,
-                None,
+                {},  # object_shapes_cache
+                {},  # object_classes_cache
+                None,  # relevant_snapshot
                 real_filter
             )
 
@@ -926,11 +924,9 @@ def test_format_triple_modification(app: Flask) -> None:
                 triple,
                 "http://purl.org/spar/fabio/JournalArticle",
                 "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
-                "Additions",
-                None,
-                str(subject),
-                None,
-                None,
+                {},  # object_shapes_cache
+                {},  # object_classes_cache
+                None,  # relevant_snapshot
                 real_filter
             )
 
@@ -960,11 +956,9 @@ def test_format_triple_modification(app: Flask) -> None:
                 triple,
                 "http://purl.org/spar/fabio/JournalArticle",
                 "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
-                "Additions",
-                None,
-                str(subject),
-                None,
-                None,
+                {},  # object_shapes_cache
+                {},  # object_classes_cache
+                None,  # relevant_snapshot
                 real_filter
             )
 
@@ -994,11 +988,9 @@ def test_format_triple_modification(app: Flask) -> None:
                 triple,
                 "http://purl.org/spar/fabio/JournalArticle",
                 "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
-                "Additions",
-                None,
-                str(subject),
-                None,
-                None,
+                {},  # object_shapes_cache
+                {},  # object_classes_cache
+                None,  # relevant_snapshot
                 real_filter
             )
 

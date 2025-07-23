@@ -17,7 +17,9 @@ from heritrace.extensions import (get_change_tracking_config,
                                   get_sparql)
 from heritrace.forms import *
 from heritrace.utils.converters import convert_to_datetime
-from heritrace.utils.display_rules_utils import (get_class_priority,
+from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
+from heritrace.utils.display_rules_utils import (find_matching_rule,
+                                                 get_class_priority,
                                                  get_grouped_triples,
                                                  get_highest_priority_class,
                                                  get_property_order_from_rules,
@@ -33,7 +35,6 @@ from heritrace.utils.sparql_utils import (
     parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
-from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
 from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
@@ -1385,6 +1386,65 @@ def find_appropriate_snapshot(provenance_data: dict, target_time: str) -> Option
     return valid_snapshots[-1][1]
 
 
+def determine_object_class_and_shape(object_value: str, relevant_snapshot: Graph) -> tuple[Optional[str], Optional[str]]:
+    """
+    Determine the class and shape for an object value from a graph snapshot.
+    
+    Args:
+        object_value: The object value (URI or literal)
+        relevant_snapshot: Graph snapshot to query for object information
+        
+    Returns:
+        Tuple of (object_class, object_shape_uri) or (None, None) if not determinable
+    """
+    if not validators.url(str(object_value)) or not relevant_snapshot:
+        return None, None
+        
+    object_triples = list(relevant_snapshot.triples((URIRef(object_value), None, None)))
+    if not object_triples:
+        return None, None
+    
+    object_shape_uri = determine_shape_for_entity_triples(object_triples)
+    object_classes = [
+        str(o)
+        for _, _, o in relevant_snapshot.triples(
+            (URIRef(object_value), RDF.type, None)
+        )
+    ]
+    object_class = get_highest_priority_class(object_classes) if object_classes else None
+    
+    return object_class, object_shape_uri
+
+
+def get_shape_order_from_display_rules(highest_priority_class: str, entity_shape: str, predicate_uri: str) -> list:
+    """
+    Get the ordered list of shapes for a specific predicate from display rules.
+    
+    Args:
+        highest_priority_class: The highest priority class for the entity
+        entity_shape: The shape for the subject entity
+        predicate_uri: The predicate URI to get shape ordering for
+        
+    Returns:
+        List of shape URIs in the order specified in displayRules, or empty list if no rules found
+    """    
+    display_rules = get_display_rules()
+    if not display_rules:
+        return []
+    
+    rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
+    if not rule or "displayProperties" not in rule:
+        return []
+    
+    for prop_config in rule["displayProperties"]:
+        if prop_config["property"] == predicate_uri:
+            if "displayRules" in prop_config:
+                return [display_rule.get("shape") for display_rule in prop_config["displayRules"] 
+                       if display_rule.get("shape")]
+    
+    return []
+
+
 def generate_modification_text(
     modifications,
     highest_priority_class,
@@ -1423,47 +1483,84 @@ def generate_modification_text(
             modification_text += '<i class="bi bi-dash-circle-fill text-danger"></i>'
         modification_text += " <em>" + gettext(mod_type) + "</em></p>"
 
-        # Group triples by predicate
-        predicate_groups = {}
+        object_shapes_cache = {}
+        object_classes_cache = {}
+        
+        relevant_snapshot = None
+        if (
+            mod_type == gettext("Deletions")
+            and history
+            and entity_uri
+            and current_snapshot_timestamp
+        ):
+            sorted_timestamps = sorted(history[entity_uri].keys())
+            current_index = sorted_timestamps.index(current_snapshot_timestamp)
+            if current_index > 0:
+                relevant_snapshot = history[entity_uri][
+                    sorted_timestamps[current_index - 1]
+                ]
+        else:
+            relevant_snapshot = current_snapshot
+        
+        if relevant_snapshot:
+            for triple in triples:
+                object_value = triple[2]
+                object_class, object_shape = determine_object_class_and_shape(object_value, relevant_snapshot)
+                object_classes_cache[str(object_value)] = object_class
+                object_shapes_cache[str(object_value)] = object_shape
+
+        predicate_shape_groups = {}
         for triple in triples:
             predicate = str(triple[1])
-            if predicate not in predicate_groups:
-                predicate_groups[predicate] = []
-            predicate_groups[predicate].append(triple)
+            object_value = str(triple[2])
+            object_shape_uri = object_shapes_cache.get(object_value)
+            
+            group_key = (predicate, object_shape_uri)
+            if group_key not in predicate_shape_groups:
+                predicate_shape_groups[group_key] = []
+            predicate_shape_groups[group_key].append(triple)
 
-        # Process predicates in order from display rules
         processed_predicates = set()
 
-        # First handle predicates that are in the ordered list
         for predicate in ordered_properties:
-            if predicate in predicate_groups:
-                processed_predicates.add(predicate)
-                for triple in predicate_groups[predicate]:
+            shape_order = get_shape_order_from_display_rules(highest_priority_class, entity_shape, predicate)
+            predicate_groups = []
+            for group_key, group_triples in predicate_shape_groups.items():
+                predicate_uri, object_shape_uri = group_key
+                if predicate_uri == predicate:
+                    if object_shape_uri and object_shape_uri in shape_order:
+                        shape_priority = shape_order.index(object_shape_uri)
+                    else:
+                        # Objects without shapes or shapes not in display rules go at the end
+                        shape_priority = len(shape_order)
+                    
+                    predicate_groups.append((shape_priority, group_key, group_triples))
+            
+            predicate_groups.sort(key=lambda x: x[0])
+            for _, group_key, group_triples in predicate_groups:
+                processed_predicates.add(group_key)
+                for triple in group_triples:
                     modification_text += format_triple_modification(
                         triple,
                         highest_priority_class,
                         entity_shape,
-                        mod_type,
-                        history,
-                        entity_uri,
-                        current_snapshot,
-                        current_snapshot_timestamp,
+                        object_shapes_cache,
+                        object_classes_cache,
+                        relevant_snapshot,
                         custom_filter,
                     )
 
-        # Then handle any remaining predicates not in the ordered list
-        for predicate, triples in predicate_groups.items():
-            if predicate not in processed_predicates:
-                for triple in triples:
+        # Then handle any remaining predicate+shape groups not in the ordered list
+        for group_key, group_triples in predicate_shape_groups.items():
+            if group_key not in processed_predicates:
+                for triple in group_triples:
                     modification_text += format_triple_modification(
                         triple,
                         highest_priority_class,
                         entity_shape,
-                        mod_type,
-                        history,
-                        entity_uri,
-                        current_snapshot,
-                        current_snapshot_timestamp,
+                        object_shapes_cache,
+                        object_classes_cache,
+                        relevant_snapshot,
                         custom_filter,
                     )
 
@@ -1476,11 +1573,9 @@ def format_triple_modification(
     triple: Tuple[URIRef, URIRef, URIRef|Literal],
     highest_priority_class: str,
     entity_shape: str,
-    mod_type: str,
-    history: Dict[str, Dict[str, Graph]],
-    entity_uri: str,
-    current_snapshot: Graph,
-    current_snapshot_timestamp: str,
+    object_shapes_cache: dict,
+    object_classes_cache: dict,
+    relevant_snapshot: Optional[Graph],
     custom_filter: Filter,
 ) -> str:
     """
@@ -1490,11 +1585,7 @@ def format_triple_modification(
         triple: The RDF triple being modified
         highest_priority_class: The highest priority class for the subject entity
         entity_shape: The shape for the subject entity
-        mod_type: Type of modification (addition/deletion)
-        history: Historical snapshots dictionary
-        entity_uri: URI of the entity being modified
-        current_snapshot: Current state of the entity
-        current_snapshot_timestamp: Timestamp of the current snapshot
+        object_shapes_cache: Pre-computed cache of object shapes
         custom_filter (Filter): Filter instance for formatting
 
     Returns:
@@ -1503,40 +1594,21 @@ def format_triple_modification(
     predicate = triple[1]
     object_value = triple[2]
     
-    # Determine which snapshot to use for context
-    relevant_snapshot = None
-    if (
-        mod_type == gettext("Deletions")
-        and history
-        and entity_uri
-        and current_snapshot_timestamp
-    ):
-        sorted_timestamps = sorted(history[entity_uri].keys())
-        current_index = sorted_timestamps.index(current_snapshot_timestamp)
-        if current_index > 0:
-            relevant_snapshot = history[entity_uri][
-                sorted_timestamps[current_index - 1]
-            ]
-    else:
-        relevant_snapshot = current_snapshot
-    
-    object_shape_uri = None
-    if validators.url(str(object_value)) and relevant_snapshot:
-        object_triples = list(relevant_snapshot.triples((URIRef(object_value), None, None)))
-        if object_triples:
-            object_shape_uri = determine_shape_for_entity_triples(object_triples)
+    object_shape_uri = object_shapes_cache.get(str(object_value))
     
     predicate_label = custom_filter.human_readable_predicate(
         predicate, (highest_priority_class, entity_shape), object_shape_uri=object_shape_uri
     )
 
+    object_class = object_classes_cache.get(str(object_value))  # Get from classes cache
     object_label = get_object_label(
         object_value,
         predicate,
-        highest_priority_class,
-        entity_shape,
+        object_shape_uri,
+        object_class,
         relevant_snapshot,
         custom_filter,
+        subject_entity_key=(highest_priority_class, entity_shape),
     )
 
     return f"""
@@ -1551,10 +1623,11 @@ def format_triple_modification(
 def get_object_label(
     object_value: str,
     predicate: str,
-    highest_priority_class: str,
-    entity_shape: str,
+    object_shape_uri: Optional[str],
+    object_class: Optional[str],
     snapshot: Optional[Graph],
     custom_filter: Filter,
+    subject_entity_key: Optional[tuple] = None,
 ) -> str:
     """
     Get appropriate display label for an object value.
@@ -1562,35 +1635,27 @@ def get_object_label(
     Args:
         object_value: The value to get a label for
         predicate: The predicate URI
-        highest_priority_class: The highest priority class for the entity
-        entity_shape: The shape for the subject entity
-        snapshot: Optional graph snapshot for context
+        object_shape_uri: Pre-computed shape URI for the object
+        object_class: Pre-computed class for the object
+        snapshot: Graph snapshot for context (essential for deleted triples)
         custom_filter (Filter): Custom filter instance for formatting
+        subject_entity_key: Tuple of (class, shape) for the subject entity
 
     Returns:
         str: A human-readable label for the object value
     """
     predicate = str(predicate)
-    entity_key = (highest_priority_class, entity_shape)
     
     if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-        return custom_filter.human_readable_class(entity_key)
+        return custom_filter.human_readable_class(subject_entity_key)
     
     if validators.url(object_value):
-        object_classes = []
-        if snapshot:
-            object_classes = [
-                str(o)
-                for _, _, o in snapshot.triples(
-                    (URIRef(object_value), RDF.type, None)
-                )
-            ]
-        
-        object_class = get_highest_priority_class(object_classes)
-        shape = determine_shape_for_classes(object_classes)
-        return custom_filter.human_readable_entity(
-            object_value, (object_class, shape), snapshot
-        )
+        if object_shape_uri or object_class:
+            return custom_filter.human_readable_entity(
+                object_value, (object_class, object_shape_uri), snapshot
+            )
+        else:
+            return str(object_value)
     
     return str(object_value)
 

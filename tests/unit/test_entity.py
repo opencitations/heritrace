@@ -418,12 +418,10 @@ def test_format_triple_modification_with_relevant_snapshot(mock_get_form_fields,
             triple,
             "http://example.org/Person",
             "http://example.org/PersonShape",
-                    mod_type,
-        history,
-        entity_uri,
-        snapshot2,
-        timestamp2,
-        mock_filter
+            {},  # object_shapes_cache
+            {},  # object_classes_cache
+            snapshot2,  # relevant_snapshot
+            mock_filter
     )
     
     # Verify results
