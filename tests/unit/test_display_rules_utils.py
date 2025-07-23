@@ -785,18 +785,21 @@ class TestGetGroupedTriples:
             grouped_triples["Person Name"] = {
                 "property": "http://example.org/name",
                 "triples": [{"triple": ("http://example.org/person1", "http://example.org/name", "mock_value")}],
+                "subjectClass": "http://example.org/Person",
                 "subjectShape": "http://example.org/PersonShape",
                 "objectShape": None,
             }
             grouped_triples["Person Age"] = {
                 "property": "http://example.org/age",
                 "triples": [{"triple": ("http://example.org/person1", "http://example.org/age", "mock_value")}],
+                "subjectClass": "http://example.org/Person",
                 "subjectShape": "http://example.org/PersonShape",
                 "objectShape": None,
             }
             grouped_triples["Person Knows"] = {
                 "property": "http://example.org/knows",
                 "triples": [{"triple": ("http://example.org/person1", "http://example.org/knows", "mock_value")}],
+                "subjectClass": "http://example.org/Person",
                 "subjectShape": "http://example.org/PersonShape",
                 "objectShape": None,
             }
@@ -817,12 +820,13 @@ class TestGetGroupedTriples:
         """Test getting grouped triples with no display rules."""
         self.get_display_rules_patch.return_value = []
         
-        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             display_name = prop_uri.split("/")[-1]
             if display_name not in grouped_triples:
                 grouped_triples[display_name] = {
                     "property": prop_uri,
                     "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                    "subjectClass": self.highest_priority_class,
                     "subjectShape": self.subject_shape,
                     "objectShape": None,
                 }
@@ -869,12 +873,13 @@ class TestGetGroupedTriples:
         # Mock find_matching_rule to return None (no matching rule)
         self.mock_find_matching_rule.return_value = None
         
-        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             display_name = prop_uri.split("/")[-1]
             if display_name not in grouped_triples:
                 grouped_triples[display_name] = {
                     "property": prop_uri,
                     "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                    "subjectClass": self.highest_priority_class,
                     "subjectShape": self.subject_shape,
                     "objectShape": None,
                 }
@@ -909,12 +914,13 @@ class TestGetGroupedTriples:
         # Simulate no display rules (the scenario where the bug occurred)
         self.get_display_rules_patch.return_value = []
         
-        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             display_name = prop_uri.split("/")[-1]
             if display_name not in grouped_triples:
                 grouped_triples[display_name] = {
                     "property": prop_uri,
                     "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                    "subjectClass": self.highest_priority_class,
                     "subjectShape": self.subject_shape,
                     "objectShape": None,
                 }
@@ -976,13 +982,14 @@ class TestGetGroupedTriples:
             "shouldBeDisplayed": True,
         }
         
-        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             if prop_uri == "http://example.org/knows":
                 display_name = "Knows"
                 if display_name not in grouped_triples:
                     grouped_triples[display_name] = {
                         "property": prop_uri,
                         "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                        "subjectClass": subject_class,
                         "subjectShape": subject_shape,
                         "objectShape": "http://example.org/PersonShape",
                         "intermediateRelation": {"class": "http://example.org/Relationship"},
@@ -1036,13 +1043,14 @@ class TestGetGroupedTriples:
         def mock_execute_sparql_query(query, subject, value):
             return "Label for " + str(value), None
 
-        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             if prop_uri == "http://example.org/knows":
                 display_name = "Knows"
                 if display_name not in grouped_triples:
                     grouped_triples[display_name] = {
                         "property": prop_uri,
                         "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                        "subjectClass": subject_class,
                         "subjectShape": subject_shape,
                         "objectShape": None,
                         "intermediateRelation": {"class": "http://example.org/Relationship"},
@@ -1095,13 +1103,14 @@ class TestGetGroupedTriples:
             "shouldBeDisplayed": True,
         }
 
-        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             if prop_uri == "http://example.org/knows":
                 display_name = "Knows (with relationship)"
                 if display_name not in grouped_triples:
                     grouped_triples[display_name] = {
                         "property": prop_uri,
                         "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                        "subjectClass": subject_class,
                         "subjectShape": subject_shape,
                         "objectShape": "http://example.org/PersonShape",
                         "intermediateRelation": {"class": "http://example.org/Relationship"},
@@ -1155,13 +1164,14 @@ class TestGetGroupedTriples:
             "shouldBeDisplayed": True,
         }
 
-        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             if prop_uri == "http://example.org/knows":
                 display_name = "Knows (with inherited relationship)"
                 if display_name not in grouped_triples:
                     grouped_triples[display_name] = {
                         "property": prop_uri,
                         "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                        "subjectClass": subject_class,
                         "subjectShape": subject_shape,
                         "objectShape": "http://example.org/PersonShape",
                         "intermediateRelation": {"class": "http://example.org/Relationship"},
@@ -1265,13 +1275,14 @@ class TestGetGroupedTriples:
 
         extended_predicates_info = mock_valid_predicates_info + ["http://example.org/simple"]
 
-        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None):
+        def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             if prop_uri == "http://example.org/simple":
                 display_name = "Simple Property"
                 if display_name not in grouped_triples:
                     grouped_triples[display_name] = {
                         "property": prop_uri,
                         "triples": [{"triple": ("http://example.org/person1", prop_uri, "mock_value")}],
+                        "subjectClass": subject_class,
                         "subjectShape": subject_shape,
                         "objectShape": "http://example.org/SimpleShape",
                         "intermediateRelation": {"class": "http://example.org/SimpleRelationship"},
