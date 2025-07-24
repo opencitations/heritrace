@@ -1,3 +1,25 @@
+# [2.2.0](https://github.com/opencitations/heritrace/compare/v2.1.0...v2.2.0) (2025-07-24)
+
+
+### Bug Fixes
+
+* **creation_workflow:** prevent entity references from overriding intermediate metadata collection ([cd766f7](https://github.com/opencitations/heritrace/commit/cd766f70188bd171d1edd045b215b6039b822e14))
+* **display:** enable shape-aware predicate display based on object entity shapes ([5c64f48](https://github.com/opencitations/heritrace/commit/5c64f48aeb8954c80127d158feb38914607c65f1))
+* **display:** ensure subjectClass is properly passed to grouped triples ([342bb63](https://github.com/opencitations/heritrace/commit/342bb63f237d507b14bc2bf61fd6cd06c669934c))
+* **display:** simplify display of predicates by removing unnecessary human_readable_predicate calls ([d0b0ca5](https://github.com/opencitations/heritrace/commit/d0b0ca543c64fb7cc88b2446905521265a718d6d))
+* **docker:** specify Redis version in Dockerfile and update docker-compose comments for default components ([5ee20a1](https://github.com/opencitations/heritrace/commit/5ee20a14fb065e8fe708ed0376a55967d75517fd))
+* **docs:** update application URL to use HTTP and clarify demo vs production mode ([bcb2c65](https://github.com/opencitations/heritrace/commit/bcb2c652f3ad4f7a042f725c5230295608def6f5))
+* **entity:** resolve property ordering bug and optimize object label computation ([a41b7d1](https://github.com/opencitations/heritrace/commit/a41b7d1821d58e13d053363e2cfa1c576ba39013))
+* **ordering:** resolve shape-based entity ordering issues ([61bdb81](https://github.com/opencitations/heritrace/commit/61bdb81a872afaab07de88c53d2721f7408a6c17))
+* **tests:** refactor tests to use default components and update URI generation logic ([b5ce005](https://github.com/opencitations/heritrace/commit/b5ce0057caaf1df01eba16055c1445c8a8fd5638))
+* **user-testing:** update Docker images to version 2.1.0 and adjust environment variables for demo settings ([a5fb32d](https://github.com/opencitations/heritrace/commit/a5fb32dcce6ebe95ca56fb0ac5b1e01ae07564c9))
+
+
+### Features
+
+* add environment variable configuration for strategies and components ([4c22adc](https://github.com/opencitations/heritrace/commit/4c22adcece18d905e46e39d2d47763bf061485eb))
+* **entity:** enhance ordered property display in snapshot modification history ([90eb9d1](https://github.com/opencitations/heritrace/commit/90eb9d15e6e0f3a01500d45f881af8586e6b51eb)), closes [#1](https://github.com/opencitations/heritrace/issues/1) [#2](https://github.com/opencitations/heritrace/issues/2)
+
 # [2.1.0](https://github.com/opencitations/heritrace/compare/v2.0.2...v2.1.0) (2025-07-21)
 
 
