@@ -1,3 +1,10 @@
+## [2.2.1](https://github.com/opencitations/heritrace/compare/v2.2.0...v2.2.1) (2025-07-24)
+
+
+### Bug Fixes
+
+* **docker:** [release] update Redis installation method and specify version ([a834f22](https://github.com/opencitations/heritrace/commit/a834f223e7133ec5fb9d746b85816b8a070153b9))
+
 # [2.2.0](https://github.com/opencitations/heritrace/compare/v2.1.0...v2.2.0) (2025-07-24)
 
 
