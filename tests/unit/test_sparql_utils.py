@@ -13,8 +13,10 @@ from heritrace.utils.sparql_utils import (
     find_orphaned_entities,
     get_available_classes,
     get_catalog_data,
+    get_deleted_entities_with_filtering,
     get_entities_for_class,
     import_entity_graph,
+    process_deleted_entity,
 )
 from rdflib import URIRef, Graph, ConjunctiveGraph, Literal, XSD
 
@@ -42,7 +44,8 @@ def mock_custom_filter():
 
         # Configure the mock to return readable labels
         mock_filter.human_readable_predicate.return_value = "Human Readable Class"
-        mock_filter.human_readable_entity.return_value = "Human Readable Entity"
+        mock_filter.human_readable_entity.return_value = "Human Readable Entity" 
+        mock_filter.human_readable_class.return_value = "Human Readable Class"
         mock_filter.format_agent_reference.return_value = "Test Agent"
 
         yield mock_filter
@@ -1134,3 +1137,625 @@ class TestGetEntitiesForClassShapeFiltering:
             assert len(entities_page2) == 2
             assert entities_page2[0]["uri"] == "http://example.org/person4"
             assert entities_page2[1]["uri"] == "http://example.org/person5"
+
+
+class TestGetDeletedEntitiesWithFiltering:
+    """Tests for the get_deleted_entities_with_filtering function."""
+
+    @pytest.fixture
+    def mock_provenance_sparql(self):
+        """Mock provenance SPARQL wrapper for testing."""
+        with patch("heritrace.utils.sparql_utils.get_provenance_sparql") as mock_get_prov_sparql:
+            mock_sparql = MagicMock()
+            mock_get_prov_sparql.return_value = mock_sparql
+            yield mock_sparql
+
+    @pytest.fixture
+    def mock_provenance_results(self):
+        """Mock provenance query results."""
+        return {
+            "results": {
+                "bindings": [
+                    {
+                        "entity": {"value": "http://example.org/person1"},
+                        "lastSnapshot": {"value": "http://example.org/snapshot1"},
+                        "deletionTime": {"value": "2023-01-15T10:30:00Z"},
+                        "agent": {"value": "http://example.org/agent1"},
+                        "lastValidSnapshotTime": {"value": "2023-01-14T15:20:00Z"}
+                    },
+                    {
+                        "entity": {"value": "http://example.org/person2"},
+                        "lastSnapshot": {"value": "http://example.org/snapshot2"},
+                        "deletionTime": {"value": "2023-01-16T09:15:00Z"},
+                        "lastValidSnapshotTime": {"value": "2023-01-15T12:45:00Z"}
+                    }
+                ]
+            }
+        }
+
+    def test_get_deleted_entities_with_filtering_empty_results(
+        self, mock_provenance_sparql, mock_custom_filter
+    ):
+        """Test get_deleted_entities_with_filtering with no deleted entities."""
+        empty_results = {"results": {"bindings": []}}
+        mock_provenance_sparql.query.return_value.convert.return_value = empty_results
+        
+        result = get_deleted_entities_with_filtering()
+        
+        entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
+        
+        assert entities == []
+        assert available_classes == []
+        assert selected_class is None
+        assert selected_shape is None
+        assert sortable_properties == []
+        assert total_count == 0
+
+    def test_get_deleted_entities_with_filtering_basic_functionality(
+        self, mock_provenance_sparql, mock_custom_filter, mock_provenance_results
+    ):
+        """Test basic functionality of get_deleted_entities_with_filtering."""
+        mock_provenance_sparql.query.return_value.convert.return_value = mock_provenance_results
+        
+        # Mock the process_deleted_entity function to return test data
+        mock_entity_info_1 = {
+            "uri": "http://example.org/person1",
+            "deletionTime": "2023-01-15T10:30:00Z",
+            "deletedBy": "Test Agent",
+            "lastValidSnapshotTime": "2023-01-14T15:20:00Z",
+            "type": "Person",
+            "label": "Person 1",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {}
+        }
+        
+        mock_entity_info_2 = {
+            "uri": "http://example.org/person2",
+            "deletionTime": "2023-01-16T09:15:00Z",
+            "deletedBy": "",
+            "lastValidSnapshotTime": "2023-01-15T12:45:00Z",
+            "type": "Person",
+            "label": "Person 2",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {}
+        }
+        
+        with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
+             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
+             patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
+            
+            # Mock the executor and futures
+            mock_future_1 = MagicMock()
+            mock_future_1.result.return_value = mock_entity_info_1
+            mock_future_2 = MagicMock()
+            mock_future_2.result.return_value = mock_entity_info_2
+            
+            mock_executor_instance = MagicMock()
+            mock_executor.return_value.__enter__.return_value = mock_executor_instance
+            mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
+            
+            mock_as_completed.return_value = [mock_future_1, mock_future_2]
+            
+            result = get_deleted_entities_with_filtering()
+            
+            entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
+            
+            assert len(entities) == 2
+            assert total_count == 2
+            assert len(available_classes) == 1
+            assert available_classes[0]["uri"] == "http://example.org/Person"
+            assert available_classes[0]["count"] == 2
+            assert selected_class == "http://example.org/Person"
+            assert selected_shape == "http://example.org/PersonShape"
+
+    def test_get_deleted_entities_with_filtering_with_pagination(
+        self, mock_provenance_sparql, mock_custom_filter, mock_provenance_results
+    ):
+        """Test get_deleted_entities_with_filtering with pagination."""
+        mock_provenance_sparql.query.return_value.convert.return_value = mock_provenance_results
+        
+        mock_entity_info = {
+            "uri": "http://example.org/person1",
+            "deletionTime": "2023-01-15T10:30:00Z",
+            "deletedBy": "Test Agent",
+            "lastValidSnapshotTime": "2023-01-14T15:20:00Z",
+            "type": "Person",
+            "label": "Person 1",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {}
+        }
+        
+        with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
+             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
+             patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
+            
+            mock_future = MagicMock()
+            mock_future.result.return_value = mock_entity_info
+            
+            mock_executor_instance = MagicMock()
+            mock_executor.return_value.__enter__.return_value = mock_executor_instance
+            mock_executor_instance.submit.return_value = mock_future
+            
+            mock_as_completed.return_value = [mock_future, mock_future]
+            
+            result = get_deleted_entities_with_filtering(page=1, per_page=1, selected_class="http://example.org/Person")
+            
+            entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
+            
+            assert len(entities) == 1  # Only one entity per page
+            assert total_count == 2  # Total count should be 2
+
+    def test_get_deleted_entities_with_filtering_with_sorting_desc(
+        self, mock_provenance_sparql, mock_custom_filter, mock_provenance_results
+    ):
+        """Test get_deleted_entities_with_filtering with DESC sorting by deletionTime."""
+        mock_provenance_sparql.query.return_value.convert.return_value = mock_provenance_results
+        
+        mock_entity_info_1 = {
+            "uri": "http://example.org/person1",
+            "deletionTime": "2023-01-15T10:30:00Z",
+            "deletedBy": "Test Agent",
+            "lastValidSnapshotTime": "2023-01-14T15:20:00Z",
+            "type": "Person",
+            "label": "Person 1",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {}
+        }
+        
+        mock_entity_info_2 = {
+            "uri": "http://example.org/person2",
+            "deletionTime": "2023-01-16T09:15:00Z",
+            "deletedBy": "",
+            "lastValidSnapshotTime": "2023-01-15T12:45:00Z",
+            "type": "Person",
+            "label": "Person 2",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {}
+        }
+        
+        with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
+             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
+             patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
+            
+            mock_future_1 = MagicMock()
+            mock_future_1.result.return_value = mock_entity_info_1
+            mock_future_2 = MagicMock()
+            mock_future_2.result.return_value = mock_entity_info_2
+            
+            mock_executor_instance = MagicMock()
+            mock_executor.return_value.__enter__.return_value = mock_executor_instance
+            mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
+            
+            mock_as_completed.return_value = [mock_future_1, mock_future_2]
+            
+            result = get_deleted_entities_with_filtering(sort_direction="DESC")
+            
+            entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
+            
+            # Person2 should come first (later deletion time)
+            assert len(entities) == 2
+            assert entities[0]["uri"] == "http://example.org/person2"
+            assert entities[1]["uri"] == "http://example.org/person1"
+
+    def test_get_deleted_entities_with_filtering_with_custom_sort_property(
+        self, mock_provenance_sparql, mock_custom_filter, mock_provenance_results
+    ):
+        """Test get_deleted_entities_with_filtering with custom sort property."""
+        mock_provenance_sparql.query.return_value.convert.return_value = mock_provenance_results
+        
+        mock_entity_info_1 = {
+            "uri": "http://example.org/person1",
+            "deletionTime": "2023-01-15T10:30:00Z",
+            "deletedBy": "Test Agent",
+            "lastValidSnapshotTime": "2023-01-14T15:20:00Z",
+            "type": "Person",
+            "label": "Person 1",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {"http://example.org/name": "Alice"}
+        }
+        
+        mock_entity_info_2 = {
+            "uri": "http://example.org/person2",
+            "deletionTime": "2023-01-16T09:15:00Z",
+            "deletedBy": "",
+            "lastValidSnapshotTime": "2023-01-15T12:45:00Z",
+            "type": "Person",
+            "label": "Person 2",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {"http://example.org/name": "Bob"}
+        }
+        
+        with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
+             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
+             patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
+             patch("heritrace.utils.sparql_utils.get_sortable_properties", return_value=[{"property": "http://example.org/name", "displayName": "Name"}]):
+            
+            mock_future_1 = MagicMock()
+            mock_future_1.result.return_value = mock_entity_info_1
+            mock_future_2 = MagicMock()
+            mock_future_2.result.return_value = mock_entity_info_2
+            
+            mock_executor_instance = MagicMock()
+            mock_executor.return_value.__enter__.return_value = mock_executor_instance
+            mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
+            
+            mock_as_completed.return_value = [mock_future_1, mock_future_2]
+            
+            result = get_deleted_entities_with_filtering(
+                sort_property="http://example.org/name", 
+                sort_direction="ASC",
+                selected_class="http://example.org/Person"
+            )
+            
+            entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
+            
+            # Alice should come before Bob
+            assert len(entities) == 2
+            assert entities[0]["uri"] == "http://example.org/person1"  # Alice
+            assert entities[1]["uri"] == "http://example.org/person2"  # Bob
+
+    def test_get_deleted_entities_with_filtering_class_filtering(
+        self, mock_provenance_sparql, mock_custom_filter, mock_provenance_results
+    ):
+        """Test get_deleted_entities_with_filtering with class filtering."""
+        mock_provenance_sparql.query.return_value.convert.return_value = mock_provenance_results
+        
+        # Configure mock_custom_filter to return strings for sorting
+        mock_custom_filter.human_readable_class.side_effect = lambda entity_key: {
+            ("http://example.org/Person", "http://example.org/PersonShape"): "Person",
+            ("http://example.org/Document", "http://example.org/DocumentShape"): "Document"
+        }.get(entity_key, "Unknown")
+        
+        mock_entity_info_1 = {
+            "uri": "http://example.org/person1",
+            "deletionTime": "2023-01-15T10:30:00Z",
+            "deletedBy": "Test Agent",
+            "lastValidSnapshotTime": "2023-01-14T15:20:00Z",
+            "type": "Person",
+            "label": "Person 1",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {}
+        }
+        
+        mock_entity_info_2 = {
+            "uri": "http://example.org/doc1",
+            "deletionTime": "2023-01-16T09:15:00Z",
+            "deletedBy": "",
+            "lastValidSnapshotTime": "2023-01-15T12:45:00Z",
+            "type": "Document",
+            "label": "Document 1",
+            "entity_types": ["http://example.org/Document"],
+            "sort_values": {}
+        }
+        
+        with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
+             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
+             patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes") as mock_determine_shape:
+            
+            mock_determine_shape.side_effect = lambda classes: {
+                "http://example.org/Person": "http://example.org/PersonShape",
+                "http://example.org/Document": "http://example.org/DocumentShape"
+            }.get(classes[0] if classes else None, "http://example.org/DefaultShape")
+            
+            mock_future_1 = MagicMock()
+            mock_future_1.result.return_value = mock_entity_info_1
+            mock_future_2 = MagicMock()
+            mock_future_2.result.return_value = mock_entity_info_2
+            
+            mock_executor_instance = MagicMock()
+            mock_executor.return_value.__enter__.return_value = mock_executor_instance
+            mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
+            
+            mock_as_completed.return_value = [mock_future_1, mock_future_2]
+            
+            result = get_deleted_entities_with_filtering(selected_class="http://example.org/Person")
+            
+            entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
+            
+            # Only Person entities should be returned
+            assert len(entities) == 1
+            assert entities[0]["uri"] == "http://example.org/person1"
+            assert total_count == 1
+
+    def test_get_deleted_entities_with_filtering_no_class_filtering(
+        self, mock_provenance_sparql, mock_custom_filter, mock_provenance_results
+    ):
+        """Test get_deleted_entities_with_filtering without class filtering."""
+        mock_provenance_sparql.query.return_value.convert.return_value = mock_provenance_results
+        
+        # Configure mock_custom_filter to return strings for sorting
+        mock_custom_filter.human_readable_class.side_effect = lambda entity_key: {
+            ("http://example.org/Person", "http://example.org/PersonShape"): "Person",
+            ("http://example.org/Document", "http://example.org/DocumentShape"): "Document"
+        }.get(entity_key, "Unknown")
+        
+        mock_entity_info_1 = {
+            "uri": "http://example.org/person1",
+            "deletionTime": "2023-01-15T10:30:00Z",
+            "deletedBy": "Test Agent",
+            "lastValidSnapshotTime": "2023-01-14T15:20:00Z",
+            "type": "Person",
+            "label": "Person 1",
+            "entity_types": ["http://example.org/Person"],
+            "sort_values": {}
+        }
+        
+        mock_entity_info_2 = {
+            "uri": "http://example.org/doc1",
+            "deletionTime": "2023-01-16T09:15:00Z",
+            "deletedBy": "",
+            "lastValidSnapshotTime": "2023-01-15T12:45:00Z",
+            "type": "Document",
+            "label": "Document 1",
+            "entity_types": ["http://example.org/Document"],
+            "sort_values": {}
+        }
+        
+        with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
+             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
+             patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes") as mock_determine_shape:
+            
+            mock_determine_shape.side_effect = lambda classes: {
+                "http://example.org/Person": "http://example.org/PersonShape",
+                "http://example.org/Document": "http://example.org/DocumentShape"
+            }.get(classes[0] if classes else None, "http://example.org/DefaultShape")
+            
+            mock_future_1 = MagicMock()
+            mock_future_1.result.return_value = mock_entity_info_1
+            mock_future_2 = MagicMock()
+            mock_future_2.result.return_value = mock_entity_info_2
+            
+            mock_executor_instance = MagicMock()
+            mock_executor.return_value.__enter__.return_value = mock_executor_instance
+            mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
+            
+            mock_as_completed.return_value = [mock_future_1, mock_future_2]
+            
+            result = get_deleted_entities_with_filtering(selected_class=None)
+            
+            entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
+            
+            # When no class is selected, it automatically selects the first class alphabetically ("Document")
+            # So only Document entities should be returned
+            assert len(entities) == 1
+            assert total_count == 1
+            assert entities[0]["uri"] == "http://example.org/doc1"
+            assert selected_class == "http://example.org/Document"  # Auto-selected first class
+
+
+class TestProcessDeletedEntity:
+    """Tests for the process_deleted_entity function."""
+
+    @pytest.fixture
+    def mock_result_data(self):
+        """Mock result data for testing."""
+        return {
+            "entity": {"value": "http://example.org/person1"},
+            "lastValidSnapshotTime": {"value": "2023-01-14T15:20:00Z"},
+            "deletionTime": {"value": "2023-01-15T10:30:00Z"},
+            "agent": {"value": "http://example.org/agent1"}
+        }
+
+    @pytest.fixture
+    def mock_result_data_no_agent(self):
+        """Mock result data without agent for testing."""
+        return {
+            "entity": {"value": "http://example.org/person1"},
+            "lastValidSnapshotTime": {"value": "2023-01-14T15:20:00Z"},
+            "deletionTime": {"value": "2023-01-15T10:30:00Z"}
+        }
+
+    def test_process_deleted_entity_basic_functionality(
+        self, mock_result_data, mock_custom_filter
+    ):
+        """Test basic functionality of process_deleted_entity."""
+        sortable_properties = [{"property": "http://example.org/name", "displayName": "Name"}]
+        
+        # Create a mock ConjunctiveGraph with test data
+        mock_graph = ConjunctiveGraph()
+        mock_graph.add((
+            URIRef("http://example.org/person1"),
+            URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            URIRef("http://example.org/Person")
+        ))
+        mock_graph.add((
+            URIRef("http://example.org/person1"),
+            URIRef("http://example.org/name"),
+            Literal("John Doe")
+        ))
+        
+        # Mock state data
+        mock_state = {
+            "http://example.org/person1": {
+                "2023-01-14T15:20:00+00:00": mock_graph
+            }
+        }
+        
+        with patch("heritrace.utils.sparql_utils.get_change_tracking_config") as mock_get_config, \
+             patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
+             patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
+            
+            mock_config = {"test": "config"}
+            mock_get_config.return_value = mock_config
+            
+            mock_entity_instance = mock_agnostic_entity.return_value
+            mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
+            
+            mock_custom_filter.format_agent_reference.return_value = "Test Agent"
+            mock_custom_filter.human_readable_predicate.return_value = "Person"
+            mock_custom_filter.human_readable_entity.return_value = "John Doe"
+            
+            result = process_deleted_entity(mock_result_data, sortable_properties)
+            
+            assert result is not None
+            assert result["uri"] == "http://example.org/person1"
+            assert result["deletionTime"] == "2023-01-15T10:30:00Z"
+            assert result["deletedBy"] == "Test Agent"
+            assert result["lastValidSnapshotTime"] == "2023-01-14T15:20:00Z"
+            assert result["type"] == "Person"
+            assert result["label"] == "John Doe"
+            assert result["entity_types"] == ["http://example.org/Person"]
+            assert result["sort_values"]["http://example.org/name"] == "John Doe"
+            
+            # Verify AgnosticEntity was called with correct parameters
+            mock_agnostic_entity.assert_called_once_with(
+                res="http://example.org/person1",
+                config=mock_config,
+                include_related_objects=True,
+                include_merged_entities=True,
+                include_reverse_relations=True
+            )
+
+    def test_process_deleted_entity_no_agent(
+        self, mock_result_data_no_agent, mock_custom_filter
+    ):
+        """Test process_deleted_entity without agent data."""
+        sortable_properties = []
+        
+        mock_graph = ConjunctiveGraph()
+        mock_graph.add((
+            URIRef("http://example.org/person1"),
+            URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            URIRef("http://example.org/Person")
+        ))
+        
+        mock_state = {
+            "http://example.org/person1": {
+                "2023-01-14T15:20:00+00:00": mock_graph
+            }
+        }
+        
+        with patch("heritrace.utils.sparql_utils.get_change_tracking_config"), \
+             patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
+             patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
+            
+            mock_entity_instance = mock_agnostic_entity.return_value
+            mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
+            
+            mock_custom_filter.format_agent_reference.return_value = ""
+            mock_custom_filter.human_readable_predicate.return_value = "Person"
+            mock_custom_filter.human_readable_entity.return_value = "Person Entity"
+            
+            result = process_deleted_entity(mock_result_data_no_agent, sortable_properties)
+            
+            assert result is not None
+            assert result["deletedBy"] == ""
+
+    def test_process_deleted_entity_entity_not_in_state(
+        self, mock_result_data, mock_custom_filter
+    ):
+        """Test process_deleted_entity when entity is not in state."""
+        sortable_properties = []
+        
+        # Empty state - entity not found
+        mock_state = {}
+        
+        with patch("heritrace.utils.sparql_utils.get_change_tracking_config"), \
+             patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"):
+            
+            mock_entity_instance = mock_agnostic_entity.return_value
+            mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
+            
+            result = process_deleted_entity(mock_result_data, sortable_properties)
+            
+            assert result is None
+
+    def test_process_deleted_entity_no_visible_types(
+        self, mock_result_data, mock_custom_filter
+    ):
+        """Test process_deleted_entity when entity has no visible types."""
+        sortable_properties = []
+        
+        mock_graph = ConjunctiveGraph()
+        mock_graph.add((
+            URIRef("http://example.org/person1"),
+            URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            URIRef("http://example.org/HiddenType")
+        ))
+        
+        mock_state = {
+            "http://example.org/person1": {
+                "2023-01-14T15:20:00+00:00": mock_graph
+            }
+        }
+        
+        with patch("heritrace.utils.sparql_utils.get_change_tracking_config"), \
+             patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
+             patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/HiddenType"), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/HiddenShape"), \
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=False):
+            
+            mock_entity_instance = mock_agnostic_entity.return_value
+            mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
+            
+            result = process_deleted_entity(mock_result_data, sortable_properties)
+            
+            assert result is None
+
+    def test_process_deleted_entity_with_sort_values(
+        self, mock_result_data, mock_custom_filter
+    ):
+        """Test process_deleted_entity with sortable properties."""
+        sortable_properties = [
+            {"property": "http://example.org/name", "displayName": "Name"},
+            {"property": "http://example.org/age", "displayName": "Age"},
+            {"property": "http://example.org/nonexistent", "displayName": "Non-existent"}
+        ]
+        
+        mock_graph = ConjunctiveGraph()
+        mock_graph.add((
+            URIRef("http://example.org/person1"),
+            URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            URIRef("http://example.org/Person")
+        ))
+        mock_graph.add((
+            URIRef("http://example.org/person1"),
+            URIRef("http://example.org/name"),
+            Literal("Alice")
+        ))
+        mock_graph.add((
+            URIRef("http://example.org/person1"),
+            URIRef("http://example.org/age"),
+            Literal("30")
+        ))
+        
+        mock_state = {
+            "http://example.org/person1": {
+                "2023-01-14T15:20:00+00:00": mock_graph
+            }
+        }
+        
+        with patch("heritrace.utils.sparql_utils.get_change_tracking_config"), \
+             patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
+             patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
+            
+            mock_entity_instance = mock_agnostic_entity.return_value
+            mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
+            
+            mock_custom_filter.format_agent_reference.return_value = "Test Agent"
+            mock_custom_filter.human_readable_predicate.return_value = "Person"
+            mock_custom_filter.human_readable_entity.return_value = "Alice"
+            
+            result = process_deleted_entity(mock_result_data, sortable_properties)
+            
+            assert result is not None
+            assert result["sort_values"]["http://example.org/name"] == "Alice"
+            assert result["sort_values"]["http://example.org/age"] == "30"
+            assert result["sort_values"]["http://example.org/nonexistent"] == ""  # Missing property

@@ -18,13 +18,10 @@ from heritrace.extensions import (get_change_tracking_config,
 from heritrace.forms import *
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
-from heritrace.utils.display_rules_utils import (find_matching_rule,
-                                                 get_class_priority,
-                                                 get_grouped_triples,
-                                                 get_highest_priority_class,
-                                                 get_predicate_ordering_info,
-                                                 get_property_order_from_rules,
-                                                 is_entity_type_visible)
+from heritrace.utils.display_rules_utils import (
+    get_class_priority, get_grouped_triples, get_highest_priority_class,
+    get_predicate_ordering_info, get_property_order_from_rules,
+    get_shape_order_from_display_rules, is_entity_type_visible)
 from heritrace.utils.filters import Filter
 from heritrace.utils.primary_source_utils import (
     get_default_primary_source, save_user_default_primary_source)
@@ -1416,35 +1413,6 @@ def determine_object_class_and_shape(object_value: str, relevant_snapshot: Graph
     object_class = get_highest_priority_class(object_classes) if object_classes else None
     
     return object_class, object_shape_uri
-
-
-def get_shape_order_from_display_rules(highest_priority_class: str, entity_shape: str, predicate_uri: str) -> list:
-    """
-    Get the ordered list of shapes for a specific predicate from display rules.
-    
-    Args:
-        highest_priority_class: The highest priority class for the entity
-        entity_shape: The shape for the subject entity
-        predicate_uri: The predicate URI to get shape ordering for
-        
-    Returns:
-        List of shape URIs in the order specified in displayRules, or empty list if no rules found
-    """    
-    display_rules = get_display_rules()
-    if not display_rules:
-        return []
-    
-    rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
-    if not rule or "displayProperties" not in rule:
-        return []
-    
-    for prop_config in rule["displayProperties"]:
-        if prop_config["property"] == predicate_uri:
-            if "displayRules" in prop_config:
-                return [display_rule.get("shape") for display_rule in prop_config["displayRules"] 
-                       if display_rule.get("shape")]
-    
-    return []
 
 
 def generate_modification_text(

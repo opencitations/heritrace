@@ -157,3 +157,43 @@ def test_logout_unauthenticated(client: FlaskClient, app: Flask):
     assert (
         response.status_code == 401
     )  # Should return unauthorized for unauthenticated users
+
+
+def test_login_demo_mode(client: FlaskClient, app: Flask):
+    """Test login in demo mode."""
+    with patch.dict("os.environ", {"FLASK_ENV": "demo", "USER_ID": "test_demo"}):
+        with app.test_request_context():
+            expected_url = url_for("main.catalogue")
+        response = client.get("/auth/login")
+        
+        assert response.status_code == 302
+        assert response.location == expected_url
+        
+        with client.session_transaction() as sess:
+            assert sess.get("user_name") == "Demo User (test_demo)"
+            assert sess.get("_user_id") == "http://example.org/demo/test_demo"
+
+
+def test_callback_no_whitelist(client: FlaskClient, app: Flask):
+    """Test callback when whitelist is empty."""
+    test_token = {
+        "access_token": "test-token",
+        "name": "Test User",
+        "orcid": "0000-0000-0000-0001",
+    }
+
+    with client.session_transaction() as sess:
+        sess["oauth_state"] = "test-state"
+
+    with patch("heritrace.routes.auth.OAuth2Session") as mock_oauth:
+        mock_session = MagicMock()
+        mock_session.fetch_token.return_value = test_token
+        mock_oauth.return_value = mock_session
+
+        app.config["ORCID_WHITELIST"] = []
+        with app.test_request_context():
+            expected_url = url_for("main.catalogue")
+        response = client.get("/auth/callback?code=test-code&state=test-state")
+
+        assert response.status_code == 302
+        assert response.location == expected_url

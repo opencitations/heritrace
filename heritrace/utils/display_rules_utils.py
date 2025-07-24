@@ -630,6 +630,35 @@ def get_predicate_ordering_info(predicate_uri: str, highest_priority_class: str,
     return None
 
 
+def get_shape_order_from_display_rules(highest_priority_class: str, entity_shape: str, predicate_uri: str) -> list:
+    """
+    Get the ordered list of shapes for a specific predicate from display rules.
+    
+    Args:
+        highest_priority_class: The highest priority class for the entity
+        entity_shape: The shape for the subject entity
+        predicate_uri: The predicate URI to get shape ordering for
+        
+    Returns:
+        List of shape URIs in the order specified in displayRules, or empty list if no rules found
+    """    
+    display_rules = get_display_rules()
+    if not display_rules:
+        return []
+    
+    rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
+    if not rule or "displayProperties" not in rule:
+        return []
+    
+    for prop_config in rule["displayProperties"]:
+        if prop_config["property"] == predicate_uri:
+            if "displayRules" in prop_config:
+                return [display_rule.get("shape") for display_rule in prop_config["displayRules"] 
+                       if display_rule.get("shape")]
+    
+    return []
+
+
 def get_similarity_properties(entity_key: Tuple[str, str]) -> Optional[List[Union[str, Dict[str, List[str]]]]]:
     """Gets the similarity properties configuration for a given entity key.
 

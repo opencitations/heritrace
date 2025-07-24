@@ -6,7 +6,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
-from heritrace.routes.entity import (compute_graph_differences,
+from heritrace.routes.entity import (_format_snapshot_description,
+                                     compute_graph_differences,
+                                     determine_object_class_and_shape,
                                      find_appropriate_snapshot,
                                      format_triple_modification,
                                      get_object_label,
@@ -15,7 +17,7 @@ from heritrace.routes.entity import (compute_graph_differences,
                                      validate_entity_data,
                                      validate_modification)
 from heritrace.utils.filters import Filter
-from rdflib import XSD, Graph, Literal, URIRef
+from rdflib import RDF, XSD, Graph, Literal, URIRef
 from SPARQLWrapper import JSON
 
 # ===== Entity Tests =====
@@ -786,3 +788,435 @@ def test_compute_graph_differences_non_quadstore(mock_get_dataset_is_quadstore):
     
     assert expected_delete in triples_to_delete
     assert expected_add in triples_to_add
+
+
+# ===== Tests for determine_object_class_and_shape =====
+
+@patch('heritrace.routes.entity.determine_shape_for_entity_triples')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.validators')
+def test_determine_object_class_and_shape_valid_uri(mock_validators, mock_get_highest_priority, mock_determine_shape):
+    """Test determine_object_class_and_shape with valid URI object."""
+    # Setup mocks
+    mock_validators.url.return_value = True
+    mock_get_highest_priority.return_value = "http://example.org/Person"
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    
+    # Create test graph
+    graph = Graph()
+    object_uri = "http://example.org/person/123"
+    graph.add((URIRef(object_uri), RDF.type, URIRef("http://example.org/Person")))
+    graph.add((URIRef(object_uri), URIRef("http://example.org/name"), Literal("John Doe")))
+    
+    # Call function
+    object_class, object_shape = determine_object_class_and_shape(object_uri, graph)
+    
+    # Verify results
+    assert object_class == "http://example.org/Person"
+    assert object_shape == "http://example.org/PersonShape"
+    mock_validators.url.assert_called_once_with(object_uri)
+    mock_get_highest_priority.assert_called_once()
+    mock_determine_shape.assert_called_once()
+
+
+@patch('heritrace.routes.entity.validators')
+def test_determine_object_class_and_shape_invalid_url(mock_validators):
+    """Test determine_object_class_and_shape with invalid URL."""
+    # Setup mocks
+    mock_validators.url.return_value = False
+    
+    # Create test graph
+    graph = Graph()
+    object_value = "not-a-url"
+    
+    # Call function
+    object_class, object_shape = determine_object_class_and_shape(object_value, graph)
+    
+    # Verify results
+    assert object_class is None
+    assert object_shape is None
+    mock_validators.url.assert_called_once_with("not-a-url")
+
+
+@patch('heritrace.routes.entity.validators')
+def test_determine_object_class_and_shape_no_graph(mock_validators):
+    """Test determine_object_class_and_shape with no graph provided."""
+    # Setup mocks
+    mock_validators.url.return_value = True
+    
+    # Call function
+    object_class, object_shape = determine_object_class_and_shape("http://example.org/test", None)
+    
+    # Verify results
+    assert object_class is None
+    assert object_shape is None
+
+
+@patch('heritrace.routes.entity.determine_shape_for_entity_triples')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.validators')
+def test_determine_object_class_and_shape_no_triples(mock_validators, mock_get_highest_priority, mock_determine_shape):
+    """Test determine_object_class_and_shape when object has no triples in graph."""
+    # Setup mocks
+    mock_validators.url.return_value = True
+    
+    # Create empty test graph
+    graph = Graph()
+    object_uri = "http://example.org/person/123"
+    
+    # Call function
+    object_class, object_shape = determine_object_class_and_shape(object_uri, graph)
+    
+    # Verify results
+    assert object_class is None
+    assert object_shape is None
+    mock_validators.url.assert_called_once_with(object_uri)
+    mock_get_highest_priority.assert_not_called()
+    mock_determine_shape.assert_not_called()
+
+
+@patch('heritrace.routes.entity.determine_shape_for_entity_triples')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.validators')
+def test_determine_object_class_and_shape_no_classes(mock_validators, mock_get_highest_priority, mock_determine_shape):
+    """Test determine_object_class_and_shape when object has no RDF.type triples."""
+    # Setup mocks
+    mock_validators.url.return_value = True
+    mock_get_highest_priority.return_value = None
+    mock_determine_shape.return_value = "http://example.org/Shape"
+    
+    # Create test graph with triples but no RDF.type
+    graph = Graph()
+    object_uri = "http://example.org/person/123"
+    graph.add((URIRef(object_uri), URIRef("http://example.org/name"), Literal("John Doe")))
+    
+    # Call function
+    object_class, object_shape = determine_object_class_and_shape(object_uri, graph)
+    
+    # Verify results
+    assert object_class is None
+    assert object_shape == "http://example.org/Shape"
+    mock_validators.url.assert_called_once_with(object_uri)
+    # get_highest_priority_class should not be called when there are no classes
+    mock_get_highest_priority.assert_not_called()
+    mock_determine_shape.assert_called_once()
+
+
+@patch('heritrace.routes.entity.determine_shape_for_entity_triples')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.validators')
+def test_determine_object_class_and_shape_multiple_classes(mock_validators, mock_get_highest_priority, mock_determine_shape):
+    """Test determine_object_class_and_shape with multiple RDF.type triples."""
+    # Setup mocks
+    mock_validators.url.return_value = True
+    mock_get_highest_priority.return_value = "http://example.org/Person"
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    
+    # Create test graph with multiple types
+    graph = Graph()
+    object_uri = "http://example.org/person/123"
+    graph.add((URIRef(object_uri), RDF.type, URIRef("http://example.org/Person")))
+    graph.add((URIRef(object_uri), RDF.type, URIRef("http://example.org/Agent")))
+    graph.add((URIRef(object_uri), URIRef("http://example.org/name"), Literal("John Doe")))
+    
+    # Call function
+    object_class, object_shape = determine_object_class_and_shape(object_uri, graph)
+    
+    # Verify results
+    assert object_class == "http://example.org/Person"
+    assert object_shape == "http://example.org/PersonShape"
+    mock_validators.url.assert_called_once_with(object_uri)
+    # Should be called with both class URIs
+    expected_classes = ["http://example.org/Person", "http://example.org/Agent"]
+    mock_get_highest_priority.assert_called_once()
+    # Check that the call was made with the expected classes (order may vary)
+    actual_classes = mock_get_highest_priority.call_args[0][0]
+    assert set(actual_classes) == set(expected_classes)
+
+
+# ===== Tests for _format_snapshot_description =====
+
+@patch('heritrace.routes.entity.determine_shape_for_classes')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.validators')
+def test_format_snapshot_description_simple(mock_validators, mock_get_highest_priority, mock_determine_shape):
+    """Test _format_snapshot_description with simple description."""
+    # Setup mocks
+    mock_validators.url.return_value = False
+    mock_get_highest_priority.return_value = "http://example.org/Person"
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    
+    # Create test data
+    metadata = {"description": "Simple description"}
+    entity_uri = "http://example.org/person/123"
+    highest_priority_class = "http://example.org/Person"
+    context_snapshot = Graph()
+    history = {}
+    sorted_timestamps = []
+    current_index = 0
+    
+    # Create mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_entity.return_value = "John Doe"
+    
+    # Call function
+    result = _format_snapshot_description(
+        metadata, entity_uri, highest_priority_class, context_snapshot,
+        history, sorted_timestamps, current_index, mock_filter
+    )
+    
+    # Verify results
+    assert result == "Simple description"
+    mock_determine_shape.assert_called_once_with([highest_priority_class])
+    mock_filter.human_readable_entity.assert_called_once_with(
+        entity_uri, (highest_priority_class, "http://example.org/PersonShape"), context_snapshot
+    )
+
+
+@patch('heritrace.routes.entity.determine_shape_for_classes')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.validators')
+def test_format_snapshot_description_merge_with_uri(mock_validators, mock_get_highest_priority, mock_determine_shape):
+    """Test _format_snapshot_description with merge description containing URI."""
+    # Setup mocks for entity URI replacement
+    mock_determine_shape.side_effect = lambda classes: "http://example.org/PersonShape" if classes else None
+    
+    # Mock validators to return True for the merged entity URI
+    def mock_url_validator(url):
+        return url == "http://example.org/person/456"
+    mock_validators.url.side_effect = mock_url_validator
+    
+    # Create test data
+    metadata = {
+        "description": "Entity was merged with http://example.org/person/456",
+        "wasDerivedFrom": ["uri1", "uri2"]  # Multiple sources indicate merge
+    }
+    entity_uri = "http://example.org/person/123"
+    highest_priority_class = "http://example.org/Person"
+    
+    # Create context snapshot
+    context_snapshot = Graph()
+    
+    # Create history with previous snapshot
+    previous_snapshot = Graph()
+    previous_snapshot.add((URIRef("http://example.org/person/456"), RDF.type, URIRef("http://example.org/Person")))
+    previous_snapshot.add((URIRef("http://example.org/person/456"), URIRef("http://example.org/name"), Literal("Jane Doe")))
+    
+    history = {
+        entity_uri: {
+            "2023-01-01T00:00:00": previous_snapshot,
+            "2023-01-02T00:00:00": Graph()
+        }
+    }
+    sorted_timestamps = ["2023-01-01T00:00:00", "2023-01-02T00:00:00"]
+    current_index = 1
+    
+    # Create mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_entity.side_effect = lambda uri, entity_key, snapshot: "Jane Doe" if uri == "http://example.org/person/456" else "John Doe"
+    
+    # Call function
+    result = _format_snapshot_description(
+        metadata, entity_uri, highest_priority_class, context_snapshot,
+        history, sorted_timestamps, current_index, mock_filter
+    )
+    
+    # Verify results
+    assert "merged with 'Jane Doe'" in result
+    assert "http://example.org/person/456" not in result  # URI should be replaced
+
+
+@patch('heritrace.routes.entity.determine_shape_for_classes')
+def test_format_snapshot_description_no_merge(mock_determine_shape):
+    """Test _format_snapshot_description with non-merge description."""
+    # Setup mocks
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    
+    # Create test data
+    metadata = {
+        "description": "Regular update description",
+        "wasDerivedFrom": ["uri1"]  # Single source, not a merge
+    }
+    entity_uri = "http://example.org/person/123"
+    highest_priority_class = "http://example.org/Person"
+    context_snapshot = Graph()
+    history = {}
+    sorted_timestamps = []
+    current_index = 0
+    
+    # Create mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_entity.return_value = "John Doe"
+    
+    # Call function
+    result = _format_snapshot_description(
+        metadata, entity_uri, highest_priority_class, context_snapshot,
+        history, sorted_timestamps, current_index, mock_filter
+    )
+    
+    # Verify results
+    assert result == "Regular update description"
+
+
+@patch('heritrace.routes.entity.determine_shape_for_classes')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.validators')
+def test_format_snapshot_description_merge_invalid_uri(mock_validators, mock_get_highest_priority, mock_determine_shape):
+    """Test _format_snapshot_description with merge description containing invalid URI."""
+    # Setup mocks
+    mock_validators.url.return_value = False  # Invalid URI
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    
+    # Create test data
+    metadata = {
+        "description": "Entity was merged with invalid-uri",
+        "wasDerivedFrom": ["uri1", "uri2"]  # Multiple sources indicate merge
+    }
+    entity_uri = "http://example.org/person/123"
+    highest_priority_class = "http://example.org/Person"
+    context_snapshot = Graph()
+    history = {}
+    sorted_timestamps = []
+    current_index = 0
+    
+    # Create mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_entity.return_value = "John Doe"
+    
+    # Call function
+    result = _format_snapshot_description(
+        metadata, entity_uri, highest_priority_class, context_snapshot,
+        history, sorted_timestamps, current_index, mock_filter
+    )
+    
+    # Verify results - description should remain unchanged since URI is invalid
+    assert result == "Entity was merged with invalid-uri"
+
+
+@patch('heritrace.routes.entity.determine_shape_for_classes')
+def test_format_snapshot_description_entity_uri_replacement(mock_determine_shape):
+    """Test _format_snapshot_description with entity URI replacement."""
+    # Setup mocks
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    
+    # Create test data
+    metadata = {
+        "description": "Created entity 'http://example.org/person/123'",
+        "wasDerivedFrom": ["uri1"]  # Single source, not a merge
+    }
+    entity_uri = "http://example.org/person/123"
+    highest_priority_class = "http://example.org/Person"
+    context_snapshot = Graph()
+    history = {}
+    sorted_timestamps = []
+    current_index = 0
+    
+    # Create mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_entity.return_value = "John Doe"
+    
+    # Call function
+    result = _format_snapshot_description(
+        metadata, entity_uri, highest_priority_class, context_snapshot,
+        history, sorted_timestamps, current_index, mock_filter
+    )
+    
+    # Verify results - entity URI should be replaced with human-readable label
+    assert result == "Created entity 'John Doe'"
+    assert entity_uri not in result
+
+
+@patch('heritrace.routes.entity.determine_shape_for_classes')
+def test_format_snapshot_description_entity_same_as_uri(mock_determine_shape):
+    """Test _format_snapshot_description when entity label is same as URI."""
+    # Setup mocks
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    
+    # Create test data
+    metadata = {
+        "description": "Created entity 'http://example.org/person/123'",
+        "wasDerivedFrom": ["uri1"]  # Single source, not a merge
+    }
+    entity_uri = "http://example.org/person/123"
+    highest_priority_class = "http://example.org/Person"
+    context_snapshot = Graph()
+    history = {}
+    sorted_timestamps = []
+    current_index = 0
+    
+    # Create mock filter that returns the same URI
+    mock_filter = MagicMock()
+    mock_filter.human_readable_entity.return_value = entity_uri
+    
+    # Call function
+    result = _format_snapshot_description(
+        metadata, entity_uri, highest_priority_class, context_snapshot,
+        history, sorted_timestamps, current_index, mock_filter
+    )
+    
+    # Verify results - no replacement should occur since label equals URI
+    assert result == "Created entity 'http://example.org/person/123'"
+
+
+@patch('heritrace.routes.entity.determine_shape_for_classes')
+@patch('heritrace.routes.entity.get_highest_priority_class')
+@patch('heritrace.routes.entity.validators')
+def test_format_snapshot_description_merge_current_index_zero(mock_validators, mock_get_highest_priority, mock_determine_shape):
+    """Test _format_snapshot_description with merge at index 0 (no previous snapshot)."""
+    # Setup mocks
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    mock_validators.url.return_value = True
+    
+    # Create test data
+    metadata = {
+        "description": "Entity was merged with http://example.org/person/456",
+        "wasDerivedFrom": ["uri1", "uri2"]  # Multiple sources indicate merge
+    }
+    entity_uri = "http://example.org/person/123"
+    highest_priority_class = "http://example.org/Person"
+    context_snapshot = Graph()
+    history = {}
+    sorted_timestamps = ["2023-01-01T00:00:00"]
+    current_index = 0  # No previous snapshot available
+    
+    # Create mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_entity.return_value = "John Doe"
+    
+    # Call function
+    result = _format_snapshot_description(
+        metadata, entity_uri, highest_priority_class, context_snapshot,
+        history, sorted_timestamps, current_index, mock_filter
+    )
+    
+    # Verify results - should not attempt to replace merged entity label
+    assert "merged with http://example.org/person/456" in result
+
+
+@patch('heritrace.routes.entity.determine_shape_for_classes')
+def test_format_snapshot_description_empty_description(mock_determine_shape):
+    """Test _format_snapshot_description with empty description."""
+    # Setup mocks
+    mock_determine_shape.return_value = "http://example.org/PersonShape"
+    
+    # Create test data
+    metadata = {}  # No description key
+    entity_uri = "http://example.org/person/123"
+    highest_priority_class = "http://example.org/Person"
+    context_snapshot = Graph()
+    history = {}
+    sorted_timestamps = []
+    current_index = 0
+    
+    # Create mock filter
+    mock_filter = MagicMock()
+    mock_filter.human_readable_entity.return_value = "John Doe"
+    
+    # Call function
+    result = _format_snapshot_description(
+        metadata, entity_uri, highest_priority_class, context_snapshot,
+        history, sorted_timestamps, current_index, mock_filter
+    )
+    
+    # Verify results - should return empty string
+    assert result == ""
