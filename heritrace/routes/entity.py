@@ -307,99 +307,14 @@ def create_entity():
                 )
 
                 if ordered_by:
-                    # Gestisci le proprietà ordinate per shape
-                    values_by_shape = {}
-                    for value in values:
-                        shape = value.get("entity_shape")
-                        if not shape:
-                            shape = "default_shape"
-                        if shape not in values_by_shape:
-                            values_by_shape[shape] = []
-                        values_by_shape[shape].append(value)
-
-                    # Ora processa ogni gruppo di valori per shape separatamente
-                    for shape, shape_values in values_by_shape.items():
-                        previous_entity = None
-                        for value in shape_values:
-                            if isinstance(value, dict) and "entity_type" in value:
-                                nested_uri = generate_unique_uri(value["entity_type"])
-                                editor.create(
-                                    entity_uri,
-                                    URIRef(predicate),
-                                    nested_uri,
-                                    default_graph_uri,
-                                )
-                                create_nested_entity(
-                                    editor,
-                                    nested_uri,
-                                    value,
-                                    default_graph_uri
-                                )
-                            elif isinstance(value, dict) and value.get("is_existing_entity", False):
-                                # If it's a direct URI value (reference to existing entity)
-                                nested_uri = URIRef(value)
-                                editor.create(
-                                    entity_uri,
-                                    URIRef(predicate),
-                                    nested_uri,
-                                    default_graph_uri,
-                                )
-
-                            if previous_entity:
-                                editor.create(
-                                    previous_entity,
-                                    URIRef(ordered_by),
-                                    nested_uri,
-                                    default_graph_uri,
-                                )
-                            previous_entity = nested_uri
+                    process_ordered_properties(
+                        editor, entity_uri, predicate, values, default_graph_uri, ordered_by
+                    )
                 else:
-                    # Gestisci le proprietà non ordinate
-                    for value in values:
-                        if isinstance(value, dict) and "entity_type" in value:
-                            nested_uri = generate_unique_uri(value["entity_type"])
-                            editor.create(
-                                entity_uri,
-                                URIRef(predicate),
-                                nested_uri,
-                                default_graph_uri,
-                            )
-                            create_nested_entity(
-                                editor,
-                                nested_uri,
-                                value,
-                                default_graph_uri
-                            )
-                        elif isinstance(value, dict) and value.get("is_existing_entity", False):
-                            entity_ref_uri = value.get("entity_uri")
-                            if entity_ref_uri:
-                                object_value = URIRef(entity_ref_uri)
-                                editor.create(
-                                    entity_uri,
-                                    URIRef(predicate),
-                                    object_value,
-                                    default_graph_uri,
-                                )
-                            else:
-                                raise ValueError("Missing entity_uri in existing entity reference")
-                        else:
-                            # Handle simple properties - check if it's a URI or literal
-                            if validators.url(str(value)):
-                                object_value = URIRef(value)
-                            else:
-                                datatype_uris = []
-                                if matching_field_def:
-                                    datatype_uris = matching_field_def.get(
-                                        "datatypes", []
-                                    )
-                                datatype = determine_datatype(value, datatype_uris)
-                                object_value = Literal(value, datatype=datatype)
-                            editor.create(
-                                entity_uri,
-                                URIRef(predicate),
-                                object_value,
-                                default_graph_uri,
-                            )
+                    # Handle unordered properties
+                    process_unordered_properties(
+                        editor, entity_uri, predicate, values, default_graph_uri, matching_field_def
+                    )
         else:
             entity_type = structured_data.get("entity_type")
             properties = structured_data.get("properties", {})
@@ -423,8 +338,6 @@ def create_entity():
             )
 
             for predicate, values in properties.items():
-                if not isinstance(values, list):
-                    values = [values]
                 for value_dict in values:
                     if value_dict["type"] == "uri":
                         editor.create(
@@ -548,6 +461,167 @@ def create_nested_entity(
                     datatype = determine_datatype(value, datatype_uris)
                     object_value = Literal(value, datatype=datatype)
                 editor.create(entity_uri, URIRef(predicate), object_value, graph_uri)
+
+
+def process_entity_value(editor: Editor, entity_uri, predicate, value, default_graph_uri, matching_field_def):
+    """
+    Process a single entity value, handling nested entities, existing entity references, and simple literals.
+    
+    Args:
+        editor: Editor instance for RDF operations
+        entity_uri: URI of the parent entity
+        predicate: Predicate URI
+        value: Value to process (dict or primitive)
+        default_graph_uri: Default graph URI for quad stores
+        matching_field_def: Field definition for datatype validation
+    
+    Returns:
+        URIRef: The URI of the created/referenced entity
+    """
+    if isinstance(value, dict) and "entity_type" in value:
+        nested_uri = generate_unique_uri(value["entity_type"])
+        editor.create(
+            entity_uri,
+            URIRef(predicate),
+            nested_uri,
+            default_graph_uri,
+        )
+        create_nested_entity(
+            editor,
+            nested_uri,
+            value,
+            default_graph_uri
+        )
+        return nested_uri
+    elif isinstance(value, dict) and value.get("is_existing_entity", False):
+        entity_ref_uri = value.get("entity_uri")
+        if entity_ref_uri:
+            object_value = URIRef(entity_ref_uri)
+            editor.create(
+                entity_uri,
+                URIRef(predicate),
+                object_value,
+                default_graph_uri,
+            )
+            return object_value
+        else:
+            raise ValueError("Missing entity_uri in existing entity reference")
+    else:
+        # Handle simple properties - check if it's a URI or literal
+        if validators.url(str(value)):
+            object_value = URIRef(value)
+        else:
+            datatype_uris = []
+            if matching_field_def:
+                datatype_uris = matching_field_def.get("datatypes", [])
+            datatype = determine_datatype(value, datatype_uris)
+            object_value = Literal(value, datatype=datatype)
+        editor.create(
+            entity_uri,
+            URIRef(predicate),
+            object_value,
+            default_graph_uri,
+        )
+        return object_value
+
+
+def process_ordered_entity_value(editor: Editor, entity_uri, predicate, value, default_graph_uri):
+    """
+    Process a single entity value for ordered properties.
+    
+    Args:
+        editor: Editor instance for RDF operations
+        entity_uri: URI of the parent entity
+        predicate: Predicate URI
+        value: Value to process (dict)
+        default_graph_uri: Default graph URI for quad stores
+    
+    Returns:
+        URIRef: The URI of the created/referenced entity
+    """
+    if isinstance(value, dict) and "entity_type" in value:
+        nested_uri = generate_unique_uri(value["entity_type"])
+        editor.create(
+            entity_uri,
+            URIRef(predicate),
+            nested_uri,
+            default_graph_uri,
+        )
+        create_nested_entity(
+            editor,
+            nested_uri,
+            value,
+            default_graph_uri
+        )
+        return nested_uri
+    elif isinstance(value, dict) and value.get("is_existing_entity", False):
+        # If it's a direct URI value (reference to existing entity)
+        nested_uri = URIRef(value)
+        editor.create(
+            entity_uri,
+            URIRef(predicate),
+            nested_uri,
+            default_graph_uri,
+        )
+        return nested_uri
+    else:
+        raise ValueError("Unexpected value type for ordered property")
+
+
+def process_ordered_properties(editor: Editor, entity_uri, predicate, values, default_graph_uri, ordered_by):
+    """
+    Process ordered properties by grouping values by shape and maintaining order.
+    
+    Args:
+        editor: Editor instance for RDF operations
+        entity_uri: URI of the parent entity
+        predicate: Predicate URI
+        values: List of values to process
+        default_graph_uri: Default graph URI for quad stores
+        ordered_by: URI of the ordering property
+    """
+    values_by_shape = {}
+    for value in values:
+        shape = value.get("entity_shape")
+        if not shape:
+            shape = "default_shape"
+        if shape not in values_by_shape:
+            values_by_shape[shape] = []
+        values_by_shape[shape].append(value)
+
+    for shape, shape_values in values_by_shape.items():
+        previous_entity = None
+        for value in shape_values:
+            nested_uri = process_ordered_entity_value(
+                editor, entity_uri, predicate, value, default_graph_uri
+            )
+            
+            if previous_entity:
+                editor.create(
+                    previous_entity,
+                    URIRef(ordered_by),
+                    nested_uri,
+                    default_graph_uri,
+                )
+            previous_entity = nested_uri
+
+
+def process_unordered_properties(editor: Editor, entity_uri, predicate, values, default_graph_uri, matching_field_def):
+    """
+    Process unordered properties.
+    
+    Args:
+        editor: Editor instance for RDF operations
+        entity_uri: URI of the parent entity
+        predicate: Predicate URI
+        values: List of values to process
+        default_graph_uri: Default graph URI for quad stores
+        matching_field_def: Field definition for datatype validation
+    """
+    for value in values:
+        process_entity_value(
+            editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
+        )
 
 
 def determine_datatype(value, datatype_uris):
