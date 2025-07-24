@@ -25,20 +25,18 @@ curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/herit
 ```
 
 Optionally download database management scripts for quick setup:
+
+**For Unix/Linux/macOS:**
 ```bash
 curl -o start-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/start-databases.sh
-```
-```bash
 curl -o stop-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/stop-databases.sh
+chmod +x start-databases.sh stop-databases.sh
 ```
+
+**For Windows:**
 ```bash
 curl -o Start-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Start-Databases.ps1
-```
-```bash
 curl -o Stop-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Stop-Databases.ps1
-```
-```bash
-chmod +x start-databases.sh stop-databases.sh
 ```
 
 **Demo Mode:** HERITRACE runs in demo mode by default (`FLASK_ENV=demo`) for immediate testing without authentication setup.
