@@ -1,13 +1,14 @@
 from typing import List, Optional, Tuple
 
 from flask import Flask
-from heritrace.extensions import get_shacl_graph
+from heritrace.extensions import get_shacl_graph, get_sparql
 from heritrace.utils.display_rules_utils import get_class_priority
 from heritrace.utils.shacl_display import (apply_display_rules,
                                            extract_shacl_form_fields,
                                            order_form_fields,
                                            process_nested_shapes)
 from rdflib import RDF, Graph
+from SPARQLWrapper import JSON
 
 
 def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict], app: Flask):
@@ -266,3 +267,107 @@ def ensure_display_names(form_fields):
                 # Only add displayName if not already present
                 if not field_info.get("displayName"):
                     field_info["displayName"] = format_uri_as_readable(predicate_uri)
+
+
+def _find_entity_position_in_order_map(entity_uri: str, order_map: dict) -> Optional[int]:
+    """
+    Helper function to find entity position in an order map.
+    
+    This function handles the case where there might be multiple independent ordered chains
+    within the same predicate relationship. Each chain has its own starting element and
+    follows a linked-list structure where each entity points to the next one.
+    
+    Args:
+        entity_uri: URI of the entity to find position for
+        order_map: Dictionary mapping entities to their next entity in sequence.
+                   Key = current entity URI, Value = next entity URI (or None for last element)
+                   Example: {'entity1': 'entity2', 'entity2': 'entity3', 'entity3': None,
+                            'entity4': 'entity5', 'entity5': None}
+                   This represents two chains: [entity1 -> entity2 -> entity3] and [entity4 -> entity5]
+        
+    Returns:
+        1-based position in the sequence, or None if not found
+    """
+    # Find all starting elements of ordered chains.
+    # A start element is one that appears as a key in the order_map but never as a value,
+    # meaning no other entity points to it (it's the head of a chain).
+    start_elements = set(order_map.keys()) - set(v for v in order_map.values() if v is not None)
+    
+    if not start_elements:
+        # No valid starting points found - this shouldn't happen in well-formed data
+        return None
+    
+    # Since there can be multiple independent ordered chains, we need to check each one
+    # to find which chain contains our target entity
+    for start_element in start_elements:
+        # Build the complete sequence for this chain by following the linked-list structure
+        sequence = []
+        current_element = start_element
+        
+        # Follow the chain from start to end
+        while current_element in order_map:
+            sequence.append(current_element)
+            # Move to the next element in the chain (or None if we've reached the end)
+            current_element = order_map[current_element]
+        
+        # Check if our target entity is in this particular chain
+        try:
+            # If found, return its 1-based position within this chain
+            return sequence.index(entity_uri) + 1  # Convert from 0-based to 1-based indexing
+        except ValueError:
+            # Entity not found in this chain, try the next one
+            continue
+    
+    # Entity was not found in any of the ordered chains
+    return None
+
+
+def get_entity_position_in_sequence(entity_uri: str, subject_uri: str, predicate_uri: str, 
+                                   order_property: str, snapshot: Optional[Graph] = None) -> Optional[int]:
+    """
+    Get the position of an entity in an ordered sequence.
+    
+    Args:
+        entity_uri: URI of the entity to find position for
+        subject_uri: URI of the subject that has the ordered property
+        predicate_uri: URI of the ordered predicate
+        order_property: URI of the property that defines the ordering
+        snapshot: Optional graph snapshot for historical queries
+    
+    Returns:
+        1-based position in the sequence, or None if not found
+    """
+    order_query = f"""
+        SELECT ?orderedEntity (COALESCE(?next, "NONE") AS ?nextValue)
+        WHERE {{
+            <{subject_uri}> <{predicate_uri}> ?orderedEntity.
+            OPTIONAL {{
+                ?orderedEntity <{order_property}> ?next.
+            }}
+        }}
+    """
+    
+    if snapshot:
+        order_results = list(snapshot.query(order_query))
+                
+        order_map = {}
+        for res in order_results:
+            ordered_entity = str(res[0])
+            next_value = str(res[1])
+            order_map[ordered_entity] = None if next_value == "NONE" else next_value
+                
+        position = _find_entity_position_in_order_map(entity_uri, order_map)
+        return position
+    else:
+        sparql = get_sparql()
+        sparql.setQuery(order_query)
+        sparql.setReturnFormat(JSON)
+        order_results = sparql.query().convert().get("results", {}).get("bindings", [])
+        
+        order_map = {}
+        for res in order_results:
+            ordered_entity = res["orderedEntity"]["value"]
+            next_value = res["nextValue"]["value"]
+            order_map[ordered_entity] = None if next_value == "NONE" else next_value
+        
+        return _find_entity_position_in_order_map(entity_uri, order_map)

@@ -588,34 +588,46 @@ def get_property_order_from_rules(highest_priority_class: str, shape_uri: str = 
     Returns:
         List of property URIs in the order specified by display rules
     """
-    display_rules = get_display_rules()
-    if not display_rules:
-        return []
-    
-    ordered_properties = []
-    
     if not highest_priority_class:
         return []
     
-    # If we have a shape, try to find a rule matching both class and shape
-    if shape_uri:
-        rule = find_matching_rule(highest_priority_class, shape_uri, display_rules)
-        if rule:
-            # Extract properties in order from displayProperties
-            for prop in rule.get("displayProperties", []):
-                if isinstance(prop, dict) and "property" in prop:
-                    ordered_properties.append(prop["property"])
-            return ordered_properties
+    rule = find_matching_rule(highest_priority_class, shape_uri)
+    if not rule:
+        return []
     
-    # If no match with shape or no shape provided, find a rule matching just the class
-    rule = find_matching_rule(highest_priority_class, None, display_rules)
-    if rule:
-        # Extract properties in order from displayProperties
-        for prop in rule.get("displayProperties", []):
-            if isinstance(prop, dict) and "property" in prop:
-                ordered_properties.append(prop["property"])
+    ordered_properties = []
+    for prop in rule.get("displayProperties", []):
+        if isinstance(prop, dict) and "property" in prop:
+            ordered_properties.append(prop["property"])
     
     return ordered_properties
+
+
+def get_predicate_ordering_info(predicate_uri: str, highest_priority_class: str, entity_shape: str = None) -> Optional[str]:
+    """
+    Check if a predicate is ordered and return its ordering property.
+    
+    Args:
+        predicate_uri: URI of the predicate to check
+        highest_priority_class: The highest priority class for the subject entity
+        entity_shape: Optional shape for the subject entity
+    
+    Returns:
+        The ordering property URI if the predicate is ordered, None otherwise
+    """
+    display_rules = get_display_rules()
+    if not display_rules:
+        return None
+    
+    rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
+    if not rule:
+        return None
+    
+    for prop in rule.get("displayProperties", []):
+        if isinstance(prop, dict) and prop.get("property") == predicate_uri:
+            return prop.get("orderedBy")
+    
+    return None
 
 
 def get_similarity_properties(entity_key: Tuple[str, str]) -> Optional[List[Union[str, Dict[str, List[str]]]]]:

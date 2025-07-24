@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import validators
 from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
@@ -22,12 +22,14 @@ from heritrace.utils.display_rules_utils import (find_matching_rule,
                                                  get_class_priority,
                                                  get_grouped_triples,
                                                  get_highest_priority_class,
+                                                 get_predicate_ordering_info,
                                                  get_property_order_from_rules,
                                                  is_entity_type_visible)
 from heritrace.utils.filters import Filter
 from heritrace.utils.primary_source_utils import (
     get_default_primary_source, save_user_default_primary_source)
-from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
+from heritrace.utils.shacl_utils import (determine_shape_for_entity_triples,
+                                         get_entity_position_in_sequence)
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
     determine_shape_for_classes, fetch_current_state_with_related_entities,
@@ -1510,10 +1512,24 @@ def generate_modification_text(
                 object_shapes_cache[str(object_value)] = object_shape
 
         predicate_shape_groups = {}
+        predicate_ordering_cache = {}
+        entity_position_cache = {}
+        
         for triple in triples:
             predicate = str(triple[1])
             object_value = str(triple[2])
             object_shape_uri = object_shapes_cache.get(object_value)
+            
+            if predicate not in predicate_ordering_cache:
+                predicate_ordering_cache[predicate] = get_predicate_ordering_info(predicate, highest_priority_class, entity_shape)
+            
+            order_property = predicate_ordering_cache[predicate]
+            if order_property and validators.url(object_value) and relevant_snapshot:
+                position_key = (object_value, predicate)
+                if position_key not in entity_position_cache:
+                    entity_position_cache[position_key] = get_entity_position_in_sequence(
+                        object_value, entity_uri, predicate, order_property, relevant_snapshot
+                    )
             
             group_key = (predicate, object_shape_uri)
             if group_key not in predicate_shape_groups:
@@ -1521,6 +1537,11 @@ def generate_modification_text(
             predicate_shape_groups[group_key].append(triple)
 
         processed_predicates = set()
+
+        def get_cached_position(triple, predicate_uri):
+            object_value = str(triple[2])
+            position_key = (object_value, predicate_uri)
+            return entity_position_cache.get(position_key, float('inf'))
 
         for predicate in ordered_properties:
             shape_order = get_shape_order_from_display_rules(highest_priority_class, entity_shape, predicate)
@@ -1539,6 +1560,13 @@ def generate_modification_text(
             predicate_groups.sort(key=lambda x: x[0])
             for _, group_key, group_triples in predicate_groups:
                 processed_predicates.add(group_key)
+                
+                predicate_uri, _ = group_key
+                order_property = predicate_ordering_cache.get(predicate_uri)
+                
+                if order_property and relevant_snapshot:
+                    group_triples = sorted(group_triples, key=lambda t: get_cached_position(t, predicate_uri))
+                
                 for triple in group_triples:
                     modification_text += format_triple_modification(
                         triple,
@@ -1548,11 +1576,21 @@ def generate_modification_text(
                         object_classes_cache,
                         relevant_snapshot,
                         custom_filter,
+                        subject_uri=entity_uri,
+                        predicate_ordering_cache=predicate_ordering_cache,
+                        entity_position_cache=entity_position_cache,
                     )
 
         # Then handle any remaining predicate+shape groups not in the ordered list
         for group_key, group_triples in predicate_shape_groups.items():
             if group_key not in processed_predicates:
+                # Sort remaining triples by their cached positions too
+                predicate_uri, _ = group_key
+                order_property = predicate_ordering_cache.get(predicate_uri)
+                
+                if order_property and relevant_snapshot:
+                    group_triples = sorted(group_triples, key=lambda t: get_cached_position(t, predicate_uri))
+                
                 for triple in group_triples:
                     modification_text += format_triple_modification(
                         triple,
@@ -1562,6 +1600,9 @@ def generate_modification_text(
                         object_classes_cache,
                         relevant_snapshot,
                         custom_filter,
+                        subject_uri=entity_uri,
+                        predicate_ordering_cache=predicate_ordering_cache,
+                        entity_position_cache=entity_position_cache,
                     )
 
         modification_text += "</ul>"
@@ -1577,6 +1618,9 @@ def format_triple_modification(
     object_classes_cache: dict,
     relevant_snapshot: Optional[Graph],
     custom_filter: Filter,
+    subject_uri: str = None,
+    predicate_ordering_cache: Optional[dict] = None,
+    entity_position_cache: Optional[dict] = None,
 ) -> str:
     """
     Format a single triple modification as HTML.
@@ -1586,7 +1630,10 @@ def format_triple_modification(
         highest_priority_class: The highest priority class for the subject entity
         entity_shape: The shape for the subject entity
         object_shapes_cache: Pre-computed cache of object shapes
+        object_classes_cache: Pre-computed cache of object classes
+        relevant_snapshot: Graph snapshot for context
         custom_filter (Filter): Filter instance for formatting
+        subject_uri: URI of the subject entity (for ordering queries)
 
     Returns:
         str: HTML text describing the modification
@@ -1610,11 +1657,21 @@ def format_triple_modification(
         custom_filter,
         subject_entity_key=(highest_priority_class, entity_shape),
     )
+    
+    order_info = ""
+    if subject_uri and validators.url(str(object_value)):
+        if predicate_ordering_cache and entity_position_cache:
+            order_property = predicate_ordering_cache.get(str(predicate))
+            if order_property:
+                position_key = (str(object_value), str(predicate))
+                position = entity_position_cache.get(position_key)
+                if position is not None:
+                    order_info = f' <span class="order-position-badge">#{position}</span>'
 
     return f"""
         <li class='d-flex align-items-center'>
             <span class='flex-grow-1 d-flex flex-column justify-content-center ms-3 mb-2 w-100'>
-                <strong>{predicate_label}</strong>
+                <strong>{predicate_label}{order_info}</strong>
                 <span class="object-value word-wrap">{object_label}</span>
             </span>
         </li>"""

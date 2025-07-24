@@ -296,3 +296,16 @@ footer.bg-dark {
 span.text-danger[data-bs-toggle="tooltip"] {
   cursor: help;
 }
+
+.order-position-badge {
+  padding: 0.5rem 0.4rem;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  text-align: center;
+  line-height: 1;
+  vertical-align: middle;
+  border: .5px solid var(--bs-body-color);
+}
