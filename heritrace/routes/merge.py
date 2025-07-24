@@ -7,6 +7,7 @@ from flask import (Blueprint, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_babel import gettext
 from flask_login import current_user, login_required
+from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor
 from heritrace.extensions import (get_counter_handler, get_custom_filter,
                                   get_dataset_endpoint,
@@ -131,7 +132,7 @@ def execute_merge():
         entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) or entity2_uri
 
         counter_handler = get_counter_handler()
-        resp_agent_uri = URIRef(f"https://orcid.org/{current_user.orcid}") if current_user.is_authenticated and hasattr(current_user, 'orcid') else None
+        resp_agent_uri = URIRef(get_responsible_agent_uri(current_user.orcid)) if current_user.is_authenticated and hasattr(current_user, 'orcid') else None
         
         dataset_endpoint = get_dataset_endpoint()
         provenance_endpoint = get_provenance_endpoint()

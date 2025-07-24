@@ -9,6 +9,7 @@ This directory contains scripts specifically for building and managing test data
 To create packages containing test database Docker files and scripts:
 
 **Linux/macOS:**
+Run from terminal:
 ```bash
 ./build-test-databases.sh
 ```
@@ -30,6 +31,7 @@ This will create `heritrace-enduser-local.zip` containing:
 For lightweight packages that only pull from Docker Hub (no local building):
 
 **Linux/macOS:**
+Run from terminal:
 ```bash
 ./build-online-packages.sh
 ```
@@ -50,6 +52,7 @@ This creates minimal packages using published Docker images:
 To build and push the test database images to Docker Hub:
 
 **Linux/macOS:**
+Run from terminal:
 ```bash
 cd common/scripts
 ./push-to-dockerhub.sh [version] [docker_username]

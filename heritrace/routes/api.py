@@ -7,10 +7,12 @@ import validators
 from flask import Blueprint, current_app, g, jsonify, request
 from flask_babel import gettext
 from flask_login import current_user, login_required
+from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor
 from heritrace.extensions import (get_custom_filter, get_dataset_endpoint,
                                   get_provenance_endpoint)
 from heritrace.services.resource_lock_manager import LockStatus
+from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.primary_source_utils import \
     save_user_default_primary_source
 from heritrace.utils.shacl_utils import determine_shape_for_classes
@@ -25,7 +27,6 @@ from heritrace.utils.strategies import (OrphanHandlingStrategy,
                                         ProxyHandlingStrategy)
 from heritrace.utils.uri_utils import generate_unique_uri
 from rdflib import RDF, XSD, Graph, Literal, URIRef
-from heritrace.utils.datatypes import DATATYPE_MAPPING
 
 api_bp = Blueprint("api", __name__)
 
@@ -514,7 +515,7 @@ def apply_changes():
             get_dataset_endpoint(),
             get_provenance_endpoint(),
             current_app.config["COUNTER_HANDLER"],
-            URIRef(f"https://orcid.org/{current_user.orcid}"),
+            URIRef(get_responsible_agent_uri(current_user.orcid)),
             current_app.config["PRIMARY_SOURCE"],
             current_app.config["DATASET_GENERATION_TIME"],
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],

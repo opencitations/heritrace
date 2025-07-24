@@ -8,6 +8,7 @@ from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_babel import gettext
 from flask_login import current_user, login_required
+from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor
 from heritrace.extensions import (get_change_tracking_config,
                                   get_custom_filter, get_dataset_endpoint,
@@ -214,7 +215,7 @@ def create_entity():
             get_dataset_endpoint(),
             get_provenance_endpoint(),
             current_app.config["COUNTER_HANDLER"],
-            URIRef(f"https://orcid.org/{current_user.orcid}"),
+            URIRef(get_responsible_agent_uri(current_user.orcid)),
             primary_source,
             current_app.config["DATASET_GENERATION_TIME"],
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],

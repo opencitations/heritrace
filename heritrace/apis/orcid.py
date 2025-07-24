@@ -92,6 +92,33 @@ def get_orcid_data(orcid_id):
     return None
 
 
+def get_responsible_agent_uri(user_identifier):
+    """
+    Get the appropriate URI for a responsible agent.
+    
+    This function handles both ORCID IDs and full URIs flexibly:
+    - If the identifier is already a full URI (starts with http/https), use it as-is
+    - If it's an ORCID ID, convert it to the standard ORCID URI format
+    - Otherwise, treat it as a generic identifier
+    
+    Args:
+        user_identifier (str): User identifier (ORCID ID, URI, or other)
+        
+    Returns:
+        str: Full URI for the responsible agent
+    """
+    if not user_identifier:
+        return None
+        
+    if user_identifier.startswith(('http://', 'https://')):
+        return user_identifier
+    
+    if len(user_identifier) == 19 and user_identifier.count('-') == 3:
+        return f"https://orcid.org/{user_identifier}"
+    
+    return user_identifier
+
+
 def format_orcid_attribution(url):
     """
     Format ORCID attribution for display.
