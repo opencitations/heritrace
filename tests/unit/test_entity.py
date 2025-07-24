@@ -1220,3 +1220,95 @@ def test_format_snapshot_description_empty_description(mock_determine_shape):
     
     # Verify results - should return empty string
     assert result == ""
+
+
+# ===== Test for get_deleted_entity_context_info function =====
+
+def test_get_deleted_entity_context_info():
+    """Test the get_deleted_entity_context_info function extracted from lines 85-97."""
+    from rdflib import Graph, URIRef, RDF, Literal
+    from heritrace.routes.entity import get_deleted_entity_context_info
+    
+    # Test setup - create the exact scenario that triggers the function logic
+    subject = "http://example.org/entity/123"
+    
+    # Create snapshots - snapshot1 has data, snapshot2 is empty (deleted)
+    snapshot1 = Graph()
+    snapshot1.add((URIRef(subject), RDF.type, URIRef("http://example.org/Person")))
+    snapshot1.add((URIRef(subject), URIRef("http://example.org/name"), Literal("John Doe")))
+    
+    snapshot2 = Graph()  # Empty graph represents deleted state
+    
+    # Create timestamps and history
+    timestamp1 = "2023-01-01T00:00:00Z"
+    timestamp2 = "2023-01-02T00:00:00Z"
+    sorted_timestamps = [timestamp1, timestamp2]  # sorted order
+    
+    history = {
+        subject: {
+            timestamp1: snapshot1,
+            timestamp2: snapshot2
+        }
+    }
+    
+    # Mock the functions that are called in the target function
+    with patch('heritrace.routes.entity.get_highest_priority_class') as mock_get_highest_priority, \
+         patch('heritrace.routes.entity.determine_shape_for_entity_triples') as mock_determine_shape:
+        
+        mock_get_highest_priority.return_value = "http://example.org/Person"
+        mock_determine_shape.return_value = "http://example.org/PersonShape"
+        
+        # Test case 1: Entity is deleted and has multiple timestamps
+        is_deleted = True
+        context_snapshot, highest_priority_class, entity_shape = get_deleted_entity_context_info(
+            is_deleted, sorted_timestamps, history, subject
+        )
+        
+        # Verify the function returns the expected values
+        assert context_snapshot is not None
+        assert context_snapshot == snapshot1  # Should be the second-to-last snapshot
+        assert highest_priority_class == "http://example.org/Person"
+        assert entity_shape == "http://example.org/PersonShape"
+        
+        # Verify the mocked functions were called with correct arguments
+        mock_get_highest_priority.assert_called_once()
+        call_args = mock_get_highest_priority.call_args[0][0]
+        assert len(call_args) == 1
+        assert URIRef("http://example.org/Person") in call_args
+        
+        mock_determine_shape.assert_called_once()
+        determine_shape_args = mock_determine_shape.call_args[0][0]
+        assert len(determine_shape_args) == 2  # Two triples from snapshot1
+        
+        # Reset mocks for next test
+        mock_get_highest_priority.reset_mock()
+        mock_determine_shape.reset_mock()
+        
+        # Test case 2: Entity is not deleted
+        is_deleted = False
+        context_snapshot, highest_priority_class, entity_shape = get_deleted_entity_context_info(
+            is_deleted, sorted_timestamps, history, subject
+        )
+        
+        assert context_snapshot is None
+        assert highest_priority_class is None
+        assert entity_shape is None
+        mock_get_highest_priority.assert_not_called()
+        mock_determine_shape.assert_not_called()
+        
+        # Reset mocks for next test
+        mock_get_highest_priority.reset_mock()
+        mock_determine_shape.reset_mock()
+        
+        # Test case 3: Entity is deleted but has only one timestamp
+        is_deleted = True
+        single_timestamp = [timestamp1]
+        context_snapshot, highest_priority_class, entity_shape = get_deleted_entity_context_info(
+            is_deleted, single_timestamp, history, subject
+        )
+        
+        assert context_snapshot is None
+        assert highest_priority_class is None
+        assert entity_shape is None
+        mock_get_highest_priority.assert_not_called()
+        mock_determine_shape.assert_not_called()

@@ -41,6 +41,45 @@ from time_agnostic_library.agnostic_entity import AgnosticEntity
 entity_bp = Blueprint("entity", __name__)
 
 
+def get_deleted_entity_context_info(is_deleted: bool, sorted_timestamps: List[str], 
+                                   history: dict, subject: str) -> Tuple[Optional[Graph], Optional[str], Optional[str]]:
+    """
+    Extract context information for deleted entities with multiple timestamps.
+    
+    When an entity is deleted but has multiple timestamps in its history,
+    this function retrieves the context snapshot from the second-to-last timestamp
+    and determines the entity's highest priority class and shape.
+    
+    Args:
+        is_deleted: Whether the entity is deleted
+        sorted_timestamps: List of timestamps in chronological order
+        history: Dictionary mapping subject -> timestamp -> Graph
+        subject: The entity URI as string
+        
+    Returns:
+        Tuple of (context_snapshot, highest_priority_class, entity_shape)
+        Returns (None, None, None) if conditions are not met
+    """
+    if is_deleted and len(sorted_timestamps) > 1:
+        context_snapshot = history[subject][sorted_timestamps[-2]]
+        
+        subject_classes = [
+            o
+            for _, _, o in context_snapshot.triples(
+                (URIRef(subject), RDF.type, None)
+            )
+        ]
+        
+        highest_priority_class = get_highest_priority_class(subject_classes)
+        entity_shape = determine_shape_for_entity_triples(
+            list(context_snapshot.triples((URIRef(subject), None, None)))
+        )
+        
+        return context_snapshot, highest_priority_class, entity_shape
+    else:
+        return None, None, None
+
+
 @entity_bp.route("/about/<path:subject>")
 @login_required
 def about(subject):
@@ -82,21 +121,9 @@ def about(subject):
             and latest_metadata["invalidatedAtTime"]
         )
 
-        if is_deleted and len(sorted_timestamps) > 1:
-            context_snapshot = history[subject][sorted_timestamps[-2]]
-            subject_classes = [
-                o
-                for _, _, o in context_snapshot.triples(
-                    (URIRef(subject), RDF.type, None)
-                )
-            ]
-            
-            highest_priority_class = get_highest_priority_class(subject_classes)
-            entity_shape = determine_shape_for_entity_triples(
-                list(context_snapshot.triples((URIRef(subject), None, None)))
-            )
-        else:
-            context_snapshot = None
+        context_snapshot, highest_priority_class, entity_shape = get_deleted_entity_context_info(
+            is_deleted, sorted_timestamps, history, subject
+        )
 
     grouped_triples = {}
     can_be_added = []
