@@ -2,18 +2,14 @@
 Unit tests for entity modification functions in entity.py.
 These tests focus on the apply_modifications and validate_modification functionality.
 """
-import pytest
 from unittest.mock import MagicMock, patch
-from rdflib import URIRef, Literal, XSD
-from heritrace.routes.entity import (
-    apply_modifications,
-    validate_modification,
-    get_entity_types,
-    get_highest_priority_class,
-    get_predicate_count,
-    get_sparql,
-    process_modification_data
-)
+
+import pytest
+from heritrace.routes.entity import (apply_modifications, get_predicate_count,
+                                     process_modification_data,
+                                     validate_modification)
+from heritrace.utils.sparql_utils import get_entity_types
+from rdflib import XSD, Literal, URIRef
 
 
 def test_apply_modifications_remove():

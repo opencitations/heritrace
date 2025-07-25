@@ -305,7 +305,8 @@ def test_apply_changes_with_affected_entities(
         mock_editor,
         full_delete_target_uri,
         graph_uri=None,
-        entity_type="http://example.org/FullDeleteType"
+        entity_type="http://example.org/FullDeleteType",
+        entity_shape=None
         )
     mock_delete_logic.assert_any_call(*full_delete_call_args[1], **full_delete_call_args[2])
 

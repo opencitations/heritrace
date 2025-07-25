@@ -277,7 +277,7 @@ function initializeForm() {
     }
 }
 
-function storePendingChange(action, subject, predicate, object, newObject = null, shape = null, entity_type = null) {
+function storePendingChange(action, subject, predicate, object, newObject = null, shape = null, entity_type = null, entity_shape = null) {
     pendingChanges.push({
         action: action, 
         subject: subject, 
@@ -285,7 +285,8 @@ function storePendingChange(action, subject, predicate, object, newObject = null
         object: object, 
         newObject: newObject,
         shape: shape,
-        entity_type: entity_type
+        entity_type: entity_type,
+        entity_shape: entity_shape
     });
 }
 

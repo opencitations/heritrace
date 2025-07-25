@@ -1347,7 +1347,8 @@ def test_update_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             "New Value",
             "update",
             old_value,
-            entity_types="http://example.org/type/1"
+            entity_types="http://example.org/type/1",
+            entity_shape=None
         )
         
         # Verify editor.update was called
@@ -1450,7 +1451,8 @@ def test_delete_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             None,
             "delete",
             object_value,
-            entity_types=entity_type
+            entity_types=entity_type,
+            entity_shape=None
         )
         
         # Verify editor.delete was called with None for object_value
@@ -2002,7 +2004,8 @@ def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
             "http://example.org/new_value",
             "update",
             "http://example.org/old_value",
-            entity_types="http://example.org/EntityType"
+            entity_types="http://example.org/EntityType",
+            entity_shape=None
         )
         
         # Verify the editor was called correctly
@@ -2043,7 +2046,8 @@ def test_delete_logic(mock_validate_new_triple, app: Flask) -> None:
             None,
             "delete",
             "http://example.org/object",
-            entity_types="http://example.org/EntityType"
+            entity_types="http://example.org/EntityType",
+            entity_shape=None
         )
         
         # Verify the editor was called correctly

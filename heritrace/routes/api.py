@@ -622,7 +622,7 @@ def apply_changes():
                     if subject_uri in deleted_entities:
                         continue
                     
-                    delete_logic(editor, subject_uri, graph_uri=graph_uri, entity_type=change.get("entity_type"))
+                    delete_logic(editor, subject_uri, graph_uri=graph_uri, entity_type=change.get("entity_type"), entity_shape=change.get("entity_shape"))
                     deleted_entities.add(subject_uri)
                 # Se stiamo eliminando una tripla specifica
                 elif object_value:
@@ -630,7 +630,7 @@ def apply_changes():
                     if object_value in deleted_entities:
                         continue
                     
-                    delete_logic(editor, subject_uri, predicate, object_value, graph_uri, change.get("entity_type"))
+                    delete_logic(editor, subject_uri, predicate, object_value, graph_uri, change.get("entity_type"), change.get("entity_shape"))
 
                 # La gestione degli orfani e dei proxy è stata spostata all'inizio del ciclo
 
@@ -643,6 +643,7 @@ def apply_changes():
                     change["newObject"],
                     graph_uri,
                     change.get("entity_type"),
+                    change.get("entity_shape"),
                 )
             elif change["action"] == "order":
                 order_logic(
@@ -909,9 +910,10 @@ def update_logic(
     new_value,
     graph_uri=None,
     entity_type=None,
+    entity_shape=None,
 ):
     new_value, old_value, error_message = validate_new_triple(
-        subject, predicate, new_value, "update", old_value, entity_types=entity_type
+        subject, predicate, new_value, "update", old_value, entity_types=entity_type, entity_shape=entity_shape
     )
     if error_message:
         raise ValueError(error_message)
@@ -955,6 +957,7 @@ def delete_logic(
     object_value=None,
     graph_uri=None,
     entity_type=None,
+    entity_shape=None,
 ):
     # Ensure we have the correct data types for all values
     subject_uri = URIRef(subject)
@@ -964,7 +967,7 @@ def delete_logic(
     if predicate and object_value:
         # Use validate_new_triple to validate the deletion and get the correctly typed object
         _, object_value, error_message = validate_new_triple(
-            subject, predicate, None, "delete", object_value, entity_types=entity_type
+            subject, predicate, None, "delete", object_value, entity_types=entity_type, entity_shape=entity_shape
         )
         if error_message:
             raise ValueError(error_message)

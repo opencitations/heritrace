@@ -269,6 +269,57 @@ def ensure_display_names(form_fields):
                     field_info["displayName"] = format_uri_as_readable(predicate_uri)
 
 
+def find_matching_form_field(class_uri=None, shape_uri=None, form_fields=None):
+    """
+    Find the most appropriate form field configuration for a given class and/or shape.
+    At least one of class_uri or shape_uri must be provided.
+        
+    Args:
+        class_uri: Optional URI of the class
+        shape_uri: Optional URI of the shape
+        form_fields: Optional dictionary of form fields to search in, defaults to global form_fields
+        
+    Returns:
+        The matching form field key (class_uri, shape_uri) or None if no match is found
+    """
+    if not form_fields:
+        from heritrace.extensions import get_form_fields
+        form_fields = get_form_fields()
+    
+    if not form_fields:
+        return None
+    
+    class_match = None
+    shape_match = None
+    
+    for field_key in form_fields.keys():
+        field_class_uri = field_key[0]
+        field_shape_uri = field_key[1]
+        
+        # Case 1: Both class and shape match (exact match)
+        if class_uri and shape_uri and \
+           field_class_uri == str(class_uri) and \
+           field_shape_uri == str(shape_uri):
+            return field_key
+        
+        # Case 2: Only class matches (and form field has no shape constraint)
+        elif class_uri and field_class_uri == str(class_uri) and field_shape_uri is None:
+            class_match = field_key
+        
+        # Case 3: Only shape matches (and form field has no class constraint)  
+        elif shape_uri and field_shape_uri == str(shape_uri) and field_class_uri is None:
+            shape_match = field_key
+    
+    # Return the best match based on specificity
+    # Shape rules typically have higher specificity, so prefer them
+    if shape_match:
+        return shape_match
+    elif class_match:
+        return class_match
+    
+    return None
+
+
 def _find_entity_position_in_order_map(entity_uri: str, order_map: dict) -> Optional[int]:
     """
     Helper function to find entity position in an order map.

@@ -351,7 +351,7 @@ def test_validate_modification_max_count(mock_get_predicate_count, mock_get_high
     
     # Mock form_fields
     mock_get_form_fields.return_value = {
-        ("http://example.org/Person", "http://example.org/EntityShape"): {
+        ("http://example.org/Person", None): {
             "http://example.org/name": [
                 {
                     "minCount": 1,

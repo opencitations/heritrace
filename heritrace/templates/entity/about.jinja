@@ -656,7 +656,7 @@
                             pendingChanges[existingOrderIndex].object = newOrder;
                         } else {
                             // Add a new order action
-                            storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type);
+                            storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type, entity_shape);
                         }
                     }
                 }
@@ -737,7 +737,7 @@
                 newObject = $(this).val();
             }
 
-            storePendingChange('update', subject, predicate, oldObject, newObject, shape, entity_type);
+            storePendingChange('update', subject, predicate, oldObject, newObject, shape, entity_type, entity_shape);
         });
 
         $(document).on('click', '.delete-button', function() {
@@ -759,7 +759,7 @@
             $(this).hide();
             
             // Aggiungi l'azione di cancellazione
-            storePendingChange('delete', subject, predicate, object_value, null, shape, entity_type);
+            storePendingChange('delete', subject, predicate, object_value, null, shape, entity_type, entity_shape);
             
             // Se l'elemento fa parte di una lista ordinata, aggiorna l'ordine
             if (orderedBy) {
@@ -788,7 +788,7 @@
                     pendingChanges[existingOrderIndex].object = newOrder;
                 } else {
                     // Aggiungi una nuova azione di ordinamento
-                    storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type);
+                    storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type, entity_shape);
                 }
             }
             
@@ -846,7 +846,7 @@
                             pendingChanges[existingOrderIndex].object = newOrder;
                         } else {
                             // Aggiungi una nuova azione di ordinamento
-                            storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type);
+                            storePendingChange('order', subject, predicate, newOrder, orderedBy, shape, entity_type, entity_shape);
                         }
                     }
                     

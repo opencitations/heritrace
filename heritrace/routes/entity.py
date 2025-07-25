@@ -27,6 +27,7 @@ from heritrace.utils.filters import Filter
 from heritrace.utils.primary_source_utils import (
     get_default_primary_source, save_user_default_primary_source)
 from heritrace.utils.shacl_utils import (determine_shape_for_entity_triples,
+                                         find_matching_form_field,
                                          get_entity_position_in_sequence)
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
@@ -270,12 +271,8 @@ def create_entity():
                 if not isinstance(values, list):
                     values = [values]
 
-                # Find the matching form field entry for this entity type
-                matching_key = None
-                for key in form_fields.keys():
-                    if key[0] == entity_type:
-                        matching_key = key
-                        break
+                entity_shape = structured_data.get("entity_shape")
+                matching_key = find_matching_form_field(entity_type, entity_shape, form_fields)
                         
                 field_definitions = form_fields.get(matching_key, {}).get(predicate, []) if matching_key else []
 
@@ -402,13 +399,10 @@ def create_nested_entity(
     )
 
     entity_type = entity_data.get("entity_type")
+    entity_shape = entity_data.get("entity_shape")
     properties = entity_data.get("properties", {})
 
-    matching_key = None
-    for key in form_fields.keys():
-        if key[0] == entity_type:
-            matching_key = key
-            break
+    matching_key = find_matching_form_field(entity_type, entity_shape, form_fields)
 
     if not matching_key:
         return
@@ -656,21 +650,12 @@ def validate_entity_data(structured_data):
         errors.append(gettext("Entity type is required"))
         return errors
     
-    entity_key = (entity_type, entity_shape)
+    entity_key = find_matching_form_field(entity_type, entity_shape, form_fields)
     
-    matching_keys = [
-        k for k in form_fields 
-        if k[0] == entity_type and (k[1] is None or k[1] == entity_shape)
-    ]
-    
-    if not matching_keys:
-        errors.append(f"No form fields found for entity type: {entity_type}")
+    if not entity_key:
+        errors.append(f"No form fields found for entity type: {entity_type}" + 
+                      (f" and shape: {entity_shape}" if entity_shape else ""))
         return errors
-        
-    entity_key = next(
-        (k for k in matching_keys if k[1] == entity_shape),
-        matching_keys[0]
-    )
 
     entity_fields = form_fields[entity_key]
     properties = structured_data.get("properties", {})
@@ -1833,16 +1818,17 @@ def validate_modification(
     if operation not in ["add", "remove", "update"]:
         return False, f"Invalid operation: {operation}"
 
-    # Additional validation based on form fields if available
     if form_fields:
-        entity_types = [str(t) for t in get_entity_types(subject_uri)]
-        entity_type = get_highest_priority_class(entity_types)
+        entity_type = modification.get("entity_type")
+        entity_shape = modification.get("entity_shape")
         
-        matching_key = None
-        for key in form_fields.keys():
-            if key[0] == entity_type:
-                matching_key = key
-                break
+        # If entity_type is not provided in modification, get it from the database
+        if not entity_type:
+            entity_types = get_entity_types(subject_uri)
+            if entity_types:
+                entity_type = get_highest_priority_class(entity_types)
+                
+        matching_key = find_matching_form_field(entity_type, entity_shape, form_fields)
                 
         if matching_key:
             predicate_fields = form_fields[matching_key].get(predicate, [])
