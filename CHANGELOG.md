@@ -1,3 +1,15 @@
+# [2.3.0](https://github.com/opencitations/heritrace/compare/v2.2.1...v2.3.0) (2025-07-25)
+
+
+### Bug Fixes
+
+* add flexible responsible agent URI handling and update Docker image versions ([b62f7ad](https://github.com/opencitations/heritrace/commit/b62f7adfc3290de5501a79953b57d736eeba6f44))
+
+
+### Features
+
+* improve form field matching with class-shape pairs from frontend ([ece8b39](https://github.com/opencitations/heritrace/commit/ece8b3992fa83c73ac4c9809dfd0f784c0c68d91))
+
 ## [2.2.1](https://github.com/opencitations/heritrace/compare/v2.2.0...v2.2.1) (2025-07-24)
 
 
