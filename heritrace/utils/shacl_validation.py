@@ -170,7 +170,7 @@ def get_valid_predicates(
 
 
 def validate_new_triple(
-    subject, predicate, new_value, action: str, old_value=None, entity_types=None
+    subject, predicate, new_value, action: str, old_value=None, entity_types=None, entity_shape=None
 ):
     data_graph = fetch_data_graph_for_subject(subject)
     if old_value is not None:
