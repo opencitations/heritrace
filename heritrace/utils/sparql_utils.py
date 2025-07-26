@@ -18,7 +18,7 @@ from heritrace.utils.shacl_utils import (determine_shape_for_classes,
                                          determine_shape_for_entity_triples)
 from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
-from rdflib import RDF, ConjunctiveGraph, Graph, Literal, URIRef
+from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
 from SPARQLWrapper import JSON
@@ -448,7 +448,8 @@ def fetch_data_graph_for_subject(subject: str) -> Graph | ConjunctiveGraph:
                     obj_data["value"], datatype=URIRef(obj_data["datatype"])
                 )
             else:
-                value = Literal(obj_data["value"])
+                # Add explicit string datatype to match time-agnostic library behavior
+                value = Literal(obj_data["value"], datatype=XSD.string)
         else:
             value = URIRef(obj_data["value"])
 

@@ -64,7 +64,7 @@ Your goal is to get familiar with the interface and understand how to browse and
 
 ### Task 1: Edit Existing Publication Record (8 minutes)
 
-**Task 1**: Your first task is to edit a specific bibliographic record for a Journal Article. Look for the record that appears as 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' in the interface. This should be the fourth Journal Article item in the Catalogue list. We're providing the exact position since browsing functionality is not part of this usability test. HERITRACE is focused on metadata editing, not on browsing.
+**Task 1**: Your first task is to edit a specific bibliographic record for a journal article: 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' available at http://localhost:5000/about/https://w3id.org/oc/meta/br/061503302081.
 
 Please make the following change:
 1. Add 'Carolyn Scagel' as the first author, specifying that this is the author with ORCID identifier 0000-0002-4269-6240, with 'Carolyn' as the given name and 'Scagel' as the family name.
@@ -73,7 +73,7 @@ Think aloud as you work through this process.
 
 ### Task 2: Merge Duplicate Author Entities (10 minutes)
 
-**Task 2**: Return to the 'Journal Article' from Task 1. Navigate to the author page for 'Richard Carew'. Your task is to merge any duplicate author entities you find. Think aloud about how you approach this data cleanup process.
+**Task 2**: Return to the journal article from Task 1. Navigate to the author page for 'Richard Carew'. Your task is to merge any duplicate author entities you find. Think aloud about how you approach this data cleanup process.
 
 ### Task 3: Restore Previous Version (7 minutes)
 
