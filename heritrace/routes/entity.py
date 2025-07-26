@@ -1277,7 +1277,7 @@ def restore_version(entity_uri, timestamp):
         get_dataset_endpoint(),
         get_provenance_endpoint(),
         current_app.config["COUNTER_HANDLER"],
-        URIRef(f"https://orcid.org/{current_user.orcid}"),
+        URIRef(get_responsible_agent_uri(current_user.orcid)),
         None if is_deleted else entity_snapshots[entity_uri]["source"],
         current_app.config["DATASET_GENERATION_TIME"],
         dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],

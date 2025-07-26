@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "5000:5000"
+      - "6379:6379"  # Redis port for development
     environment:
       # Application Configuration
       - FLASK_ENV=demo
