@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/opencitations/heritrace/compare/v2.3.1...v2.3.2) (2025-07-26)
+
+
+### Bug Fixes
+
+* [release] improve RDF literal handling and update Docker images to v2.3.1 ([acb9f66](https://github.com/opencitations/heritrace/commit/acb9f660be2664b8159b48ed941ec1e4a62ec040))
+
 ## [2.3.1](https://github.com/opencitations/heritrace/compare/v2.3.0...v2.3.1) (2025-07-26)
 
 
