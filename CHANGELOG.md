@@ -1,3 +1,11 @@
+## [2.3.1](https://github.com/opencitations/heritrace/compare/v2.3.0...v2.3.1) (2025-07-26)
+
+
+### Bug Fixes
+
+* [release] use get_responsible_agent_uri in restore_version function ([f71daf0](https://github.com/opencitations/heritrace/commit/f71daf01060b20f187051cf3bf1bf63aa926d68b))
+* update time-agnostic-library to 5.0.4 to resolve provenance deletion bug ([e616ccc](https://github.com/opencitations/heritrace/commit/e616ccc8163ef5571b8bd647587c7ad33e9e2234))
+
 # [2.3.0](https://github.com/opencitations/heritrace/compare/v2.2.1...v2.3.0) (2025-07-25)
 
 
