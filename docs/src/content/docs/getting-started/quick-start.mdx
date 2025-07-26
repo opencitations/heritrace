@@ -156,23 +156,23 @@ If you get port conflicts, check if other services are running on the required p
   <TabItem label="Linux">
     ```bash
     # Modern Linux (ss command - usually preinstalled)
-    ss -tulpn | grep -E ':(5000|6379|8998|8999)\s'
+    ss -tulpn | grep -E ':(5000|8998|8999)\s'
     ```
   </TabItem>
   <TabItem label="macOS">
     ```bash
-    netstat -an | grep -E ':(5000|6379|8998|8999)\s'
+    netstat -an | grep -E ':(5000|8998|8999)\s'
     ```
   </TabItem>
   <TabItem label="Windows">
     Check ports using netstat:
     ```cmd
-    netstat -ano | findstr ":5000 :6379 :8998 :8999"
+    netstat -ano | findstr ":5000 :8998 :8999"
     ```
     
     Or using PowerShell:
     ```powershell
-    Get-NetTCPConnection | Where-Object {$_.LocalPort -in 5000,6379,8998,8999}
+    Get-NetTCPConnection | Where-Object {$_.LocalPort -in 5000,8998,8999}
     ```
   </TabItem>
 </Tabs>

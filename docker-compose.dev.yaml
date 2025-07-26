@@ -5,8 +5,48 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "5000:5000"
-    env_file:
-      - .env
+    environment:
+      # Application Configuration
+      - FLASK_ENV=demo
+      - APP_TITLE=HERITRACE
+      - APP_SUBTITLE=A semantic editor for heritage data
+      - SECRET_KEY=dev-secret-key-change-in-production
+      
+      # Cache Configuration
+      - CACHE_VALIDITY_DAYS=7
+      
+      # Database Configuration
+      - DATASET_DB_URL=http://host.docker.internal:8999/sparql
+      - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
+      - DATASET_DB_TRIPLESTORE=virtuoso
+      - PROVENANCE_DB_TRIPLESTORE=virtuoso
+      - DATASET_DB_TEXT_INDEX_ENABLED=false
+      - DATASET_IS_QUADSTORE=true
+      - PROVENANCE_IS_QUADSTORE=true
+      
+      # ORCID Configuration (placeholder values - not used in demo mode)
+      - ORCID_CLIENT_ID=your-orcid-client-id
+      - ORCID_CLIENT_SECRET=your-orcid-client-secret
+      - ORCID_WHITELIST=0000-0000-0000-0000
+      - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
+      - ORCID_TOKEN_URL=https://orcid.org/oauth/token
+      - ORCID_API_URL=https://pub.orcid.org/v2.1
+      - ORCID_SCOPE=/authenticate
+      
+      # Provenance Configuration
+      - DATASET_GENERATION_TIME=2024-12-25T00:00:00+00:00
+      - PRIMARY_SOURCE=https://example.org
+      
+      # Handling Strategies
+      - ORPHAN_HANDLING_STRATEGY=ASK
+      - PROXY_HANDLING_STRATEGY=ASK
+      
+      # Component Classes
+      - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
+      - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
+      
+      # Development Configuration
+      - BAKE=true
     volumes:
       - ./heritrace:/app/heritrace
       - ./app.py:/app/app.py

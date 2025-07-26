@@ -1,0 +1,120 @@
+---
+title: Development Setup
+description: Set up HERITRACE for local development
+---
+
+This guide explains how to set up HERITRACE for local development from source code.
+
+## Prerequisites
+
+- Docker and Docker Compose
+- Git
+- Modern web browser
+
+## Development Environment Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/opencitations/heritrace.git
+cd heritrace
+```
+
+### 2. Start Databases
+
+Start the required databases (if not already running):
+
+```bash
+# Linux/macOS
+./start-databases.sh
+
+# Windows
+.\Start-Databases.ps1
+```
+
+This will start:
+- Virtuoso triplestore for main data (port 8999)
+- Virtuoso triplestore for provenance data (port 8998)
+
+### 3. Start Development Environment
+
+```bash
+docker compose -f docker-compose.dev.yaml up --build
+```
+
+The development environment will:
+- Build the application with development dependencies
+- Mount source code for live editing
+- Enable hot reload for Python changes
+- Run in demo mode (authentication bypassed)
+- Start the application on `http://localhost:5000`
+
+## Development Features
+
+### Demo Mode
+The development environment runs with `FLASK_ENV=demo`, which:
+- Bypasses ORCID authentication
+- Allows immediate access without configuration
+- Uses development-friendly settings
+
+### Hot Reload
+Changes to the following files trigger automatic application reload:
+- Python source files in `heritrace/`
+- Configuration files (`app.py`, `config.py`, `shacl.ttl`, `display_rules.yaml`)
+- Templates and static files
+
+### Volume Mounts
+The following directories are mounted for live editing:
+- `./heritrace` → Application source code
+- `./default_components` → Default URI generator and counter handler
+- `./shacl.ttl` → SHACL schema file
+- `./display_rules.yaml` → Display rules configuration
+
+## Development Commands
+
+### Application Management
+```bash
+# Start development environment
+docker compose -f docker-compose.dev.yaml up --build
+
+# Start without rebuilding
+docker compose -f docker-compose.dev.yaml up
+
+# View application logs
+docker compose -f docker-compose.dev.yaml logs web
+
+# Stop development environment
+docker compose -f docker-compose.dev.yaml down
+
+# Restart just the web service
+docker compose -f docker-compose.dev.yaml restart web
+```
+
+### Database Management
+```bash
+# Start databases
+./start-databases.sh  # Linux/macOS
+.\Start-Databases.ps1  # Windows
+
+# Stop databases
+./stop-databases.sh  # Linux/macOS
+.\Stop-Databases.ps1  # Windows
+```
+
+## Architecture for Development
+
+### Frontend Development
+- React components are located in `heritrace/static/js/`
+- Webpack configuration in `webpack.config.js`
+- Babel configuration in `babel/` directory
+
+### Backend Development
+- Flask application entry point: `app.py`
+- Main application code: `heritrace/` directory
+- Configuration: `config.py`
+
+### Database Development
+- Main data: Virtuoso triplestore on port 8999
+- Provenance data: Virtuoso triplestore on port 8998
+- SPARQL endpoints available at `/sparql`
+- Internal Redis cache within the container for performance optimization

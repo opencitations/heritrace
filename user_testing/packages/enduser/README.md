@@ -7,6 +7,7 @@ This package contains everything needed to test HERITRACE as an end user.
 - Docker and Docker Compose. For installation, see the <a href="https://docs.docker.com/get-docker/" target="_blank">official documentation</a>.
 - 1GB RAM minimum
 - 5GB free disk space
+- Port 5000 must be free (no other services running on this port)
 - Modern web browser
 - Computer with screen recording software (OBS, QuickTime, etc.)
 - Microphone for voice recording
@@ -80,21 +81,25 @@ Think aloud as you work through this process.
 
 ### Task 4: Create New Publication Record (20 minutes)
 
-**Task 4**: Add this specific journal article to the repository: https://doi.org/10.6092/issn.2532-8816/21218. You must include the following metadata fields:
+**Task 4**: Add this specific journal article to the repository: https://doi.org/10.6092/issn.2532-8816/21218. You must include the following metadata fields with the values provided:
 
-- **DOI**: The DOI identifier
-- **Title**: Complete article title
-- **Authors**: All authors in the correct order, with given name and family name separated for each author
-- **ORCID identifiers**: Each author must have their ORCID identifier
-- **Publisher**: Article publisher
-- **Pages**: Page numbers (start and end)
-- **Date**: Publication date
-- **Issue**: Issue number
-- **Volume**: Volume number
-- **Journal**: Journal name
-- **ISSN**: Journal ISSN identifier
+- **DOI**: 10.6092/issn.2532-8816/21218
+- **Title**: HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions
+- **Authors**: 
+  1. Arcangelo Massari
+  2. Silvio Peroni
+- **ORCID identifiers**: 
+  - Arcangelo Massari: 0000-0002-8420-0696
+  - Silvio Peroni: 0000-0003-0530-4305
+- **Publisher**: Dipartimento di Filologia Classica e Italianistica – Alma Mater Studiorum – Università di Bologna
+- **Pages**: 317-340
+- **Date**: 2025-07-10
+- **Issue**: 20
+- **Volume**: 9
+- **Journal**: Umanistica Digitale
+- **ISSN**: 2532-8816
 
-You have access to the article's webpage to gather this information. Think aloud as you work through this process.
+Think aloud as you work through this process of entering the provided metadata.
 
 ### **SUS Questionnaire Completion (3 minutes)**
 

@@ -19,7 +19,7 @@ The CI pipeline performs the following steps:
 
 1.  **Set up Python**: It tests the project against multiple Python versions (3.10, 3.11, 3.12, and 3.13) to ensure compatibility.
 2.  **Install Dependencies**: It uses Poetry to install project dependencies, including development dependencies.
-3.  **Start Test Databases**: It runs the `./tests/start-test-databases.sh` script to set up the required Virtuoso and Redis databases for the integration tests.
+3.  **Start Test Databases**: It runs the `./tests/start-test-databases.sh` script to set up the required Virtuoso databases for the integration tests.
 4.  **Run Tests**: It executes the test suite using `pytest` and generates a coverage report.
 5.  **Upload Coverage Report**: The HTML coverage report is uploaded as a build artifact, allowing for inspection and analysis for all branches and Python versions.
 6.  **Generate Coverage Badge**: A coverage badge is generated for each branch using the results from the Python 3.10 test run. This provides a quick visual indicator of the test coverage status directly in the `README.md` file.

@@ -54,8 +54,9 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Testing',
+					label: 'Development',
 					items: [
+						{ label: 'Development Setup', slug: 'development' },
 						{ label: 'Running Tests', slug: 'testing/running-tests' },
 						{ label: 'CI/CD Pipeline', slug: 'testing/cicd' },
 					],

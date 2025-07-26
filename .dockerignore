@@ -10,7 +10,6 @@ coverage.xml
 .github/
 
 # Development environments
-.venv/
 .vscode/
 __pycache__/
 *.pyc

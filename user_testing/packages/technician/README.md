@@ -21,6 +21,7 @@ This package contains everything needed to test HERITRACE configuration features
 - Docker and Docker Compose. For installation, see the <a href="https://docs.docker.com/get-docker/" target="_blank">official documentation</a>.
 - 1GB RAM minimum
 - 5GB free disk space
+- Port 5000 must be free (no other services running on this port)
 - Modern web browser
 - Screen recording software (OBS, QuickTime, etc.)
 - Microphone for voice recording
