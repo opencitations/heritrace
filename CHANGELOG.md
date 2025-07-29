@@ -1,3 +1,12 @@
+## [2.3.3](https://github.com/opencitations/heritrace/compare/v2.3.2...v2.3.3) (2025-07-29)
+
+
+### Bug Fixes
+
+* [release] prevent order position badge text overflow at small font sizes ([e447549](https://github.com/opencitations/heritrace/commit/e447549304dbe5257fd3aa99d68d352c5d63e8c5))
+* add proxy entity resolution for linked resources ([ebe4355](https://github.com/opencitations/heritrace/commit/ebe4355cfb697a6072b11923362c4e3e91c1f24d))
+* updated test to expect Literal("John Doe", datatype=XSD.string) instead of Literal("John Doe") ([9d54868](https://github.com/opencitations/heritrace/commit/9d548680325aa3c398509881706385977c5172f0))
+
 ## [2.3.2](https://github.com/opencitations/heritrace/compare/v2.3.1...v2.3.2) (2025-07-26)
 
 
