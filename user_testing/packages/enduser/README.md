@@ -60,6 +60,8 @@ Begin by exploring this HERITRACE system. Think aloud as you navigate. Describe 
 
 Your goal is to get familiar with the interface and understand how to browse and work with bibliographic metadata in this system.
 
+**Dataset Information**: The system is preloaded with a subset of Open Citations Meta containing approximately a thousand bibliographic entities.
+
 ## Metadata Management Tasks (45 minutes)
 
 ### Task 1: Edit Existing Publication Record (8 minutes)
@@ -73,7 +75,7 @@ Think aloud as you work through this process.
 
 ### Task 2: Merge Duplicate Author Entities (10 minutes)
 
-**Task 2**: Return to the journal article from Task 1. Navigate to the author page for 'Richard Carew'. Your task is to merge any duplicate author entities you find. Think aloud about how you approach this data cleanup process.
+**Task 2**: Return to the journal article from Task 1. Navigate to the author page for 'Richard Carew'. Your task is to merge any duplicate author entities you find. For simplicity, assume that all the people named Richard Carew found in the dataset are duplicates. Think aloud about how you approach this data cleanup process.
 
 ### Task 3: Restore Previous Version (7 minutes)
 
@@ -86,18 +88,14 @@ Think aloud as you work through this process.
 - **DOI**: 10.6092/issn.2532-8816/21218
 - **Title**: HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions
 - **Authors**: 
-  1. Arcangelo Massari
-  2. Silvio Peroni
-- **ORCID identifiers**: 
-  - Arcangelo Massari: 0000-0002-8420-0696
-  - Silvio Peroni: 0000-0003-0530-4305
+  1. Arcangelo Massari (ORCID: 0000-0002-8420-0696)
+  2. Silvio Peroni (ORCID: 0000-0003-0530-4305)
 - **Publisher**: Dipartimento di Filologia Classica e Italianistica – Alma Mater Studiorum – Università di Bologna
 - **Pages**: 317-340
 - **Date**: 2025-07-10
 - **Issue**: 20
 - **Volume**: 9
-- **Journal**: Umanistica Digitale
-- **ISSN**: 2532-8816
+- **Journal**: Umanistica Digitale (ISSN: 2532-8816)
 
 Think aloud as you work through this process of entering the provided metadata.
 

@@ -75,6 +75,8 @@ Explore the system and think aloud as you navigate. Describe what you see, what 
 
 Your goal is to understand the interface, identify the current configuration state, and distinguish between fully configured entities and those needing additional work.
 
+**Dataset Information**: The system is preloaded with a subset of Open Citations Meta containing approximately a thousand bibliographic entities.
+
 ### **Configuration Tasks (45 minutes total)**
 
 **Task 1: Add SHACL Validation for Abstract (22 minutes)**  
