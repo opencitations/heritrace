@@ -73,6 +73,46 @@ echo "✅ All data exported successfully!"
 echo ""
 
 echo "🔄 Creating zip archive..."
-(cd "$EXPORT_DIR" && zip -r "$ZIP_FILE" ./* >/dev/null)
+
+if command -v zip >/dev/null 2>&1; then
+    (cd "$EXPORT_DIR" && zip -r "$ZIP_FILE" ./* >/dev/null)
+elif command -v python3 >/dev/null 2>&1; then
+    python3 -c "
+import zipfile
+import os
+import sys
+
+export_dir = '$EXPORT_DIR'
+zip_file = '$ZIP_FILE'
+
+with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk(export_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            arc_name = os.path.relpath(file_path, export_dir)
+            zf.write(file_path, arc_name)
+"
+elif command -v python >/dev/null 2>&1; then
+    python -c "
+import zipfile
+import os
+import sys
+
+export_dir = '$EXPORT_DIR'
+zip_file = '$ZIP_FILE'
+
+with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk(export_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            arc_name = os.path.relpath(file_path, export_dir)
+            zf.write(file_path, arc_name)
+"
+else
+    echo "❌ Error: No archiving tool available (zip, python3, or python required)"
+    echo "   Please install one of these tools and try again."
+    rm -rf "$EXPORT_DIR"
+    exit 1
+fi
 rm -rf "$EXPORT_DIR"
 echo "📦 Complete export archive: $ZIP_FILE"

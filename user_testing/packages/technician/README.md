@@ -67,7 +67,7 @@ This package contains everything needed to test HERITRACE configuration features
 
 ### **Warm-up Exploration (2 minutes)**
 
-**IMPORTANT: Start your screen recording software now and ensure it captures both screen and microphone audio.** Think aloud throughout the session.
+**IMPORTANT: Start your screen recording software now and ensure it captures both screen and microphone audio.** Think aloud throughout the session. You can speak in either English or Italian.
 
 You are working with a partially configured HERITRACE system. Some entities have complete SHACL schemas and display rules, while others are missing these configurations.
 

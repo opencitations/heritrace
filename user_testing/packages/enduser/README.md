@@ -50,7 +50,7 @@ This package contains everything needed to test HERITRACE as an end user.
 
 **IMPORTANT: Start your screen recording software now and ensure it captures both your screen and microphone audio.** Make sure the recording includes your voice as you think aloud throughout the session.
 
-You'll be working through several metadata management tasks. Think aloud throughout. Describe what you're doing, what you expect, and any questions or reactions you have.
+You'll be working through several metadata management tasks. Think aloud throughout. You can speak in either English or Italian. Describe what you're doing, what you expect, and any questions or reactions you have.
 
 There are no right or wrong approaches. We want to understand your natural workflow.
 
