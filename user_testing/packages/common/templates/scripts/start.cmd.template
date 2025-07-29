@@ -15,13 +15,22 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Check if Docker Compose is available
+REM Detect the correct Docker Compose command
 docker compose version >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Error: Docker Compose is not available!
-    echo    Please ensure Docker Compose v2 is installed and accessible.
-    pause
-    exit /b 1
+if errorlevel 0 (
+    set COMPOSE_CMD=docker compose
+    echo [OK] Using Docker Compose v2: docker compose
+) else (
+    docker-compose version >nul 2>&1
+    if errorlevel 0 (
+        set COMPOSE_CMD=docker-compose
+        echo [OK] Using Docker Compose v1: docker-compose
+    ) else (
+        echo [ERROR] Error: Docker Compose is not available!
+        echo    Please ensure Docker Compose (v2) or docker-compose (v1) is installed and accessible.
+        pause
+        exit /b 1
+    )
 )
 
 echo [OK] Docker check passed!
@@ -30,7 +39,6 @@ REM Create necessary directories if they don't exist
 if not exist "exports" mkdir "exports"
 
 set COMPOSE_BAKE=true
-set COMPOSE_CMD=docker compose
 
 REM Check for port conflicts
 echo Checking for port conflicts...

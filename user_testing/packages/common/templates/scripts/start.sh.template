@@ -14,11 +14,21 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! docker compose version >/dev/null 2>&1; then
-    echo "❌ Error: Docker Compose is not available!"
-    echo "   Please ensure Docker Compose v2 is installed and accessible."
-    exit 1
-fi
+# Detect the correct Docker Compose command
+detect_compose_cmd() {
+    if docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
+    elif docker-compose version >/dev/null 2>&1; then
+        echo "docker-compose"
+    else
+        echo "❌ Error: Docker Compose is not available!"
+        echo "   Please ensure Docker Compose (v2) or docker-compose (v1) is installed and accessible."
+        exit 1
+    fi
+}
+
+COMPOSE_CMD=$(detect_compose_cmd)
+echo "✅ Using Docker Compose command: $COMPOSE_CMD"
 
 echo "🔍 Checking for port conflicts..."
 PORT_TO_CHECK=5000
@@ -36,7 +46,6 @@ echo "🐳 Starting Docker containers..."
 echo "   This may take a few minutes on first run..."
 
 export COMPOSE_BAKE=true
-COMPOSE_CMD="docker compose"
 
 $COMPOSE_CMD up -d --build
 

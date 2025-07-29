@@ -6,7 +6,21 @@ REM Usage: stop.cmd
 echo [STOP] Stopping HERITRACE {{PACKAGE_TYPE_TITLE}} Testing Environment
 echo ==============================================
 
-set COMPOSE_CMD=docker compose
+REM Detect the correct Docker Compose command
+docker compose version >nul 2>&1
+if errorlevel 0 (
+    set COMPOSE_CMD=docker compose
+) else (
+    docker-compose version >nul 2>&1
+    if errorlevel 0 (
+        set COMPOSE_CMD=docker-compose
+    ) else (
+        echo [ERROR] Error: Docker Compose is not available!
+        echo    Please ensure Docker Compose (v2) or docker-compose (v1) is installed and accessible.
+        pause
+        exit /b 1
+    )
+)
 
 REM Stop and remove containers
 echo [DOCK] Stopping Docker containers...

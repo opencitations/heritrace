@@ -36,7 +36,7 @@ services:
       - heritrace-network
     
   heritrace:
-    image: arcangelo7/heritrace:2.3.2
+    image: arcangelo7/heritrace:2.3.3
     container_name: heritrace-app
     environment:
       # Application settings

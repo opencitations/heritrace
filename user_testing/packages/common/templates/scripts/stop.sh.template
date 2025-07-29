@@ -8,8 +8,20 @@ set -e
 echo "🛑 Stopping HERITRACE {{PACKAGE_TYPE_TITLE}} Testing Environment"
 echo "=============================================="
 
-# Use docker compose
-COMPOSE_CMD="docker compose"
+# Detect the correct Docker Compose command
+detect_compose_cmd() {
+    if docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
+    elif docker-compose version >/dev/null 2>&1; then
+        echo "docker-compose"
+    else
+        echo "❌ Error: Docker Compose is not available!"
+        echo "   Please ensure Docker Compose (v2) or docker-compose (v1) is installed and accessible."
+        exit 1
+    fi
+}
+
+COMPOSE_CMD=$(detect_compose_cmd)
 
 # Stop and remove containers
 echo "🐳 Stopping Docker containers..."
