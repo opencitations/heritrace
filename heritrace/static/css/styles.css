@@ -298,14 +298,19 @@ span.text-danger[data-bs-toggle="tooltip"] {
 }
 
 .order-position-badge {
-  padding: 0.5rem 0.4rem;
   border-radius: 50%;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 0.5rem;
-  width: 2rem;
-  height: 2rem;
+  min-width: 2em;
+  min-height: 2em;
+  width: 2em;
+  height: 2em;
   text-align: center;
   line-height: 1;
   vertical-align: middle;
   border: .5px solid var(--bs-body-color);
+  font-size: 1em;
+  box-sizing: border-box;
 }
