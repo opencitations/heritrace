@@ -1,5 +1,9 @@
 # HERITRACE End User Testing Package
 
+**What is HERITRACE?**: HERITRACE is a customizable semantic data editing tool with provenance and change tracking capabilities that enables non-technical domain experts to enrich and edit data without knowing anything about Semantic Web technologies. Configurators can set up the editing system using SHACL to generate forms and YAML configuration to customize the display.
+
+**What HERITRACE is NOT**: HERITRACE is not a browsing or search tool. It is specifically designed as a semantic data editing tool.
+
 This package contains everything needed to test HERITRACE as an end user.
 
 ## Requirements
@@ -60,7 +64,7 @@ Begin by exploring this HERITRACE system. Think aloud as you navigate. Describe 
 
 Your goal is to get familiar with the interface and understand how to browse and work with bibliographic metadata in this system.
 
-**Dataset Information**: The system is preloaded with a subset of Open Citations Meta containing approximately a thousand bibliographic entities.
+**Dataset Information**: The system is preloaded with a subset of OpenCitations Meta containing approximately a thousand bibliographic entities.
 
 ## Metadata Management Tasks (45 minutes)
 

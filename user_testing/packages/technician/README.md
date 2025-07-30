@@ -1,5 +1,9 @@
 # HERITRACE Configurator Testing Package
 
+**What is HERITRACE?**: HERITRACE is a customizable semantic data editing tool with provenance and change tracking capabilities that enables non-technical domain experts to enrich and edit data without knowing anything about Semantic Web technologies. Configurators can set up the editing system using SHACL to generate forms and YAML configuration to customize the display.
+
+**What HERITRACE is NOT**: HERITRACE is not a browsing or search tool. It is specifically designed as a semantic data editing tool.
+
 This package contains everything needed to test HERITRACE configuration features using pre-built Docker images.
 
 ## Contents
@@ -75,7 +79,7 @@ Explore the system and think aloud as you navigate. Describe what you see, what 
 
 Your goal is to understand the interface, identify the current configuration state, and distinguish between fully configured entities and those needing additional work.
 
-**Dataset Information**: The system is preloaded with a subset of Open Citations Meta containing approximately a thousand bibliographic entities.
+**Dataset Information**: The system is preloaded with a subset of OpenCitations Meta containing approximately a thousand bibliographic entities.
 
 ### **Configuration Tasks (45 minutes total)**
 
