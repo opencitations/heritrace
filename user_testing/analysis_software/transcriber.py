@@ -6,10 +6,14 @@ Video transcription tool using Voxtral Mini for privacy-focused transcription
 import argparse
 import json
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
 import ffmpeg
+import librosa
+import numpy as np
+import soundfile as sf
 import torch
 from tqdm import tqdm
 from transformers import AutoProcessor, VoxtralForConditionalGeneration
@@ -29,7 +33,8 @@ class VideoTranscriber:
         self.processor = AutoProcessor.from_pretrained(self.model_name)
         self.model = VoxtralForConditionalGeneration.from_pretrained(
             self.model_name,
-            torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32
+            torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
+            low_cpu_mem_usage=True
         ).to(self.device)
         print("Model loaded successfully!")
     
@@ -54,30 +59,76 @@ class VideoTranscriber:
             print(f"Error extracting audio: {e}")
             return None
     
-    def transcribe_audio(self, audio_path, language="auto"):
-        """Transcribe audio file using Voxtral"""
+    def transcribe_audio_chunk(self, audio_data, language="auto"):
+        """Transcribe a chunk of audio data"""
         if not self.model or not self.processor:
             self.load_model()
-                
-        inputs = self.processor.apply_transcription_request(
-            language=language,
-            audio=str(audio_path),
-            model_id=self.model_name
-        )
-        inputs = inputs.to(self.device, dtype=torch.bfloat16 if self.device == "cuda" else torch.float32)
         
-        print("Running model inference...")
-        with torch.no_grad():
-            outputs = self.model.generate(**inputs, max_new_tokens=500)
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_f:
+            sf.write(tmp_f.name, audio_data, 16000)
+            tmp_path = tmp_f.name
         
-        print("Decoding transcription...")
-        # Decode only the new tokens (skip input)
-        transcription = self.processor.batch_decode(
-            outputs[:, inputs.input_ids.shape[1]:], 
-            skip_special_tokens=True
-        )[0]
+        try:
+            inputs = self.processor.apply_transcription_request(
+                language=language,
+                audio=tmp_path,
+                model_id=self.model_name
+            )
+            inputs = inputs.to(self.device, dtype=torch.bfloat16 if self.device == "cuda" else torch.float32)
+            
+            with torch.no_grad():
+                torch.cuda.empty_cache()
+                outputs = self.model.generate(
+                    **inputs, 
+                    max_new_tokens=300,
+                    do_sample=False,
+                    use_cache=False
+                )
+            
+            transcription = self.processor.batch_decode(
+                outputs[:, inputs.input_ids.shape[1]:], 
+                skip_special_tokens=True
+            )[0]
+            
+            # Clear memory
+            del inputs, outputs
+            torch.cuda.empty_cache()
+            
+            return transcription.strip()
+        finally:
+            # Clean up temporary file
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def transcribe_audio(self, audio_path, language="auto", chunk_duration=30):
+        """Transcribe audio file using Voxtral with chunking for memory efficiency"""
+        if not self.model or not self.processor:
+            self.load_model()
+        
+        print("Loading audio file...")
+        audio_data, sr = librosa.load(audio_path, sr=16000)
+        audio_duration = len(audio_data) / sr
+        
+        print(f"Audio duration: {audio_duration:.1f} seconds")
+        
+        if audio_duration <= chunk_duration:
+            print("Processing as single chunk...")
+            return self.transcribe_audio_chunk(audio_data, language)
+        
+        chunk_samples = chunk_duration * sr
+        transcriptions = []
+        
+        print(f"Processing in {chunk_duration}s chunks...")
+        for i in tqdm(range(0, len(audio_data), chunk_samples)):
+            chunk = audio_data[i:i + chunk_samples]
+            if len(chunk) < sr:  # Skip chunks shorter than 1 second
+                continue
+            
+            chunk_transcription = self.transcribe_audio_chunk(chunk, language)
+            if chunk_transcription:
+                transcriptions.append(chunk_transcription)
+        
         print("Transcription completed!")
-        return transcription
+        return " ".join(transcriptions)
     
     def transcribe_video(self, video_path, keep_audio=False, language="auto"):
         """Complete video transcription pipeline"""
@@ -173,8 +224,11 @@ def main():
     
     if path.is_file():
         result = transcriber.transcribe_video(path, keep_audio=args.keep_audio, language=args.language)
-        if result:
-            print(f"\nTranscription:\n{result['transcription']}")
+        if result:            
+            output_path = path.parent / f"{path.stem}_transcription.json"
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+            print(f"\nTranscription saved to: {output_path}")
     elif path.is_dir():
         transcriber.batch_transcribe(path, output_file=args.output, language=args.language)
     else:
