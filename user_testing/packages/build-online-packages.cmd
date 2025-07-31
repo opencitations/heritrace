@@ -27,6 +27,7 @@ call :generate_script_from_template "common\templates\scripts\stop.sh.template" 
 copy "enduser\README.md" "%ENDUSER_DIR%\README.md"
 copy "..\sus_questionnaire.md" "%ENDUSER_DIR%\sus_questionnaire.md"
 copy "..\written_responses_template.md" "%ENDUSER_DIR%\written_responses_template.md"
+copy "..\user_testing_privacy_consent_form.pdf" "%ENDUSER_DIR%\user_testing_privacy_consent_form.pdf"
 
 mkdir "%ENDUSER_DIR%\config"
 copy "enduser\config\display_rules.yaml" "%ENDUSER_DIR%\config\"
@@ -55,6 +56,7 @@ call :generate_script_from_template "common\templates\scripts\stop.sh.template" 
 copy "technician\README.md" "%TECHNICIAN_DIR%\README.md"
 copy "..\sus_questionnaire.md" "%TECHNICIAN_DIR%\sus_questionnaire.md"
 copy "..\written_responses_template.md" "%TECHNICIAN_DIR%\written_responses_template.md"
+copy "..\user_testing_privacy_consent_form.pdf" "%TECHNICIAN_DIR%\user_testing_privacy_consent_form.pdf"
 
 mkdir "%TECHNICIAN_DIR%\dataset_database"
 mkdir "%TECHNICIAN_DIR%\prov_database"
@@ -129,6 +131,7 @@ echo    - stop.cmd - Clean shutdown script (double-click to run)
 echo    - README.md - Complete user instructions
 echo    - sus_questionnaire.md - SUS usability questionnaire
 echo    - written_responses_template.md - Written reflection questions template
+echo    - user_testing_privacy_consent_form.pdf - Privacy consent form
 
 if exist "heritrace-enduser-testing.zip" (
     echo    - export-data.cmd - Script to export all data (double-click to run)

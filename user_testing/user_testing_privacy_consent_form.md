@@ -30,7 +30,7 @@ The data will be collected without directly identifying data (example: name, sur
 
 Personal data could be communicated to third parties who, in their capacity as Data Processors pursuant to art. 28 of Regulation (EU) 2016/679, assist the data controller in managing its information systems and services.
 
-The processing will have as object audio recordings of your voice during the user testing session. The processing of these recordings will take place in compliance with the provisions of the law, guaranteeing anonymity through transcription and subsequent deletion of the original audio files. We would like to point out that, for the processing of audio recordings, you are required to express a specific consent, considering that voice recordings are considered personal data under GDPR.
+The processing will have as object audio recordings of your voice during the user testing session. The processing of these recordings will take place in compliance with the provisions of the law, guaranteeing anonymity through transcription and subsequent deletion of the original audio files.
 
 The data collected and stored for the realization of the study in question, will be kept for a maximum period of 6 months before anonymization, after which the original recordings will be permanently deleted.
 
@@ -54,7 +54,7 @@ Without prejudice to the limitations placed on exercise of the rights of data su
 
 Please note that any consent given by you is given freely and may be revoked at any time, without any penalties or adverse effects, and without prejudicing the lawfulness of processing based on the consent given prior to revocation. These rights can be exercised only before the data anonymization process (within 6 months from data collection). Once data has been anonymized, it is no longer considered personal data under the GDPR, and these rights no longer apply.
 
-Requests to exercise the above rights may be presented to Alma Mater Studiorum - University of Bologna by contacting Arcangelo Massari, at the e-mail arcangelo.massari@unibo.it.
+Requests to exercise the above rights may be presented to Alma Mater Studiorum - University of Bologna by contacting the Department of Classical Philology and Italian Studies (FICLIT) at Via Zamboni, 32, 40126 Bologna, Italy (phone: +39 051 2098550, email: ficlit.info@unibo.it) or Arcangelo Massari, at the e-mail arcangelo.massari@unibo.it.
 
 Lastly, should you believe that the processing of your personal data is in infringement of the provisions of Regulation (EU) 2016/679 or Decree 196/03 and subsequent amendments and additions, you have the right to lodge a complaint with the Italian data protection authority (known as the "Garante per la protezione dei dati personali"), pursuant to Article 77 of the Regulation (UE) 2016/679, or to refer to the appropriate courts (art. 79 of the Regulation).
 
@@ -68,7 +68,7 @@ pursuant to the provisions of Regulation (EU) 2016/679 and Decree 196/2003 and s
 
 □ **give consent** □ **deny consent**
 
-for the processing - NECESSARY for the purpose of participating in the user testing study - of my personal data (including audio recordings of my voice) for scientific research purposes in the manner and for the reasons described in the section entitled "Purposes and methods of processing" (point A), also pursuant to art. 96 of the copyright law and considering that voice recordings constitute personal data under GDPR.
+for the processing - NECESSARY for the purpose of participating in the user testing study - of my personal data (including audio recordings of my voice) for scientific research purposes in the manner and for the reasons described in the section entitled "Purposes and methods of processing" (point A).
 
 **Date:** _________________
 

@@ -59,6 +59,7 @@ generate_script_from_template "common/templates/scripts/stop.cmd.template" "$END
 cp "enduser/README.md" "$ENDUSER_DIR/README.md"
 cp "../sus_questionnaire.md" "$ENDUSER_DIR/sus_questionnaire.md"
 cp "../written_responses_template.md" "$ENDUSER_DIR/written_responses_template.md"
+cp "../user_testing_privacy_consent_form.pdf" "$ENDUSER_DIR/user_testing_privacy_consent_form.pdf"
 
 mkdir -p "$ENDUSER_DIR/config"
 cp "enduser/config/display_rules.yaml" "$ENDUSER_DIR/config/"
@@ -88,6 +89,7 @@ generate_script_from_template "common/templates/scripts/stop.cmd.template" "$TEC
 cp "technician/README.md" "$TECHNICIAN_DIR/README.md"
 cp "../sus_questionnaire.md" "$TECHNICIAN_DIR/sus_questionnaire.md"
 cp "../written_responses_template.md" "$TECHNICIAN_DIR/written_responses_template.md"
+cp "../user_testing_privacy_consent_form.pdf" "$TECHNICIAN_DIR/user_testing_privacy_consent_form.pdf"
 
 mkdir -p "$TECHNICIAN_DIR/dataset_database"
 mkdir -p "$TECHNICIAN_DIR/prov_database"
@@ -104,13 +106,57 @@ chmod +x "$TECHNICIAN_DIR/export-resources.sh"
 echo "📦 Creating ZIP packages..."
 cd "$BUILD_DIR"
 
-echo "   Creating heritrace-enduser-testing.zip..."
-zip -r heritrace-enduser-testing.zip heritrace-enduser-testing/ > /dev/null
-mv heritrace-enduser-testing.zip ../
+create_zip_package() {
+    local dir_name=$1
+    local zip_name=$2
+    
+    echo "   Creating $zip_name..."
+    
+    if command -v zip >/dev/null 2>&1; then
+        zip -r "$zip_name" "$dir_name/" > /dev/null
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 -c "
+import zipfile
+import os
 
-echo "   Creating heritrace-technician-testing.zip..."
-zip -r heritrace-technician-testing.zip heritrace-technician-testing/ > /dev/null
-mv heritrace-technician-testing.zip ../
+dir_name = '$dir_name'
+zip_file = '$zip_name'
+
+with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk(dir_name):
+        for file in files:
+            file_path = os.path.join(root, file)
+            arc_name = os.path.relpath(file_path, '.')
+            zf.write(file_path, arc_name)
+"
+    elif command -v python >/dev/null 2>&1; then
+        python -c "
+import zipfile
+import os
+
+dir_name = '$dir_name'
+zip_file = '$zip_name'
+
+with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk(dir_name):
+        for file in files:
+            file_path = os.path.join(root, file)
+            arc_name = os.path.relpath(file_path, '.')
+            zf.write(file_path, arc_name)
+"
+    else
+        echo "❌ Error: No archiving tool available (zip, python3, or python required)"
+        echo "   Please install one of these tools and try again."
+        cd ..
+        rm -rf "$BUILD_DIR"
+        exit 1
+    fi
+    
+    mv "$zip_name" ../
+}
+
+create_zip_package "heritrace-enduser-testing" "heritrace-enduser-testing.zip"
+create_zip_package "heritrace-technician-testing" "heritrace-technician-testing.zip"
 
 cd ..
 
@@ -132,6 +178,7 @@ print_summary() {
     echo "   - README.md - Complete user instructions"
     echo "   - sus_questionnaire.md - SUS usability questionnaire"
     echo "   - written_responses_template.md - Written reflection questions template"
+    echo "   - user_testing_privacy_consent_form.pdf - Privacy consent form"
 
     if [ -f "heritrace-enduser-testing.zip" ]; then
         echo "   - export-data.sh/cmd - Script to export all data"
