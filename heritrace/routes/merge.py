@@ -265,7 +265,6 @@ def find_similar_resources():
         similarity_config = get_similarity_properties(entity_key)
 
         if not similarity_config or not isinstance(similarity_config, list):
-            current_app.logger.warning(f"No valid similarity properties found or configured for type {entity_type}")
             return jsonify({"status": "success", "results": [], "has_more": False})
 
         def format_rdf_term(node):

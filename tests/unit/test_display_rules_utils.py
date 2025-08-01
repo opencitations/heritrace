@@ -2036,9 +2036,7 @@ class TestGetSimilarityProperties:
             return_value=mock_display_rules_with_similarity,
         ):
             result = get_similarity_properties((entity_type, None))
-            captured = capsys.readouterr()
             assert result is None
-            assert f"Warning: Invalid format for similarity_properties in class {entity_type}" in captured.out
 
     def test_get_similarity_properties_invalid_format_item_type(
         self, mock_display_rules_with_similarity, capsys

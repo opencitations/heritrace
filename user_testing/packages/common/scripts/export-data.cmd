@@ -50,9 +50,9 @@ if exist "sus_questionnaire.md" (
     echo    SUS questionnaire included
 )
 
-if exist "written_responses_template.md" (
-    copy "written_responses_template.md" "%EXPORT_DIR%\" > nul
-    echo    Written responses template included
+if exist "written_responses.md" (
+    copy "written_responses.md" "%EXPORT_DIR%\" > nul
+    echo    Written responses included
 )
 
 echo.

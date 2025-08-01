@@ -31,7 +31,7 @@ This package contains everything needed to test HERITRACE as an end user.
 2.  Wait for the script to confirm that the services are ready. This may take a minute or two on the first run.
 3.  Open your browser at http://localhost:5000.
 4.  Follow the testing protocol instructions below.
-5.  After completing your testing, fill out the `sus_questionnaire.md` and `written_responses_template.md` files with your responses.
+5.  After completing your testing, fill out the `sus_questionnaire.md` and `written_responses.md` files with your responses.
 6.  **Export your test data**:
     - **Windows users**: Double-click `export-data.cmd`
     - **Linux/macOS users**: Run `./export-data.sh` from terminal
@@ -64,7 +64,7 @@ Begin by exploring this HERITRACE system. Think aloud as you navigate. Describe 
 
 Your goal is to get familiar with the interface and understand how to browse and work with bibliographic metadata in this system.
 
-**Dataset Information**: The system is preloaded with a subset of OpenCitations Meta containing approximately a thousand bibliographic entities.
+**Dataset Information**: The system is preloaded with a subset of OpenCitations Meta containing approximately a hundred journal articles.
 
 ## Metadata Management Tasks (45 minutes)
 
@@ -109,7 +109,7 @@ Now please complete the SUS (System Usability Scale) questionnaire provided in t
 
 ### **Written Reflection (10 minutes)**
 
-After completing the SUS, please fill out the `written_responses_template.md` file with your written answers to the reflection questions about your experience with HERITRACE's metadata management features.
+After completing the SUS, please fill out the `written_responses.md` file with your written answers to the reflection questions about your experience with HERITRACE's metadata management features.
 
 ## Post-Session Requirements
 
@@ -123,4 +123,4 @@ After completing the SUS, please fill out the `written_responses_template.md` fi
 **Note**: The `export.zip` file automatically includes:
 - Your database modifications and testing data
 - Your completed SUS questionnaire (`sus_questionnaire.md`)
-- Your written responses to reflection questions (`written_responses_template.md`)
+- Your written responses to reflection questions (`written_responses.md`)

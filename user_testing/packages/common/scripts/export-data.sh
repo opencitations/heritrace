@@ -63,9 +63,9 @@ if [ -f "sus_questionnaire.md" ]; then
     echo "   ✅ SUS questionnaire included"
 fi
 
-if [ -f "written_responses_template.md" ]; then
-    cp "written_responses_template.md" "$EXPORT_DIR/"
-    echo "   ✅ Written responses template included"
+if [ -f "written_responses.md" ]; then
+    cp "written_responses.md" "$EXPORT_DIR/"
+    echo "   ✅ Written responses included"
 fi
 
 echo ""

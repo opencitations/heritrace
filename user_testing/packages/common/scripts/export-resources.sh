@@ -49,9 +49,9 @@ if [ -f "sus_questionnaire.md" ]; then
     echo "   - Found SUS questionnaire"
 fi
 
-if [ -f "written_responses_template.md" ]; then
-    cp "written_responses_template.md" "$EXPORT_DIR/"
-    echo "   - Found written responses template"
+if [ -f "written_responses.md" ]; then
+    cp "written_responses.md" "$EXPORT_DIR/"
+    echo "   - Found written responses"
 fi
 
 echo "🔄 Creating zip archive..."

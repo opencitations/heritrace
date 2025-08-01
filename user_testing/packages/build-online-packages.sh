@@ -58,7 +58,7 @@ generate_script_from_template "common/templates/scripts/stop.cmd.template" "$END
 
 cp "enduser/README.md" "$ENDUSER_DIR/README.md"
 cp "../sus_questionnaire.md" "$ENDUSER_DIR/sus_questionnaire.md"
-cp "../written_responses_template.md" "$ENDUSER_DIR/written_responses_template.md"
+cp "../written_responses_end_users.md" "$ENDUSER_DIR/written_responses.md"
 cp "../user_testing_privacy_consent_form.pdf" "$ENDUSER_DIR/user_testing_privacy_consent_form.pdf"
 
 mkdir -p "$ENDUSER_DIR/config"
@@ -88,7 +88,7 @@ generate_script_from_template "common/templates/scripts/stop.cmd.template" "$TEC
 
 cp "technician/README.md" "$TECHNICIAN_DIR/README.md"
 cp "../sus_questionnaire.md" "$TECHNICIAN_DIR/sus_questionnaire.md"
-cp "../written_responses_template.md" "$TECHNICIAN_DIR/written_responses_template.md"
+cp "../written_responses_technicians.md" "$TECHNICIAN_DIR/written_responses.md"
 cp "../user_testing_privacy_consent_form.pdf" "$TECHNICIAN_DIR/user_testing_privacy_consent_form.pdf"
 
 mkdir -p "$TECHNICIAN_DIR/dataset_database"
@@ -177,7 +177,7 @@ print_summary() {
     echo "   - stop.sh / stop.cmd - Clean shutdown scripts"
     echo "   - README.md - Complete user instructions"
     echo "   - sus_questionnaire.md - SUS usability questionnaire"
-    echo "   - written_responses_template.md - Written reflection questions template"
+    echo "   - written_responses.md - Written reflection questions"
     echo "   - user_testing_privacy_consent_form.pdf - Privacy consent form"
 
     if [ -f "heritrace-enduser-testing.zip" ]; then

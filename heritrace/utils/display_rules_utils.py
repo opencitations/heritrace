@@ -690,7 +690,6 @@ def get_similarity_properties(entity_key: Tuple[str, str]) -> Optional[List[Unio
     similarity_props = rule.get("similarity_properties")
     
     if not similarity_props or not isinstance(similarity_props, list):
-        print(f"Warning: Invalid format for similarity_properties in class {class_uri}")
         return None
     
     # Validate each element in the list.

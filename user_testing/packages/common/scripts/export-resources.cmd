@@ -49,9 +49,9 @@ if exist "sus_questionnaire.md" (
     echo    - Found SUS questionnaire
 )
 
-if exist "written_responses_template.md" (
-    copy "written_responses_template.md" "%EXPORT_DIR%\" >nul
-    echo    - Found written responses template
+if exist "written_responses.md" (
+    copy "written_responses.md" "%EXPORT_DIR%\" >nul
+    echo    - Found written responses
 )
 
 echo Creating zip archive...

@@ -16,7 +16,7 @@ This package contains everything needed to test HERITRACE configuration features
 - `stop.sh` / `stop.cmd` - Stop environment (run script or double-click .cmd)
 - `export-resources.sh` / `export-resources.cmd` - Export modified resources (run script or double-click .cmd)
 - `sus_questionnaire.md` - SUS (System Usability Scale) questionnaire
-- `written_responses_template.md` - Written reflection template
+- `written_responses.md` - Written reflection
 - `README.md` - These instructions
 
 
@@ -42,7 +42,7 @@ This package contains everything needed to test HERITRACE configuration features
 2. Wait for the script to confirm services are ready (may take 1-2 minutes on first run)
 3. Open your browser at http://localhost:5000
 4. Follow the testing protocol below
-5. Complete the `sus_questionnaire.md` and `written_responses_template.md` files
+5. Complete the `sus_questionnaire.md` and `written_responses.md` files
 6. **Export your modified resources**:
    - **Windows users**: Double-click `export-resources.cmd`
    - **Linux/macOS users**: Run `./export-resources.sh` from terminal
@@ -55,8 +55,8 @@ This package contains everything needed to test HERITRACE configuration features
 ## Configuration Files
 
 **Modify during testing**:
-- `config/display_rules.yaml`: Controls property display in UI
 - `config/shacl.ttl`: Defines entity validation rules
+- `config/display_rules.yaml`: Controls property display in UI
 
 **Do not modify**: `docker-compose.yml`, script files, or any configuration files outside the `config` directory.
 
@@ -79,7 +79,7 @@ Explore the system and think aloud as you navigate. Describe what you see, what 
 
 Your goal is to understand the interface, identify the current configuration state, and distinguish between fully configured entities and those needing additional work.
 
-**Dataset Information**: The system is preloaded with a subset of OpenCitations Meta containing approximately a thousand bibliographic entities.
+**Dataset Information**: The system is preloaded with a subset of OpenCitations Meta containing approximately a hundred journal articles.
 
 ### **Configuration Tasks (45 minutes total)**
 
@@ -119,7 +119,7 @@ Now please complete the SUS (System Usability Scale) questionnaire provided in t
 
 ### **Written Reflection (10 minutes)**
 
-After completing the SUS, please fill out the `written_responses_template.md` file with your written answers to the reflection questions about your experience with HERITRACE's configuration features.
+After completing the SUS, please fill out the `written_responses.md` file with your written answers to the reflection questions about your experience with HERITRACE's configuration features.
 
 ## Post-Session Requirements
 
@@ -133,4 +133,4 @@ After completing the SUS, please fill out the `written_responses_template.md` fi
 **Note**: The `export.zip` file includes:
 - Modified configuration files (`display_rules.yaml`, `shacl.ttl`)
 - Completed SUS questionnaire (`sus_questionnaire.md`)
-- Written responses (`written_responses_template.md`)
+- Written responses (`written_responses.md`)
