@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 
 from vllm import LLM
-from vllm.sampling_params import SamplingParams
+from vllm.sampling_params import SamplingParams, GuidedDecodingParams
 from huggingface_hub import login as hf_login
 from huggingface_hub.errors import GatedRepoError
 
@@ -25,9 +25,9 @@ class GroundedAnalyzer:
         self.model_name = "mistralai/Ministral-8B-Instruct-2410"
         self.llm = None
         self.sampling_params = SamplingParams(
-            temperature=0.1,
+            temperature=0.3,
             top_p=0.9,
-            max_tokens=2048
+            max_tokens=16384
         )
         
         self.open_codes = {}  # Initial codes discovered from data
@@ -73,7 +73,8 @@ CODING RULES:
             self.llm = LLM(
                 model=self.model_name,
                 tokenizer_mode="mistral",
-                gpu_memory_utilization=0.9
+                gpu_memory_utilization=0.9,
+                task="generate"
             )
         except GatedRepoError:
             print(f"\nAccess denied to {self.model_name}")
@@ -95,7 +96,8 @@ CODING RULES:
                     self.llm = LLM(
                         model=self.model_name,
                         tokenizer_mode="mistral",
-                        gpu_memory_utilization=0.9
+                        gpu_memory_utilization=0.9,
+                        task="generate"
                     )
                 except Exception as retry_error:
                     print(f"Authentication failed: {retry_error}")
@@ -107,7 +109,7 @@ CODING RULES:
         
         print("vLLM model loaded successfully!")
     
-    def query_llm(self, prompt, context):
+    def query_llm(self, prompt, context, json_schema):
         """Query local LLM via vLLM with Mistral chat template - strict JSON output"""
         if not self.llm:
             self.load_model()
@@ -115,17 +117,33 @@ CODING RULES:
         full_prompt = f"{context}\n\n{prompt}"
         formatted_prompt = self.chat_template.format(user_message=full_prompt)
         
-        outputs = self.llm.generate([formatted_prompt], self.sampling_params)
+        guided_decoding_params = GuidedDecodingParams(json=json_schema)
+        guided_params = SamplingParams(
+            temperature=0.3,
+            top_p=0.9,
+            max_tokens=16384,
+            guided_decoding=guided_decoding_params
+        )
+        outputs = self.llm.generate([formatted_prompt], guided_params)
+            
         response_text = outputs[0].outputs[0].text.strip()
         
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if json_match:
-            try:
-                return json.loads(json_match.group())
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON in model response: {e}")
-        else:
-            raise ValueError(f"No JSON found in model response: {response_text[:200]}...")
+        print(f"DEBUG - Raw model output: {response_text}")
+        
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                try:
+                    return json.loads(json_match.group())
+                except json.JSONDecodeError as e:
+                    print(f"DEBUG - JSON extraction failed: {e}")
+                    print(f"DEBUG - Extracted text: {json_match.group()}")
+                    raise ValueError(f"Invalid JSON in model response: {e}")
+            else:
+                print(f"DEBUG - No JSON found in response: {response_text}")
+                raise ValueError(f"No JSON found in model response: {response_text[:200]}...")
     
     def load_transcription(self, transcription_file):
         """Load transcription from JSON file"""
@@ -153,6 +171,18 @@ CODING RULES:
             raise ValueError(f"No JSON files found in {folder_path}")
         
         return json_files
+    
+    def load_markdown_files_from_folder(self, folder_path):
+        """Load all markdown files from a folder"""
+        md_files = []
+        folder = Path(folder_path)
+        if not folder.exists():
+            raise FileNotFoundError(f"Folder {folder_path} does not exist")
+        
+        for file_path in folder.glob('*.md'):
+            md_files.append(file_path)
+        
+        return md_files
     
     
     def open_coding_phase(self, data_text, data_type="transcription"):
@@ -208,7 +238,16 @@ You are an expert grounded theory researcher analyzing HERITRACE user testing da
 {data_specific_instructions}
 
 YOUR TASK:
-Read through the data below and identify ALL emerging concepts. For each concept you identify, create a descriptive code following the rules above.
+Read through the ENTIRE data text below carefully and identify ALL emerging concepts, patterns, and behaviors. 
+For each distinct concept you identify, create a descriptive code following the rules above.
+Aim to identify 15-30 codes to capture the richness of the user experience.
+Pay attention to:
+- Specific user actions and their outcomes
+- Emotional reactions and expressions
+- Problem-solving attempts and strategies
+- Interface interaction patterns
+- Task progression and obstacles
+- System feedback and user responses
 
 REQUIRED OUTPUT FORMAT:
 CODE: explanation of what this code represents
@@ -218,14 +257,33 @@ navigation_confusion: User cannot locate expected interface elements or menu opt
 feature_satisfaction: User expresses positive reaction to specific system functionality
 task_abandonment: User gives up on completing assigned task due to obstacles
 
-Now analyze this data:
+Now analyze this data thoroughly:
 """
         
         open_coding_prompt += "\n\nIMPORTANT: Respond with a valid JSON object following this exact structure:\n{\"codes\": [{\"code\": \"example_code\", \"explanation\": \"what this represents\"}]}"
         
+        json_schema = {
+            "type": "object",
+            "properties": {
+                "codes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "code": {"type": "string"},
+                            "explanation": {"type": "string"}
+                        },
+                        "required": ["code", "explanation"]
+                    }
+                }
+            },
+            "required": ["codes"]
+        }
+        
         response = self.query_llm(
             open_coding_prompt, 
-            data_text
+            data_text,
+            json_schema
         )
         
         if not response:
@@ -307,12 +365,35 @@ Codes to group:
         
         axial_coding_prompt += "\n\nIMPORTANT: Respond with a valid JSON object following this exact structure:\n{\"categories\": [{\"category\": \"name\", \"explanation\": \"description\", \"codes\": [\"code1\", \"code2\"]}]}"
         
+        json_schema = {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "category": {"type": "string"},
+                            "explanation": {"type": "string"},
+                            "codes": {
+                                "type": "array",
+                                "items": {"type": "string"}
+                            }
+                        },
+                        "required": ["category", "explanation", "codes"]
+                    }
+                }
+            },
+            "required": ["categories"]
+        }
+        
         codes_list = "\n".join([f"- {code}: {data['explanation']}" 
                                for code, data in self.open_codes.items()])
         
         response = self.query_llm(
             axial_coding_prompt, 
-            codes_list
+            codes_list,
+            json_schema
         )
         
         if not response:
@@ -387,12 +468,24 @@ Categories to analyze:
         
         selective_prompt += "\n\nIMPORTANT: Respond with a valid JSON object following this exact structure:\n{\"core_category\": \"name\", \"core_explanation\": \"why this is central\", \"relationships\": \"how categories relate\", \"emerging_theory\": \"cohesive explanation\"}"
         
+        json_schema = {
+            "type": "object",
+            "properties": {
+                "core_category": {"type": "string"},
+                "core_explanation": {"type": "string"},
+                "relationships": {"type": "string"},
+                "emerging_theory": {"type": "string"}
+            },
+            "required": ["core_category", "core_explanation", "relationships", "emerging_theory"]
+        }
+        
         categories_text = "\n".join([f"{name}: {data['explanation']}\nCodes: {', '.join(data['codes'])}\n"
                                    for name, data in self.axial_codes.items()])
         
         response = self.query_llm(
             selective_prompt, 
-            categories_text
+            categories_text,
+            json_schema
         )
         
         if not response:
@@ -438,19 +531,20 @@ Categories to analyze:
                 'analysis': open_coding_analysis
             })
         
-        if written_responses:
-            for response_file in written_responses:
-                if os.path.exists(response_file):
-                    print(f"Analyzing written responses: {response_file}")
-                    responses_content = self.load_written_responses(response_file)
-                    open_coding_analysis = self.open_coding_phase(responses_content, "written_responses")
-                    analyses.append({
-                        'file': response_file,
-                        'type': 'written_responses',
-                        'participant_type': participant_type,
-                        'data_length': len(responses_content),
-                        'analysis': open_coding_analysis
-                    })
+        if written_responses and os.path.exists(written_responses):
+            print(f"Analyzing written responses folder: {written_responses}")
+            md_files = self.load_markdown_files_from_folder(written_responses)
+            for md_file in md_files:
+                print(f"  - Processing {md_file.name}")
+                responses_content = self.load_written_responses(md_file)
+                open_coding_analysis = self.open_coding_phase(responses_content, "written_responses")
+                analyses.append({
+                    'file': str(md_file),
+                    'type': 'written_responses',
+                    'participant_type': participant_type,
+                    'data_length': len(responses_content),
+                    'analysis': open_coding_analysis
+                })
         
         self.axial_coding_phase()
         self.selective_coding_phase()
@@ -520,8 +614,8 @@ def main():
     parser.add_argument('input_path', help='Path to transcription JSON file or folder containing JSON files')
     parser.add_argument('--participant-type', choices=['technician', 'end_user'], 
                        default='end_user', help='Type of participant')
-    parser.add_argument('--written-responses', nargs='*', 
-                       help='Paths to written response files (markdown format)')
+    parser.add_argument('--written-responses', 
+                       help='Path to folder containing written response files (markdown format)')
     parser.add_argument('--output-dir', default='grounded_analysis_results', 
                        help='Output directory for results')
     
