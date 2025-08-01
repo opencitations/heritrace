@@ -8,21 +8,27 @@ Uses local AI models for emergent coding discovery
 import argparse
 import json
 import os
+import re
+import sys
 from datetime import datetime
 from pathlib import Path
 
-import outlines
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from vllm import LLM
+from vllm.sampling_params import SamplingParams
+from huggingface_hub import login as hf_login
+from huggingface_hub.errors import GatedRepoError
 
 
 class GroundedAnalyzer:
-    def __init__(self, model_name="mistralai/Ministral-8B-Instruct-2410"):
-        """Initialize with local transformers model"""
-        self.model_name = model_name
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.tokenizer = None
-        self.model = None
+    def __init__(self):
+        """Initialize with vLLM model"""
+        self.model_name = "mistralai/Ministral-8B-Instruct-2410"
+        self.llm = None
+        self.sampling_params = SamplingParams(
+            temperature=0.1,
+            top_p=0.9,
+            max_tokens=2048
+        )
         
         self.open_codes = {}  # Initial codes discovered from data
         self.axial_codes = {}  # Grouped codes into categories  
@@ -32,62 +38,9 @@ class GroundedAnalyzer:
         self.axial_coding_complete = False
         self.selective_coding_complete = False
         
-        # JSON schemas for structured output
-        self.open_coding_schema = {
-            "type": "object",
-            "properties": {
-                "codes": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "code": {"type": "string", "pattern": "^[a-z_]+$"},
-                            "explanation": {"type": "string"}
-                        },
-                        "required": ["code", "explanation"]
-                    }
-                }
-            },
-            "required": ["codes"]
-        }
         
-        self.axial_coding_schema = {
-            "type": "object",
-            "properties": {
-                "categories": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "category": {"type": "string"},
-                            "explanation": {"type": "string"},
-                            "codes": {
-                                "type": "array",
-                                "items": {"type": "string"}
-                            }
-                        },
-                        "required": ["category", "explanation", "codes"]
-                    }
-                }
-            },
-            "required": ["categories"]
-        }
-        
-        self.selective_coding_schema = {
-            "type": "object",
-            "properties": {
-                "core_category": {"type": "string"},
-                "core_explanation": {"type": "string"},
-                "relationships": {"type": "string"},
-                "emerging_theory": {"type": "string"}
-            },
-            "required": ["core_category", "core_explanation", "relationships", "emerging_theory"]
-        }
-        
-        self.outlines_model = None
-        self.open_coding_generator = None
-        self.axial_coding_generator = None
-        self.selective_coding_generator = None
+        # Chat template for Mistral format
+        self.chat_template = "<s>[INST]{user_message}[/INST]"
         
         self.grounded_theory_explanation = """
 GROUNDED THEORY METHODOLOGY EXPLANATION:
@@ -113,37 +66,66 @@ CODING RULES:
 """
     
     def load_model(self):
-        """Load the transformers model and tokenizer"""
-        print(f"Loading {self.model_name} on {self.device}...")
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_name,
-            torch_dtype=torch.bfloat16 if self.device == "cuda" else torch.float32,
-            low_cpu_mem_usage=True
-        ).to(self.device)
-        self.outlines_model = outlines.models.transformers(
-            self.model, self.tokenizer
-        )
-        self.open_coding_generator = outlines.generate.json(
-            self.outlines_model, self.open_coding_schema
-        )
-        self.axial_coding_generator = outlines.generate.json(
-            self.outlines_model, self.axial_coding_schema
-        )
-        self.selective_coding_generator = outlines.generate.json(
-            self.outlines_model, self.selective_coding_schema
-        )        
-        print("Model loaded successfully!")
+        """Load the vLLM model with authentication handling"""
+        print(f"Loading {self.model_name} with vLLM...")
+        
+        try:
+            self.llm = LLM(
+                model=self.model_name,
+                tokenizer_mode="mistral",
+                gpu_memory_utilization=0.9
+            )
+        except GatedRepoError:
+            print(f"\nAccess denied to {self.model_name}")
+            print("This model requires authentication. Please:")
+            print("1. Get access at: https://huggingface.co/mistralai/Ministral-8B-Instruct-2410")
+            print("2. Login with: huggingface-cli login")
+            print("   OR set: export HUGGINGFACE_HUB_TOKEN='your_token'")
+            print("3. Re-run this script")
+            sys.exit(1)
+        except Exception as e:
+            print(f"\nError loading model: {e}")
+            print("\nTrying to authenticate...")
+            
+            token = os.getenv('HUGGINGFACE_HUB_TOKEN')
+            if token:
+                try:
+                    hf_login(token=token)
+                    print("✅ Authentication successful with environment token")
+                    self.llm = LLM(
+                        model=self.model_name,
+                        tokenizer_mode="mistral",
+                        gpu_memory_utilization=0.9
+                    )
+                except Exception as retry_error:
+                    print(f"Authentication failed: {retry_error}")
+                    sys.exit(1)
+            else:
+                print("No HUGGINGFACE_HUB_TOKEN found in environment.")
+                print("Please authenticate using one of the methods above.")
+                sys.exit(1)
+        
+        print("vLLM model loaded successfully!")
     
-    def query_llm(self, prompt, context, generator):
-        """Query local LLM via Outlines structured generation"""
-        if not self.model or not self.tokenizer:
+    def query_llm(self, prompt, context):
+        """Query local LLM via vLLM with Mistral chat template - strict JSON output"""
+        if not self.llm:
             self.load_model()
         
         full_prompt = f"{context}\n\n{prompt}"
+        formatted_prompt = self.chat_template.format(user_message=full_prompt)
         
-        response = generator(full_prompt)
-        return response
+        outputs = self.llm.generate([formatted_prompt], self.sampling_params)
+        response_text = outputs[0].outputs[0].text.strip()
+        
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group())
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON in model response: {e}")
+        else:
+            raise ValueError(f"No JSON found in model response: {response_text[:200]}...")
     
     def load_transcription(self, transcription_file):
         """Load transcription from JSON file"""
@@ -243,8 +225,7 @@ Now analyze this data:
         
         response = self.query_llm(
             open_coding_prompt, 
-            data_text, 
-            generator=self.open_coding_generator
+            data_text
         )
         
         if not response:
@@ -331,8 +312,7 @@ Codes to group:
         
         response = self.query_llm(
             axial_coding_prompt, 
-            codes_list,
-            generator=self.axial_coding_generator
+            codes_list
         )
         
         if not response:
@@ -412,8 +392,7 @@ Categories to analyze:
         
         response = self.query_llm(
             selective_prompt, 
-            categories_text,
-            generator=self.selective_coding_generator
+            categories_text
         )
         
         if not response:
@@ -545,15 +524,13 @@ def main():
                        help='Paths to written response files (markdown format)')
     parser.add_argument('--output-dir', default='grounded_analysis_results', 
                        help='Output directory for results')
-    parser.add_argument('--model-name', default='mistralai/Mistral-7B-Instruct-v0.3',
-                       help='HuggingFace model name to use (recommended: mistralai/Mistral-7B-Instruct-v0.3, microsoft/Phi-3.5-mini-instruct, Qwen/Qwen2.5-Coder-7B-Instruct)')
     
     args = parser.parse_args()
     
     output_dir = Path(args.output_dir)
     output_dir.mkdir(exist_ok=True)
     
-    analyzer = GroundedAnalyzer(args.model_name)
+    analyzer = GroundedAnalyzer()
     
     results = analyzer.analyze_data_files(
         args.input_path, 
