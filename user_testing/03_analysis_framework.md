@@ -42,32 +42,28 @@ Create individual completion analysis files for each participant using standardi
       "expected_duration_minutes": 8,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]",
-      "help_sought": "[true|false]"
+      "errors_encountered": "[COUNT_FROM_VIDEO]"
     },
     "merge_authors": {
       "task_name": "Merge duplicate author entities",
       "expected_duration_minutes": 10,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]",
-      "help_sought": "[true|false]"
+      "errors_encountered": "[COUNT_FROM_VIDEO]"
     },
     "restore_version": {
       "task_name": "Restore previous version",
       "expected_duration_minutes": 7,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]",
-      "help_sought": "[true|false]"
+      "errors_encountered": "[COUNT_FROM_VIDEO]"
     },
     "create_publication": {
       "task_name": "Create new publication record",
       "expected_duration_minutes": 20,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]",
-      "help_sought": "[true|false]"
+      "errors_encountered": "[COUNT_FROM_VIDEO]"
     }
   }
 }
@@ -84,16 +80,14 @@ Create individual completion analysis files for each participant using standardi
       "expected_duration_minutes": 22,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]",
-      "help_sought": "[true|false]"
+      "errors_encountered": "[COUNT_FROM_VIDEO]"
     },
     "add_display_support": {
       "task_name": "Add abstract display support",
       "expected_duration_minutes": 23,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]",
-      "help_sought": "[true|false]"
+      "errors_encountered": "[COUNT_FROM_VIDEO]"
     }
   }
 }
@@ -107,35 +101,104 @@ Create individual completion analysis files for each participant using standardi
    - `partial` = incomplete attempt with some progress
    - `failed` = task abandoned or no progress
 4. **Error counting**: Include wrong clicks, error messages, confusion incidents
-5. **Help seeking**: Note when participant explicitly seeks help or guidance
 
 **Important**: The `errors_encountered` field should match error-related codes in qualitative coding for consistency.
 
 ## Step 3: Grounded Analysis
 
-### Unified Qualitative Coding Process
+### User-Type Specific Analysis
 
-**Individual Coding Templates**
+**Base Template**: Use this structure for both user types, specifying `user_type` as `"end_user"` or `"technician"`
 
-Create individual coding files for each participant: `[participant_ID]_codes.json`
-
-**Template Structure:**
+#### Open Coding Phase
+**Template**: `[user_type]_[participant_ID]_codes.json`
 ```json
 {
-  "participant_id": "[REPLACE_WITH_PARTICIPANT_ID]",
+  "participant_id": "[PARTICIPANT_ID]",
   "user_type": "[end_user|technician]",
   "codes": [
     {
-      "code_name": "[DESCRIPTIVE_CODE_NAME]",
-      "verbatim_quote": "[EXACT_PARTICIPANT_QUOTE]",
-      "context": "[SITUATIONAL_CONTEXT]"
+      "code": "[PARTICIPANT_EXACT_WORDS]",
+      "verbatim_quote": "[EXACT_QUOTE_FROM_DATA]",
+      "context": "[SITUATION_DESCRIPTION]",
+      "sentiment": "[positive|neutral|negative]"
     }
   ]
 }
 ```
 
-**Coding Instructions:**
-1. Create individual files: One `[participant_ID]_codes.json` per participant
-2. Code from both thinking aloud (video recordings) and written reflections
-3. Let codes emerge naturally from the data without predefined categories
-4. Keep codes close to participant language and document situational context
+#### Axial Coding Phase
+**Template**: `[user_type]_axial_codes.json`
+```json
+{
+  "user_type": "[end_user|technician]",
+  "categories": [
+    {
+      "category_name": "[CATEGORY_NAME]",
+      "related_codes": [
+        {
+          "participant_id": "[PARTICIPANT_ID]",
+          "code": "[CODE_NAME]"
+        }
+      ],
+      "category_description": "[HOW_CODES_RELATE]",
+      "task_contexts": ["[TASK1]", "[TASK2]"],
+      "overall_sentiment": "[positive|neutral|negative]",
+      "frequency": "[NUMBER_OF_RELATED_CODES]"
+    }
+  ]
+}
+```
+
+#### Selective Coding Phase
+**Template**: `[user_type]_selective_codes.json`
+```json
+{
+  "user_type": "[end_user|technician]",
+  "core_category": "[CENTRAL_THEME_NAME]",
+  "theory_statement": "[MAIN_EXPLANATION_OF_USER_EXPERIENCE]",
+  "supporting_categories": [
+    {
+      "category": "[CATEGORY_NAME]",
+      "relationship_to_core": "[HOW_IT_SUPPORTS_MAIN_THEORY]",
+      "frequency": "[HOW_MANY_PARTICIPANTS_AFFECTED]"
+    }
+  ]
+}
+```
+
+# Data cisualization
+
+**1. Task Success Rate by User Type**
+- **Type**: Side-by-side bar charts (separate charts for each user type)
+- **Input**: Calculate from individual `task_completion.json` files
+- **End User Chart**: edit_publication, merge_authors, restore_version, create_publication
+- **Technician Chart**: add_shacl_validation, add_display_support
+- **Y-axis**: Success percentage (0-100%)
+- **Output**: Shows task difficulty within each user type separately
+
+**2. Duration Analysis Scatter Plot**  
+- **Type**: Scatter plot with reference line
+- **Input**: Extract expected_duration and actual_duration from task completion files
+- **X-axis**: Expected duration (minutes)
+- **Y-axis**: Actual duration (minutes)
+- **Colors**: User type distinction
+- **Reference line**: y=x diagonal for perfect time estimation
+- **Output**: Reveals time estimation accuracy patterns
+
+**3. Error Frequency Heatmap**
+- **Type**: Matrix heatmap
+- **Input**: Aggregate errors_encountered from all task completion files
+- **Rows**: Individual participants  
+- **Columns**: Task types
+- **Values**: Error count per participant-task combination
+- **Output**: Identifies error hotspots and participant struggle patterns
+
+**4. Grounded Theory Category TreeMap**
+- **Type**: Hierarchical TreeMap visualization (separate for each user type)
+- **Input**: Extract categories, frequencies and sentiment from `axial_codes.json` files
+- **Rectangle size**: Category frequency (from `frequency` field in JSON)
+- **Color coding**: Category sentiment (from `overall_sentiment` field: red=negative, yellow=neutral, green=positive)
+- **Hierarchical nesting**: Core categories contain related subcategories
+- **Interactive**: Click to drill down into category details and supporting quotes
+- **Output**: Visual representation of user experience themes with relative importance and emotional impact
