@@ -18,7 +18,6 @@ heritrace-*-local.zip
 heritrace-*-testing/
 heritrace-*-testing.zip
 .env
-user_testing/results/
 
 # Unit test / coverage reports
 .coverage
@@ -35,5 +34,6 @@ nosetests.xml
 tests/test_dataset_db/*
 tests/test_provenance_db/*
 
+.claude/
 CLAUDE.md
 icon_oc_positive_animated.html

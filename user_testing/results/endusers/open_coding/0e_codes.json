@@ -1,0 +1,180 @@
+{
+  "participant_id": "0e",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "automatic_login_unclear",
+      "verbatim_quote": "mi fa il login automatico quindi non saprò mai se il catalogo è accessibile anche da un anonimo",
+      "context": "Exploring the system during warm-up, trying to understand access levels",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "layout_space_wasted",
+      "verbatim_quote": "L'unica cosa che non mi piace è che qui c'è un max width qualcosa che... cioè ho tutto questo spazio vuoto a destra e a sinistra, non mi piace per niente",
+      "context": "Initial interface evaluation on wide screen",
+      "sentiment": "negative"
+    },
+    {
+      "code": "url_reference_confusing",
+      "verbatim_quote": "Volevo capire quindi tu richiami questa risorsa attraverso una URL, un po' strano però ok ci sta",
+      "context": "Trying to understand how to access specific resources via URLs",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "search_functionality_missing",
+      "verbatim_quote": "non mi è chiara una cosa, un off topic su come cercare le risorse da qui. Ci sarà un modo per cercare? O forse non si può? Non lo so",
+      "context": "Looking for a way to search resources in the catalog",
+      "sentiment": "negative"
+    },
+    {
+      "code": "login_button_visibility_good",
+      "verbatim_quote": "Vedo subito l'iconcina per fare il login che è una cosa buona",
+      "context": "First impression of the interface, noticing the login icon",
+      "sentiment": "positive"
+    },
+    {
+      "code": "auto_suggestion_positive",
+      "verbatim_quote": "fighissimo che scrivendo diciamo l'inizio del nome lui mi va già a pescare persone già presenti",
+      "context": "Adding Caroline Scagel as author, system found existing person",
+      "sentiment": "positive"
+    },
+    {
+      "code": "visual_inconsistency_confusing",
+      "verbatim_quote": "Ok però perché questa visualizzazione qui è questa così? Non capisco questa cosa. Cioè perché per dire che questa l'ho appena creata io e allora non è tanto chiaro questa cosa",
+      "context": "Noticing different display for newly created author vs existing ones",
+      "sentiment": "negative"
+    },
+    {
+      "code": "creation_indicator_needed",
+      "verbatim_quote": "Ci vorrebbe una scritta per dire che è stato creato ora",
+      "context": "Suggesting improvement for newly created entities",
+      "sentiment": "negative"
+    },
+    {
+      "code": "author_reordering_functionality",
+      "verbatim_quote": "Quindi io suppongo che io possa fare questo... bellissimo!",
+      "context": "Discovering ability to reorder authors by dragging Caroline to first position",
+      "sentiment": "positive"
+    },
+    {
+      "code": "delete_button_inconsistency",
+      "verbatim_quote": "Poi non mi piace la differenza tra il cestino così, un po' strana questa cosa, molto strana però ci potrebbe stare però da migliorare sicuramente",
+      "context": "Comparing delete button styling between different author entries",
+      "sentiment": "negative"
+    },
+    {
+      "code": "provenance_dialog_unclear",
+      "verbatim_quote": "oh signore non so cosa mi sta chiedendo, va bene allora non salvo, aspetto. Allora ok no però ritorno, non so se devo salvare",
+      "context": "Encountering provenance/primary source confirmation dialog when saving",
+      "sentiment": "negative"
+    },
+    {
+      "code": "modification_feedback_satisfaction",
+      "verbatim_quote": "Allora qui voglio salvare, allora vabbè io faccio confirm. Bello. Ok sì è presente, perfetto",
+      "context": "After confirming save action, expressing satisfaction with the modification feedback and animation",
+      "sentiment": "positive"
+    },
+    {
+      "code": "merge_uncertainty",
+      "verbatim_quote": "ma io che cavolo ne so se questo è lo stesso? Non ne ho la più pallida idea. Come faccio a capire se... come faccio a capire se è un omonimo",
+      "context": "Trying to determine if Richard Carew entities should be merged",
+      "sentiment": "negative"
+    },
+    {
+      "code": "back_button_appreciation",
+      "verbatim_quote": "Ok, tornare indietro: c'è il bel pulsantino qui",
+      "context": "Navigating back from journal page, appreciating the back button",
+      "sentiment": "positive"
+    },
+    {
+      "code": "external_links_proper_behavior",
+      "verbatim_quote": "Qui abbiamo un link a HERITRACE che si apre giustamente in un nuovo link così non perdo la pagina, perfetto",
+      "context": "External links opening in new tab to preserve current page",
+      "sentiment": "positive"
+    },
+    {
+      "code": "merge_interface_positive",
+      "verbatim_quote": "innanzitutto comunque è fighissimo come è fatto, bellissimo queste card, mi piace",
+      "context": "Evaluating the merge interface design",
+      "sentiment": "positive"
+    },
+    {
+      "code": "timeline_confusing",
+      "verbatim_quote": "Oh signore, vediamo un po'... un po' un mappazzone. Questa freccia non è chiarissima e mi va sopra la barra",
+      "context": "First interaction with the time machine/timeline interface",
+      "sentiment": "negative"
+    },
+    {
+      "code": "timeline_understanding_improvement",
+      "verbatim_quote": "Ok adesso è più chiaro eh sì",
+      "context": "Timeline interface becoming clearer after interaction",
+      "sentiment": "positive"
+    },
+    {
+      "code": "timeline_labels_unclear",
+      "verbatim_quote": "Più che previous version e snapshot one userei qualcosa tipo first snapshot, original file, original snapshot",
+      "context": "Suggesting better labeling for timeline snapshots",
+      "sentiment": "negative"
+    },
+    {
+      "code": "timeline_zoom_issue",
+      "verbatim_quote": "È un po'... si parte un po' troppo secondo me, dovrebbe partire con lo zoom che già ha tutti gli snapshot",
+      "context": "Commenting on timeline initial zoom level",
+      "sentiment": "negative"
+    },
+    {
+      "code": "restore_functionality_works",
+      "verbatim_quote": "Ok sembra che abbia funzionato",
+      "context": "Successfully restoring previous version using time machine",
+      "sentiment": "positive"
+    },
+    {
+      "code": "loading_indicator_noticed",
+      "verbatim_quote": "Visto anche un caricamento",
+      "context": "Noticing loading indicator when entering title",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "first_time_user_perspective",
+      "verbatim_quote": "Non lo so, tu dirai ma questo è scemo ma è la prima volta che sto facendo questa roba",
+      "context": "Acknowledging being a first-time user when struggling with form structure",
+      "sentiment": "negative"
+    },
+    {
+      "code": "form_collapse_needed",
+      "verbatim_quote": "sarebbe fico un tastino così mi chiude sta roba e non devo... e mi esce solo type identifier DOI è quello che ho messo così dopo la pagina non mi diventa di 10.000 righe",
+      "context": "Creating new publication, form getting very long",
+      "sentiment": "negative"
+    },
+    {
+      "code": "date_format_wrong",
+      "verbatim_quote": "Ops no brutto brutto, sempre anno mese giorno per essere più international possibile. Questa è la forma americana, male male",
+      "context": "Entering publication date in the form",
+      "sentiment": "negative"
+    },
+    {
+      "code": "field_location_confusion",
+      "verbatim_quote": "Issue 20... non so dove andarlo a cercare sinceramente. Sono un po' in crisi. Sono un po' in crisi",
+      "context": "Trying to find where to enter journal issue number",
+      "sentiment": "negative"
+    },
+    {
+      "code": "form_performance_issue",
+      "verbatim_quote": "Ma da qua comunque bugga tantissimo, si blocca. E se il database è piccolino non immagino... cioè qua non deve... non ci deve essere precaricamenti o altro se no si sfonda Chrome praticamente",
+      "context": "Experiencing performance issues while creating new publication",
+      "sentiment": "negative"
+    },
+    {
+      "code": "form_overwhelming",
+      "verbatim_quote": "No comunque diventa troppo disturbante tutta questa roba qui, non va bene. Sta diventando troppo disturbante",
+      "context": "Form becoming too complex and cluttered during creation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "form_distracting_suggestions",
+      "verbatim_quote": "Mi distraevano le cose frutto che uscivano",
+      "context": "Irrelevant autocomplete suggestions appearing while filling form",
+      "sentiment": "negative"
+    }
+  ]
+}

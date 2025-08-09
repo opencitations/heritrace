@@ -1,0 +1,126 @@
+{
+  "participant_id": "0e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:03:47",
+      "status": "complete",
+      "errors_encountered": 3,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Unclear how to reach the target record (browse the catalogue vs paste the 'about' URL)",
+          "trigger": "Tried to locate the record from the catalogue and by using the provided URL",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Visual inconsistency for newly added author: different iconography and styling compared to existing authors, causing user confusion. User did not understand why display differed, missing indication of recent creation, inconsistent delete button styling, suggested adding creation indicator text",
+          "trigger": "Added 'Carolyn Scagel' and attempted to set her as first author",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Confusing prompt about setting the primary source (provenance): user did not understand what to choose or why",
+          "trigger": "Clicked Save and a confirmation/provenance dialog appeared",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:03:20",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "Uncertainty about distinguishing duplicate entities from homonyms: user expressed confusion about how to determine if two Richard Carew entries represent the same person or are different people with the same name",
+          "trigger": "When attempting to merge Richard Carew entries, user questioned: 'Ma io che cavolo ne so se questo è lo stesso? Non ne ho la più pallida idea. Come faccio a capire se... come faccio a capire se è un omonimo o...'",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:05:40",
+      "status": "complete",
+      "errors_encountered": 4,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Time machine interface confusion: user described the time machine view as 'un mappazzone' (a mess) and found the arrow navigation unclear, with arrows overlapping the toolbar",
+          "trigger": "Accessed time machine interface to restore previous version",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Confusing change representation: user initially didn't understand why deletions were shown when they only made additions, later realizing it referred to position changes of authors",
+          "trigger": "Viewing changes in time machine that showed deletions and additions",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Navigation inconsistency: clicking 'View version' closed the time machine instead of opening in popup or new tab as expected",
+          "trigger": "Clicked 'View version' button in time machine interface",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Timeline interface usability issues: user found the timeline started too zoomed in, requiring manual adjustment to see all snapshots, and scrolled unpredictably",
+          "trigger": "Using timeline navigation controls in time machine",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:14:35",
+      "status": "complete",
+      "errors_encountered": 7,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Author search functionality failure: user couldn't find existing authors 'Arcangelo Massari' and 'Silvio Peroni' in the system, requiring manual entry instead of reusing existing entities",
+          "trigger": "Attempted to search for and add known authors to the publication",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Unclear field mapping for publication metadata: user expressed confusion about where to input volume and issue numbers, couldn't locate appropriate fields",
+          "trigger": "Attempting to enter volume (9) and issue (20) information for the journal article",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Date format inconsistency: user noted the date picker used American format (MM/DD/YYYY) instead of international ISO format (YYYY-MM-DD), calling it 'male male' (bad bad)",
+          "trigger": "Entering publication date in date field",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Interface performance issues: user reported the interface became very slow and unresponsive ('bugga tantissimo, si blocca') when working with entity creation forms",
+          "trigger": "Creating new entities and working with form fields",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Autocomplete noise and distraction: user was distracted by irrelevant autocomplete suggestions ('frutto' - fruit) appearing when trying to enter journal information",
+          "trigger": "Typing in form fields that triggered unwanted autocomplete suggestions",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Visual complexity and cognitive overload: user described the form interface as becoming 'troppo disturbante' (too disturbing/distracting) and 'un mappazzone' (a mess) due to expanding multi-line displays",
+          "trigger": "Working with complex nested entity creation forms",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}

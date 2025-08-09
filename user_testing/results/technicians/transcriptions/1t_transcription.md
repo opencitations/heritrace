@@ -1,0 +1,45 @@
+# Configurator 1t transcription 
+
+## Warm-up exploration
+
+Okay, so I'm on the first phase, I'm trying to get a grasp of how the interface works. Okay, go to the catalogue. Okay, automatically logged in. Okay, so here I can see journal articles, journal issues, volumes, and manifestation, which should be okay. Let's see here. Only one journal, okay, you can see identifiers, titles. Okay, the other resources referencing this journal, or rather I guess other resources inside this journal. Okay. Okay, nice. Okay, nice. Okay.
+
+Let's try editing this resource. Okay, so I am accessing a resource of type identifier. I should be able to delete it and modify it. Okay, let's try setting the DOI with this value, which is ISSN value. Let's try and see if it works. Of course, it will be wrong. Okay, try updating things first. I think I am already updating things. It looks like I'm trying to set this value for a DOI instead of an ISSN. Maybe this isn't okay, let's try something else. Save changes. Okay, primary resource... okay, oh nice. Okay, so cancel because I don't need to... okay, I save changes. Yes, discard changes, which is definitely... so, oh nice, I should be... okay, so I guess... let's try something like... Okay, okay. Good. Nice.
+
+Okay, time vault, let's see. Oh, time vault only shows deleted resources. Nice. Okay, journal volume. Okay. So yeah, I guess I'm gonna get back to task number two for testing.
+
+## Task 1: Add SHACL validation for abstract
+
+And SHACL validation for abstract. First, extend the SHACL shape for five-digit learning abstract property, okay, using dcterms:abstract. Just modify the SHACL shape to... Okay, so basically what I need to do is, I guess, extend the shape for the class Fabio Journal article to be... for it to be able to admit also the property dcterms:abstract, which I assume is optional. Yeah, the abstract is optional. But if there is an abstract for a journal article, it must have no more than a single value - a single... that is, a journal article must only have one abstract, or rather can only have one abstract.
+
+Okay, so the configuration file should be right here, and since I need to extend the SHACL shape, I'm going to modify the SHACL file. So first of all, let's try to see if there is no abstract yet. So I need to extend it and I need to extend it for the shape Fabio, for the shape that deals with classes - class Fabio journal articles. So yeah, I'm assuming that there are other classes. This one, just to double-check, I'll try and see if there is any other mention of Fabio journal article in the SHACL Shape file, besides this SHACL Shape, and it seems that this is the only shape relevant for Fabio Journal article.
+
+So what I'm trying to do is basically - what I should do is basically add the constraint for another property, specifically dcterms:abstract for the class Fabio Journal article. So yeah, I can see. Okay, that should be pretty easy. Okay, should be something like... I can copy, like I can copy this and say path dcterms:abstract. The prefix dcterms is already specified, I guess, here. Data type string, which looks fine. Min count should be set to zero or deleted since abstract is optional, and max count should be one since a journal article can only have one abstract.
+
+So I'll save this and try to try the reloading. Okay, and let's see if I can, for example, modify a journal article by adding an abstract. So, okay, journal article expression, title, author... uh, let's try edit resource. I don't want to add an identifier. I would like to add... add... add abstract. Here it is, okay. So save changes... uh, as soon as that... uh, I guess Arcangelo Massari should be fine as a private source. Okay.
+
+Now let's see if SHACL is still modified, I guess so, let's see. Okay, okay, this is kind of strange. I would like to see like just the abstract, like label, and not the whole UI. This looks pretty fine to me, so I am assuming that I have to modify like some sort of display rule for the abstract property. Okay, so let's go straight to task number two.
+
+## Task 2: Add abstract display support
+
+Okay, add abstract display support. The default text input is not ideal for long-form text without specified... without specific display rules, the user experience is a lot. Yeah. These requirements, property display abstract. Okay, nice. This is exactly what I want.
+
+So, okay. I'm guessing that I should be able to modify this label for the dcterms:abstract property into something like just "Abstract". Input type appropriate for long form text. Properties should appear under the title in the display order. Okay, under the title. Yeah, it would also make sense. So the task is basically asking me to, if I understand correctly, that this property abstract should be displayed here under title, which is, well, I mean, it makes sense. Input type, okay. For the display name, abstract.
+
+So, once completed, refine the UI that the abstract input has changed from a simple text field to a multi-line textarea. Okay.
+
+Display rules and... Okay. Property... see... okay, of course there is no display rule for the abstract, but I guess that I can like reuse some of the already existing display properties here and display rule already specified and modify it for our set. I don't perfectly recall the documentation right now, but so let's see. Okay, so this priority one should be displayed through journal article similar properties. Okay. This is the display property for type. Okay.
+
+So let's try something like this and see if it works. dcterms:abstract, display name let's set "abstract", should be displayed true, input type textarea. Let me see the documentation to see the correct value... uh, application settings display rules configuration... no, textarea. It was textarea what I'm looking for is input type in order to understand... okay, define the forms, the font field. Common types include text, textarea, date and tag. So I assume that textarea should be the most appropriate type for this kind of string. So I'll leave it as it is. Exterior support search - I don't think that's necessary.
+
+So let's try and see if I comply with the request here. Probably this is doing... probably this is being named abstract input type appropriate for the long form text. I assume that this is what textarea does. Probably should appear under the title in the display order. I'm not sure that this is already like enforced by placing abstract here right under the display rule for the title property. I actually don't think it works like that, but let's see. Let's see what happens. So I'm gonna reload the page. This is a tryout. This is still because... like before because I haven't reloaded yet.
+
+Oh nice, nice! This is okay. So it is enough to place the rule under title to see in the display rules, to see the label I want, where I want it. So yeah, I guess I'll try like a very long abstract to see a very long text. Okay, so very long lorem ipsum. Let's try it like that. Yeah, okay. I just want to try whether the abstract could be displayed correctly. So I'm going to modify the value here. Here, okay, this is a very long, pretty long text. Okay, so save changes. Gone. Okay, I would expect this to stay like configured as the default primary source as I already specified it earlier, but let's try that. Okay.
+
+Now I'll try reloading it and see how it is displayed. Okay, nice. Yeah, this is what I would expect. Let's see time machine just by curiosity. Okay, so I would expect to see the modifications I did, I just did here. Okay, okay, very nice, very nice, seems to work pretty well. So yeah, so I can see that I have deleted the value for abstract that I set just earlier and added a new one. Very nice. Okay.
+
+Just out of curiosity, I want to try another input type for the abstract to see if it actually... I mean, I want to see what happens if I set another value than textarea for the input type, for example, text. So, okay, text, let's do that, and then I reload the page. Here it is, alright... journal article, here it is. Okay, well, I cannot see any difference between text and textarea as a value for the input type for the abstract property. But yeah, I mean, it works either way and I wouldn't expect it.
+
+So I guess I'm going with... oh yeah, of course, of course, I made a mistake. I made a mistake in modifying the display rule for the property. So yeah, should this be input type text? Okay. So I would expect now that the abstract value is displayed differently than it is right now, but let's see if that's true. If that's the case, it is in fact the case since there is no abstract anymore. So I'm gonna set it back to textarea. textarea, save. Save. Very nice. And there it is, the abstract, okay.
+
+And let's change from simple text field to a multi-line textarea. Okay, very nice. Okay, so I'm stopping the recording right now.

@@ -42,28 +42,39 @@ Create individual completion analysis files for each participant using standardi
       "expected_duration_minutes": 8,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]"
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": [
+        {
+          "severity": "[low|medium|high]",
+          "symptom": "[WHAT WAS OBSERVED]",
+          "trigger": "[USER_ACTION_THAT_LED_TO_ERROR]",
+          "outcome": "[blocked|recovered|workaround]"
+        }
+      ]
     },
     "merge_authors": {
       "task_name": "Merge duplicate author entities",
       "expected_duration_minutes": 10,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]"
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
     },
     "restore_version": {
       "task_name": "Restore previous version",
       "expected_duration_minutes": 7,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]"
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
     },
     "create_publication": {
       "task_name": "Create new publication record",
       "expected_duration_minutes": 20,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]"
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
     }
   }
 }
@@ -80,14 +91,23 @@ Create individual completion analysis files for each participant using standardi
       "expected_duration_minutes": 22,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]"
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": [
+        {
+          "severity": "[low|medium|high]",
+          "symptom": "[WHAT WAS OBSERVED]",
+          "trigger": "[USER_ACTION_THAT_LED_TO_ERROR]",
+          "outcome": "[blocked|recovered|workaround]"
+        }
+      ]
     },
     "add_display_support": {
       "task_name": "Add abstract display support",
       "expected_duration_minutes": 23,
       "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
       "status": "[complete|partial|failed]",
-      "errors_encountered": "[COUNT_FROM_VIDEO]"
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
     }
   }
 }
@@ -100,9 +120,34 @@ Create individual completion analysis files for each participant using standardi
    - `complete` = working deliverable produced
    - `partial` = incomplete attempt with some progress
    - `failed` = task abandoned or no progress
-4. **Error counting**: Include wrong clicks, error messages, confusion incidents
+4. **Error counting**: Use the counting protocol below. Record each event in the `errors` list; `errors_encountered` is the count of that list.
 
 **Important**: The `errors_encountered` field should match error-related codes in qualitative coding for consistency.
+
+### Error definition and severity
+
+An error is any observable event that prevents expected progress, forces a retry/workaround, or indicates user confusion tied to a specific interface or configuration cause. Classify each event by severity only (grounded categories will be derived later during coding).
+
+- **Severity**
+  - **high**: Blocks task completion or requires restart/support.
+  - **medium**: Requires workaround/retry and causes noticeable delay.
+  - **low**: Minor issue or confusion with little impact on time.
+
+### Error counting protocol
+
+- Count one event per distinct occurrence; repeated identical misclicks within 5 seconds count as a single event.
+- The same error happening again later counts as a new event.
+- Only count issues tied to an action or UI state; do not count passive reading or expected confirmation prompts.
+- If multiple symptoms stem from one underlying cause (e.g., a single SHACL issue leading to two messages), record one event and note symptoms in `symptom`.
+
+### Aggregation metrics (Phase 2)
+
+From the templates above, compute:
+
+- **Errors per task** and **per participant**
+- **Severity-weighted error score** per task: low=1, medium=2, high=4 (sum over events)
+- **Error rate per minute**: errors_encountered / actual_duration_minutes
+- **Blocked tasks**: tasks with any high-severity event with outcome `blocked`
 
 ## Step 3: Grounded Analysis
 
@@ -167,7 +212,7 @@ Create individual completion analysis files for each participant using standardi
 }
 ```
 
-# Data cisualization
+# Data visualization
 
 **1. Task Success Rate by User Type**
 - **Type**: Side-by-side bar charts (separate charts for each user type)
@@ -186,15 +231,28 @@ Create individual completion analysis files for each participant using standardi
 - **Reference line**: y=x diagonal for perfect time estimation
 - **Output**: Reveals time estimation accuracy patterns
 
-**3. Error Frequency Heatmap**
-- **Type**: Matrix heatmap
-- **Input**: Aggregate errors_encountered from all task completion files
-- **Rows**: Individual participants  
+**3. Error Metrics Heatmaps**
+- **Type**: Two matrix heatmaps
+- **Inputs**:
+  - Heatmap A: `errors_encountered` per participant-task
+  - Heatmap B: severity-weighted score per participant-task (low=1, medium=2, high=4)
+- **Rows**: Participants  
 - **Columns**: Task types
-- **Values**: Error count per participant-task combination
-- **Output**: Identifies error hotspots and participant struggle patterns
+- **Output**: Highlights hotspots by count and by impact
 
-**4. Grounded Theory Category TreeMap**
+**4. Error Category Distribution (derived from grounded analysis)**
+- **Type**: Stacked bar chart by task (separate charts per user type)
+- **Input**: Categories emerging from axial coding mapped to error events
+- **Output**: Shows which grounded categories dominate per task
+
+**5. Duration vs. Error Relationship**
+- **Type**: Scatter plot
+- **X-axis**: `errors_encountered` (or severity-weighted score)
+- **Y-axis**: `actual_duration_minutes`
+- **Colors**: User type
+- **Output**: Correlation between errors and time
+
+**6. Grounded Theory Category TreeMap**
 - **Type**: Hierarchical TreeMap visualization (separate for each user type)
 - **Input**: Extract categories, frequencies and sentiment from `axial_codes.json` files
 - **Rectangle size**: Category frequency (from `frequency` field in JSON)

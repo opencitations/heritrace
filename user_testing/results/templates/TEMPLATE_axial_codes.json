@@ -1,0 +1,18 @@
+{
+  "user_type": "end_user",
+  "categories": [
+    {
+      "category_name": "[CATEGORY_NAME]",
+      "related_codes": [
+        {
+          "participant_id": "[PARTICIPANT_ID]",
+          "code": "[CODE_NAME]"
+        }
+      ],
+      "category_description": "[HOW_CODES_RELATE]",
+      "task_contexts": ["[TASK1]", "[TASK2]"],
+      "overall_sentiment": "[positive|neutral|negative]",
+      "frequency": "[NUMBER_OF_RELATED_CODES]"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "participant_id": "[REPLACE_WITH_PARTICIPANT_ID]",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "status": "[complete|partial|failed]",
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "status": "[complete|partial|failed]",
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "user_type": "end_user",
+  "core_category": "[CENTRAL_THEME_NAME]",
+  "theory_statement": "[MAIN_EXPLANATION_OF_USER_EXPERIENCE]",
+  "supporting_categories": [
+    {
+      "category": "[CATEGORY_NAME]",
+      "relationship_to_core": "[HOW_IT_SUPPORTS_MAIN_THEORY]",
+      "frequency": "[HOW_MANY_PARTICIPANTS_AFFECTED]"
+    }
+  ]
+}

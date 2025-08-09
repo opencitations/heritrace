@@ -1,0 +1,12 @@
+{
+  "participant_id": "[PARTICIPANT_ID]",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "[PARTICIPANT_EXACT_WORDS]",
+      "verbatim_quote": "[EXACT_QUOTE_FROM_DATA]",
+      "context": "[SITUATION_DESCRIPTION]",
+      "sentiment": "[positive|neutral|negative]"
+    }
+  ]
+}

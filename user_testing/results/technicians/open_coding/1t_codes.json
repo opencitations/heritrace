@@ -1,0 +1,72 @@
+{
+  "participant_id": "1t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "successful_navigation_and_exploration",
+      "verbatim_quote": "Okay, so I'm on the first phase, I'm trying to get a grasp of how the interface works. Okay, go to the catalogue. Okay, automatically logged in. Okay, so here I can see journal articles, journal issues, volumes, and manifestation, which should be okay",
+      "context": "User successfully navigated to the catalogue and immediately understood the available resource types",
+      "sentiment": "positive"
+    },
+    {
+      "code": "clear_resource_organization_understanding",
+      "verbatim_quote": "Only one journal, okay, you can see identifiers, titles. Okay, the other resources referencing this journal, or rather I guess other resources inside this journal. Okay. Okay, nice. Okay, nice. Okay",
+      "context": "User quickly grasped how resources are organized and how relationships between resources are displayed",
+      "sentiment": "positive"
+    },
+    {
+      "code": "time_vault_understanding",
+      "verbatim_quote": "Okay, time vault, let's see. Oh, time vault only shows deleted resources. Nice",
+      "context": "User quickly understood the purpose and function of the time vault feature",
+      "sentiment": "positive"
+    },
+    {
+      "code": "system_validation_bug_discovery",
+      "verbatim_quote": "Okay, let's try setting the DOI with this value, which is ISSN value. Let's try and see if it works. Of course, it will be wrong. Okay, try updating things first. I think I am already updating things. It looks like I'm trying to set this value for a DOI instead of an ISSN. Maybe this isn't okay, let's try something else",
+      "context": "User discovered a validation bug: when changing identifier type from ISSN to DOI while keeping the same invalid value, the system neither showed validation errors nor detected changes when saving, indicating flawed validation logic",
+      "sentiment": "negative"
+    },
+    {
+      "code": "need_to_verify_SHACL_structure",
+      "verbatim_quote": "I'll try and see if there is any other mention of fabio:JournalArticle in the SHACL Shape file",
+      "context": "User double-checking SHACL file structure before modifying shapes to ensure no conflicts",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "successful_SHACL_implementation",
+      "verbatim_quote": "So I'll save this and try to try the reloading. Okay, and let's see if I can, for example, modify a journal article by adding an abstract. So, okay, journal article expression, title, author... uh, let's try edit resource. I don't want to add an identifier. I would like to add... add... add abstract. Here it is, okay",
+      "context": "User successfully implemented SHACL validation for abstract property and immediately verified it works by finding the new field available",
+      "sentiment": "positive"
+    },
+    {
+      "code": "unexpected_UI_presentation",
+      "verbatim_quote": "This is kind of strange. I would like to see like just the abstract, like label, and not the whole UI",
+      "context": "User noticing that abstract field appears differently than expected after adding SHACL validation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "uncertainty_about_display_rule_ordering",
+      "verbatim_quote": "I'm not sure that this is already like enforced by placing abstract here right under the display rule for the title property",
+      "context": "User expressing doubt about whether position in display rules affects field ordering in the interface",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "intuitive_display_rules_configuration",
+      "verbatim_quote": "Oh nice, nice! This is okay. So it is enough to place the rule under title to see in the display rules, to see the label I want, where I want it",
+      "context": "User discovered that display rule positioning affects field order in UI and expressed satisfaction with the intuitive behavior",
+      "sentiment": "positive"
+    },
+    {
+      "code": "effective_change_tracking_verification",
+      "verbatim_quote": "Now I'll try reloading it and see how it is displayed. Okay, nice. Yeah, this is what I would expect. Let's see time machine just by curiosity. Okay, so I would expect to see the modifications I did, I just did here. Okay, okay, very nice, very nice, seems to work pretty well",
+      "context": "User successfully tested the implemented feature and verified change tracking works as expected through the time machine feature",
+      "sentiment": "positive"
+    },
+    {
+      "code": "successful_task_completion_satisfaction",
+      "verbatim_quote": "And let's change from simple text field to a multi-line textarea. Okay, very nice. Okay, so I'm stopping the recording right now",
+      "context": "User expressed satisfaction at successfully completing both SHACL validation and display rule configuration tasks",
+      "sentiment": "positive"
+    }
+  ]
+}

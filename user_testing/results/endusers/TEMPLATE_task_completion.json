@@ -1,0 +1,38 @@
+{
+  "participant_id": "[REPLACE_WITH_PARTICIPANT_ID]",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "status": "[complete|partial|failed]",
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "status": "[complete|partial|failed]",
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "status": "[complete|partial|failed]",
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "status": "[complete|partial|failed]",
+      "errors_encountered": "[DERIVED: COUNT(errors)]",
+      "errors": []
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "participant_id": "1t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:06:08",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "User confused by UI display showing full URI instead of just 'abstract' label after adding property",
+          "trigger": "Adding abstract property and seeing unexpected UI rendering with full dcterms:abstract display",
+          "outcome": "workaround"
+        }
+      ]
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:07:00",
+      "status": "complete",
+      "errors_encountered": 6,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "User cannot see difference between 'text' and 'textarea' input types during testing",
+          "trigger": "Changing input type from textarea to text to test visual difference",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "high",
+          "symptom": "Abstract field disappears when user changes input type from textarea to text",
+          "trigger": "Modifying display rule input type configuration",
+          "outcome": "blocked"
+        },
+        {
+          "severity": "medium",
+          "symptom": "User realizes they made mistake in display rule configuration causing field to disappear",
+          "trigger": "Observing that abstract field is no longer visible after input type change",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "User uncertain about display order configuration and whether positioning under title works as expected",
+          "trigger": "Placing abstract display rule under title property in YAML configuration",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "User expresses uncertainty about input type documentation and correct values",
+          "trigger": "Looking up proper input type values for textarea vs text",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "User expects primary source configuration to persist but system doesn't retain previous setting",
+          "trigger": "Saving changes and expecting previously specified primary source to remain selected",
+          "outcome": "workaround"
+        }
+      ]
+    }
+  }
+}
