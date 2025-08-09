@@ -22,25 +22,13 @@
       "expected_duration_minutes": 23,
       "actual_duration_minutes": "00:07:00",
       "status": "complete",
-      "errors_encountered": 6,
+      "errors_encountered": 3,
       "errors": [
-        {
-          "severity": "medium",
-          "symptom": "User cannot see difference between 'text' and 'textarea' input types during testing",
-          "trigger": "Changing input type from textarea to text to test visual difference",
-          "outcome": "workaround"
-        },
         {
           "severity": "high",
           "symptom": "Abstract field disappears when user changes input type from textarea to text",
           "trigger": "Modifying display rule input type configuration",
           "outcome": "blocked"
-        },
-        {
-          "severity": "medium",
-          "symptom": "User realizes they made mistake in display rule configuration causing field to disappear",
-          "trigger": "Observing that abstract field is no longer visible after input type change",
-          "outcome": "recovered"
         },
         {
           "severity": "low",
@@ -50,12 +38,6 @@
         },
         {
           "severity": "low",
-          "symptom": "User expresses uncertainty about input type documentation and correct values",
-          "trigger": "Looking up proper input type values for textarea vs text",
-          "outcome": "recovered"
-        },
-        {
-          "severity": "medium",
           "symptom": "User expects primary source configuration to persist but system doesn't retain previous setting",
           "trigger": "Saving changes and expecting previously specified primary source to remain selected",
           "outcome": "workaround"

@@ -67,6 +67,42 @@
       "verbatim_quote": "And let's change from simple text field to a multi-line textarea. Okay, very nice. Okay, so I'm stopping the recording right now",
       "context": "User expressed satisfaction at successfully completing both SHACL validation and display rule configuration tasks",
       "sentiment": "positive"
+    },
+    {
+      "code": "immediate_graphical_feedback_appreciation",
+      "verbatim_quote": "Very much, the immediate graphical feedback was a great help to see if I had met the requests of the testing protocol.",
+      "context": "User values real-time visual confirmation that their actions meet system requirements or task objectives",
+      "sentiment": "positive"
+    },
+    {
+      "code": "gui_backend_integration_efficiency",
+      "verbatim_quote": "Being able to modify records data via a graphical interface and apply the changes in the backend in just a few clicks.",
+      "context": "User appreciates the streamlined workflow from UI modifications to backend application with minimal steps",
+      "sentiment": "positive"
+    },
+    {
+      "code": "provenance_tracking_data_restoration_value",
+      "verbatim_quote": "The provenance tracking is very useful also for restoring previous states of the data.",
+      "context": "User recognizes the practical utility of provenance features specifically for data recovery and version control",
+      "sentiment": "positive"
+    },
+    {
+      "code": "yaml_configuration_documentation_gap",
+      "verbatim_quote": "having more comments on the default yaml file would have been helpful to understand the inner working more quickly without the need to get back to the documentation.",
+      "context": "User identifies need for inline documentation in configuration files to reduce dependency on external documentation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "feature_completeness_satisfaction",
+      "verbatim_quote": "Nothing comes to mind.",
+      "context": "User expresses satisfaction with current feature set when asked about additional needs, indicating system adequacy",
+      "sentiment": "positive"
+    },
+    {
+      "code": "non_frustrating_experience_overall",
+      "verbatim_quote": "It was not frustrating, but having come comments on the default yaml file would have been helpful",
+      "context": "User explicitly states the overall experience was not frustrating, even when suggesting improvements",
+      "sentiment": "positive"
     }
   ]
 }

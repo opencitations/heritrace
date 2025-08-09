@@ -1,0 +1,180 @@
+{
+  "participant_id": "2e",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "positive_homepage_aesthetics",
+      "verbatim_quote": "Ok, intanto io comincio dal warmup, quindi mi pare che fosse in localhost 5000, ok bene, carino",
+      "context": "User appreciates the aesthetic appearance of the homepage interface",
+      "sentiment": "positive"
+    },
+    {
+      "code": "exploring_system_features_naturally",
+      "verbatim_quote": "Allora, devo fare login? Sì, ok, quindi nella demo allora vediamo un po' con gli item che ci sono: volumi fruit science... ok quelle che le referenziano... risorse simili, ok container, nuovo record, time vault, journal article",
+      "context": "User naturally explores various system features and interface elements during warmup",
+      "sentiment": "positive"
+    },
+    {
+      "code": "uncertainty_about_entity_creation",
+      "verbatim_quote": "l'unico dubbio è effettivamente se la nuova entità sia necessaria o meno",
+      "context": "User expresses uncertainty about whether they need to create a new entity or if one already exists",
+      "sentiment": "negative"
+    },
+    {
+      "code": "discovering_existing_entity_relief",
+      "verbatim_quote": "vedo che ce n'è già una praticamente, era già esistente in realtà",
+      "context": "User discovers that the entity already exists and expresses relief at this finding",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confident_task_completion",
+      "verbatim_quote": "ok posso anche metterla come prima autrice, sì perfetto, e poi salvo le modifiche, penso di poter confermare, ok bene",
+      "context": "User confidently completes the first task after resolving the entity creation uncertainty",
+      "sentiment": "positive"
+    },
+    {
+      "code": "navigating_to_specific_entity_page",
+      "verbatim_quote": "devo andare alla pagina di Richard Carew",
+      "context": "User understands they need to navigate to Richard Carew's page for the merge task",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "discovering_merge_functionality",
+      "verbatim_quote": "ci sono cose simili a queste, se si deve fare merge per caso. Allora ricerche, ricerche, ok, merge to site, ok, conferma",
+      "context": "User discovers and explores the merge functionality in the interface",
+      "sentiment": "positive"
+    },
+    {
+      "code": "appreciating_merge_clarity",
+      "verbatim_quote": "molto chiaro il fatto che ci sia il merge, capire anche chi è quello che perdi e chi è quello che mantieni",
+      "context": "User appreciates the clarity of the merge interface, particularly understanding which entity is kept and which is discarded",
+      "sentiment": "positive"
+    },
+    {
+      "code": "initial_confusion_with_time_vault",
+      "verbatim_quote": "Time Vault, ok non mi pare di aver capito bene come funziona",
+      "context": "User initially expresses confusion about how the Time Vault functionality works",
+      "sentiment": "negative"
+    },
+    {
+      "code": "understanding_time_machine_concept",
+      "verbatim_quote": "ah ok, time machine quindi lo snapshot effettivo che c'era, ah ok, perfetto",
+      "context": "User achieves understanding of the time machine concept as a snapshot system",
+      "sentiment": "positive"
+    },
+    {
+      "code": "adding_doi_successfully",
+      "verbatim_quote": "Intanto aggiungo il DOI, quindi il DOI, perfetto, quindi posso chiudere questo",
+      "context": "User successfully adds DOI information to the publication record",
+      "sentiment": "positive"
+    },
+    {
+      "code": "adding_author_information_methodically",
+      "verbatim_quote": "aggiungo l'autore, il nome intero è quando non so, di Arcangelo Massari, sì, e metto l'identifier che usiamo, l'ORCID",
+      "context": "User methodically adds author information including ORCID identifier",
+      "sentiment": "positive"
+    },
+    {
+      "code": "uncertainty_about_interface_feedback",
+      "verbatim_quote": "Beh capito se questo click mi mette di più una conferma o un qualcos'altro, sinceramente non capisco se devo cliccare lo stesso",
+      "context": "User expresses uncertainty about whether clicking buttons provides confirmation or triggers other actions",
+      "sentiment": "negative"
+    },
+    {
+      "code": "adding_multiple_metadata_fields",
+      "verbatim_quote": "publisher, add name, sì, poi pages starting page 340, poi publication date 2025, quindi 07-10-2025",
+      "context": "User systematically adds various metadata fields including publisher, pages, and publication date",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "uncertain_about_successful_addition",
+      "verbatim_quote": "non sono fibre del fatto che l'abbia aggiunta",
+      "context": "User expresses uncertainty about whether they have successfully added an entity",
+      "sentiment": "negative"
+    },
+    {
+      "code": "finding_system_simple_overall",
+      "verbatim_quote": "no è abbastanza chiaro, è molto semplice, sì, cioè è sempre molto semplice",
+      "context": "User consistently rates the system as clear and simple during questionnaire",
+      "sentiment": "positive"
+    },
+    {
+      "code": "isolating_entity_creation_as_main_problem",
+      "verbatim_quote": "Sì l'unico problema è che non ho ben capito la questione della creazione dell'entità però tutto sommato va molto bene",
+      "context": "User identifies entity creation as the only major problem while rating the system positively overall",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "appreciating_cross_referencing_functionality",
+      "verbatim_quote": "la cross-referencing, sì c'è fatto already existing entities was complete",
+      "context": "User specifically appreciates the cross-referencing functionality for existing entities",
+      "sentiment": "positive"
+    },
+    {
+      "code": "believing_entities_were_saved_despite_confusion",
+      "verbatim_quote": "le entità sono salvate probabilmente, sì, questo è vero",
+      "context": "User believes that entities were probably saved despite the interface confusion",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "requesting_clearer_visual_separation",
+      "verbatim_quote": "mi sarebbe un po' piaciuto in più tipo anche avere un po' più di card, qualcosa che renda più chiaro il fatto che siamo quasi delle cose separate tra di loro",
+      "context": "User suggests wanting clearer visual separation between different elements, like cards, to make distinct sections more obvious",
+      "sentiment": "negative"
+    },
+    {
+      "code": "effective_task_support_positive_evaluation",
+      "verbatim_quote": "It was effective in the tasks I was asked to perform.",
+      "context": "Overall evaluation of HERITRACE effectiveness in supporting assigned tasks from written reflection",
+      "sentiment": "positive"
+    },
+    {
+      "code": "ui_navigation_appreciation",
+      "verbatim_quote": "I really liked the UI in general as it provided an easy way to navigate the data to input.",
+      "context": "User expressing satisfaction with the user interface design and navigation experience in written reflection",
+      "sentiment": "positive"
+    },
+    {
+      "code": "data_validation_warnings_noticed",
+      "verbatim_quote": "Also I've noticed multiple warnings happening each time some data type was not the expected one",
+      "context": "User awareness of system validation feedback when incorrect data types are entered, noted in written reflection",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "autocomplete_entity_referencing_most_useful",
+      "verbatim_quote": "Referencing the already existing entities with the autocomplete functions was the most useful I think",
+      "context": "User identifying autocomplete functionality for existing entities as the most valuable feature in written reflection",
+      "sentiment": "positive"
+    },
+    {
+      "code": "cumbersome_new_entity_creation_process",
+      "verbatim_quote": "I found it a bit cumberson to add new entities on the fly while adding a resource.",
+      "context": "User expressing difficulty with the workflow for creating new entities during resource creation in written reflection",
+      "sentiment": "negative"
+    },
+    {
+      "code": "insufficient_entity_creation_feedback",
+      "verbatim_quote": "There was not enough feedback nor I could see the entity being saved in real time.",
+      "context": "User identifying lack of visual feedback and real-time confirmation during entity creation process in written reflection",
+      "sentiment": "negative"
+    },
+    {
+      "code": "uncertainty_about_entity_saving_timing",
+      "verbatim_quote": "Are the entities saved at the same time as the resource?",
+      "context": "User expressing confusion about when and how entities are persisted in the system in written reflection",
+      "sentiment": "negative"
+    },
+    {
+      "code": "resource_preview_feature_request",
+      "verbatim_quote": "I think it would be useful to have a full preview of the resource before saving it.",
+      "context": "User suggesting improvement for reviewing complete resource data before final submission in written reflection",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "enhanced_entity_feedback_request",
+      "verbatim_quote": "Also I think more feedback when adding entities and more visual separation between the different sections",
+      "context": "User requesting improved visual feedback for entity creation and better section organization in written reflection",
+      "sentiment": "neutral"
+    }
+  ]
+}

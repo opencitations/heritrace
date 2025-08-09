@@ -1,0 +1,65 @@
+{
+  "participant_id": "2e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:02:07",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Field confusion between 'name' and 'given name' fields causing database query failure: user initially did not understand whether they should create a new entity or if the entity already existed, stemming from filling the 'name' field instead of the 'given name' field, which caused the database query to fail when both fields were populated",
+          "trigger": "Attempting to add Carolyn Scagel as first author, expressing uncertainty with 'l'unico dubbio è effettivamente se la nuova entità sia necessaria o meno' (the only doubt is actually whether the new entity is necessary or not)",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:01:10",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:01:36",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "Initial confusion with Time Vault interface: user didn't immediately understand how the time machine functionality worked, expressing 'non mi pare di aver capito bene come funziona' (I don't seem to understand how it works)",
+          "trigger": "Attempting to access and use the Time Vault/time machine feature",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:11:00",
+      "status": "partial",
+      "errors_encountered": 2,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Unclear feedback when creating new entities: user was uncertain whether clicking buttons was creating entities or just providing confirmation, stating 'non capisco se devo cliccare lo stesso' (I don't understand if I need to click the same thing)",
+          "trigger": "Attempting to create authors and other entities during publication creation",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "high",
+          "symptom": "Entity creation visibility issues: user could not see created entities properly, reporting 'i value sono tutti chiusi però in qualche modo esistono' (the values are all closed but somehow they exist) and expressing confusion about whether entities were actually created",
+          "trigger": "Creating authors and other publication metadata entities",
+          "outcome": "blocked"
+        }
+      ]
+    }
+  }
+}
