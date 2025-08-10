@@ -1,37 +1,37 @@
-# HERITRACE User Testing Analysis Framework
+# HERITRACE user testing analysis framework
 
 ## Overview
 
 This framework provides a systematic approach to transform user testing data into actionable insights for HERITRACE system improvement. The analysis follows a structured 3-phase workflow designed for data collected from self-guided testing sessions with screen recordings, voice recordings, SUS questionnaires, and written reflections.
 
-## Analysis Workflow Overview
+## Analysis workflow overview
 
 The framework is organized into three sequential phases:
-1. **Manual Analysis** - Transcription correction, coding, and task completion tracking
-2. **Data Aggregation** - Automated processing of individual analysis files  
-3. **Insight Generation** - Synthesis into development priorities and recommendations
+1. **Manual analysis** - Transcription correction, coding, and task completion tracking
+2. **Data aggregation** - Automated processing of individual analysis files  
+3. **Insight generation** - Synthesis into development priorities and recommendations
 
-# Manual Analysis
+# Manual analysis
 
-## Step 1: Transcription Processing
+## Step 1: Transcription processing
 
-**Automatic Transcription**
+**Automatic transcription**
 - Use transcription tool: `./analysis_software/transcriber.py`
 - Generate initial transcripts: `participant_ID_transcript_raw.txt`
 
-**Manual Correction**
+**Manual correction**
 - Review automated transcripts while watching videos
 - Correct transcription errors and unclear sections
 
-## Step 2: Task Completion Analysis
+## Step 2: Task completion analysis
 
-### Task Completion Templates
+### Task completion templates
 
 Create individual completion analysis files for each participant using standardized templates.
 
-**Template Structure**:
+**Template structure**:
 
-**End User Tasks:**
+**End user tasks:**
 ```json
 {
   "participant_id": "[REPLACE_WITH_PARTICIPANT_ID]",
@@ -80,7 +80,7 @@ Create individual completion analysis files for each participant using standardi
 }
 ```
 
-**Technician Tasks:**
+**Technician tasks:**
 ```json
 {
   "participant_id": "[REPLACE_WITH_PARTICIPANT_ID]",
@@ -113,7 +113,7 @@ Create individual completion analysis files for each participant using standardi
 }
 ```
 
-**Task Completion Analysis Instructions:**
+**Task completion analysis instructions:**
 1. **Create individual files**: `[participant_ID]_task_completion.json` for each participant
 2. **While watching videos**: Measure actual duration and count visible errors. Record `actual_duration_minutes` strictly as `HH:MM:SS` (hours:minutes:seconds)
 3. **Status definitions**: 
@@ -140,7 +140,7 @@ An error is any observable event that prevents expected progress, forces a retry
 - Only count issues tied to an action or UI state; do not count passive reading or expected confirmation prompts.
 - If multiple symptoms stem from one underlying cause (e.g., a single SHACL issue leading to two messages), record one event and note symptoms in `symptom`.
 
-### Aggregation metrics (Phase 2)
+### Aggregation metrics (phase 2)
 
 From the templates above, compute:
 
@@ -150,13 +150,16 @@ From the templates above, compute:
 - **Blocked tasks**: tasks with any high-severity event with outcome `blocked`
 - **Task success rate** (per user type and per task): `((complete) + 0.5 * (partial)) / (complete + partial + failed) * 100`
 
-## Step 3: Grounded Analysis
+## Step 3: Grounded analysis
 
-### User-Type Specific Analysis
+### User-type specific analysis
 
 **Base Template**: Use this structure for both user types, specifying `user_type` as `"end_user"` or `"technician"`
 
-#### Open Coding Phase
+#### Open coding phase
+
+**Constant comparison method**: During open coding, systematically compare each new code with all existing codes from previous participants and contexts. For every new code ask: "What other incidents are similar/different?", "How does this phenomenon vary across participants or tasks?", "What makes this incident unique or typical?". This continuous comparison helps refine code definitions, identify emerging patterns, and avoid redundant or overly narrow codes.
+
 **Template**: `[user_type]_[participant_ID]_codes.json`
 ```json
 {
@@ -173,7 +176,7 @@ From the templates above, compute:
 }
 ```
 
-#### Axial Coding Phase
+#### Axial coding phase
 **Template**: `[user_type]_axial_codes.json`
 ```json
 {
@@ -196,7 +199,22 @@ From the templates above, compute:
 }
 ```
 
-#### Selective Coding Phase
+##### Axial code verification
+
+**Purpose**: Verify that all open codes have been properly considered in axial coding analysis.
+
+**Running the verification**:
+```bash
+cd user_testing/analysis_software
+
+uv run python3 axial_code_verification.py
+
+**Output**: Console report showing:
+- Missing codes (open codes not included in axial analysis)
+- Extra codes (codes in axial analysis but not in open coding)
+- Coverage percentage
+
+#### Selective coding phase
 **Template**: `[user_type]_selective_codes.json`
 ```json
 {
@@ -215,7 +233,7 @@ From the templates above, compute:
 
 # Data visualization
 
-**1. Task Success Rate by User Type**
+**1. Task success rate by user type**
 - **Type**: Side-by-side bar charts (separate charts for each user type)
 - **Input**: Calculate from individual `task_completion.json` files
 - **End User Chart**: edit_publication, merge_authors, restore_version, create_publication
@@ -224,7 +242,7 @@ From the templates above, compute:
 - **Success calculation**: `complete = 1`, `partial = 0.5`, `failed = 0`
 - **Output**: Shows task difficulty within each user type separately
 
-**2. Duration Analysis Scatter Plot**  
+**2. Duration analysis scatter plot**  
 - **Type**: Scatter plot with reference line
 - **Input**: Extract expected_duration and actual_duration from task completion files
 - **X-axis**: Expected duration (minutes)
@@ -233,7 +251,7 @@ From the templates above, compute:
 - **Reference line**: y=x diagonal for perfect time estimation
 - **Output**: Reveals time estimation accuracy patterns
 
-**3. Error Metrics Heatmaps**
+**3. Error metrics heatmaps**
 - **Type**: Two matrix heatmaps
 - **Inputs**:
   - Heatmap A: `errors_encountered` per participant-task
@@ -242,13 +260,13 @@ From the templates above, compute:
 - **Columns**: Task types
 - **Output**: Highlights hotspots by count and by impact
 
-**4. Error Category Distribution (derived from grounded analysis)**
+**4. Error category distribution (derived from grounded analysis)**
 - **Type**: Stacked bar chart by task (separate charts per user type)
 - **Input**: Categories emerging from axial coding mapped to error events
 - **Output**: Shows which grounded categories dominate per task
 
 
-**5. Grounded Theory Category TreeMap**
+**5. Grounded theory category TreeMap**
 - **Type**: Hierarchical TreeMap visualization (separate for each user type)
 - **Input**: Extract categories, frequencies and sentiment from `axial_codes.json` files
 - **Rectangle size**: Category frequency (from `frequency` field in JSON)
@@ -257,20 +275,20 @@ From the templates above, compute:
 - **Interactive**: Click to drill down into category details and supporting quotes
 - **Output**: Visual representation of user experience themes with relative importance and emotional impact
 
-# SUS Analysis
+# SUS analysis
 
-## SUS Score Calculation
+## SUS score calculation
 
 The System Usability Scale (SUS) provides a standardized usability metric. Calculate SUS scores using the standard formula:
 
-1. **Score Processing**:
+1. **Score processing**:
    - Odd items (1,3,5,7,9): Score = rating - 1
    - Even items (2,4,6,8,10): Score = 5 - rating
    
-2. **Total Calculation**: Sum all scores and multiply by 2.5
+2. **Total calculation**: Sum all scores and multiply by 2.5
 3. **Range**: Final scores range from 0-100
 
-## SUS Subscales (Usability & Learnability)
+## SUS subscales (usability & learnability)
 
 ### Calculation
 - **Usability (8 item)**: items 1,2,3,5,6,7,8,9
@@ -279,11 +297,11 @@ The System Usability Scale (SUS) provides a standardized usability metric. Calcu
 Conversion is identical to SUS total (each item to 0–4). For each subscale:
 - Compute the mean of its items (0–4) and multiply by 25 → 0–100 scale.
 
-## SUS Data Processing
+## SUS data processing
 
-**Input Files**: Extract ratings from `results/[endusers|technicians]/sus/[participant_id]_sus.md`
+**Input files**: Extract ratings from `results/[endusers|technicians]/sus/[participant_id]_sus.md`
 
-**Output Structure**: `results/aggregated_analysis/sus/`
+**Output structure**: `results/aggregated_analysis/sus/`
 ```
 sus_individual_scores.json
 sus_aggregated_report.json
@@ -294,21 +312,21 @@ Notes:
 - `sus_individual_scores.json` includes `usability_score` and `learnability_score` per participant.
 - `sus_aggregated_report.json` includes `subscales_summary` per user type.
 
-**Aggregated Metrics by User Type**:
+**Aggregated metrics by user type**:
 - Mean SUS score
 - Standard deviation
 - Median score
 - Score range (min-max)
 - Individual participant scores
 
-## SUS Benchmarking
+## SUS benchmarking
 
 Reference benchmarks for interpretation:
 - Below 68: Below average usability
 - 68-80.3: Above average usability  
 - Above 80.3: Excellent usability
 
-## SUS Visualization Templates
+## SUS visualization templates
 
 **1. SUS Score Distribution by User Type**
 - **Type**: Box plot comparison
@@ -325,7 +343,7 @@ Reference benchmarks for interpretation:
 - **Overlays**: horizontal guides at 60 (needs improvement) e 80 (excellent)
 - **Output**: Distribuzione delle sottoscale per tipo utente con soglie di interpretazione
 
-## SUS Software Usage
+## SUS software usage
 
 **Running the Analysis**:
 ```bash
@@ -341,7 +359,7 @@ uv run python sus_calculator.py
 - JSON files with detailed scores and statistics
 - PNG visualization with box plots and summary table
 
-## Task Analysis Software Usage
+## Task analysis software usage
 
 **Running the Analysis**:
 ```bash

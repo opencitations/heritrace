@@ -1,0 +1,345 @@
+{
+  "user_type": "end_user",
+  "categories": [
+    {
+      "category_name": "Positive Interface Design Elements",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "login_button_visibility_good"
+        },
+        {
+          "participant_id": "1e",
+          "code": "back_button_appreciation"
+        },
+        {
+          "participant_id": "1e",
+          "code": "external_links_proper_behavior"
+        },
+        {
+          "participant_id": "1e",
+          "code": "merge_interface_positive"
+        },
+        {
+          "participant_id": "2e",
+          "code": "positive_homepage_aesthetics"
+        },
+        {
+          "participant_id": "2e",
+          "code": "ui_navigation_appreciation"
+        }
+      ],
+      "category_description": "Codes representing positive user reactions to specific interface design elements, including visual appeal, navigation components, and functional design choices that enhance user experience",
+      "task_contexts": ["Initial system exploration", "Navigation between pages", "Merge operations"],
+      "overall_sentiment": "positive",
+      "frequency": "6"
+    },
+    {
+      "category_name": "Interface Design Problems",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "layout_space_wasted"
+        },
+        {
+          "participant_id": "1e",
+          "code": "visual_inconsistency_confusing"
+        },
+        {
+          "participant_id": "1e",
+          "code": "delete_button_inconsistency"
+        },
+        {
+          "participant_id": "1e",
+          "code": "date_format_wrong"
+        },
+        {
+          "participant_id": "2e",
+          "code": "requesting_clearer_visual_separation"
+        }
+      ],
+      "category_description": "Codes identifying specific interface design problems including inconsistent visual elements, layout issues, and styling problems that negatively impact user experience",
+      "task_contexts": ["Initial interface evaluation", "Creating new publications", "Comparing interface elements"],
+      "overall_sentiment": "negative",
+      "frequency": "5"
+    },
+    {
+      "category_name": "Successful System Features",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "auto_suggestion_positive"
+        },
+        {
+          "participant_id": "1e",
+          "code": "author_reordering_functionality"
+        },
+        {
+          "participant_id": "1e",
+          "code": "modification_feedback_satisfaction"
+        },
+        {
+          "participant_id": "1e",
+          "code": "restore_functionality_works"
+        },
+        {
+          "participant_id": "2e",
+          "code": "exploring_system_features_naturally"
+        },
+        {
+          "participant_id": "2e",
+          "code": "discovering_existing_entity_relief"
+        },
+        {
+          "participant_id": "2e",
+          "code": "discovering_merge_functionality"
+        },
+        {
+          "participant_id": "2e",
+          "code": "appreciating_merge_clarity"
+        },
+        {
+          "participant_id": "2e",
+          "code": "understanding_time_machine_concept"
+        },
+        {
+          "participant_id": "2e",
+          "code": "adding_doi_successfully"
+        },
+        {
+          "participant_id": "2e",
+          "code": "adding_author_information_methodically"
+        },
+        {
+          "participant_id": "2e",
+          "code": "finding_system_simple_overall"
+        },
+        {
+          "participant_id": "2e",
+          "code": "autocomplete_entity_referencing_most_useful"
+        },
+        {
+          "participant_id": "2e",
+          "code": "effective_task_support_positive_evaluation"
+        },
+        {
+          "participant_id": "2e",
+          "code": "appreciating_cross_referencing_functionality"
+        },
+        {
+          "participant_id": "2e",
+          "code": "confident_task_completion"
+        }
+      ],
+      "category_description": "Codes representing successful system features that work as intended and provide positive user experiences, including autocomplete, drag-and-drop functionality, merge operations, and overall system effectiveness",
+      "task_contexts": ["Adding authors", "Merge operations", "Time machine usage", "Creating publications", "Cross-referencing entities"],
+      "overall_sentiment": "positive",
+      "frequency": "16"
+    },
+    {
+      "category_name": "System Functionality Gaps",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "search_functionality_missing"
+        },
+        {
+          "participant_id": "1e",
+          "code": "creation_indicator_needed"
+        },
+        {
+          "participant_id": "1e",
+          "code": "form_collapse_needed"
+        }
+      ],
+      "category_description": "Codes identifying missing or needed system functionality that would improve user experience, including search capabilities, better status indicators, and form management features",
+      "task_contexts": ["Catalog browsing", "Entity creation", "Form interaction"],
+      "overall_sentiment": "negative",
+      "frequency": "3"
+    },
+    {
+      "category_name": "Entity Creation and Management Confusion",
+      "related_codes": [
+        {
+          "participant_id": "2e",
+          "code": "uncertainty_about_entity_creation"
+        },
+        {
+          "participant_id": "2e",
+          "code": "cumbersome_new_entity_creation_process"
+        },
+        {
+          "participant_id": "2e",
+          "code": "insufficient_entity_creation_feedback"
+        },
+        {
+          "participant_id": "2e",
+          "code": "uncertainty_about_entity_saving_timing"
+        },
+        {
+          "participant_id": "2e",
+          "code": "uncertain_about_successful_addition"
+        },
+        {
+          "participant_id": "2e",
+          "code": "isolating_entity_creation_as_main_problem"
+        }
+      ],
+      "category_description": "Codes representing user confusion and difficulties specifically related to entity creation processes, including uncertainty about when entities are created, saved, and how the workflow functions",
+      "task_contexts": ["Creating new entities", "Adding authors", "Saving resources"],
+      "overall_sentiment": "negative",
+      "frequency": "6"
+    },
+    {
+      "category_name": "Timeline and Version Control Challenges",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "timeline_confusing"
+        },
+        {
+          "participant_id": "1e",
+          "code": "timeline_labels_unclear"
+        },
+        {
+          "participant_id": "1e",
+          "code": "timeline_zoom_issue"
+        },
+        {
+          "participant_id": "2e",
+          "code": "initial_confusion_with_time_vault"
+        }
+      ],
+      "category_description": "Codes representing user difficulties with the timeline interface and version control features, including unclear labels, confusing initial presentation, and usability issues with the time machine functionality",
+      "task_contexts": ["Time machine usage", "Version restoration", "Timeline navigation"],
+      "overall_sentiment": "negative",
+      "frequency": "4"
+    },
+    {
+      "category_name": "Timeline Feature Success",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "timeline_understanding_improvement"
+        }
+      ],
+      "category_description": "Codes representing successful interaction with timeline features after initial confusion, showing that users can eventually understand and use the functionality effectively",
+      "task_contexts": ["Time machine usage", "Timeline navigation"],
+      "overall_sentiment": "positive",
+      "frequency": "1"
+    },
+    {
+      "category_name": "Form Interaction Problems",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "provenance_dialog_unclear"
+        },
+        {
+          "participant_id": "1e",
+          "code": "field_location_confusion"
+        },
+        {
+          "participant_id": "1e",
+          "code": "form_performance_issue"
+        },
+        {
+          "participant_id": "1e",
+          "code": "form_overwhelming"
+        },
+        {
+          "participant_id": "1e",
+          "code": "form_distracting_suggestions"
+        },
+        {
+          "participant_id": "2e",
+          "code": "uncertainty_about_interface_feedback"
+        }
+      ],
+      "category_description": "Codes representing specific problems with form interactions including unclear dialogs, performance issues, overwhelming complexity, and lack of clear feedback mechanisms",
+      "task_contexts": ["Creating publications", "Saving changes", "Form completion"],
+      "overall_sentiment": "negative",
+      "frequency": "6"
+    },
+    {
+      "category_name": "Merge Operations Uncertainty",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "merge_uncertainty"
+        }
+      ],
+      "category_description": "Codes representing user uncertainty about merge decisions, specifically difficulties in determining whether entities should be merged based on available information",
+      "task_contexts": ["Merge operations", "Entity deduplication"],
+      "overall_sentiment": "negative",
+      "frequency": "1"
+    },
+    {
+      "category_name": "First-Time User Experience",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "first_time_user_perspective"
+        }
+      ],
+      "category_description": "Codes representing the specific challenges and acknowledgments from first-time users navigating the system, highlighting the learning curve associated with system complexity",
+      "task_contexts": ["Form interaction", "General system usage"],
+      "overall_sentiment": "negative",
+      "frequency": "1"
+    },
+    {
+      "category_name": "System Understanding and Navigation",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "automatic_login_unclear"
+        },
+        {
+          "participant_id": "1e",
+          "code": "url_reference_confusing"
+        },
+        {
+          "participant_id": "1e",
+          "code": "loading_indicator_noticed"
+        },
+        {
+          "participant_id": "2e",
+          "code": "navigating_to_specific_entity_page"
+        },
+        {
+          "participant_id": "2e",
+          "code": "adding_multiple_metadata_fields"
+        },
+        {
+          "participant_id": "2e",
+          "code": "believing_entities_were_saved_despite_confusion"
+        },
+        {
+          "participant_id": "2e",
+          "code": "data_validation_warnings_noticed"
+        }
+      ],
+      "category_description": "Codes representing neutral observations about system behavior, user understanding processes, and factual navigation activities without strong positive or negative sentiment",
+      "task_contexts": ["System exploration", "Navigation", "Data entry", "System feedback observation"],
+      "overall_sentiment": "neutral",
+      "frequency": "7"
+    },
+    {
+      "category_name": "Improvement Suggestions",
+      "related_codes": [
+        {
+          "participant_id": "2e",
+          "code": "resource_preview_feature_request"
+        },
+        {
+          "participant_id": "2e",
+          "code": "enhanced_entity_feedback_request"
+        }
+      ],
+      "category_description": "Codes representing constructive user suggestions for system improvements, including preview functionality and enhanced feedback mechanisms",
+      "task_contexts": ["Resource creation", "Entity management", "Overall system improvement"],
+      "overall_sentiment": "neutral",
+      "frequency": "2"
+    }
+  ]
+}
