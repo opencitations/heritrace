@@ -1,0 +1,40 @@
+{
+  "summary_statistics": {
+    "endusers": {
+      "count": 2,
+      "mean": 71.25,
+      "std": 15.90990257669732,
+      "median": 71.25,
+      "min": 60.0,
+      "max": 82.5,
+      "scores": [
+        60.0,
+        82.5
+      ]
+    },
+    "technicians": {
+      "count": 1,
+      "mean": 85.0,
+      "std": 0,
+      "median": 85.0,
+      "min": 85.0,
+      "max": 85.0,
+      "scores": [
+        85.0
+      ]
+    }
+  },
+  "benchmarking": {
+    "participants_below_average": 1,
+    "participants_above_average": 0,
+    "participants_excellent": 2
+  },
+  "metadata": {
+    "analysis_date": "2025-08-10T16:40:56.217484",
+    "benchmark_thresholds": {
+      "below_average": "< 68",
+      "above_average": "68-80.3",
+      "excellent": ">= 80.3"
+    }
+  }
+}

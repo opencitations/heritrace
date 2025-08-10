@@ -260,3 +260,69 @@ From the templates above, compute:
 - **Hierarchical nesting**: Core categories contain related subcategories
 - **Interactive**: Click to drill down into category details and supporting quotes
 - **Output**: Visual representation of user experience themes with relative importance and emotional impact
+
+# SUS Analysis
+
+## SUS Score Calculation
+
+The System Usability Scale (SUS) provides a standardized usability metric. Calculate SUS scores using the standard formula:
+
+1. **Score Processing**:
+   - Odd items (1,3,5,7,9): Score = rating - 1
+   - Even items (2,4,6,8,10): Score = 5 - rating
+   
+2. **Total Calculation**: Sum all scores and multiply by 2.5
+3. **Range**: Final scores range from 0-100
+
+## SUS Data Processing
+
+**Input Files**: Extract ratings from `results/[endusers|technicians]/sus/[participant_id]_sus.md`
+
+**Output Structure**: `results/aggregated_analysis/sus/`
+```
+sus_individual_scores.json
+sus_aggregated_report.json
+sus_visualizations.png
+```
+
+**Aggregated Metrics by User Type**:
+- Mean SUS score
+- Standard deviation
+- Median score
+- Score range (min-max)
+- Individual participant scores
+
+## SUS Benchmarking
+
+Reference benchmarks for interpretation:
+- Below 68: Below average usability
+- 68-80.3: Above average usability  
+- Above 80.3: Excellent usability
+
+## SUS Visualization Templates
+
+**1. SUS Score Distribution by User Type**
+- **Type**: Box plot comparison
+- **Input**: Individual SUS scores grouped by user type
+- **Output**: Shows score distribution, median, and outliers with benchmark thresholds
+
+**2. Statistics Summary Table**
+- **Type**: Text-based summary table
+- **Input**: Aggregated statistics by user type
+- **Output**: Count, mean, standard deviation, median, and range for each user type
+
+## SUS Software Usage
+
+**Running the Analysis**:
+```bash
+cd user_testing/analysis_software
+uv run python sus_calculator.py
+```
+
+**Prerequisites**:
+- SUS questionnaire files in markdown format at `results/[endusers|technicians]/sus/`
+- Dependencies installed via `uv sync`
+
+**Output Files**:
+- JSON files with detailed scores and statistics
+- PNG visualization with box plots and summary table

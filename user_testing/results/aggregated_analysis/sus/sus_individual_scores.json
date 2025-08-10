@@ -1,0 +1,66 @@
+{
+  "participants": [
+    {
+      "participant_id": "1e",
+      "user_type": "endusers",
+      "ratings": [
+        4,
+        3,
+        3,
+        2,
+        3,
+        3,
+        3,
+        4,
+        4,
+        1
+      ],
+      "sus_score": 60.0,
+      "file_path": "../results/endusers/sus/1e_sus.md"
+    },
+    {
+      "participant_id": "2e",
+      "user_type": "endusers",
+      "ratings": [
+        4,
+        2,
+        2,
+        2,
+        5,
+        1,
+        5,
+        1,
+        4,
+        1
+      ],
+      "sus_score": 82.5,
+      "file_path": "../results/endusers/sus/2e_sus.md"
+    },
+    {
+      "participant_id": "1t",
+      "user_type": "technicians",
+      "ratings": [
+        5,
+        1,
+        4,
+        2,
+        5,
+        1,
+        2,
+        1,
+        4,
+        1
+      ],
+      "sus_score": 85.0,
+      "file_path": "../results/technicians/sus/1t_sus.md"
+    }
+  ],
+  "metadata": {
+    "total_participants": 3,
+    "user_types": [
+      "endusers",
+      "technicians"
+    ],
+    "analysis_date": "2025-08-10T16:40:56.217457"
+  }
+}
