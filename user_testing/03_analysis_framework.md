@@ -40,7 +40,7 @@ Create individual completion analysis files for each participant using standardi
     "edit_publication": {
       "task_name": "Edit existing publication record",
       "expected_duration_minutes": 8,
-      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "actual_duration_minutes": "[HH:MM:SS]",
       "status": "[complete|partial|failed]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": [
@@ -55,7 +55,7 @@ Create individual completion analysis files for each participant using standardi
     "merge_authors": {
       "task_name": "Merge duplicate author entities",
       "expected_duration_minutes": 10,
-      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "actual_duration_minutes": "[HH:MM:SS]",
       "status": "[complete|partial|failed]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": []
@@ -63,7 +63,7 @@ Create individual completion analysis files for each participant using standardi
     "restore_version": {
       "task_name": "Restore previous version",
       "expected_duration_minutes": 7,
-      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "actual_duration_minutes": "[HH:MM:SS]",
       "status": "[complete|partial|failed]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": []
@@ -71,7 +71,7 @@ Create individual completion analysis files for each participant using standardi
     "create_publication": {
       "task_name": "Create new publication record",
       "expected_duration_minutes": 20,
-      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "actual_duration_minutes": "[HH:MM:SS]",
       "status": "[complete|partial|failed]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": []
@@ -89,7 +89,7 @@ Create individual completion analysis files for each participant using standardi
     "add_shacl_validation": {
       "task_name": "Add SHACL validation for abstract",
       "expected_duration_minutes": 22,
-      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "actual_duration_minutes": "[HH:MM:SS]",
       "status": "[complete|partial|failed]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": [
@@ -104,7 +104,7 @@ Create individual completion analysis files for each participant using standardi
     "add_display_support": {
       "task_name": "Add abstract display support",
       "expected_duration_minutes": 23,
-      "actual_duration_minutes": "[MEASURE_FROM_VIDEO]",
+      "actual_duration_minutes": "[HH:MM:SS]",
       "status": "[complete|partial|failed]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": []
@@ -115,7 +115,7 @@ Create individual completion analysis files for each participant using standardi
 
 **Task Completion Analysis Instructions:**
 1. **Create individual files**: `[participant_ID]_task_completion.json` for each participant
-2. **While watching videos**: Measure actual duration and count visible errors
+2. **While watching videos**: Measure actual duration and count visible errors. Record `actual_duration_minutes` strictly as `HH:MM:SS` (hours:minutes:seconds)
 3. **Status definitions**: 
    - `complete` = working deliverable produced
    - `partial` = incomplete attempt with some progress
@@ -148,6 +148,7 @@ From the templates above, compute:
 - **Severity-weighted error score** per task: low=1, medium=2, high=4 (sum over events)
 - **Error rate per minute**: errors_encountered / actual_duration_minutes
 - **Blocked tasks**: tasks with any high-severity event with outcome `blocked`
+- **Task success rate** (per user type and per task): `((complete) + 0.5 * (partial)) / (complete + partial + failed) * 100`
 
 ## Step 3: Grounded Analysis
 
@@ -220,6 +221,7 @@ From the templates above, compute:
 - **End User Chart**: edit_publication, merge_authors, restore_version, create_publication
 - **Technician Chart**: add_shacl_validation, add_display_support
 - **Y-axis**: Success percentage (0-100%)
+- **Success calculation**: `complete = 1`, `partial = 0.5`, `failed = 0`
 - **Output**: Shows task difficulty within each user type separately
 
 **2. Duration Analysis Scatter Plot**  
@@ -245,14 +247,8 @@ From the templates above, compute:
 - **Input**: Categories emerging from axial coding mapped to error events
 - **Output**: Shows which grounded categories dominate per task
 
-**5. Duration vs. Error Relationship**
-- **Type**: Scatter plot
-- **X-axis**: `errors_encountered` (or severity-weighted score)
-- **Y-axis**: `actual_duration_minutes`
-- **Colors**: User type
-- **Output**: Correlation between errors and time
 
-**6. Grounded Theory Category TreeMap**
+**5. Grounded Theory Category TreeMap**
 - **Type**: Hierarchical TreeMap visualization (separate for each user type)
 - **Input**: Extract categories, frequencies and sentiment from `axial_codes.json` files
 - **Rectangle size**: Category frequency (from `frequency` field in JSON)
@@ -344,3 +340,26 @@ uv run python sus_calculator.py
 **Output Files**:
 - JSON files with detailed scores and statistics
 - PNG visualization with box plots and summary table
+
+## Task Analysis Software Usage
+
+**Running the Analysis**:
+```bash
+cd user_testing/analysis_software
+# Option A: esegui l'intera pipeline (metriche + grafici)
+uv run python task_pipeline.py
+
+# Option B: esegui singoli step
+uv run python task_metrics.py
+uv run python task_plots.py
+```
+
+**Prerequisites**:
+- Task completion files at `results/[endusers|technicians]/task_completion/`
+- Dependencies installed via `uv sync`
+
+**Output Files** (in `results/aggregated_analysis/tasks/`):
+- `task_metrics.json`
+- `task_success_rates.png`
+- `task_duration_expected_vs_actual.png`
+- `task_error_heatmaps.png`
