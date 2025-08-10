@@ -208,6 +208,7 @@ From the templates above, compute:
 cd user_testing/analysis_software
 
 uv run python3 axial_code_verification.py
+```
 
 **Output**: Console report showing:
 - Missing codes (open codes not included in axial analysis)
@@ -221,11 +222,21 @@ uv run python3 axial_code_verification.py
   "user_type": "[end_user|technician]",
   "core_category": "[CENTRAL_THEME_NAME]",
   "theory_statement": "[MAIN_EXPLANATION_OF_USER_EXPERIENCE]",
+  "theoretical_propositions": [
+    {
+      "proposition": "[THEORETICAL_STATEMENT]",
+      "explanation": "[HOW_THIS_EXPLAINS_THE_PHENOMENON]"
+    }
+  ],
   "supporting_categories": [
     {
       "category": "[CATEGORY_NAME]",
       "relationship_to_core": "[HOW_IT_SUPPORTS_MAIN_THEORY]",
-      "frequency": "[HOW_MANY_PARTICIPANTS_AFFECTED]"
+      "frequency": 0,
+      "axial_codes_included": [
+        "[AXIAL_CODE_NAME_1]",
+        "[AXIAL_CODE_NAME_2]"
+      ]
     }
   ]
 }
