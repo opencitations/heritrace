@@ -96,8 +96,6 @@ queries:
         ) AS ?formattedName)
     }
 
-
-
   publisher_query: &publisher_query |
     PREFIX pro: <http://purl.org/spar/pro/>
     PREFIX foaf: <http://xmlns.com/foaf/0.1/>
@@ -168,134 +166,6 @@ queries:
         [[subject]] frbr:partOf ?container.
         OPTIONAL { ?container dcterms:title ?containerName. }
         BIND(COALESCE(?containerName, STR(?container)) AS ?containerName)
-    }
-
-  journal_query: &journal_query |
-    PREFIX fabio: <http://purl.org/spar/fabio/>
-    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX datacite: <http://purl.org/spar/datacite/>
-    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-    SELECT ?journalDisplay ?journal
-    WHERE {
-      [[subject]] frbr:partOf+ ?journal.
-      ?journal a fabio:Journal;
-              dcterms:title ?journalName.
-      
-      {
-        SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-        WHERE {
-          OPTIONAL {
-            ?journal datacite:hasIdentifier ?identifier .
-            ?identifier datacite:usesIdentifierScheme ?scheme ;
-                      literal:hasLiteralValue ?value .
-            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-          }
-        }
-        GROUP BY ?journal
-      }
-      
-      BIND(STR(?journal) AS ?uriString)
-      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?journalName, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?journalName, " [omid:", ?omid, "]")
-        ) AS ?journalDisplay)
-    }
-
-  volume_journal_query: &volume_journal_query |
-    PREFIX fabio: <http://purl.org/spar/fabio/>
-    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX datacite: <http://purl.org/spar/datacite/>
-    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-    SELECT ?display ?container
-    WHERE {
-      [[subject]] frbr:partOf ?container .
-      
-      # Try to find volume information
-      OPTIONAL {
-        ?container a fabio:JournalVolume .
-        ?container fabio:hasSequenceIdentifier ?volumeNumber .
-        
-        # Try to find journal information
-        OPTIONAL {
-          ?container frbr:partOf ?journal .
-          ?journal a fabio:Journal .
-          ?journal dcterms:title ?journalTitle .
-          
-          # Get journal identifiers
-          OPTIONAL {
-            SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-            WHERE {
-              OPTIONAL {
-                ?journal datacite:hasIdentifier ?identifier .
-                ?identifier datacite:usesIdentifierScheme ?scheme ;
-                          literal:hasLiteralValue ?value .
-                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-              }
-            }
-            GROUP BY ?journal
-          }
-          
-          # Format journal with identifiers
-          BIND(STR(?journal) AS ?uriString)
-          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-          BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-                CONCAT(?journalTitle, " [omid:", ?omid, "]")
-              ) AS ?journalTitleWithId)
-        }
-      }
-      
-      # If no volume, try to find journal directly
-      OPTIONAL {
-        FILTER (!BOUND(?volumeNumber))
-        ?container a fabio:Journal .
-        ?container dcterms:title ?journalTitle .
-        
-        # Get journal identifiers
-        OPTIONAL {
-          SELECT ?container (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-          WHERE {
-            OPTIONAL {
-              ?container datacite:hasIdentifier ?identifier .
-              ?identifier datacite:usesIdentifierScheme ?scheme ;
-                        literal:hasLiteralValue ?value .
-              BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-            }
-          }
-          GROUP BY ?container
-        }
-        
-        # Format journal with identifiers
-        BIND(STR(?container) AS ?uriString)
-        BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-        BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-              CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-              CONCAT(?journalTitle, " [omid:", ?omid, "]")
-            ) AS ?journalTitleWithId)
-      }
-      
-      # Build display string based on available information
-      BIND(
-        IF(BOUND(?volumeNumber) && BOUND(?journalTitleWithId),
-          CONCAT("Vol. ", ?volumeNumber, ", ", ?journalTitleWithId),
-          IF(BOUND(?volumeNumber) && BOUND(?journalTitle),
-            CONCAT("Vol. ", ?volumeNumber, ", ", ?journalTitle),
-            IF(BOUND(?volumeNumber),
-              CONCAT("Vol. ", ?volumeNumber),
-              IF(BOUND(?journalTitleWithId),
-                ?journalTitleWithId,
-                IF(BOUND(?journalTitle),
-                  ?journalTitle,
-                  "Unknown container"
-                )
-              )
-            )
-          )
-        ) AS ?display
-      )
     }
 
   book_query: &book_query |
@@ -386,196 +256,50 @@ queries:
       )
     }
 
-  volume_query: &volume_query |
-    PREFIX fabio: <http://purl.org/spar/fabio/>
-    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-    SELECT ?volumeNumber ?volume
-    WHERE {
-        [[subject]] frbr:partOf+ ?volume.
-        ?volume a fabio:JournalVolume;
-                fabio:hasSequenceIdentifier ?volumeNumber.
-    }
-
-  issue_query: &issue_query |
-    PREFIX fabio: <http://purl.org/spar/fabio/>
-    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-    SELECT ?issueNumber ?issue
-    WHERE {
-        [[subject]] frbr:partOf ?issue.
-        ?issue a fabio:JournalIssue;
-                fabio:hasSequenceIdentifier ?issueNumber.
-    }
-
-  issue_volume_journal_container_query: &issue_volume_journal_container_query |
+  journal_article_container_query: &journal_article_container_query |
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
     PREFIX fabio: <http://purl.org/spar/fabio/>
     PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
     PREFIX datacite: <http://purl.org/spar/datacite/>
     PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
     SELECT ?display ?container
     WHERE {
-      # Try to find the most specific container (Issue > Volume > Journal)
-      {
-        # First try to find an Issue
-        SELECT ?display ?container
+      [[subject]] frbr:partOf ?container .
+      ?container a fabio:JournalIssue .
+      
+      ?container fabio:hasSequenceIdentifier ?issueNumber .
+      
+      ?container frbr:partOf ?volume .
+      ?volume a fabio:JournalVolume .
+      ?volume fabio:hasSequenceIdentifier ?volumeNumber .
+      
+      ?volume frbr:partOf ?journal .
+      ?journal a fabio:Journal .
+      ?journal dcterms:title ?journalTitle .
+      
+      OPTIONAL {
+        SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
-          [[subject]] frbr:partOf ?container .
-          ?container a fabio:JournalIssue .
-          
-          # Get issue number
-          OPTIONAL { ?container fabio:hasSequenceIdentifier ?issueNumber . }
-          
-          # Get volume information
-          OPTIONAL {
-            ?container frbr:partOf ?volume .
-            ?volume a fabio:JournalVolume .
-            OPTIONAL { ?volume fabio:hasSequenceIdentifier ?volumeNumber . }
-            
-            # Get journal information
-            OPTIONAL {
-              ?volume frbr:partOf ?journal .
-              ?journal a fabio:Journal .
-              OPTIONAL { ?journal dcterms:title ?journalTitle . }
-              
-              # Get journal identifiers
-              OPTIONAL {
-                SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-                WHERE {
-                  OPTIONAL {
-                    ?journal datacite:hasIdentifier ?identifier .
-                    ?identifier datacite:usesIdentifierScheme ?scheme ;
-                              literal:hasLiteralValue ?value .
-                    BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-                  }
-                }
-                GROUP BY ?journal
-              }
-              
-              # Format journal with identifiers
-              BIND(STR(?journal) AS ?uriString)
-              BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-              BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                    CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-                    CONCAT(?journalTitle, " [omid:", ?omid, "]")
-                  ) AS ?journalTitleWithId)
-            }
-          }
-          
-          # Build a display string with all available information
-          BIND(CONCAT(
-            IF(BOUND(?issueNumber), CONCAT("Issue ", ?issueNumber), ""),
-            IF(BOUND(?volumeNumber), CONCAT(IF(BOUND(?issueNumber), ", ", ""), "Vol. ", ?volumeNumber), ""),
-            IF(BOUND(?journalTitleWithId), CONCAT(IF(BOUND(?issueNumber) || BOUND(?volumeNumber), ", ", ""), ?journalTitleWithId), 
-              IF(BOUND(?journalTitle), CONCAT(IF(BOUND(?issueNumber) || BOUND(?volumeNumber), ", ", ""), ?journalTitle), ""))
-          ) AS ?display)
+          ?journal datacite:hasIdentifier ?identifier .
+          ?identifier datacite:usesIdentifierScheme ?scheme ;
+                    literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
         }
-        LIMIT 1
+        GROUP BY ?journal
       }
-      UNION
-      {
-        # If no Issue found, try to find a Volume
-        SELECT ?display ?container
-        WHERE {
-          [[subject]] frbr:partOf ?container .
-          ?container a fabio:JournalVolume .
-          
-          # Get volume number
-          OPTIONAL { ?container fabio:hasSequenceIdentifier ?volumeNumber . }
-          
-          # Get journal information
-          OPTIONAL {
-            ?container frbr:partOf ?journal .
-            ?journal a fabio:Journal .
-            OPTIONAL { ?journal dcterms:title ?journalTitle . }
-            
-            # Get journal identifiers
-            OPTIONAL {
-              SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-              WHERE {
-                OPTIONAL {
-                  ?journal datacite:hasIdentifier ?identifier .
-                  ?identifier datacite:usesIdentifierScheme ?scheme ;
-                            literal:hasLiteralValue ?value .
-                  BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-                }
-              }
-              GROUP BY ?journal
-            }
-            
-            # Format journal with identifiers
-            BIND(STR(?journal) AS ?uriString)
-            BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-            BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                  CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-                  CONCAT(?journalTitle, " [omid:", ?omid, "]")
-                ) AS ?journalTitleWithId)
-          }
-          
-          # Build a display string with all available information
-          BIND(CONCAT(
-            IF(BOUND(?volumeNumber), CONCAT("Vol. ", ?volumeNumber), ""),
-            IF(BOUND(?journalTitleWithId), CONCAT(IF(BOUND(?volumeNumber), ", ", ""), ?journalTitleWithId),
-              IF(BOUND(?journalTitle), CONCAT(IF(BOUND(?volumeNumber), ", ", ""), ?journalTitle), ""))
-          ) AS ?display)
-          
-          # Only include this if there's no Issue
-          FILTER NOT EXISTS {
-            [[subject]] frbr:partOf ?issue .
-            ?issue a fabio:JournalIssue .
-          }
-        }
-        LIMIT 1
-      }
-      UNION
-      {
-        # If no Issue or Volume found, try to find a Journal
-        SELECT ?display ?container
-        WHERE {
-          [[subject]] frbr:partOf ?container .
-          ?container a fabio:Journal .
-          
-          # Get journal title
-          OPTIONAL { ?container dcterms:title ?journalTitle . }
-          
-          # Get journal identifiers
-          OPTIONAL {
-            SELECT ?container (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-            WHERE {
-              OPTIONAL {
-                ?container datacite:hasIdentifier ?identifier .
-                ?identifier datacite:usesIdentifierScheme ?scheme ;
-                          literal:hasLiteralValue ?value .
-                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-              }
-            }
-            GROUP BY ?container
-          }
-          
-          # Format journal with identifiers
-          BIND(STR(?container) AS ?uriString)
-          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-          BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-                CONCAT(?journalTitle, " [omid:", ?omid, "]")
-              ) AS ?journalTitleWithId)
-          
-          # Use the journal title as display
-          BIND(COALESCE(?journalTitleWithId, ?journalTitle, "Untitled Journal") AS ?display)
-          
-          # Only include this if there's no Issue or Volume
-          FILTER NOT EXISTS {
-            [[subject]] frbr:partOf ?issue .
-            ?issue a fabio:JournalIssue .
-          }
-          FILTER NOT EXISTS {
-            [[subject]] frbr:partOf ?volume .
-            ?volume a fabio:JournalVolume .
-          }
-        }
-        LIMIT 1
-      }
+      
+      BIND(STR(?journal) AS ?uriString)
+      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+            CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
+            CONCAT(?journalTitle, " [omid:", ?omid, "]")
+          ) AS ?journalTitleWithId)
+      
+      BIND(CONCAT(
+        "Issue ", ?issueNumber,
+        ", Vol. ", ?volumeNumber,
+        ", ", ?journalTitleWithId
+      ) AS ?display)
     }
 
 common_properties:
@@ -593,15 +317,6 @@ common_properties:
     supportsSearch: true
     minCharsForSearch: 2
     searchTarget: "self"
-
-
-
-  container_property: &container_property
-    property: "http://purl.org/vocab/frbr/core#partOf"
-    supportsSearch: false
-    shouldBeDisplayed: true
-    displayName: "Container"
-    fetchValueFromQuery: *volume_journal_query
 
   identifier_property: &identifier_property
     property: "http://purl.org/spar/datacite/hasIdentifier"
@@ -663,10 +378,10 @@ common_properties:
     minCharsForSearch: 1
     searchTarget: "self"
 
-  issue_volume_journal_container_property: &issue_volume_journal_container_property
+  journal_article_container_property: &journal_article_container_property
     property: "http://purl.org/vocab/frbr/core#partOf"
-    displayName: "Container"
-    fetchValueFromQuery: *issue_volume_journal_container_query
+    displayName: "Issue"
+    fetchValueFromQuery: *journal_article_container_query
     supportsSearch: true
 
   book_container_property: &book_container_property
@@ -674,6 +389,86 @@ common_properties:
     displayName: "Book"
     shouldBeDisplayed: true
     fetchValueFromQuery: *book_query
+    supportsSearch: true
+
+  issue_container_property: &issue_container_property
+    property: "http://purl.org/vocab/frbr/core#partOf"
+    displayName: "Volume"
+    shouldBeDisplayed: true
+    fetchValueFromQuery: |
+      PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX datacite: <http://purl.org/spar/datacite/>
+      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+      SELECT ?display ?container
+      WHERE {
+        [[subject]] frbr:partOf ?container .
+        ?container a fabio:JournalVolume .
+        ?container fabio:hasSequenceIdentifier ?volumeNumber .
+        
+        ?container frbr:partOf ?journal .
+        ?journal a fabio:Journal .
+        ?journal dcterms:title ?journalTitle .
+        
+        # Get journal identifiers
+        OPTIONAL {
+          SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+          WHERE {
+            ?journal datacite:hasIdentifier ?identifier .
+            ?identifier datacite:usesIdentifierScheme ?scheme ;
+                      literal:hasLiteralValue ?value .
+            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+          }
+          GROUP BY ?journal
+        }
+        
+        # Format journal with identifiers
+        BIND(STR(?journal) AS ?uriString)
+        BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+        BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+              CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
+              CONCAT(?journalTitle, " [omid:", ?omid, "]")
+            ) AS ?journalTitleWithId)
+        
+        BIND(CONCAT("Vol. ", ?volumeNumber, " of ", ?journalTitleWithId) AS ?display)
+      }
+    supportsSearch: true
+
+  volume_container_property: &volume_container_property
+    property: "http://purl.org/vocab/frbr/core#partOf"
+    displayName: "Journal"
+    shouldBeDisplayed: true
+    fetchValueFromQuery: |
+      PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX datacite: <http://purl.org/spar/datacite/>
+      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+      SELECT ?display ?container
+      WHERE {
+        [[subject]] frbr:partOf ?container .
+        ?container a fabio:Journal .
+        ?container dcterms:title ?journalTitle .
+        
+        OPTIONAL {
+          SELECT ?container (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+          WHERE {
+            ?container datacite:hasIdentifier ?identifier .
+            ?identifier datacite:usesIdentifierScheme ?scheme ;
+                      literal:hasLiteralValue ?value .
+            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+          }
+          GROUP BY ?container
+        }
+        
+        BIND(STR(?container) AS ?uriString)
+        BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+        BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+              CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
+              CONCAT(?journalTitle, " [omid:", ?omid, "]")
+            ) AS ?display)
+      }
     supportsSearch: true
 
   sortableByTitleDate: &sortableByTitle
@@ -1110,7 +905,7 @@ rules:
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
-      - *issue_volume_journal_container_property
+      - *journal_article_container_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1167,22 +962,39 @@ rules:
       PREFIX fabio: <http://purl.org/spar/fabio/>
       PREFIX frbr: <http://purl.org/vocab/frbr/core#>
       PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX datacite: <http://purl.org/spar/datacite/>
+      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
       SELECT ?display
       WHERE {
         [[uri]] fabio:hasSequenceIdentifier ?number ;
                 frbr:partOf ?journal .
-        ?journal dcterms:title ?journalTitle .
-        BIND(CONCAT("Volume ", ?number, " of ", ?journalTitle) AS ?display)
+        ?journal a fabio:Journal ;
+                dcterms:title ?journalTitle .
+        
+        # Get journal identifiers
+        OPTIONAL {
+          SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+          WHERE {
+            ?journal datacite:hasIdentifier ?identifier .
+            ?identifier datacite:usesIdentifierScheme ?scheme ;
+                      literal:hasLiteralValue ?value .
+            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+          }
+          GROUP BY ?journal
+        }
+        
+        # Format display with journal OMID and identifiers
+        BIND(STR(?journal) AS ?journalUriString)
+        BIND(STRAFTER(?journalUriString, "https://w3id.org/oc/meta/") AS ?journalOmid)
+        BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+              CONCAT("Volume ", ?number, " of ", ?journalTitle, " [omid:", ?journalOmid, " ", ?identifiers, "]" ),
+              CONCAT("Volume ", ?number, " of ", ?journalTitle, " [omid:", ?journalOmid, "]")
+            ) AS ?display)
       }
     displayProperties:
       - *type_property
       - *has_sequence_identifier_property
-      - property: "http://purl.org/vocab/frbr/core#partOf"
-        supportsSearch: true
-        displayRules:
-          - shape: "http://schema.org/JournalShape"
-            displayName: "Journal"
-            fetchValueFromQuery: *journal_query
+      - *volume_container_property
 
   - target:
       class: "http://purl.org/spar/fabio/JournalIssue"
@@ -1194,114 +1006,47 @@ rules:
       PREFIX fabio: <http://purl.org/spar/fabio/>
       PREFIX frbr: <http://purl.org/vocab/frbr/core#>
       PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX datacite: <http://purl.org/spar/datacite/>
+      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
       SELECT ?display
       WHERE {
         [[uri]] fabio:hasSequenceIdentifier ?number .
         
-        # Try to find volume
+        # Issue must be part of Volume according to SHACL
+        [[uri]] frbr:partOf ?volume .
+        ?volume a fabio:JournalVolume ;
+                fabio:hasSequenceIdentifier ?volumeNumber .
+        
+        # Volume must be part of Journal according to SHACL
+        ?volume frbr:partOf ?journal .
+        ?journal a fabio:Journal ;
+                dcterms:title ?journalTitle .
+        
+        # Get journal identifiers
         OPTIONAL {
-          [[uri]] frbr:partOf ?volume .
-          ?volume a fabio:JournalVolume ;
-                  fabio:hasSequenceIdentifier ?volumeNumber .
-          
-          # Try to find journal through volume
-          OPTIONAL {
-            ?volume frbr:partOf ?journal .
-            ?journal a fabio:Journal ;
-                    dcterms:title ?journalTitle .
+          SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+          WHERE {
+            ?journal datacite:hasIdentifier ?identifier .
+            ?identifier datacite:usesIdentifierScheme ?scheme ;
+                      literal:hasLiteralValue ?value .
+            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
           }
+          GROUP BY ?journal
         }
         
-        # If no volume, try to find journal directly
-        OPTIONAL {
-          FILTER (!BOUND(?volumeNumber))
-          [[uri]] frbr:partOf ?journal .
-          ?journal a fabio:Journal ;
-                  dcterms:title ?journalTitle .
-        }
-        
-        # Build display string based on available information
-        BIND(
-          IF(BOUND(?number) && BOUND(?volumeNumber) && BOUND(?journalTitle),
-            CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber, ", ", ?journalTitle),
-            IF(BOUND(?number) && BOUND(?journalTitle),
-              CONCAT("Issue ", ?number, ", ", ?journalTitle),
-              IF(BOUND(?number) && BOUND(?volumeNumber),
-                CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber),
-                CONCAT("Issue ", ?number)
-              )
-            )
-          ) AS ?display
-        )
+        # Format display with journal OMID and identifiers
+        BIND(STR(?journal) AS ?journalUriString)
+        BIND(STRAFTER(?journalUriString, "https://w3id.org/oc/meta/") AS ?journalOmid)
+        BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+              CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber, ", ", ?journalTitle, " [omid:", ?journalOmid, " ", ?identifiers, "]" ),
+              CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber, ", ", ?journalTitle, " [omid:", ?journalOmid, "]")
+            ) AS ?display)
       }
     displayProperties:
       - *type_property
       - *has_sequence_identifier_property
-      - *container_property
+      - *issue_container_property
 
-  - target:
-      shape: "http://schema.org/SpecialIssueShape"
-    priority: 1
-    shouldBeDisplayed: true
-    displayName: "Special Issue"
-    similarity_properties:
-      - http://purl.org/dc/terms/title
-      - and:
-        - http://purl.org/spar/datacite/hasIdentifier
-        - http://purl.org/vocab/frbr/core#partOf
-    fetchUriDisplay: |
-      PREFIX fabio: <http://purl.org/spar/fabio/>
-      PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-      PREFIX dcterms: <http://purl.org/dc/terms/>
-      SELECT ?display
-      WHERE {
-        [[uri]] fabio:hasSequenceIdentifier ?number .
-        
-        # Try to find volume
-        OPTIONAL {
-          [[uri]] frbr:partOf ?volume .
-          ?volume a fabio:JournalVolume ;
-                  fabio:hasSequenceIdentifier ?volumeNumber .
-          
-          # Try to find journal through volume
-          OPTIONAL {
-            ?volume frbr:partOf ?journal .
-            ?journal a fabio:Journal ;
-                    dcterms:title ?journalTitle .
-          }
-        }
-        
-        # If no volume, try to find journal directly
-        OPTIONAL {
-          FILTER (!BOUND(?volumeNumber))
-          [[uri]] frbr:partOf ?journal .
-          ?journal a fabio:Journal ;
-                  dcterms:title ?journalTitle .
-        }
-        
-        # Build display string based on available information
-        BIND(
-          IF(BOUND(?number) && BOUND(?volumeNumber) && BOUND(?journalTitle),
-            CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber, ", ", ?journalTitle),
-            IF(BOUND(?number) && BOUND(?journalTitle),
-              CONCAT("Issue ", ?number, ", ", ?journalTitle),
-              IF(BOUND(?number) && BOUND(?volumeNumber),
-                CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber),
-                CONCAT("Issue ", ?number)
-              )
-            )
-          ) AS ?display
-        )
-      }
-    displayProperties:
-      - *type_property
-      - *identifier_property
-      - *title_property
-      - *has_sequence_identifier_property
-      - *document_context_property
-      - *publication_date_property
-      - *embodiment_property
-      - *container_property
 
   - target:
       class: "http://purl.org/spar/fabio/ProceedingsPaper"
@@ -1668,7 +1413,7 @@ rules:
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
-      - *issue_volume_journal_container_property
+      - *journal_article_container_property
     sortableBy:
       *sortableByTitleDate
 

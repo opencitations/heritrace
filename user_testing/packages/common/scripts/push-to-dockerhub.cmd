@@ -7,7 +7,7 @@ REM Usage: push-to-dockerhub.cmd [version] [docker_username]
 set VERSION=%1
 set DOCKER_USERNAME=%2
 
-if "%VERSION%"=="" set VERSION=1.0.0
+if "%VERSION%"=="" set VERSION=1.0.1
 if "%DOCKER_USERNAME%"=="" set DOCKER_USERNAME=arcangelo7
 
 echo [DOCKER] Building and pushing auxiliary Docker images to Docker Hub

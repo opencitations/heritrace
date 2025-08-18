@@ -5,7 +5,7 @@
 
 set -e
 
-VERSION=${1:-"1.0.0"}
+VERSION=${1:-"1.0.1"}
 DOCKER_USERNAME=${2:-"arcangelo7"}
 
 echo "🐳 Building and pushing auxiliary Docker images to Docker Hub"
