@@ -118,6 +118,8 @@
         const customPropertiesManager = new CustomPropertiesManager();
 
         $('#submitForm').click(function(){
+            $('.collapse:not(.show)').collapse('show');
+            
             let errors = [];
 
             validateRequiredFields(errors);
