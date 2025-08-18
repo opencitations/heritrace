@@ -891,6 +891,8 @@
         });
 
         $('#saveChangesBtn').click(function() {
+            $('.collapse:not(.show)').collapse('show');
+            
             let errors = [];
 
             validateRequiredFields(errors);
