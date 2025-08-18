@@ -1,3 +1,25 @@
+# [2.4.0](https://github.com/opencitations/heritrace/compare/v2.3.3...v2.4.0) (2025-08-18)
+
+
+### Bug Fixes
+
+* add sus learnability and usability subscales ([3050ffa](https://github.com/opencitations/heritrace/commit/3050ffad208b0cb78f508f6889872e2e9d0d76ff))
+* Find form submit handler and add logic to expand all collapsed elements for validation [release] ([d4006f0](https://github.com/opencitations/heritrace/commit/d4006f0aa17009fd179c40e79ea85529e99f8b75))
+* improve entity creation form data collection and selector handling ([c631ba4](https://github.com/opencitations/heritrace/commit/c631ba498b97e2eed02975289149b2c0b210c6e6))
+* Rebuild the custom Virtuoso images for multi-arch support ([16c54fc](https://github.com/opencitations/heritrace/commit/16c54fc0a91ad9e36027a8f370440935c0b73dda))
+* **transcriber:** add transcribe_audio_chunk ([3c85247](https://github.com/opencitations/heritrace/commit/3c85247ea232c6c4bb0258e21ce369ef78ff195d))
+* **user-testing:** add support for both docker-compose and docker compose commands ([7c02016](https://github.com/opencitations/heritrace/commit/7c0201637946ed704ba991a4c77b677ffe8945eb))
+* **user-testing:** replace template with role-specific response forms ([d0904a6](https://github.com/opencitations/heritrace/commit/d0904a6f7df71e3d458f2d526afd14e9ff9192c2))
+
+
+### Features
+
+* add scripts tu aggregate task metrics and draw plots ([0d008a1](https://github.com/opencitations/heritrace/commit/0d008a160c3a3de0ed829572e180901ef63092f0))
+* add sus calculator ([0e3e20e](https://github.com/opencitations/heritrace/commit/0e3e20e283c83c059ca49291de3205cbd3eaeedb))
+* add temp axial codes and script to verify both codes coverage ([0150897](https://github.com/opencitations/heritrace/commit/015089708950a1305e7ce4a3b86bf9d9f8be215a))
+* add temp selective codes and verififier ([32d397f](https://github.com/opencitations/heritrace/commit/32d397f7a6c9878cdfaa5ea08521d37812f14149))
+* **user-testing:** and transcription analysis tool ([ec054cd](https://github.com/opencitations/heritrace/commit/ec054cd414c9f0d5623569cbb612a61f586b8ca3))
+
 ## [2.3.3](https://github.com/opencitations/heritrace/compare/v2.3.2...v2.3.3) (2025-07-29)
 
 
