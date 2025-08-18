@@ -1,3 +1,10 @@
+## [2.4.1](https://github.com/opencitations/heritrace/compare/v2.4.0...v2.4.1) (2025-08-18)
+
+
+### Bug Fixes
+
+* add collapse expansion for about and restore creation workflow before commit c631ba4 [release] ([2a9603f](https://github.com/opencitations/heritrace/commit/2a9603fd7a7bffe6268fba7c90efc4ca26a3d75f))
+
 # [2.4.0](https://github.com/opencitations/heritrace/compare/v2.3.3...v2.4.0) (2025-08-18)
 
 
