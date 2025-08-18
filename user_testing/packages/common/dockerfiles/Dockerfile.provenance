@@ -1,4 +1,4 @@
-FROM openlink/virtuoso-opensource-7:7.2-alpine@sha256:f0fc5b84db39e607a7a65c6eda30d15651cb3646bec6d89ee4a8307778789764
+FROM openlink/virtuoso-opensource-7:7.2-alpine
 
 ARG DOCKER_METADATA_AUTHOR
 ARG DOCKER_METADATA_DESCRIPTION
