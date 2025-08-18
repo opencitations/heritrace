@@ -165,7 +165,8 @@
                             entity_shape: $('#entity_type option:selected').data('shape'),
                             properties: {}
                         };
-                        collectFormData($('#entityForm'), structuredData.properties, '{{ shacl }}', 0);
+                        let activeGroup = $('.property-group:visible');
+                        collectFormData(activeGroup, structuredData.properties, '{{ shacl }}', 0);
                     } else {
                         const customProperties = customPropertiesManager.collectCustomProperties();
                         

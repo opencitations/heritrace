@@ -7,6 +7,12 @@
         data-predicate-uri="{{ details.uri }}" 
         data-depth="{{ depth }}" 
         data-shape="{{ details.nodeShape or '' }}"
+        {% if details.or or (details.optionalValues and details.optionalValues|length) or (details.datatypes and (
+            'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
+            or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
+            or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes)) %}
+            data-has-selector="true"
+        {% endif %}
         {% if details.intermediateRelation %}
             data-intermediate-relation="{{ details.intermediateRelation.class }}"
             data-connecting-property="{{ details.intermediateRelation.connectingProperty }}"

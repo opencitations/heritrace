@@ -394,6 +394,8 @@ function showAppropriateDateInput(selector) {
 
 function initializeNewItem($newItem, isInitialStructure = false) {
     $newItem.addClass('added-in-edit-mode');
+    
+    $newItem.attr('data-user-created', 'true');
 
     if ($newItem.hasClass('draggable')) {
         $newItem.attr('data-temp-id', 'temp-' + (++tempIdCounter));
@@ -476,7 +478,7 @@ function initializeNewItem($newItem, isInitialStructure = false) {
 // Funzione ricorsiva per raccogliere i dati dai campi del form
 function collectFormData(container, data, shacl, depth) {    
     if (shacl === 'True' || shacl === true) {
-        container.find('[data-repeater-list]:visible').each(function() {
+        container.find('[data-repeater-list]').each(function() {
             let repeaterList = $(this);
 
             if (repeaterList.data('skip-collect')) {
@@ -485,7 +487,8 @@ function collectFormData(container, data, shacl, depth) {
 
             let predicateUri = repeaterList.find('[data-repeater-item]:first').data('predicate-uri');
             let orderedBy = repeaterList.data('ordered-by');
-            repeaterList.children('[data-repeater-item]:visible').each(function(index) {
+            
+            repeaterList.children('[data-repeater-item][data-user-created="true"]').each(function(index) {
                 let repeaterItem = $(this);
                 
                 if (repeaterItem.data('skip-collect')) {
@@ -493,9 +496,8 @@ function collectFormData(container, data, shacl, depth) {
                 }
                 
                 let itemDepth = parseInt(repeaterItem.data('depth'));
-                let objectClass = repeaterItem.find('[data-class]:visible').first().data('class');
+                let objectClass = repeaterItem.find('[data-class]').first().data('class');
                 let tempId = repeaterItem.data('temp-id');
-                let entityReference = repeaterItem.find('input[data-entity-reference="true"]');
                 
                 // Always process items at current depth to collect intermediate metadata
                 if (predicateUri && objectClass && itemDepth === depth) {
@@ -576,12 +578,15 @@ function collectFormData(container, data, shacl, depth) {
                         ensurePropertyArray(data, predicateUri).push(itemData);
                     }
                 } else if (itemDepth === depth) {
-                    repeaterItem.find('input:visible, select:visible, input[data-mandatory-value="true"], textarea:visible').each(function() {
+                    repeaterItem.find('input, select, textarea').each(function() {
                         let propertyUri = $(this).data('predicate-uri');
                         if (propertyUri) {
                             let value = $(this).val() || $(this).data('value');
-                            if (value !== "") {
-                                ensurePropertyArray(data, propertyUri).push(value);
+                            let isHidden = $(this).closest('.d-none').length > 0;
+                            let isInSelectorItem = $(this).closest('[data-has-selector="true"]').length > 0;
+                            
+                            if (value !== "" && !(isInSelectorItem && isHidden)) {
+                                ensurePropertyArray(data, predicateUri).push(value);
                             }
                         }
                     });
@@ -589,12 +594,17 @@ function collectFormData(container, data, shacl, depth) {
             });
         });
 
-        container.children('input:visible, select:visible, input[data-mandatory-value="true"], textarea:visible').each(function() {
+        container.children('input, select, textarea').each(function() {
             let propertyUri = $(this).data('predicate-uri');
             let inputDepth = parseInt($(this).data('depth'));
-            if (propertyUri && inputDepth === depth) {
-                let value = $(this).val();
-                if (value !== "") {
+
+            let isInUserCreatedItem = $(this).closest('[data-user-created="true"]').length > 0;
+            if (propertyUri && inputDepth === depth && isInUserCreatedItem) {
+                let value = $(this).val() || $(this).data('value');
+                let isHidden = $(this).closest('.d-none').length > 0;
+                let isInSelectorItem = $(this).closest('[data-has-selector="true"]').length > 0;
+                
+                if (value !== "" && !(isInSelectorItem && isHidden)) {
                     ensurePropertyArray(data, propertyUri).push(value);
                 }
             }

@@ -140,7 +140,7 @@ launch_virtuoso_db() {
         --force-remove \
         --wait-ready \
         --enable-write-permissions \
-        --network heritrace-network
+        --network "$NETWORK_NAME"
     
     if [ $? -eq 0 ]; then
         print_success "Database $name started successfully"
@@ -154,17 +154,22 @@ launch_virtuoso_db() {
 
 print_info "Setting up Virtuoso databases using launch_virtuoso..."
 
-if ! docker network ls | grep -q heritrace-network; then
-    print_info "Creating Docker network: heritrace-network"
-    docker network create heritrace-network
+if docker network ls | grep -q "heritrace_heritrace-network"; then
+    NETWORK_NAME="heritrace_heritrace-network"
+    print_info "Using existing Docker network: $NETWORK_NAME"
+elif docker network ls | grep -q "heritrace-network"; then
+    NETWORK_NAME="heritrace-network"
+    print_info "Using existing Docker network: $NETWORK_NAME"
+else
+    NETWORK_NAME="heritrace-network"
+    print_info "Creating Docker network: $NETWORK_NAME"
+    docker network create $NETWORK_NAME
     if [ $? -eq 0 ]; then
         print_success "Docker network created successfully"
     else
         print_error "Failed to create Docker network"
         exit 1
     fi
-else
-    print_info "Docker network heritrace-network already exists"
 fi
 
 setup_virtuoso_utilities

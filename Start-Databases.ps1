@@ -157,7 +157,8 @@ function Launch-VirtuosoDatabase {
         [string]$Name,
         [int]$HttpPort,
         [int]$IsqlPort,
-        [string]$DataDir
+        [string]$DataDir,
+        [string]$NetworkName
     )
     
     Write-Info "Launching Virtuoso database: $Name"
@@ -183,7 +184,7 @@ function Launch-VirtuosoDatabase {
             --force-remove `
             --wait-ready `
             --enable-write-permissions `
-            --network heritrace-network
+            --network $NetworkName
         
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Database $Name started successfully"
@@ -203,18 +204,25 @@ function Launch-VirtuosoDatabase {
 
 Write-Info "Setting up Virtuoso databases using launch_virtuoso..."
 
-$networkExists = docker network ls | Select-String "heritrace-network"
-if (-not $networkExists) {
-    Write-Info "Creating Docker network: heritrace-network"
-    docker network create heritrace-network
+$heritrace_network = docker network ls | Select-String "heritrace_heritrace-network"
+$legacy_network = docker network ls | Select-String "heritrace-network"
+
+if ($heritrace_network) {
+    $NetworkName = "heritrace_heritrace-network"
+    Write-Info "Using existing Docker network: $NetworkName"
+} elseif ($legacy_network) {
+    $NetworkName = "heritrace-network"
+    Write-Info "Using existing Docker network: $NetworkName"
+} else {
+    $NetworkName = "heritrace-network"
+    Write-Info "Creating Docker network: $NetworkName"
+    docker network create $NetworkName
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Docker network created successfully"
     } else {
         Write-Error "Failed to create Docker network"
         exit 1
     }
-} else {
-    Write-Info "Docker network heritrace-network already exists"
 }
 
 if (-not (Setup-VirtuosoUtilities)) {
@@ -227,13 +235,13 @@ $datasetDbPath = Join-Path -Path $CURRENT_DIR -ChildPath "database"
 $provDbPath = Join-Path -Path $CURRENT_DIR -ChildPath "prov_database"
 
 Write-Info "Starting dataset database..."
-if (-not (Launch-VirtuosoDatabase -Name "database" -HttpPort 8999 -IsqlPort 1119 -DataDir $datasetDbPath)) {
+if (-not (Launch-VirtuosoDatabase -Name "database" -HttpPort 8999 -IsqlPort 1119 -DataDir $datasetDbPath -NetworkName $NetworkName)) {
     Write-Error "Failed to start dataset database"
     exit 1
 }
 
 Write-Info "Starting provenance database..."
-if (-not (Launch-VirtuosoDatabase -Name "prov_database" -HttpPort 8998 -IsqlPort 1118 -DataDir $provDbPath)) {
+if (-not (Launch-VirtuosoDatabase -Name "prov_database" -HttpPort 8998 -IsqlPort 1118 -DataDir $provDbPath -NetworkName $NetworkName)) {
     Write-Error "Failed to start provenance database"
     exit 1
 }

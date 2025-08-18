@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y lsb-release curl gpg && \
     chmod 644 /usr/share/keyrings/redis-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/redis.list && \
     apt-get update && \
-    apt-get install -y redis-server=6:7.4.3-1rl1~bookworm1 redis-tools=6:7.4.3-1rl1~bookworm1 && \
+    apt-get install -y redis-server redis-tools && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /app/heritrace /app/babel
