@@ -17,21 +17,23 @@ if errorlevel 1 (
 
 REM Detect the correct Docker Compose command
 docker compose version >nul 2>&1
-if errorlevel 0 (
+if not errorlevel 1 (
     set COMPOSE_CMD=docker compose
     echo [OK] Using Docker Compose v2: docker compose
-) else (
-    docker-compose version >nul 2>&1
-    if errorlevel 0 (
-        set COMPOSE_CMD=docker-compose
-        echo [OK] Using Docker Compose v1: docker-compose
-    ) else (
-        echo [ERROR] Error: Docker Compose is not available!
-        echo    Please ensure Docker Compose (v2) or docker-compose (v1) is installed and accessible.
-        pause
-        exit /b 1
-    )
+    goto compose_found
 )
+docker-compose version >nul 2>&1
+if not errorlevel 1 (
+    set COMPOSE_CMD=docker-compose
+    echo [OK] Using Docker Compose v1: docker-compose
+    goto compose_found
+)
+echo [ERROR] Error: Docker Compose is not available!
+echo    Please ensure Docker Compose v2 or docker-compose v1 is installed and accessible.
+pause
+exit /b 1
+
+:compose_found
 
 echo [OK] Docker check passed!
 
@@ -98,8 +100,9 @@ echo.
 echo [EXPORT] Remember to export your results after completing the testing tasks!
 echo Happy testing!
 echo.
-echo Press any key to continue...
+echo Press any key to exit...
 pause >nul
+exit
 
 :wait_for_service
 set url=%~1

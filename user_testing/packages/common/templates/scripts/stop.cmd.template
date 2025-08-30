@@ -8,19 +8,21 @@ echo ==============================================
 
 REM Detect the correct Docker Compose command
 docker compose version >nul 2>&1
-if errorlevel 0 (
+if not errorlevel 1 (
     set COMPOSE_CMD=docker compose
-) else (
-    docker-compose version >nul 2>&1
-    if errorlevel 0 (
-        set COMPOSE_CMD=docker-compose
-    ) else (
-        echo [ERROR] Error: Docker Compose is not available!
-        echo    Please ensure Docker Compose (v2) or docker-compose (v1) is installed and accessible.
-        pause
-        exit /b 1
-    )
+    goto compose_found
 )
+docker-compose version >nul 2>&1
+if not errorlevel 1 (
+    set COMPOSE_CMD=docker-compose
+    goto compose_found
+)
+echo [ERROR] Error: Docker Compose is not available!
+echo    Please ensure Docker Compose v2 or docker-compose v1 is installed and accessible.
+pause
+exit /b 1
+
+:compose_found
 
 REM Stop and remove containers
 echo [DOCK] Stopping Docker containers...
@@ -40,5 +42,6 @@ echo.
 echo [EXPORT] Once the test is complete, don't forget to export the results!
 {{EXPORT_MESSAGE}}
 echo.
-echo Press any key to continue...
+echo Press any key to exit...
 pause >nul
+exit
