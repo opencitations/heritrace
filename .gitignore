@@ -6,6 +6,7 @@ db_volumes/
 *.db
 node_modules/
 database/
+dataset_database/
 prov_database*/
 cache.json
 heritrace/static/dist/

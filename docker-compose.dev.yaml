@@ -1,4 +1,40 @@
 services:
+  heritrace-dataset:
+    image: arcangelo7/heritrace-testing-virtuoso-dataset:1.0.2
+    container_name: heritrace-dataset
+    environment:
+      - DBA_PASSWORD=dba
+      - DAV_PASSWORD=dba
+      - CONTAINER_TYPE=dataset
+
+    volumes:
+      - ./dataset_database:/database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - heritrace-network
+
+  heritrace-provenance:
+    image: arcangelo7/heritrace-testing-virtuoso-provenance:1.0.2
+    container_name: heritrace-provenance
+    environment:
+      - DBA_PASSWORD=dba
+      - DAV_PASSWORD=dba
+      - CONTAINER_TYPE=provenance
+ 
+    volumes:
+      - ./prov_database:/database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - heritrace-network
+
   web:
     build:
       context: .
@@ -17,8 +53,8 @@ services:
       - CACHE_VALIDITY_DAYS=7
       
       # Database Configuration
-      - DATASET_DB_URL=http://host.docker.internal:8999/sparql
-      - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
+      - DATASET_DB_URL=http://heritrace-dataset:8890/sparql
+      - PROVENANCE_DB_URL=http://heritrace-provenance:8890/sparql
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
       - DATASET_DB_TEXT_INDEX_ENABLED=false
@@ -59,6 +95,11 @@ services:
       - ./babel:/app/babel
       - ./webpack.config.js:/app/webpack.config.js
       - ./redis-data:/data
+    depends_on:
+      heritrace-dataset:
+        condition: service_healthy
+      heritrace-provenance:
+        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

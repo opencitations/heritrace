@@ -31,47 +31,49 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [BUILD] Building auxiliary Docker images (Virtuoso dataset and provenance)...
+echo [BUILDX] Setting up Docker buildx for multi-platform support...
+docker buildx ls | findstr heritrace-builder >nul 2>&1
+if %errorlevel% neq 0 (
+    docker buildx create --name heritrace-builder --use
+) else (
+    docker buildx use heritrace-builder
+)
+docker buildx inspect --bootstrap
+
+echo [BUILD] Building auxiliary Docker images for multiple platforms (amd64, arm64)...
 set DOCKER_METADATA_AUTHOR=Arcangelo Massari
 set DOCKER_METADATA_DESCRIPTION=Heritrace User Testing Environment - Auxiliary services (Virtuoso dataset and provenance databases) for HERITRACE testing
 set DOCKER_METADATA_VERSION=%VERSION%
 
-REM Build only the auxiliary services (dataset and provenance databases)
-docker build -f Dockerfile.virtuoso -t temp-dataset --build-arg DOCKER_METADATA_AUTHOR="%DOCKER_METADATA_AUTHOR%" --build-arg DOCKER_METADATA_DESCRIPTION="%DOCKER_METADATA_DESCRIPTION%" --build-arg DOCKER_METADATA_VERSION="%DOCKER_METADATA_VERSION%" .
+echo [PUSH] Building and pushing dataset image for multiple platforms...
+docker buildx build ^
+    --platform linux/amd64,linux/arm64 ^
+    -f Dockerfile.virtuoso ^
+    -t %DOCKER_USERNAME%/heritrace-testing-virtuoso-dataset:%VERSION% ^
+    --build-arg DOCKER_METADATA_AUTHOR="%DOCKER_METADATA_AUTHOR%" ^
+    --build-arg DOCKER_METADATA_DESCRIPTION="%DOCKER_METADATA_DESCRIPTION%" ^
+    --build-arg DOCKER_METADATA_VERSION="%DOCKER_METADATA_VERSION%" ^
+    --push .
 if %errorlevel% neq 0 (
-    echo [ERROR] Failed to build dataset Docker image
+    echo [ERROR] Failed to build and push dataset Docker image
     pause
     exit /b 1
 )
 
-docker build -f Dockerfile.provenance -t temp-provenance --build-arg DOCKER_METADATA_AUTHOR="%DOCKER_METADATA_AUTHOR%" --build-arg DOCKER_METADATA_DESCRIPTION="%DOCKER_METADATA_DESCRIPTION%" --build-arg DOCKER_METADATA_VERSION="%DOCKER_METADATA_VERSION%" .
+echo [PUSH] Building and pushing provenance image for multiple platforms...
+docker buildx build ^
+    --platform linux/amd64,linux/arm64 ^
+    -f Dockerfile.provenance ^
+    -t %DOCKER_USERNAME%/heritrace-testing-virtuoso-provenance:%VERSION% ^
+    --build-arg DOCKER_METADATA_AUTHOR="%DOCKER_METADATA_AUTHOR%" ^
+    --build-arg DOCKER_METADATA_DESCRIPTION="%DOCKER_METADATA_DESCRIPTION%" ^
+    --build-arg DOCKER_METADATA_VERSION="%DOCKER_METADATA_VERSION%" ^
+    --push .
 if %errorlevel% neq 0 (
-    echo [ERROR] Failed to build provenance Docker image
+    echo [ERROR] Failed to build and push provenance Docker image
     pause
     exit /b 1
 )
-
-echo [TAG] Tagging auxiliary images...
-docker tag temp-dataset %DOCKER_USERNAME%/heritrace-testing-virtuoso-dataset:%VERSION%
-docker tag temp-provenance %DOCKER_USERNAME%/heritrace-testing-virtuoso-provenance:%VERSION%
-
-echo [PUSH] Pushing auxiliary images to Docker Hub...
-docker push %DOCKER_USERNAME%/heritrace-testing-virtuoso-dataset:%VERSION%
-if %errorlevel% neq 0 (
-    echo [ERROR] Failed to push dataset image
-    pause
-    exit /b 1
-)
-
-docker push %DOCKER_USERNAME%/heritrace-testing-virtuoso-provenance:%VERSION%
-if %errorlevel% neq 0 (
-    echo [ERROR] Failed to push provenance image
-    pause
-    exit /b 1
-)
-
-echo [CLEANUP] Cleaning up temporary images...
-docker rmi temp-dataset temp-provenance
 
 echo [SUCCESS] Auxiliary images pushed to Docker Hub!
 echo.
