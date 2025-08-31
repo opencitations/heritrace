@@ -6,8 +6,10 @@ db_volumes/
 *.db
 node_modules/
 database/
-dataset_database/
-prov_database*/
+dataset_database/*
+!dataset_database/virtuoso.ini
+prov_database/*
+!prov_database/virtuoso.ini
 cache.json
 heritrace/static/dist/
 .vscode/
