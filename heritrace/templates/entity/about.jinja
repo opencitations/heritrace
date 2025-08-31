@@ -558,8 +558,8 @@
         $('.marked-for-deletion').each(function() {
             var listItem = $(this);
             
-            // Remove strikethrough only from the value display elements, excluding date
-            listItem.find('.draggable-entity-link, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').removeClass('striked');
+            // Remove strikethrough from all possible elements
+            listItem.find('.draggable-entity-link, .select-value-display, input.editable-field:not(.date-input), textarea.editable-field').removeClass('striked');
             
             listItem.find('.editable-field').prop('readonly', false);
             listItem.find('.editable-select').prop('disabled', false);
@@ -752,7 +752,7 @@
             const orderedBy = listItem.data('ordered_by');
             
             // Apply strikethrough only to the value display elements, excluding date (handled by toggleDateStrike)
-            listItem.find('.draggable-entity-link, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').addClass('striked');
+            listItem.find('.draggable-entity-link, .select-value-display, input.editable-field:not(.date-input), textarea.editable-field').addClass('striked');
             
             listItem.find('.editable-field').prop('readonly', true);
             listItem.find('.editable-select').prop('disabled', true);
@@ -799,8 +799,8 @@
                 .insertAfter($(this));
                 
                 undoButton.click(function() {
-                    // Remove strikethrough only from the value display elements, excluding date
-                    listItem.find('.draggable-entity-link, .select-value-display, .textarea-display-container .textarea-display, input.editable-field:not(.date-input)').removeClass('striked');
+                    // Remove strikethrough from all possible elements
+                    listItem.find('.draggable-entity-link, .select-value-display, input.editable-field:not(.date-input), textarea.editable-field').removeClass('striked');
                     
                     listItem.find('.editable-field').prop('readonly', false);
                     listItem.find('.editable-select').prop('disabled', false);
