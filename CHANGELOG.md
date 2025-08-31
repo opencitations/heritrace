@@ -1,3 +1,16 @@
+# [2.5.0](https://github.com/opencitations/heritrace/compare/v2.4.1...v2.5.0) (2025-08-31)
+
+
+### Bug Fixes
+
+* [release] update time-agnostic-library to v5.0.5 and refine database directory gitignore ([00cfb7c](https://github.com/opencitations/heritrace/commit/00cfb7c87743715ab47399f86325187aa61362a8))
+* correct batch script syntax errors in Windows cmd templates ([fa9256a](https://github.com/opencitations/heritrace/commit/fa9256aa134744cf878ab0ef16b0b34d9db8db45))
+
+
+### Features
+
+* **build:** enable multi-platform Docker builds and fix SPARQL literal handling ([b77ed54](https://github.com/opencitations/heritrace/commit/b77ed5487702bfe349f22afe608c2c3c35609b5c))
+
 ## [2.4.1](https://github.com/opencitations/heritrace/compare/v2.4.0...v2.4.1) (2025-08-18)
 
 
