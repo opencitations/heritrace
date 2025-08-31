@@ -519,7 +519,7 @@ class TestFetchDataGraphForSubject:
             type_predicate = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
             name_predicate = URIRef("http://example.org/name")
             person_object = URIRef("http://example.org/Person")
-            name_object = Literal("John Doe", datatype=XSD.string)  # Implementation adds XSD.string datatype
+            name_object = Literal("John Doe")  # Implementation creates literal without explicit datatype
             
             # Check that both triples exist in the graph
             assert (subject_uri, type_predicate, person_object) in graph
