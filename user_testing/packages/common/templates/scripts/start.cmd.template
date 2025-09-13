@@ -46,7 +46,16 @@ REM Check for port conflicts
 echo Checking for port conflicts...
 set "PORT=5000"
 
-netstat -ano | findstr ":%PORT%" >nul
+netstat -ano -p TCP | findstr "\<0.0.0.0:%PORT%\>" >nul 2>&1
+if %errorlevel% equ 0 (
+        echo [ERROR] Port %PORT% is already in use.
+    echo    This port is required for the HERITRACE web interface.
+    echo    Please stop the service using this port and try again.
+    echo.
+    pause
+    exit /b 1
+)
+netstat -ano -p TCP | findstr "\<127.0.0.1:%PORT%\>" >nul 2>&1
 if %errorlevel% equ 0 (
         echo [ERROR] Port %PORT% is already in use.
     echo    This port is required for the HERITRACE web interface.
