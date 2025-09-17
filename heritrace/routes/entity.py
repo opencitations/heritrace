@@ -137,6 +137,11 @@ def about(subject):
     
     if not is_deleted:
         data_graph = fetch_data_graph_for_subject(subject)
+
+        # Check if entity exists - if no history and no data_graph, entity doesn't exist
+        if not history.get(subject) and (not data_graph or len(data_graph) == 0):
+            abort(404)
+
         if data_graph:
             triples = list(data_graph.triples((None, None, None)))
             subject_classes = [o for s, p, o in data_graph.triples((URIRef(subject), RDF.type, None))]
