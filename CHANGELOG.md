@@ -1,3 +1,12 @@
+## [2.5.2](https://github.com/opencitations/heritrace/compare/v2.5.1...v2.5.2) (2025-09-17)
+
+
+### Bug Fixes
+
+* apply strikethrough effect to textarea fields on deletion ([295d5e9](https://github.com/opencitations/heritrace/commit/295d5e96f7f11d6dad6160d262eead2fc14483d2))
+* correct port check logic in user testing startup scripts ([0161f05](https://github.com/opencitations/heritrace/commit/0161f05f64eeba34f405160ed5bd8c0b8266ac39))
+* handle non-existent entities with proper 404 response ([5ca7cb1](https://github.com/opencitations/heritrace/commit/5ca7cb155de8b64e55c6306dc1bffdd501a57f35))
+
 ## [2.5.1](https://github.com/opencitations/heritrace/compare/v2.5.0...v2.5.1) (2025-08-31)
 
 
