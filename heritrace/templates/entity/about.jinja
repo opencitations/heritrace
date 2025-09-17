@@ -722,6 +722,11 @@
         });
 
         $(document).on('change', '.editable-field[id^="new_value_"], .editable-select, .date-type-selector', function() {
+            // Skip change handling for new properties added during editing
+            if ($(this).closest('.added-in-edit-mode').length > 0) {
+                return;
+            }
+
             const listItem = $(this).closest('.property-value');
             const subject = listItem.data('subject-id');
             const predicate = listItem.data('property-id');

@@ -278,11 +278,29 @@ function initializeForm() {
 }
 
 function storePendingChange(action, subject, predicate, object, newObject = null, shape = null, entity_type = null, entity_shape = null) {
+    // For 'update' actions, check if there's already a pending change for the same subject/predicate/object/shape
+    if (action === 'update') {
+        let existingChangeIndex = pendingChanges.findIndex(change =>
+            change.action === 'update' &&
+            change.subject === subject &&
+            change.predicate === predicate &&
+            change.object === object &&
+            change.shape === shape
+        );
+
+        if (existingChangeIndex !== -1) {
+            // Update the existing change with the new value
+            pendingChanges[existingChangeIndex].newObject = newObject;
+            return;
+        }
+    }
+
+    // If no existing change found, add a new one
     pendingChanges.push({
-        action: action, 
-        subject: subject, 
-        predicate: predicate, 
-        object: object, 
+        action: action,
+        subject: subject,
+        predicate: predicate,
+        object: object,
         newObject: newObject,
         shape: shape,
         entity_type: entity_type,
@@ -757,8 +775,9 @@ $(document).ready(function() {
         if (originalValue) {
             let newType = $(this).val();
             let newValue = convertDate(originalValue, newType);
+            // Just set the value without triggering change events
             dateInputGroup.find(`.date-input[data-date-type="${newType}"]`).val(newValue);
-            dateInputGroup.find('.date-display').text(newValue);    
+            dateInputGroup.find('.date-display').text(newValue);
         }
 
         showAppropriateDateInput($(this));
