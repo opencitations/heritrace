@@ -30,6 +30,9 @@ COMMON_SPARQL_QUERY = prepareQuery(
             } UNION {
                 ?orList rdf:rest*/rdf:first ?orNodeShape .
                 ?orNodeShape sh:node ?orNode .
+            } UNION {
+                ?orList rdf:rest*/rdf:first ?orConstraint .
+                ?orConstraint sh:hasValue ?optionalValue .
             }
         }
         OPTIONAL { ?property sh:datatype ?datatype . }

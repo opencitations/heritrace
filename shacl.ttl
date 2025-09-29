@@ -52,13 +52,6 @@ schema:IdentifierShape
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or (
-      [ sh:node schema:BibliographicResourceShape ]
-      [ sh:node schema:ResponsibleAgentShape ]
-    ) ;
   ] .
 
 schema:JournalArticleIdentifierShape
@@ -287,13 +280,6 @@ schema:SeriesAndProceedingsIdentifierShape
     ] ;
     sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
     sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or (
-      [ sh:node schema:ProceedingsShape ]
-      [ sh:node schema:SeriesShape ]
-    ) ;
   ] .
 
 schema:BookIdentifierShape
@@ -376,10 +362,6 @@ schema:BookIdentifierShape
     ] ;
     sh:pattern "^W[1-9]\\d*$" ;
     sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or schema:BookShape ;
   ] .
   
 schema:AgentIdentifierShape
@@ -1883,18 +1865,10 @@ schema:CitationShape
   sh:property [
     sh:path cito:hasCitationCharacterization ;
     sh:or (
-      [ sh:hasValue cito:cites ]
-      [ sh:hasValue cito:extends ]
-      [ sh:hasValue cito:discusses ]
-      [ sh:hasValue cito:supports ]
-      [ sh:hasValue cito:refutes ]
       [ sh:hasValue cito:reviews ]
-      [ sh:hasValue cito:disagreesWith ]
-      [ sh:hasValue cito:agreesWith ]
-      [ sh:hasValue cito:confirms ]
-      [ sh:hasValue cito:disputes ]
-      [ sh:hasValue cito:usesMethodIn ]
-      [ sh:hasValue cito:usesDataFrom ]
+      [ sh:hasValue cito:citesAsRelated ]
+      [ sh:hasValue cito:repliesTo ]
+      [ sh:hasValue cito:updates ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;

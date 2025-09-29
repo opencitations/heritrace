@@ -818,9 +818,13 @@ common_properties:
                 cito:hasCitingEntity [[subject]] ;
                 cito:hasCitedEntity ?target .
       {
-        SELECT ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
+        SELECT ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?characterization
               (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
         WHERE {
+          [[value]] cito:hasCitedEntity ?target .
+          OPTIONAL {
+            [[value]] cito:hasCitationCharacterization ?characterization .
+          }
           ?target a fabio:Expression .
           OPTIONAL {
             ?target a ?specificType .
@@ -880,49 +884,64 @@ common_properties:
             OPTIONAL { ?embodiment prism:endingPage ?endPage . }
           }
         }
-        GROUP BY ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
+        GROUP BY ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?characterization
       }
       BIND(
-        IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
-          CONCAT(
-            COALESCE(?authorList, ""),
-            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-            IF(BOUND(?title), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
-              ?title
-            ), ""),
-            IF(BOUND(?journalTitle), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
-              ?journalTitle
-            ), ""),
-            IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
-            IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
-            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
-            COALESCE(?startPage, ""),
-            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
-            COALESCE(?endPage, ""),
-            "."),
-        IF(?entityType IN (fabio:BookChapter, fabio:Expression),
-          CONCAT(
-            COALESCE(?authorList, ""),
-            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-            IF(BOUND(?title), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
-              ?title
-            ), ""),
-            IF(BOUND(?bookTitle), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
-              ?bookTitle
-            ), ""),
-            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
-            COALESCE(?startPage, ""),
-            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
-            COALESCE(?endPage, ""),
-            "."),
-        COALESCE(?title, STR(?target))
-        )) AS ?display)
+        CONCAT(
+          IF(BOUND(?characterization),
+            CONCAT(
+              LCASE(
+                REPLACE(
+                  REPLACE(STR(?characterization), "^.*/([^/]*)$", "$1"),
+                  "([a-z])([A-Z])", "$1 $2"
+                )
+              ),
+              " \""
+            ),
+            ""
+          ),
+          IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
+            CONCAT(
+              COALESCE(?authorList, ""),
+              IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+              IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+              IF(BOUND(?title), CONCAT(
+                IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+                ?title
+              ), ""),
+              IF(BOUND(?journalTitle), CONCAT(
+                IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+                ?journalTitle
+              ), ""),
+              IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+              IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+              IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+              COALESCE(?startPage, ""),
+              IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+              COALESCE(?endPage, ""),
+              "."),
+          IF(?entityType IN (fabio:BookChapter, fabio:Expression),
+            CONCAT(
+              COALESCE(?authorList, ""),
+              IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+              IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+              IF(BOUND(?title), CONCAT(
+                IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+                ?title
+              ), ""),
+              IF(BOUND(?bookTitle), CONCAT(
+                IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
+                ?bookTitle
+              ), ""),
+              IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+              COALESCE(?startPage, ""),
+              IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+              COALESCE(?endPage, ""),
+              "."),
+          COALESCE(?title, STR(?target))
+          )),
+          IF(BOUND(?characterization), "\"", "")
+        ) AS ?display)
     }
 
   citing_entity_query: &citing_entity_query |
