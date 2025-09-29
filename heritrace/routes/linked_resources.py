@@ -15,6 +15,42 @@ from SPARQLWrapper import JSON
 linked_resources_bp = Blueprint("linked_resources", __name__, url_prefix="/api/linked-resources")
 
 
+def _is_virtual_property_intermediate_entity(entity_types: list) -> bool:
+    """
+    Check if an entity is an intermediate entity created for virtual properties.
+
+    An intermediate entity for virtual properties is identified by:
+    1. Its type matches a virtual property target class
+
+    Args:
+        entity_types: List of entity types for the referencing entity
+
+    Returns:
+        True if this is a virtual property intermediate entity, False otherwise
+    """
+    if not entity_types:
+        return False
+
+    # Get all display rules to check for virtual properties
+    display_rules = get_display_rules()
+    if not display_rules:
+        return False
+
+    # Check if any of the entity types matches a virtual property target class
+    for entity_type in entity_types:
+        for rule in display_rules:
+            for prop_config in rule.get('displayProperties', []):
+                if prop_config.get('isVirtual'):
+                    implementation = prop_config.get('implementedVia', {})
+                    target_config = implementation.get('target', {})
+
+                    if target_config.get('class') == entity_type:
+                        current_app.logger.debug(f"Found virtual property target entity type: {entity_type}")
+                        return True
+
+    return False
+
+
 def _is_proxy_entity(entity_types: list) -> tuple[bool, str]:
     """
     Check if an entity is a proxy (intermediate relation) entity based on display rules.
@@ -149,9 +185,13 @@ def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) 
             predicate = result["p"]["value"]
 
             types = get_entity_types(subject)
+
+            if _is_virtual_property_intermediate_entity(types):
+                continue
+
             highest_priority_type = get_highest_priority_class(types)
             shape = determine_shape_for_classes(types)
-            
+
             is_proxy, connecting_predicate = _is_proxy_entity(types)
             if is_proxy:
                 final_subject, final_predicate = _resolve_proxy_entity(subject, predicate, connecting_predicate)
@@ -166,7 +206,7 @@ def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) 
                 final_types = types
                 final_highest_priority_type = highest_priority_type
                 final_shape = shape
-            
+
             label = custom_filter.human_readable_entity(final_subject, (final_highest_priority_type, final_shape))
             type_label = custom_filter.human_readable_class((final_highest_priority_type, final_shape)) if final_highest_priority_type else None
 
