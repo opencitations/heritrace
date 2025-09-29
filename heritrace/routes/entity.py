@@ -39,8 +39,8 @@ from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject, get_entity_types, import_referenced_entities,
     parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
-from heritrace.utils.virtual_properties import (
-    create_virtual_property_details, get_virtual_properties_for_entity)
+from heritrace.utils.virtual_properties import \
+    get_virtual_properties_for_entity
 
 entity_bp = Blueprint("entity", __name__)
 
@@ -187,9 +187,6 @@ def about(subject):
                 shape = details.get("nodeShape")
                 key = (predicate_uri, entity_type_key, shape)
                 predicate_details_map[key] = details
-
-    virtual_property_details = create_virtual_property_details(virtual_properties, highest_priority_class, entity_shape, str(subject))
-    predicate_details_map.update(virtual_property_details)
 
     return render_template(
         "entity/about.jinja",
@@ -387,14 +384,13 @@ def create_entity():
 
     return render_template(
         "create_entity.jinja",
-        form_fields=form_fields,
         datatype_options=datatype_options,
         dataset_db_triplestore=current_app.config["DATASET_DB_TRIPLESTORE"],
         dataset_db_text_index_enabled=current_app.config[
             "DATASET_DB_TEXT_INDEX_ENABLED"
         ],
         default_primary_source=default_primary_source,
-        shacl=bool(get_form_fields()),
+        shacl=bool(form_fields),
         entity_class_shape_pairs=entity_class_shape_pairs
     )
 

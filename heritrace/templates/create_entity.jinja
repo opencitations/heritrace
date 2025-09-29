@@ -31,18 +31,22 @@
             <label for="entity_type" class="form-label">{{_('Select an entity type')}}</label>
         </div>
 
-        {% for entity_key, properties in form_fields.items() %}
-            {% set entity_type = entity_key[0] %}
-            {% set entity_shape = entity_key[1] %}
-            {% set group_id = ((entity_type, entity_shape) | human_readable_class + "_group") | replace(" ", "_") %}
-            <div class="property-group mb-3" id="{{ group_id }}" data-uri="{{ entity_type }}" data-shape="{{ entity_shape }}" style="display:none">
-                {% for prop, details_list in properties.items() %}
-                    {% for details in details_list %}
-                        {{ render_form_field(entity_type, prop, details, form_fields) }}
-                    {% endfor %}
-                {% endfor %}
+        <!-- Dynamic form container - form fields will be loaded here based on selection -->
+        <div id="dynamic-form-container">
+            <!-- Loading indicator -->
+            <div class="text-center my-5" id="form-loading" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">{{ _('Loading...') }}</span>
+                </div>
+                <p class="mt-3 text-muted">{{ _('Loading data for selected entity type...') }}</p>
             </div>
-        {% endfor %}
+
+            <!-- Error message container -->
+            <div class="alert alert-danger" id="form-error" style="display: none;">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <span id="form-error-message"></span>
+            </div>
+        </div>
     {% else %}
         <div id="custom-entity-form">
             {{ render_custom_properties_form() }}
@@ -86,34 +90,18 @@
     };
 
     $(document).ready(function() {
-        $(window).on('pageshow', function(event) {
-            initializeForm();
-        });
-
-        initializeForm();       
+        // Initialize form only once on page load
+        initializeForm();
 
         $('#entity_type').change(function() {
-            initializeForm();            
+            // Clear any existing selection and load new form fields
+            initializeForm();
         });
         $(document).on('click', '.toggle-btn', function(e) {
             e.stopPropagation();
             let target = $(this).attr('data-bs-target');
             $(target).collapse('toggle');
         });
-
-        $('[data-repeater-list]').each(function() {
-            var list = $(this);
-            var firstItem = list.find('[data-repeater-item]').first();
-            initialCopies[list.data('repeater-list')] = firstItem.clone(true, true);
-
-            if (list.data('ordered-by')) {
-                updateSortable(list);
-            }
-
-            updateButtons(list);
-        });
-
-        updateOrderedElementsNumbering();
 
         const customPropertiesManager = new CustomPropertiesManager();
 

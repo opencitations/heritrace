@@ -4,13 +4,16 @@ import traceback
 from typing import Dict, Optional
 
 import validators
-from flask import Blueprint, current_app, g, jsonify, request
+from flask import (Blueprint, current_app, g, jsonify, render_template_string,
+                   request)
 from flask_babel import gettext
 from flask_login import current_user, login_required
+from rdflib import RDF, XSD, Graph, Literal, URIRef
+
 from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor
 from heritrace.extensions import (get_custom_filter, get_dataset_endpoint,
-                                  get_provenance_endpoint)
+                                  get_form_fields, get_provenance_endpoint)
 from heritrace.services.resource_lock_manager import LockStatus
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.primary_source_utils import \
@@ -26,8 +29,8 @@ from heritrace.utils.sparql_utils import (find_orphaned_entities,
 from heritrace.utils.strategies import (OrphanHandlingStrategy,
                                         ProxyHandlingStrategy)
 from heritrace.utils.uri_utils import generate_unique_uri
-from heritrace.utils.virtual_properties import transform_changes_with_virtual_properties
-from rdflib import RDF, XSD, Graph, Literal, URIRef
+from heritrace.utils.virtual_properties import \
+    transform_changes_with_virtual_properties
 
 api_bp = Blueprint("api", __name__)
 
@@ -1086,3 +1089,138 @@ def format_source_api():
         current_app.logger.error(f"Error formatting source URL '{source_url}': {e}")
         fallback_html = f'<a href="{source_url}" target="_blank">{source_url}</a>'
         return jsonify({"formatted_html": fallback_html})
+
+
+@api_bp.route("/form-fields", methods=["GET"])
+@login_required
+def get_form_fields_for_entity():
+    """
+    Get form_fields for a specific entity class and shape combination.
+    Returns only the requested entity + immediate sub-entities (depth=2) to improve performance.
+
+    Query parameters:
+        entity_class: URI of the entity class
+        entity_shape: URI of the entity shape
+
+    Returns:
+        JSON response with form_fields for the specified entity
+    """
+
+    try:
+        entity_class_decoded = request.args.get('entity_class')
+        entity_shape_decoded = request.args.get('entity_shape')
+
+        if not entity_class_decoded or not entity_shape_decoded:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing required parameters: entity_class and entity_shape'
+            }), 400
+
+        all_form_fields = get_form_fields()
+
+        if not all_form_fields:
+            return jsonify({
+                'status': 'error',
+                'message': 'Form fields not initialized'
+            }), 500
+
+        entity_key = (entity_class_decoded, entity_shape_decoded)
+
+        if entity_key not in all_form_fields:
+            return jsonify({
+                'status': 'error',
+                'message': f'No form fields found for entity class {entity_class_decoded} with shape {entity_shape_decoded}'
+            }), 404
+
+        entity_form_fields = all_form_fields[entity_key]
+
+        # Convert OrderedDict to list of [property, details] pairs to preserve order
+        ordered_properties = []
+        for prop, details_list in entity_form_fields.items():
+            ordered_properties.append([prop, details_list])
+
+        return jsonify({
+            'status': 'success',
+            'form_fields': ordered_properties,
+            'entity_key': [entity_class_decoded, entity_shape_decoded]
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error loading form fields for {entity_class_decoded}/{entity_shape_decoded}: {e}")
+        current_app.logger.error(f"Full traceback: {traceback.format_exc()}")
+
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to load form fields: {str(e)}'
+        }), 500
+
+
+@api_bp.route("/render-form-fields", methods=["POST"])
+@login_required
+def render_form_fields_html():
+    """
+    Render form fields as HTML for dynamic loading.
+
+    Expects JSON payload with:
+    - form_fields: The form fields dictionary
+    - entity_key: [entity_class, entity_shape] array
+
+    Returns:
+        HTML string of the rendered form fields
+    """
+    try:
+        data = request.get_json()
+
+        if not data or 'form_fields' not in data or 'entity_key' not in data:
+            return jsonify({
+                'status': 'error',
+                'message': 'Missing required fields: form_fields and entity_key'
+            }), 400
+
+        form_fields_array = data['form_fields']  # This is an array of [prop, details_list] pairs
+        entity_key = data['entity_key']  # This is [entity_class, entity_shape] array
+        entity_class, entity_shape = entity_key
+
+        # Convert the array back to a dictionary for template rendering
+        entity_form_fields = {}
+        for prop, details_list in form_fields_array:
+            entity_form_fields[prop] = details_list
+
+        template_string = '''
+        {% from 'macros.jinja' import render_form_field with context %}
+
+        {% set entity_type = entity_class %}
+        {% set entity_shape = entity_shape %}
+        {% set group_id = ((entity_type, entity_shape) | human_readable_class + "_group") | replace(" ", "_") %}
+        <div class="property-group mb-3" id="{{ group_id }}" data-uri="{{ entity_type }}" data-shape="{{ entity_shape }}">
+            {% for prop_data in ordered_form_fields %}
+                {% set prop = prop_data[0] %}
+                {% set details_list = prop_data[1] %}
+                {% for details in details_list %}
+                    {{ render_form_field(entity_type, prop, details, all_form_fields) }}
+                {% endfor %}
+            {% endfor %}
+        </div>
+        '''
+
+        tuple_key = (entity_class, entity_shape)
+        all_form_fields_with_tuple_keys = {tuple_key: entity_form_fields}
+
+        html = render_template_string(
+            template_string,
+            entity_class=entity_class,
+            entity_shape=entity_shape,
+            ordered_form_fields=form_fields_array,  # Pass the ordered array
+            all_form_fields=all_form_fields_with_tuple_keys
+        )
+
+        return html
+
+    except Exception as e:
+        current_app.logger.error(f"Error rendering form fields HTML: {e}")
+        current_app.logger.error(f"Full traceback: {traceback.format_exc()}")
+
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to render form fields: {str(e)}'
+        }), 500

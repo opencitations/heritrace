@@ -5,6 +5,7 @@ var pendingChanges = [];
 
 var tempIdCounter = 0;
 
+
 function generateUniqueId(prefix) {
     return prefix + '_' + Math.random().toString(36).substr(2, 9);
 }
@@ -194,87 +195,159 @@ function processOperationsAsync(operationsQueue) {
     processBatch();
 }
 
-function initializeForm() {
+async function initializeForm() {
     let selectedUri;
     let selectedShape;
+
     if ($('#entity_type').length) {
         const selectedOption = $('#entity_type option:selected');
-        
+
         // Se l'opzione selezionata è quella predefinita (disabled) o non è selezionata alcuna opzione
         if (selectedOption.is(':disabled') || !selectedOption.val()) {
-            // Seleziona automaticamente la prima opzione non disabilitata
-            const firstOption = $('#entity_type option:not(:disabled):first');
-            if (firstOption.length) {
-                selectedUri = firstOption.val();
-                selectedShape = firstOption.data('shape');
-                $('#entity_type').val(selectedUri);
+            // Seleziona automaticamente la prima opzione disponibile (non disabled)
+            const firstAvailableOption = $('#entity_type option:not(:disabled):first');
+            if (firstAvailableOption.length && firstAvailableOption.val()) {
+                selectedUri = firstAvailableOption.val();
+                selectedShape = firstAvailableOption.data('shape');
+                $('#entity_type').val(selectedUri); // Imposta la selezione nel dropdown
             } else {
-                selectedUri = null;
-                selectedShape = null;
+                // Nessuna opzione disponibile
+                $('#dynamic-form-container .property-group').remove();
+                $('#form-loading').hide();
+                $('#form-error').hide();
+                return;
             }
         } else {
-            // Ottieni i valori dall'opzione selezionata
+            // Ottieni i valori dall'opzione già selezionata
             selectedUri = selectedOption.val();
             selectedShape = selectedOption.data('shape');
         }
     } else if (typeof entity_type !== 'undefined' && entity_type) {
         // In about.jinja, use the entity_type variable
         selectedUri = entity_type;
+        selectedShape = typeof entity_shape !== 'undefined' ? entity_shape : '';
     }
 
     if (selectedUri) {
-        // Hide all property groups
-        $('.property-group').hide();
-
-        // Implementa una logica simile a find_matching_rule in display_rules_utils.py
-        let selectedGroup = null;
-        let classMatch = null;
-        let shapeMatch = null;
-        
-        // Cerca tutti i gruppi di proprietà disponibili
-        $('.property-group').each(function() {
-            const groupUri = $(this).data('uri');
-            const groupShape = $(this).data('shape');
-            
-            // Caso 1: Corrispondenza esatta sia per classe che per shape
-            if (selectedUri && selectedShape && 
-                groupUri === selectedUri && 
-                groupShape === selectedShape) {
-                // La corrispondenza esatta ha sempre la precedenza più alta
-                selectedGroup = $(this);
-                return false; // Interrompe il ciclo each
-            }
-            
-            // Caso 2: Solo la classe corrisponde
-            if (selectedUri && groupUri === selectedUri && !groupShape) {
-                classMatch = $(this);
-            }
-            
-            // Caso 3: Solo lo shape corrisponde
-            if (selectedShape && groupShape === selectedShape && !groupUri) {
-                shapeMatch = $(this);
-            }
-        });
-        
-        // Se non abbiamo trovato una corrispondenza esatta, usa la migliore disponibile
-        // Le regole shape hanno tipicamente una specificità più alta, quindi le preferiamo
-        if (!selectedGroup) {
-            selectedGroup = shapeMatch || classMatch;
-        }
-        
-        // Mostra solo il gruppo selezionato
-        if (selectedGroup && selectedGroup.length > 0) {
-            selectedGroup.show();
-            
-            // Inizializza gli elementi obbligatori ricorsivamente
-            initializeMandatoryElements(selectedGroup);
-        } else {
-            console.log(`Nessun gruppo di proprietà trovato per URI=${selectedUri}${selectedShape ? ' e shape=' + selectedShape : ''}`);
-        }
+        await loadFormFieldsAsync(selectedUri, selectedShape);
     } else {
-        // Se non è selezionato alcun tipo, disabilita tutti gli input
-        $('.property-group :input').prop('disabled', true);
+        // Clear form if no entity type selected
+        $('#dynamic-form-container .property-group').remove();
+        $('#form-loading').hide();
+        $('#form-error').hide();
     }
+}
+
+async function loadFormFieldsAsync(entityClass, entityShape) {
+    // Show loading indicator and hide previous content
+    $('#form-loading').show();
+    $('#form-error').hide();
+    // Remove all existing content, not just .property-group
+    $('#dynamic-form-container').children().not('#form-loading, #form-error').remove();
+
+    try {
+        // Step 1: Load form fields data from API
+        const params = new URLSearchParams({
+            entity_class: entityClass,
+            entity_shape: entityShape
+        });
+
+        const formFieldsResponse = await fetch(
+            `/api/form-fields?${params.toString()}`,
+            {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }
+        );
+
+        if (!formFieldsResponse.ok) {
+            throw new Error(`HTTP ${formFieldsResponse.status}: ${formFieldsResponse.statusText}`);
+        }
+
+        const formFieldsData = await formFieldsResponse.json();
+
+        if (formFieldsData.status !== 'success') {
+            throw new Error(formFieldsData.message || 'Failed to load form fields');
+        }
+
+        // Step 2: Render form fields as HTML
+        const renderResponse = await fetch('/api/render-form-fields', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                form_fields: formFieldsData.form_fields,
+                entity_key: formFieldsData.entity_key
+            })
+        });
+
+        if (!renderResponse.ok) {
+            throw new Error(`HTML rendering failed: ${renderResponse.status} ${renderResponse.statusText}`);
+        }
+
+        const html = await renderResponse.text();
+
+        // Step 3: Insert HTML into the page
+        $('#dynamic-form-container').append(html);
+
+        // Step 4: Initialize the form elements
+        const $formContainer = $('#dynamic-form-container .property-group').last();
+
+        if ($formContainer.length > 0) {
+            // Show the form container
+            $formContainer.show();
+
+            // Initialize mandatory elements
+            initializeMandatoryElements($formContainer);
+
+            // Initialize tooltips
+            $formContainer.find('[data-bs-toggle="tooltip"]').tooltip();
+
+            // Initialize repeater functionality
+            initializeRepeaters($formContainer);
+        }
+
+    } catch (error) {
+        console.error('Error loading form fields:', error);
+        showFormError(error.message);
+    } finally {
+        $('#form-loading').hide();
+    }
+}
+
+function showFormError(message) {
+    $('#form-error-message').text(message);
+    $('#form-error').show();
+}
+
+function initializeRepeaters($container) {
+    // Initialize repeaters for the new container
+    $container.find('[data-repeater-list]').each(function() {
+        var list = $(this);
+        var firstItem = list.find('[data-repeater-item]').first();
+
+        if (firstItem.length > 0) {
+            var templateKey = list.data('repeater-list');
+
+            // Only clone if we don't already have a template for this key
+            if (!initialCopies[templateKey]) {
+                initialCopies[templateKey] = firstItem.clone(true, true);
+            }
+
+            // Initialize Sortable for ordered lists
+            if (list.data('ordered-by')) {
+                updateSortable(list);
+            }
+
+            updateButtons(list);
+        }
+    });
+
+    updateOrderedElementsNumbering();
 }
 
 function storePendingChange(action, subject, predicate, object, newObject = null, shape = null, entity_type = null, entity_shape = null) {
@@ -460,8 +533,20 @@ function initializeNewItem($newItem, isInitialStructure = false) {
             
             if (minItems > 0) {
                 const templateKey = $nestedList.data('repeater-list');
+
+                // Check if template exists, if not create it from first item
+                if (!initialCopies[templateKey]) {
+                    const firstItem = $nestedList.find('[data-repeater-item]').first();
+                    if (firstItem.length > 0) {
+                        initialCopies[templateKey] = firstItem.clone(true, true);
+                    } else {
+                        console.warn('No template found for nested repeater:', templateKey);
+                        return; // Skip this nested list if no template
+                    }
+                }
+
                 const $template = initialCopies[templateKey].clone(true, true);
-                
+
                 for (let i = 0; i < minItems; i++) {
                     const $nestedItem = $template.clone(true, true);
                     initializeNewItem($nestedItem, true);
@@ -713,17 +798,6 @@ function collectFormData(container, data, shacl, depth) {
     return data;
 }
 
-$('[data-repeater-list]').each(function() {
-    var list = $(this);
-    var firstItem = list.find('[data-repeater-item]').first();
-    initialCopies[list.data('repeater-list')] = firstItem.clone(true, true);
-
-     // Initialize Sortable for each repeater list
-    if (list.data('ordered-by')) {
-        updateSortable(list);
-    }
-});
-
 // Funzione per evidenziare i campi con errori
 function highlightValidationErrors(errors) {
     // Rimuovi gli stati di errore precedenti
@@ -802,6 +876,17 @@ $(document).ready(function() {
     
         // Usa template dalla cache o creane uno nuovo
         const templateKey = $list.data('repeater-list');
+
+        // Check if template exists, if not create it from first item
+        if (!initialCopies[templateKey]) {
+            const firstItem = $list.find('[data-repeater-item]').first();
+            if (firstItem.length > 0) {
+                initialCopies[templateKey] = firstItem.clone(true, true);
+            } else {
+                console.error('No template found for repeater:', templateKey);
+                return;
+            }
+        }
 
         $template = initialCopies[templateKey].clone(true, true);
     
