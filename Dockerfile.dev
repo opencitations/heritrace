@@ -18,7 +18,7 @@ COPY heritrace ./heritrace
 COPY config.example.py ./config.py
 
 RUN poetry config virtualenvs.in-project true
-RUN poetry install --only main
+RUN poetry install --with dev
 
 COPY package.json package-lock.json ./
 RUN npm install
@@ -60,4 +60,4 @@ ENV FLASK_APP=app.py
 
 EXPOSE 5000
 
-CMD ["/app/start-dev.sh", "npm", "run", "dev"]
+CMD ["/app/start-dev.sh", "sh", "-c", "npm run build && poetry run python app.py"]

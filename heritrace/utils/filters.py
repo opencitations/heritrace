@@ -44,7 +44,8 @@ class Filter:
         if rule:
             if "displayProperties" in rule:
                 for display_property in rule["displayProperties"]:
-                    if display_property["property"] == str(predicate_uri):
+                    prop_uri = display_property.get("property") or display_property.get("virtual_property")
+                    if prop_uri == str(predicate_uri):
                         if "displayRules" in display_property:
                             if object_shape_uri:
                                 for display_rule in display_property["displayRules"]:
@@ -54,7 +55,7 @@ class Filter:
                         elif "displayName" in display_property:
                             return display_property["displayName"]
 
-        first_part, _ = split_namespace(predicate_uri)
+        first_part, _ = split_namespace(predicate_uri) 
         if first_part in self.context:
             return format_uri_as_readable(predicate_uri)
         elif validators.url(predicate_uri) and is_link:
@@ -65,10 +66,10 @@ class Filter:
     def human_readable_class(self, entity_key):
         """
         Converts a class URI to human-readable format.
-                
+
         Args:
             entity_key (tuple): A tuple containing (class_uri, shape_uri)
-            
+
         Returns:
             str: Human-readable representation of the class
         """
@@ -229,10 +230,10 @@ class Filter:
 def split_namespace(uri: str) -> Tuple[str, str]:
     """
     Split a URI into namespace and local part.
-    
+
     Args:
         uri: The URI to split
-        
+
     Returns:
         Tuple of (namespace, local_part)
     """

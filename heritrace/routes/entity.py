@@ -8,6 +8,10 @@ from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_babel import gettext
 from flask_login import current_user, login_required
+from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
+from SPARQLWrapper import JSON
+from time_agnostic_library.agnostic_entity import AgnosticEntity
+
 from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor
 from heritrace.extensions import (get_change_tracking_config,
@@ -35,9 +39,8 @@ from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject, get_entity_types, import_referenced_entities,
     parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
-from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
-from SPARQLWrapper import JSON
-from time_agnostic_library.agnostic_entity import AgnosticEntity
+from heritrace.utils.virtual_properties import (
+    create_virtual_property_details, get_virtual_properties_for_entity)
 
 entity_bp = Blueprint("entity", __name__)
 
@@ -164,11 +167,13 @@ def about(subject):
                 subject, triples, valid_predicates, highest_priority_class=highest_priority_class, highest_priority_shape=entity_shape
             )
 
-            can_be_added = [uri for uri in can_be_added if uri in relevant_properties]
+            virtual_properties = get_virtual_properties_for_entity(highest_priority_class, entity_shape)
+
+            can_be_added = [uri for uri in can_be_added if uri in relevant_properties] + [vp[0] for vp in virtual_properties]
             can_be_deleted = [
                 uri for uri in can_be_deleted if uri in relevant_properties
             ]
-    
+
     update_form = UpdateTripleForm()
 
     form_fields = get_form_fields()
@@ -182,6 +187,9 @@ def about(subject):
                 shape = details.get("nodeShape")
                 key = (predicate_uri, entity_type_key, shape)
                 predicate_details_map[key] = details
+
+    virtual_property_details = create_virtual_property_details(virtual_properties, highest_priority_class, entity_shape, str(subject))
+    predicate_details_map.update(virtual_property_details)
 
     return render_template(
         "entity/about.jinja",
@@ -1307,7 +1315,7 @@ def restore_version(entity_uri, timestamp):
 
         subject = str(item[0])
         if subject in entity_snapshots:
-            entity_info = entity_snapshots[subject]
+            entity_info = entity_snapshots[subject] 
             if entity_info["needs_restore"]:
                 editor.g_set.mark_as_restored(URIRef(subject))
             editor.g_set.entity_index[URIRef(subject)]["restoration_source"] = (

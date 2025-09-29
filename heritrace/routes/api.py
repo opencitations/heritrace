@@ -26,6 +26,7 @@ from heritrace.utils.sparql_utils import (find_orphaned_entities,
 from heritrace.utils.strategies import (OrphanHandlingStrategy,
                                         ProxyHandlingStrategy)
 from heritrace.utils.uri_utils import generate_unique_uri
+from heritrace.utils.virtual_properties import transform_changes_with_virtual_properties
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 
 api_bp = Blueprint("api", __name__)
@@ -493,7 +494,6 @@ def apply_changes():
     """
     try:
         changes = request.get_json()
-        
         if not changes:
             return jsonify({"error": "No request data provided"}), 400
 
@@ -510,6 +510,8 @@ def apply_changes():
         if save_default_source and primary_source and validators.url(primary_source):
             save_user_default_primary_source(current_user.orcid, primary_source)
         
+        changes = transform_changes_with_virtual_properties(changes)
+
         deleted_entities = set()
         editor = Editor(
             get_dataset_endpoint(),
@@ -555,14 +557,18 @@ def apply_changes():
             if change["action"] == "create":
                 data = change.get("data")
                 if data:
-                    subject = create_logic(
+                    change_subject = change.get("subject")
+                    created_subject = create_logic(
                         editor,
                         data,
-                        subject,
+                        change_subject,
                         graph_uri,
                         temp_id_to_uri=temp_id_to_uri,
                         parent_entity_type=None,
                     )
+                    # Only update the main subject if this is the main entity
+                    if change_subject is not None:
+                        subject = created_subject
 
         orphan_strategy = current_app.config.get(
             "ORPHAN_HANDLING_STRATEGY", OrphanHandlingStrategy.KEEP
@@ -791,7 +797,7 @@ def create_logic(
     temp_id = data.get("tempId")
 
     if subject is None:
-        subject = generate_unique_uri(entity_type)
+        subject = generate_unique_uri(entity_type, data)
 
     if temp_id and temp_id_to_uri is not None:
         temp_id_to_uri[temp_id] = str(subject)

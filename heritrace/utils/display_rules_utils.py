@@ -246,26 +246,32 @@ def get_grouped_triples(
 
     grouped_triples = OrderedDict()
     relevant_properties = set()
-    fetched_values_map = dict()  # Map of original values to values returned by the query
-    primary_properties = valid_predicates_info
-    
+    fetched_values_map = dict()
+
     matching_rule = find_matching_rule(highest_priority_class, highest_priority_shape, display_rules)
     matching_form_field = form_fields.get((highest_priority_class, highest_priority_shape))
+
     ordered_properties = []
     if display_rules and matching_rule:
         for prop_config in matching_rule.get("displayProperties", []):
-            if prop_config["property"] not in ordered_properties:
-                ordered_properties.append(prop_config["property"])
-    
-    for prop_uri in primary_properties:
+            if prop_config.get("isVirtual"):
+                prop_uri = prop_config.get("displayName")
+            else:
+                prop_uri = prop_config.get("property")
+            if prop_uri and prop_uri not in ordered_properties:
+                ordered_properties.append(prop_uri)
+
+    for prop_uri in valid_predicates_info:
         if prop_uri not in ordered_properties:
             ordered_properties.append(prop_uri)
 
     for prop_uri in ordered_properties:
+        current_prop_config = None
+
         if display_rules and matching_rule:
-            current_prop_config = None
             for prop_config in matching_rule.get("displayProperties", []):
-                if prop_config["property"] == prop_uri:
+                config_identifier = prop_config.get("displayName") if prop_config.get("isVirtual") else prop_config.get("property")
+                if config_identifier == prop_uri:
                     current_prop_config = prop_config
                     break
             
@@ -282,20 +288,32 @@ def get_grouped_triples(
                         )
                         relevant_properties.add(prop_uri)
                         object_shape = display_rule_nested.get("shape")
-                        process_display_rule(
-                            display_name_nested,
-                            prop_uri,
-                            display_rule_nested,
-                            subject,
-                            triples,
-                            grouped_triples,
-                            fetched_values_map,
-                            historical_snapshot,
-                            highest_priority_shape,
-                            object_shape,
-                            highest_priority_class
-                        )
-                        if is_ordered:
+                        if current_prop_config.get("isVirtual"):
+                            process_virtual_property_display(
+                                display_name_nested,
+                                current_prop_config,
+                                subject,
+                                grouped_triples,
+                                fetched_values_map,
+                                historical_snapshot,
+                                highest_priority_shape,
+                                highest_priority_class
+                            )
+                        else:
+                            process_display_rule(
+                                display_name_nested,
+                                prop_uri,
+                                display_rule_nested,
+                                subject,
+                                triples,
+                                grouped_triples,
+                                fetched_values_map,
+                                historical_snapshot,
+                                highest_priority_shape,
+                                object_shape,
+                                highest_priority_class
+                            )
+                        if is_ordered and not current_prop_config.get("isVirtual", False):
                             grouped_triples[display_name_nested]["is_draggable"] = True
                             grouped_triples[display_name_nested]["ordered_by"] = order_property
                             process_ordering(
@@ -327,7 +345,10 @@ def get_grouped_triples(
 
                 else:
                     display_name_simple = current_prop_config.get("displayName", prop_uri)
-                    relevant_properties.add(prop_uri)
+                    # Only add non-virtual properties to relevant_properties
+                    # Virtual properties are handled separately in entity.py
+                    if not current_prop_config.get("isVirtual"):
+                        relevant_properties.add(prop_uri)
 
                     object_shape = None
                     if current_form_field:
@@ -335,20 +356,32 @@ def get_grouped_triples(
                             object_shape = form_field.get("nodeShape")       
                             break                  
 
-                    process_display_rule(
-                        display_name_simple,
-                        prop_uri,
-                        current_prop_config,
-                        subject,
-                        triples,
-                        grouped_triples,
-                        fetched_values_map,
-                        historical_snapshot,
-                        highest_priority_shape,
-                        object_shape,
-                        highest_priority_class
-                    )
-                    if "orderedBy" in current_prop_config:
+                    if current_prop_config.get("isVirtual"):
+                        process_virtual_property_display(
+                            display_name_simple,
+                            current_prop_config,
+                            subject,
+                            grouped_triples,
+                            fetched_values_map,
+                            historical_snapshot,
+                            highest_priority_shape,
+                            highest_priority_class
+                        )
+                    else:
+                        process_display_rule(
+                            display_name_simple,
+                            prop_uri,
+                            current_prop_config,
+                            subject,
+                            triples,
+                            grouped_triples,
+                            fetched_values_map,
+                            historical_snapshot,
+                            highest_priority_shape,
+                            object_shape,
+                            highest_priority_class
+                        )
+                    if "orderedBy" in current_prop_config and not current_prop_config.get("isVirtual", False):
                         if display_name_simple not in grouped_triples:
                             grouped_triples[display_name_simple] = {"property": prop_uri, "triples": [], "subjectClass": highest_priority_class, "subjectShape": highest_priority_shape, "objectShape": current_prop_config.get("shape")}
                         grouped_triples[display_name_simple]["is_draggable"] = True
@@ -369,6 +402,7 @@ def get_grouped_triples(
                         grouped_triples[display_name_simple]["intermediateRelation"] = current_prop_config["intermediateRelation"]
             else:
                 # Property without specific configuration - add to relevant_properties
+                # Don't process properties without configuration (they are not virtual in this case)
                 relevant_properties.add(prop_uri)
                 process_default_property(prop_uri, triples, grouped_triples, highest_priority_shape, highest_priority_class)
         else:
@@ -447,6 +481,120 @@ def process_display_rule(
                     "objectShape": object_shape,
                 }
                 grouped_triples[display_name]["triples"].append(new_triple_data)
+
+
+def process_virtual_property_display(
+    display_name: str,
+    prop_config: dict,
+    subject: URIRef,
+    grouped_triples: OrderedDict,
+    fetched_values_map: dict,
+    historical_snapshot: Optional[Graph] = None,
+    subject_shape: Optional[str] = None,
+    subject_class: Optional[str] = None
+):
+    """Process virtual properties by querying for entities that reference the current entity."""
+
+    implementation = prop_config.get("implementedVia", {})
+    field_overrides = implementation.get("fieldOverrides", {})
+    target = implementation.get("target", {})
+    target_class = target.get("class")
+
+    # Find which field should reference the current entity
+    reference_field = None
+    for field_uri, override in field_overrides.items():
+        if override.get("value") == "${currentEntity}":
+            reference_field = field_uri
+            break
+
+    if not reference_field:
+        return
+
+    decoded_subject = unquote(str(subject))
+
+    # Query for entities that reference the current entity via the reference field
+    query = f"""
+        SELECT DISTINCT ?entity
+        WHERE {{
+            ?entity <{reference_field}> <{decoded_subject}> .
+    """
+
+    if target_class:
+        query += f"""
+            ?entity a <{target_class}> .
+        """
+
+    query += """
+        }
+    """
+
+    if historical_snapshot:
+        # Execute query on historical snapshot
+        results = list(historical_snapshot.query(query))
+        entity_uris = [str(row[0]) for row in results]
+    else:
+        # Execute query on live triplestore
+        sparql = get_sparql()
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert().get("results", {}).get("bindings", [])
+        entity_uris = [res["entity"]["value"] for res in results]
+
+    # Now fetch display values for these entities if fetchValueFromQuery is configured
+
+    if prop_config.get("fetchValueFromQuery") and entity_uris:
+
+        if display_name not in grouped_triples:
+            grouped_triples[display_name] = {
+                "property": display_name,  # Use display name as identifier for virtual properties
+                "triples": [],
+                "subjectClass": subject_class,
+                "subjectShape": subject_shape,
+                "objectShape": None,  # Should be None for virtual properties to match key format
+                "is_virtual": True
+            }
+
+        for entity_uri in entity_uris:
+            # Execute the fetch query for each entity
+            if historical_snapshot:
+                result, external_entity = execute_historical_query(
+                    prop_config["fetchValueFromQuery"],
+                    subject,
+                    URIRef(entity_uri),
+                    historical_snapshot
+                )
+            else:
+                result, external_entity = execute_sparql_query(
+                    prop_config["fetchValueFromQuery"],
+                    str(subject),
+                    entity_uri 
+                )
+
+            if result:
+                fetched_values_map[str(result)] = entity_uri
+                new_triple_data = {
+                    "triple": (str(subject), display_name, str(result)),
+                    "external_entity": external_entity,
+                    "object": entity_uri,
+                    "subjectClass": subject_class,
+                    "subjectShape": subject_shape,
+                    "objectShape": target.get("shape"),
+                    "is_virtual": True
+                }
+                grouped_triples[display_name]["triples"].append(new_triple_data)
+    else:
+        # Even if no entities are found, we should still create the entry for virtual properties
+        # so they can be added via the interface
+
+        if display_name not in grouped_triples:
+            grouped_triples[display_name] = {
+                "property": display_name,  # Use display name as identifier for virtual properties
+                "triples": [],
+                "subjectClass": subject_class,
+                "subjectShape": subject_shape,
+                "objectShape": None,  # Should be None for virtual properties to match key format
+                "is_virtual": True
+            }
 
 
 def execute_sparql_query(query: str, subject: str, value: str) -> Tuple[str, str]:

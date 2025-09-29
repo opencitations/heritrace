@@ -8,6 +8,7 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix doco: <http://purl.org/spar/doco/> .
 @prefix fabio: <http://purl.org/spar/fabio/> .
+@prefix cito: <http://purl.org/spar/cito/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix frbr: <http://purl.org/vocab/frbr/core#> .
 @prefix literal: <http://www.essepuntato.it/2010/06/literalreification/> .
@@ -17,7 +18,7 @@
 
 # Identifiers
 
-schema:IdentifierShape
+schema:IdentifierShape 
   a sh:NodeShape ;
   sh:targetClass datacite:Identifier ;
   sh:property [
@@ -1855,5 +1856,46 @@ schema:AbstractShape
     sh:path [sh:inversePath frbr:part] ;
     sh:node schema:BibliographicResourceShape ;
     sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:CitationShape
+  a sh:NodeShape ;
+  sh:targetClass cito:Citation ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue cito:Citation ; 
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitingEntity ;
+    sh:node schema:JournalArticleShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitedEntity ;
+    sh:node schema:JournalArticleShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitationCharacterization ;
+    sh:or (
+      [ sh:hasValue cito:cites ]
+      [ sh:hasValue cito:extends ]
+      [ sh:hasValue cito:discusses ]
+      [ sh:hasValue cito:supports ]
+      [ sh:hasValue cito:refutes ]
+      [ sh:hasValue cito:reviews ]
+      [ sh:hasValue cito:disagreesWith ]
+      [ sh:hasValue cito:agreesWith ]
+      [ sh:hasValue cito:confirms ]
+      [ sh:hasValue cito:disputes ]
+      [ sh:hasValue cito:usesMethodIn ]
+      [ sh:hasValue cito:usesDataFrom ]
+    ) ;
+    sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .

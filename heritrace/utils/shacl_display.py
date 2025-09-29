@@ -138,6 +138,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
                 "optionalValues": optionalValues,
                 "conditions": [condition_entry] if condition_entry else [],
                 "inputType": determine_input_type(datatype),
+                "shouldBeDisplayed": True,  # Default value
             }
 
             if nodeShape and nodeShape not in processed_shapes:
@@ -171,6 +172,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
                         "objectClass": objectClass,
                         "optionalValues": optionalValues,
                         "conditions": [condition_entry] if condition_entry else [],
+                        "shouldBeDisplayed": True,  # Default value
                     }
                     if node not in processed_shapes:
                         or_field_info["nestedShape"] = process_nested_shapes(
@@ -248,7 +250,11 @@ def get_property_order(entity_type, display_rules):
         if rule.get("class") == entity_type and "propertyOrder" in rule:
             return rule["propertyOrder"]
         elif rule.get("class") == entity_type:
-            return [prop["property"] for prop in rule.get("displayProperties", [])]
+            return [
+                prop.get("property") or prop.get("virtual_property")
+                for prop in rule.get("displayProperties", [])
+                if prop.get("property") or prop.get("virtual_property")
+            ]
     return []
 
 
@@ -301,8 +307,9 @@ def order_form_fields(form_fields, display_rules):
                 entity_key = (entity_class, entity_shape)
                 if entity_key in form_fields:
                     ordered_properties = [
-                        prop_rule["property"]
+                        prop_rule.get("property") or prop_rule.get("virtual_property")
                         for prop_rule in rule.get("displayProperties", [])
+                        if prop_rule.get("property") or prop_rule.get("virtual_property")
                     ]
                     ordered_form_fields[entity_key] = OrderedDict()
                     for prop in ordered_properties:
@@ -319,8 +326,9 @@ def order_form_fields(form_fields, display_rules):
                     if key[0] == entity_class:  # Check if class part of tuple matches
                         entity_key = key
                         ordered_properties = [
-                            prop_rule["property"]
+                            prop_rule.get("property") or prop_rule.get("virtual_property")
                             for prop_rule in rule.get("displayProperties", [])
+                            if prop_rule.get("property") or prop_rule.get("virtual_property")
                         ]
                         ordered_form_fields[entity_key] = OrderedDict()
                         for prop in ordered_properties:
@@ -337,8 +345,9 @@ def order_form_fields(form_fields, display_rules):
                     if key[1] == entity_shape:  # Check if shape part of tuple matches
                         entity_key = key
                         ordered_properties = [
-                            prop_rule["property"]
+                            prop_rule.get("property") or prop_rule.get("virtual_property")
                             for prop_rule in rule.get("displayProperties", [])
+                            if prop_rule.get("property") or prop_rule.get("virtual_property")
                         ]
                         ordered_form_fields[entity_key] = OrderedDict()
                         for prop in ordered_properties:
@@ -398,8 +407,8 @@ def apply_rule_to_entity(shacl, form_fields, entity_key, rule):
         rule: The display rule to apply
     """
     for prop in rule.get("displayProperties", []):
-        prop_uri = prop["property"]
-        if prop_uri in form_fields[entity_key]:
+        prop_uri = prop.get("property") or prop.get("virtual_property")
+        if prop_uri and prop_uri in form_fields[entity_key]:
             for field_info in form_fields[entity_key][prop_uri]:
                 add_display_information(field_info, prop)
                 # Chiamata ricorsiva per le nestedShape

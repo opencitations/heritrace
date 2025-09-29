@@ -306,9 +306,13 @@ def find_matching_form_field(class_uri=None, shape_uri=None, form_fields=None):
         elif class_uri and field_class_uri == str(class_uri) and field_shape_uri is None:
             class_match = field_key
         
-        # Case 3: Only shape matches (and form field has no class constraint)  
+        # Case 3: Only shape matches (and form field has no class constraint)
         elif shape_uri and field_shape_uri == str(shape_uri) and field_class_uri is None:
             shape_match = field_key
+
+        # Case 4: Only class matches (even if form field has a shape)
+        elif class_uri and field_class_uri == str(class_uri) and not class_match:
+            class_match = field_key
     
     # Return the best match based on specificity
     # Shape rules typically have higher specificity, so prefer them

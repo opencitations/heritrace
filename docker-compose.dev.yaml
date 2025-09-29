@@ -2,6 +2,8 @@ services:
   heritrace-dataset:
     image: arcangelo7/heritrace-testing-virtuoso-dataset:1.0.2
     container_name: heritrace-dataset
+    ports:
+      - "8890:8890"
     environment:
       - DBA_PASSWORD=dba
       - DAV_PASSWORD=dba
@@ -20,11 +22,13 @@ services:
   heritrace-provenance:
     image: arcangelo7/heritrace-testing-virtuoso-provenance:1.0.2
     container_name: heritrace-provenance
+    ports:
+      - "8891:8890"
     environment:
       - DBA_PASSWORD=dba
       - DAV_PASSWORD=dba
       - CONTAINER_TYPE=provenance
- 
+
     volumes:
       - ./prov_database:/database
     healthcheck:
@@ -84,6 +88,8 @@ services:
       
       # Development Configuration
       - BAKE=true
+      - SHACL_PATH=/app/shacl.ttl
+      - DISPLAY_RULES_PATH=/app/display_rules.yaml
     volumes:
       - ./heritrace:/app/heritrace
       - ./app.py:/app/app.py
