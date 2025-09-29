@@ -2907,4 +2907,16 @@ rules:
         fetchValueFromQuery: *cited_entity_query
       - property: "http://purl.org/spar/cito/hasCitationCharacterization"
         displayName: "Citation Type"
-        shouldBeDisplayed: true 
+        shouldBeDisplayed: true
+        fetchValueFromQuery: |
+          SELECT ?display WHERE {
+            VALUES (?characterization) { ([[value]]) }
+            BIND(
+              LCASE(
+                REPLACE(
+                  REPLACE(STR(?characterization), "^.*/([^/]*)$", "$1"),
+                  "([a-z])([A-Z])", "$1 $2"
+                )
+              ) AS ?display
+            )
+          } 
