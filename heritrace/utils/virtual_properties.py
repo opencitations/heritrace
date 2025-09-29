@@ -6,10 +6,52 @@ entities to display computed or derived relationships that don't exist directly
 in the knowledge graph.
 """
 
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Optional
 
 from heritrace.extensions import get_display_rules
 from heritrace.utils.display_rules_utils import find_matching_rule
+
+
+def _validate_entity_data(data: Dict[str, Any]) -> Optional[str]:
+    """
+    Validate entity data for virtual property processing.
+
+    Returns:
+        entity_type if valid, None if invalid
+    """
+    if not data.get('properties'):
+        return None
+
+    entity_type = data.get('entity_type')
+    if not entity_type:
+        return None
+
+    return entity_type
+
+
+def _get_virtual_property_configs(entity_type: str, entity_shape: str) -> Dict[str, Dict]:
+    """
+    Get virtual property configurations for an entity type and shape.
+
+    Returns:
+        Dictionary mapping display names to property configs
+    """
+    display_rules = get_display_rules()
+    if not display_rules:
+        return {}
+
+    matching_rule = find_matching_rule(entity_type, entity_shape, display_rules)
+    if not matching_rule:
+        return {}
+
+    virtual_property_configs = {}
+    for prop_config in matching_rule.get('displayProperties', []):
+        if prop_config.get('isVirtual'):
+            display_name = prop_config.get('displayName')
+            if display_name:
+                virtual_property_configs[display_name] = prop_config
+
+    return virtual_property_configs
 
 
 def get_virtual_properties_for_entity(highest_priority_class: str, entity_shape: str) -> List[Tuple[str, Dict]]:
@@ -23,21 +65,9 @@ def get_virtual_properties_for_entity(highest_priority_class: str, entity_shape:
     Returns:
         List of tuples (displayName, property_config)
     """
-    virtual_properties = []
+    virtual_property_configs = _get_virtual_property_configs(highest_priority_class, entity_shape)
 
-    display_rules = get_display_rules()
-
-    if display_rules:
-
-        matching_rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
-        if matching_rule:
-            for prop_config in matching_rule.get("displayProperties", []):
-                if prop_config.get("isVirtual"):
-                    display_name = prop_config.get("displayName")
-                    if display_name:
-                        virtual_properties.append((display_name, prop_config))
-
-    return virtual_properties
+    return [(display_name, config) for display_name, config in virtual_property_configs.items()]
 
 
 def apply_field_overrides(form_field_data: Dict, field_overrides: Dict, current_entity_uri: str = None) -> Dict:
@@ -143,27 +173,12 @@ def process_virtual_properties_in_create_data(data: Dict[str, Any], subject_uri:
         - Modified data with virtual properties removed
         - List of intermediate entities to create
     """
-    if not data.get('properties'):
-        return data, []
-
-    entity_type = data.get('entity_type')
-    entity_shape = data.get('entity_shape')
-
+    entity_type = _validate_entity_data(data)
     if not entity_type:
         return data, []
 
-    display_rules = get_display_rules()
-
-    matching_rule = find_matching_rule(entity_type, entity_shape, display_rules)
-    if not matching_rule:
-        return data, []
-
-    virtual_property_configs = {}
-    for prop_config in matching_rule.get('displayProperties', []):
-        if prop_config.get('isVirtual'):
-            display_name = prop_config.get('displayName')
-            if display_name:
-                virtual_property_configs[display_name] = prop_config
+    entity_shape = data.get('entity_shape')
+    virtual_property_configs = _get_virtual_property_configs(entity_type, entity_shape)
 
     if not virtual_property_configs:
         return data, []
@@ -187,6 +202,77 @@ def process_virtual_properties_in_create_data(data: Dict[str, Any], subject_uri:
     modified_data['properties'] = regular_properties
 
     return modified_data, virtual_entities
+
+
+def transform_entity_creation_with_virtual_properties(structured_data: Dict[str, Any], created_entity_uri: str) -> List[Dict[str, Any]]:
+    """
+    Transform virtual properties in entity creation data after the main entity has been created.
+
+    This function is specifically for entity creation where we need to process virtual properties
+    after the main entity URI is available.
+
+    Args:
+        structured_data: The original entity creation data
+        created_entity_uri: The URI of the entity that was just created
+
+    Returns:
+        List of intermediate entities to create
+    """
+    entity_type = _validate_entity_data(structured_data)
+    if not entity_type:
+        return []
+
+    entity_shape = structured_data.get('entity_shape')
+    virtual_property_configs = _get_virtual_property_configs(entity_type, entity_shape)
+
+    if not virtual_property_configs:
+        return []
+
+    virtual_entities = []
+
+    for property_name, property_values in structured_data['properties'].items():
+        if property_name in virtual_property_configs:
+            config = virtual_property_configs[property_name]
+            entities = process_virtual_property_values(
+                property_values,
+                config,
+                created_entity_uri
+            )
+            virtual_entities.extend(entities)
+
+    return virtual_entities
+
+
+def remove_virtual_properties_from_creation_data(structured_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Remove virtual properties from entity creation data, leaving only regular properties.
+
+    Args:
+        structured_data: The original entity creation data
+
+    Returns:
+        Modified structured data with virtual properties removed
+    """
+    entity_type = _validate_entity_data(structured_data)
+    if not entity_type:
+        return structured_data
+
+    entity_shape = structured_data.get('entity_shape')
+    virtual_property_configs = _get_virtual_property_configs(entity_type, entity_shape)
+
+    if not virtual_property_configs:
+        return structured_data
+
+    # Create modified structured data without virtual properties
+    modified_data = structured_data.copy()
+    modified_properties = {}
+
+    for property_name, property_values in structured_data['properties'].items():
+        if property_name not in virtual_property_configs:
+            modified_properties[property_name] = property_values
+
+    modified_data['properties'] = modified_properties
+    return modified_data
 
 
 def process_virtual_property_values(values: List[Any], config: Dict[str, Any], subject_uri: str = None) -> List[Dict[str, Any]]:

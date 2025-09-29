@@ -40,7 +40,47 @@ from heritrace.utils.sparql_utils import (
     parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
 from heritrace.utils.virtual_properties import \
-    get_virtual_properties_for_entity
+    get_virtual_properties_for_entity, \
+    transform_entity_creation_with_virtual_properties, \
+    remove_virtual_properties_from_creation_data
+
+def _prepare_entity_creation_data(structured_data):
+    """
+    Prepare entity creation data by removing virtual properties and extracting core fields.
+
+    Returns:
+        Tuple of (cleaned_structured_data, entity_type, properties, entity_uri)
+    """
+    cleaned_structured_data = remove_virtual_properties_from_creation_data(structured_data)
+    entity_type = cleaned_structured_data.get("entity_type")
+    properties = cleaned_structured_data.get("properties", {})
+    entity_uri = generate_unique_uri(entity_type)
+
+    return cleaned_structured_data, entity_type, properties, entity_uri
+
+
+def _setup_editor_for_creation(editor, cleaned_structured_data):
+    """
+    Setup editor for entity creation with referenced entities and preprocessing.
+    """
+    import_referenced_entities(editor, cleaned_structured_data)
+    editor.preexisting_finished()
+
+
+def _process_virtual_properties_after_creation(editor, structured_data, entity_uri, default_graph_uri):
+    """
+    Process virtual properties after main entity creation.
+    """
+    virtual_entities = transform_entity_creation_with_virtual_properties(structured_data, str(entity_uri))
+
+    if virtual_entities:
+        for virtual_entity in virtual_entities:
+            virtual_entity_uri = generate_unique_uri(virtual_entity.get("entity_type"))
+            create_nested_entity(editor, virtual_entity_uri, virtual_entity, default_graph_uri)
+
+        # Save the virtual entities
+        editor.save()
+
 
 entity_bp = Blueprint("entity", __name__)
 
@@ -259,29 +299,25 @@ def create_entity():
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
 
+        # Prepare common data for entity creation
+        cleaned_structured_data, entity_type, properties, entity_uri = _prepare_entity_creation_data(structured_data)
+
+        default_graph_uri = (
+            URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
+        )
+
         if form_fields:
-            validation_errors = validate_entity_data(structured_data)
+            validation_errors = validate_entity_data(cleaned_structured_data)
             if validation_errors:
                 return jsonify({"status": "error", "errors": validation_errors}), 400
 
-            entity_type = structured_data.get("entity_type")
-            properties = structured_data.get("properties", {})
-
-            entity_uri = generate_unique_uri(entity_type)
-            
-            import_referenced_entities(editor, structured_data)
-            
-            editor.preexisting_finished()
-
-            default_graph_uri = (
-                URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
-            )
+            _setup_editor_for_creation(editor, cleaned_structured_data)
 
             for predicate, values in properties.items():
                 if not isinstance(values, list):
                     values = [values]
 
-                entity_shape = structured_data.get("entity_shape")
+                entity_shape = cleaned_structured_data.get("entity_shape")
                 matching_key = find_matching_form_field(entity_type, entity_shape, form_fields)
                         
                 field_definitions = form_fields.get(matching_key, {}).get(predicate, []) if matching_key else []
@@ -323,19 +359,8 @@ def create_entity():
                         editor, entity_uri, predicate, values, default_graph_uri, matching_field_def
                     )
         else:
-            entity_type = structured_data.get("entity_type")
-            properties = structured_data.get("properties", {})
-
-            entity_uri = generate_unique_uri(entity_type)
             editor.import_entity(entity_uri)
-            
-            import_referenced_entities(editor, structured_data)
-            
-            editor.preexisting_finished()
-
-            default_graph_uri = (
-                URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
-            )
+            _setup_editor_for_creation(editor, cleaned_structured_data)
 
             editor.create(
                 entity_uri,
@@ -367,7 +392,12 @@ def create_entity():
                         )
 
         try:
+            # Save the main entity first
             editor.save()
+
+            # Process virtual properties after creation
+            _process_virtual_properties_after_creation(editor, structured_data, entity_uri, default_graph_uri)
+
             response = jsonify(
                 {
                     "status": "success",
