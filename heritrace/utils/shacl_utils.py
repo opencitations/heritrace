@@ -51,9 +51,97 @@ def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict], app: Fla
     # Step 3.5: Ensure all form fields have displayName, using fallback for those without display rules
     ensure_display_names(form_fields)
     
-    # Step 4: Order the form fields according to the display rules
-    ordered_form_fields = order_form_fields(form_fields, display_rules)        
+    # Step 4: Add virtual properties to form_fields
+    enhanced_form_fields = add_virtual_properties_to_form_fields_internal(form_fields)
+
+    # Step 5: Order form fields (including virtual properties)
+    ordered_form_fields = order_form_fields(enhanced_form_fields, display_rules)
+
     return ordered_form_fields
+
+
+def add_virtual_properties_to_form_fields_internal(form_fields: dict) -> dict:
+    """
+    Add virtual properties to form_fields during initial processing.
+
+    Args:
+        form_fields: The original form_fields dictionary
+
+    Returns:
+        Enhanced form_fields dictionary with virtual properties included
+    """
+    from heritrace.utils.virtual_properties import get_virtual_properties_for_entity
+
+    enhanced_form_fields = form_fields.copy() if form_fields else {}
+
+    for entity_key in enhanced_form_fields.keys():
+        entity_class, entity_shape = entity_key
+
+        virtual_properties = get_virtual_properties_for_entity(entity_class, entity_shape)
+
+        if virtual_properties:
+            for display_name, prop_config in virtual_properties:
+                should_be_displayed = prop_config.get("shouldBeDisplayed", True)
+                if not should_be_displayed:
+                    continue
+
+                implementation = prop_config.get("implementedVia", {})
+                target = implementation.get("target", {})
+                intermediate_class = target.get("class")
+                specific_shape = target.get("shape")
+
+                if not specific_shape and intermediate_class:
+                    specific_shape = determine_shape_for_classes([intermediate_class])
+
+                intermediate_entity_key = find_matching_form_field(
+                    class_uri=intermediate_class,
+                    shape_uri=specific_shape,
+                    form_fields=enhanced_form_fields
+                )
+
+                nested_shape_list = []
+                if intermediate_entity_key:
+                    nested_shape_data = enhanced_form_fields.get(intermediate_entity_key, {})
+                    field_overrides = implementation.get("fieldOverrides", {})
+
+                    for nested_prop_uri, nested_details_list in nested_shape_data.items():
+                        for nested_details in nested_details_list:
+                            nested_field = nested_details.copy()
+
+                            if nested_prop_uri in field_overrides:
+                                override = field_overrides[nested_prop_uri]
+                                if "shouldBeDisplayed" in override:
+                                    nested_field["shouldBeDisplayed"] = override["shouldBeDisplayed"]
+                                if "displayName" in override:
+                                    nested_field["displayName"] = override["displayName"]
+                                if "value" in override:
+                                    nested_field["hasValue"] = override["value"]
+                                    nested_field["nestedShape"] = []
+
+                            if nested_field.get('shouldBeDisplayed', True):
+                                nested_shape_list.append(nested_field)
+
+                virtual_form_field = {
+                    "displayName": prop_config.get("displayName", display_name),
+                    "uri": display_name,
+                    "is_virtual": True,
+                    "min": 0,
+                    "max": None,
+                    "datatypes": [],
+                    "optionalValues": [],
+                    "orderedBy": None,
+                    "nodeShape": None,
+                    "subjectClass": None,
+                    "subjectShape": None,
+                    "objectClass": None,
+                    "entityType": None,
+                    "nestedShape": nested_shape_list,
+                    "or": None
+                }
+
+                enhanced_form_fields[entity_key][display_name] = [virtual_form_field]
+
+    return enhanced_form_fields
 
 
 def determine_shape_for_classes(class_list: List[str]) -> Optional[str]:

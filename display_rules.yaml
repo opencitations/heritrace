@@ -814,7 +814,7 @@ common_properties:
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     SELECT ?display ?target WHERE {
-      ?citation a cito:Citation ;
+      [[value]] a cito:Citation ;
                 cito:hasCitingEntity [[subject]] ;
                 cito:hasCitedEntity ?target .
       {

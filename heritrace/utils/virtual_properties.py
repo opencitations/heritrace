@@ -6,12 +6,10 @@ entities to display computed or derived relationships that don't exist directly
 in the knowledge graph.
 """
 
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any
 
-from heritrace.extensions import get_display_rules, get_form_fields
+from heritrace.extensions import get_display_rules
 from heritrace.utils.display_rules_utils import find_matching_rule
-from heritrace.utils.shacl_utils import (determine_shape_for_classes,
-                                         find_matching_form_field)
 
 
 def get_virtual_properties_for_entity(highest_priority_class: str, entity_shape: str) -> List[Tuple[str, Dict]]:
@@ -86,89 +84,6 @@ def apply_field_overrides(form_field_data: Dict, field_overrides: Dict, current_
             modified_data[property_uri] = details_list
 
     return modified_data
-
-
-def _extract_nested_shape_list(form_field_data: Dict) -> List[Dict]:
-    """
-    Extract nested shape data as a flat list for template compatibility.
-
-    Args:
-        form_field_data: Dictionary from form_fields with structure {property_uri: [details]}
-
-    Returns:
-        List of field details for template iteration
-    """
-    nested_list = []
-    for property_uri, details_list in form_field_data.items():
-        for details in details_list:
-            nested_list.append(details)
-    return nested_list
-
-
-def create_virtual_property_details(virtual_properties: List[Tuple[str, Dict]], highest_priority_class: str, entity_shape: str, current_entity_uri: str = None) -> Dict:
-    """
-    Create predicate details map entries for virtual properties.
-    Only returns properties that should be displayed to the frontend.
-
-    Args:
-        virtual_properties: List of tuples (displayName, property_config)
-        highest_priority_class: The highest priority class for the entity
-        entity_shape: The shape for the entity
-
-    Returns:
-        Dictionary mapping virtual property keys to their details (only visible ones)
-    """
-    predicate_details = {}
-    form_fields = get_form_fields()
-
-    for display_name, prop_config in virtual_properties:
-        should_be_displayed = prop_config.get("shouldBeDisplayed", True)
-        if not should_be_displayed:
-            continue
-
-        implementation = prop_config.get("implementedVia", {})
-        target = implementation.get("target", {})
-        intermediate_class = target.get("class")
-        specific_shape = target.get("shape")
-
-        # If no shape is specified in target, determine it from the class
-        if not specific_shape and intermediate_class:
-            from heritrace.utils.shacl_utils import determine_shape_for_classes
-            specific_shape = determine_shape_for_classes([intermediate_class])
-
-        intermediate_entity_key = find_matching_form_field(class_uri=intermediate_class, shape_uri=specific_shape, form_fields=form_fields)
-        if not intermediate_entity_key:
-            shape_info = f" with shape {specific_shape}" if specific_shape else ""
-            raise ValueError(f"Intermediate class {intermediate_class}{shape_info} for virtual property {display_name} not found in SHACL form_fields")
-
-        # Use the subject entity key as before, not the target entity key
-        entity_key = (highest_priority_class, entity_shape)
-        key = (display_name, entity_key, None)
-        nested_shape_data = form_fields.get(intermediate_entity_key, {})
-        field_overrides = implementation.get("fieldOverrides", {})
-        modified_nested_shape = apply_field_overrides(nested_shape_data, field_overrides, current_entity_uri)
-
-        nested_shape_list = _extract_nested_shape_list(modified_nested_shape)
-        predicate_details[key] = {
-            "displayName": prop_config.get("displayName", display_name),
-            "uri": display_name,  # Use displayName as identifier
-            "is_virtual": True,
-            "min": 0,  # Virtual properties are typically optional
-            "max": None,  # No limit for virtual properties
-            "datatypes": [],
-            "optionalValues": [],
-            "orderedBy": None,
-            "nodeShape": None, 
-            "subjectClass": None,
-            "subjectShape": None,
-            "objectClass": None, 
-            "entityType": None,
-            "nestedShape":nested_shape_list,
-            "or": None
-        }
-
-    return predicate_details
-
 
 def transform_changes_with_virtual_properties(changes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
