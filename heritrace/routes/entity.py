@@ -299,6 +299,9 @@ def create_entity():
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
 
+        if not structured_data.get("entity_type"):
+            return jsonify({"status": "error", "errors": [gettext("Entity type is required")]}), 400
+
         # Prepare common data for entity creation
         cleaned_structured_data, entity_type, properties, entity_uri = _prepare_entity_creation_data(structured_data)
 

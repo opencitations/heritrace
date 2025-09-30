@@ -481,9 +481,11 @@ def test_apply_changes_database_error(
 
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.create_logic")
+@patch("heritrace.routes.api.import_referenced_entities")
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.g")
 def test_apply_changes_with_quadstore(
-    mock_g, mock_create_logic, mock_import_entity_graph, logged_in_client: FlaskClient, app: Flask
+    mock_g, mock_transform_changes, mock_import_referenced_entities, mock_create_logic, mock_import_entity_graph, logged_in_client: FlaskClient, app: Flask
 ) -> None:
     """Test the apply_changes endpoint with a quadstore dataset."""
     mock_g.resource_lock_manager = MagicMock()
@@ -518,6 +520,8 @@ def test_apply_changes_with_quadstore(
             "delete_affected": False,
         }
     ]
+
+    mock_transform_changes.return_value = changes
 
     response = logged_in_client.post("/api/apply_changes", json=changes)
 

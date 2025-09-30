@@ -1845,7 +1845,7 @@ def test_generate_unique_uri(app: Flask) -> None:
             assert result == URIRef("http://example.org/entity/1")
 
             # Verify the mock was called correctly
-            mock_uri_generator.generate_uri.assert_called_once_with(entity_type)
+            mock_uri_generator.generate_uri.assert_called_once_with(entity_type, None)
 
         finally:
             # Restore the original URI generator
