@@ -325,8 +325,8 @@ function updateSearchResults(results, dropdown, input, isLoadMore = false) {
     if (dropdown.prev().is('input, textarea') && !dropdown.find('.create-new').length) {
         const createNewBtn = $(`
             <button type="button" class="list-group-item list-group-item-action create-new sticky-top bg-light">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="text-truncate">${results.length ? 'Create new entity' : 'No results found. Create new entity?'}</div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="text-break flex-grow-1">${results.length ? 'Create new entity' : 'No results found. Create new entity?'}</div>
                     <i class="bi bi-plus-circle flex-shrink-0 ms-2"></i>
                 </div>
             </button>
@@ -358,11 +358,11 @@ function updateSearchResults(results, dropdown, input, isLoadMore = false) {
                     // Aggiungi la voce al dropdown
                     const resultItem = $(`
                         <button type="button" class="list-group-item list-group-item-action" data-entity-uri="${entity.entity.value}">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="overflow-hidden me-2">
-                                    <div class="text-truncate">${readableEntity}</div>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="overflow-hidden me-2 flex-grow-1">
+                                    <div class="text-break">${readableEntity}</div>
                                 </div>
-                                <i class="bi bi-chevron-right flex-shrink-0"></i>
+                                <i class="bi bi-chevron-right flex-shrink-0 mt-1"></i>
                             </div>
                         </button>
                     `);
@@ -387,12 +387,12 @@ function updateSearchResults(results, dropdown, input, isLoadMore = false) {
 
                     const resultItem = $(`
                         <button type="button" class="list-group-item list-group-item-action" data-entity-uri="${entity.entity.value}">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="overflow-hidden me-2">
-                                    <div class="fw-bold text-truncate">${label}</div>
-                                    <small class="text-muted text-truncate d-block">${entity.entity.value}</small>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="overflow-hidden me-2 flex-grow-1">
+                                    <div class="fw-bold text-break">${label}</div>
+                                    <small class="text-muted text-break d-block">${entity.entity.value}</small>
                                 </div>
-                                <i class="bi bi-chevron-right flex-shrink-0"></i>
+                                <i class="bi bi-chevron-right flex-shrink-0 mt-1"></i>
                             </div>
                         </button>
                     `);
@@ -408,8 +408,8 @@ function updateSearchResults(results, dropdown, input, isLoadMore = false) {
     if (results.length === 5) {
         const loadMoreBtn = $(`
             <button type="button" class="list-group-item list-group-item-action load-more-results sticky-bottom bg-light">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="text-truncate">Ask for more results</div>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="text-break flex-grow-1">Ask for more results</div>
                     <i class="bi bi-arrow-clockwise flex-shrink-0 ms-2"></i>
                 </div>
             </button>
