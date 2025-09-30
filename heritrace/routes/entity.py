@@ -212,7 +212,7 @@ def about(subject):
             can_be_added = [uri for uri in can_be_added if uri in relevant_properties] + [vp[0] for vp in virtual_properties]
             can_be_deleted = [
                 uri for uri in can_be_deleted if uri in relevant_properties
-            ]
+            ] + [vp[0] for vp in virtual_properties]
 
     update_form = UpdateTripleForm()
 

@@ -117,11 +117,11 @@ def apply_field_overrides(form_field_data: Dict, field_overrides: Dict, current_
 
 def transform_changes_with_virtual_properties(changes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Transform a list of changes, expanding virtual properties into actual entity creations.
+    Transform a list of changes, expanding virtual properties into actual entity creations/deletions.
 
     This is the main function to call from the API to handle virtual properties.
     It processes all changes and returns an expanded list where virtual properties
-    have been converted to proper entity creation changes.
+    have been converted to proper entity creation or deletion changes.
 
     Args:
         changes: List of change dictionaries from the API
@@ -152,6 +152,12 @@ def transform_changes_with_virtual_properties(changes: List[Dict[str, Any]]) -> 
                     "data": virtual_entity
                 }
                 processed_changes.append(virtual_change)
+        elif change["action"] == "delete" and change.get("is_virtual", False):
+            transformed_change = transform_virtual_property_deletion(change)
+            if transformed_change:
+                processed_changes.append(transformed_change)
+            else:
+                processed_changes.append(change)
         else:
             processed_changes.append(change)
 
@@ -273,6 +279,35 @@ def remove_virtual_properties_from_creation_data(structured_data: Dict[str, Any]
 
     modified_data['properties'] = modified_properties
     return modified_data
+
+
+def transform_virtual_property_deletion(change: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Transform a virtual property deletion into an entity deletion.
+
+    When deleting a virtual property value, we need to delete the entire intermediate entity
+    that was created to implement that virtual property.
+
+    Args:
+        change: The original delete change containing the virtual property.
+                Must have 'is_virtual' flag set to True and 'object' containing the entity URI.
+
+    Returns:
+        A new delete change for the intermediate entity, or None if not a virtual property
+    """
+    if not change.get('is_virtual', False):
+        return None
+
+    object_value = change.get('object')
+    if not object_value:
+        return None
+
+    # The object value is the URI of the intermediate entity to delete
+    # We delete the entire entity (no predicate specified)
+    return {
+        'action': 'delete',
+        'subject': object_value
+    }
 
 
 def process_virtual_property_values(values: List[Any], config: Dict[str, Any], subject_uri: str = None) -> List[Dict[str, Any]]:

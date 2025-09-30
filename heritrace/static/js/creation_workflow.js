@@ -350,7 +350,7 @@ function initializeRepeaters($container) {
     updateOrderedElementsNumbering();
 }
 
-function storePendingChange(action, subject, predicate, object, newObject = null, shape = null, entity_type = null, entity_shape = null) {
+function storePendingChange(action, subject, predicate, object, newObject = null, shape = null, entity_type = null, entity_shape = null, isVirtual = false) {
     // For 'update' actions, check if there's already a pending change for the same subject/predicate/object/shape
     if (action === 'update') {
         let existingChangeIndex = pendingChanges.findIndex(change =>
@@ -369,7 +369,7 @@ function storePendingChange(action, subject, predicate, object, newObject = null
     }
 
     // If no existing change found, add a new one
-    pendingChanges.push({
+    const change = {
         action: action,
         subject: subject,
         predicate: predicate,
@@ -378,7 +378,13 @@ function storePendingChange(action, subject, predicate, object, newObject = null
         shape: shape,
         entity_type: entity_type,
         entity_shape: entity_shape
-    });
+    };
+
+    if (isVirtual) {
+        change.is_virtual = true;
+    }
+
+    pendingChanges.push(change);
 }
 
 // Funzione per inizializzare Sortable su un elemento

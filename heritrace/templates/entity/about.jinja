@@ -100,7 +100,7 @@
             {% set details = predicate_details_map[key] if has_details else {} %}
             <div class="property-group" data-uri="{{entity_type}}">
                 {% if data['triples'] or predicate in can_be_added %}
-                    
+
                     {%if data['triples'] %}
                         <h6 class="item-label">{{ display_name }}</h6>
                     {% endif %}
@@ -755,16 +755,17 @@
             const object_value = listItem.data('old-object-id');
             const shape = listItem.data('shape');
             const orderedBy = listItem.data('ordered_by');
-            
+            const isVirtual = listItem.data('is-virtual') === 'True';
+
             // Apply strikethrough only to the value display elements, excluding date (handled by toggleDateStrike)
             listItem.find('.draggable-entity-link, .select-value-display, input.editable-field:not(.date-input), textarea.editable-field').addClass('striked');
-            
+
             listItem.find('.editable-field').prop('readonly', true);
             listItem.find('.editable-select').prop('disabled', true);
             $(this).hide();
-            
+
             // Aggiungi l'azione di cancellazione
-            storePendingChange('delete', subject, predicate, object_value, null, shape, entity_type, entity_shape);
+            storePendingChange('delete', subject, predicate, object_value, null, shape, entity_type, entity_shape, isVirtual);
             
             // Se l'elemento fa parte di una lista ordinata, aggiorna l'ordine
             if (orderedBy) {
