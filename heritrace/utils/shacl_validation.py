@@ -76,7 +76,8 @@ def get_valid_predicates(
             OPTIONAL {{
                 ?property sh:or ?orList .
                 ?orList rdf:rest*/rdf:first ?orConstraint .
-                ?orConstraint sh:datatype ?datatype .
+                OPTIONAL {{?orConstraint sh:datatype ?datatype .}}
+                OPTIONAL {{?orConstraint sh:hasValue ?optionalValue .}}
             }}
             FILTER (isURI(?predicate))
         }}

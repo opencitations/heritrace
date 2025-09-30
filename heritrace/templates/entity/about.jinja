@@ -559,7 +559,7 @@
             var listItem = $(this);
             
             // Remove strikethrough from all possible elements
-            listItem.find('.draggable-entity-link, .select-value-display, input.editable-field:not(.date-input), textarea.editable-field').removeClass('striked');
+            listItem.find('.draggable-entity-link, .select-value-display, .editable-select, input.editable-field:not(.date-input), textarea.editable-field').removeClass('striked');
             
             listItem.find('.editable-field').prop('readonly', false);
             listItem.find('.editable-select').prop('disabled', false);
@@ -686,21 +686,6 @@
             }
         });
 
-        $('#editEntityBtn').click(function() {
-            var buttonText = $(this).text().trim();
-            var cancelEditingText = '{{ _("Cancel Editing") }}';
-            var isCurrentlyInEditMode = buttonText === cancelEditingText;
-            
-            if (!isCurrentlyInEditMode) {
-                // Entering edit mode
-                $('.custom-properties-section').css('display', 'block');
-            } else {
-                // Exiting edit mode
-                $('.custom-properties-section').css('display', 'none');
-                customPropertiesManager.reset();
-                restoreOriginalValues();
-            }
-        });
     
         customPropertiesManager = new CustomPropertiesManager();
 
@@ -758,7 +743,7 @@
             const isVirtual = listItem.data('is-virtual') === 'True';
 
             // Apply strikethrough only to the value display elements, excluding date (handled by toggleDateStrike)
-            listItem.find('.draggable-entity-link, .select-value-display, input.editable-field:not(.date-input), textarea.editable-field').addClass('striked');
+            listItem.find('.draggable-entity-link, .select-value-display, .editable-select, input.editable-field:not(.date-input), textarea.editable-field').addClass('striked');
 
             listItem.find('.editable-field').prop('readonly', true);
             listItem.find('.editable-select').prop('disabled', true);
@@ -806,7 +791,7 @@
                 
                 undoButton.click(function() {
                     // Remove strikethrough from all possible elements
-                    listItem.find('.draggable-entity-link, .select-value-display, input.editable-field:not(.date-input), textarea.editable-field').removeClass('striked');
+                    listItem.find('.draggable-entity-link, .select-value-display, .editable-select, input.editable-field:not(.date-input), textarea.editable-field').removeClass('striked');
                     
                     listItem.find('.editable-field').prop('readonly', false);
                     listItem.find('.editable-select').prop('disabled', false);

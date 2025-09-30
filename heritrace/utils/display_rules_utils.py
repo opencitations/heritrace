@@ -721,7 +721,8 @@ def execute_historical_query(
     results = historical_snapshot.query(query)
     if results:
         for result in results:
-            return (str(result[0]), str(result[1]))
+            if len(result) == 2:
+                return (str(result[0]), str(result[1]))
     return None, None
 
 

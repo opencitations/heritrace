@@ -414,9 +414,9 @@
                     </div>
                 {% elif shacl and optional_values[triple[1]] %}
                     <div class="w-75">
-                        <select name="new_value" class="form-select editable-select d-none">
+                        <select name="new_value" class="form-select editable-select d-none" id="select_{{ unique_id }}">
                             {% for value in optional_values[triple[1]] %}
-                                <option value="{{ value }}" {% if value == triple[2] %}selected{% endif %}>
+                                <option value="{{ value }}" {% if value == object %}selected{% endif %}>
                                     {% if triple[1] == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
                                         {{ (value, grouped_triples_data.get('subjectShape')) | human_readable_class }}
                                     {% else %}

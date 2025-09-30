@@ -40,7 +40,7 @@
         $('.editable-field, .editable-select, .date-type-selector, .date-input').each(function() {
             $(this).data('original-value', $(this).val());
         });
-        
+
         // Salva l'ordine originale degli elementi ordinabili
         $('[data-repeater-list][data-ordered-by]').each(function() {
             var list = $(this);
@@ -60,6 +60,8 @@
         $('.select-value-display').addClass('d-none');
         $(".textarea-input-container").removeClass('d-none');
         $(".textarea-display-container").addClass('d-none');
+
+        $('.custom-properties-section').css('display', 'block');
 
         // Mostra i controlli di editing
         $(".delete-button").show();
@@ -90,7 +92,7 @@
 
     function exitEditMode() {
         if (pendingChanges.length > 0) {
-            return Swal.fire({
+            Swal.fire({
                 title: '{{ _("Unsaved Changes") }}',
                 text: '{{ _("You have unsaved changes. Are you sure you want to exit edit mode?") }}',
                 icon: 'warning',
@@ -104,8 +106,9 @@
                     performExitEditMode();
                 }
             });
+            return;
         }
-        
+
         performExitEditMode();
     }
 
@@ -127,6 +130,11 @@
                 $('.select-value-display').removeClass('d-none');
                 $(".textarea-input-container").addClass('d-none');
                 $(".textarea-display-container").removeClass('d-none');
+
+                $('.custom-properties-section').css('display', 'none');
+                if (typeof customPropertiesManager !== 'undefined') {
+                    customPropertiesManager.reset();
+                }
 
                 $(".delete-button").hide();
                 $(".text-info").addClass('d-none');
