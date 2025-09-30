@@ -740,6 +740,11 @@ $(document).ready(function() {
 
     // Handle clicks outside of search results
     $(document).on('click', function(e) {
+        // Ignora i click programmatici (non generati dall'utente)
+        if (!e.isTrusted) {
+            return;
+        }
+
         if (!$(e.target).closest('.newEntityPropertyContainer').length) {
             $('.entity-search-results').addClass('d-none');
             $('.search-spinner').addClass('d-none');

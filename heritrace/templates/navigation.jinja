@@ -102,6 +102,11 @@
         });
 
         $(document).on('click', function(event) {
+            // Ignora i click programmatici (non generati dall'utente)
+            if (!event.isTrusted) {
+                return;
+            }
+
             var $navbar = $('.heritrace-navbar');
 
             // Check if the navbar is open and the click is outside the navbar
