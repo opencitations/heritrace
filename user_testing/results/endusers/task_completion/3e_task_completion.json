@@ -1,0 +1,90 @@
+{
+  "participant_id": "3e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:13:35",
+      "status": "complete",
+      "errors_encountered": 3,
+      "errors": [
+        {
+          "severity": "high",
+          "symptom": "Absence of search functionality: user repeatedly expressed frustration about missing search feature, stating 'non c'è un cerco' (there's no search) and 'non capisco come si modificano' (I don't understand how to edit). User questioned whether they would have to browse through all records manually",
+          "trigger": "Attempting to locate specific publication record for editing",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Save button discoverability failure: user struggled significantly to find the save functionality, repeatedly questioning 'come si salva' (how do you save) and 'porca come si salva' (damn how do you save). Eventually discovered the save option after extended searching",
+          "trigger": "Attempting to save changes after adding author to publication",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Task completion uncertainty: user expressed doubt about whether the task was completed correctly, indicated by the phrase 'Ho aggiunto veramente' (Did I really add it) and confusion about the save confirmation",
+          "trigger": "After attempting to save the edited publication record",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:01:31",
+      "status": "complete",
+      "errors_encountered":  0,
+      "errors": [
+      ]
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:01:27",
+      "status": "failed",
+      "errors_encountered": 3,
+      "errors": [
+        {
+          "severity": "high",
+          "symptom": "Misunderstanding of restore functionality: user incorrectly interpreted the task as manually undoing changes by editing and removing the previously added author, rather than using version restoration features. User stated 'devo tornare devo eliminare questo eliminare questo Scagel' (I have to go back I have to delete this delete this Scagel)",
+          "trigger": "Receiving instruction to restore previous version of publication",
+          "outcome": "failed"
+        },
+        {
+          "severity": "low",
+          "symptom": "Navigation difficulty returning to edited resource: user expressed frustration about inability to easily return to previously edited record, stating 'sarei tornata con la risorsa però che non è così facile tornarci' (I would have gone back to the resource but it's not so easy to get back there)",
+          "trigger": "Attempting to navigate back to previously edited publication",
+          "outcome": "workaround"
+        }
+      ]
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:07:20",
+      "status": "complete",
+      "errors_encountered": 3,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Uncertainty about required field constraints: user questioned whether certain fields required specific formatting or values, asking 'è stato ben formato?' (was it well formatted?) and 'necessita di ORCID evidentemente' (evidently requires ORCID)",
+          "trigger": "Entering DOI and author information in publication form",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Journal entity not found in system: user attempted to find existing journal 'Umanistica Digitale' but it was not available in the database, stating 'Il journal Umanistica Digitale non lo trova' (The journal Umanistica Digitale is not found)",
+          "trigger": "Searching for journal entity to associate with publication",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "low",
+          "symptom": "Confusion about nested entity creation scope: user expressed uncertainty about whether 'add new record' action would create a new publication or add the journal entity within the current form context, stating 'non capisco se aggiungo un nuovo record o è questo che ho aggiunto' (I don't understand if I'm adding a new record or if this is what I added)",
+          "trigger": "Encountering 'add new record' option while trying to specify journal information",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}

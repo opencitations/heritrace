@@ -27,12 +27,16 @@
         {
           "participant_id": "2e",
           "code": "ui_navigation_appreciation"
+        },
+        {
+          "participant_id": "3e",
+          "code": "recognizing_attractive_interface_despite_struggle"
         }
       ],
       "category_description": "Codes representing positive user reactions to specific interface design elements, including visual appeal, navigation components, and functional design choices that enhance user experience",
       "task_contexts": ["Initial system exploration", "Navigation between pages", "Merge operations"],
       "overall_sentiment": "positive",
-      "frequency": "6"
+      "frequency": "7"
     },
     {
       "category_name": "Interface Design Problems",
@@ -129,12 +133,56 @@
         {
           "participant_id": "2e",
           "code": "confident_task_completion"
+        },
+        {
+          "participant_id": "3e",
+          "code": "partial_success_with_browsing"
+        },
+        {
+          "participant_id": "3e",
+          "code": "eventual_target_discovery"
+        },
+        {
+          "participant_id": "3e",
+          "code": "reflecting_on_time_invested"
+        },
+        {
+          "participant_id": "3e",
+          "code": "understanding_author_addition_process"
+        },
+        {
+          "participant_id": "3e",
+          "code": "efficient_merge_task_completion"
+        },
+        {
+          "participant_id": "3e",
+          "code": "learning_from_previous_task"
+        },
+        {
+          "participant_id": "3e",
+          "code": "confident_new_record_creation"
+        },
+        {
+          "participant_id": "3e",
+          "code": "systematic_metadata_entry"
+        },
+        {
+          "participant_id": "3e",
+          "code": "discovering_validation_requirements"
+        },
+        {
+          "participant_id": "3e",
+          "code": "managing_complex_form_sections"
+        },
+        {
+          "participant_id": "3e",
+          "code": "completing_journal_information"
         }
       ],
-      "category_description": "Codes representing successful system features that work as intended and provide positive user experiences, including autocomplete, drag-and-drop functionality, merge operations, and overall system effectiveness",
-      "task_contexts": ["Adding authors", "Merge operations", "Time machine usage", "Creating publications", "Cross-referencing entities"],
+      "category_description": "Codes representing successful system features that work as intended and provide positive user experiences, including autocomplete, drag-and-drop functionality, merge operations, validation feedback, learning progression, and overall system effectiveness after initial learning curve",
+      "task_contexts": ["Adding authors", "Merge operations", "Time machine usage", "Creating publications", "Cross-referencing entities", "Form completion", "Browsing records"],
       "overall_sentiment": "positive",
-      "frequency": "16"
+      "frequency": "27"
     },
     {
       "category_name": "System Functionality Gaps",
@@ -150,12 +198,32 @@
         {
           "participant_id": "1e",
           "code": "form_collapse_needed"
+        },
+        {
+          "participant_id": "3e",
+          "code": "searching_for_search_bar"
+        },
+        {
+          "participant_id": "3e",
+          "code": "articulating_navigation_problem"
+        },
+        {
+          "participant_id": "3e",
+          "code": "manually_scanning_through_records"
+        },
+        {
+          "participant_id": "3e",
+          "code": "identifying_recognition_challenge"
+        },
+        {
+          "participant_id": "3e",
+          "code": "navigation_difficulty_returning_to_resource"
         }
       ],
-      "category_description": "Codes identifying missing or needed system functionality that would improve user experience, including search capabilities, better status indicators, and form management features",
-      "task_contexts": ["Catalog browsing", "Entity creation", "Form interaction"],
+      "category_description": "Codes identifying missing or needed system functionality that significantly impacts user experience, including search capabilities, better status indicators, form management features, and navigation aids for returning to previously accessed resources",
+      "task_contexts": ["Catalog browsing", "Entity creation", "Form interaction", "Locating existing resources", "Return navigation"],
       "overall_sentiment": "negative",
-      "frequency": "3"
+      "frequency": "8"
     },
     {
       "category_name": "Entity Creation and Management Confusion",
@@ -183,12 +251,24 @@
         {
           "participant_id": "2e",
           "code": "isolating_entity_creation_as_main_problem"
+        },
+        {
+          "participant_id": "3e",
+          "code": "uncertainty_about_save_confirmation"
+        },
+        {
+          "participant_id": "3e",
+          "code": "confusion_about_add_new_record_button"
+        },
+        {
+          "participant_id": "3e",
+          "code": "seeking_alternative_save_method"
         }
       ],
-      "category_description": "Codes representing user confusion and difficulties specifically related to entity creation processes, including uncertainty about when entities are created, saved, and how the workflow functions",
-      "task_contexts": ["Creating new entities", "Adding authors", "Saving resources"],
+      "category_description": "Codes representing user confusion and difficulties specifically related to entity creation processes, including uncertainty about when entities are created, saved, how the workflow functions, and ambiguity about interface controls related to saving and creating new records",
+      "task_contexts": ["Creating new entities", "Adding authors", "Saving resources", "Understanding save mechanisms"],
       "overall_sentiment": "negative",
-      "frequency": "6"
+      "frequency": "9"
     },
     {
       "category_name": "Timeline and Version Control Challenges",
@@ -317,12 +397,28 @@
         {
           "participant_id": "2e",
           "code": "data_validation_warnings_noticed"
+        },
+        {
+          "participant_id": "3e",
+          "code": "inferring_edit_through_record_access"
+        },
+        {
+          "participant_id": "3e",
+          "code": "incomplete_understanding_with_success"
+        },
+        {
+          "participant_id": "3e",
+          "code": "doi_format_validation_uncertainty"
+        },
+        {
+          "participant_id": "3e",
+          "code": "attempting_interface_cleanup"
         }
       ],
-      "category_description": "Codes representing neutral observations about system behavior, user understanding processes, and factual navigation activities without strong positive or negative sentiment",
-      "task_contexts": ["System exploration", "Navigation", "Data entry", "System feedback observation"],
+      "category_description": "Codes representing neutral observations about system behavior, user understanding processes, hypothesis formation, and factual navigation activities without strong positive or negative sentiment",
+      "task_contexts": ["System exploration", "Navigation", "Data entry", "System feedback observation", "Form management"],
       "overall_sentiment": "neutral",
-      "frequency": "7"
+      "frequency": "11"
     },
     {
       "category_name": "Improvement Suggestions",
@@ -339,6 +435,44 @@
       "category_description": "Codes representing constructive user suggestions for system improvements, including preview functionality and enhanced feedback mechanisms",
       "task_contexts": ["Resource creation", "Entity management", "Overall system improvement"],
       "overall_sentiment": "neutral",
+      "frequency": "2"
+    },
+    {
+      "category_name": "Navigation Strategy and Problem-Solving",
+      "related_codes": [
+        {
+          "participant_id": "3e",
+          "code": "exploration_without_clear_understanding"
+        },
+        {
+          "participant_id": "3e",
+          "code": "task_misunderstanding"
+        },
+        {
+          "participant_id": "3e",
+          "code": "attempting_browse_based_workaround"
+        }
+      ],
+      "category_description": "Codes representing user strategies for navigating the system when faced with unclear pathways, including trial-and-error approaches, hypothesis formation, and workaround development when standard functionality is not apparent",
+      "task_contexts": ["Resource location", "Task execution", "System navigation"],
+      "overall_sentiment": "negative",
+      "frequency": "3"
+    },
+    {
+      "category_name": "User Frustration and Emotional Response",
+      "related_codes": [
+        {
+          "participant_id": "3e",
+          "code": "severe_disorientation_and_self_criticism"
+        },
+        {
+          "participant_id": "3e",
+          "code": "repeatedly_expressing_difficulty"
+        }
+      ],
+      "category_description": "Codes capturing intense emotional responses to navigation difficulties, including significant frustration, disorientation, and negative self-assessment during task completion",
+      "task_contexts": ["Resource location", "Task execution under time pressure"],
+      "overall_sentiment": "negative",
       "frequency": "2"
     }
   ]

@@ -5,11 +5,11 @@
   "theoretical_propositions": [
     {
       "proposition": "Functional complexity with usability barriers creates a learning curve that leads to eventual user satisfaction",
-      "explanation": "The highest frequency positive category (Successful System Features, 16 codes) demonstrates core functionality works well, while negative categories focus on interface and workflow issues rather than fundamental system failures. Users progress from confusion to appreciation once they understand the system's mental model."
+      "explanation": "The highest frequency positive category (Successful System Features, 34 codes) demonstrates core functionality works well, while negative categories focus on interface and workflow issues rather than fundamental system failures. Users progress from confusion to appreciation once they understand the system's mental model."
     },
     {
       "proposition": "Entity creation and management workflows represent the primary adoption barrier for semantic data systems",
-      "explanation": "Entity Creation and Management Confusion (6 codes) specifically isolates the main problem area where users struggle with timing, feedback, and workflow understanding. This semantic complexity requires specialized interface design approaches beyond traditional form interactions."
+      "explanation": "Entity Creation and Management Confusion (9 codes) specifically isolates the main problem area where users struggle with timing, feedback, and workflow understanding. This semantic complexity requires specialized interface design approaches beyond traditional form interactions."
     },
     {
       "proposition": "Interface consistency directly impacts user cognitive load in complex semantic systems",
@@ -24,7 +24,7 @@
     {
       "category": "Successful System Features",
       "relationship_to_core": "Demonstrates that the system's core semantic functionality is sound and provides value once users adapt to the complexity. This category validates that the learning curve leads to genuine capability rather than just familiarity.",
-      "frequency": 16,
+      "frequency": 34,
       "axial_codes_included": [
         "Positive Interface Design Elements",
         "Successful System Features"
@@ -33,7 +33,7 @@
     {
       "category": "Entity Management Complexity Barriers",
       "relationship_to_core": "Represents the primary complexity navigation challenge that users must overcome. Entity creation uncertainty and form interaction problems constitute the main adoption barriers that separate initial confusion from eventual mastery.",
-      "frequency": 12,
+      "frequency": 15,
       "axial_codes_included": [
         "Entity Creation and Management Confusion",
         "Form Interaction Problems"
@@ -61,11 +61,21 @@
     {
       "category": "System Comprehension Process",
       "relationship_to_core": "Captures the neutral observations and learning process that users experience while navigating complexity. Includes both the challenges of first-time users and constructive suggestions for improvement, showing active engagement with system learning.",
-      "frequency": 10,
+      "frequency": 14,
       "axial_codes_included": [
         "System Understanding and Navigation",
         "First-Time User Experience",
         "Improvement Suggestions"
+      ]
+    },
+    {
+      "category": "User Expectations vs. System Design Mismatch",
+      "relationship_to_core": "Represents a conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates initial friction as users expect browsing and discovery features in a system designed for targeted entity management and editing. The gap amplifies complexity navigation challenges during the learning phase.",
+      "frequency": 13,
+      "axial_codes_included": [
+        "System Functionality Gaps",
+        "Navigation Strategy and Problem-Solving",
+        "User Frustration and Emotional Response"
       ]
     }
   ]

@@ -1,0 +1,180 @@
+{
+  "participant_id": "3e",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "searching_for_search_bar",
+      "verbatim_quote": "Sto cercando una barra di ricerca",
+      "context": "User's first action when tasked to edit an existing publication, looking for search functionality",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "inferring_edit_through_record_access",
+      "verbatim_quote": "Forse le modifiche si fanno dal record",
+      "context": "User hypothesizes that editing might be done through the record itself rather than through a search interface",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "exploration_without_clear_understanding",
+      "verbatim_quote": "Non mi sembra un cerco, però proviamoci",
+      "context": "User proceeds with trial-and-error approach despite uncertainty about the correct path",
+      "sentiment": "negative"
+    },
+    {
+      "code": "severe_disorientation_and_self_criticism",
+      "verbatim_quote": "Non so che cosa sto facendo. Molto male, molto male",
+      "context": "User experiences significant confusion and frustration, engaging in negative self-assessment",
+      "sentiment": "negative"
+    },
+    {
+      "code": "task_misunderstanding",
+      "verbatim_quote": "Tu mi hai detto di modificare la risorsa, non di aggiungerla",
+      "context": "User realizes they may be on the wrong path, distinguishing between modification and addition tasks",
+      "sentiment": "negative"
+    },
+    {
+      "code": "repeatedly_expressing_difficulty",
+      "verbatim_quote": "Molto male, ci stiamo mettendo troppo",
+      "context": "User continues to express frustration about the time taken to complete the task",
+      "sentiment": "negative"
+    },
+    {
+      "code": "recognizing_attractive_interface_despite_struggle",
+      "verbatim_quote": "questo è molto carino",
+      "context": "User acknowledges positive aesthetic aspect of the interface even while struggling with navigation",
+      "sentiment": "positive"
+    },
+    {
+      "code": "articulating_navigation_problem",
+      "verbatim_quote": "non capisco come si modificano, perché qui potrei potenzialmente trovare risorse già caricate. Allo stesso tempo non c'è un cerco",
+      "context": "User identifies the core problem: inability to find search functionality to locate existing resources",
+      "sentiment": "negative"
+    },
+    {
+      "code": "attempting_browse_based_workaround",
+      "verbatim_quote": "E quindi forse lo potrei cercare così, ma comunque non c'è il cerco. Forse apporto una di queste",
+      "context": "User considers browsing through existing resources as an alternative to searching",
+      "sentiment": "negative"
+    },
+    {
+      "code": "manually_scanning_through_records",
+      "verbatim_quote": "Dove sta il cerca? Non dovrò mica guardare tutti",
+      "context": "User realizes they may need to manually look through all records, expressing concern about this approach",
+      "sentiment": "negative"
+    },
+    {
+      "code": "identifying_recognition_challenge",
+      "verbatim_quote": "Non potrei sapere qual è Richard in questa cosa",
+      "context": "User expresses difficulty identifying which record corresponds to the target without more context",
+      "sentiment": "negative"
+    },
+    {
+      "code": "partial_success_with_browsing",
+      "verbatim_quote": "Sì, Richard è già più vicino. Ci sta. Questo. Finale, sì",
+      "context": "User manages to find a record closer to the target through manual browsing",
+      "sentiment": "positive"
+    },
+    {
+      "code": "eventual_target_discovery",
+      "verbatim_quote": "Ecco quello. Forse aggiungeremo questo. Modifica questo",
+      "context": "User finally locates the target record and discovers the edit functionality",
+      "sentiment": "positive"
+    },
+    {
+      "code": "reflecting_on_time_invested",
+      "verbatim_quote": "Bene. Ho trovato la risorsa. Modifichiamola. Questo punto ci ha messo decisamente come previsto",
+      "context": "User acknowledges successful task completion but reflects on the excessive time required",
+      "sentiment": "positive"
+    },
+    {
+      "code": "understanding_author_addition_process",
+      "verbatim_quote": "Devo aggiungere questo autore. Come primo autore. Specificando. Ok. Autore. Aggiungi autore",
+      "context": "User successfully understands and navigates the author addition functionality",
+      "sentiment": "positive"
+    },
+    {
+      "code": "uncertainty_about_save_confirmation",
+      "verbatim_quote": "Salvato. Adesso. Ho aggiunto veramente. Porca miseria. Quindi si rifà",
+      "context": "User expresses uncertainty about whether the save action actually completed successfully",
+      "sentiment": "negative"
+    },
+    {
+      "code": "efficient_merge_task_completion",
+      "verbatim_quote": "Ok Richard Carew... Ah ok. Così. Ok. Hmmm... Ok. Ok. Ce ne sono altri? Ecco. Ok. Diamo per scontato che siano la stessa persona. Quindi in teoria ho fatto",
+      "context": "User completes the merge task relatively quickly and efficiently compared to previous task",
+      "sentiment": "positive"
+    },
+    {
+      "code": "navigation_difficulty_returning_to_resource",
+      "verbatim_quote": "sarei tornata con la risorsa però che non è così facile tornarci",
+      "context": "User identifies difficulty in returning to previously visited resources",
+      "sentiment": "negative"
+    },
+    {
+      "code": "learning_from_previous_task",
+      "verbatim_quote": "adesso che sappiamo dove sta la notifica",
+      "context": "User demonstrates learning by remembering interface elements from previous interactions",
+      "sentiment": "positive"
+    },
+    {
+      "code": "incomplete_understanding_with_success",
+      "verbatim_quote": "questo continuiamo a farlo così perché non abbiamo capito cos'è per fortuna abbiamo salvato tutto bene",
+      "context": "User achieves task success despite not fully understanding all interface elements",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "confident_new_record_creation",
+      "verbatim_quote": "aggiungiamo un nuovo journal article se volete sì che lo aggiungiamo quindi record poi journal article journal article",
+      "context": "User navigates new record creation with more confidence than earlier tasks",
+      "sentiment": "positive"
+    },
+    {
+      "code": "doi_format_validation_uncertainty",
+      "verbatim_quote": "questo è il DOI è stato ben formato? No",
+      "context": "User questions whether the DOI format is correct but receives clear feedback",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "systematic_metadata_entry",
+      "verbatim_quote": "poi tutti gli altri metadata dati ecco che c'è comunque title poi tra gli autori quindi direi che possiamo fare così",
+      "context": "User methodically enters various metadata fields for the new publication",
+      "sentiment": "positive"
+    },
+    {
+      "code": "discovering_validation_requirements",
+      "verbatim_quote": "questo è un autore è il type è il responsibile quindi necessita di ORCID evidentemente",
+      "context": "User discovers that certain author types require ORCID identifiers through system validation",
+      "sentiment": "positive"
+    },
+    {
+      "code": "managing_complex_form_sections",
+      "verbatim_quote": "L'autore 1 è chiuso l'autore 2 va bene questo è il publisher e ok ok questo è fatto",
+      "context": "User successfully manages multiple sections within the complex form interface",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confusion_about_add_new_record_button",
+      "verbatim_quote": "add new record non capisco se aggiungo un nuovo record o è questo che ho aggiunto si sto pensando",
+      "context": "User unclear whether 'add new record' button creates a new resource or confirms current one",
+      "sentiment": "negative"
+    },
+    {
+      "code": "attempting_interface_cleanup",
+      "verbatim_quote": "allora chiudiamo qua per vedere un attimo facendo pulizia com'è?",
+      "context": "User tries to close sections to better understand the current state of the form",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "seeking_alternative_save_method",
+      "verbatim_quote": "Non c'è un'altra salva ok forse qui potrei cliccare questo qui",
+      "context": "User looks for alternative ways to save the record when primary method is unclear",
+      "sentiment": "negative"
+    },
+    {
+      "code": "completing_journal_information",
+      "verbatim_quote": "Forse potrei mettere questo DOI se c'è. Sì C'è. Fatto",
+      "context": "User successfully completes the journal information by entering DOI, completing the task",
+      "sentiment": "positive"
+    }
+  ]
+}
