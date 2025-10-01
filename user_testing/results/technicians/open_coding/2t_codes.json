@@ -1,0 +1,150 @@
+{
+  "participant_id": "2t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "interface_navigation_through_exploration",
+      "verbatim_quote": "Ok, allora, catalogo, new record e time vault. Access and restore, ok, quindi qui accedo a cosa c'è già esistente, qui creo un nuovo record e qui modifico, torno indietro",
+      "context": "Participant explores main navigation menu items and immediately interprets their functions through observation",
+      "sentiment": "positive"
+    },
+    {
+      "code": "authentication_state_recognition",
+      "verbatim_quote": "posso fare login ma ho capito che sono già autenticata: welcome, you've been automatically logged in to the demo",
+      "context": "Participant quickly recognizes automatic authentication and verbalizes understanding of login status",
+      "sentiment": "positive"
+    },
+    {
+      "code": "entity_type_browsing_behavior",
+      "verbatim_quote": "Nel catalogo già journal, journal article, issue, volume, manifestation, ok",
+      "context": "Participant enumerates available entity types in catalog, demonstrating awareness of data model structure",
+      "sentiment": "positive"
+    },
+    {
+      "code": "implicit_understanding_of_sorting_mechanisms",
+      "verbatim_quote": "Sort by title, posso ordinare in ordine crescente e decrescente, immagino, cioè quindi alfabetico",
+      "context": "Participant makes logical inference about sorting functionality without explicit testing",
+      "sentiment": "positive"
+    },
+    {
+      "code": "data_model_gap_identification",
+      "verbatim_quote": "Ad esempio non c'è l'abstract, non c'è l'editor, ad esempio se si può mettere",
+      "context": "While examining a journal article entity, participant immediately identifies missing properties that could be added",
+      "sentiment": "positive"
+    },
+    {
+      "code": "delayed_realization_file_based_configuration",
+      "verbatim_quote": "Non devo usare l'interfaccia, sono curiosa. Quindi non devo modificare l'interfaccia ma le impostazioni, la configurazione proprio. Quindi configuration, SHACL schema, application settings, environment",
+      "context": "Participant initially expects to configure through UI, takes time to realize configuration requires file editing, then navigates to appropriate configuration files",
+      "sentiment": "negative"
+    },
+    {
+      "code": "pattern_replication_strategy",
+      "verbatim_quote": "Allora vado onestamente in modo molto intuitivo. Quindi no, ok, sicuramente così. Abbiamo detto, abbiamo detto, replico quello che c'è già scritto",
+      "context": "When adding SHACL validation, participant adopts a strategy of copying existing patterns rather than creating from scratch",
+      "sentiment": "positive"
+    },
+    {
+      "code": "incremental_property_construction",
+      "verbatim_quote": "Ok, quindi replico, dichiaro che il path di questa proprietà è dcterms:abstract. Il prefisso di dcterms è già stato definito",
+      "context": "Participant builds SHACL property definition step-by-step, verbalizing each component and checking prefix availability",
+      "sentiment": "positive"
+    },
+    {
+      "code": "constraint_specification_from_requirements",
+      "verbatim_quote": "Prima sicuramente mi serve questo che abbiamo detto, che lì può esserci come no, quindi min count 0, ma al massimo ce ne può essere 1, quindi max count 1",
+      "context": "Participant translates natural language requirements into SHACL constraint syntax accurately",
+      "sentiment": "positive"
+    },
+    {
+      "code": "datatype_inference_from_semantics",
+      "verbatim_quote": "quello che vedo è nelle altre property che a volte c'è un value, il datatype, che mi viene da dire intuitivamente comunque l'abstract è una stringa",
+      "context": "Participant observes patterns in existing properties and makes logical inference about appropriate datatype for abstract",
+      "sentiment": "positive"
+    },
+    {
+      "code": "analogical_reasoning_with_similar_properties",
+      "verbatim_quote": "Ad esempio alla fine è come se replicassimo title con la differenza che non è un title ma è un abstract",
+      "context": "Participant explicitly compares new property to existing similar property to guide configuration decisions",
+      "sentiment": "positive"
+    },
+    {
+      "code": "immediate_validation_through_ui_inspection",
+      "verbatim_quote": "Esempio sono nella creazione di un nuovo record: author, abstract. Adoro, ok, va bene",
+      "context": "After saving SHACL changes, participant immediately checks UI to verify property appears correctly, expressing satisfaction",
+      "sentiment": "positive"
+    },
+    {
+      "code": "aesthetic_concerns_deprioritized",
+      "verbatim_quote": "vorrei mettere ad esempio qui, abstract è in, la prima lettera minuscola, ma immagino cambi da qui. Ma è lo stesso, lasciamo stare il mondo come sta",
+      "context": "Participant notices capitalization inconsistency and wants to fix it but doesn't immediately understand where to make the change (display rules rather than SHACL), ultimately decides to leave it as-is",
+      "sentiment": "negative"
+    },
+    {
+      "code": "requirements_comprehension_through_examples",
+      "verbatim_quote": "After task one you can add abstract to journal articles, however the default text input is not ideal for long form text. Okay, esempio, okay, perfetto",
+      "context": "Participant reads task description with example and immediately understands the UX problem being addressed",
+      "sentiment": "positive"
+    },
+    {
+      "code": "yaml_structure_learning_through_inspection",
+      "verbatim_quote": "Display name, general article similarity properties, fetch URI, display query, query, query, display properties, property, type as identifier, title",
+      "context": "Participant reads through existing YAML structure, verbalizing elements to understand format",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "copy_paste_modification_workflow",
+      "verbatim_quote": "Allora, property abbiamo, tanto è lo stesso identico. Aspetta, sì? Sì, il prefisso è quello. Copiato, incollato e cambio solo questo: abstract, ok",
+      "context": "Participant explicitly uses copy-paste-modify approach to add new display rule entry",
+      "sentiment": "positive"
+    },
+    {
+      "code": "optional_parameter_uncertainty",
+      "verbatim_quote": "Io adesso support search non lo metto. Main character for search, in teoria può non esserci, quindi se c'è può anche essere vuoto. Adesso non lo so, seguirei le istruzioni, forse obbligatorie",
+      "context": "Participant encounters optional configuration parameters and expresses uncertainty about whether to include them",
+      "sentiment": "negative"
+    },
+    {
+      "code": "comparative_exploration_for_decision_making",
+      "verbatim_quote": "Esploriamo un secondo le altre proprietà. Ad esempio type true, support search false, quindi magari piuttosto che non specificarla metto un false",
+      "context": "To resolve uncertainty about optional parameters, participant examines how other properties handle the same field",
+      "sentiment": "positive"
+    },
+    {
+      "code": "iterative_testing_approach",
+      "verbatim_quote": "Io al momento servirei così e vediamo cosa viene fuori se faccio refresh",
+      "context": "Participant adopts trial-and-error approach, saving configuration and testing to see results",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "rapid_task_completion_perception",
+      "verbatim_quote": "Direi che il task è stato fatto, non so se è tutto. Quindi io direi che ho finito e penso di aver fatto molto presto",
+      "context": "Participant completes task quickly and expresses uncertainty about whether additional steps might be needed",
+      "sentiment": "positive"
+    },
+    {
+      "code": "expectation_of_web_based_configuration",
+      "verbatim_quote": "la cosa su cui, subito all'inizio, che ho esplorato il sito onestamente, aspettandomi di poter configurare nuovi elementi dal sito, non dal codice",
+      "context": "In reflection, participant reveals initial expectation that configuration would occur through web interface rather than file editing",
+      "sentiment": "negative"
+    },
+    {
+      "code": "mental_model_web_interface_equals_web_configuration",
+      "verbatim_quote": "Però trovandomi davanti, visto che lancio un software che mi rimanda a una pagina web, mi aspettavo di poter configurare da qui",
+      "context": "Participant articulates mental model where web-based application interface implies web-based configuration capability",
+      "sentiment": "negative"
+    },
+    {
+      "code": "suggestion_for_contextual_guidance",
+      "verbatim_quote": "Se io sono un utente con diritti da admin, più che vedere il back end potrebbe aver senso almeno avere un alert da qualche parte, magari quando creo un new record, che mi dice: vuoi una nuova feature? Ok, devi andare nel file di configurazione a modificare",
+      "context": "Participant proposes UI enhancement where admin users receive contextual hints about configuration file location when encountering configuration needs",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "documentation_acknowledgment_with_usability_concern",
+      "verbatim_quote": "È vero che queste cose ci sono nella documentazione, assolutamente, però secondo me non farebbe male una cosa di questo genere",
+      "context": "Participant acknowledges documentation exists but suggests in-context guidance would still improve usability",
+      "sentiment": "neutral"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "participant_id": "2t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:09:22",
+      "status": "complete",
+      "errors_encountered": 3,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "User attempted to explore the web interface for configuration options instead of accessing configuration files directly",
+          "trigger": "Initial exploration of the interface after reading task instructions, clicking on 'edit resource' and 'new record' buttons",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "User expressed uncertainty about whether to define an abstract schema or simply add the property constraint",
+          "trigger": "While editing the SHACL file, user questioned whether abstract needs its own schema definition: 'Al momento io credo di non dover definire abstract in quanto tale, quindi non punta a uno schema di un abstract che non c'è, non esiste, lo devo creare'",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "User noticed the display name had lowercase first letter but did not know where to change it",
+          "trigger": "After refreshing the browser and seeing 'abstract' displayed with lowercase 'a', user stated: 'vorrei mettere ad esempio qui, abstract è in, la prima lettera minuscola, ma immagino cambi da qui. Ma è lo stesso, lasciamo stare il mondo come sta'",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:05:40",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "User expressed uncertainty about whether to include the 'support_search' property in the display rules configuration",
+          "trigger": "While editing the YAML display rules file, user questioned: 'support search, boh, non lo so, c'è... Adesso non lo so, seguirei le istruzioni, forse obbligatorie'",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}

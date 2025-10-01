@@ -13,13 +13,14 @@
       ]
     },
     "technicians": {
-      "count": 1,
+      "count": 2,
       "mean": 85.0,
-      "std": 0,
+      "std": 0.0,
       "median": 85.0,
       "min": 85.0,
       "max": 85.0,
       "scores": [
+        85.0,
         85.0
       ]
     }
@@ -45,7 +46,7 @@
     },
     "technicians": {
       "usability": {
-        "count": 1,
+        "count": 2,
         "mean": 84.375,
         "std": 0.0,
         "median": 84.375,
@@ -53,7 +54,7 @@
         "max": 84.375
       },
       "learnability": {
-        "count": 1,
+        "count": 2,
         "mean": 87.5,
         "std": 0.0,
         "median": 87.5,
@@ -65,10 +66,10 @@
   "benchmarking": {
     "participants_below_average": 1,
     "participants_above_average": 0,
-    "participants_excellent": 2
+    "participants_excellent": 3
   },
   "metadata": {
-    "analysis_date": "2025-08-10T17:10:53.191303",
+    "analysis_date": "2025-10-01T15:45:53.445939",
     "benchmark_thresholds": {
       "below_average": "< 68",
       "above_average": "68-80.3",

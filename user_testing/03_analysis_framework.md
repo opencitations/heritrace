@@ -207,7 +207,7 @@ From the templates above, compute:
 ```bash
 cd user_testing/analysis_software
 
-uv run python3 axial_code_verification.py
+poetry run python3 axial_code_verification.py
 ```
 
 **Output**: Console report showing:
@@ -216,7 +216,16 @@ uv run python3 axial_code_verification.py
 - Coverage percentage
 
 #### Selective coding phase
-**Template**: `[user_type]_selective_codes.json`
+
+**Purpose**: Identify the core category and develop a substantive theory that explains the user experience phenomenon, integrating all axial categories into a coherent theoretical framework.
+
+**Template location**: `results/templates/TEMPLATE_selective_codes.json`
+
+**Output files**:
+- End users: `results/endusers/end_user_selective_codes.json`
+- Technicians: `results/technicians/technician_selective_codes.json`
+
+**Template structure**: `[user_type]_selective_codes.json`
 ```json
 {
   "user_type": "[end_user|technician]",
@@ -230,16 +239,36 @@ uv run python3 axial_code_verification.py
   ],
   "supporting_categories": [
     {
-      "category": "[CATEGORY_NAME]",
+      "category": "[CATEGORY_NAME_FROM_AXIAL_CODES]",
       "relationship_to_core": "[HOW_IT_SUPPORTS_MAIN_THEORY]",
       "frequency": 0,
       "axial_codes_included": [
-        "[AXIAL_CODE_NAME_1]",
-        "[AXIAL_CODE_NAME_2]"
+        "[AXIAL_CATEGORY_NAME_1]",
+        "[AXIAL_CATEGORY_NAME_2]"
       ]
     }
   ]
 }
+```
+
+**Key fields**:
+- `core_category`: The central phenomenon that has the greatest explanatory power and relates to all other categories
+- `theory_statement`: A comprehensive explanation of the user experience pattern that emerged from the data
+- `theoretical_propositions`: Testable statements that explain relationships and processes discovered in the analysis
+- `supporting_categories`: Groups of related axial categories that support the core theory, with explicit relationships explained
+- `axial_codes_included`: List of axial category names (from `category_name` field in axial codes) that are grouped under each supporting category
+
+**Analysis guidelines**:
+1. Review all axial categories to identify the core category with highest frequency and explanatory power
+2. Develop a theory statement that connects all categories into a coherent narrative
+3. Create theoretical propositions that explain the main patterns and relationships
+4. Group related axial categories into supporting categories that explain different aspects of the core theory
+5. Ensure every axial category is integrated into at least one supporting category
+
+**Verification**: After completing selective coding, run the verification script to ensure 100% coverage of axial categories:
+```bash
+cd user_testing/analysis_software
+poetry run python3 selective_code_verification.py
 ```
 
 # Data visualization

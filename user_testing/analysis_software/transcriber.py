@@ -10,13 +10,14 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-import ffmpeg
 import librosa
 import numpy as np
 import soundfile as sf
 import torch
 from tqdm import tqdm
 from transformers import AutoProcessor, VoxtralForConditionalGeneration
+
+from audio_extractor import AudioExtractor
 
 
 class VideoTranscriber:
@@ -26,6 +27,7 @@ class VideoTranscriber:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.processor = None
         self.model = None
+        self.audio_extractor = AudioExtractor()
         
     def load_model(self):
         """Load the Voxtral model and processor"""
@@ -39,25 +41,8 @@ class VideoTranscriber:
         print("Model loaded successfully!")
     
     def extract_audio(self, video_path, output_path=None):
-        """Extract audio from video file"""
-        if output_path is None:
-            output_path = Path(video_path).with_suffix('.wav')
-        
-        print(f"Extracting audio from video...")
-        try:
-            (
-                ffmpeg
-                .input(video_path)
-                .audio
-                .output(str(output_path), acodec='pcm_s16le', ac=1, ar=16000)
-                .overwrite_output()
-                .run(quiet=True)
-            )
-            print(f"Audio extracted successfully: {output_path}")
-            return output_path
-        except ffmpeg.Error as e:
-            print(f"Error extracting audio: {e}")
-            return None
+        """Extract audio from video file using AudioExtractor"""
+        return self.audio_extractor.extract_audio(video_path, output_path, sample_rate=16000, channels=1)
     
     def transcribe_audio_chunk(self, audio_data, language="auto"):
         """Transcribe a chunk of audio data"""
