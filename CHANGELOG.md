@@ -1,3 +1,31 @@
+# [2.6.0](https://github.com/opencitations/heritrace/compare/v2.5.2...v2.6.0) (2025-10-02)
+
+
+### Bug Fixes
+
+* **citations:** restrict characterization to four CiTO properties and improve display formatting ([08a0b70](https://github.com/opencitations/heritrace/commit/08a0b706f01c6976a5a2b34fcc83b37481d09c49))
+* **tests:** resolve failing test cases and add missing validation ([9843565](https://github.com/opencitations/heritrace/commit/9843565b290e89f6ac72d31c372ca1746e661c43))
+* **ui:** enable multiline display for long entity names in search results ([f659435](https://github.com/opencitations/heritrace/commit/f6594359645ed21dd3ab9e7295f3e05062bf37df))
+* **ui:** hide search dropdown when no results found [release] ([307360e](https://github.com/opencitations/heritrace/commit/307360e46ee78ea9e6e2c3e59c07f80c9b4cef5b))
+* **ui:** prevent programmatic clicks from closing search dropdown and navbar ([c4c3104](https://github.com/opencitations/heritrace/commit/c4c3104d30b0fb213a42ed901cce7ff6d039b9ea))
+
+
+### Features
+
+* add virtual properties system with new Citations specific URI generation ([396a19b](https://github.com/opencitations/heritrace/commit/396a19b26e162ce0e25daba71bfea05ef0838d74))
+* **citations:** add human-readable display for citation characterization values ([fa6e820](https://github.com/opencitations/heritrace/commit/fa6e82089e60a7530afeb4830d773cf0e0cf3b03))
+* **linked-resources:** filter virtual property intermediate entities from results ([2f45f41](https://github.com/opencitations/heritrace/commit/2f45f41be7063ee6aa6c175e17115301f02a1622))
+* **ui:** add select dropdown support for SHACL optional values with sh:or constraint ([4f98cc3](https://github.com/opencitations/heritrace/commit/4f98cc31cfd59132bf86ab813a3f001a3f4bf265))
+* **user-testing:** complete analysis for technician participant 2t ([e313ee9](https://github.com/opencitations/heritrace/commit/e313ee9d068e46b2eb5897bd5d79f8c4cce1009e))
+* **virtual-properties:** implement deletion of virtual property values ([f1ce45c](https://github.com/opencitations/heritrace/commit/f1ce45c14702a952a80629c397e97e0741fc2d03))
+* **virtual-properties:** implement entity creation workflow with virtual properties support ([bc503e8](https://github.com/opencitations/heritrace/commit/bc503e8867f333ee7f10738c1013b30afd900160))
+
+
+### Performance Improvements
+
+* **forms:** implement dynamic form field loading to replace preloading ([a02bb80](https://github.com/opencitations/heritrace/commit/a02bb80e60b3e3195c2b0791d28ae87719beaa6d))
+* **forms:** implement lazy loading for nested sh:or entity forms ([af208e9](https://github.com/opencitations/heritrace/commit/af208e90f8fee77b64ba27b9169ac102ab0fa066))
+
 ## [2.5.2](https://github.com/opencitations/heritrace/compare/v2.5.1...v2.5.2) (2025-09-17)
 
 
