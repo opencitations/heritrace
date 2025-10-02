@@ -1,7 +1,19 @@
-Write-Host "Stopping databases..." -ForegroundColor Blue
-docker stop database prov_database
+# PowerShell script to stop Virtuoso databases
 
-Write-Host "Removing containers..." -ForegroundColor Blue
-docker rm database prov_database
+function Write-Info {
+    param([string]$Message)
+    Write-Host "[INFO] $Message" -ForegroundColor Blue
+}
 
-Write-Host "Cleanup complete." -ForegroundColor Green
+function Write-Success {
+    param([string]$Message)
+    Write-Host "[SUCCESS] $Message" -ForegroundColor Green
+}
+
+Write-Info "Stopping databases..."
+docker stop heritrace-dataset heritrace-provenance 2>$null
+
+Write-Info "Removing containers..."
+docker rm heritrace-dataset heritrace-provenance 2>$null
+
+Write-Success "Cleanup complete."
