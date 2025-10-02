@@ -66,7 +66,7 @@ services:
       - ./config/shacl.ttl:/app/shacl.ttl
       - ./config/display_rules.yaml:/app/display_rules.yaml
     ports:
-      - "5000:5000"
+      - "5001:5000"
     depends_on:
       heritrace-dataset:
         condition: service_healthy

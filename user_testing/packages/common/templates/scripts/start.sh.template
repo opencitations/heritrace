@@ -31,7 +31,7 @@ COMPOSE_CMD=$(detect_compose_cmd)
 echo "✅ Using Docker Compose command: $COMPOSE_CMD"
 
 echo "🔍 Checking for port conflicts..."
-PORT_TO_CHECK=5000
+PORT_TO_CHECK=5001
 
 if lsof -i TCP:$PORT_TO_CHECK -sTCP:LISTEN >/dev/null 2>&1; then
     echo "❌ Error: Port $PORT_TO_CHECK is already in use."
@@ -81,7 +81,7 @@ wait_for_service() {
 }
 
 echo "   Waiting for the application to be ready..."
-wait_for_service "http://localhost:5000" "HERITRACE Application"
+wait_for_service "http://localhost:5001" "HERITRACE Application"
 
 echo ""
 echo "🎉 HERITRACE {{PACKAGE_TYPE_TITLE}} Testing is ready!"
@@ -90,7 +90,7 @@ echo "✅ All services are running"
 echo ""
 echo "📖 Access Instructions:"
 echo "   1. Open your web browser"
-echo "   2. Go to: http://localhost:5000"
+echo "   2. Go to: http://localhost:5001"
 echo "   3. You'll be automatically logged in as a demo user"
 echo ""
 echo "🔧 Useful Commands:"

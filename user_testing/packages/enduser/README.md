@@ -11,7 +11,7 @@ This package contains everything needed to test HERITRACE as an end user.
 - Docker and Docker Compose. For installation, see the <a href="https://docs.docker.com/get-docker/" target="_blank">official documentation</a>.
 - 1GB RAM minimum
 - 5GB free disk space
-- Port 5000 must be free (no other services running on this port)
+- Port 5001 must be free (no other services running on this port)
 - Modern web browser
 - Computer with screen recording software (OBS, QuickTime, etc.)
 - Microphone for voice recording
@@ -29,7 +29,7 @@ This package contains everything needed to test HERITRACE as an end user.
     
     This will download the necessary Docker images and start the application.
 2.  Wait for the script to confirm that the services are ready. This may take a minute or two on the first run.
-3.  Open your browser at http://localhost:5000.
+3.  Open your browser at http://localhost:5001.
 4.  Follow the testing protocol instructions below.
 5.  After completing your testing, fill out the `sus_questionnaire.md` and `written_responses.md` files with your responses.
 6.  **Export your test data**:
@@ -70,7 +70,7 @@ Your goal is to get familiar with the interface and understand how to browse and
 
 ### Task 1: Edit Existing Publication Record (8 minutes)
 
-**Task 1**: Your first task is to edit a specific bibliographic record for a journal article: 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' available at http://localhost:5000/about/https://w3id.org/oc/meta/br/061503302081.
+**Task 1**: Your first task is to edit a specific bibliographic record for a journal article: 'Carew, R. & Florkowski, W. & Smith, E. (2006). Apple Industry Performance, Intellectual Property Rights And Innovation. International Journal Of Fruit Science, 6(1), 93-116.' available at http://localhost:5001/about/https://w3id.org/oc/meta/br/061503302081.
 
 Please make the following change:
 1. Add 'Carolyn Scagel' as the first author, specifying that this is the author with ORCID identifier 0000-0002-4269-6240, with 'Carolyn' as the given name and 'Scagel' as the family name.

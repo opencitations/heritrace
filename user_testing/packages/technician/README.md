@@ -25,7 +25,7 @@ This package contains everything needed to test HERITRACE configuration features
 - Docker and Docker Compose. For installation, see the <a href="https://docs.docker.com/get-docker/" target="_blank">official documentation</a>.
 - 1GB RAM minimum
 - 5GB free disk space
-- Port 5000 must be free (no other services running on this port)
+- Port 5001 must be free (no other services running on this port)
 - Modern web browser
 - Screen recording software (OBS, QuickTime, etc.)
 - Microphone for voice recording
@@ -40,7 +40,7 @@ This package contains everything needed to test HERITRACE configuration features
    
    This will download images and start the application.
 2. Wait for the script to confirm services are ready (may take 1-2 minutes on first run)
-3. Open your browser at http://localhost:5000
+3. Open your browser at http://localhost:5001
 4. Follow the testing protocol below
 5. Complete the `sus_questionnaire.md` and `written_responses.md` files
 6. **Export your modified resources**:

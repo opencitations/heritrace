@@ -44,7 +44,7 @@ set COMPOSE_BAKE=true
 
 REM Check for port conflicts
 echo Checking for port conflicts...
-set "PORT=5000"
+set "PORT=5001"
 
 netstat -ano -p TCP | findstr "\<0.0.0.0:%PORT%\>" >nul 2>&1
 if %errorlevel% equ 0 (
@@ -84,7 +84,7 @@ echo    This can take 2-3 minutes for database initialization...
 timeout /t 30 /nobreak >nul
 
 REM Wait for the application to be ready...
-call :wait_for_service "http://localhost:5000" "HERITRACE Application"
+call :wait_for_service "http://localhost:5001" "HERITRACE Application"
 
 echo    [OK] HERITRACE application is ready!
 
@@ -95,7 +95,7 @@ echo [OK] All services started
 echo.
 echo [ACCESS] Access Instructions:
 echo    1. Open your web browser
-echo    2. Go to: http://localhost:5000
+echo    2. Go to: http://localhost:5001
 echo    3. You'll be automatically logged in as a demo user
 echo.
 echo [COMMANDS] Useful Commands:
