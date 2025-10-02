@@ -121,10 +121,6 @@ schema:JournalArticleIdentifierShape
     ] ;
     sh:pattern "^W[1-9]\\d*$" ;
     sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:node schema:JournalArticleShape ;
   ] .
 
 schema:JournalIdentifierShape
@@ -194,10 +190,6 @@ schema:JournalIdentifierShape
     ] ;
     sh:pattern "^S\\d+$" ;
     sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326" ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:node schema:JournalShape ;
   ] .
 
 schema:SeriesAndProceedingsIdentifierShape
@@ -491,18 +483,6 @@ schema:AgentRoleShape
   sh:property [
     sh:path pro:withRole ;
     sh:in (pro:publisher pro:author pro:editor pro:translator pro:contributor) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath oco:hasNext] ;
-    sh:node schema:AgentRoleShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath pro:isDocumentContextFor] ;
-    sh:node schema:BibliographicResourceShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
@@ -1631,10 +1611,6 @@ schema:ResourceEmbodimentShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath frbr:embodiment] ;
-    sh:node schema:BibliographicResourceShape ;
   ] .
 
 # Responsible agent
@@ -1669,10 +1645,6 @@ schema:ResponsibleAgentShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath pro:isHeldBy] ;
-    sh:node schema:AgentRoleShape ;
   ] .
 
 # Agent Roles
@@ -1836,7 +1808,7 @@ schema:AbstractShape
   ] ;
   sh:property [
     sh:path [sh:inversePath frbr:part] ;
-    sh:node schema:BibliographicResourceShape ;
+    sh:node schema:ExpressionShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] .
@@ -1852,13 +1824,35 @@ schema:CitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitingEntity ;
-    sh:node schema:JournalArticleShape ;
+    sh:or (
+      [ sh:node schema:ArticleShape ]
+      [ sh:node schema:JournalArticleShape ]
+      [ sh:node schema:BookShape ]
+      [ sh:node schema:ProceedingsPaperShape ]
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:ReferenceBookShape ]
+      [ sh:node schema:ReviewShape ]
+      [ sh:node schema:ReviewArticleShape ]
+      [ sh:node schema:ThesisShape ]
+    ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path cito:hasCitedEntity ;
-    sh:node schema:JournalArticleShape ;
+    sh:or (
+      [ sh:node schema:ArticleShape ]
+      [ sh:node schema:JournalArticleShape ]
+      [ sh:node schema:BookShape ]
+      [ sh:node schema:ProceedingsPaperShape ]
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:ReferenceBookShape ]
+      [ sh:node schema:ReviewShape ]
+      [ sh:node schema:ReviewArticleShape ]
+      [ sh:node schema:ThesisShape ]
+    ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;

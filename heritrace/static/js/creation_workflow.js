@@ -945,7 +945,7 @@ $(document).ready(function() {
         setRequiredForVisibleFields($(this).closest('[data-repeater-list]'));
     });
 
-    $(document).on('change', '.container-type-selector', function() {
+    $(document).on('change', '.container-type-selector', async function() {
         const $container = $(this).closest('[data-repeater-item]');
         const $selectedOption = $(this).find('option:selected');
         const selectedShape = $selectedOption.data('node-shape');
@@ -953,15 +953,61 @@ $(document).ready(function() {
 
         const $containerForms = $container.find('.container-forms');
         $container.find('.container-form').addClass('d-none');
-        
-        // Imposta l'attributo data-skip-collect="true" quando viene selezionato un valore
+
         if (selectedShape) {
             $container.attr('data-skip-collect', 'true');
             $containerForms.removeClass('d-none');
-            
-            // Trova il form corrispondente alla classe e shape selezionate
+
             const $selectedForm = $container.find(`.container-form[data-shape="${selectedShape}"][data-class="${selectedClass}"]`);
-            $selectedForm.removeClass('d-none');
+            const needsLazyLoad = $selectedForm.attr('data-lazy-form-placeholder') === 'true';
+
+            if (needsLazyLoad) {
+                const depth = parseInt($containerForms.data('depth') || 0);
+                const predicateUri = $containerForms.data('predicate-uri');
+                const $parentRepeaterList = $container.closest('[data-repeater-list]');
+                const parentEntityClass = $parentRepeaterList.data('class');
+                const parentEntityShape = $parentRepeaterList.data('subject-shape');
+
+                try {
+                    $selectedForm.html('<div class="text-center my-3"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+                    $selectedForm.removeClass('d-none');
+
+                    const response = await fetch('/api/render-nested-form', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            parent_entity_class: parentEntityClass,
+                            parent_entity_shape: parentEntityShape,
+                            entity_class: selectedClass,
+                            entity_shape: selectedShape,
+                            predicate_uri: predicateUri,
+                            depth: depth,
+                            is_template: false
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const html = await response.text();
+                    $selectedForm.html(html);
+                    $selectedForm.removeAttr('data-lazy-form-placeholder');
+
+                    initializeMandatoryElements($selectedForm);
+                    $selectedForm.find('[data-bs-toggle="tooltip"]').tooltip();
+                    initializeRepeaters($selectedForm);
+
+                } catch (error) {
+                    console.error('Error loading nested form:', error);
+                    $selectedForm.html(`<div class="alert alert-danger">${error.message}</div>`);
+                }
+            } else {
+                $selectedForm.removeClass('d-none');
+            }
 
             // Aggiorna gli attributi data del container con le informazioni dalla shape e classe selezionate
             $container
@@ -984,7 +1030,9 @@ $(document).ready(function() {
             }
 
             // Inizializza gli elementi obbligatori del form selezionato
-            initializeMandatoryElements($selectedForm);
+            if (!needsLazyLoad) {
+                initializeMandatoryElements($selectedForm);
+            }
         } else {
             // Se nessuna opzione è selezionata, nascondi il contenitore dei form
             $container.removeAttr('data-skip-collect');

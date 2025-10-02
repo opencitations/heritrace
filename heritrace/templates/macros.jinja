@@ -61,10 +61,17 @@
                     </button>
                 {% endif %}
             </div>
-            <div class="container-forms d-none w-100">
+            <div class="container-forms d-none w-100" {% if depth > 0 %}data-lazy-load="true" data-depth="{{ depth }}" data-predicate-uri="{{ details.uri }}"{% endif %}>
                 {% for shape_info in details.or %}
-                    <div class="container-form d-none" data-shape="{{ shape_info.nodeShape }}" data-class="{{ shape_info.entityType }}">
-                        {{ render_form_field(shape_info.entityType, prop, shape_info, form_fields, depth, max_depth=max_depth, is_template=is_template) }}
+                    <div class="container-form d-none"
+                         data-shape="{{ shape_info.nodeShape }}"
+                         data-class="{{ shape_info.entityType }}"
+                         {% if depth > 0 %}data-lazy-form-placeholder="true"{% endif %}>
+                        {% if depth == 0 %}
+                            {{ render_form_field(shape_info.entityType, prop, shape_info, form_fields, depth, max_depth=max_depth, is_template=is_template) }}
+                        {% else %}
+                            <!-- Form will be loaded dynamically when selected -->
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
@@ -336,6 +343,7 @@
         <div data-repeater-list="{{ unique_id_base }}" data-class="{{ details.entityType }}" data-object-class="{{ details.objectClass }}" data-max-items="{{ details.max }}" data-min-items="{{ details.min }}"
             {% if details.orderedBy %}data-ordered-by="{{ details.orderedBy }}"{% endif %}
             data-uri="{{ details.uri }}" data-depth="{{ depth }}" data-shape="{{ details.nodeShape or '' }}"
+            data-subject-shape="{{ details.subjectShape or '' }}"
             data-container-display-name="{{ details.displayName }}"
             data-display-name="{{ details.displayName }}"
             {% if details.or %}data-skip-collect="true"{% endif %}>

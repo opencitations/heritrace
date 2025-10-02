@@ -1224,3 +1224,107 @@ def render_form_fields_html():
             'status': 'error',
             'message': f'Failed to render form fields: {str(e)}'
         }), 500
+
+
+@api_bp.route("/render-nested-form", methods=["POST"])
+@login_required
+def render_nested_form_html():
+    """
+    Render a single nested form for lazy loading in sh:or contexts.
+
+    Expects JSON payload with:
+    - parent_entity_class: The parent entity class URI
+    - parent_entity_shape: The parent entity shape URI
+    - entity_class: The sub-entity class URI to render
+    - entity_shape: The sub-entity shape URI to render
+    - predicate_uri: The predicate URI linking parent to sub-entity
+    - depth: The nesting depth
+    - is_template: Whether this is a template item
+
+    Returns:
+        HTML string of the rendered nested form
+    """
+    try:
+        data = request.get_json()
+
+        required_fields = ['parent_entity_class', 'parent_entity_shape', 'entity_class', 'entity_shape', 'predicate_uri', 'depth']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({
+                'status': 'error',
+                'message': f'Missing required fields: {", ".join(required_fields)}'
+            }), 400
+
+        parent_entity_class = data['parent_entity_class']
+        parent_entity_shape = data['parent_entity_shape']
+        entity_class = data['entity_class']
+        entity_shape = data['entity_shape']
+        predicate_uri = data['predicate_uri']
+        depth = int(data['depth'])
+        is_template = data.get('is_template', False)
+
+        all_form_fields = get_form_fields()
+
+        if not all_form_fields:
+            return jsonify({
+                'status': 'error',
+                'message': 'Form fields not initialized'
+            }), 500
+
+        parent_entity_key = (parent_entity_class, parent_entity_shape)
+        if parent_entity_key not in all_form_fields:
+            return jsonify({
+                'status': 'error',
+                'message': f'No form fields found for parent entity {parent_entity_class} with shape {parent_entity_shape}'
+            }), 404
+
+        parent_fields = all_form_fields[parent_entity_key]
+        if predicate_uri not in parent_fields:
+            return jsonify({
+                'status': 'error',
+                'message': f'No field definition found for predicate {predicate_uri} in parent entity'
+            }), 404
+
+        field_details_list = parent_fields[predicate_uri]
+
+        target_details = None
+        for details in field_details_list:
+            if details.get('or'):
+                for shape_info in details['or']:
+                    if (shape_info.get('entityType') == entity_class and
+                        shape_info.get('nodeShape') == entity_shape):
+                        target_details = shape_info
+                        break
+                if target_details:
+                    break
+
+        if not target_details:
+            return jsonify({
+                'status': 'error',
+                'message': f'No matching shape info found for {entity_class}/{entity_shape} in parent predicate {predicate_uri}'
+            }), 404
+
+        template_string = '''
+        {% from 'macros.jinja' import render_form_field with context %}
+        {{ render_form_field(parent_entity_class, predicate_uri, shape_info, all_form_fields, depth, is_template=is_template) }}
+        '''
+
+        html = render_template_string(
+            template_string,
+            parent_entity_class=parent_entity_class,
+            predicate_uri=predicate_uri,
+            shape_info=target_details,
+            all_form_fields=all_form_fields,
+            depth=depth,
+            is_template=is_template
+        )
+
+        return html
+
+    except Exception as e:
+        current_app.logger.error(f"Error rendering nested form HTML: {e}")
+        current_app.logger.error(f"Full traceback: {traceback.format_exc()}")
+
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to render nested form: {str(e)}'
+        }), 500
