@@ -1,0 +1,71 @@
+{
+  "participant_id": "4e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:06:04",
+      "status": "complete",
+      "errors_encountered": 2,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "Save button not visible in viewport: user could not find how to save changes after adding an author, asking 'Adesso come faccio per salvare?' (Now how do I save?). The save button is located below the fold and requires scrolling, but user expected immediate visibility due to page information density",
+          "trigger": "Added new author and attempted to save changes",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Confusion about unsaved state display: user expected newly added author to appear immediately like existing authors, stating 'mi aspettavo di vederlo direttamente come per gli altri, invece in questo caso...' (I expected to see it directly like the others, but in this case...). User did not understand they were in a temporary unsaved state",
+          "trigger": "Viewing newly added author before saving",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:50:53",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:01:41",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "System bug caused by restoring merged author entity: after mistakenly restoring a previous version of a merged author sub-entity, a bug caused all authors to disappear from the article. User expressed confusion asking 'però perché non risultano gli autori? Cosa ho fatto?' (but why aren't the authors showing? What did I do?). Despite the bug, user successfully recovered by restoring the previous version of the article itself",
+          "trigger": "Restoring previous version of merged author entity instead of article entity",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:11:03",
+      "status": "complete",
+      "errors_encountered": 2,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Collapsed elements show only arrow instead of entered content: user expressed preference to see the actual content entered when collapsing an element, rather than just seeing a collapsed arrow. Stated 'La cosa che ti può, cioè, un attimo... La cosa che non è che mi disturbi, però, più che altro sono queste freccette. Cioè, nel senso, mi piacerebbe vedere direttamente il risultato, forse' (The thing that can, I mean, wait... The thing is not that it bothers me, but mainly it's these arrows. I mean, I would like to see the result directly, maybe)",
+          "trigger": "Collapsing form sections after entering data",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Unclear validation error for empty identifier fields: user added an identifier property to an entity but left its fields empty, making them required. Error message was not explicit enough, stating 'questo qui è un effetto che mi ha fatto notare che ho sbagliato qualcosa' (this is an effect that made me notice I made a mistake). While the system expanded and highlighted the problematic field in red, the message did not clearly indicate the solution. User worked around by finding and entering a Wikidata identifier for University of Bologna, when simply deleting the empty identifier property would have been sufficient. System should either auto-ignore empty identifier properties, suggest deletion if not needed, or provide clearer context about the validation error",
+          "trigger": "Form validation after adding empty identifier property to entity",
+          "outcome": "workaround"
+        }
+      ]
+    }
+  }
+}

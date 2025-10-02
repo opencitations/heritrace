@@ -1,0 +1,132 @@
+{
+  "participant_id": "4e",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "positive_initial_intuitiveness",
+      "verbatim_quote": "da questo punto di vista è abbastanza intuitivo",
+      "context": "User's initial reaction when starting to add an author, finding the interface intuitive",
+      "sentiment": "positive"
+    },
+    {
+      "code": "save_button_discoverability_issue",
+      "verbatim_quote": "Adesso come faccio per salvare?",
+      "context": "User cannot find save button after adding author, button is below viewport requiring scroll",
+      "sentiment": "negative"
+    },
+    {
+      "code": "discovering_reordering_functionality",
+      "verbatim_quote": "Ricomincio da capo, ah no, l'ho fatto, praticamente l'ho già fatto, fantastico, bellissimo",
+      "context": "User discovers they successfully reordered authors, expressing satisfaction and surprise",
+      "sentiment": "positive"
+    },
+    {
+      "code": "frustration_with_interface_difficulty",
+      "verbatim_quote": "Allora, perché non mi viene fuori qualcosa? Perché se io faccio così proprio non mi permette di fare, cioè nel senso è un attimo un po', da questo punto di vista è un attimo un po', cioè è difficoltoso, non so",
+      "context": "User experiences difficulty with interface not responding as expected, struggling to articulate exact problem",
+      "sentiment": "negative"
+    },
+    {
+      "code": "time_machine_provides_reassurance",
+      "verbatim_quote": "Allora, però questa cosa dalla time machine cioè mi fa sentire molto più tranquilla, devo ammettere comunque",
+      "context": "User expresses feeling reassured by time machine functionality, reducing anxiety about making mistakes",
+      "sentiment": "positive"
+    },
+    {
+      "code": "unsaved_state_display_confusion",
+      "verbatim_quote": "Allora, l'unica cosa che mi sta un attimo creando un po' la cosa perché se io metto con l'orcid poi basta che io faccia così, ok, adesso penso di aver capito. Semplicemente inizialmente è un attimo così perché, cioè, più che altro mi aspettavo di vederlo direttamente come per gli altri, invece in questo caso...",
+      "context": "User confused by different display of newly added author compared to existing ones, not understanding unsaved state",
+      "sentiment": "negative"
+    },
+    {
+      "code": "gradual_understanding_achievement",
+      "verbatim_quote": "ok, adesso penso di aver capito... secondo me questa cosa, ok, adesso penso di aver capito, adesso spero di non averlo sbagliato di nuovo",
+      "context": "User gradually understands interface behavior through trial and error, though remains uncertain",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "remembering_position_requirement",
+      "verbatim_quote": "Vediamo, sì, ok, adesso, ok, però devo metterla al primo posto, cosa che non ho fatto, ovviamente",
+      "context": "User remembers task requirement to place author in first position and corrects their work",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "task_completion_satisfaction",
+      "verbatim_quote": "Penso che il primo task dovrebbe essere stato fatto, ok. Andiamo in giù. Bello",
+      "context": "User expresses satisfaction and confidence in completing the first task successfully",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confident_merge_execution",
+      "verbatim_quote": "Ok, perciò a questo punto basta che io faccia merge... Ok, e poi dopo quest'altro dovrebbe essere merge",
+      "context": "User demonstrates confident understanding of merge functionality and executes it",
+      "sentiment": "positive"
+    },
+    {
+      "code": "perceiving_system_learnability",
+      "verbatim_quote": "Spero di aver fatto bene, di aver capito il sistema, però sembra, diciamo come posso dire, fatto abbastanza velocemente da comprendere",
+      "context": "User evaluates system as having good learnability, quick to understand despite initial uncertainty",
+      "sentiment": "positive"
+    },
+    {
+      "code": "understanding_time_machine_purpose",
+      "verbatim_quote": "E... Ok, adesso devo utilizzare la time machine. Ok, cos'è che devo fare? Ok, allora devo farlo ritornare alla versione precedente",
+      "context": "User correctly understands they need to use time machine to restore previous version",
+      "sentiment": "positive"
+    },
+    {
+      "code": "discovering_version_history",
+      "verbatim_quote": "Ok, fammi vedere le versioni. Giustamente questa, perciò penso che adesso devo fare restore version",
+      "context": "User successfully navigates version history and identifies restore action",
+      "sentiment": "positive"
+    },
+    {
+      "code": "recognizing_navigation_error",
+      "verbatim_quote": "Ok, no, forse ho sbagliato, era nell'altra cosa. No, ho sbagliato, era fatto dietro nell'autore, invece dovevo fare nell'articolo",
+      "context": "User realizes they accessed time machine for wrong entity (author instead of article)",
+      "sentiment": "negative"
+    },
+    {
+      "code": "encountering_unexpected_bug",
+      "verbatim_quote": "No, dovrebbe essere questo, però perché non risultano gli autori? Cosa ho fatto?",
+      "context": "User encounters system bug where authors disappeared after restoring merged author entity",
+      "sentiment": "negative"
+    },
+    {
+      "code": "successful_recovery_from_error",
+      "verbatim_quote": "Restore, e dovrei restaurarlo, ok. Perfetto, sì, non ho fatto danni ulteriori, eccetera, perciò dovrebbe averlo restaurato",
+      "context": "User successfully recovers from error by restoring correct entity version",
+      "sentiment": "positive"
+    },
+    {
+      "code": "collapsed_sections_hide_content",
+      "verbatim_quote": "La cosa che ti può, cioè, un attimo... La cosa che non è che mi disturbi, però, più che altro sono queste freccette. Cioè, nel senso, mi piacerebbe vedere direttamente il risultato, forse",
+      "context": "User finds collapsed sections showing only arrows frustrating, would prefer to see entered content",
+      "sentiment": "negative"
+    },
+    {
+      "code": "successful_entity_addition",
+      "verbatim_quote": "Ok, se aggiungo... L'author è... Ok. Perfetto. Sì, devo metterci anche l'altro, così",
+      "context": "User successfully adds author entities to publication record",
+      "sentiment": "positive"
+    },
+    {
+      "code": "validation_error_recognition",
+      "verbatim_quote": "Ok, perfetto. Ok, allora, questo qui è un effetto che mi ha fatto notare che ho sbagliato qualcosa. Allora... Ok",
+      "context": "User recognizes validation error feedback indicating a mistake in data entry",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "workaround_solution_implementation",
+      "verbatim_quote": "Ho utilizzato l'identificatore di Wikidata per l'università di Bologna. Adesso, ok. Apposto",
+      "context": "User resolves validation error by adding Wikidata identifier, though could have deleted empty field",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "appreciating_identifier_interoperability",
+      "verbatim_quote": "I think that the possibility to employ identifiers for authors, publishers, journals, etc. is super useful and is something that makes the experience not just more direct but also interoperable",
+      "context": "User explicitly values the use of identifiers for their interoperability benefits in written reflection",
+      "sentiment": "positive"
+    }
+  ]
+}

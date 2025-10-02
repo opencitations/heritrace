@@ -26,8 +26,8 @@
       "relationship_to_core": "Demonstrates that the system's core semantic functionality is sound and provides value once users adapt to the complexity. This category validates that the learning curve leads to genuine capability rather than just familiarity.",
       "frequency": 34,
       "axial_codes_included": [
-        "Positive Interface Design Elements",
-        "Successful System Features"
+        "Positive interface design elements",
+        "Successful system features"
       ]
     },
     {
@@ -35,8 +35,8 @@
       "relationship_to_core": "Represents the primary complexity navigation challenge that users must overcome. Entity creation uncertainty and form interaction problems constitute the main adoption barriers that separate initial confusion from eventual mastery.",
       "frequency": 15,
       "axial_codes_included": [
-        "Entity Creation and Management Confusion",
-        "Form Interaction Problems"
+        "Entity creation and management confusion",
+        "Form interaction problems"
       ]
     },
     {
@@ -44,8 +44,8 @@
       "relationship_to_core": "Amplifies the complexity navigation challenge by adding unnecessary cognitive load through inconsistent design elements. These issues compound semantic complexity and slow the progression to system mastery.",
       "frequency": 8,
       "axial_codes_included": [
-        "Interface Design Problems",
-        "System Functionality Gaps"
+        "Interface design problems",
+        "System functionality gaps"
       ]
     },
     {
@@ -53,9 +53,9 @@
       "relationship_to_core": "Illustrates the dual-phase pattern where complex features initially confuse users but eventually become valued capabilities. Shows that semantic system adoption requires patience and proper support for conceptual understanding.",
       "frequency": 5,
       "axial_codes_included": [
-        "Timeline and Version Control Challenges",
-        "Timeline Feature Success",
-        "Merge Operations Uncertainty"
+        "Timeline and version control challenges",
+        "Timeline feature success",
+        "Merge operations uncertainty"
       ]
     },
     {
@@ -63,9 +63,9 @@
       "relationship_to_core": "Captures the neutral observations and learning process that users experience while navigating complexity. Includes both the challenges of first-time users and constructive suggestions for improvement, showing active engagement with system learning.",
       "frequency": 14,
       "axial_codes_included": [
-        "System Understanding and Navigation",
-        "First-Time User Experience",
-        "Improvement Suggestions"
+        "System understanding and navigation",
+        "First-time user experience",
+        "Improvement suggestions"
       ]
     },
     {
@@ -73,9 +73,9 @@
       "relationship_to_core": "Represents a conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates initial friction as users expect browsing and discovery features in a system designed for targeted entity management and editing. The gap amplifies complexity navigation challenges during the learning phase.",
       "frequency": 13,
       "axial_codes_included": [
-        "System Functionality Gaps",
-        "Navigation Strategy and Problem-Solving",
-        "User Frustration and Emotional Response"
+        "System functionality gaps",
+        "Navigation strategy and problem-solving",
+        "User frustration and emotional response"
       ]
     }
   ]

@@ -61,6 +61,26 @@
       "file_path": "../results/endusers/sus/3e_sus.md"
     },
     {
+      "participant_id": "4e",
+      "user_type": "endusers",
+      "ratings": [
+        4,
+        2,
+        3,
+        1,
+        4,
+        2,
+        3,
+        2,
+        3,
+        2
+      ],
+      "sus_score": 70.0,
+      "usability_score": 65.625,
+      "learnability_score": 87.5,
+      "file_path": "../results/endusers/sus/4e_sus.md"
+    },
+    {
       "participant_id": "1t",
       "user_type": "technicians",
       "ratings": [
@@ -102,11 +122,11 @@
     }
   ],
   "metadata": {
-    "total_participants": 5,
+    "total_participants": 6,
     "user_types": [
       "endusers",
       "technicians"
     ],
-    "analysis_date": "2025-10-01T18:44:52.429143"
+    "analysis_date": "2025-10-02T17:31:54.912144"
   }
 }

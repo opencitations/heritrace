@@ -6,7 +6,7 @@
       "task_name": "Edit existing publication record",
       "expected_duration_minutes": 8,
       "actual_duration_minutes": "00:13:35",
-      "status": "complete",
+      "status": "failed",
       "errors_encountered": 3,
       "errors": [
         {
