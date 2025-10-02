@@ -1,0 +1,41 @@
+{
+  "participant_id": "3t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:08:37",
+      "status": "partial",
+      "errors_encountered": 3,
+      "errors": [
+        {
+          "severity": "high",
+          "symptom": "User misread task requirements and made abstract property required instead of optional",
+          "trigger": "Task specified abstract should be optional (sh:minCount 0), but user set sh:minCount 1, making it mandatory. User verbalized conviction that it should be required: 'Perché lì appunto ho aggiunto un campo che è necessario'",
+          "outcome": "blocked"
+        },
+        {
+          "severity": "medium",
+          "symptom": "User failed to notice 'Add abstract' field appeared in UI after SHACL modification",
+          "trigger": "After adding SHACL property, abstract field became available in the form interface, but user did not notice it and proceeded to modify YAML display rules unnecessarily: 'Devo modificare anche l'interfaccia. L'interfaccia la modifico. Dove era? Qua, YAML'",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "low",
+          "symptom": "User identified missing functionality for detecting incomplete resources after SHACL schema modification",
+          "trigger": "After modifying SHACL schema, user realized existing resources now lack the new required property: 'Adesso ho modificato lo schema SHACL, quindi chiaramente ho aggiunto una nuova proprietà, quindi le risorse che già erano presenti risultano incomplete perché non hanno quella proprietà. Quindi questa cosa andrebbe forse segnalata in qualche modo. Magari c'è già il modo, ma io non lo trovo'",
+          "outcome": "workaround"
+        }
+      ]
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:02:37",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    }
+  }
+}

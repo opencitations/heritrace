@@ -119,14 +119,34 @@
       "usability_score": 84.375,
       "learnability_score": 87.5,
       "file_path": "../results/technicians/sus/2t_sus.md"
+    },
+    {
+      "participant_id": "3t",
+      "user_type": "technicians",
+      "ratings": [
+        5,
+        1,
+        5,
+        2,
+        4,
+        1,
+        4,
+        2,
+        4,
+        1
+      ],
+      "sus_score": 87.5,
+      "usability_score": 87.5,
+      "learnability_score": 87.5,
+      "file_path": "../results/technicians/sus/3t_sus.md"
     }
   ],
   "metadata": {
-    "total_participants": 6,
+    "total_participants": 7,
     "user_types": [
       "endusers",
       "technicians"
     ],
-    "analysis_date": "2025-10-02T17:31:54.912144"
+    "analysis_date": "2025-10-02T19:05:08.060584"
   }
 }

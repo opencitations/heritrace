@@ -1,0 +1,126 @@
+{
+  "participant_id": "3t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "catalog_browsing_enumeration",
+      "verbatim_quote": "Ok, quindi qua le categorie della mia collezione. Ok, quindi ho un journal, 100 journal article. Lo posso ordinare in questo caso: titolo e data di pubblicazione. Ok, 15 issue, 5 volume, 100 manifestation",
+      "context": "During warm-up exploration, participant systematically enumerates collection categories and counts, demonstrating awareness of data structure",
+      "sentiment": "positive"
+    },
+    {
+      "code": "edit_functionality_verification",
+      "verbatim_quote": "Se faccio edit. Ok, posso aggiungere un identificativo, aggiungere l'autore, modificare la data. Va bene",
+      "context": "Participant tests edit functionality and confirms available modification options",
+      "sentiment": "positive"
+    },
+    {
+      "code": "time_machine_automatic_snapshot_recognition",
+      "verbatim_quote": "E sì, adesso la modifica ovviamente mi creerà uno Snapchat nuovo. Sì, vado alla versione. No, l'ho messo, lo mette ok in automatico, figo",
+      "context": "Participant understands that modifications automatically create new snapshots in time machine, expressing satisfaction with automatic behavior",
+      "sentiment": "positive"
+    },
+    {
+      "code": "SHACL_configuration_attribution",
+      "verbatim_quote": "Qua non posso aggiungere identificativi, non posso aggiungere l'ORCID. Dipende dalla configurazione di SHACL sicuramente",
+      "context": "When encountering limited field options, participant correctly attributes interface constraints to SHACL configuration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "file_structure_navigation_strategy",
+      "verbatim_quote": "Allora, innanzitutto capiamo come è usato. Allora, c'è cartella config, c'è SHACL, non è importante. Allora, c'è journal article, journal article, journal article, journal article shape",
+      "context": "For Task 1, participant begins by exploring file structure and locating relevant SHACL shape definition before making changes",
+      "sentiment": "positive"
+    },
+    {
+      "code": "property_placement_non_concern",
+      "verbatim_quote": "Sarà un sh:property per forza. La metterò, non credo conti l'ordine però mettiamolo sotto titolo",
+      "context": "Participant assumes property order is not significant while adding abstract property to SHACL, though chooses to place it under title anyway",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "confidence_in_SHACL_implementation",
+      "verbatim_quote": "Ok, penso che così va bene",
+      "context": "Participant expresses confidence in SHACL property addition without extensive verification",
+      "sentiment": "positive"
+    },
+    {
+      "code": "task_requirement_misinterpretation",
+      "verbatim_quote": "Perché lì appunto ho aggiunto un campo che è necessario",
+      "context": "Participant misread task requirements: set sh:minCount 1 (required) instead of 0 (optional) for abstract property, verbalizing belief that field should be mandatory when task specified it should be optional",
+      "sentiment": "negative"
+    },
+    {
+      "code": "UI_field_visibility_failure",
+      "verbatim_quote": "Devo modificare anche l'interfaccia. L'interfaccia la modifico. Dove era? Qua, YAML",
+      "context": "After adding SHACL property, participant failed to notice 'Add abstract' field appeared in form interface and unnecessarily proceeded to modify YAML display rules",
+      "sentiment": "negative"
+    },
+    {
+      "code": "yaml_file_location_recall",
+      "verbatim_quote": "Sarà sempre in config. Dobbiamo andare su browser, journal article, display name, journal article, ok. Display properties, credo",
+      "context": "Participant navigates to YAML configuration file with some uncertainty about exact location within file structure",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "pattern_matching_configuration_strategy",
+      "verbatim_quote": "Title. Ok, penso che vada bene. Ecco, abstract, ok",
+      "context": "Participant uses existing title property as template for adding abstract display rule",
+      "sentiment": "positive"
+    },
+    {
+      "code": "retrospective_validation_need_identification",
+      "verbatim_quote": "L'unica cosa è, forse sarebbe utile avere un modo per capire quali risorse sono incomplete a seconda dello schema SHACL che voglio utilizzare",
+      "context": "Participant identifies missing feature: need for system to flag resources that no longer validate against modified SHACL schema",
+      "sentiment": "negative"
+    },
+    {
+      "code": "prior_configuration_verification",
+      "verbatim_quote": "Ok, mi sa che l'avevo già fatto perché ho già messo textarea. Se non sbaglio, eh. Se non sbaglio l'avevo già fatto",
+      "context": "Participant checks whether textarea configuration was already completed in previous task",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "backend_hot_reloading_efficiency",
+      "verbatim_quote": "Hot-reloading for SHACL files: Although the frontend needed a manual refresh, the backend automatically picked up changes, which sped up the trial-and-error process",
+      "context": "Participant appreciated automatic backend reloading of SHACL changes, which accelerated iterative testing despite requiring manual frontend refresh",
+      "sentiment": "positive"
+    },
+    {
+      "code": "inline_documentation_value",
+      "verbatim_quote": "Inline documentation and examples in the config files: These served as helpful references when editing shapes or display rules",
+      "context": "Participant found inline documentation and examples within configuration files useful as references during editing tasks",
+      "sentiment": "positive"
+    },
+    {
+      "code": "documentation_clarity_for_beginners",
+      "verbatim_quote": "I found the documentation clear and beginner-friendly, even for someone without any prior experience with SHACL. The instructions for basic operations like adding properties, setting constraints, and modifying display rules were well explained",
+      "context": "Participant, with no prior SHACL knowledge, found the documentation clear and accessible for basic configuration operations",
+      "sentiment": "positive"
+    },
+    {
+      "code": "lack_of_contextual_UI_help",
+      "verbatim_quote": "Lack of contextual help in the UI: For beginners, it would have been helpful if the interface included tooltips or links to documentation next to configurable items",
+      "context": "Participant identified missing contextual help features in the UI, suggesting tooltips or documentation links would benefit beginners",
+      "sentiment": "negative"
+    },
+    {
+      "code": "display_rule_ordering_opacity",
+      "verbatim_quote": "Display rule configuration not fully intuitive: While functional, the way display properties are ordered or grouped isn't immediately obvious, especially without experience",
+      "context": "Participant found display rule ordering and grouping non-intuitive, confirming uncertainty about implicit configuration rules",
+      "sentiment": "negative"
+    },
+    {
+      "code": "visual_editor_feature_request",
+      "verbatim_quote": "Visual SHACL editor: A guided interface to add or modify SHACL constraints without needing to edit raw TTL (Turtle) could make the platform more beginner-friendly",
+      "context": "Participant suggested a visual SHACL editor as an alternative to raw TTL editing to improve accessibility for beginners",
+      "sentiment": "negative"
+    },
+    {
+      "code": "SHACL_validation_tooling_request",
+      "verbatim_quote": "Validation helper or linter for SHACL files: Something that checks your syntax and constraints before applying them would prevent common mistakes and save time",
+      "context": "Participant requested a SHACL linter or validator to check syntax and constraints before application, preventing errors and saving time",
+      "sentiment": "negative"
+    }
+  ]
+}
