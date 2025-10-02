@@ -135,7 +135,7 @@ class MetaURIGenerator(URIGenerator):
         Initialize counters for entity types supported by this URI generator.
         Extracts sequential numbers from both data and provenance for each abbreviation,
         grouping by supplier prefix to maintain separate counters.
-        
+
         :param sparql: SPARQLWrapper instance to execute queries on the dataset
         :raises InvalidURIFormatError: If an URI with invalid format is found
         """
@@ -156,9 +156,10 @@ class MetaURIGenerator(URIGenerator):
         for result in data_results["results"]["bindings"]:
             entity_type = result["type"]["value"]
             entity_uri = result["s"]["value"]
-            
+
             if entity_type in self.entity_type_abbr:
                 if entity_type == "http://purl.org/spar/cito/Citation":
+                    # Citations use special URI generation and are counted only in provenance
                     continue
 
                 try:
@@ -170,9 +171,8 @@ class MetaURIGenerator(URIGenerator):
                         if number_str:
                             number = int(number_str)
                             abbr = self.entity_type_abbr[entity_type]
-                            max_numbers_by_prefix[supplier_prefix][abbr] = max(max_numbers_by_prefix[supplier_prefix][abbr], number)
-                    else:
-                        pass
+                            old_max = max_numbers_by_prefix[supplier_prefix][abbr]
+                            max_numbers_by_prefix[supplier_prefix][abbr] = max(old_max, number)
                 except (ValueError, IndexError):
                     raise InvalidURIFormatError(f"Invalid URI format found for entity: {entity_uri}")
 
@@ -188,7 +188,10 @@ class MetaURIGenerator(URIGenerator):
 
         for result in prov_results["results"]["bindings"]:
             entity_uri = result["entity"]["value"]
-            
+
+            if "/ci/" in entity_uri:
+                continue
+
             # For provenance, we directly search for the abbreviation in the URI
             numeric_part = entity_uri.rsplit('/', 1)[-1]
             match = re.search(self.supplier_prefix_regex, numeric_part)
@@ -211,9 +214,12 @@ class MetaURIGenerator(URIGenerator):
             # Temporarily set the supplier prefix for the counter handler
             original_prefix = self.counter_handler.supplier_prefix
             self.counter_handler.supplier_prefix = supplier_prefix
-            
+
             for entity_type, abbr in self.entity_type_abbr.items():
-                self.counter_handler.set_counter(max_numbers[abbr], entity_type)
-            
+                if entity_type == "http://purl.org/spar/cito/Citation":
+                    continue
+                counter_value = max_numbers[abbr]
+                self.counter_handler.set_counter(counter_value, entity_type)
+
             # Restore original prefix
             self.counter_handler.supplier_prefix = original_prefix
