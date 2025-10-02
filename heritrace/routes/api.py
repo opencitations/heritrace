@@ -1162,7 +1162,6 @@ def render_form_fields_html():
     Render form fields as HTML for dynamic loading.
 
     Expects JSON payload with:
-    - form_fields: The form fields dictionary
     - entity_key: [entity_class, entity_shape] array
 
     Returns:
@@ -1171,20 +1170,33 @@ def render_form_fields_html():
     try:
         data = request.get_json()
 
-        if not data or 'form_fields' not in data or 'entity_key' not in data:
+        if not data or 'entity_key' not in data:
             return jsonify({
                 'status': 'error',
-                'message': 'Missing required fields: form_fields and entity_key'
+                'message': 'Missing required field: entity_key'
             }), 400
 
-        form_fields_array = data['form_fields']  # This is an array of [prop, details_list] pairs
         entity_key = data['entity_key']  # This is [entity_class, entity_shape] array
         entity_class, entity_shape = entity_key
 
-        # Convert the array back to a dictionary for template rendering
-        entity_form_fields = {}
-        for prop, details_list in form_fields_array:
-            entity_form_fields[prop] = details_list
+        all_form_fields = get_form_fields()
+
+        if not all_form_fields:
+            return jsonify({
+                'status': 'error',
+                'message': 'Form fields not initialized'
+            }), 500
+
+        tuple_key = (entity_class, entity_shape)
+        if tuple_key not in all_form_fields:
+            return jsonify({
+                'status': 'error',
+                'message': f'No form fields found for entity {entity_class} with shape {entity_shape}'
+            }), 404
+
+        entity_form_fields = all_form_fields[tuple_key]
+
+        form_fields_array = [[prop, details_list] for prop, details_list in entity_form_fields.items()]
 
         template_string = '''
         {% from 'macros.jinja' import render_form_field with context %}
@@ -1203,15 +1215,12 @@ def render_form_fields_html():
         </div>
         '''
 
-        tuple_key = (entity_class, entity_shape)
-        all_form_fields_with_tuple_keys = {tuple_key: entity_form_fields}
-
         html = render_template_string(
             template_string,
             entity_class=entity_class,
             entity_shape=entity_shape,
-            ordered_form_fields=form_fields_array,  # Pass the ordered array
-            all_form_fields=all_form_fields_with_tuple_keys
+            ordered_form_fields=form_fields_array,
+            all_form_fields=all_form_fields
         )
 
         return html
@@ -1248,7 +1257,15 @@ def render_nested_form_html():
         data = request.get_json()
 
         required_fields = ['parent_entity_class', 'parent_entity_shape', 'entity_class', 'entity_shape', 'predicate_uri', 'depth']
-        if not data or not all(field in data for field in required_fields):
+
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'message': 'No JSON data provided'
+            }), 400
+
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
             return jsonify({
                 'status': 'error',
                 'message': f'Missing required fields: {", ".join(required_fields)}'

@@ -280,7 +280,6 @@ async function loadFormFieldsAsync(entityClass, entityShape) {
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
-                form_fields: formFieldsData.form_fields,
                 entity_key: formFieldsData.entity_key
             })
         });
@@ -959,10 +958,10 @@ $(document).ready(function() {
             $containerForms.removeClass('d-none');
 
             const $selectedForm = $container.find(`.container-form[data-shape="${selectedShape}"][data-class="${selectedClass}"]`);
-            const needsLazyLoad = $selectedForm.attr('data-lazy-form-placeholder') === 'true';
+            const needsLazyLoad = $selectedForm.attr('data-lazy-form-placeholder') === 'true' && $containerForms.data('lazy-load') === true;
 
             if (needsLazyLoad) {
-                const depth = parseInt($containerForms.data('depth') || 0);
+                const depth = parseInt($containerForms.data('depth'));
                 const predicateUri = $containerForms.data('predicate-uri');
                 const $parentRepeaterList = $container.closest('[data-repeater-list]');
                 const parentEntityClass = $parentRepeaterList.data('class');
