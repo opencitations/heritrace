@@ -1,3 +1,12 @@
+## [2.6.1](https://github.com/opencitations/heritrace/compare/v2.6.0...v2.6.1) (2025-10-02)
+
+
+### Bug Fixes
+
+* **counters:** skip Citations in type counter initialization ([1ca63f7](https://github.com/opencitations/heritrace/commit/1ca63f705e6d4dd9ed360745a8a008b5745e2289))
+* **forms:** resolve 413 error by retrieving form_fields server-side [release] ([6051c78](https://github.com/opencitations/heritrace/commit/6051c78820f039448b6bd8f4a1419ca2c0c23e14))
+* **user-testing:** change exposed port from 5000 to 5001 to avoid macOS AirPlay conflict ([2950c35](https://github.com/opencitations/heritrace/commit/2950c3546c8c9de33510090a70d43506a27d8838))
+
 # [2.6.0](https://github.com/opencitations/heritrace/compare/v2.5.2...v2.6.0) (2025-10-02)
 
 
