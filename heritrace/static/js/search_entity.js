@@ -312,6 +312,12 @@ function createEntityDisplay(entity, container, callback) {
 
 // Function to update the search results
 function updateSearchResults(results, dropdown, input, isLoadMore = false) {
+    // Se non ci sono risultati e non è un "load more", nascondi il dropdown
+    if (!results.length && !isLoadMore) {
+        dropdown.addClass('d-none');
+        return;
+    }
+
     // Se non è un "load more", svuota il dropdown e scrollalo in cima
     if (!isLoadMore) {
         dropdown.empty();
@@ -326,7 +332,7 @@ function updateSearchResults(results, dropdown, input, isLoadMore = false) {
         const createNewBtn = $(`
             <button type="button" class="list-group-item list-group-item-action create-new sticky-top bg-light">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div class="text-break flex-grow-1">${results.length ? 'Create new entity' : 'No results found. Create new entity?'}</div>
+                    <div class="text-break flex-grow-1">Create new entity</div>
                     <i class="bi bi-plus-circle flex-shrink-0 ms-2"></i>
                 </div>
             </button>
