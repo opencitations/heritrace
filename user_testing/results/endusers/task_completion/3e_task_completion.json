@@ -6,7 +6,7 @@
       "task_name": "Edit existing publication record",
       "expected_duration_minutes": 8,
       "actual_duration_minutes": "00:13:35",
-      "status": "failed",
+      "status": "success_timeout",
       "errors_encountered": 3,
       "errors": [
         {
@@ -42,14 +42,14 @@
       "task_name": "Restore previous version",
       "expected_duration_minutes": 7,
       "actual_duration_minutes": "00:01:27",
-      "status": "failed",
-      "errors_encountered": 3,
+      "status": "failed_misunderstanding",
+      "errors_encountered": 2,
       "errors": [
         {
           "severity": "high",
           "symptom": "Misunderstanding of restore functionality: user incorrectly interpreted the task as manually undoing changes by editing and removing the previously added author, rather than using version restoration features. User stated 'devo tornare devo eliminare questo eliminare questo Scagel' (I have to go back I have to delete this delete this Scagel)",
           "trigger": "Receiving instruction to restore previous version of publication",
-          "outcome": "failed"
+          "outcome": "blocked"
         },
         {
           "severity": "low",

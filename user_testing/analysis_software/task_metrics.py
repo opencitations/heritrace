@@ -115,9 +115,13 @@ def build_success_rates(df: pd.DataFrame, task_key_order_by_user_type: Dict[str,
         task_stats: List[Dict[str, Any]] = []
         for task_key, g in group.groupby("task_key"):
             total = len(g)
-            complete = int((g["status"].astype(str).str.lower() == "complete").sum())
-            partial = int((g["status"].astype(str).str.lower() == "partial").sum())
-            failed = int((g["status"].astype(str).str.lower() == "failed").sum())
+            status_lower = g["status"].astype(str).str.lower()
+            complete = int((status_lower == "complete").sum())
+            partial = int((status_lower == "partial").sum())
+            success_timeout = int((status_lower == "success_timeout").sum())
+            failed_misunderstanding = int((status_lower == "failed_misunderstanding").sum())
+            failed_bug = int((status_lower == "failed_bug").sum())
+
             weighted_success = (complete + 0.5 * partial)
             success_rate = (weighted_success / total) * 100.0 if total > 0 else float("nan")
             task_stats.append({
@@ -125,7 +129,9 @@ def build_success_rates(df: pd.DataFrame, task_key_order_by_user_type: Dict[str,
                 "total": total,
                 "complete": complete,
                 "partial": partial,
-                "failed": failed,
+                "success_timeout": success_timeout,
+                "failed_misunderstanding": failed_misunderstanding,
+                "failed_bug": failed_bug,
                 "success_rate": success_rate,
             })
         if not task_stats:

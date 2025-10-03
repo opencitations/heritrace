@@ -1,0 +1,77 @@
+{
+  "participant_id": "5e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:09:55",
+      "status": "success_timeout",
+      "errors_encountered": 6,
+      "errors": [
+        {
+          "severity": "high",
+          "symptom": "User added author in wrong position: user mistakenly added Carolyn Scagel as current author instead of first author, requiring use of time machine to restore and retry. User stated 'I realized that I put the current Scagel instead of the first author'",
+          "trigger": "Initial attempt to add Carolyn Scagel to the author list",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Confusion about time machine restore process: user asked 'it's not clear to me how I have to restore time machine' when attempting to correct the mistake",
+          "trigger": "Attempting to use time machine to restore previous version after adding author in wrong position",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Unclear author ordering mechanism: user struggled to understand how to properly add an author as first author, requiring multiple attempts and corrections",
+          "trigger": "Attempting to add Carolyn Scagel as first author with ORCID identifier",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Save button not discoverable: user could not find the save button and attempted to deselect automatic author selection to manually enter data. After realizing the save was not happening automatically, user explored the interface further and discovered the save button",
+          "trigger": "Attempting to save changes after editing publication record",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:00:53",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:06:40",
+      "status": "failed_bug",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "high",
+          "symptom": "Version snapshot not generated due to system bug: user modified first author data directly instead of adding a new author, which triggered a bug preventing snapshot generation. When attempting to restore previous version, no restore button appeared because the snapshot was never created. User stated 'I don't have the button to restore the version' and 'even if I managed to restore a previous version as a first attempt, after adding another edit, I couldn't restore the first version'",
+          "trigger": "Editing first author directly rather than adding new author as first in sequence, which prevented Time Machine snapshot generation",
+          "outcome": "blocked"
+        }
+      ]
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:07:06",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "Confusion due to nested journal identifier structure: user accidentally added two journal identifiers due to deep nesting (journal within issue within volume within article). System validation flagged one as incomplete with missing required fields. User initially confused about what was wrong, stating 'It's not clear to me what. So journal, I put the journal'. Eventually discovered the duplicate identifier and deleted the excess one",
+          "trigger": "Navigating complex nested structure of journal/volume/issue/article identifiers during publication creation",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}

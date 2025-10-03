@@ -57,39 +57,104 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
     if df.empty:
         return
     task_label_map = _task_key_to_label_map(df)
-    def _weighted_rate(s: pd.Series) -> float:
-        status = s.astype(str).str.lower()
-        complete = (status == 'complete').sum()
-        partial = (status == 'partial').sum()
-        total = len(status)
-        return ((complete + 0.5 * partial) / total) * 100.0 if total > 0 else np.nan
+
+    status_colors = {
+        'complete': '#1b7837',
+        'partial': '#fdae61',
+        'success_timeout': '#4575b4',
+        'failed_misunderstanding': '#d73027',
+        'failed_bug': '#7b3294'
+    }
+
+    status_labels = {
+        'complete': 'Complete',
+        'partial': 'Partial',
+        'success_timeout': 'Success: Timeout',
+        'failed_misunderstanding': 'Failed: Misunderstanding',
+        'failed_bug': 'Failed: Bug'
+    }
+
+    # Compute status counts by user_type and task_key
     group_cols = ["user_type", "task_key"]
-    rates = df.groupby(group_cols)['status'].apply(_weighted_rate).reset_index(name='success_rate')
+
+    def _status_percentages(g: pd.DataFrame) -> pd.Series:
+        status_lower = g['status'].astype(str).str.lower()
+        total = len(g)
+        if total == 0:
+            return pd.Series({
+                'complete': 0.0,
+                'partial': 0.0,
+                'success_timeout': 0.0,
+                'failed_misunderstanding': 0.0,
+                'failed_bug': 0.0
+            })
+        return pd.Series({
+            'complete': (status_lower == 'complete').sum() / total * 100,
+            'partial': (status_lower == 'partial').sum() / total * 100,
+            'success_timeout': (status_lower == 'success_timeout').sum() / total * 100,
+            'failed_misunderstanding': (status_lower == 'failed_misunderstanding').sum() / total * 100,
+            'failed_bug': (status_lower == 'failed_bug').sum() / total * 100
+        })
+
+    rates = df.groupby(group_cols).apply(_status_percentages).reset_index()
+
     # If an order index is available, carry it for sorting within each user_type
     if "__task_order_idx" in df.columns:
         order_idx = df.groupby(group_cols)['__task_order_idx'].min().reset_index(name='order_idx')
         rates = rates.merge(order_idx, on=group_cols, how='left')
+
     user_types = sorted(rates['user_type'].unique().tolist())
     n = len(user_types)
-    fig, axs = plt.subplots(1, n, figsize=(6 * n, 5), squeeze=False)
+    fig, axs = plt.subplots(1, n, figsize=(6 * n, 6), squeeze=False)
+
     for i, ut in enumerate(user_types):
         ax = axs[0, i]
         sub = rates[rates['user_type'] == ut].copy()
+
         if 'order_idx' in sub.columns:
             sub.sort_values(['order_idx', 'task_key'], inplace=True)
         else:
             sub.sort_values('task_key', inplace=True)
+
         labels = [task_label_map.get(k, _humanize_text(k)) for k in sub['task_key'].tolist()]
-        ax.bar(np.arange(len(sub)), sub['success_rate'].values, color='steelblue', alpha=0.9)
-        ax.set_xticks(np.arange(len(sub)))
+        x = np.arange(len(sub))
+
+        # Create stacked bars
+        status_order = ['complete', 'partial', 'success_timeout', 'failed_misunderstanding', 'failed_bug']
+        bottom = np.zeros(len(sub))
+
+        for status in status_order:
+            values = sub[status].values
+            ax.bar(x, values, bottom=bottom,
+                   color=status_colors[status],
+                   label=status_labels[status],
+                   edgecolor='white', linewidth=0.5)
+
+            # Add percentage labels for segments >= 5%
+            for j, val in enumerate(values):
+                if val >= 5.0:
+                    y_pos = bottom[j] + val / 2
+                    ax.text(j, y_pos, f'{val:.0f}%',
+                           ha='center', va='center',
+                           fontsize=8, fontweight='bold',
+                           color='white' if status in ['complete', 'failed_misunderstanding', 'failed_bug'] else 'black')
+
+            bottom += values
+
+        ax.set_xticks(x)
         ax.set_xticklabels(labels, rotation=30, ha='right')
         ax.set_ylim(0, 100)
-        ax.set_ylabel('Success %')
-        ax.set_title(f'Task Success Rate — {_humanize_user_type(ut)}')
-        ax.grid(True, alpha=0.3)
+        ax.set_ylabel('Completion Status (%)')
+        ax.set_title(f'Task Completion Distribution — {_humanize_user_type(ut)}')
+        ax.grid(True, alpha=0.3, axis='y')
+
+        # Add legend only to first subplot
+        if i == 0:
+            ax.legend(loc='upper left', bbox_to_anchor=(0, -0.25), ncol=3, frameon=True)
+
     fig.tight_layout()
     out = output_dir / "task_success_rates.png"
-    fig.savefig(out, dpi=300, bbox_inches='tight')
+    fig.savefig(out, dpi=300, bbox_inches='tight', pad_inches=0.3)
     plt.close(fig)
     print(f"Saved: {out}")
 

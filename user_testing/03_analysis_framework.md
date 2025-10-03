@@ -41,7 +41,7 @@ Create individual completion analysis files for each participant using standardi
       "task_name": "Edit existing publication record",
       "expected_duration_minutes": 8,
       "actual_duration_minutes": "[HH:MM:SS]",
-      "status": "[complete|partial|failed]",
+      "status": "[complete|partial|success_timeout|failed_misunderstanding|failed_bug]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": [
         {
@@ -56,7 +56,7 @@ Create individual completion analysis files for each participant using standardi
       "task_name": "Merge duplicate author entities",
       "expected_duration_minutes": 10,
       "actual_duration_minutes": "[HH:MM:SS]",
-      "status": "[complete|partial|failed]",
+      "status": "[complete|partial|success_timeout|failed_misunderstanding|failed_bug]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": []
     },
@@ -64,7 +64,7 @@ Create individual completion analysis files for each participant using standardi
       "task_name": "Restore previous version",
       "expected_duration_minutes": 7,
       "actual_duration_minutes": "[HH:MM:SS]",
-      "status": "[complete|partial|failed]",
+      "status": "[complete|partial|success_timeout|failed_misunderstanding|failed_bug]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": []
     },
@@ -72,7 +72,7 @@ Create individual completion analysis files for each participant using standardi
       "task_name": "Create new publication record",
       "expected_duration_minutes": 20,
       "actual_duration_minutes": "[HH:MM:SS]",
-      "status": "[complete|partial|failed]",
+      "status": "[complete|partial|success_timeout|failed_misunderstanding|failed_bug]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": []
     }
@@ -90,7 +90,7 @@ Create individual completion analysis files for each participant using standardi
       "task_name": "Add SHACL validation for abstract",
       "expected_duration_minutes": 22,
       "actual_duration_minutes": "[HH:MM:SS]",
-      "status": "[complete|partial|failed]",
+      "status": "[complete|partial|success_timeout|failed_misunderstanding|failed_bug]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": [
         {
@@ -105,7 +105,7 @@ Create individual completion analysis files for each participant using standardi
       "task_name": "Add abstract display support",
       "expected_duration_minutes": 23,
       "actual_duration_minutes": "[HH:MM:SS]",
-      "status": "[complete|partial|failed]",
+      "status": "[complete|partial|success_timeout|failed_misunderstanding|failed_bug]",
       "errors_encountered": "[DERIVED: COUNT(errors)]",
       "errors": []
     }
@@ -116,10 +116,12 @@ Create individual completion analysis files for each participant using standardi
 **Task completion analysis instructions:**
 1. **Create individual files**: `[participant_ID]_task_completion.json` for each participant
 2. **While watching videos**: Measure actual duration and count visible errors. Record `actual_duration_minutes` strictly as `HH:MM:SS` (hours:minutes:seconds)
-3. **Status definitions**: 
+3. **Status definitions**:
    - `complete` = working deliverable produced
    - `partial` = incomplete attempt with some progress
-   - `failed` = task abandoned or no progress
+   - `success_timeout` = time limit expired while user was actively working
+   - `failed_misunderstanding` = user misunderstood task or feature preventing completion
+   - `failed_bug` = system bug prevented task completion
 4. **Error counting**: Use the counting protocol below. Record each event in the `errors` list; `errors_encountered` is the count of that list.
 
 **Important**: The `errors_encountered` field should match error-related codes in qualitative coding for consistency.
@@ -148,7 +150,8 @@ From the templates above, compute:
 - **Severity-weighted error score** per task: low=1, medium=2, high=4 (sum over events)
 - **Error rate per minute**: errors_encountered / actual_duration_minutes
 - **Blocked tasks**: tasks with any high-severity event with outcome `blocked`
-- **Task success rate** (per user type and per task): `((complete) + 0.5 * (partial)) / (complete + partial + failed) * 100`
+- **Task success rate** (per user type and per task): `((complete) + 0.5 * (partial)) / (complete + partial + success_timeout + failed_misunderstanding + failed_bug) * 100`
+- **Failure analysis**: Breakdown of failure types (`success_timeout`, `failed_misunderstanding`, `failed_bug`) per task and user type
 
 ## Step 3: Grounded analysis
 
@@ -273,14 +276,21 @@ poetry run python3 selective_code_verification.py
 
 # Data visualization
 
-**1. Task success rate by user type**
-- **Type**: Side-by-side bar charts (separate charts for each user type)
+**1. Task completion distribution by user type**
+- **Type**: 100% stacked bar charts (separate charts for each user type)
 - **Input**: Calculate from individual `task_completion.json` files
 - **End User Chart**: edit_publication, merge_authors, restore_version, create_publication
 - **Technician Chart**: add_shacl_validation, add_display_support
-- **Y-axis**: Success percentage (0-100%)
-- **Success calculation**: `complete = 1`, `partial = 0.5`, `failed = 0`
-- **Output**: Shows task difficulty within each user type separately
+- **Y-axis**: Completion status percentage (0-100%)
+- **Status segments** (bottom to top):
+  - Complete: dark green (#1b7837) - working deliverable produced
+  - Partial: yellow-orange (#fdae61) - incomplete with progress
+  - Success: Timeout: blue (#4575b4) - time expired while working
+  - Failed: Misunderstanding: dark red (#d73027) - user misunderstood task or feature
+  - Failed: Bug: purple (#7b3294) - system bug prevented completion
+- **Colors**: ColorBrewer safe palette (accessible for colorblind users and grayscale printing)
+- **Labels**: Percentage labels shown on segments ≥5%
+- **Output**: Shows complete task outcome distribution for each task within user type
 
 **2. Duration analysis scatter plot**  
 - **Type**: Scatter plot with reference line

@@ -1,0 +1,114 @@
+{
+  "participant_id": "5e",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "intuitive_catalog_interface",
+      "verbatim_quote": "the catalog interface seems to be quite intuitive",
+      "context": "First impression during warm-up exploration of the system homepage and catalog view",
+      "sentiment": "positive"
+    },
+    {
+      "code": "slow_loading_time",
+      "verbatim_quote": "it takes a little bit, it takes a little bit of time to elaborate everything",
+      "context": "Waiting for the system to load catalog content during initial exploration",
+      "sentiment": "negative"
+    },
+    {
+      "code": "comparing_to_existing_system",
+      "verbatim_quote": "it kind of reminds me of Zenodo interface",
+      "context": "Drawing comparisons between HERITRACE and familiar repository system Zenodo",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "requesting_expanded_form_fields",
+      "verbatim_quote": "it would be better to have a preview, not just by clicking on the single items, but when you access the page, everything that is already clearly open, just like Zenodo does",
+      "context": "During new entity creation, user expressed frustration about having to manually click on each property to expand it. Would prefer all form fields visible immediately like in Zenodo interface",
+      "sentiment": "negative"
+    },
+    {
+      "code": "unclear_navigation_to_target_resource",
+      "verbatim_quote": "It's not clear to me where to find the mentioned article",
+      "context": "Confusion about how to locate the specific journal article referenced in task instructions",
+      "sentiment": "negative"
+    },
+    {
+      "code": "successful_field_editing",
+      "verbatim_quote": "I edited this field. So I both edited the name and the ORCID, and I think I have to confirm",
+      "context": "Successfully modifying author information including name and ORCID identifier",
+      "sentiment": "positive"
+    },
+    {
+      "code": "positive_feedback_after_action",
+      "verbatim_quote": "now, great, great",
+      "context": "Expressing satisfaction after successfully confirming changes to author information",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confusion_about_navigation_path",
+      "verbatim_quote": "it's not clear to me how I have to navigate",
+      "context": "Uncertainty about how to navigate to the author page for Richard Carew",
+      "sentiment": "negative"
+    },
+    {
+      "code": "recognizing_task_execution_error",
+      "verbatim_quote": "I realized that I put the current Scagel instead of the first author",
+      "context": "Self-awareness of making an error by adding author in wrong position",
+      "sentiment": "negative"
+    },
+    {
+      "code": "uncertainty_about_version_restore",
+      "verbatim_quote": "it's not clear to me how I have to restore time machine",
+      "context": "Initial confusion about the process for restoring a previous version using Time Machine feature",
+      "sentiment": "negative"
+    },
+    {
+      "code": "iterative_problem_solving",
+      "verbatim_quote": "I'm going back to this first, no, what's that? So I'm starting from the first task",
+      "context": "Restarting task execution after encountering confusion and errors",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "positive_merging_experience",
+      "verbatim_quote": "This is very intuitive. I really like this merging",
+      "context": "Expressing strong satisfaction with the entity merging functionality",
+      "sentiment": "positive"
+    },
+    {
+      "code": "comparing_to_familiar_interface",
+      "verbatim_quote": "It's very similar to the Drive chronology, so it's easy to use, I think",
+      "context": "Drawing comparison between Time Machine feature and Google Drive version history",
+      "sentiment": "positive"
+    },
+    {
+      "code": "snapshot_generation_bug",
+      "verbatim_quote": "I don't have the button to restore the version... even if I managed to restore a previous version as a first attempt, after adding another edit, I couldn't restore the first version",
+      "context": "User encountered a system bug: editing first author directly (instead of adding new author as first in sequence) prevented Time Machine snapshot generation, making restore button unavailable. User successfully restored once but subsequent edit triggered the bug",
+      "sentiment": "negative"
+    },
+    {
+      "code": "organizing_screen_for_efficiency",
+      "verbatim_quote": "I will put it this way, so I can follow all that",
+      "context": "Arranging workspace to view task instructions while using the system",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "confusion_from_nested_identifier_structure",
+      "verbatim_quote": "It's not clear to me what. So journal, I put the journal",
+      "context": "User accidentally created duplicate journal identifier due to deep nesting of journal within issue/volume/article structure. System validation error about missing required fields caused confusion until user discovered and deleted the excess identifier",
+      "sentiment": "negative"
+    },
+    {
+      "code": "self_validation_of_input",
+      "verbatim_quote": "It seems quite right to me now",
+      "context": "Checking own work to ensure metadata fields appear correct before submission",
+      "sentiment": "positive"
+    },
+    {
+      "code": "helpful_error_messages",
+      "verbatim_quote": "The error messages during the saving phase were explicit and allowed me to fix the mistakes",
+      "context": "Written reflection: user appreciated clear validation error messages that helped identify and correct mistakes during save operations",
+      "sentiment": "positive"
+    }
+  ]
+}
