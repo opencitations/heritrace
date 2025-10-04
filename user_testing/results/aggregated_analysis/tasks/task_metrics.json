@@ -337,6 +337,32 @@
       "severity_weighted_score": 0,
       "error_rate_per_minute": 0.0,
       "blocked": false
+    },
+    {
+      "participant_id": "4t",
+      "user_type": "technician",
+      "task_key": "add_shacl_validation",
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": 3.0,
+      "status": "complete",
+      "errors_encountered": 0,
+      "severity_weighted_score": 0,
+      "error_rate_per_minute": 0.0,
+      "blocked": false
+    },
+    {
+      "participant_id": "4t",
+      "user_type": "technician",
+      "task_key": "add_display_support",
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": 9.2333333333,
+      "status": "complete",
+      "errors_encountered": 1,
+      "severity_weighted_score": 5,
+      "error_rate_per_minute": 0.1083032491,
+      "blocked": false
     }
   ],
   "success_rates": {
@@ -385,18 +411,18 @@
     "technician": [
       {
         "task_key": "add_shacl_validation",
-        "total": 3,
-        "complete": 2,
+        "total": 4,
+        "complete": 3,
         "partial": 1,
         "success_timeout": 0,
         "failed_misunderstanding": 0,
         "failed_bug": 0,
-        "success_rate": 83.33333333333334
+        "success_rate": 87.5
       },
       {
         "task_key": "add_display_support",
-        "total": 3,
-        "complete": 3,
+        "total": 4,
+        "complete": 4,
         "partial": 0,
         "success_timeout": 0,
         "failed_misunderstanding": 0,
@@ -414,6 +440,7 @@
       "3e",
       "3t",
       "4e",
+      "4t",
       "5e"
     ],
     "tasks": [

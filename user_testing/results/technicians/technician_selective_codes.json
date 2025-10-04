@@ -13,7 +13,7 @@
     },
     {
       "proposition": "Mental model mismatches between web-based interfaces and file-based configuration create initial friction that technical expertise can overcome but represents an architectural trade-off that affects discoverability",
-      "explanation": "This explains why one technician initially searched for configuration options within the web interface before realizing the file-based approach. The expectation that a web application would provide web-based administration reflects common architectural patterns in modern systems. While technical users successfully adapted once they understood the paradigm, this mismatch represents a conceptual barrier that could be addressed through better signposting or hybrid approaches."
+      "explanation": "This explains why technicians initially searched for configuration options within the web interface before realizing the file-based approach. The expectation that a web application would provide web-based administration reflects common architectural patterns in modern systems. While technical users successfully adapted once they understood the paradigm, this mismatch represents a conceptual barrier that could be addressed through better signposting or hybrid approaches."
     },
     {
       "proposition": "Semantic reasoning capabilities enable technical users to translate natural language requirements into formal constraints and infer technical details from domain knowledge, reducing dependency on prescriptive documentation",
@@ -21,7 +21,11 @@
     },
     {
       "proposition": "Iterative testing approaches and exploratory learning strategies characterize technical user behavior when working with configuration systems that provide rapid feedback and consistent patterns",
-      "explanation": "This explains the pragmatic problem-solving style observed across both technicians. Rather than exhaustively studying documentation before implementation, they preferred to make changes, test results, and refine their approach based on observations. This trial-and-error methodology succeeds when the system provides immediate feedback and when failures are low-cost and easily reversible. The approach reflects confidence in their ability to diagnose and correct issues through experimentation."
+      "explanation": "This explains the pragmatic problem-solving style observed across technicians. Rather than exhaustively studying documentation before implementation, they preferred to make changes, test results, and refine their approach based on observations. This trial-and-error methodology succeeds when the system provides immediate feedback and when failures are low-cost and easily reversible. The approach reflects confidence in their ability to diagnose and correct issues through experimentation."
+    },
+    {
+      "proposition": "File-based configuration systems create architectural sustainability challenges when they combine intuitive user interfaces with technically complex configuration layers, establishing persistent dependency on expert-non-expert collaboration that may not be sustainable at individual project scales",
+      "explanation": "This explains the fundamental paradox identified where user-facing interfaces remain intuitive while underlying configuration systems require technical expertise. Realistic usage patterns emerge where technical experts perform initial configuration while non-technical users handle data entry, but the iterative nature of real-world use means non-technical users inevitably discover missing features requiring ongoing technical support for configuration modifications. This dependency structure raises questions about project-level sustainability, particularly when Docker deployment, semantic web knowledge, and computational thinking mindsets compound the technical barriers. The gap between expecting such support and actually receiving it represents a critical architectural consideration for long-term system viability."
     }
   ],
   "supporting_categories": [
@@ -57,13 +61,14 @@
     },
     {
       "category": "Conceptual and documentation barriers requiring expert compensation",
-      "relationship_to_core": "This category identifies the system constraints that technical expertise must overcome. The delayed understanding of file-based configuration, documentation gaps, parameter uncertainty, and task comprehension challenges represent friction points that technicians navigate through their domain knowledge and problem-solving skills, but which could be reduced through improved system design, documentation, and task presentation.",
-      "frequency": 13,
+      "relationship_to_core": "This category identifies the system constraints that technical expertise must overcome. The delayed understanding of file-based configuration, documentation gaps, parameter uncertainty, task comprehension challenges, and accessibility barriers represent friction points that technicians navigate through their domain knowledge and problem-solving skills, but which could be reduced through improved system design, documentation, and task presentation. Technical users demonstrate awareness that their expertise enables logical leaps inaccessible to non-experts.",
+      "frequency": 23,
       "axial_codes_included": [
         "Delayed understanding of file-based configuration paradigm",
         "Configuration file documentation gaps",
         "Uncertainty with optional configuration parameters",
-        "Task requirement comprehension failures"
+        "Task requirement comprehension failures",
+        "Configuration complexity and accessibility barriers"
       ]
     },
     {
@@ -78,11 +83,43 @@
     },
     {
       "category": "Constructive enhancement suggestions from expert perspective",
-      "relationship_to_core": "This category represents technicians' forward-looking suggestions based on their experience with the system. The suggestions for contextual guidance and missing features bridge the gap between the current file-based configuration paradigm and more discoverable approaches, reflecting technicians' understanding of both the system's current architecture and potential improvements that would benefit users with varying expertise levels. Identified gaps include retrospective validation, contextual UI help, visual SHACL editors, and validation tooling.",
-      "frequency": 6,
+      "relationship_to_core": "This category represents technicians' forward-looking suggestions based on their experience with the system. The suggestions for contextual guidance and missing features bridge the gap between the current file-based configuration paradigm and more discoverable approaches, reflecting technicians' understanding of both the system's current architecture and potential improvements that would benefit users with varying expertise levels. Identified gaps include retrospective validation, contextual UI help, visual SHACL editors, validation tooling, search functionality clarity, and specific error messaging.",
+      "frequency": 8,
       "axial_codes_included": [
         "Suggested improvements for contextual guidance",
         "Missing feature identification"
+      ]
+    },
+    {
+      "category": "System architecture and sustainability concerns",
+      "relationship_to_core": "This category reveals critical insights about long-term architectural viability that emerge from technical users' reflection on the configuration experience. The fundamental paradox where intuitive user interfaces depend on unintuitive configuration systems creates a realistic usage pattern requiring ongoing expert-non-expert collaboration. This dependency structure, compounded by Docker deployment complexity and semantic web prerequisites, raises sustainability questions about whether continuous technical support is feasible at individual project scales. These concerns directly challenge the assumption that file-based configuration adequately serves the needs of diverse user populations and highlight the tension between technical flexibility and broader accessibility.",
+      "frequency": 5,
+      "axial_codes_included": [
+        "System architecture and sustainability concerns"
+      ]
+    },
+    {
+      "category": "Docker deployment and operational complexity",
+      "relationship_to_core": "This category identifies how containerized deployment adds an additional layer of technical complexity beyond configuration tasks themselves. Docker knowledge serves as a prerequisite barrier before users even reach configuration activities, and operational challenges such as container restart procedures and Docker log debugging compound the existing technical demands. This operational complexity layer affects the overall accessibility of the configuration workflow, particularly for users less familiar with containerized deployment environments.",
+      "frequency": 2,
+      "axial_codes_included": [
+        "Docker deployment and troubleshooting challenges"
+      ]
+    },
+    {
+      "category": "Feature expectations and mental model formation",
+      "relationship_to_core": "This category demonstrates how technically sophisticated users form expectations and mental models through configuration file inspection and system exploration. Their ability to infer feature behavior from YAML properties, develop hypotheses about search functionality, and identify configuration expansion needs shows pattern-based learning extending beyond immediate task completion to broader system understanding. These mental models sometimes reveal feature implementation uncertainties or gaps between configuration and actual system behavior, providing valuable feedback for system development.",
+      "frequency": 10,
+      "axial_codes_included": [
+        "Feature expectations and mental models"
+      ]
+    },
+    {
+      "category": "Positive interface and workflow experiences",
+      "relationship_to_core": "This category captures specific design strengths that resonate strongly with technical users and support their configuration work. Appreciation for editing workflow efficiency, time machine functionality, and minimalist interface design demonstrates that certain system features successfully meet technical user needs and expectations. These positive experiences coexist with configuration challenges, showing that user-facing interface quality remains high even when underlying configuration requires technical expertise.",
+      "frequency": 3,
+      "axial_codes_included": [
+        "Positive interface and workflow experiences"
       ]
     }
   ]

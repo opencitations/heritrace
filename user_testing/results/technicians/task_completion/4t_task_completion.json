@@ -1,0 +1,35 @@
+{
+  "participant_id": "4t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:03:00",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:09:14",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "high",
+          "symptom": "Application crash after YAML modification with no error indication: after adding abstract display configuration to display_rules.yaml, application stopped responding completely requiring Docker restart. User stated: 'Mi si è rotto? Mi si è rotto. Allora, mi si è rotto, perché mi si è rotto? Mi si è rotto' and 'Si è proprio arreso'",
+          "trigger": "Modifying display_rules.yaml to add abstract property configuration and refreshing browser",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Uncertainty about whether to remove search-related properties when supportSearch is false: user copied title property configuration and inherited minCharForSearch and searchTarget properties, then removed them when setting supportSearch to false, but expressed uncertainty about whether this was correct. User stated: 'Io per intuito dico che queste due ultime proprietà, minCharForSearch e searchTarget, hanno senso se supportSearch è true. Ma se è false, come l'ho settato io per abstract, le ho tolte. Io do per scontato che questa roba funzionerà, che non dia errori. Magari sto sbagliando io'",
+          "trigger": "Configuring abstract display properties in YAML after copying from title configuration",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}
