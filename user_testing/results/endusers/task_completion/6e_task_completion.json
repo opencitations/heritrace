@@ -1,0 +1,77 @@
+{
+  "participant_id": "6e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:01:18",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": []
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:01:06",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "Uncertainty about merge confirmation: user attempted to merge duplicate authors but was unsure if the second merge operation succeeded. User stated 'Okay, but did we do it? It looks like the second time it wasn't successful or we need to do anything else' before proceeding with merge confirmation",
+          "trigger": "Attempting to merge second duplicate author entity after successfully merging the first one",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:01:04",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "Confusion about time machine location and naming: user initially looked for 'time machine' in the wrong place, confused it with 'time vault' feature. User stated 'But we have no deleted resources in the time vault. And there is no time machine' and later discovered 'So, it's not time vault, it's time machine'",
+          "trigger": "Attempting to locate time machine feature to restore previous version of bibliographic record",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:03:13",
+      "status": "partial",
+      "errors_encountered": 4,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "ORCID lookup not functioning: user attempted to search for authors using ORCID identifiers but received no results. User stated 'And we will look for this one, but no author with this identifier. Why?' and 'Okay, and again no results' when searching for both Arcangelo Massari and Silvio Peroni. User concluded 'That's strange. There is no integration with ORCID' and had to add authors manually",
+          "trigger": "Attempting to add authors Arcangelo Massari and Silvio Peroni using their ORCID identifiers",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "low",
+          "symptom": "Confusion about publisher field structure: user was confused why publisher entity has 'name' and 'given name' fields typically associated with persons. User stated 'Why publisher have name and given name? That's kind of strange. Why so? Publisher can be a person, I suppose, but usually it's not a person. It's kind of organization or something like this'",
+          "trigger": "Attempting to add publisher information to new journal article record",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "high",
+          "symptom": "Missing ISSN field: user searched for field to enter journal ISSN but could not find it. User stated 'Aha, we have the journal title. Yes, and we have where we can add ISSN. No field for ISSN, right? Hmm. So, we have no place for ISSN'",
+          "trigger": "Attempting to add ISSN identifier for journal in new publication record",
+          "outcome": "blocked"
+        },
+        {
+          "severity": "low",
+          "symptom": "Title field contained unwanted artifacts: when copying title text into the field, user noticed formatting artifacts. User stated 'Okay, we copy. It looks like we have some artifacts'",
+          "trigger": "Copying and pasting title text into title field during publication creation",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}

@@ -28,7 +28,7 @@
     {
       "category": "Successful System Features",
       "relationship_to_core": "Demonstrates that the system's core semantic functionality is sound and provides value once users adapt to the complexity. This category validates that the learning curve leads to genuine capability rather than just familiarity.",
-      "frequency": 51,
+      "frequency": 79,
       "axial_codes_included": [
         "Positive interface design elements",
         "Successful system features"
@@ -37,7 +37,7 @@
     {
       "category": "Entity Management Complexity Barriers",
       "relationship_to_core": "Represents the primary complexity navigation challenge that users must overcome. Entity creation uncertainty and form interaction problems constitute the main adoption barriers that separate initial confusion from eventual mastery.",
-      "frequency": 18,
+      "frequency": 21,
       "axial_codes_included": [
         "Entity creation and management confusion",
         "Form interaction problems"
@@ -46,7 +46,7 @@
     {
       "category": "Interface Consistency Impact",
       "relationship_to_core": "Amplifies the complexity navigation challenge by adding unnecessary cognitive load through inconsistent design elements. These issues compound semantic complexity and slow the progression to system mastery.",
-      "frequency": 19,
+      "frequency": 25,
       "axial_codes_included": [
         "Interface design problems",
         "System functionality gaps"
@@ -55,7 +55,7 @@
     {
       "category": "Advanced Feature Learning Curve",
       "relationship_to_core": "Illustrates the dual-phase pattern where complex features initially confuse users but eventually become valued capabilities. Includes both usability challenges and occasional system bugs that prevent functionality. Shows that semantic system adoption requires patience and proper support for conceptual understanding.",
-      "frequency": 12,
+      "frequency": 15,
       "axial_codes_included": [
         "Timeline and version control challenges",
         "Timeline feature success",
@@ -65,7 +65,7 @@
     {
       "category": "System Comprehension Process",
       "relationship_to_core": "Captures the neutral observations and learning process that users experience while navigating complexity. Includes both the challenges of first-time users and constructive suggestions for improvement, showing active engagement with system learning.",
-      "frequency": 21,
+      "frequency": 25,
       "axial_codes_included": [
         "System understanding and navigation",
         "First-time user experience",
@@ -75,11 +75,27 @@
     {
       "category": "User Expectations vs. System Design Mismatch",
       "relationship_to_core": "Represents a conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates initial friction as users expect browsing and discovery features in a system designed for targeted entity management and editing. The gap amplifies complexity navigation challenges during the learning phase.",
-      "frequency": 17,
+      "frequency": 23,
       "axial_codes_included": [
         "System functionality gaps",
         "Navigation strategy and problem-solving",
         "User frustration and emotional response"
+      ]
+    },
+    {
+      "category": "External Service Integration Failures",
+      "relationship_to_core": "Represents genuine technical failures in external service integrations that force users to develop manual workarounds. Unlike usability challenges that users can overcome through learning, these integration failures prevent intended functionality regardless of user expertise. This category distinguishes between complexity navigation challenges and actual system defects.",
+      "frequency": 3,
+      "axial_codes_included": [
+        "Integration and external lookup failures"
+      ]
+    },
+    {
+      "category": "Data Entry Quality and Field Clarity",
+      "relationship_to_core": "Demonstrates how unclear field purposes can lead to data entry errors, creating malformed records that compound the complexity navigation challenge. These errors highlight the need for better field clarification through labels, placeholders, or inline help as part of reducing initial adoption barriers.",
+      "frequency": 1,
+      "axial_codes_included": [
+        "Data entry errors and field comprehension"
       ]
     }
   ]

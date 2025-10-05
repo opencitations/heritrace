@@ -39,12 +39,32 @@
         {
           "participant_id": "5e",
           "code": "intuitive_catalog_interface"
+        },
+        {
+          "participant_id": "6e",
+          "code": "positive_interface_impression"
+        },
+        {
+          "participant_id": "6e",
+          "code": "clear_item_presentation"
+        },
+        {
+          "participant_id": "6e",
+          "code": "understanding_bibliographic_structure"
+        },
+        {
+          "participant_id": "6e",
+          "code": "clear_field_grouping_reduces_load"
+        },
+        {
+          "participant_id": "6e",
+          "code": "logical_field_sequence_aids_workflow"
         }
       ],
-      "category_description": "Codes representing positive user reactions to specific interface design elements, including visual appeal, navigation components, intuitive initial experiences, and functional design choices that enhance user experience",
-      "task_contexts": ["Initial system exploration", "Navigation between pages", "Merge operations", "First interactions"],
+      "category_description": "Codes representing positive user reactions to specific interface design elements, including visual appeal, navigation components, intuitive initial experiences, clear information presentation, well-organized field grouping, and functional design choices that enhance user experience and reduce cognitive load",
+      "task_contexts": ["Initial system exploration", "Navigation between pages", "Merge operations", "First interactions", "Form interaction"],
       "overall_sentiment": "positive",
-      "frequency": "9"
+      "frequency": "14"
     },
     {
       "category_name": "Interface design problems",
@@ -76,12 +96,16 @@
         {
           "participant_id": "4e",
           "code": "collapsed_sections_hide_content"
+        },
+        {
+          "participant_id": "6e",
+          "code": "confusion_about_publisher_fields"
         }
       ],
-      "category_description": "Codes identifying specific interface design problems including inconsistent visual elements, layout issues, unclear entity states, collapsed section visibility, and styling problems that negatively impact user experience",
+      "category_description": "Codes identifying specific interface design problems including inconsistent visual elements, layout issues, unclear entity states, collapsed section visibility, confusing field structures, and styling problems that negatively impact user experience",
       "task_contexts": ["Initial interface evaluation", "Creating new publications", "Comparing interface elements", "Entity creation", "Form management"],
       "overall_sentiment": "negative",
-      "frequency": "7"
+      "frequency": "8"
     },
     {
       "category_name": "Successful system features",
@@ -253,12 +277,100 @@
         {
           "participant_id": "5e",
           "code": "helpful_error_messages"
+        },
+        {
+          "participant_id": "6e",
+          "code": "smooth_installation_experience"
+        },
+        {
+          "participant_id": "6e",
+          "code": "catalog_as_primary_entry_point"
+        },
+        {
+          "participant_id": "6e",
+          "code": "inferring_time_vault_purpose"
+        },
+        {
+          "participant_id": "6e",
+          "code": "quick_task_orientation"
+        },
+        {
+          "participant_id": "6e",
+          "code": "understanding_identifier_requirement"
+        },
+        {
+          "participant_id": "6e",
+          "code": "successful_author_lookup"
+        },
+        {
+          "participant_id": "6e",
+          "code": "discovering_reordering_mechanism"
+        },
+        {
+          "participant_id": "6e",
+          "code": "confirming_task_completion"
+        },
+        {
+          "participant_id": "6e",
+          "code": "rapid_task_completion_satisfaction"
+        },
+        {
+          "participant_id": "6e",
+          "code": "efficient_navigation_to_author_page"
+        },
+        {
+          "participant_id": "6e",
+          "code": "recognizing_similar_resources_indicator"
+        },
+        {
+          "participant_id": "6e",
+          "code": "trusting_merge_suggestion"
+        },
+        {
+          "participant_id": "6e",
+          "code": "confirming_merge_completion"
+        },
+        {
+          "participant_id": "6e",
+          "code": "discovering_time_machine_location"
+        },
+        {
+          "participant_id": "6e",
+          "code": "understanding_version_selection"
+        },
+        {
+          "participant_id": "6e",
+          "code": "successful_version_restoration"
+        },
+        {
+          "participant_id": "6e",
+          "code": "correct_resource_type_selection"
+        },
+        {
+          "participant_id": "6e",
+          "code": "identifying_primary_identifier"
+        },
+        {
+          "participant_id": "6e",
+          "code": "systematic_metadata_completion"
+        },
+        {
+          "participant_id": "6e",
+          "code": "successful_record_creation"
+        },
+        {
+          "participant_id": "6e",
+          "code": "overall_positive_experience_with_caveats"
+        },
+        {
+          "participant_id": "6e",
+          "code": "potential_for_automated_pipeline_integration"
         }
       ],
-      "category_description": "Codes representing successful system features that work as intended and provide positive user experiences, including autocomplete, drag-and-drop functionality, merge operations, validation feedback, learning progression, identifier interoperability, system learnability, helpful error messaging, and overall system effectiveness after initial learning curve",
-      "task_contexts": ["Adding authors", "Merge operations", "Time machine usage", "Creating publications", "Cross-referencing entities", "Form completion", "Browsing records", "Version restoration", "Entity addition", "Error recovery", "Form validation"],
+      "category_description": "Codes representing successful system features that work as intended and provide positive user experiences, including autocomplete, drag-and-drop functionality, merge operations, validation feedback, learning progression, identifier interoperability, system learnability, helpful error messaging, time machine version control, similar resource detection, installation ease, and overall system effectiveness after initial learning curve",
+      "task_contexts": ["Adding authors", "Merge operations", "Time machine usage", "Creating publications", "Cross-referencing entities", "Form completion", "Browsing records", "Version restoration", "Entity addition", "Error recovery", "Form validation", "Installation", "System setup", "Navigation"],
       "overall_sentiment": "positive",
-      "frequency": "42"
+      "frequency": "65"
     },
     {
       "category_name": "System functionality gaps",
@@ -310,12 +422,32 @@
         {
           "participant_id": "5e",
           "code": "confusion_about_navigation_path"
+        },
+        {
+          "participant_id": "6e",
+          "code": "searching_for_issn_field"
+        },
+        {
+          "participant_id": "6e",
+          "code": "request_for_bulk_import"
+        },
+        {
+          "participant_id": "6e",
+          "code": "request_for_smart_name_parsing"
+        },
+        {
+          "participant_id": "6e",
+          "code": "request_for_inline_validation_microcopy"
+        },
+        {
+          "participant_id": "6e",
+          "code": "request_for_field_placeholder_text"
         }
       ],
-      "category_description": "Codes identifying missing or needed system functionality that significantly impacts user experience, including search capabilities, better status indicators, form management features, navigation aids for returning to previously accessed resources, and visibility issues with critical action buttons",
-      "task_contexts": ["Catalog browsing", "Entity creation", "Form interaction", "Locating existing resources", "Return navigation", "Saving changes"],
+      "category_description": "Codes identifying missing or needed system functionality that significantly impacts user experience, including search capabilities, better status indicators, form management features, navigation aids for returning to previously accessed resources, visibility issues with critical action buttons, missing metadata fields, bulk import capabilities, smart data parsing, inline validation help text, and field placeholder clarification",
+      "task_contexts": ["Catalog browsing", "Entity creation", "Form interaction", "Locating existing resources", "Return navigation", "Saving changes", "Metadata entry"],
       "overall_sentiment": "negative",
-      "frequency": "12"
+      "frequency": "17"
     },
     {
       "category_name": "Entity creation and management confusion",
@@ -355,12 +487,16 @@
         {
           "participant_id": "3e",
           "code": "seeking_alternative_save_method"
+        },
+        {
+          "participant_id": "6e",
+          "code": "uncertainty_about_action_completion"
         }
       ],
-      "category_description": "Codes representing user confusion and difficulties specifically related to entity creation processes, including uncertainty about when entities are created, saved, how the workflow functions, and ambiguity about interface controls related to saving and creating new records",
+      "category_description": "Codes representing user confusion and difficulties specifically related to entity creation processes, including uncertainty about when entities are created, saved, whether actions completed successfully, how the workflow functions, and ambiguity about interface controls related to saving and creating new records",
       "task_contexts": ["Creating new entities", "Adding authors", "Saving resources", "Understanding save mechanisms"],
       "overall_sentiment": "negative",
-      "frequency": "9"
+      "frequency": "10"
     },
     {
       "category_name": "Timeline and version control challenges",
@@ -400,12 +536,16 @@
         {
           "participant_id": "5e",
           "code": "snapshot_generation_bug"
+        },
+        {
+          "participant_id": "6e",
+          "code": "confusing_time_vault_with_time_machine"
         }
       ],
-      "category_description": "Codes representing user difficulties with the timeline interface and version control features, including unclear labels, confusing initial presentation, usability issues with the time machine functionality, navigation errors when accessing version history for incorrect entities, and system bugs triggered during version restoration operations",
+      "category_description": "Codes representing user difficulties with the timeline interface and version control features, including unclear labels, confusing initial presentation, terminology confusion between time vault and time machine, usability issues with the time machine functionality, navigation errors when accessing version history for incorrect entities, and system bugs triggered during version restoration operations",
       "task_contexts": ["Time machine usage", "Version restoration", "Timeline navigation", "Entity version history"],
       "overall_sentiment": "negative",
-      "frequency": "9"
+      "frequency": "10"
     },
     {
       "category_name": "Timeline feature success",
@@ -462,12 +602,20 @@
         {
           "participant_id": "5e",
           "code": "confusion_from_nested_identifier_structure"
+        },
+        {
+          "participant_id": "6e",
+          "code": "slow_loading_time"
+        },
+        {
+          "participant_id": "6e",
+          "code": "title_paste_artifacts"
         }
       ],
-      "category_description": "Codes representing specific problems with form interactions including unclear dialogs, performance issues, overwhelming complexity, lack of clear feedback mechanisms, and frustration with unresponsive interface elements",
-      "task_contexts": ["Creating publications", "Saving changes", "Form completion", "Interface responsiveness"],
+      "category_description": "Codes representing specific problems with form interactions including unclear dialogs, performance issues, overwhelming complexity, lack of clear feedback mechanisms, frustration with unresponsive interface elements, nested structure confusion, and data paste formatting artifacts",
+      "task_contexts": ["Creating publications", "Saving changes", "Form completion", "Interface responsiveness", "Data entry"],
       "overall_sentiment": "negative",
-      "frequency": "9"
+      "frequency": "11"
     },
     {
       "category_name": "Merge operations uncertainty",
@@ -475,12 +623,20 @@
         {
           "participant_id": "1e",
           "code": "merge_uncertainty"
+        },
+        {
+          "participant_id": "6e",
+          "code": "uncertainty_about_merge_target"
+        },
+        {
+          "participant_id": "6e",
+          "code": "uncertainty_about_second_merge"
         }
       ],
-      "category_description": "Codes representing user uncertainty about merge decisions, specifically difficulties in determining whether entities should be merged based on available information",
+      "category_description": "Codes representing user uncertainty about merge decisions, specifically difficulties in determining whether entities should be merged based on available information, which duplicate to keep as primary, and whether sequential merge operations completed successfully",
       "task_contexts": ["Merge operations", "Entity deduplication"],
       "overall_sentiment": "negative",
-      "frequency": "1"
+      "frequency": "3"
     },
     {
       "category_name": "First-time user experience",
@@ -569,12 +725,28 @@
         {
           "participant_id": "5e",
           "code": "iterative_problem_solving"
+        },
+        {
+          "participant_id": "6e",
+          "code": "exploratory_editing_approach"
+        },
+        {
+          "participant_id": "6e",
+          "code": "manual_author_entry_workaround"
+        },
+        {
+          "participant_id": "6e",
+          "code": "reviewing_entered_metadata"
+        },
+        {
+          "participant_id": "6e",
+          "code": "recognizing_window_management_error"
         }
       ],
-      "category_description": "Codes representing neutral observations about system behavior, user understanding processes, hypothesis formation, gradual learning achievements, validation error recognition, workaround development, and factual navigation activities without strong positive or negative sentiment",
+      "category_description": "Codes representing neutral observations about system behavior, user understanding processes, hypothesis formation, gradual learning achievements, validation error recognition, workaround development, window management awareness, and factual navigation activities without strong positive or negative sentiment",
       "task_contexts": ["System exploration", "Navigation", "Data entry", "System feedback observation", "Form management", "Error handling", "Learning progression"],
       "overall_sentiment": "neutral",
-      "frequency": "18"
+      "frequency": "22"
     },
     {
       "category_name": "Improvement suggestions",
@@ -607,12 +779,16 @@
         {
           "participant_id": "3e",
           "code": "attempting_browse_based_workaround"
+        },
+        {
+          "participant_id": "6e",
+          "code": "browser_history_navigation_confusion"
         }
       ],
-      "category_description": "Codes representing user strategies for navigating the system when faced with unclear pathways, including trial-and-error approaches, hypothesis formation, and workaround development when standard functionality is not apparent",
-      "task_contexts": ["Resource location", "Task execution", "System navigation"],
+      "category_description": "Codes representing user strategies for navigating the system when faced with unclear pathways, including trial-and-error approaches, hypothesis formation, workaround development when standard functionality is not apparent, and browser history navigation difficulties",
+      "task_contexts": ["Resource location", "Task execution", "System navigation", "Return navigation"],
       "overall_sentiment": "negative",
-      "frequency": "3"
+      "frequency": "4"
     },
     {
       "category_name": "User frustration and emotional response",
@@ -630,6 +806,40 @@
       "task_contexts": ["Resource location", "Task execution under time pressure"],
       "overall_sentiment": "negative",
       "frequency": "2"
+    },
+    {
+      "category_name": "Integration and external lookup failures",
+      "related_codes": [
+        {
+          "participant_id": "6e",
+          "code": "orcid_lookup_failure"
+        },
+        {
+          "participant_id": "6e",
+          "code": "repeated_orcid_lookup_failure"
+        },
+        {
+          "participant_id": "6e",
+          "code": "inferring_missing_integration"
+        }
+      ],
+      "category_description": "Codes representing failures in external service integrations, specifically ORCID identifier lookup functionality not working, leading users to conclude that external API integration is missing or non-functional, requiring manual workarounds",
+      "task_contexts": ["Author creation", "Entity creation", "Identifier lookup"],
+      "overall_sentiment": "negative",
+      "frequency": "3"
+    },
+    {
+      "category_name": "Data entry errors and field comprehension",
+      "related_codes": [
+        {
+          "participant_id": "6e",
+          "code": "name_field_data_entry_error"
+        }
+      ],
+      "category_description": "Codes documenting specific user errors when entering data due to unclear field purposes, such as entering full names in wrong fields, resulting in malformed records and demonstrating need for better field clarification through labels, placeholders, or inline help",
+      "task_contexts": ["Author creation", "Form completion", "Data entry"],
+      "overall_sentiment": "negative",
+      "frequency": "1"
     }
   ]
 }

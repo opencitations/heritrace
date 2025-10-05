@@ -1,0 +1,294 @@
+{
+  "participant_id": "6e",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "smooth_installation_experience",
+      "verbatim_quote": "I've downloaded the package and installed it and it works really well and easy",
+      "context": "Initial warm-up reflection on the installation process before starting usability tasks",
+      "sentiment": "positive"
+    },
+    {
+      "code": "positive_interface_impression",
+      "verbatim_quote": "So, here we have a very nice interface",
+      "context": "First impression when viewing the system homepage and catalog during warm-up exploration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "catalog_as_primary_entry_point",
+      "verbatim_quote": "I think that the catalog is the point we are looking for",
+      "context": "User correctly identifies catalog as main navigation point for browsing resources",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "slow_loading_time",
+      "verbatim_quote": "loading 100 of items takes a little bit time",
+      "context": "Noticing performance delay when catalog loads full list of 100 items during initial exploration",
+      "sentiment": "negative"
+    },
+    {
+      "code": "inferring_time_vault_purpose",
+      "verbatim_quote": "We have an option to add new record and something like time vault. I can assume that there is for the deleted resources",
+      "context": "User hypothesizes about time vault functionality based on naming and visual cues during warm-up",
+      "sentiment": "positive"
+    },
+    {
+      "code": "clear_item_presentation",
+      "verbatim_quote": "Okay, let's try to look at the items how they look like. Okay, here is the main information. Edit, delete, the type of resource. No issue",
+      "context": "Evaluating entity page layout and finding information clearly presented with obvious action buttons",
+      "sentiment": "positive"
+    },
+    {
+      "code": "understanding_bibliographic_structure",
+      "verbatim_quote": "number 1, volume. I think there is a list of references. Okay, it's pretty clear",
+      "context": "Reviewing bibliographic record structure during warm-up and understanding volume/reference relationships",
+      "sentiment": "positive"
+    },
+    {
+      "code": "quick_task_orientation",
+      "verbatim_quote": "It's exactly what we were looking for. So, we have to make some changes in the authors lists",
+      "context": "Immediately understanding task requirements after accessing the target bibliographic record",
+      "sentiment": "positive"
+    },
+    {
+      "code": "exploratory_editing_approach",
+      "verbatim_quote": "We can try to make it this way. We need to add new author. That's interesting",
+      "context": "Beginning to interact with author editing interface, taking exploratory approach to learn functionality",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "understanding_identifier_requirement",
+      "verbatim_quote": "Type of the agent. Do we have an identifier? Yeah, we have it. We have an identifier. It's ORCID",
+      "context": "Discovering that author entity requires identifier and identifying ORCID as the appropriate type",
+      "sentiment": "positive"
+    },
+    {
+      "code": "successful_author_lookup",
+      "verbatim_quote": "it's quite easy to find exactly the author we need",
+      "context": "Using ORCID identifier to search for Caroline Scagel and successfully finding existing author entity",
+      "sentiment": "positive"
+    },
+    {
+      "code": "uncertainty_about_action_completion",
+      "verbatim_quote": "So, what we need to do to add this author. Here is the link to the author, but did we add it?",
+      "context": "After selecting author from search results, user uncertain whether author was added to publication",
+      "sentiment": "negative"
+    },
+    {
+      "code": "discovering_reordering_mechanism",
+      "verbatim_quote": "Yeah, I think so, but how we can change? Aha, we can make it like this. Pretty clear",
+      "context": "Learning that authors can be reordered and discovering the mechanism for changing author sequence",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confirming_task_completion",
+      "verbatim_quote": "So, we have first author, Caroline Scagel. Is this all we need? Save changes. We need to confirm. Okay, it looks like we did. Let's check. Yeah, we have the first author. Caroline",
+      "context": "Saving changes and verifying that Caroline Scagel was successfully added as first author",
+      "sentiment": "positive"
+    },
+    {
+      "code": "rapid_task_completion_satisfaction",
+      "verbatim_quote": "Great. Pretty easy, like two minutes, I think",
+      "context": "Expressing satisfaction after completing Task 1 in approximately two minutes, faster than expected",
+      "sentiment": "positive"
+    },
+    {
+      "code": "efficient_navigation_to_author_page",
+      "verbatim_quote": "We need to merge duplicate author entities. Return to this journal article. Okay, we are here. Navigate to the author page for Richard. Richard. Yeah, here is Richard",
+      "context": "Task 2: Efficiently navigating from journal article to Richard Carew's author page via hyperlink",
+      "sentiment": "positive"
+    },
+    {
+      "code": "recognizing_similar_resources_indicator",
+      "verbatim_quote": "Your task is to merge any duplicate author entities you find. Aha, we have similar resources with different identifiers. So, we have this one for this author and another two of them",
+      "context": "Discovering similar resources notification showing duplicate author entities on Richard Carew's page",
+      "sentiment": "positive"
+    },
+    {
+      "code": "trusting_merge_suggestion",
+      "verbatim_quote": "Okay, we can trust that this Richard and these two Richards are the same, so we have to merge",
+      "context": "Making decision to trust system's similar resources detection and proceed with merging duplicates",
+      "sentiment": "positive"
+    },
+    {
+      "code": "uncertainty_about_merge_target",
+      "verbatim_quote": "Okay, this one we keep. Which one we need to keep? Not really clear",
+      "context": "Confusion about which duplicate author entity should be kept as primary during merge operation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "uncertainty_about_second_merge",
+      "verbatim_quote": "we will merge this one and we will merge the next one also. Okay, but did we do it? It looks like the second time it wasn't successful or we need to do anything else",
+      "context": "After merging first duplicate, user uncertain whether second merge operation succeeded",
+      "sentiment": "negative"
+    },
+    {
+      "code": "confirming_merge_completion",
+      "verbatim_quote": "Okay, we proceed with merge. Yeah, now no similar resources are found. So, it looks like we completed the task, right?",
+      "context": "Verifying task completion by confirming similar resources notification has disappeared after merges",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confusing_time_vault_with_time_machine",
+      "verbatim_quote": "Use the integrated time machine system to restore the record to the version before you added Caroline Scagel as an author. But we have no deleted resources in the time vault. And there is no time machine",
+      "context": "Task 3: Initial confusion between 'time vault' feature (for deleted resources) and 'time machine' feature (for version history)",
+      "sentiment": "negative"
+    },
+    {
+      "code": "recognizing_window_management_error",
+      "verbatim_quote": "It seems that on some step before we just opened a new window and that's why we couldn't merge this",
+      "context": "User realizes opening new browser window in previous task caused navigation confusion",
+      "sentiment": "positive"
+    },
+    {
+      "code": "browser_history_navigation_confusion",
+      "verbatim_quote": "We have some history in the browser, but it's not pretty clear which item we need here. So, okay, which item we need here. So, we're just looking at it this way",
+      "context": "Attempting to navigate back to article page using browser history but uncertain about correct entry",
+      "sentiment": "negative"
+    },
+    {
+      "code": "discovering_time_machine_location",
+      "verbatim_quote": "Okay, we are back to the article page and we have here the time machine. So, it's not time vault, it's time machine",
+      "context": "Successfully locating time machine feature on article entity page and clarifying terminology",
+      "sentiment": "positive"
+    },
+    {
+      "code": "understanding_version_selection",
+      "verbatim_quote": "Okay, and we need to restore previous version before we added a new author. Okay, it looks like we have only one snapshot, so we are going to restore it",
+      "context": "Identifying correct snapshot in time machine timeline to restore version before Caroline Scagel addition",
+      "sentiment": "positive"
+    },
+    {
+      "code": "successful_version_restoration",
+      "verbatim_quote": "So, and now we have exactly the same record that existed before our changes. Okay, it looks like we're done with this task also",
+      "context": "Confirming successful restoration to previous version and verifying changes were reverted",
+      "sentiment": "positive"
+    },
+    {
+      "code": "correct_resource_type_selection",
+      "verbatim_quote": "And now we need to create new publication record. It looks like we need this one. And this is specific journal article, so we are choosing the here journal article",
+      "context": "Task 4: Navigating to add new record and correctly selecting 'journal article' as resource type",
+      "sentiment": "positive"
+    },
+    {
+      "code": "identifying_primary_identifier",
+      "verbatim_quote": "We need the identifier, which is DOI, I think. Yes, it's the first one. It's not the only one, but it's the first one",
+      "context": "Recognizing DOI as primary identifier for journal article and entering it in form",
+      "sentiment": "positive"
+    },
+    {
+      "code": "title_paste_artifacts",
+      "verbatim_quote": "So, we have the identifier. We need to insert the title. Okay, we copy. It looks like we have some artifacts",
+      "context": "Copying title text from task instructions and noticing formatting artifacts in pasted content",
+      "sentiment": "negative"
+    },
+    {
+      "code": "orcid_lookup_failure",
+      "verbatim_quote": "And we need to add an author. Arcangelo Massari with ORCID. And we will look for this one, but no author with this identifier. Why?",
+      "context": "Attempting to search for Arcangelo Massari using ORCID identifier but receiving no results",
+      "sentiment": "negative"
+    },
+    {
+      "code": "manual_author_entry_workaround",
+      "verbatim_quote": "Okay, then we add the author manually",
+      "context": "Working around ORCID lookup failure by manually entering author information",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "repeated_orcid_lookup_failure",
+      "verbatim_quote": "And we need to add Silvio Peroni as another author with ORCID. Okay, and again no results. So, we need to add by hand again",
+      "context": "Experiencing same ORCID lookup failure for second author Silvio Peroni",
+      "sentiment": "negative"
+    },
+    {
+      "code": "inferring_missing_integration",
+      "verbatim_quote": "That's strange. There is no integration with ORCID",
+      "context": "Concluding that system lacks ORCID API integration after repeated lookup failures",
+      "sentiment": "negative"
+    },
+    {
+      "code": "confusion_about_publisher_fields",
+      "verbatim_quote": "Okay, so we have publisher. We have the field. No identifier for publisher. Why publisher have name and given name? That's kind of strange. Why so? Publisher can be a person, I suppose, but usually it's not a person. It's kind of organization or something like this",
+      "context": "Finding publisher entity structure confusing with 'name' and 'given name' fields typically associated with persons rather than organizations",
+      "sentiment": "negative"
+    },
+    {
+      "code": "systematic_metadata_completion",
+      "verbatim_quote": "We need to add issue. It's number 20. And we need to add volume. Volume number 9. Fine",
+      "context": "Methodically entering issue and volume numbers for journal article metadata",
+      "sentiment": "positive"
+    },
+    {
+      "code": "searching_for_issn_field",
+      "verbatim_quote": "What else we have about the journal? Aha, we have the journal title. Yes, and we have where we can add ISSN. No field for ISSN, right? Hmm. So, we have no place for ISSN",
+      "context": "Looking for field to enter journal ISSN identifier but unable to locate it in form structure",
+      "sentiment": "negative"
+    },
+    {
+      "code": "reviewing_entered_metadata",
+      "verbatim_quote": "Okay. So, let's check what we added. We have journal article with the title. Okay. Two authors, publisher name, publication date. Okay. We have all the necessary fields except ISSN",
+      "context": "Conducting self-review of completed form before submission, noting missing ISSN field",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "successful_record_creation",
+      "verbatim_quote": "So, add new record. And we confirm. Okay. So, we have it here",
+      "context": "Successfully submitting new journal article record and confirming it appears in system",
+      "sentiment": "positive"
+    },
+    {
+      "code": "overall_positive_experience_with_caveats",
+      "verbatim_quote": "And it looks like all tasks are finished. It was pretty nice. Only a couple of points were not quite clear. But I think we've done pretty fast with the task",
+      "context": "Final reflection on usability test: overall positive experience with minor unclear elements, completed faster than expected",
+      "sentiment": "positive"
+    },
+    {
+      "code": "clear_field_grouping_reduces_load",
+      "verbatim_quote": "The clean, consistent layout with clear field grouping, and the straightforward navigation and labeling that made it obvious what to do next",
+      "context": "Written reflection: user appreciated organized field grouping and logical sequence that minimized cognitive load during task completion",
+      "sentiment": "positive"
+    },
+    {
+      "code": "logical_field_sequence_aids_workflow",
+      "verbatim_quote": "logical sequence of fields that kept the cognitive load low",
+      "context": "Written reflection: highlighting importance of field ordering in maintaining low cognitive burden during data entry",
+      "sentiment": "positive"
+    },
+    {
+      "code": "request_for_bulk_import",
+      "verbatim_quote": "Bulk import of data",
+      "context": "Written suggestion: user desires bulk data import functionality as additional feature for efficiency",
+      "sentiment": "negative"
+    },
+    {
+      "code": "request_for_smart_name_parsing",
+      "verbatim_quote": "Smart name parsing (e.g., split 'Name' into Given/Family with a confirmation)",
+      "context": "Written suggestion: user wants automatic parsing of full names into separate given/family name fields with confirmation dialog to reduce manual entry effort",
+      "sentiment": "negative"
+    },
+    {
+      "code": "request_for_inline_validation_microcopy",
+      "verbatim_quote": "inline validation/microcopy (e.g., 'Given name = first name')",
+      "context": "Written suggestion: user wants inline help text explaining field meanings to prevent data entry errors",
+      "sentiment": "negative"
+    },
+    {
+      "code": "request_for_field_placeholder_text",
+      "verbatim_quote": "placeholder text clarifying each field (e.g., 'Given name (first name)', 'Family name (surname)')",
+      "context": "Written note: user suggests placeholder text in form fields to clarify expected input format and prevent errors like entering full name in single field",
+      "sentiment": "negative"
+    },
+    {
+      "code": "potential_for_automated_pipeline_integration",
+      "verbatim_quote": "With the integrations above, it could also plug into more automated pipelines",
+      "context": "Written reflection: user sees potential for HERITRACE to integrate with automated workflows if certain features (ORCID lookup, bulk import, smart parsing) are implemented",
+      "sentiment": "positive"
+    },
+    {
+      "code": "name_field_data_entry_error",
+      "verbatim_quote": "When adding authors for new article task I entered Silvio and Archangelo into the Name field and skipped Given name, which resulted in this record: Arcangelo & Silvio (2025)",
+      "context": "Written note: user documented specific error where entering both authors' names in single 'Name' field created malformed record, demonstrating need for field clarification",
+      "sentiment": "negative"
+    }
+  ]
+}
