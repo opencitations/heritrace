@@ -226,14 +226,24 @@ class SUSCalculator:
         stats_lines = ["SUS Statistics Summary", ""]
         for user_type in user_types:
             user_data = df[df['user_type'] == user_type]['sus_score']
+            q1 = user_data.quantile(0.25)
+            q3 = user_data.quantile(0.75)
+            median = user_data.median()
+            min_val = user_data.min()
+            max_val = user_data.max()
+
             stats_lines.append(f"{user_type.replace('_', ' ').title()}:")
             stats_lines.append(f"  Count: {len(user_data)}")
             stats_lines.append(f"  Mean SUS: {user_data.mean():.1f}")
+            stats_lines.append(f"  Median: {median:.1f}")
+            stats_lines.append(f"  Q1 (25th percentile): {q1:.1f}")
+            stats_lines.append(f"  Q3 (75th percentile): {q3:.1f}")
+            stats_lines.append(f"  Range: {min_val:.1f}-{max_val:.1f}")
             stats_lines.append(f"  Mean Usability: {df[df['user_type']==user_type]['usability_score'].mean():.1f}")
             stats_lines.append(f"  Mean Learnability: {df[df['user_type']==user_type]['learnability_score'].mean():.1f}")
             stats_lines.append("")
         stats_text = "\n".join(stats_lines)
-        ax4.text(0.05, 0.95, stats_text, transform=ax4.transAxes, fontsize=11,
+        ax4.text(0.05, 0.95, stats_text, transform=ax4.transAxes, fontsize=10,
                  verticalalignment='top', fontfamily='monospace')
         
         plt.tight_layout()

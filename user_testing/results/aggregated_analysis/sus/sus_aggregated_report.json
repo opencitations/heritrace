@@ -17,9 +17,9 @@
       ]
     },
     "technicians": {
-      "count": 4,
-      "mean": 81.25,
-      "std": 9.242113755341181,
+      "count": 5,
+      "mean": 80.5,
+      "std": 8.177713616898062,
       "median": 85.0,
       "min": 67.5,
       "max": 87.5,
@@ -27,7 +27,8 @@
         85.0,
         85.0,
         87.5,
-        67.5
+        67.5,
+        77.5
       ]
     }
   },
@@ -52,30 +53,30 @@
     },
     "technicians": {
       "usability": {
-        "count": 4,
-        "mean": 81.25,
-        "std": 8.462540004829124,
+        "count": 5,
+        "mean": 81.875,
+        "std": 7.460835241445826,
         "median": 84.375,
         "min": 68.75,
         "max": 87.5
       },
       "learnability": {
-        "count": 4,
-        "mean": 81.25,
-        "std": 12.5,
+        "count": 5,
+        "mean": 75.0,
+        "std": 17.67766952966369,
         "median": 87.5,
-        "min": 62.5,
+        "min": 50.0,
         "max": 87.5
       }
     }
   },
   "benchmarking": {
     "participants_below_average": 4,
-    "participants_above_average": 1,
+    "participants_above_average": 2,
     "participants_excellent": 5
   },
   "metadata": {
-    "analysis_date": "2025-10-05T12:58:37.037048",
+    "analysis_date": "2025-10-05T14:14:19.773338",
     "benchmark_thresholds": {
       "below_average": "< 68",
       "above_average": "68-80.3",

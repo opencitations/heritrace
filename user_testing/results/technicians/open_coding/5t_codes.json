@@ -1,0 +1,144 @@
+{
+  "participant_id": "5t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "catalog_browsing_enumeration",
+      "verbatim_quote": "quindi ecco il menu di navigazione è cambiato, ha selezionato il catalogo, new records, direi che è appunto aggiungere un nuovo record, time vault, ok, lo dice anche access and restore deleted entities",
+      "context": "During warm-up exploration, participant systematically enumerates interface elements and interprets their functions",
+      "sentiment": "positive"
+    },
+    {
+      "code": "entity_identifier_recognition",
+      "verbatim_quote": "Quindi lui mi dice che c'è un journal attualmente, ed è questo International Journal of Fruit Science, con questo omid qui, quindi omid è questo omid identificativo",
+      "context": "Participant recognizes and correctly interprets OMID identifier system used in the catalog",
+      "sentiment": "positive"
+    },
+    {
+      "code": "internal_linking_expectation_mismatch",
+      "verbatim_quote": "ah ok, io pensavo che appunto era il link a proprio l'entità in nome di OpenCitation, invece l'apre in HERITRACE",
+      "context": "Participant expected links to external OpenCitations resources but discovered they point to internal HERITRACE entity pages instead",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "external_resource_access_limitation",
+      "verbatim_quote": "Quindi non posso però risalire alla cosa originale, alla Openalex o a DOI a questo punto, e questo sempre HERITRACE, quindi tutti i link a questo punto mi sembra che portino a HERITRACE stesso, non ci sono dei link esterni",
+      "context": "Participant identifies absence of external links to original sources (Openalex, DOI), all navigation remains within HERITRACE",
+      "sentiment": "negative"
+    },
+    {
+      "code": "entity_relationship_navigation_understanding",
+      "verbatim_quote": "quindi sono part of questo, part of quello per esempio, part of questo",
+      "context": "Participant understands and navigates hierarchical entity relationships displayed in the interface",
+      "sentiment": "positive"
+    },
+    {
+      "code": "file_location_immediate_navigation",
+      "verbatim_quote": "Quindi dovrò andare nel file di configurazione immagino di SHACL qua e metterci Abstract",
+      "context": "For Task 1, participant immediately identifies correct configuration file location without exploration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "pattern_replication_strategy",
+      "verbatim_quote": "Se faccio copy di questo così",
+      "context": "Participant adopts copy-paste strategy to replicate existing property pattern for abstract field",
+      "sentiment": "positive"
+    },
+    {
+      "code": "constraint_interpretation_accuracy",
+      "verbatim_quote": "lui mi dice quindi è opzionale praticamente ok va bene",
+      "context": "Participant correctly interprets SHACL minCount 0 as optional field constraint",
+      "sentiment": "positive"
+    },
+    {
+      "code": "UI_field_visibility_verification",
+      "verbatim_quote": "ah non c'è la stellina quindi ok questo era il task va bene",
+      "context": "After SHACL modification, participant verifies abstract field appears in form (no star indicating optional, not required)",
+      "sentiment": "positive"
+    },
+    {
+      "code": "task_requirement_clarification_need",
+      "verbatim_quote": "Ah, perché? Ah, adesso non volevamo metterlo tipo title, forse Ok Input type appropriate for long-term text Think alone, va bene",
+      "context": "Participant experiences momentary confusion about Task 2 requirements before understanding textarea input type is needed for long-form text",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "configuration_file_differentiation",
+      "verbatim_quote": "Ah ok, quindi questo punto non è SHACL.ttl ma direi che è questo",
+      "context": "Participant correctly distinguishes between SHACL validation file and display rules YAML file for Task 2",
+      "sentiment": "positive"
+    },
+    {
+      "code": "yaml_structure_learning_through_inspection",
+      "verbatim_quote": "Ok, aperto qui Rules Display name, journal article Ok, che è quindi quello che stiamo facendo noi Display properties, quindi queste sono le sue proprietà",
+      "context": "Participant reads through YAML structure, verbalizing elements to understand configuration format",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "property_template_identification",
+      "verbatim_quote": "Infatti c'è il type, c'è identifier Vediamo se c'è title, c'è title Ah, eccolo, tipo title e textarea Che è quindi questo",
+      "context": "Participant locates title property with textarea type to use as template for abstract configuration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "copy_paste_modification_workflow",
+      "verbatim_quote": "Quindi io faccio una copia di questo This item abstract Display abstract Should be displayed C, textarea C",
+      "context": "Participant copies title property structure and modifies it for abstract field in YAML display rules",
+      "sentiment": "positive"
+    },
+    {
+      "code": "configuration_property_uncertainty",
+      "verbatim_quote": "Support search Non so cosa sia, ma metto false Anzi ancora Minimum SHACL search, quindi search questo prima Search target, lascio solo questo Vediamo se c'è",
+      "context": "Participant encounters unfamiliar search configuration properties and makes uncertain decisions about values",
+      "sentiment": "negative"
+    },
+    {
+      "code": "application_crash_during_configuration",
+      "verbatim_quote": "Adesso non è più caricata, perché? Ah, è staccato docker. Si è staccato docker Containers",
+      "context": "After YAML modification, application became unresponsive and participant discovered Docker disconnected",
+      "sentiment": "negative"
+    },
+    {
+      "code": "docker_restart_recovery",
+      "verbatim_quote": "New record, abstract Ah, eccola Ok, ho solo riavviato docker, ma comunque adesso va",
+      "context": "Participant resolved application crash by restarting Docker, after which abstract field appeared correctly",
+      "sentiment": "positive"
+    },
+    {
+      "code": "display_order_implicit_mechanism_discovery",
+      "verbatim_quote": "Properties should appear under the title in the display order Quindi adesso appear in effetti under title Ma perché? Ah, perché fisicamente credo che stia proprio under title Quindi non è che devo metterci l'order come proprietà",
+      "context": "Participant deduces that display order is determined by physical position in YAML file rather than explicit order property",
+      "sentiment": "positive"
+    },
+    {
+      "code": "immediate_visual_feedback_value",
+      "verbatim_quote": "Having a direct interface that immediately reflected my changes made it much easier to follow and understand the updates I was applying to the configuration files",
+      "context": "Participant emphasized value of interface providing immediate visual confirmation of configuration changes",
+      "sentiment": "positive"
+    },
+    {
+      "code": "copy_paste_reuse_efficiency",
+      "verbatim_quote": "In many cases, being able to reuse definitions through copy and paste was very helpful. For example, I defined 'Abstract' in the displayRules by following the structure of an already existing rule for 'Title'",
+      "context": "Participant found copy-paste reuse of existing definitions very helpful for configuration tasks",
+      "sentiment": "positive"
+    },
+    {
+      "code": "docker_crash_ambiguity",
+      "verbatim_quote": "At one point, Docker stopped running, but it was difficult to determine whether this was due to a specific configuration mistake I made or simply an issue with my local machine",
+      "context": "Participant unable to determine if Docker crash was caused by configuration error or local machine issue",
+      "sentiment": "negative"
+    },
+    {
+      "code": "technical_background_bias_acknowledgment",
+      "verbatim_quote": "Since I have a somewhat technical background, I may be biased in this evaluation",
+      "context": "Participant acknowledges their technical expertise may bias their assessment of task difficulty",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "UI_driven_configuration_generation_vision",
+      "verbatim_quote": "A non-technical user, however, might prefer a reverse approach — for example, rearranging fields directly in the UI (such as moving Abstract to the second position), which would then automatically generate the corresponding entry in the configuration file",
+      "context": "Participant envisions alternative approach where UI manipulation automatically generates configuration code for non-technical users",
+      "sentiment": "negative"
+    }
+  ]
+}

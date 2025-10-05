@@ -1,0 +1,35 @@
+{
+  "participant_id": "5t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:00:43",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:02:10",
+      "status": "complete",
+      "errors_encountered": 2,
+      "errors": [
+        {
+          "severity": "high",
+          "symptom": "Application became unresponsive after YAML modification: after adding abstract display configuration to display_rules.yaml, the interface stopped responding and user discovered Docker had disconnected. User stated: 'Adesso non è più caricata, perché? Ah, è staccato docker. Si è staccato docker'",
+          "trigger": "Modifying display_rules.yaml to add abstract property configuration and attempting to create new record",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Uncertainty about display order configuration: user initially thought they needed to explicitly set an 'order' property to position abstract below title, but then realized physical position in YAML file determines display order. User stated: 'Properties should appear under the title in the display order. Quindi adesso appear in effetti under title. Ma perché? Ah, perché fisicamente credo che stia proprio under title. Quindi non è che devo metterci l'order come proprietà'",
+          "trigger": "Reading task requirement that abstract should appear under title in display order",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}
