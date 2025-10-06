@@ -1,0 +1,246 @@
+{
+  "participant_id": "7t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "catalog_browsing_enumeration",
+      "verbatim_quote": "andiamo al catalogo. Additional Journal of Food Science. Vedo che c'è un journal, vedo che ci sono cento articoli e già io ho già selezionato journal",
+      "context": "During warm-up exploration, participant navigates to catalog and systematically identifies resource counts and types",
+      "sentiment": "positive"
+    },
+    {
+      "code": "pagination_dynamic_behavior_misunderstanding",
+      "verbatim_quote": "Io qui forse avrei messo un breadcrumb. Ah sì, perché adesso sono cinquanta ma se ne metto tipo diecimila e voglio andare alla pagina due devo fare uno alla volta oppure vado alla prima",
+      "context": "Participant misunderstands pagination system, not recognizing that with only 2 pages it shows minimal controls, but with many pages it would display multiple page buttons for direct navigation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "url_encoding_curiosity",
+      "verbatim_quote": "questo è il suo ed open citations, che è interessante il fatto che non sia stato escaped",
+      "context": "Participant notices that entity URL within page URL is not escaped and finds it technically interesting, expressing curiosity rather than concern",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "dual_button_redundancy_confusion",
+      "verbatim_quote": "Quindi scusami, se io clicco qui cosa faccio? Ah, lento del DOI. E invece, ah ok, la stessa cosa, due bottoni fanno la stessa cosa",
+      "context": "Participant discovers two different buttons perform identical function, causing initial confusion about their purpose",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "authentication_state_uncertainty",
+      "verbatim_quote": "Tanto mi ha loggato, mi sa che a me non mi sono loggato in nessun modo. Forse è una parte dello test, ok",
+      "context": "Participant uncertain about authentication state, noting being logged in without explicit login action",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "title_concatenation_mystery",
+      "verbatim_quote": "Questo è un esempio quindi questo titolo è una concatenazione di string, è tipo la reference, però è da capire come è stata messa una concatenazione di string",
+      "context": "Participant recognizes title field as string concatenation but uncertain about implementation mechanism",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "configured_vs_unconfigured_entities_failure",
+      "verbatim_quote": "journal issue. Devo sapere quali sono, però issue non è tipo issue uno su due dal 2005 per esempio, questi non ok, non riesco a trovare qualcosa se no non capivo effettivamente cosa fosse. Vabbè, journal volume anche questo, anche questo non ci capisco tanto",
+      "context": "Participant fails to distinguish between fully configured entities and those requiring additional configuration work, misinterpreting incomplete entities as semantic confusion",
+      "sentiment": "negative"
+    },
+    {
+      "code": "info_message_delayed_recognition",
+      "verbatim_quote": "ah ok, l'ho visto, non l'avevo visto questo qui azzurrino. Forse l'avrei fatto più, non mi sono accorto fino ad adesso che l'ho già loggato comunque",
+      "context": "Participant notices logged-in info message late in exploration and suggests alternative color, but this is standard info styling for non-critical information",
+      "sentiment": "negative"
+    },
+    {
+      "code": "autocomplete_scope_misunderstanding",
+      "verbatim_quote": "Ah interessante, questo è molto interessante. E parte con 3, sono 5 entities, solo 5 forse perché sì, avrei tipo il limit",
+      "context": "Participant explores autocomplete search functionality but misunderstands that search operates on current database rather than external sources",
+      "sentiment": "negative"
+    },
+    {
+      "code": "date_input_efficiency_appreciation",
+      "verbatim_quote": "Il publication date sì è abbastanza bene. Sto pensando andare più indietro però si fa abbastanza velocemente. 12.0.2, 12.0.24, 12.0.24, si scrive facilmente",
+      "context": "Participant appreciates efficient date input mechanism that allows rapid data entry",
+      "sentiment": "positive"
+    },
+    {
+      "code": "date_format_validation_discovery",
+      "verbatim_quote": "Ah ok, la data è formattata. L'anno, no, interessante perché, ah ok, questo è un piccolo controllino",
+      "context": "Participant discovers date format validation checking mechanism in the form",
+      "sentiment": "positive"
+    },
+    {
+      "code": "identifier_validation_verification",
+      "verbatim_quote": "anche qui l'identificativo con 10, non prefisso slash suffisso, beh sì c'è un controllo, va bene",
+      "context": "Participant verifies identifier validation mechanism correctly checks prefix/suffix format",
+      "sentiment": "positive"
+    },
+    {
+      "code": "inline_entity_creation_navigation",
+      "verbatim_quote": "Ah interessante, quindi se io vado qua vado in un oggetto. Questo ok, in linea, vabbè non lo facciamo, no, keep",
+      "context": "Participant discovers inline entity creation feature that navigates to new object but chooses to keep existing selection",
+      "sentiment": "positive"
+    },
+    {
+      "code": "deletion_cascade_misunderstanding",
+      "verbatim_quote": "ma quindi scusami se io torno qua voglio eliminare un journal article, elimina, sono sicuro, eliminerà la resource, non ti preoccupare a default queste qua, would you like to delete all this? No, yes",
+      "context": "Participant misunderstands cascade deletion dialog, thinking that selecting 'No' would cancel the entire deletion operation, but it only deletes the main resource without related entities",
+      "sentiment": "negative"
+    },
+    {
+      "code": "deletion_verification_through_counting",
+      "verbatim_quote": "Però me l'ha eliminata perché sono 98, quindi se io la provo a contraria sono qui. Ah ok l'ho capito adesso",
+      "context": "Participant verifies successful deletion by checking entity count decreased from 100 to 98",
+      "sentiment": "positive"
+    },
+    {
+      "code": "shacl_first_exposure_ease_assessment",
+      "verbatim_quote": "SHACL, first time I see it but it seems pretty easy",
+      "context": "For Task 1, participant encounters SHACL for first time and assesses syntax as apparently straightforward",
+      "sentiment": "positive"
+    },
+    {
+      "code": "pattern_replication_strategy",
+      "verbatim_quote": "Ok quindi direi che copiamo questo. La property è un path dcterm title, no è un dcterm abstract. Questo è quello che ho copiato",
+      "context": "Participant adopts copy-paste strategy, replicating title property pattern and modifying path to dcterms:abstract",
+      "sentiment": "positive"
+    },
+    {
+      "code": "constraint_interpretation_accuracy",
+      "verbatim_quote": "Allora ok, the constraint to allow a maximum of one abstract, è un minimo zero, so the abstract is optional. Perfetto, minimo zero",
+      "context": "Participant correctly interprets task requirement to set maxCount 1 and minCount 0 for optional abstract field",
+      "sentiment": "positive"
+    },
+    {
+      "code": "template_based_modification_confidence",
+      "verbatim_quote": "Quindi cosa ho fatto io? Ho copiato esattamente come era il title. Dicevo io non conosco SHACL di base ma è un file un title file",
+      "context": "Despite lacking SHACL knowledge, participant expresses confidence using template-based modification approach",
+      "sentiment": "positive"
+    },
+    {
+      "code": "new_record_form_field_appearance_verification",
+      "verbatim_quote": "Io ho creato un nuovo oggetto quindi torniamo indietro, facciamo la prova del 9, non l'ho provato, faccio così. Perfetto, quindi lo rimetto, refresho. All abstract, zero o uno, low world",
+      "context": "Participant creates new record to verify abstract field appears in form with correct cardinality after SHACL modification",
+      "sentiment": "positive"
+    },
+    {
+      "code": "external_configuration_hypothesis",
+      "verbatim_quote": "Però lui non ha un, penso che questo sia una sorta di come posso dire una configurazione esterna allo SHACL file credo, però che sia esterna",
+      "context": "Participant hypothesizes display configuration exists external to SHACL file, anticipating display rules separation",
+      "sentiment": "positive"
+    },
+    {
+      "code": "maxcount_validation_limitation_discovery",
+      "verbatim_quote": "Quindi vuol dire che io posso modificarla, eliminare e quindi ho tolto l'abstract. Ok quindi se faccio così, modifico, aggiungo un abstract e posso aggiungere un altro abstract, non me lo fa fare ma non mi dà errore",
+      "context": "Participant discovers maxCount validation prevents adding second abstract but system provides no error feedback",
+      "sentiment": "negative"
+    },
+    {
+      "code": "shacl_display_rules_conflation",
+      "verbatim_quote": "Allora, noi che cosa dobbiamo fare? Cosa dobbiamo fare? Ok, quindi dobbiamo cambiare display name, non dovrebbe essere una condizione. Properties should appear under the title, non credo che sia una condizione",
+      "context": "Participant initially searches for display configuration options within SHACL documentation, not understanding that display rules are configured in separate display_rules.yaml file rather than SHACL schema",
+      "sentiment": "negative"
+    },
+    {
+      "code": "display_rules_documentation_discovery",
+      "verbatim_quote": "Display rules only, ok. Display rules, questo mi serviva. Ah, ok, file is the heart of R3. Quindi io sto cercando come modificare il display, ok, la presentazione dei dati. Perfetto, perfetto",
+      "context": "Participant successfully locates correct display rules documentation section after multiple attempts",
+      "sentiment": "positive"
+    },
+    {
+      "code": "yaml_structure_learning_through_inspection",
+      "verbatim_quote": "File location, core concept, target entities. Ok, io ho visto che è uno YAML, eccolo qua. Quindi abbiamo un array di rule e poi per ogni rule abbiamo un target",
+      "context": "Participant examines YAML structure, identifying array of rules with targets to understand configuration format",
+      "sentiment": "positive"
+    },
+    {
+      "code": "query_based_display_mechanism_discovery",
+      "verbatim_quote": "Ah, ok, bellissimo. Quindi è qua che si fa la concatenazione, questi sono i dati. Ok, credo che questo sia molto interessante. Quindi questa è la query che fa prendere gli elementi che poi verranno visualizzati",
+      "context": "Participant discovers SPARQL query mechanism that retrieves elements for display, understanding concatenation implementation",
+      "sentiment": "positive"
+    },
+    {
+      "code": "display_property_structure_comprehension",
+      "verbatim_quote": "Ok, display property, property type, property identifier, property title, property display. Perfetto, ho capito",
+      "context": "Participant comprehends display property configuration structure including type, identifier, title, and display elements",
+      "sentiment": "positive"
+    },
+    {
+      "code": "ai_autocomplete_assistance",
+      "verbatim_quote": "Ah, guarda, qui è abstract, qui ho, qui ho Copilot che mi ha detto guarda, qui metti abstract, text area",
+      "context": "Participant receives assistance from GitHub Copilot suggesting abstract property with textarea input type",
+      "sentiment": "positive"
+    },
+    {
+      "code": "minimum_search_character_feature_discovery",
+      "verbatim_quote": "Ah, ok, anche caratteri minimi per fare la ricerca, interessante",
+      "context": "Participant discovers minimum character search configuration feature in display rules",
+      "sentiment": "positive"
+    },
+    {
+      "code": "immediate_visual_feedback_value",
+      "verbatim_quote": "Target self, abbiamo detto che input type è text area. Quindi adesso se io, ok, perfetto. Quindi io se refresho, abstract, perfetto, fantastico, super easy sta cosa",
+      "context": "Participant refreshes interface and immediately sees textarea field appear, expressing satisfaction with instant visual feedback",
+      "sentiment": "positive"
+    },
+    {
+      "code": "property_location_search_difficulty",
+      "verbatim_quote": "Quindi l'abstract qui sotto title, ma probabilmente è qua sotto. Vediamo se riesco a modificare questa cosa qua. Property type, property identifier, property type identifier, no, display property, property title, property abstract",
+      "context": "Participant searches through property configurations attempting to locate correct placement for abstract display ordering",
+      "sentiment": "negative"
+    },
+    {
+      "code": "display_title_concatenation_confusion",
+      "verbatim_quote": "Allora, sto cercando di trovare un modo per mostrare l'abstract subito sotto il titolo. Per fare questo io vorrei capire prima dove trovo il titolo. Che non è questo, should be displayed through display title",
+      "context": "Participant confused distinguishing between concatenated display title and actual title property for positioning",
+      "sentiment": "negative"
+    },
+    {
+      "code": "display_order_implicit_mechanism_discovery",
+      "verbatim_quote": "Ok quindi se io poi riposiziono la property qua sopra subito sotto il title e la uso come text area. Io adesso faccio refresh e l'abstract è qua sotto. Perfetto, quindi non dovevo andarlo a mettere qui",
+      "context": "Participant discovers display order determined by property sequence in YAML file, abstract now appears below title after repositioning",
+      "sentiment": "positive"
+    },
+    {
+      "code": "minimal_documentation_dependency",
+      "verbatim_quote": "I had no need for looking deeply into the documentation. The Warm-up Exploration was enough to get going with the system, and the cofigurations were enough. The editor pages were not required to complete the task. Only for visualization purposes.",
+      "context": "In written reflection, participant states warm-up exploration sufficient to understand system without deep documentation study",
+      "sentiment": "positive"
+    },
+    {
+      "code": "self_explanatory_system_assessment",
+      "verbatim_quote": "I had to look into the documentation only to understand where the display rules where taken from. This means that the system is self-explainatory and easy to configure",
+      "context": "Participant characterizes system as self-explanatory requiring documentation only for display rules file location",
+      "sentiment": "positive"
+    },
+    {
+      "code": "documentation_organization_appreciation",
+      "verbatim_quote": "Also, the documentation seems to be well organized and I was able to easily pin point where things I needed were",
+      "context": "Participant appreciates documentation organization enabling easy location of needed information",
+      "sentiment": "positive"
+    },
+    {
+      "code": "form_route_cleanliness_issues",
+      "verbatim_quote": "I would not say frustatrations, but the forms had a few uncleaned routes (see video)",
+      "context": "Participant identifies technical debt in form routes without characterizing as major frustration",
+      "sentiment": "negative"
+    },
+    {
+      "code": "display_title_positioning_misinterpretation",
+      "verbatim_quote": "Also, I thought I had to add the abstract below the concatenated title (Display title) so I was looking into 'deep' customization of the system that don't seem to be possible",
+      "context": "Participant initially misinterpreted requirement as positioning below concatenated display title, attempting customization beyond system capabilities",
+      "sentiment": "negative"
+    },
+    {
+      "code": "stakeholder_customization_limitation_concern",
+      "verbatim_quote": "This could be a problem if various stakeholders require custom implementation for the editors based on different objectives",
+      "context": "Participant identifies potential limitation if stakeholders need deep editor customization beyond current configuration capabilities",
+      "sentiment": "negative"
+    },
+    {
+      "code": "ui_generation_engine_visibility_desire",
+      "verbatim_quote": "Seeing the engine that takes the ttl and yaml files to build up the UI. I understand that this test was published in 'release mode' with docker, but at least an idea of how this 'system work' (meaning the engine that creates the final HTML file) could have helped me in undestand what couldn't be done",
+      "context": "Participant desires visibility into UI generation engine to understand system capabilities and limitations beyond configuration files",
+      "sentiment": "negative"
+    }
+  ]
+}

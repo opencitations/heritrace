@@ -1,0 +1,42 @@
+{
+  "participant_id": "7t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:01:50",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "User notices absence of validation for empty abstract field but recognizes it as outside task scope",
+          "trigger": "Testing abstract field after implementation and observing that empty values are accepted without validation, user states 'l'abstract è vuoto, non c'è questo controllo. Questo non è il nostro task'",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:05:52",
+      "status": "complete",
+      "errors_encountered": 2,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "User does not immediately understand that display rules require separate configuration file from SHACL",
+          "trigger": "After reading task description about display rules, user searches within SHACL documentation sections attempting to find display configuration, stating 'dobbiamo cambiare display name, non dovrebbe essere una condizione. Properties should appear under the title, non credo che sia una condizione' before discovering separate display_rules.yaml file",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "User confused about how property ordering in YAML file determines display position in UI",
+          "trigger": "Attempting to position abstract field under title with uncertainty about relationship between YAML order and UI display, user states 'sto cercando di trovare un modo per mostrare l'abstract subito sotto il titolo'",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}
