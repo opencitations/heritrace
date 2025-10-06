@@ -32,58 +32,49 @@
     {
       "category": "Successful System Features",
       "relationship_to_core": "Demonstrates that the system's core semantic functionality is sound and provides value once users adapt to the complexity. This category validates that the learning curve leads to genuine capability and encourages development of autonomous problem-solving strategies.",
-      "frequency": 99,
+      "frequency": 98,
       "axial_codes_included": [
-        "Positive interface design elements",
-        "Successful system features"
+        "Successful system features and interface strengths"
       ]
     },
     {
       "category": "Entity Management Complexity Barriers",
-      "relationship_to_core": "Represents the primary complexity navigation challenge that users must overcome. Entity creation uncertainty and form interaction problems constitute the main adoption barriers that separate initial confusion from eventual mastery.",
-      "frequency": 22,
+      "relationship_to_core": "Represents the primary complexity navigation challenge that users must overcome. Entity creation uncertainty constitutes the main adoption barrier that separates initial confusion from eventual mastery, specifically in understanding when and how entities are saved and created.",
+      "frequency": 11,
       "axial_codes_included": [
-        "Entity creation and management confusion",
-        "Form interaction problems"
+        "Entity creation and management confusion"
       ]
     },
     {
-      "category": "Interface Consistency Impact",
-      "relationship_to_core": "Amplifies the complexity navigation challenge by adding unnecessary cognitive load through inconsistent design elements. These issues compound semantic complexity and slow the progression to system mastery.",
-      "frequency": 30,
+      "category": "Interface Design and Usability Problems",
+      "relationship_to_core": "Amplifies the complexity navigation challenge by adding unnecessary cognitive load through inconsistent design elements and form interaction difficulties. These interface problems compound semantic complexity and slow the progression to system mastery.",
+      "frequency": 21,
       "axial_codes_included": [
-        "Interface design problems",
-        "System functionality gaps"
+        "Interface design and interaction problems"
       ]
     },
     {
       "category": "Advanced Feature Learning Curve",
-      "relationship_to_core": "Illustrates the dual-phase pattern where complex features initially confuse users but eventually become valued capabilities. Includes both usability challenges and occasional system bugs that prevent functionality. Shows that semantic system adoption requires patience and proper support for conceptual understanding.",
+      "relationship_to_core": "Illustrates the dual-phase pattern where complex features (timeline, version control, merge operations) initially confuse users but eventually become valued capabilities. Includes both usability challenges and occasional system bugs that prevent functionality. Shows that semantic system adoption requires patience and proper support for conceptual understanding.",
       "frequency": 17,
       "axial_codes_included": [
-        "Timeline and version control challenges",
-        "Timeline feature success",
-        "Merge operations uncertainty"
+        "Timeline and version control experience"
       ]
     },
     {
       "category": "System Comprehension Process",
-      "relationship_to_core": "Captures the neutral observations and learning process that users experience while navigating complexity. Includes workaround development strategies and constructive suggestions for improvement, showing active engagement with system learning and autonomous adaptation.",
+      "relationship_to_core": "Captures the neutral observations and learning process that users experience while navigating complexity. Includes workaround development strategies, constructive suggestions for improvement, and first-time user acknowledgments, showing active engagement with system learning and autonomous adaptation.",
       "frequency": 27,
       "axial_codes_included": [
-        "System understanding and navigation",
-        "First-time user experience",
-        "Improvement suggestions"
+        "System understanding and navigation"
       ]
     },
     {
       "category": "User Expectations vs. System Design Mismatch",
-      "relationship_to_core": "Represents a conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates initial friction as users expect browsing and discovery features in a system designed for targeted entity management and editing. The gap amplifies complexity navigation challenges during the learning phase.",
+      "relationship_to_core": "Represents a conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates initial friction as users expect browsing and discovery features in a system designed for targeted entity management and editing. The gap amplifies complexity navigation challenges during the learning phase, triggering problem-solving strategies and emotional responses.",
       "frequency": 26,
       "axial_codes_included": [
-        "System functionality gaps",
-        "Navigation strategy and problem-solving",
-        "User frustration and emotional response"
+        "System functionality gaps and user adaptation"
       ]
     },
     {
@@ -95,19 +86,11 @@
       ]
     },
     {
-      "category": "Data Entry Quality and Field Clarity",
-      "relationship_to_core": "Demonstrates how unclear field purposes can lead to data entry errors, creating malformed records that compound the complexity navigation challenge. These errors highlight the need for better field clarification through labels, placeholders, or inline help as part of reducing initial adoption barriers.",
-      "frequency": 2,
+      "category": "User Control and Data Entry Quality",
+      "relationship_to_core": "Reveals a specific usability barrier where automated assistance features create friction by reducing user agency or providing insufficient feedback, combined with data entry errors from unclear field purposes. This represents a complexity dimension focusing on the tension between system intelligence and user control, demonstrating that automation and field clarity must be carefully designed to enhance rather than hinder user autonomy during the complexity navigation process.",
+      "frequency": 5,
       "axial_codes_included": [
-        "Data entry errors and field comprehension"
-      ]
-    },
-    {
-      "category": "User Control and Automation Balance",
-      "relationship_to_core": "Reveals a specific usability barrier where automated assistance features create friction by reducing user agency or providing insufficient feedback. This represents a complexity dimension distinct from interface consistency or entity management, focusing specifically on the tension between system intelligence and user control. The category demonstrates that automation must be carefully designed to enhance rather than hinder user autonomy during the complexity navigation process.",
-      "frequency": 3,
-      "axial_codes_included": [
-        "Autocomplete control and reordering feedback"
+        "User control and data entry challenges"
       ]
     }
   ]

@@ -32,12 +32,11 @@
     {
       "category": "Technical competence and domain expertise foundation",
       "relationship_to_core": "This category establishes the foundational expertise that enables the pattern-based learning and semantic reasoning at the core of technician success. The intuitive navigation, semantic reasoning capabilities, and successful verification demonstrate that technicians possess the prerequisite knowledge to work effectively with the system's configuration paradigm. Documentation effectiveness confirms that well-designed learning resources support this expertise development, even for technicians without prior SHACL knowledge.",
-      "frequency": 47,
+      "frequency": 45,
       "axial_codes_included": [
         "Intuitive interface exploration and navigation",
         "Semantic and technical reasoning",
         "Successful implementation and verification",
-        "Provenance and version control value",
         "Documentation and learning resource effectiveness"
       ]
     },
@@ -52,11 +51,11 @@
     },
     {
       "category": "System design affordances enabling expert workflows",
-      "relationship_to_core": "This category explains how specific system design decisions support the core pattern-based learning approach. Immediate visual feedback and feature completeness provide the rapid validation loops and adequate functionality that technicians need to work efficiently. These affordances reduce the cost of experimentation and confirm that configuration changes achieve intended effects.",
-      "frequency": 7,
+      "relationship_to_core": "This category explains how specific system design decisions support the core pattern-based learning approach. Immediate visual feedback provides the rapid validation loops that technicians need to work efficiently, while positive feature experiences demonstrate appreciation for well-designed functionality. These affordances reduce the cost of experimentation and confirm that configuration changes achieve intended effects.",
+      "frequency": 12,
       "axial_codes_included": [
         "Immediate visual feedback appreciation",
-        "Feature completeness satisfaction"
+        "Positive feature experiences and interface design appreciation"
       ]
     },
     {
@@ -83,11 +82,10 @@
     },
     {
       "category": "Constructive enhancement suggestions from expert perspective",
-      "relationship_to_core": "This category represents technicians' forward-looking suggestions based on their experience with the system. The suggestions for contextual guidance and missing features bridge the gap between the current file-based configuration paradigm and more discoverable approaches, reflecting technicians' understanding of both the system's current architecture and potential improvements that would benefit users with varying expertise levels. Identified gaps include retrospective validation, contextual UI help, visual SHACL editors, validation tooling, search functionality clarity, and specific error messaging.",
+      "relationship_to_core": "This category represents technicians' forward-looking suggestions based on their experience with the system. The suggestions for missing features and contextual guidance bridge the gap between the current file-based configuration paradigm and more discoverable approaches, reflecting technicians' understanding of both the system's current architecture and potential improvements that would benefit users with varying expertise levels. Identified gaps include retrospective validation, contextual UI help, visual SHACL editors, validation tooling, search functionality clarity, and specific error messaging.",
       "frequency": 11,
       "axial_codes_included": [
-        "Suggested improvements for contextual guidance",
-        "Missing feature identification"
+        "Missing feature identification and enhancement suggestions"
       ]
     },
     {
@@ -112,14 +110,6 @@
       "frequency": 12,
       "axial_codes_included": [
         "Feature expectations and mental models"
-      ]
-    },
-    {
-      "category": "Positive interface and workflow experiences",
-      "relationship_to_core": "This category captures specific design strengths that resonate strongly with technical users and support their configuration work. Appreciation for editing workflow efficiency, time machine functionality, and minimalist interface design demonstrates that certain system features successfully meet technical user needs and expectations. These positive experiences coexist with configuration challenges, showing that user-facing interface quality remains high even when underlying configuration requires technical expertise.",
-      "frequency": 3,
-      "axial_codes_included": [
-        "Positive interface and workflow experiences"
       ]
     }
   ]
