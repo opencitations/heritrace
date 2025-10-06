@@ -1,0 +1,264 @@
+{
+  "participant_id": "6t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "landing_page_aesthetic_appreciation",
+      "verbatim_quote": "La landing page a mio avviso è molto carina, sembra molto ben curata",
+      "context": "First impression of interface emphasizes visual design quality and polish",
+      "sentiment": "positive"
+    },
+    {
+      "code": "dual_button_destination_hypothesis",
+      "verbatim_quote": "Sospetto che questi due bottoni mi portino alla stessa destinazione",
+      "context": "Participant hypothesizes that multiple interface buttons lead to same destination before testing hypothesis",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "catalog_statistics_verification",
+      "verbatim_quote": "Infatti, ecco qui, cento journal articles, tutti afferenti a una sola rivista, divisa in cinque volumi e quindici issue",
+      "context": "Participant verifies interface statistics match documentation description of catalog composition",
+      "sentiment": "positive"
+    },
+    {
+      "code": "interface_essentialism_assessment",
+      "verbatim_quote": "diciamo che noto subito che il sistema è molto essenziale, nel senso tutte le informazioni importanti sono ben visibili",
+      "context": "Participant characterizes interface as minimalist with clear information hierarchy",
+      "sentiment": "positive"
+    },
+    {
+      "code": "modification_action_available_but_deferred",
+      "verbatim_quote": "vedo la possibilità di modificare una risorsa, cosa che adesso mi astengo dal fare, e anche di cancellarla. Allo stesso modo non lo farò",
+      "context": "Participant identifies modification and deletion actions but deliberately avoids executing them during exploration",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "entity_metadata_systematic_enumeration",
+      "verbatim_quote": "Abbiamo il tipo della risorsa, l'identifier della risorsa, in questo caso ne abbiamo due, il titolo, che è questo. Questi sono gli autori e l'anno di pubblicazione",
+      "context": "Participant systematically enumerates all metadata fields displayed on entity page",
+      "sentiment": "positive"
+    },
+    {
+      "code": "validation_icon_inconsistency_observation",
+      "verbatim_quote": "Prima non c'erano questi punti interrogativi che ci vanno a dire che questa proprietà ha un mandato validato and cannot be modified. Ora li controllo dopo",
+      "context": "Participant notices validation icons appear on some entity pages but not others, noting inconsistency for later investigation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "new_record_function_hypothesis_verification",
+      "verbatim_quote": "Andiamo a esplorare New Record che credo molto essenzialmente ci permette di inserire e creare una nuova risorsa",
+      "context": "Participant hypothesizes New Record function before verifying hypothesis through exploration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "time_vault_metaphor_interpretation",
+      "verbatim_quote": "Ah, ok, il Time Vault è una sorta di cestino, immagino. Cestino temporaneo, nel senso in cui credo vadano le risorse cancellate ma immagino si possano ripristinare",
+      "context": "Participant interprets Time Vault metaphor as temporary trash with restoration capability",
+      "sentiment": "positive"
+    },
+    {
+      "code": "destructive_action_avoidance",
+      "verbatim_quote": "Non vorrei testare questa cosa perché essenzialmente ho paura di combinare qualche disastro. Magari lo lascio a più tardi",
+      "context": "Participant avoids testing deletion functionality due to fear of causing problems in system",
+      "sentiment": "negative"
+    },
+    {
+      "code": "task_summary_comprehension_articulation",
+      "verbatim_quote": "il mio compito è quello di modificare il file SHACL, immagino, quindi shacl.ttl dentro config, per includere la proprietà abstract per quanto riguarda il journal article e di permettere un massimo di 1 e un minimo di 0 abstract, essendo questo opzionale",
+      "context": "After reading Task 1 description, participant articulates complete understanding of requirements including file location, property name, and cardinality constraints",
+      "sentiment": "positive"
+    },
+    {
+      "code": "shacl_shape_structure_navigation",
+      "verbatim_quote": "Questo è lo schema per journal article shape, quindi tutto ciò che riguarda il journal article, l'identifier shape, agent shape, author shape, journal shape, quindi direi di andare su journal article shape",
+      "context": "Participant reads through SHACL file structure, correctly identifying journal article shape as target location for modification",
+      "sentiment": "positive"
+    },
+    {
+      "code": "novice_self_disclosure_with_task_engagement",
+      "verbatim_quote": "Dunque, io ripeto, non sono un esperto di SHACL, è la prima volta che vado a lavorare con questo tipo di informazioni",
+      "context": "Participant explicitly states SHACL novice status while proceeding with configuration task",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "property_path_interpretation",
+      "verbatim_quote": "Il path di questa property, che se ricordo bene, è indicante di ciò che deve andare a definire, è dcterms:abstract, come indicato dal task stesso",
+      "context": "Participant correctly interprets sh:path as property definition mechanism and applies dcterms:abstract from task requirements",
+      "sentiment": "positive"
+    },
+    {
+      "code": "cardinality_pattern_reuse",
+      "verbatim_quote": "dovevamo permettere massimo 1 e minimo 0 di abstract, quindi andiamo a vedere se c'è qualche... Ah, vedi, perfetto, esattamente questo. Io direi che possiamo serenamente copiare e incollare",
+      "context": "Participant locates existing property with identical cardinality constraints and adopts copy-paste reuse strategy",
+      "sentiment": "positive"
+    },
+    {
+      "code": "datatype_constraint_unprompted_addition",
+      "verbatim_quote": "L'unico dubbio che mi sta avvenendo è il tipo di informazione, o meglio, l'utente che poi andrà a inserire un abstract deve essere, secondo me, in qualche modo obbligato, tra virgolette, a inserire un testo, perché comunque l'abstract è fatto di testo",
+      "context": "Participant independently identifies need for string datatype constraint beyond stated requirements to ensure text input",
+      "sentiment": "positive"
+    },
+    {
+      "code": "new_record_form_field_appearance_verification",
+      "verbatim_quote": "Magari nel new record, nella sezione del new record, adesso possiamo aggiungere un abstract. Esatto, adesso possiamo aggiungere un abstract",
+      "context": "Participant verifies abstract field appears in new record form after SHACL modification",
+      "sentiment": "positive"
+    },
+    {
+      "code": "task_completion_ease_surprise",
+      "verbatim_quote": "È stato più facile del previsto. Fortunatamente non è stato il caso questo in cui l'applicazione si è rotta. Fortunatamente. Beh, è stato molto più veloce del previsto",
+      "context": "Participant expresses surprise at ease and speed of successful Task 1 completion, noting absence of application errors",
+      "sentiment": "positive"
+    },
+    {
+      "code": "display_rules_file_identification",
+      "verbatim_quote": "Ok, dobbiamo creare una property display col nome abstract. Dal momento che i file da modificare erano due e uno abbiamo fatto, direi che il prossimo è display rules",
+      "context": "Participant uses deduction to identify display rules file as second configuration target after SHACL",
+      "sentiment": "positive"
+    },
+    {
+      "code": "reference_property_search_strategy",
+      "verbatim_quote": "Una buona cosa è trovare la property display di title, in quanto, tornando qui, dobbiamo metterla sotto, giusto? Under the title in the display order",
+      "context": "Participant searches for title property as reference point but this reflects fundamental misunderstanding - was looking in journal section instead of fabio:JournalArticle section",
+      "sentiment": "negative"
+    },
+    {
+      "code": "property_location_alternative_hypothesis",
+      "verbatim_quote": "Io sospetto anche a questo punto che l'add abstract non andrebbe effettivamente qui, ma qui. Ed avrebbe anche senso",
+      "context": "Participant generates hypothesis that abstract property belongs in different section of YAML file, beginning to suspect the journal vs fabio:JournalArticle placement error",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "capitalization_typo_discovery_embarrassment",
+      "verbatim_quote": "Ah, aspetta. Io ho messo T maiuscola. Sono veramente imbarazzato. Cioè, imbarazzato",
+      "context": "Participant discovers dcterms:Abstract has capital A instead of lowercase a, expressing strong embarrassment at typo",
+      "sentiment": "negative"
+    },
+    {
+      "code": "critical_location_error_discovery",
+      "verbatim_quote": "E... mentre scorrevo qui velocemente, ho notato che... si è sbagliato una scemenza. Forse andrà messo qui. E io sto combattendo contro i mulini a vento perché stavo sbagliando... alla base",
+      "context": "During restart, participant discovers abstract property was placed in journal section instead of fabio:JournalArticle section - the critical fundamental error that caused all subsequent configuration attempts to fail",
+      "sentiment": "positive"
+    },
+    {
+      "code": "immediate_problem_resolution",
+      "verbatim_quote": "Vediamo, una volta che si è reinizializzato... salviamo intanto il file. Così dovrebbe... dovrebbe averlo... Per... Heritrace. Ah, innanzitutto... Oh! Risolto",
+      "context": "After moving abstract property from journal section to fabio:JournalArticle section and restarting, problem immediately resolves",
+      "sentiment": "positive"
+    },
+    {
+      "code": "viewer_apology_for_errors",
+      "verbatim_quote": "Scusate. Io chiedo scusa a chi guarderà questo video che con impazienza noterà i miei errori ma sono... purtroppo... sono stati fatti",
+      "context": "Participant apologizes to future video viewers for errors made during session",
+      "sentiment": "negative"
+    },
+    {
+      "code": "input_field_improvement_satisfaction",
+      "verbatim_quote": "Beh, adesso direi che è sicuramente molto più ben fatto",
+      "context": "Participant expresses satisfaction with improved textarea input field after correct configuration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "time_vault_modification_trigger",
+      "verbatim_quote": "E... sto cliccando su Time Machine perché prima non c'era e chiaro... probabilmente è per via del fatto che ho cambiato il... l'abstract che ho aggiunto prima",
+      "context": "Participant notices previous abstract modification now appears in Time Vault due to changes made",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "display_order_verification",
+      "verbatim_quote": "Molto interessante il fatto che ha... io però adesso per... perché non mi fa più vedere? Ah, certo, perché è sotto title. Effettivamente adesso è nell'ordine corretto",
+      "context": "Participant verifies abstract now appears below title in correct display order as required",
+      "sentiment": "positive"
+    },
+    {
+      "code": "saved_abstract_display_verification",
+      "verbatim_quote": "Io adesso però per... pura... curiosità voglio vedere se effettivamente l'abstract adesso viene visualizzato bene. Intanto è l'abstract effettivamente dell'articolo salviamo i cambiamenti, confermiamo. Perfetto. Oh, adesso è tutto come dovrebbe essere",
+      "context": "Participant saves article with abstract in proper textarea field and confirms it displays correctly in entity view",
+      "sentiment": "positive"
+    },
+    {
+      "code": "satisfaction_with_embarrassment",
+      "verbatim_quote": "Sono molto soddisfatto e allo stesso tempo imbarazzato degli errori che ho commesso",
+      "context": "Participant expresses mixed emotions of satisfaction at successful completion alongside embarrassment about errors made",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "system_error_feedback_helpfulness",
+      "verbatim_quote": "nonostante i miei errori... di distrazione estrema... in quanto veramente... sciocchi il sistema mi ha effettivamente indirizzato, aiutato a capire che qualcosa non andava e quindi non ho avuto difficoltà nel rendermene conto",
+      "context": "In written reflection, participant credits system feedback for helping identify errors despite making careless mistakes",
+      "sentiment": "positive"
+    },
+    {
+      "code": "domain_appropriate_system_assessment",
+      "verbatim_quote": "è comunque un sistema che... è molto ben fatto e per chi si occupa di... di queste questioni... secondo me è l'ideale. Io lo userei. Lo userei molto spesso",
+      "context": "Participant assesses system as ideal for target user domain and expresses willingness to use frequently",
+      "sentiment": "positive"
+    },
+    {
+      "code": "complexity_disagreement_despite_errors",
+      "verbatim_quote": "sì, ho commesso degli errori. Ci ho messo più tempo di quello che probabilmente sarebbe stato necessario, però... mi sembra che il sistema sia stato molto... smooth, molto liscio, molto... benevolo nei miei confronti. Mi ha... mi ha punito, mi ha aiutato a capire gli errori. Non l'ho trovato complesso",
+      "context": "Despite making errors and taking extra time, participant disagrees with characterizing system as complex, emphasizing smooth experience and helpful error guidance",
+      "sentiment": "positive"
+    },
+    {
+      "code": "windows_user_simplicity_assessment",
+      "verbatim_quote": "Voglio dire, almeno per un utente Windows... questo test si trattava di cliccare due volte su Start e... modificare due file in una maniera piuttosto semplice",
+      "context": "Participant characterizes entire configuration process as simple for Windows users: two clicks and two file modifications",
+      "sentiment": "positive"
+    },
+    {
+      "code": "personal_knowledge_limitation_attribution",
+      "verbatim_quote": "Metterò quattro, ma per il semplice fatto che... è una mia questione personale. Non l'ho trovato semplicissimo da usare, ma per mia, diciamo, ignoranza di alcune... frange del mondo IT",
+      "context": "Participant rates ease of use as 4 instead of 5, attributing difficulty to personal knowledge gaps in IT domains rather than system design",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "user_autonomy_with_curiosity_prerequisite",
+      "verbatim_quote": "Penso che sia una questione anche di... curiosità personale. Penso sia un sistema che ti permetta di essere... autonomo e autosufficiente, se... a patto che, insomma... l'utente in questione abbia la curiosità e la... la voglia di capirlo, impararlo",
+      "context": "Participant believes system enables user autonomy conditional on user possessing curiosity and motivation to understand and learn it",
+      "sentiment": "positive"
+    },
+    {
+      "code": "feature_integration_completeness",
+      "verbatim_quote": "Sì, le trovo molto bene integrate, mi sembra che ci sia tutto necessario",
+      "context": "Participant assesses system features as well-integrated and complete with all necessary components",
+      "sentiment": "positive"
+    },
+    {
+      "code": "real_time_visualization_support_value",
+      "verbatim_quote": "La visualizzazione in tempo reale di ciò che stavo modificando mi ha permesso di intuire, nel modificare i file shacl e delle display rules, immediatamente cosa andasse fatto e, meno immediatamente, come",
+      "context": "In written reflection, participant emphasizes value of real-time visualization showing immediate effect of configuration changes, aiding understanding of what and how to configure",
+      "sentiment": "positive"
+    },
+    {
+      "code": "version_restoration_hypothesis_testing_enablement",
+      "verbatim_quote": "La possibilità di ripristinare la versione precedente di una risorsa, da me modificata per comprendere fino a che punto le modifiche delle display rules fossero state efficienti, mi ha permesso di testare quanto volessi le mie ipotesi nelle modifiche",
+      "context": "Participant leveraged entity version restoration feature to safely test configuration change hypotheses without permanent consequences",
+      "sentiment": "positive"
+    },
+    {
+      "code": "edit_mode_exploration_facilitation",
+      "verbatim_quote": "La semplice possibilità di aggiunta nella modalità edit dei file mi ha allo stesso modo permesso di esplorare le possibili soluzioni che stavo testando per i task",
+      "context": "Participant valued ability to add properties in edit mode as mechanism for exploring potential configuration solutions",
+      "sentiment": "positive"
+    },
+    {
+      "code": "personal_knowledge_gap_as_primary_frustration",
+      "verbatim_quote": "Le più grandi frustrazioni derivavano da mia ignoranza personale nei confronti delle conoscenze necessarie per adempiere efficientemente ai task richiesti per il test tecnico di Heritrace",
+      "context": "Participant attributes primary frustration to personal knowledge gaps rather than system design issues",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "minimal_knowledge_task_completion_enablement",
+      "verbatim_quote": "Ad ogni modo il sistema mi ha comunque permesso di svolgere i task con una conoscenza piuttosto basilare",
+      "context": "Despite knowledge gaps, participant successfully completed tasks with only basic domain knowledge, crediting system design",
+      "sentiment": "positive"
+    },
+    {
+      "code": "no_additional_features_needed",
+      "verbatim_quote": "Non ho nessun suggerimento al riguardo in quanto ritengo che tutto ciò che fosse necessario per l'adempimento di questi task fosse già presente nelle risorse condivise",
+      "context": "Participant provides no suggestions for additional features, stating all necessary resources were already present",
+      "sentiment": "positive"
+    }
+  ]
+}

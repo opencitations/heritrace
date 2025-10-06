@@ -47,15 +47,31 @@
         {
           "participant_id": "5t",
           "code": "technical_background_bias_acknowledgment"
+        },
+        {
+          "participant_id": "6t",
+          "code": "novice_self_disclosure_with_task_engagement"
+        },
+        {
+          "participant_id": "6t",
+          "code": "personal_knowledge_limitation_attribution"
+        },
+        {
+          "participant_id": "6t",
+          "code": "personal_knowledge_gap_as_primary_frustration"
+        },
+        {
+          "participant_id": "6t",
+          "code": "minimal_knowledge_task_completion_enablement"
         }
       ],
-      "category_description": "Technicians provided extensive reflection on the accessibility barriers inherent in the configuration process. While acknowledging YAML is relatively accessible compared to Turtle/SHACL, configuration remains highly technical activity requiring significant prerequisite knowledge including Docker deployment, semantic web concepts, and SHACL itself. The dual learning burden of understanding both underlying technologies and software-specific behavior creates substantial barriers. Most fundamentally, participants identified computational thinking mindset - the iterative, experimental approach of modifying and testing - as a core challenge more critical than specific technology knowledge. This trial-and-error process without extensive system feedback may frustrate non-technical users who lack the mindset that technical users find enjoyable. Participants demonstrated awareness that their technical expertise enables logical leaps and intuitive understanding that would not be accessible to non-experts, distinguishing between their own successful experience and the likely struggles of non-technical users.",
+      "category_description": "Technicians provided extensive reflection on the accessibility barriers inherent in the configuration process. While acknowledging YAML is relatively accessible compared to Turtle/SHACL, configuration remains highly technical activity requiring significant prerequisite knowledge including Docker deployment, semantic web concepts, and SHACL itself. The dual learning burden of understanding both underlying technologies and software-specific behavior creates substantial barriers. Most fundamentally, participants identified computational thinking mindset - the iterative, experimental approach of modifying and testing - as a core challenge more critical than specific technology knowledge. This trial-and-error process without extensive system feedback may frustrate non-technical users who lack the mindset that technical users find enjoyable. Participants demonstrated awareness that their technical expertise enables logical leaps and intuitive understanding that would not be accessible to non-experts, distinguishing between their own successful experience and the likely struggles of non-technical users. One participant explicitly disclosed novice status with SHACL while proceeding with configuration, attributing difficulty to personal knowledge gaps rather than system design, yet successfully completed tasks with basic knowledge. This demonstrates that while knowledge barriers exist, the system enables task completion even for users with limited domain expertise.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "negative",
-      "frequency": "11"
+      "frequency": "15"
     },
     {
       "category_name": "Configuration file documentation gaps",
@@ -147,6 +163,14 @@
         {
           "participant_id": "5t",
           "code": "copy_paste_reuse_efficiency"
+        },
+        {
+          "participant_id": "6t",
+          "code": "cardinality_pattern_reuse"
+        },
+        {
+          "participant_id": "6t",
+          "code": "property_path_interpretation"
         }
       ],
       "category_description": "Technicians consistently adopted a pattern-based approach to configuration tasks, copying existing SHACL and YAML structures and modifying them rather than creating from scratch. This strategy involved identifying similar existing properties, understanding their structure through inspection, and adapting them to new requirements. Participants began by exploring file structure to locate relevant definitions, then used existing properties as templates. The approach proved effective for both SHACL validation and display rule configuration, suggesting the configuration files have sufficient internal consistency to support learning by example.",
@@ -155,7 +179,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "16"
+      "frequency": "18"
     },
     {
       "category_name": "Delayed understanding of file-based configuration paradigm",
@@ -211,15 +235,19 @@
         {
           "participant_id": "3t",
           "code": "documentation_clarity_for_beginners"
+        },
+        {
+          "participant_id": "6t",
+          "code": "system_error_feedback_helpfulness"
         }
       ],
-      "category_description": "One technician, despite having no prior SHACL knowledge, found the external documentation clear and beginner-friendly. The instructions for basic operations like adding properties, setting constraints, and modifying display rules were well explained. Additionally, inline documentation and examples within configuration files served as helpful references during editing tasks, supporting the pattern-based learning approach. This positive feedback indicates that the documentation successfully supports novice technical users in understanding core configuration concepts.",
+      "category_description": "Technicians found the documentation and system feedback effective for supporting configuration tasks. One technician, despite having no prior SHACL knowledge, found the external documentation clear and beginner-friendly. The instructions for basic operations like adding properties, setting constraints, and modifying display rules were well explained. Additionally, inline documentation and examples within configuration files served as helpful references during editing tasks, supporting the pattern-based learning approach. Another participant credited system feedback for helping identify configuration errors despite making careless mistakes. This positive feedback indicates that the documentation and error messages successfully support novice technical users in understanding core configuration concepts.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "2"
+      "frequency": "3"
     },
     {
       "category_name": "Feature expectations and mental models",
@@ -271,16 +299,32 @@
         {
           "participant_id": "5t",
           "code": "internal_linking_expectation_mismatch"
+        },
+        {
+          "participant_id": "6t",
+          "code": "dual_button_destination_hypothesis"
+        },
+        {
+          "participant_id": "6t",
+          "code": "new_record_function_hypothesis_verification"
+        },
+        {
+          "participant_id": "6t",
+          "code": "time_vault_metaphor_interpretation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "property_location_alternative_hypothesis"
         }
       ],
-      "category_description": "Technicians demonstrated sophisticated understanding of the system while forming expectations and mental models about features and behavior. They questioned whether provenance tracking handles orphaned entities when referenced resources are deleted, showing awareness of complex relationship implications. They expected textarea input widgets for long-form content like abstracts rather than single-line text fields. From examining YAML configuration, they developed mental models of search functionality involving property-level search configuration and autocomplete after minimum character thresholds, but remained uncertain whether this feature was implemented or merely planned. Participants expressed interest in class-level configuration tasks as potentially more challenging than property-level tasks tested, noting necessity for catalog expansion beyond journal articles to datasets and other types. They successfully navigated to configuration file locations, demonstrating growing familiarity with file structure. One participant expected links to external OpenCitations resources but discovered they point to internal HERITRACE entity pages instead. These observations reveal how technical users form expectations and mental models through system exploration and configuration file inspection.",
+      "category_description": "Technicians demonstrated sophisticated understanding of the system while forming expectations and mental models about features and behavior. They questioned whether provenance tracking handles orphaned entities when referenced resources are deleted, showing awareness of complex relationship implications. They expected textarea input widgets for long-form content like abstracts rather than single-line text fields. From examining YAML configuration, they developed mental models of search functionality involving property-level search configuration and autocomplete after minimum character thresholds, but remained uncertain whether this feature was implemented or merely planned. Participants expressed interest in class-level configuration tasks as potentially more challenging than property-level tasks tested, noting necessity for catalog expansion beyond journal articles to datasets and other types. They successfully navigated to configuration file locations, demonstrating growing familiarity with file structure. One participant expected links to external OpenCitations resources but discovered they point to internal HERITRACE entity pages instead. During exploration, participants formed and tested hypotheses about interface behavior, such as whether multiple buttons lead to the same destination, what functions features like New Record provide, and how the Time Vault metaphor maps to trash functionality with restoration capability. These observations reveal how technical users form expectations and mental models through system exploration and configuration file inspection.",
       "task_contexts": [
         "warm_up_exploration",
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "neutral",
-      "frequency": "12"
+      "frequency": "16"
     },
     {
       "category_name": "Immediate visual feedback appreciation",
@@ -304,15 +348,23 @@
         {
           "participant_id": "5t",
           "code": "immediate_visual_feedback_value"
+        },
+        {
+          "participant_id": "6t",
+          "code": "real_time_visualization_support_value"
+        },
+        {
+          "participant_id": "6t",
+          "code": "new_record_form_field_appearance_verification"
         }
       ],
-      "category_description": "Technicians highly valued the immediate visual feedback when making configuration changes. The ability to see results in the UI immediately after modifying configuration files provided confirmation that changes were applied correctly and met requirements. The automatic backend hot-reloading of SHACL files, despite requiring manual frontend refresh, was particularly appreciated for accelerating the iterative trial-and-error process. Visual feedback served as essential validation that intended implementations were achieved.",
+      "category_description": "Technicians highly valued the immediate visual feedback when making configuration changes. The ability to see results in the UI immediately after modifying configuration files provided confirmation that changes were applied correctly and met requirements. The automatic backend hot-reloading of SHACL files, despite requiring manual frontend refresh, was particularly appreciated for accelerating the iterative trial-and-error process. Visual feedback served as essential validation that intended implementations were achieved. One participant emphasized that real-time visualization showing immediate effects of configuration changes aided understanding of both what needed to be configured and how to configure it, verifying that new fields appeared correctly in forms after modifications.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "5"
+      "frequency": "7"
     },
     {
       "category_name": "Interface change detection failures",
@@ -412,14 +464,38 @@
         {
           "participant_id": "5t",
           "code": "entity_relationship_navigation_understanding"
+        },
+        {
+          "participant_id": "6t",
+          "code": "landing_page_aesthetic_appreciation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "catalog_statistics_verification"
+        },
+        {
+          "participant_id": "6t",
+          "code": "interface_essentialism_assessment"
+        },
+        {
+          "participant_id": "6t",
+          "code": "modification_action_available_but_deferred"
+        },
+        {
+          "participant_id": "6t",
+          "code": "entity_metadata_systematic_enumeration"
+        },
+        {
+          "participant_id": "6t",
+          "code": "destructive_action_avoidance"
         }
       ],
-      "category_description": "Technicians demonstrated the ability to quickly understand and navigate the HERITRACE interface through exploration. All participants successfully grasped the purpose of navigation menu items, resource organization, and specialized features. They systematically enumerated collection categories, verified edit functionality, made logical inferences about interface behavior, tested provenance features, and understood entity identifier systems and hierarchical relationships. This category reveals that the interface provides sufficient visual and organizational cues for technical users to orient themselves without requiring extensive documentation or training.",
+      "category_description": "Technicians demonstrated the ability to quickly understand and navigate the HERITRACE interface through exploration. All participants successfully grasped the purpose of navigation menu items, resource organization, and specialized features. They systematically enumerated collection categories, verified edit functionality, made logical inferences about interface behavior, tested provenance features, and understood entity identifier systems and hierarchical relationships. Participants appreciated the visual design quality and characterized the interface as minimalist with clear information hierarchy where important information is visible. They identified available modification and deletion actions but deliberately deferred testing destructive operations during exploration. This category reveals that the interface provides sufficient visual and organizational cues for technical users to orient themselves without requiring extensive documentation or training.",
       "task_contexts": [
         "warm_up_exploration"
       ],
       "overall_sentiment": "positive",
-      "frequency": "19"
+      "frequency": "25"
     },
     {
       "category_name": "Iterative testing and validation approach",
@@ -439,15 +515,23 @@
         {
           "participant_id": "4t",
           "code": "self_verification_through_enumeration"
+        },
+        {
+          "participant_id": "6t",
+          "code": "version_restoration_hypothesis_testing_enablement"
+        },
+        {
+          "participant_id": "6t",
+          "code": "edit_mode_exploration_facilitation"
         }
       ],
-      "category_description": "Technicians adopted an iterative approach to configuration tasks, making changes, saving, and testing to verify results. They systematically reviewed configuration components to ensure completeness, understood requirements through examples, and checked prior configuration work before proceeding. This trial-and-error methodology proved effective for configuration tasks and reflects a pragmatic problem-solving style where technicians prefer to test and observe rather than exhaustively plan before implementation.",
+      "category_description": "Technicians adopted an iterative approach to configuration tasks, making changes, saving, and testing to verify results. They systematically reviewed configuration components to ensure completeness, understood requirements through examples, and checked prior configuration work before proceeding. Participants leveraged entity version restoration to safely test configuration change hypotheses without permanent consequences, and valued the ability to add properties in edit mode as a mechanism for exploring potential configuration solutions. This trial-and-error methodology proved effective for configuration tasks and reflects a pragmatic problem-solving style where technicians prefer to test and observe rather than exhaustively plan before implementation.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "neutral",
-      "frequency": "4"
+      "frequency": "6"
     },
     {
       "category_name": "Minor UI presentation inconsistencies",
@@ -463,15 +547,20 @@
         {
           "participant_id": "4t",
           "code": "dual_navigation_link_redundancy"
+        },
+        {
+          "participant_id": "6t",
+          "code": "validation_icon_inconsistency_observation"
         }
       ],
-      "category_description": "Technicians noticed minor UI presentation issues such as unexpected field rendering, capitalization inconsistencies, and redundant navigation paths where both value links and buttons perform the same action. While these issues were observed and sometimes mentioned, they did not prevent task completion and were typically deprioritized or considered unimportant. This suggests these are low-severity polish issues rather than critical usability problems.",
+      "category_description": "Technicians noticed minor UI presentation issues such as unexpected field rendering, capitalization inconsistencies, redundant navigation paths where both value links and buttons perform the same action, and inconsistent appearance of validation icons across different entity pages. While these issues were observed and sometimes mentioned, they did not prevent task completion and were typically deprioritized or considered unimportant. This suggests these are low-severity polish issues rather than critical usability problems.",
       "task_contexts": [
         "add_shacl_validation",
-        "add_display_support"
+        "add_display_support",
+        "warm_up_exploration"
       ],
       "overall_sentiment": "negative",
-      "frequency": "3"
+      "frequency": "4"
     },
     {
       "category_name": "Missing feature identification and enhancement suggestions",
@@ -519,16 +608,20 @@
         {
           "participant_id": "5t",
           "code": "external_resource_access_limitation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "no_additional_features_needed"
         }
       ],
-      "category_description": "Codes representing technicians' identification of system gaps and proactive enhancement suggestions, including both missing features discovered through task friction (namespace management tools, SHACL editor, validation documentation, configuration examples, property discovery mechanisms, UI improvement needs) and proactive suggestions for contextual guidance enhancements (UI hints for optional parameters, contextual tooltips). This category demonstrates technical users' analytical approach to identifying both reactive gaps and proactive improvements based on their expertise.",
+      "category_description": "Codes representing technicians' identification of system gaps and proactive enhancement suggestions, including both missing features discovered through task friction (namespace management tools, SHACL editor, validation documentation, configuration examples, property discovery mechanisms, UI improvement needs) and proactive suggestions for contextual guidance enhancements (UI hints for optional parameters, contextual tooltips). One participant provided no suggestions for additional features, stating all necessary resources were already present. This category demonstrates technical users' analytical approach to identifying both reactive gaps and proactive improvements based on their expertise, with varying degrees of satisfaction regarding feature completeness.",
       "task_contexts": [
         "add_display_support",
         "add_shacl_validation",
         "warm_up_exploration"
       ],
       "overall_sentiment": "neutral",
-      "frequency": "11"
+      "frequency": "12"
     },
     {
       "category_name": "Positive feature experiences and interface design appreciation",
@@ -560,16 +653,28 @@
         {
           "participant_id": "4t",
           "code": "minimalist_interface_appreciation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "domain_appropriate_system_assessment"
+        },
+        {
+          "participant_id": "6t",
+          "code": "feature_integration_completeness"
+        },
+        {
+          "participant_id": "6t",
+          "code": "user_autonomy_with_curiosity_prerequisite"
         }
       ],
-      "category_description": "Codes representing technicians' positive reactions to specific system features and design choices, including appreciation for version control and provenance tracking capabilities, satisfaction with feature completeness and non-frustrating experience, enthusiasm for minimalist interface design and efficient editing workflows, and recognition of the time machine feature's value. This category demonstrates that despite configuration complexity, user-facing features resonate strongly with technical users who appreciate well-designed functionality.",
+      "category_description": "Codes representing technicians' positive reactions to specific system features and design choices, including appreciation for version control and provenance tracking capabilities, satisfaction with feature completeness and non-frustrating experience, enthusiasm for minimalist interface design and efficient editing workflows, and recognition of the time machine feature's value. Participants assessed system features as well-integrated and complete with all necessary components, characterizing the system as ideal for the target domain and expressing willingness to use it frequently. One participant believed the system enables user autonomy conditional on users possessing curiosity and motivation to understand and learn it. This category demonstrates that despite configuration complexity, user-facing features resonate strongly with technical users who appreciate well-designed functionality.",
       "task_contexts": [
         "add_display_support",
         "add_shacl_validation",
         "warm_up_exploration"
       ],
       "overall_sentiment": "positive",
-      "frequency": "7"
+      "frequency": "10"
     },
     {
       "category_name": "Semantic and technical reasoning",
@@ -613,14 +718,31 @@
         {
           "participant_id": "5t",
           "code": "configuration_file_differentiation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "task_summary_comprehension_articulation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "shacl_shape_structure_navigation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "datatype_constraint_unprompted_addition"
+        },
+        {
+          "participant_id": "6t",
+          "code": "display_rules_file_identification"
         }
       ],
-      "category_description": "Technicians demonstrated strong semantic web and technical reasoning capabilities when working with SHACL configurations. They successfully translated natural language requirements into SHACL constraints, made logical inferences about datatypes based on property semantics, verified namespace availability and structural consistency before making changes, explored relationships between datatypes and UI input widgets, and made informed decisions about search configuration semantics. Participants correctly attributed interface constraints to SHACL configuration, identified data model gaps, accurately interpreted constraint semantics, and distinguished between different configuration file purposes. This category shows that technicians possess the domain knowledge needed to work with the system but still benefit from clear patterns and examples.",
+      "category_description": "Technicians demonstrated strong semantic web and technical reasoning capabilities when working with SHACL configurations. They successfully translated natural language requirements into SHACL constraints, made logical inferences about datatypes based on property semantics, verified namespace availability and structural consistency before making changes, explored relationships between datatypes and UI input widgets, and made informed decisions about search configuration semantics. Participants correctly attributed interface constraints to SHACL configuration, identified data model gaps, accurately interpreted constraint semantics, and distinguished between different configuration file purposes. One participant articulated complete task understanding after reading requirements, correctly navigated SHACL shape structure to locate modification targets, independently added datatype constraints beyond stated requirements to ensure appropriate input validation, and deduced the second configuration file through logical reasoning. This category shows that technicians possess the domain knowledge needed to work with the system but still benefit from clear patterns and examples.",
       "task_contexts": [
-        "add_shacl_validation"
+        "add_shacl_validation",
+        "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "10"
+      "frequency": "14"
     },
     {
       "category_name": "Successful implementation and verification",
@@ -680,15 +802,47 @@
         {
           "participant_id": "5t",
           "code": "display_order_implicit_mechanism_discovery"
+        },
+        {
+          "participant_id": "6t",
+          "code": "task_completion_ease_surprise"
+        },
+        {
+          "participant_id": "6t",
+          "code": "immediate_problem_resolution"
+        },
+        {
+          "participant_id": "6t",
+          "code": "input_field_improvement_satisfaction"
+        },
+        {
+          "participant_id": "6t",
+          "code": "display_order_verification"
+        },
+        {
+          "participant_id": "6t",
+          "code": "saved_abstract_display_verification"
+        },
+        {
+          "participant_id": "6t",
+          "code": "satisfaction_with_embarrassment"
+        },
+        {
+          "participant_id": "6t",
+          "code": "complexity_disagreement_despite_errors"
+        },
+        {
+          "participant_id": "6t",
+          "code": "windows_user_simplicity_assessment"
         }
       ],
-      "category_description": "All technicians successfully completed configuration tasks and expressed satisfaction with the results. They consistently verified their changes through the UI, checking that new properties appeared correctly and behaved as expected. Participants successfully deployed the application via Docker, discovered implicit ordering mechanisms, and when problems occurred, systematically tested by reverting and reapplying changes. The quick completion times and positive expressions suggest that the configuration workflow, while requiring file editing, is reasonably efficient for technical users once they understand the approach.",
+      "category_description": "All technicians successfully completed configuration tasks and expressed satisfaction with the results. They consistently verified their changes through the UI, checking that new properties appeared correctly and behaved as expected. Participants successfully deployed the application via Docker, discovered implicit ordering mechanisms, and when problems occurred, systematically tested by reverting and reapplying changes. One participant expressed surprise at the ease and speed of successful completion, noting absence of application errors. After discovering and correcting a fundamental placement error, the problem immediately resolved, leading to satisfaction with improved textarea input fields and correct display ordering. Despite making errors and taking extra time, participants characterized the experience as smooth and disagreed with characterizing the system as complex, emphasizing helpful error guidance. One participant characterized the entire configuration process as simple for Windows users: two clicks and two file modifications. The quick completion times and positive expressions suggest that the configuration workflow, while requiring file editing, is reasonably efficient for technical users once they understand the approach.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "14"
+      "frequency": "22"
     },
     {
       "category_name": "System architecture and sustainability concerns",
@@ -768,15 +922,35 @@
         {
           "participant_id": "5t",
           "code": "task_requirement_clarification_need"
+        },
+        {
+          "participant_id": "6t",
+          "code": "reference_property_search_strategy"
+        },
+        {
+          "participant_id": "6t",
+          "code": "critical_location_error_discovery"
+        },
+        {
+          "participant_id": "6t",
+          "code": "capitalization_typo_discovery_embarrassment"
+        },
+        {
+          "participant_id": "6t",
+          "code": "viewer_apology_for_errors"
+        },
+        {
+          "participant_id": "6t",
+          "code": "time_vault_modification_trigger"
         }
       ],
-      "category_description": "Technicians experienced task requirement comprehension issues. One participant misread task requirements when implementing the SHACL validation, setting the abstract property as required instead of optional as specified in the task description. The participant verbalized their belief that the field should be mandatory, indicating they had internalized an incorrect interpretation of the requirements. Another participant experienced momentary confusion about Task 2 requirements before understanding textarea input type was needed for long-form text. These represent task comprehension challenges rather than system usability issues.",
+      "category_description": "Technicians experienced task requirement comprehension issues and made user errors during configuration. One participant misread task requirements when implementing the SHACL validation, setting the abstract property as required instead of optional as specified. Another experienced momentary confusion about Task 2 requirements before understanding textarea input type was needed for long-form text. One participant searched for a reference property but reflected a fundamental misunderstanding, looking in the journal section instead of fabio:JournalArticle section, which led to placing the abstract property in the wrong location. This critical location error was compounded by a capitalization typo (dcterms:Abstract instead of dcterms:abstract), causing strong embarrassment. During restart, the participant discovered the fundamental placement error and immediately resolved the problem after moving the property to the correct section. The participant apologized to future video viewers for these errors and noticed previous modifications appearing in Time Vault due to changes made. These represent task comprehension challenges and user errors rather than system usability issues, though they consumed considerable troubleshooting time.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "negative",
-      "frequency": "2"
+      "frequency": "7"
     },
     {
       "category_name": "Uncertainty with optional configuration parameters",
