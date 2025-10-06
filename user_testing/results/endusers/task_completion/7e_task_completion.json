@@ -1,0 +1,77 @@
+{
+  "participant_id": "7e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:03:48",
+      "status": "complete",
+      "errors_encountered": 4,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "Missing search functionality in catalog: user expected to find a search bar to locate specific articles by name rather than browsing through sorted lists. User explicitly stated 'Non c'è una possibilità di ricercarlo per nome?' (Isn't there a way to search by name?) and 'forse avrei preferito poterli...' (maybe I would have preferred to be able to...), then resorted to using browser Ctrl+F",
+          "trigger": "Attempting to locate the specific journal articled from Task 1 instructions",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "low",
+          "symptom": "Uncertainty about ORCID input format: user questioned whether to enter only the identifier or full URL, asking 'Ci posso sparare dentro soltanto l'identifier a secco?' (Can I just put in the identifier alone?)",
+          "trigger": "Adding ORCID identifier for Carolyn Scagel when creating new author",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Loss of control with autocomplete: user expressed discomfort with autocomplete automatically finding and filling author data, stating 'lui me lo trova, che faccio?' (it finds it for me, what do I do?) and 'non mi piace che me lo faccia lui. Cioè sì, mi piace che me lo trovi, però mi sento di non avere il pieno controllo su quello che sto inserendo' (I don't like it doing it for me. I mean yes, I like that it finds it, but I feel I don't have full control over what I'm inserting)",
+          "trigger": "System automatically locating and suggesting author data when entering ORCID",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "medium",
+          "symptom": "No visual feedback when reordering authors: after manually dragging author to first position using drag handle, the preview did not update to show new ordering. User stated 'Non mi piaceva tanto il fatto che non me lo facesse vedere in preview quando l'ho spostato come primo autore inserendo la mano' (I didn't really like that it didn't show me in preview when I moved it as first author using the handle)",
+          "trigger": "Using drag handle to reorder Carolyn Scagel as first author in the author list",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:00:54",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:00:36",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Confusion between Time Vault and Time Machine: during warm-up, user saw 'Time Vault' menu item and expected it to be called 'Time Machine', stating 'Mi sarei aspettata che si chiamasse Time Machine' (I would have expected it to be called Time Machine). When accessing Time Machine in Task 3, user appeared confused asking 'Solo quelle cancellate?' (Only deleted ones?), suggesting momentary confusion with Time Vault (which shows deleted resources). User expressed uncertainty with 'Ha! Ha!' before recovering and correctly using Time Machine",
+          "trigger": "Accessing Time Machine interface to restore previous version, after encountering Time Vault label during warm-up exploration",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:08:43",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "high",
+          "symptom": "Empty 'name' field bug causing invisible author names: when creating author entities, user populated 'given name' and 'family name' fields but left optional 'name' field empty. Due to a system bug, the display query prioritizes the 'name' field over 'given name'/'family name', and does not discard empty non-required fields. Result: created author entities displayed with no visible name in the interface",
+          "trigger": "Creating new author entities for Arcangelo Massari and Silvio Peroni, filling given name and family name but leaving name field empty",
+          "outcome": "workaround"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,216 @@
+{
+  "participant_id": "7e",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "smooth_installation_experience",
+      "verbatim_quote": "Ho già unzippato la cartella, avevo già Docker. Quickstart: per Windows questo, mentre per Linux e Mac devo eseguire da terminale il file start",
+      "context": "User successfully navigates installation instructions and executes startup script without difficulty",
+      "sentiment": "positive"
+    },
+    {
+      "code": "positive_interface_impression",
+      "verbatim_quote": "bello, bello HERITRACE, mi piace molto questa nuova interfaccia",
+      "context": "First impression when viewing system homepage after successful installation",
+      "sentiment": "positive"
+    },
+    {
+      "code": "layout_space_wasted",
+      "verbatim_quote": "questa colonnina qua in mezzo così striminzita, vabbè, probabilmente è una scelta. Forse avrei preferito che fosse un po' più responsive, che si allargasse diversamente",
+      "context": "Observing narrow central column layout during warm-up catalog exploration",
+      "sentiment": "negative"
+    },
+    {
+      "code": "catalog_as_primary_entry_point",
+      "verbatim_quote": "Catalog. Ok, qua mi aspetto di trovare effettivamente le 100 entità che mi erano state promesse",
+      "context": "User immediately identifies catalog as location to access preloaded bibliographic resources",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "understanding_bibliographic_structure",
+      "verbatim_quote": "Un journal, 15 issues e 5 volumi. Fammi un attimo vedere quel che c'è dentro, come si configura questa faccenda",
+      "context": "Exploring journal entity to understand hierarchical structure of volumes and issues",
+      "sentiment": "positive"
+    },
+    {
+      "code": "clear_item_presentation",
+      "verbatim_quote": "Bello, chiaro, carino il fatto che ci sono delle similar resources",
+      "context": "Appreciating clear presentation of entity information and similar resources feature",
+      "sentiment": "positive"
+    },
+    {
+      "code": "expecting_time_machine_label",
+      "verbatim_quote": "Ah, e questa è la Time Machine. Ok. Mi sarei aspettata che si chiamasse Time Machine, ma sì, piccolezze. Retrace",
+      "context": "Warm-up: User explores Retrace menu item and expresses expectation it should be labeled 'Time Machine' instead of 'Retrace', indicating nomenclature mismatch with mental model",
+      "sentiment": "negative"
+    },
+    {
+      "code": "search_functionality_missing",
+      "verbatim_quote": "Sort by title. Non c'è una possibilità di ricercarlo per nome? Forse mi sarebbe piaciuta questa cosa",
+      "context": "Task 1: Looking for search functionality to find specific journal article, only finding sort options",
+      "sentiment": "negative"
+    },
+    {
+      "code": "manually_scanning_through_records",
+      "verbatim_quote": "Mi sposterò con un Ctrl F. Ok, perfetto",
+      "context": "Task 1: Using browser's native find function (Ctrl+F) as workaround for missing search functionality",
+      "sentiment": "negative"
+    },
+    {
+      "code": "understanding_identifier_requirement",
+      "verbatim_quote": "C'ho forse mezzo dubbio su quale sia il... Ci posso sparare dentro soltanto l'identifier a secco? Ah no, lui mi chiede",
+      "context": "Task 1: Initial uncertainty about identifier entry, then discovering system prompts for required information",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "successful_author_lookup",
+      "verbatim_quote": "Lo trova, lo trova. Lo trova, quindi devo andare io a cambiare qualcosa?",
+      "context": "Task 1: System successfully locates Caroline Scagel via ORCID identifier lookup",
+      "sentiment": "positive"
+    },
+    {
+      "code": "uncertainty_about_action_completion",
+      "verbatim_quote": "Come... Lo devo aggiungere io oppure... Fammi vedere come me lo mette, va? Nel dubbio",
+      "context": "Task 1: After ORCID lookup finds author, user unclear whether author was automatically added or requires confirmation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "visual_inconsistency_confusing",
+      "verbatim_quote": "Ah, non lo posso modificare. Beh, amo, ma in che senso?",
+      "context": "Task 1: Confusion about why auto-populated author fields cannot be edited after selection from lookup",
+      "sentiment": "negative"
+    },
+    {
+      "code": "lack_of_control_over_autocomplete",
+      "verbatim_quote": "non mi piace che me lo faccia lui. Cioè sì, mi piace che me lo trovi, però mi sento di non avere il pieno controllo su quello che sto inserendo",
+      "context": "Task 1: User appreciates lookup functionality but feels loss of control when system auto-fills information",
+      "sentiment": "negative"
+    },
+    {
+      "code": "discovering_reordering_mechanism",
+      "verbatim_quote": "Ora questo autore 4. Che c'è che non... Ma perché? No vabbè, sicuramente è colpa mia, però non...",
+      "context": "Task 1: Attempting to reorder Caroline Scagel as first author but unclear about interface feedback",
+      "sentiment": "negative"
+    },
+    {
+      "code": "missing_visual_preview_for_reordering",
+      "verbatim_quote": "Non mi piaceva tanto il fatto che non me lo facesse vedere in preview quando l'ho spostato come primo autore inserendo la mano",
+      "context": "Task 1: After saving, expressing dissatisfaction that drag-and-drop reordering doesn't show real-time preview",
+      "sentiment": "negative"
+    },
+    {
+      "code": "modification_feedback_satisfaction",
+      "verbatim_quote": "Lo vedo, bene, buono, buono, ci sta",
+      "context": "Task 1: Satisfaction after confirming Caroline Scagel successfully appears as first author",
+      "sentiment": "positive"
+    },
+    {
+      "code": "recognizing_similar_resources_indicator",
+      "verbatim_quote": "Stesso nome, stesso cognome. Due uomini diversi. Ma assumo che sia la stessa persona",
+      "context": "Task 2: Identifying duplicate Richard Carew entities through similar resources notification",
+      "sentiment": "positive"
+    },
+    {
+      "code": "merge_interface_positive",
+      "verbatim_quote": "Bene, facile, è facile, è sensato",
+      "context": "Task 2: Appreciating straightforward merge interface after completing duplicate author merges",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confusing_time_vault_with_time_machine",
+      "verbatim_quote": "Time Machine. Ha! Ha! Solo quelle cancellate? Vabbè, io adesso mi aspetto che journal article lo riapro",
+      "context": "Task 3: When accessing Time Machine to restore previous version, user momentarily confuses it with Time Vault, asking 'Solo quelle cancellate?' (Only deleted ones?) - a feature of Time Vault, not Time Machine. This confusion likely stems from earlier nomenclature mismatch where user expected 'Time Vault' to be called 'Time Machine' during warm-up",
+      "sentiment": "negative"
+    },
+    {
+      "code": "discovering_time_machine_location",
+      "verbatim_quote": "Vabbè, io adesso mi aspetto che journal article lo riapro. Time Machine. Ha! Questa! Questa!",
+      "context": "Task 3: Successfully locating time machine icon on journal article page and recognizing correct snapshot",
+      "sentiment": "positive"
+    },
+    {
+      "code": "understanding_version_selection",
+      "verbatim_quote": "La restoro. La restoro e torno al tempo magico in cui Scagel non era parte dei nostri autori",
+      "context": "Task 3: Clearly understanding which snapshot to restore to remove Caroline Scagel addition",
+      "sentiment": "positive"
+    },
+    {
+      "code": "successful_version_restoration",
+      "verbatim_quote": "Restoro e vado a verificare che lei effettivamente non è tra gli autori. Buono, andata",
+      "context": "Task 3: Confirming successful restoration by verifying Caroline Scagel no longer appears in author list",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confident_new_record_creation",
+      "verbatim_quote": "Questa me l'aspetto semplice, forse per... Non lo so, forse me la sto sentendo un po' calda. Journal article. Quindi vado qua. No! Falso. Vado qua. New Record",
+      "context": "Task 4: Approaching new publication creation with confidence, self-correcting navigation to 'New Record'",
+      "sentiment": "positive"
+    },
+    {
+      "code": "correct_resource_type_selection",
+      "verbatim_quote": "Tipo: journal article. Poi DOI. Ed è lui",
+      "context": "Task 4: Correctly selecting journal article resource type and entering DOI as primary identifier",
+      "sentiment": "positive"
+    },
+    {
+      "code": "orcid_lookup_failure",
+      "verbatim_quote": "Secondo me lui me lo trova anche, giusto? Eh? Beh no, non me lo trova, forse perché c'è... Vabbè, non ci rimango male",
+      "context": "Task 4: ORCID lookup not finding Arcangelo Massari, user accepting limitation without frustration",
+      "sentiment": "negative"
+    },
+    {
+      "code": "manual_author_entry_workaround",
+      "verbatim_quote": "Arcangelo. Massari. Add identifier. Metto l'ORCID. ORCID. Literal value",
+      "context": "Task 4: Manually entering first author with ORCID identifier after lookup failure",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "systematic_metadata_completion",
+      "verbatim_quote": "Publisher. Quindi aggiungo il publisher... Pages. Aggiungo le pagine... Publication date. Metto la data... Issue... Volume... Journal",
+      "context": "Task 4: Methodically entering all required metadata fields in sequence for new publication",
+      "sentiment": "positive"
+    },
+    {
+      "code": "encountering_empty_name_field_bug",
+      "verbatim_quote": "[Audio corrupted - behavior reconstructed from video]",
+      "context": "Task 4: After creating author entities with given name and family name but leaving optional 'name' field empty, discovered that authors displayed with no visible names due to system bug that prioritizes empty 'name' field over populated given/family name fields",
+      "sentiment": "negative"
+    },
+    {
+      "code": "independently_diagnosing_problem",
+      "verbatim_quote": "[Audio corrupted - behavior reconstructed from video]",
+      "context": "Task 4: User autonomously identified that the invisible author name issue was caused by incorrectly populated entity fields, without requiring external assistance or prompting",
+      "sentiment": "positive"
+    },
+    {
+      "code": "delete_and_recreate_workaround",
+      "verbatim_quote": "[Audio corrupted - behavior reconstructed from video]",
+      "context": "Task 4: After diagnosing the empty name field problem, user decided to delete incorrectly created author entities and recreate them from scratch with proper field values",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "autonomous_duplicate_merging",
+      "verbatim_quote": "[Audio corrupted - behavior reconstructed from video]",
+      "context": "Task 4: After recreating author entities correctly, user independently performed merge operation to consolidate duplicate author entities without prompting, demonstrating learned behavior from Task 2",
+      "sentiment": "positive"
+    },
+    {
+      "code": "overall_system_effectiveness",
+      "verbatim_quote": "I felt confident in addressing the tasks, the support provided was effective",
+      "context": "Written reflection: User expresses general satisfaction with system effectiveness and personal confidence in completing assigned tasks",
+      "sentiment": "positive"
+    },
+    {
+      "code": "difficulty_locating_metadata_fields",
+      "verbatim_quote": "Interface can be improved in the new entity creation section to make the main metadata fields more easy to find",
+      "context": "Written reflection: User identifies usability issue in entity creation interface where primary metadata fields are not easily discoverable",
+      "sentiment": "negative"
+    },
+    {
+      "code": "merge_suggestion_feature_appreciation",
+      "verbatim_quote": "Human supervised merge of entities based on the system's suggestion",
+      "context": "Written reflection: User identifies merge functionality as most useful feature, specifically appreciating the system's ability to suggest merges while keeping human in control",
+      "sentiment": "positive"
+    }
+  ]
+}
