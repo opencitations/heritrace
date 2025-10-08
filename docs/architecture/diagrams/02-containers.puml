@@ -1,0 +1,37 @@
+@startuml containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include style.iuml
+
+' Override C4 colors for accessibility (colorblind-safe, high contrast)
+UpdateElementStyle("person", $bgColor="#4A90E2", $fontColor="#FFFFFF", $borderColor="#000000", $borderThickness="2")
+UpdateElementStyle("container", $bgColor="#E3F2FD", $fontColor="#000000", $borderColor="#000000", $borderThickness="2")
+UpdateElementStyle("container_db", $bgColor="#81C784", $fontColor="#000000", $borderColor="#000000", $borderThickness="2")
+UpdateElementStyle("external_system", $bgColor="#757575", $fontColor="#FFFFFF", $borderColor="#000000", $borderThickness="2")
+
+title HERITRACE container architecture\n(C4 model)
+
+Person(user, "GLAM domain expert")
+Person(admin, "Administrator")
+
+System_Boundary(heritrace, "HERITRACE system") {
+    Container(web_app, "Web application", "Python/Flask", "Manages semantic data\nwith SHACL validation,\nprovenance, and change tracking")
+
+    ContainerDb(triplestore_data, "Semantic datastore", "RDF quadstore", "Stores cultural heritage\nentities as RDF triples")
+
+    ContainerDb(triplestore_prov, "Provenance datastore", "RDF quadstore", "Maintains complete\nprovenance and change history")
+
+    ContainerDb(cache, "State store", "In-memory store", "Concurrent edit locks,\ninitialization state,\nURI counters")
+}
+
+System_Ext(orcid, "ORCID")
+
+Rel(user, web_app, "Edits metadata", "HTTPS")
+Rel(admin, web_app, "Configures via\nfiles and environment", "File system")
+
+Rel(web_app, triplestore_data, "Reads/writes entities", "SPARQL")
+Rel(web_app, triplestore_prov, "Records changes", "SPARQL")
+Rel(web_app, cache, "Caches & locks", "Binary protocol")
+Rel(web_app, orcid, "Authenticates", "OAuth 2.0")
+
+
+@enduml

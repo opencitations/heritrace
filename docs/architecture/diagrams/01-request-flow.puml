@@ -1,0 +1,75 @@
+@startuml request-flow
+!include style.iuml
+
+title Entity creation request flow\nthrough architectural layers
+
+actor User
+box "Presentation layer" LAYER1
+    participant "Web interface" as UI
+end box
+
+box "Business layer" LAYER2
+    participant "Access control" as Access
+    participant "RDF manager" as RDF
+    participant "Validator" as Valid
+end box
+
+box "Persistence layer" LAYER3
+    participant "Query builder" as Query
+end box
+
+box "Database layer" LAYER4
+    database "Semantic\ndatastore" as DB
+    database "Provenance\ndatastore" as Prov
+end box
+
+User -> UI : Submit entity data
+activate UI
+
+UI -> Access : Check permissions
+activate Access
+Access -> Access : Verify user can edit
+Access --> UI : Authorized
+deactivate Access
+
+UI -> RDF : Create entity
+activate RDF
+
+RDF -> Valid : Validate structure
+activate Valid
+Valid --> RDF : Valid
+deactivate Valid
+
+RDF -> Query : Build insert query
+activate Query
+Query --> RDF : SPARQL query
+deactivate Query
+
+RDF -> DB : Execute insertion
+activate DB
+DB --> RDF : Success
+deactivate DB
+
+RDF -> Prov : Record provenance and track changes
+activate Prov
+Prov --> RDF : Recorded
+deactivate Prov
+
+RDF --> UI : Entity created
+deactivate RDF
+
+UI --> User : Confirmation
+deactivate UI
+
+note over User, Prov
+  **Closed layers pattern**
+
+  Request traverses all layers sequentially.
+  Each layer adds its concern:
+  • Presentation: HTTP handling
+  • Business: Validation & logic
+  • Persistence: Query abstraction
+  • Database: Storage
+end note
+
+@enduml

@@ -1,0 +1,39 @@
+/'
+ ' Common style definitions for HERITRACE architecture diagrams
+ ' Optimized for accessibility (colorblind-safe) and B&W printing
+ '/
+
+' High-contrast, colorblind-safe palette
+' Uses distinct hues and lightness values
+!define LAYER1 #E3F2FD
+!define LAYER2 #81C784
+!define LAYER3 #FFB74D
+!define LAYER4 #757575
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowThickness 2
+skinparam ArrowColor black
+
+' Strong borders for clarity in B&W
+skinparam PackageBorderColor black
+skinparam PackageBorderThickness 2
+skinparam ComponentBorderColor black
+skinparam ComponentBorderThickness 2
+skinparam ClassBorderColor black
+skinparam ClassBorderThickness 2
+skinparam DatabaseBorderColor black
+skinparam DatabaseBorderThickness 2
+skinparam ParticipantBorderThickness 2
+skinparam BoxBorderThickness 2
+
+' Font sizes optimized for thesis print
+skinparam DefaultFontSize 12
+skinparam TitleFontSize 14
+skinparam NoteFontSize 10
+skinparam LegendFontSize 10
+skinparam ClassFontSize 11
+skinparam SequenceFontSize 11
+skinparam ParticipantFontSize 12
+skinparam BoxFontSize 11
