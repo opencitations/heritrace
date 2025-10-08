@@ -61,15 +61,4 @@ deactivate RDF
 UI --> User : Confirmation
 deactivate UI
 
-note over User, Prov
-  **Closed layers pattern**
-
-  Request traverses all layers sequentially.
-  Each layer adds its concern:
-  • Presentation: HTTP handling
-  • Business: Validation & logic
-  • Persistence: Query abstraction
-  • Database: Storage
-end note
-
 @enduml
