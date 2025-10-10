@@ -1,5 +1,19 @@
 # HERITRACE Testing - Written Responses
 
+## Background Questions
+
+### 1. Prior knowledge of SHACL
+Did you know SHACL before taking this test?
+- [ ] No, not at all
+- [X] Yes, I had working knowledge (not too in-depth)
+- [ ] Yes, I master it, I know it perfectly
+
+### 2. Prior knowledge of HERITRACE
+Did you know HERITRACE before taking this test?
+- [X] No, I had never used it
+- [ ] Yes, I had usage knowledge
+- [ ] Yes, I mastered it
+
 ## Written Reflection Questions
 
 ### 1. How effectively did HERITRACE support you in these tasks?

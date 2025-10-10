@@ -4,8 +4,9 @@
 
 ### 1. Prior knowledge of HERITRACE
 Did you know HERITRACE before taking this test?
-- [ ] No, I had never used it
-
+- [X] No, I had never used it
+- [ ] Yes, I had usage knowledge
+- [ ] Yes, I mastered it
 
 ## Written Reflection Questions
 
