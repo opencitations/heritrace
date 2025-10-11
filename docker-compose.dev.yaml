@@ -15,10 +15,15 @@ services:
       
       # Cache Configuration
       - CACHE_VALIDITY_DAYS=7
-      
+
+      # Redis Configuration
+      # Use external Redis container (where counters are already initialized)
+      # Using container name since both are on the same Docker network
+      - REDIS_URL=redis://heritrace-redis:6379/0
+
       # Database Configuration
-      - DATASET_DB_URL=http://host.docker.internal:8890/sparql
-      - PROVENANCE_DB_URL=http://host.docker.internal:8891/sparql
+      - DATASET_DB_URL=http://oc_meta_data:8890/sparql
+      - PROVENANCE_DB_URL=http://oc_meta_prov:8890/sparql
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
       - DATASET_DB_TEXT_INDEX_ENABLED=false
@@ -45,7 +50,7 @@ services:
       # Component Classes
       - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
       - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
-      
+
       # Development Configuration
       - BAKE=true
       - SHACL_PATH=/app/shacl.ttl

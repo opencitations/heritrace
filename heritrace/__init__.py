@@ -6,7 +6,7 @@ from flask_babel import Babel
 from flask_login import LoginManager
 from heritrace.cli import register_cli_commands
 from redis import Redis
-
+import os
 
 def create_app(config_object=None):
     app = Flask(__name__)
@@ -27,8 +27,9 @@ def create_app(config_object=None):
     if not is_translate_command:
         babel = Babel()
         login_manager = LoginManager()
-
-        redis_url = 'redis://localhost:6379/0'  # Internal Redis service
+        
+        redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+        app.logger.info(f"Connecting to Redis at: {redis_url}")
         redis_client = Redis.from_url(redis_url, decode_responses=True)
 
         from heritrace.extensions import init_extensions

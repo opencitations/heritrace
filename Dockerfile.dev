@@ -27,27 +27,40 @@ RUN mkdir -p /data
 
 RUN echo '#!/bin/bash\n\
 set -e\n\
-echo "Starting Redis..."\n\
-redis-server --daemonize yes --bind 0.0.0.0 --port 6379 --dir /data --save 900 1 --save 300 10 --save 60 10000 --protected-mode no\n\
-echo "Waiting for Redis to be ready..."\n\
-until redis-cli ping > /dev/null 2>&1; do\n\
-  echo "Waiting for Redis..."\n\
-  sleep 1\n\
-done\n\
-echo "Redis is ready"\n\
+\n\
+# Check if external Redis is configured\n\
+if [ -z "$REDIS_URL" ] || [ "$REDIS_URL" = "redis://localhost:6379/0" ]; then\n\
+  echo "Starting internal Redis..."\n\
+  redis-server --daemonize yes --bind 0.0.0.0 --port 6379 --dir /data --save 900 1 --save 300 10 --save 60 10000 --protected-mode no\n\
+  echo "Waiting for internal Redis to be ready..."\n\
+  until redis-cli ping > /dev/null 2>&1; do\n\
+    echo "Waiting for Redis..."\n\
+    sleep 1\n\
+  done\n\
+  echo "Internal Redis is ready"\n\
+else\n\
+  echo "Using external Redis at: $REDIS_URL"\n\
+  echo "Skipping internal Redis startup"\n\
+fi\n\
+\n\
 echo "Starting development server..."\n\
 \n\
 # Trap SIGTERM and SIGINT to save Redis data before shutdown\n\
 cleanup() {\n\
   echo "Shutting down gracefully..."\n\
-  echo "Saving Redis data..."\n\
-  redis-cli BGSAVE\n\
-  # Wait for background save to complete\n\
-  while [ "$(redis-cli LASTSAVE)" = "$(redis-cli LASTSAVE)" ]; do\n\
-    sleep 0.1\n\
-  done\n\
-  echo "Redis data saved"\n\
-  redis-cli SHUTDOWN\n\
+  # Only save/shutdown internal Redis\n\
+  if [ -z "$REDIS_URL" ] || [ "$REDIS_URL" = "redis://localhost:6379/0" ]; then\n\
+    echo "Saving internal Redis data..."\n\
+    redis-cli BGSAVE\n\
+    # Wait for background save to complete\n\
+    while [ "$(redis-cli LASTSAVE)" = "$(redis-cli LASTSAVE)" ]; do\n\
+      sleep 0.1\n\
+    done\n\
+    echo "Redis data saved"\n\
+    redis-cli SHUTDOWN\n\
+  else\n\
+    echo "Using external Redis, skipping shutdown"\n\
+  fi\n\
   exit 0\n\
 }\n\
 \n\

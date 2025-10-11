@@ -230,19 +230,30 @@ def initialize_change_tracking_config(app: Flask, adjusted_dataset_endpoint=None
 def need_initialization(app: Flask):
     """
     Check if counter handler initialization is needed.
+
+    When using external Redis (non-default REDIS_URL), assumes counters are already
+    populated and returns False. For internal Redis, checks cache validity.
     """
     uri_generator = app.config['URI_GENERATOR']
 
     if not hasattr(uri_generator, "counter_handler"):
         return False
 
+    redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+    is_external_redis = redis_url != 'redis://localhost:6379/0'
+
+    if is_external_redis:
+        app.logger.info(f"Using external Redis at {redis_url} - skipping counter initialization")
+        return False
+
+    # For internal Redis, check cache validity
     cache_validity_days = app.config['CACHE_VALIDITY_DAYS']
-    
+
     try:
         last_init_str = redis_client.get('heritrace:last_initialization')
         if not last_init_str:
             return True
-        
+
         last_init = datetime.fromisoformat(last_init_str.decode('utf-8'))
         return datetime.now() - last_init > timedelta(days=cache_validity_days)
     except Exception:
@@ -259,10 +270,11 @@ def update_cache(app: Flask):
 def initialize_counter_handler(app: Flask):
     """
     Initialize the counter handler for URI generation if needed.
+    Skips initialization for external Redis (detected automatically in need_initialization).
     """
     if not need_initialization(app):
         return
-    
+
     uri_generator: URIGenerator = app.config['URI_GENERATOR']
     counter_handler: CounterHandler = uri_generator.counter_handler
 
@@ -270,7 +282,7 @@ def initialize_counter_handler(app: Flask):
     uri_generator.initialize_counters(sparql)
 
     # Query per contare gli snapshot nella provenance
-    # Contiamo il numero di wasDerivedFrom per ogni entità e aggiungiamo 1 
+    # Contiamo il numero di wasDerivedFrom per ogni entità e aggiungiamo 1
     # (poiché il primo snapshot non ha wasDerivedFrom)
     prov_query = """
         SELECT ?entity (COUNT(DISTINCT ?snapshot) as ?count)
@@ -293,7 +305,7 @@ def initialize_counter_handler(app: Flask):
         entity = result["entity"]["value"]
         count = int(result["count"]["value"])
         counter_handler.set_counter(count, entity)
-            
+
     update_cache(app)
 
 def identify_classes_with_multiple_shapes():
@@ -409,9 +421,9 @@ def init_sparql_services(app: Flask):
     if not initialization_done:
         dataset_endpoint = adjust_endpoint_url(app.config['DATASET_DB_URL'])
         provenance_endpoint = adjust_endpoint_url(app.config['PROVENANCE_DB_URL'])
-        
-        sparql = SPARQLWrapperWithRetry(dataset_endpoint)
-        provenance_sparql = SPARQLWrapperWithRetry(provenance_endpoint)
+
+        sparql = SPARQLWrapperWithRetry(dataset_endpoint, timeout=30.0)
+        provenance_sparql = SPARQLWrapperWithRetry(provenance_endpoint, timeout=30.0)
         
         change_tracking_config = initialize_change_tracking_config(
             app,

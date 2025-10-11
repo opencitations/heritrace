@@ -1,0 +1,23 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: heritrace-redis
+    init: true  # Prevents zombie processes by running an init inside the container
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./redis-data:/data
+    command: redis-server --dir /data --dbfilename dump.rdb --save 900 1 --save 300 10 --save 60 10000
+    networks:
+      - heritrace-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  heritrace-network:
+    external: true
+    name: heritrace_heritrace-network
