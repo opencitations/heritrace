@@ -3083,4 +3083,56 @@ rules:
                 )
               ) AS ?display
             )
-          } 
+          }
+
+  - target:
+      class: "http://purl.org/spar/cito/Citation"
+      shape: "http://schema.org/ReverseCitationShape"
+    shouldBeDisplayed: false
+    displayName: "Reverse Citation"
+    fetchUriDisplay: |
+      PREFIX cito: <http://purl.org/spar/cito/>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      SELECT ?display WHERE {
+        [[uri]] cito:hasCitingEntity ?citing ;
+                cito:hasCitedEntity ?cited .
+
+        OPTIONAL { ?citing dcterms:title ?citingTitle . }
+        OPTIONAL { ?cited dcterms:title ?citedTitle . }
+
+        BIND(CONCAT(
+          "Citation from \"",
+          COALESCE(?citingTitle, STR(?citing)),
+          "\" to \"",
+          COALESCE(?citedTitle, STR(?cited)),
+          "\""
+        ) AS ?display)
+      }
+    displayProperties:
+      - *type_property
+      - property: "http://purl.org/spar/cito/hasCitedEntity"
+        displayName: "Cited Entity"
+        shouldBeDisplayed: true
+        supportsSearch: true
+        fetchValueFromQuery: *cited_entity_query
+      - property: "http://purl.org/spar/cito/hasCitingEntity"
+        displayName: "Citing Entity"
+        shouldBeDisplayed: true
+        supportsSearch: true
+        fetchValueFromQuery: *citing_entity_from_value_query
+      - property: "http://purl.org/spar/cito/hasCitationCharacterization"
+        displayName: "Citation Type"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: |
+          SELECT ?display WHERE {
+            VALUES (?characterization) { ([[value]]) }
+            BIND(
+              LCASE(
+                REPLACE(
+                  REPLACE(STR(?characterization), "^.*/([^/]*)$", "$1"),
+                  "([a-z])([A-Z])", "$1 $2"
+                )
+              ) AS ?display
+            )
+          }

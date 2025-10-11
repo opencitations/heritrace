@@ -954,6 +954,132 @@ common_properties:
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     SELECT ?display ?target WHERE {
+      [[subject]] cito:hasCitingEntity ?target .
+
+      {
+        SELECT ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
+              (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+        WHERE {
+          ?target a fabio:Expression .
+          OPTIONAL {
+            ?target a ?specificType .
+            FILTER(?specificType != fabio:Expression)
+            BIND(?specificType AS ?entityType)
+          }
+          BIND(COALESCE(?entityType, fabio:Expression) AS ?entityType)
+
+          OPTIONAL { ?target dcterms:title ?title . }
+          OPTIONAL {
+            ?target prism:publicationDate ?pubDateRaw .
+            BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear,
+                    STR(?pubDateRaw),
+                    IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime),
+                      SUBSTR(STR(?pubDateRaw), 1, 4),
+                      STR(?pubDateRaw))) AS ?pubDate)
+          }
+
+          # Authors
+          OPTIONAL {
+            FILTER(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue))
+            ?target pro:isDocumentContextFor ?authorRole .
+            ?authorRole pro:withRole pro:author ;
+                        pro:isHeldBy ?author .
+            OPTIONAL { ?author foaf:name ?authorName . }
+            OPTIONAL {
+              ?author foaf:familyName ?familyName .
+              OPTIONAL { ?author foaf:givenName ?givenName . }
+              BIND(CONCAT(
+                ?familyName,
+                COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+              ) AS ?authorName)
+            }
+          }
+
+          # Journal Article info
+          OPTIONAL {
+            FILTER(?entityType IN (fabio:JournalArticle, fabio:Expression))
+            ?target frbr:partOf ?issue .
+            ?issue a fabio:JournalIssue ;
+                   fabio:hasSequenceIdentifier ?issueNumber ;
+                   frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    fabio:hasSequenceIdentifier ?volumeNumber ;
+                    frbr:partOf ?journal .
+            ?journal a fabio:Journal ;
+                    dcterms:title ?journalTitle .
+          }
+
+          # Book Chapter info
+          OPTIONAL {
+            FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
+            ?target frbr:partOf ?book .
+            ?book a fabio:Book ;
+                  dcterms:title ?bookTitle .
+          }
+
+          # Page information
+          OPTIONAL {
+            ?target frbr:embodiment ?embodiment .
+            OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+            OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+          }
+        }
+        GROUP BY ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
+      }
+
+      BIND(
+        IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
+          CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?journalTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?journalTitle
+            ), ""),
+            IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+            IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."),
+        IF(?entityType IN (fabio:BookChapter, fabio:Expression),
+          CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?bookTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
+              ?bookTitle
+            ), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."),
+        COALESCE(?title, STR(?target))
+        )) AS ?display)
+    }
+
+  citing_entity_from_value_query: &citing_entity_from_value_query |
+    PREFIX cito: <http://purl.org/spar/cito/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX pro: <http://purl.org/spar/pro/>
+    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT ?display ?target WHERE {
       [[value]] cito:hasCitingEntity ?target .
 
       {
@@ -1205,27 +1331,39 @@ virtual_properties:
     implementedVia:
       target:
         class: "http://purl.org/spar/cito/Citation"
+        shape: "http://schema.org/CitationShape"
       fieldOverrides:
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+          shouldBeDisplayed: false
+          value: "http://purl.org/spar/cito/Citation"
         "http://purl.org/spar/cito/hasCitingEntity":
           shouldBeDisplayed: false
           value: "${currentEntity}"
         "http://purl.org/spar/cito/hasCitedEntity":
           displayName: "Cited Resource"
+        "http://purl.org/spar/cito/hasCitationCharacterization":
+          displayName: "Citation Type"
 
   is_cited_by_property: &is_cited_by_property
     displayName: "Is Cited By"
     isVirtual: true
     shouldBeDisplayed: true
-    fetchValueFromQuery: *citing_entity_query
+    fetchValueFromQuery: *citing_entity_from_value_query
     implementedVia:
       target:
         class: "http://purl.org/spar/cito/Citation"
+        shape: "http://schema.org/ReverseCitationShape"
       fieldOverrides:
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+          shouldBeDisplayed: false
+          value: "http://purl.org/spar/cito/Citation"
         "http://purl.org/spar/cito/hasCitedEntity":
           shouldBeDisplayed: false
           value: "${currentEntity}"
         "http://purl.org/spar/cito/hasCitingEntity":
           displayName: "Citing Resource"
+        "http://purl.org/spar/cito/hasCitationCharacterization":
+          displayName: "Citation Type"
 
 common_similarity_properties:
   title_identifier_or: &title_identifier_or
@@ -2897,6 +3035,7 @@ rules:
 
   - target:
       class: "http://purl.org/spar/cito/Citation"
+      shape: "http://schema.org/CitationShape"
     shouldBeDisplayed: true
     displayName: "Citation"
     fetchUriDisplay: |
@@ -2944,4 +3083,56 @@ rules:
                 )
               ) AS ?display
             )
-          } 
+          }
+
+  - target:
+      class: "http://purl.org/spar/cito/Citation"
+      shape: "http://schema.org/ReverseCitationShape"
+    shouldBeDisplayed: false
+    displayName: "Reverse Citation"
+    fetchUriDisplay: |
+      PREFIX cito: <http://purl.org/spar/cito/>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      SELECT ?display WHERE {
+        [[uri]] cito:hasCitingEntity ?citing ;
+                cito:hasCitedEntity ?cited .
+
+        OPTIONAL { ?citing dcterms:title ?citingTitle . }
+        OPTIONAL { ?cited dcterms:title ?citedTitle . }
+
+        BIND(CONCAT(
+          "Citation from \"",
+          COALESCE(?citingTitle, STR(?citing)),
+          "\" to \"",
+          COALESCE(?citedTitle, STR(?cited)),
+          "\""
+        ) AS ?display)
+      }
+    displayProperties:
+      - *type_property
+      - property: "http://purl.org/spar/cito/hasCitedEntity"
+        displayName: "Cited Entity"
+        shouldBeDisplayed: true
+        supportsSearch: true
+        fetchValueFromQuery: *cited_entity_query
+      - property: "http://purl.org/spar/cito/hasCitingEntity"
+        displayName: "Citing Entity"
+        shouldBeDisplayed: true
+        supportsSearch: true
+        fetchValueFromQuery: *citing_entity_from_value_query
+      - property: "http://purl.org/spar/cito/hasCitationCharacterization"
+        displayName: "Citation Type"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: |
+          SELECT ?display WHERE {
+            VALUES (?characterization) { ([[value]]) }
+            BIND(
+              LCASE(
+                REPLACE(
+                  REPLACE(STR(?characterization), "^.*/([^/]*)$", "$1"),
+                  "([a-z])([A-Z])", "$1 $2"
+                )
+              ) AS ?display
+            )
+          }
