@@ -954,7 +954,7 @@ common_properties:
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
     SELECT ?display ?target WHERE {
-      [[subject]] cito:hasCitingEntity ?target .
+      [[value]] cito:hasCitingEntity ?target .
 
       {
         SELECT ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
@@ -1212,6 +1212,21 @@ virtual_properties:
         "http://purl.org/spar/cito/hasCitedEntity":
           displayName: "Cited Resource"
 
+  is_cited_by_property: &is_cited_by_property
+    displayName: "Is Cited By"
+    isVirtual: true
+    shouldBeDisplayed: true
+    fetchValueFromQuery: *citing_entity_query
+    implementedVia:
+      target:
+        class: "http://purl.org/spar/cito/Citation"
+      fieldOverrides:
+        "http://purl.org/spar/cito/hasCitedEntity":
+          shouldBeDisplayed: false
+          value: "${currentEntity}"
+        "http://purl.org/spar/cito/hasCitingEntity":
+          displayName: "Citing Resource"
+
 common_similarity_properties:
   title_identifier_or: &title_identifier_or
     # OR logic: Match on title OR identifier
@@ -1424,6 +1439,7 @@ rules:
         fetchValueFromQuery: *container_query
         supportsSearch: true
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1562,6 +1578,7 @@ rules:
               ) AS ?seriesDisplay)
           }
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1782,6 +1799,7 @@ rules:
         shouldBeDisplayed: true
         supportsSearch: true
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1884,6 +1902,7 @@ rules:
       - *embodiment_property
       - *issue_volume_journal_container_property
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2082,6 +2101,7 @@ rules:
       - *embodiment_property
       - *container_property
       - *citations_property
+      - *is_cited_by_property
 
   - target:
       class: "http://purl.org/spar/fabio/ProceedingsPaper"
@@ -2170,6 +2190,7 @@ rules:
         shouldBeDisplayed: true
         fetchValueFromQuery: *proceedings_query
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2371,6 +2392,7 @@ rules:
       - *embodiment_property
       - *issue_volume_journal_container_property
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2482,6 +2504,7 @@ rules:
       - *embodiment_property
       - *issue_volume_journal_container_property
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2589,6 +2612,7 @@ rules:
       - *document_context_property
       - *publication_date_property
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2682,6 +2706,7 @@ rules:
       - *publication_date_property
       - *embodiment_property
       - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
