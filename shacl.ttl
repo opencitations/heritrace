@@ -1873,3 +1873,58 @@ schema:CitationShape
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
+
+schema:ReverseCitationShape
+  a sh:NodeShape ;
+  sh:targetClass cito:Citation ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue cito:Citation ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitedEntity ;
+    sh:or (
+      [ sh:node schema:ArticleShape ]
+      [ sh:node schema:JournalArticleShape ]
+      [ sh:node schema:BookShape ]
+      [ sh:node schema:ProceedingsPaperShape ]
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:ReferenceBookShape ]
+      [ sh:node schema:ReviewShape ]
+      [ sh:node schema:ReviewArticleShape ]
+      [ sh:node schema:ThesisShape ]
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitingEntity ;
+    sh:or (
+      [ sh:node schema:ArticleShape ]
+      [ sh:node schema:JournalArticleShape ]
+      [ sh:node schema:BookShape ]
+      [ sh:node schema:ProceedingsPaperShape ]
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:ReferenceBookShape ]
+      [ sh:node schema:ReviewShape ]
+      [ sh:node schema:ReviewArticleShape ]
+      [ sh:node schema:ThesisShape ]
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitationCharacterization ;
+    sh:or (
+      [ sh:hasValue cito:isReviewedBy ]
+      [ sh:hasValue cito:isCitedAsRelatedBy ]
+      [ sh:hasValue cito:hasReplyFrom ]
+      [ sh:hasValue cito:isUpdatedBy ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
