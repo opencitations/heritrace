@@ -1333,11 +1333,16 @@ virtual_properties:
         class: "http://purl.org/spar/cito/Citation"
         shape: "http://schema.org/CitationShape"
       fieldOverrides:
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+          shouldBeDisplayed: false
+          value: "http://purl.org/spar/cito/Citation"
         "http://purl.org/spar/cito/hasCitingEntity":
           shouldBeDisplayed: false
           value: "${currentEntity}"
         "http://purl.org/spar/cito/hasCitedEntity":
           displayName: "Cited Resource"
+        "http://purl.org/spar/cito/hasCitationCharacterization":
+          displayName: "Citation Type"
 
   is_cited_by_property: &is_cited_by_property
     displayName: "Is Cited By"
@@ -1349,11 +1354,16 @@ virtual_properties:
         class: "http://purl.org/spar/cito/Citation"
         shape: "http://schema.org/ReverseCitationShape"
       fieldOverrides:
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+          shouldBeDisplayed: false
+          value: "http://purl.org/spar/cito/Citation"
         "http://purl.org/spar/cito/hasCitedEntity":
           shouldBeDisplayed: false
           value: "${currentEntity}"
         "http://purl.org/spar/cito/hasCitingEntity":
           displayName: "Citing Resource"
+        "http://purl.org/spar/cito/hasCitationCharacterization":
+          displayName: "Citation Type"
 
 common_similarity_properties:
   title_identifier_or: &title_identifier_or

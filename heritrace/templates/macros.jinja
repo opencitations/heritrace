@@ -137,12 +137,19 @@
                     data-mandatory-value="true">
             </div>
         {% elif details.optionalValues and details.optionalValues|length %}
-            <div class="newEntityPropertyContainer w-75">
-                <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
-                    {% for val in details.optionalValues %}
-                        <option value="{{ val }}">{{ val | human_readable_predicate((details.subjectClass, details.subjectShape)) }}</option>
-                    {% endfor %}
-                </select>
+            <div class="d-flex flex-row justify-content-between align-items-start w-100">
+                <div class="newEntityPropertyContainer w-75">
+                    <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
+                        {% for val in details.optionalValues %}
+                            <option value="{{ val }}">{{ val | human_readable_predicate((details.subjectClass, details.subjectShape)) }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if not details.min > 0 %}
+                    <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
+                        <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
+                    </button>
+                {% endif %}
             </div>
         {% elif details.datatypes and (
             'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
