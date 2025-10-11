@@ -2369,7 +2369,7 @@ rules:
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
-      - *book_container_property
+      - *issue_volume_journal_container_property
       - *citations_property
     sortableBy:
       *sortableByTitleDate

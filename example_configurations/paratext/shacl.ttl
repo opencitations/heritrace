@@ -8,6 +8,7 @@
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix doco: <http://purl.org/spar/doco/> .
 @prefix fabio: <http://purl.org/spar/fabio/> .
+@prefix cito: <http://purl.org/spar/cito/> .
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix frbr: <http://purl.org/vocab/frbr/core#> .
 @prefix literal: <http://www.essepuntato.it/2010/06/literalreification/> .
@@ -17,7 +18,7 @@
 
 # Identifiers
 
-schema:IdentifierShape
+schema:IdentifierShape 
   a sh:NodeShape ;
   sh:targetClass datacite:Identifier ;
   sh:property [
@@ -51,13 +52,6 @@ schema:IdentifierShape
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or (
-      [ sh:node schema:BibliographicResourceShape ]
-      [ sh:node schema:ResponsibleAgentShape ]
-    ) ;
   ] .
 
 schema:JournalArticleIdentifierShape
@@ -127,10 +121,6 @@ schema:JournalArticleIdentifierShape
     ] ;
     sh:pattern "^W[1-9]\\d*$" ;
     sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:node schema:JournalArticleShape ;
   ] .
 
 schema:JournalIdentifierShape
@@ -200,10 +190,6 @@ schema:JournalIdentifierShape
     ] ;
     sh:pattern "^S\\d+$" ;
     sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326" ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:node schema:JournalShape ;
   ] .
 
 schema:SeriesAndProceedingsIdentifierShape
@@ -286,13 +272,6 @@ schema:SeriesAndProceedingsIdentifierShape
     ] ;
     sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
     sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or (
-      [ sh:node schema:ProceedingsShape ]
-      [ sh:node schema:SeriesShape ]
-    ) ;
   ] .
 
 schema:BookIdentifierShape
@@ -375,10 +354,6 @@ schema:BookIdentifierShape
     ] ;
     sh:pattern "^W[1-9]\\d*$" ;
     sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath datacite:hasIdentifier] ;
-    sh:or schema:BookShape ;
   ] .
   
 schema:AgentIdentifierShape
@@ -510,18 +485,6 @@ schema:AgentRoleShape
     sh:in (pro:publisher pro:author pro:editor pro:translator pro:contributor) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath oco:hasNext] ;
-    sh:node schema:AgentRoleShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath pro:isDocumentContextFor] ;
-    sh:node schema:BibliographicResourceShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
   ] .
 
 # Bibliographic resources
@@ -554,11 +517,6 @@ schema:ExpressionShape
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path datacite:hasIdentifier ;
-    sh:node schema:IdentifierShape ;
-    sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
@@ -1313,7 +1271,7 @@ schema:ReviewShape
   sh:property [
     sh:path dcterms:title ;
     sh:datatype xsd:string ;
-    sh:minCount 1 ;
+    sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -1380,7 +1338,12 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:node schema:JournalShape ;
+    sh:or (
+      [ sh:node schema:IssueShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:VolumeShape ]
+      [ sh:node schema:JournalShape ]
+    ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
@@ -1403,7 +1366,7 @@ schema:ReviewArticleShape
   sh:property [
     sh:path dcterms:title ;
     sh:datatype xsd:string ;
-    sh:minCount 1 ;
+    sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -1426,6 +1389,7 @@ schema:ReviewArticleShape
     sh:path frbr:partOf ;
     sh:or (
       [ sh:node schema:IssueShape ]
+      [ sh:node schema:SpecialIssueShape ]
       [ sh:node schema:VolumeShape ]
       [ sh:node schema:JournalShape ]
     ) ;
@@ -1648,10 +1612,6 @@ schema:ResourceEmbodimentShape
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath frbr:embodiment] ;
-    sh:node schema:BibliographicResourceShape ;
   ] .
 
 # Responsible agent
@@ -1686,10 +1646,6 @@ schema:ResponsibleAgentShape
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath pro:isHeldBy] ;
-    sh:node schema:AgentRoleShape ;
   ] .
 
 # Agent Roles
@@ -1853,7 +1809,62 @@ schema:AbstractShape
   ] ;
   sh:property [
     sh:path [sh:inversePath frbr:part] ;
-    sh:node schema:BibliographicResourceShape ;
+    sh:node schema:ExpressionShape ;
     sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:CitationShape
+  a sh:NodeShape ;
+  sh:targetClass cito:Citation ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue cito:Citation ; 
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitingEntity ;
+    sh:or (
+      [ sh:node schema:ArticleShape ]
+      [ sh:node schema:JournalArticleShape ]
+      [ sh:node schema:BookShape ]
+      [ sh:node schema:ProceedingsPaperShape ]
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:ReferenceBookShape ]
+      [ sh:node schema:ReviewShape ]
+      [ sh:node schema:ReviewArticleShape ]
+      [ sh:node schema:ThesisShape ]
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitedEntity ;
+    sh:or (
+      [ sh:node schema:ArticleShape ]
+      [ sh:node schema:JournalArticleShape ]
+      [ sh:node schema:BookShape ]
+      [ sh:node schema:ProceedingsPaperShape ]
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:ReferenceBookShape ]
+      [ sh:node schema:ReviewShape ]
+      [ sh:node schema:ReviewArticleShape ]
+      [ sh:node schema:ThesisShape ]
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitationCharacterization ;
+    sh:or (
+      [ sh:hasValue cito:reviews ]
+      [ sh:hasValue cito:citesAsRelated ]
+      [ sh:hasValue cito:repliesTo ]
+      [ sh:hasValue cito:updates ]
+    ) ;
+    sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .

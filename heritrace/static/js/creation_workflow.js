@@ -1,6 +1,3 @@
-// Store initial copies of repeater items
-var initialCopies = {};
-
 var pendingChanges = [];
 
 var tempIdCounter = 0;
@@ -327,23 +324,13 @@ function initializeRepeaters($container) {
     // Initialize repeaters for the new container
     $container.find('[data-repeater-list]').each(function() {
         var list = $(this);
-        var firstItem = list.find('[data-repeater-item]').first();
 
-        if (firstItem.length > 0) {
-            var templateKey = list.data('repeater-list');
-
-            // Only clone if we don't already have a template for this key
-            if (!initialCopies[templateKey]) {
-                initialCopies[templateKey] = firstItem.clone(true, true);
-            }
-
-            // Initialize Sortable for ordered lists
-            if (list.data('ordered-by')) {
-                updateSortable(list);
-            }
-
-            updateButtons(list);
+        // Initialize Sortable for ordered lists
+        if (list.data('ordered-by')) {
+            updateSortable(list);
         }
+
+        updateButtons(list);
     });
 
     updateOrderedElementsNumbering();
@@ -537,20 +524,13 @@ function initializeNewItem($newItem, isInitialStructure = false) {
             const minItems = parseInt($nestedList.data('min-items') || 0);
             
             if (minItems > 0) {
-                const templateKey = $nestedList.data('repeater-list');
+                // Get template directly from DOM
+                const $template = $nestedList.find('[data-repeater-item].repeater-template').first();
 
-                // Check if template exists, if not create it from first item
-                if (!initialCopies[templateKey]) {
-                    const firstItem = $nestedList.find('[data-repeater-item]').first();
-                    if (firstItem.length > 0) {
-                        initialCopies[templateKey] = firstItem.clone(true, true);
-                    } else {
-                        console.warn('No template found for nested repeater:', templateKey);
-                        return; // Skip this nested list if no template
-                    }
+                if ($template.length === 0) {
+                    console.warn('No template found for nested repeater');
+                    return; // Skip this nested list if no template
                 }
-
-                const $template = initialCopies[templateKey].clone(true, true);
 
                 for (let i = 0; i < minItems; i++) {
                     const $nestedItem = $template.clone(true, true);
@@ -874,27 +854,19 @@ $(document).ready(function() {
         const $list = $(this).closest('[data-repeater-list]');
         const maxItems = parseInt($list.data('max-items')) || Infinity;
         const currentItems = $list.children('[data-repeater-item]').not('.repeater-template').length;
-        
+
         if (currentItems >= maxItems) {
             return;
         }
-    
-        // Usa template dalla cache o creane uno nuovo
-        const templateKey = $list.data('repeater-list');
 
-        // Check if template exists, if not create it from first item
-        if (!initialCopies[templateKey]) {
-            const firstItem = $list.find('[data-repeater-item]').first();
-            if (firstItem.length > 0) {
-                initialCopies[templateKey] = firstItem.clone(true, true);
-            } else {
-                console.error('No template found for repeater:', templateKey);
-                return;
-            }
+        // Always get template directly from DOM instead of using cache
+        const $template = $list.find('[data-repeater-item].repeater-template').first();
+
+        if ($template.length === 0) {
+            console.error('No template found for repeater');
+            return;
         }
 
-        $template = initialCopies[templateKey].clone(true, true);
-    
         const $newItem = $template.clone(true, true);
         $newItem.removeClass('d-none repeater-template');
     

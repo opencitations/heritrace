@@ -67,7 +67,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
 
     with open(os.path.join(os.path.dirname(__file__), "context.json"), "r") as config_file:
         context = json.load(config_file)["@context"]
-    
+
     custom_filter = Filter(context, display_rules, app.config['DATASET_DB_URL'])
 
     for row in results:
@@ -82,7 +82,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
         datatype = str(row.datatype) if row.datatype else None
         optionalValues = [v for v in (row.optionalValues or "").split(",") if v]
         orNodes = [v for v in (row.orNodes or "").split(",") if v]
-        
+
         entity_key = (entity_type, subject_shape)
 
         condition_entry = {}
@@ -724,9 +724,12 @@ def extract_shacl_form_fields(shacl, display_rules, app: Flask):
 
     processed_shapes = set()
     results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY)
+    results_list = list(results)
+
     form_fields = process_query_results(
-        shacl, results, display_rules, processed_shapes, app=app, depth=0
+        shacl, results_list, display_rules, processed_shapes, app=app, depth=0
     )
+
     return form_fields
 
 

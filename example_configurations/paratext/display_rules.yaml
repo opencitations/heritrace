@@ -801,8 +801,416 @@ common_properties:
   sortableByTitleDate: &sortableByTitleDate
     - property: "http://purl.org/dc/terms/title"
       sortOrder: ["asc", "desc"]
-    - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
+    - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
       sortOrder: ["desc", "asc"]
+
+  citations_query: &citations_query |
+    PREFIX cito: <http://purl.org/spar/cito/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX pro: <http://purl.org/spar/pro/>
+    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT ?display ?target WHERE {
+      [[value]] a cito:Citation ;
+                cito:hasCitingEntity [[subject]] ;
+                cito:hasCitedEntity ?target .
+      {
+        SELECT ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?characterization
+              (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+        WHERE {
+          [[value]] cito:hasCitedEntity ?target .
+          OPTIONAL {
+            [[value]] cito:hasCitationCharacterization ?characterization .
+          }
+          ?target a fabio:Expression .
+          OPTIONAL {
+            ?target a ?specificType .
+            FILTER(?specificType != fabio:Expression)
+            BIND(?specificType AS ?entityType)
+          }
+          BIND(COALESCE(?entityType, fabio:Expression) AS ?entityType)
+          OPTIONAL { ?target dcterms:title ?title . }
+          OPTIONAL {
+            ?target prism:publicationDate ?pubDateRaw .
+            BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear,
+                    STR(?pubDateRaw),
+                    IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime),
+                      SUBSTR(STR(?pubDateRaw), 1, 4),
+                      STR(?pubDateRaw))) AS ?pubDate)
+          }
+          # Authors
+          OPTIONAL {
+            FILTER(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue))
+            ?target pro:isDocumentContextFor ?authorRole .
+            ?authorRole pro:withRole pro:author ;
+                        pro:isHeldBy ?author .
+            OPTIONAL { ?author foaf:name ?authorName . }
+            OPTIONAL {
+              ?author foaf:familyName ?familyName .
+              OPTIONAL { ?author foaf:givenName ?givenName . }
+              BIND(CONCAT(
+                ?familyName,
+                COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+              ) AS ?authorName)
+            }
+          }
+          # Journal Article info
+          OPTIONAL {
+            FILTER(?entityType IN (fabio:JournalArticle, fabio:Expression))
+            ?target frbr:partOf ?issue .
+            ?issue a fabio:JournalIssue ;
+                   fabio:hasSequenceIdentifier ?issueNumber ;
+                   frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    fabio:hasSequenceIdentifier ?volumeNumber ;
+                    frbr:partOf ?journal .
+            ?journal a fabio:Journal ;
+                    dcterms:title ?journalTitle .
+          }
+          # Book Chapter info
+          OPTIONAL {
+            FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
+            ?target frbr:partOf ?book .
+            ?book a fabio:Book ;
+                  dcterms:title ?bookTitle .
+          }
+          # Page information
+          OPTIONAL {
+            ?target frbr:embodiment ?embodiment .
+            OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+            OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+          }
+        }
+        GROUP BY ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?characterization
+      }
+      BIND(
+        CONCAT(
+          IF(BOUND(?characterization),
+            CONCAT(
+              LCASE(
+                REPLACE(
+                  REPLACE(STR(?characterization), "^.*/([^/]*)$", "$1"),
+                  "([a-z])([A-Z])", "$1 $2"
+                )
+              ),
+              " \""
+            ),
+            ""
+          ),
+          IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
+            CONCAT(
+              COALESCE(?authorList, ""),
+              IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+              IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+              IF(BOUND(?title), CONCAT(
+                IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+                ?title
+              ), ""),
+              IF(BOUND(?journalTitle), CONCAT(
+                IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+                ?journalTitle
+              ), ""),
+              IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+              IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+              IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+              COALESCE(?startPage, ""),
+              IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+              COALESCE(?endPage, ""),
+              "."),
+          IF(?entityType IN (fabio:BookChapter, fabio:Expression),
+            CONCAT(
+              COALESCE(?authorList, ""),
+              IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+              IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+              IF(BOUND(?title), CONCAT(
+                IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+                ?title
+              ), ""),
+              IF(BOUND(?bookTitle), CONCAT(
+                IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
+                ?bookTitle
+              ), ""),
+              IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+              COALESCE(?startPage, ""),
+              IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+              COALESCE(?endPage, ""),
+              "."),
+          COALESCE(?title, STR(?target))
+          )),
+          IF(BOUND(?characterization), "\"", "")
+        ) AS ?display)
+    }
+
+  citing_entity_query: &citing_entity_query |
+    PREFIX cito: <http://purl.org/spar/cito/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX pro: <http://purl.org/spar/pro/>
+    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT ?display ?target WHERE {
+      [[subject]] cito:hasCitingEntity ?target .
+
+      {
+        SELECT ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
+              (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+        WHERE {
+          ?target a fabio:Expression .
+          OPTIONAL {
+            ?target a ?specificType .
+            FILTER(?specificType != fabio:Expression)
+            BIND(?specificType AS ?entityType)
+          }
+          BIND(COALESCE(?entityType, fabio:Expression) AS ?entityType)
+
+          OPTIONAL { ?target dcterms:title ?title . }
+          OPTIONAL {
+            ?target prism:publicationDate ?pubDateRaw .
+            BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear,
+                    STR(?pubDateRaw),
+                    IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime),
+                      SUBSTR(STR(?pubDateRaw), 1, 4),
+                      STR(?pubDateRaw))) AS ?pubDate)
+          }
+
+          # Authors
+          OPTIONAL {
+            FILTER(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue))
+            ?target pro:isDocumentContextFor ?authorRole .
+            ?authorRole pro:withRole pro:author ;
+                        pro:isHeldBy ?author .
+            OPTIONAL { ?author foaf:name ?authorName . }
+            OPTIONAL {
+              ?author foaf:familyName ?familyName .
+              OPTIONAL { ?author foaf:givenName ?givenName . }
+              BIND(CONCAT(
+                ?familyName,
+                COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+              ) AS ?authorName)
+            }
+          }
+
+          # Journal Article info
+          OPTIONAL {
+            FILTER(?entityType IN (fabio:JournalArticle, fabio:Expression))
+            ?target frbr:partOf ?issue .
+            ?issue a fabio:JournalIssue ;
+                   fabio:hasSequenceIdentifier ?issueNumber ;
+                   frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    fabio:hasSequenceIdentifier ?volumeNumber ;
+                    frbr:partOf ?journal .
+            ?journal a fabio:Journal ;
+                    dcterms:title ?journalTitle .
+          }
+
+          # Book Chapter info
+          OPTIONAL {
+            FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
+            ?target frbr:partOf ?book .
+            ?book a fabio:Book ;
+                  dcterms:title ?bookTitle .
+          }
+
+          # Page information
+          OPTIONAL {
+            ?target frbr:embodiment ?embodiment .
+            OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+            OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+          }
+        }
+        GROUP BY ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
+      }
+
+      BIND(
+        IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
+          CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?journalTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?journalTitle
+            ), ""),
+            IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+            IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."),
+        IF(?entityType IN (fabio:BookChapter, fabio:Expression),
+          CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?bookTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
+              ?bookTitle
+            ), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."),
+        COALESCE(?title, STR(?target))
+        )) AS ?display)
+    }
+
+  cited_entity_query: &cited_entity_query |
+    PREFIX cito: <http://purl.org/spar/cito/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX pro: <http://purl.org/spar/pro/>
+    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    SELECT ?display ?target WHERE {
+      [[subject]] cito:hasCitedEntity ?target .
+
+      {
+        SELECT ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
+              (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+        WHERE {
+          ?target a fabio:Expression .
+          OPTIONAL {
+            ?target a ?specificType .
+            FILTER(?specificType != fabio:Expression)
+            BIND(?specificType AS ?entityType)
+          }
+          BIND(COALESCE(?entityType, fabio:Expression) AS ?entityType)
+
+          OPTIONAL { ?target dcterms:title ?title . }
+          OPTIONAL {
+            ?target prism:publicationDate ?pubDateRaw .
+            BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear,
+                    STR(?pubDateRaw),
+                    IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime),
+                      SUBSTR(STR(?pubDateRaw), 1, 4),
+                      STR(?pubDateRaw))) AS ?pubDate)
+          }
+
+          # Authors
+          OPTIONAL {
+            FILTER(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue))
+            ?target pro:isDocumentContextFor ?authorRole .
+            ?authorRole pro:withRole pro:author ;
+                        pro:isHeldBy ?author .
+            OPTIONAL { ?author foaf:name ?authorName . }
+            OPTIONAL {
+              ?author foaf:familyName ?familyName .
+              OPTIONAL { ?author foaf:givenName ?givenName . }
+              BIND(CONCAT(
+                ?familyName,
+                COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+              ) AS ?authorName)
+            }
+          }
+
+          # Journal Article info
+          OPTIONAL {
+            FILTER(?entityType IN (fabio:JournalArticle, fabio:Expression))
+            ?target frbr:partOf ?issue .
+            ?issue a fabio:JournalIssue ;
+                   fabio:hasSequenceIdentifier ?issueNumber ;
+                   frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    fabio:hasSequenceIdentifier ?volumeNumber ;
+                    frbr:partOf ?journal .
+            ?journal a fabio:Journal ;
+                    dcterms:title ?journalTitle .
+          }
+
+          # Book Chapter info
+          OPTIONAL {
+            FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
+            ?target frbr:partOf ?book .
+            ?book a fabio:Book ;
+                  dcterms:title ?bookTitle .
+          }
+
+          # Page information
+          OPTIONAL {
+            ?target frbr:embodiment ?embodiment .
+            OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+            OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+          }
+        }
+        GROUP BY ?target ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle
+      }
+
+      BIND(
+        IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
+          CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?journalTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?journalTitle
+            ), ""),
+            IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+            IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."),
+        IF(?entityType IN (fabio:BookChapter, fabio:Expression),
+          CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?bookTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
+              ?bookTitle
+            ), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."),
+        COALESCE(?title, STR(?target))
+        )) AS ?display)
+    }
+
+virtual_properties:
+  citations_property: &citations_property
+    displayName: "Citations"
+    isVirtual: true
+    shouldBeDisplayed: true
+    fetchValueFromQuery: *citations_query
+    implementedVia:
+      target:
+        class: "http://purl.org/spar/cito/Citation"
+      fieldOverrides:
+        "http://purl.org/spar/cito/hasCitingEntity":
+          shouldBeDisplayed: false
+          value: "${currentEntity}"
+        "http://purl.org/spar/cito/hasCitedEntity":
+          displayName: "Cited Resource"
 
 common_similarity_properties:
   title_identifier_or: &title_identifier_or
@@ -1015,6 +1423,7 @@ rules:
         shouldBeDisplayed: true
         fetchValueFromQuery: *container_query
         supportsSearch: true
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1040,7 +1449,7 @@ rules:
           WHERE {
             [[uri]] a fabio:Article .
             OPTIONAL { [[uri]] dcterms:title ?title . }
-            
+
             # Get author information
             OPTIONAL {
               [[uri]] pro:isDocumentContextFor ?authorRole .
@@ -1056,24 +1465,24 @@ rules:
                 ) AS ?authorName)
               }
             }
-            
+
             # Get publication date
             OPTIONAL {
-              [[uri]] prism:publicationDate ?pubDateRaw . 
-              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+              [[uri]] prism:publicationDate ?pubDateRaw .
+              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear,
                       STR(?pubDateRaw),
-                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime),
                         SUBSTR(STR(?pubDateRaw), 1, 4),
                         STR(?pubDateRaw))) AS ?pubDate)
             }
-            
-            # Get series/miscellany information 
+
+            # Get series/miscellany information
             OPTIONAL {
               [[uri]] frbr:partOf ?series .
               ?series a fabio:Series ;
                     dcterms:title ?seriesTitle .
             }
-            
+
             # Get page information
             OPTIONAL {
               [[uri]] frbr:embodiment ?embodiment .
@@ -1083,7 +1492,7 @@ rules:
           }
           GROUP BY ?title ?pubDate ?seriesTitle ?startPage ?endPage
         }
-        
+
         BIND(CONCAT(
           COALESCE(?authorList, ""),
           IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
@@ -1131,7 +1540,7 @@ rules:
             [[subject]] frbr:partOf ?series.
             ?series a fabio:Series;
                   dcterms:title ?seriesTitle.
-            
+
             {
               SELECT ?series (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
               WHERE {
@@ -1144,7 +1553,7 @@ rules:
               }
               GROUP BY ?series
             }
-            
+
             BIND(STR(?series) AS ?uriString)
             BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
             BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
@@ -1152,6 +1561,7 @@ rules:
                   CONCAT(?seriesTitle, " [omid:", ?omid, "]")
               ) AS ?seriesDisplay)
           }
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1160,13 +1570,13 @@ rules:
     priority: 1
     shouldBeDisplayed: true
     displayName: "Miscellany"
-    similarity_properties: *title_identifier_or
+    similarity_properties: *title_identifier_or 
     fetchUriDisplay: |
       PREFIX dcterms: <http://purl.org/dc/terms/>
-      PREFIX fabio: <http://purl.org/spar/fabio/>
+      PREFIX fabio: <http://purl.org/spar/fabio/> 
       PREFIX foaf: <http://xmlns.com/foaf/0.1/>
       PREFIX pro: <http://purl.org/spar/pro/>
-      PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+      PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/> 
       PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
       SELECT ?display
       WHERE {
@@ -1371,6 +1781,7 @@ rules:
         displayName: "Container"
         shouldBeDisplayed: true
         supportsSearch: true
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1472,6 +1883,7 @@ rules:
       - *publication_date_property
       - *embodiment_property
       - *issue_volume_journal_container_property
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1669,6 +2081,7 @@ rules:
       - *publication_date_property
       - *embodiment_property
       - *container_property
+      - *citations_property
 
   - target:
       class: "http://purl.org/spar/fabio/ProceedingsPaper"
@@ -1756,6 +2169,7 @@ rules:
         displayName: "Conference Proceedings"
         shouldBeDisplayed: true
         fetchValueFromQuery: *proceedings_query
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -1955,7 +2369,8 @@ rules:
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
-      - *book_container_property
+      - *issue_volume_journal_container_property
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2066,6 +2481,7 @@ rules:
       - *publication_date_property
       - *embodiment_property
       - *issue_volume_journal_container_property
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2172,6 +2588,7 @@ rules:
       - *description_property
       - *document_context_property
       - *publication_date_property
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2264,6 +2681,7 @@ rules:
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
+      - *citations_property
     sortableBy:
       *sortableByTitleDate
 
@@ -2451,3 +2869,54 @@ rules:
         supportsSearch: true
         minCharsForSearch: 3
         searchTarget: "self"
+
+  - target:
+      class: "http://purl.org/spar/cito/Citation"
+    shouldBeDisplayed: true
+    displayName: "Citation"
+    fetchUriDisplay: |
+      PREFIX cito: <http://purl.org/spar/cito/>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      SELECT ?display WHERE {
+        [[uri]] cito:hasCitingEntity ?citing ;
+                cito:hasCitedEntity ?cited .
+
+        OPTIONAL { ?citing dcterms:title ?citingTitle . }
+        OPTIONAL { ?cited dcterms:title ?citedTitle . }
+
+        BIND(CONCAT(
+          "Citation from \"",
+          COALESCE(?citingTitle, STR(?citing)),
+          "\" to \"",
+          COALESCE(?citedTitle, STR(?cited)),
+          "\""
+        ) AS ?display)
+      }
+    displayProperties:
+      - *type_property
+      - property: "http://purl.org/spar/cito/hasCitingEntity"
+        displayName: "Citing Entity"
+        shouldBeDisplayed: true
+        supportsSearch: true
+        fetchValueFromQuery: *citing_entity_query
+      - property: "http://purl.org/spar/cito/hasCitedEntity"
+        displayName: "Cited Entity" 
+        shouldBeDisplayed: true
+        supportsSearch: true
+        fetchValueFromQuery: *cited_entity_query
+      - property: "http://purl.org/spar/cito/hasCitationCharacterization"
+        displayName: "Citation Type"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: |
+          SELECT ?display WHERE {
+            VALUES (?characterization) { ([[value]]) }
+            BIND(
+              LCASE(
+                REPLACE(
+                  REPLACE(STR(?characterization), "^.*/([^/]*)$", "$1"),
+                  "([a-z])([A-Z])", "$1 $2"
+                )
+              ) AS ?display
+            )
+          } 

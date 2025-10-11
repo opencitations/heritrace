@@ -1276,7 +1276,7 @@ schema:ReviewShape
   sh:property [
     sh:path dcterms:title ;
     sh:datatype xsd:string ;
-    sh:minCount 1 ;
+    sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -1343,7 +1343,12 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path frbr:partOf ;
-    sh:node schema:JournalShape ;
+    sh:or (
+      [ sh:node schema:IssueShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:VolumeShape ]
+      [ sh:node schema:JournalShape ]
+    ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
@@ -1366,7 +1371,7 @@ schema:ReviewArticleShape
   sh:property [
     sh:path dcterms:title ;
     sh:datatype xsd:string ;
-    sh:minCount 1 ;
+    sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
@@ -1389,6 +1394,7 @@ schema:ReviewArticleShape
     sh:path frbr:partOf ;
     sh:or (
       [ sh:node schema:IssueShape ]
+      [ sh:node schema:SpecialIssueShape ]
       [ sh:node schema:VolumeShape ]
       [ sh:node schema:JournalShape ]
     ) ;
