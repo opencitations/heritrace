@@ -24,7 +24,7 @@ def index():
 @login_required
 def catalogue():
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 50))
+    per_page = int(request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]))
     selected_class = request.args.get("class")
     sort_property = request.args.get("sort_property")
     sort_direction = request.args.get("sort_direction", "ASC")
@@ -55,7 +55,7 @@ def catalogue():
         page=page,
         total_entity_pages=catalog_data["total_pages"],
         per_page=per_page,
-        allowed_per_page=[50, 100, 200, 500],
+        allowed_per_page=current_app.config["CATALOGUE_ALLOWED_PER_PAGE"],
         sortable_properties=json.dumps(catalog_data["sortable_properties"]),
         current_sort_property=catalog_data["sort_property"],
         current_sort_direction=catalog_data["sort_direction"],
@@ -70,13 +70,13 @@ def time_vault():
     Render the Time Vault page, which displays a list of deleted entities.
     """
     initial_page = request.args.get("page", 1, type=int)
-    initial_per_page = request.args.get("per_page", 50, type=int)
+    initial_per_page = request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"], type=int)
     sort_property = request.args.get("sort_property", "deletionTime")
     sort_direction = request.args.get("sort_direction", "DESC")
     selected_class = request.args.get("class")
     selected_shape = request.args.get("shape")
 
-    allowed_per_page = [50, 100, 200, 500]
+    allowed_per_page = current_app.config["CATALOGUE_ALLOWED_PER_PAGE"]
 
     initial_entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = (
         get_deleted_entities_with_filtering(

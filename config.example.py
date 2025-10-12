@@ -31,6 +31,13 @@ class Config(object):
 
     CACHE_VALIDITY_DAYS = int(os.environ.get("CACHE_VALIDITY_DAYS", "7"))
 
+    # Redis Configuration
+    # If REDIS_URL is not set, the application uses an internal Redis instance
+    REDIS_URL = os.environ.get("REDIS_URL")
+
+    # Query Configuration
+    COUNT_LIMIT = int(os.environ.get("COUNT_LIMIT", "10000"))
+
     # Database configuration
     DATASET_DB_TRIPLESTORE = os.environ.get("DATASET_DB_TRIPLESTORE", "virtuoso")  # Options: 'virtuoso' or 'blazegraph'
     DATASET_DB_TEXT_INDEX_ENABLED = os.environ.get("DATASET_DB_TEXT_INDEX_ENABLED", "true").lower() == "true"
@@ -67,7 +74,7 @@ class Config(object):
     ORCID_TOKEN_URL = os.environ.get("ORCID_TOKEN_URL", "https://orcid.org/oauth/token")
     ORCID_API_URL = os.environ.get("ORCID_API_URL", "https://pub.orcid.org/v2.1")
     ORCID_SCOPE = os.environ.get("ORCID_SCOPE", "/authenticate")
-    
+
     # Parse ORCID whitelist from environment (comma-separated)
     _orcid_whitelist_str = os.environ.get("ORCID_WHITELIST", "your-allowed-orcid-1,your-allowed-orcid-2")
     ORCID_WHITELIST = [orcid.strip() for orcid in _orcid_whitelist_str.split(",") if orcid.strip()]
@@ -76,6 +83,11 @@ class Config(object):
     # Available options: ASK, DELETE, KEEP
     _orphan_strategy_str = os.environ.get("ORPHAN_HANDLING_STRATEGY", "ASK").upper()
     ORPHAN_HANDLING_STRATEGY = getattr(OrphanHandlingStrategy, _orphan_strategy_str, OrphanHandlingStrategy.ASK)
-    
+
     _proxy_strategy_str = os.environ.get("PROXY_HANDLING_STRATEGY", "DELETE").upper()
     PROXY_HANDLING_STRATEGY = getattr(ProxyHandlingStrategy, _proxy_strategy_str, ProxyHandlingStrategy.DELETE)
+
+    # Catalogue pagination configuration
+    CATALOGUE_DEFAULT_PER_PAGE = int(os.environ.get("CATALOGUE_DEFAULT_PER_PAGE", "50"))
+    _catalogue_allowed_per_page_str = os.environ.get("CATALOGUE_ALLOWED_PER_PAGE", "50,100,200,500")
+    CATALOGUE_ALLOWED_PER_PAGE = [int(x.strip()) for x in _catalogue_allowed_per_page_str.split(",") if x.strip()]

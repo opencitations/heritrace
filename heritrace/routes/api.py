@@ -41,13 +41,13 @@ def catalogue_api():
     selected_class = request.args.get("class")
     selected_shape = request.args.get("shape")
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 50))
+    per_page = int(request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]))
     sort_property = request.args.get("sort_property")
     sort_direction = request.args.get("sort_direction", "ASC")
 
-    allowed_per_page = [50, 100, 200, 500]
+    allowed_per_page = current_app.config["CATALOGUE_ALLOWED_PER_PAGE"]
     if per_page not in allowed_per_page:
-        per_page = 50
+        per_page = current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]
 
     if not sort_property or sort_property.lower() == "null":
         sort_property = None
@@ -77,13 +77,13 @@ def get_deleted_entities_api():
     selected_class = request.args.get("class")
     selected_shape = request.args.get("shape")
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 50))
+    per_page = int(request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]))
     sort_property = request.args.get("sort_property", "deletionTime")
     sort_direction = request.args.get("sort_direction", "DESC")
 
-    allowed_per_page = [50, 100, 200, 500]
+    allowed_per_page = current_app.config["CATALOGUE_ALLOWED_PER_PAGE"]
     if per_page not in allowed_per_page:
-        per_page = 50
+        per_page = current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]
 
     deleted_entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = (
         get_deleted_entities_with_filtering(

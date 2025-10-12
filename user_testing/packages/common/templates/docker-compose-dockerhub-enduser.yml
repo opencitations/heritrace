@@ -57,6 +57,10 @@ services:
       # Provenance settings
       - DATASET_GENERATION_TIME=2025-07-24T00:00:00+02:00
       - PRIMARY_SOURCE=https://doi.org/10.5281/zenodo.16415791
+
+      # Catalogue pagination settings
+      - CATALOGUE_DEFAULT_PER_PAGE=50
+      - CATALOGUE_ALLOWED_PER_PAGE=50,100,200,500
     volumes:
       - ./config/shacl.ttl:/app/shacl.ttl
       - ./config/display_rules.yaml:/app/display_rules.yaml
