@@ -1,12 +1,15 @@
 import logging
+import os
 import sys
 
 from flask import Flask
 from flask_babel import Babel
 from flask_login import LoginManager
-from heritrace.cli import register_cli_commands
 from redis import Redis
-import os
+
+from heritrace.cli import register_cli_commands
+from heritrace.utils.sparql_utils import precompute_available_classes_cache
+
 
 def create_app(config_object=None):
     app = Flask(__name__)
@@ -36,6 +39,15 @@ def create_app(config_object=None):
         from heritrace.routes import register_blueprints
 
         init_extensions(app, babel, login_manager, redis_client)
+
+        with app.app_context():
+            app.logger.info("[STARTUP] Pre-computing available classes cache...")
+            try:
+                precompute_available_classes_cache()
+                app.logger.info("[STARTUP] Available classes cache computed successfully")
+            except Exception as e:
+                app.logger.warning(f"[STARTUP] Failed to pre-compute classes cache: {e}")
+                app.logger.warning("[STARTUP] Classes will be computed on first request")
 
         register_blueprints(app)
 

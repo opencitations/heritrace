@@ -17,16 +17,19 @@ environment:
   - FLASK_ENV=production
   - APP_TITLE=HERITRACE
   - APP_SUBTITLE=A semantic editor for heritage data
-  
+
   # Security (REQUIRED: Change this!)
   - SECRET_KEY=your-secure-secret-key-here
-  
+
+  # Query Configuration
+  - COUNT_LIMIT=10000
+
   # Database endpoints
   - DATASET_DB_URL=http://host.docker.internal:8999/sparql
   - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
   - DATASET_DB_TRIPLESTORE=virtuoso
   - PROVENANCE_DB_TRIPLESTORE=virtuoso
-  
+
   # ORCID authentication
   - ORCID_CLIENT_ID=your-client-id
   - ORCID_CLIENT_SECRET=your-client-secret
@@ -46,15 +49,51 @@ Keep sensitive credentials secure. Use Docker secrets or external secret managem
 | `APP_TITLE` | String | Main application title shown in UI | No | `HERITRACE` |
 | `APP_SUBTITLE` | String | Subtitle displayed in interface | No | `Heritage Enhanced Repository Interface` |
 | `SECRET_KEY` | String | Flask secret key for security | **Yes** | `generate-a-secure-random-key` |
-| `CACHE_VALIDITY_DAYS` | Integer | Days until the performance cache expires | No | `7` |
+| `CACHE_VALIDITY_DAYS` | Integer | Days until the performance cache expires (internal Redis only) | No | `7` |
+| `COUNT_LIMIT` | Integer | Maximum count for entity queries. When exceeded, displays "LIMIT+" in catalog | No | `10000` |
 
 <Aside type="caution">
 Set a unique `SECRET_KEY` in production.
 </Aside>
 
 <Aside type="note">
-The performance cache prevents slow initialization queries from running on every startup. After `CACHE_VALIDITY_DAYS`, the application will reinitialize counters from the database.
+The performance cache prevents slow initialization queries from running on every startup. After `CACHE_VALIDITY_DAYS`, the application will reinitialize counters from the database. This setting only applies when using the internal Redis instance.
 </Aside>
+
+<Aside type="note" title="Query Performance Optimization">
+`COUNT_LIMIT` optimizes catalog queries for large datasets. When counting entities of a specific class, the query stops at `COUNT_LIMIT + 1`. If the limit is exceeded, the catalog displays "LIMIT+" (e.g., "10000+") instead of the exact count, preventing timeouts on extremely large result sets.
+</Aside>
+
+## Redis Configuration
+
+HERITRACE uses Redis for counter management and caching. You can use either an internal Redis instance (default) or connect to an external Redis server.
+
+### Internal Redis (Default)
+
+By default, HERITRACE runs a Redis instance inside the application container. No additional configuration is needed.
+
+```yaml
+# No REDIS_URL specified - uses internal Redis
+environment:
+  - CACHE_VALIDITY_DAYS=7
+```
+
+### External Redis
+
+To use an external Redis instance, set the `REDIS_URL` environment variable:
+
+```yaml
+environment:
+  # Redis Configuration
+  - REDIS_URL=redis://heritrace-redis:6379/0
+
+  # Counter initialization is skipped when using external Redis
+  # Make sure counters are already populated in the external instance
+```
+
+| Environment Variable | Type | Description | Required | Default |
+|---------------------|------|-------------|----------|---------|
+| `REDIS_URL` | String | Connection URL for external Redis server | No | `redis://localhost:6379/0` (internal) |
 
 ## Database Configuration
 

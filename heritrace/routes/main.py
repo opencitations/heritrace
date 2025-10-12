@@ -39,10 +39,10 @@ def catalogue():
         selected_shape = determine_shape_for_classes([selected_class])
 
     catalog_data = get_catalog_data(
-        selected_class, 
-        page, 
-        per_page, 
-        sort_property, 
+        selected_class,
+        page,
+        per_page,
+        sort_property,
         sort_direction,
         selected_shape
     )

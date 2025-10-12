@@ -18,6 +18,9 @@ services:
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
       
+      # Query Configuration
+      - COUNT_LIMIT=10000
+      
       # Database settings
       - DATASET_DB_TEXT_INDEX_ENABLED=false
       - DATASET_IS_QUADSTORE=true

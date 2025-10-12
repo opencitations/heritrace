@@ -514,8 +514,6 @@ schema:ExpressionShape
       [ sh:hasValue fabio:JournalVolume ]
       [ sh:hasValue fabio:JournalIssue ]
       [ sh:hasValue fabio:ReferenceBook ]
-      [ sh:hasValue fabio:Review ]
-      [ sh:hasValue fabio:ReviewArticle ]
       [ sh:hasValue fabio:Thesis ]
     ) ;
     sh:minCount 0 ;
@@ -589,7 +587,6 @@ schema:JournalArticleShape
     sh:path frbr:partOf ;
     sh:or (
       [ sh:node schema:IssueShape ]
-      [ sh:node schema:SpecialIssueShape ]
       [ sh:node schema:VolumeShape ]
       [ sh:node schema:JournalShape ]
     ) ;
@@ -875,79 +872,6 @@ schema:IssueShape
     sh:maxCount 1 ;
   ] .
 
-schema:SpecialIssueShape
-  a sh:NodeShape ;
-  sh:targetClass fabio:JournalIssue ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:JournalIssue ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path fabio:hasSequenceIdentifier ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path frbr:partOf ;
-    sh:or (
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
-    ) ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:title ;
-    sh:datatype xsd:string ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:publicationDate ;
-    sh:or (
-      [ sh:datatype xsd:date ]
-      [ sh:datatype xsd:gYearMonth ]
-      [ sh:datatype xsd:gYear ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path frbr:embodiment ;
-    sh:node schema:ResourceEmbodimentShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:AuthorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:PublisherShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path datacite:hasIdentifier ;
-    sh:node schema:JournalArticleIdentifierShape ;
-    sh:minCount 0 ;
-  ] .
-
 schema:ReferenceBookShape
   a sh:NodeShape ;
   sh:targetClass fabio:ReferenceBook ;
@@ -997,138 +921,6 @@ schema:ReferenceBookShape
   sh:property [
     sh:path datacite:hasIdentifier ;
     sh:node schema:BookIdentifierShape ;
-    sh:minCount 0 ;
-  ] .
-
-schema:ReviewShape
-  a sh:NodeShape ;
-  sh:targetClass fabio:Review ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Review ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:title ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:publicationDate ;
-    sh:or (
-      [ sh:datatype xsd:date ]
-      [ sh:datatype xsd:gYearMonth ]
-      [ sh:datatype xsd:gYear ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:AuthorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:PublisherShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path datacite:hasIdentifier ;
-    sh:node schema:JournalIdentifierShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path frbr:embodiment ;
-    sh:node schema:ResourceEmbodimentShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path frbr:partOf ;
-    sh:node schema:JournalShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] .
-
-schema:ReviewArticleShape
-  a sh:NodeShape ;
-  sh:targetClass fabio:ReviewArticle ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue fabio:ReviewArticle ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:title ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path frbr:partOf ;
-    sh:or (
-      [ sh:node schema:IssueShape ]
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path prism:publicationDate ;
-    sh:or (
-      [ sh:datatype xsd:date ]
-      [ sh:datatype xsd:gYearMonth ]
-      [ sh:datatype xsd:gYear ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path frbr:embodiment ;
-    sh:node schema:ResourceEmbodimentShape ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:AuthorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:EditorShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path pro:isDocumentContextFor ;
-    sh:node schema:PublisherShape ;
-    sh:minCount 0 ;
-  ] ;
-  sh:property [
-    sh:path datacite:hasIdentifier ;
-    sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
   ] .
 
@@ -1331,16 +1123,3 @@ schema:PublisherShape
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
-
-# Document components
-
-schema:AbstractShape
-  a sh:NodeShape ;
-  sh:targetClass doco:Abstract ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue doco:Abstract ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  .

@@ -1795,30 +1795,6 @@ schema:CollaboratorShape
     sh:maxCount 1 ;
   ] .
 
-# Document components
-
-schema:AbstractShape
-  a sh:NodeShape ;
-  sh:targetClass doco:Abstract ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue doco:Abstract ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path dcterms:description ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  sh:property [
-    sh:path [sh:inversePath frbr:part] ;
-    sh:node schema:ExpressionShape ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] .
-
 schema:CitationShape
   a sh:NodeShape ;
   sh:targetClass cito:Citation ;

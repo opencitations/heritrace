@@ -1247,16 +1247,3 @@ schema:PublisherShape
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] .
-
-# Document components
-
-schema:AbstractShape
-  a sh:NodeShape ;
-  sh:targetClass doco:Abstract ;
-  sh:property [
-    sh:path rdf:type ;
-    sh:hasValue doco:Abstract ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-  ] ;
-  .

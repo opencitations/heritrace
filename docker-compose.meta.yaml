@@ -64,8 +64,8 @@ services:
       - ./default_components:/app/default_components
       - ./pyproject.toml:/app/pyproject.toml
       - ./poetry.lock:/app/poetry.lock
-      - ./shacl.ttl:/app/shacl.ttl
-      - ./display_rules.yaml:/app/display_rules.yaml
+      - ./example_configurations/opencitations_meta/shacl.ttl:/app/shacl.ttl
+      - ./example_configurations/opencitations_meta/display_rules.yaml:/app/display_rules.yaml
       - ./babel:/app/babel
       - ./webpack.config.js:/app/webpack.config.js
       - ./redis-data:/data
