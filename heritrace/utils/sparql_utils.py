@@ -88,21 +88,51 @@ def _count_class_instances(class_uri: str, limit: int = COUNT_LIMIT) -> tuple:
     return str(count), count
 
 
-def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_multiple_shapes: set):
-    """Get entities for a class using enhanced shape detection for classes with multiple shapes."""
+def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_multiple_shapes: set, limit: int = COUNT_LIMIT):
+    """
+    Get entities for a class using enhanced shape detection for classes with multiple shapes.
+    Uses LIMIT to avoid loading all entities.
+    """
+    # Early exit if no classes have multiple shapes
+    if not classes_with_multiple_shapes or class_uri not in classes_with_multiple_shapes:
+        return defaultdict(list)
+
     sparql = get_sparql()
 
-    pattern = f"?subject a <{class_uri}> . ?subject ?p ?o ."
+    # First, get subject URIs with LIMIT
+    pattern = f"?subject a <{class_uri}> ."
     wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern)
 
-    query = f"""
+    subjects_query = f"""
+        SELECT DISTINCT ?subject
+        WHERE {{
+            {wrapped_pattern}
+        }}
+        LIMIT {limit}
+    """
+
+    sparql.setQuery(subjects_query)
+    sparql.setReturnFormat(JSON)
+    subjects_results = sparql.query().convert()
+
+    subjects = [r["subject"]["value"] for r in subjects_results["results"]["bindings"]]
+
+    if not subjects:
+        return defaultdict(list)
+
+    # Fetch triples only for these specific subjects
+    subjects_filter = " ".join([f"(<{s}>)" for s in subjects])
+    pattern_with_filter = f"?subject a <{class_uri}> . ?subject ?p ?o . VALUES (?subject) {{ {subjects_filter} }}"
+    wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern_with_filter)
+
+    triples_query = f"""
         SELECT ?subject ?p ?o
         WHERE {{
             {wrapped_pattern}
         }}
     """
 
-    sparql.setQuery(query)
+    sparql.setQuery(triples_query)
     sparql.setReturnFormat(JSON)
     results = sparql.query().convert()
 
@@ -200,9 +230,9 @@ def get_available_classes():
     for class_data in classes_with_counts:
         class_uri = class_data["uri"]
 
-        if class_uri in classes_with_multiple_shapes:
+        if classes_with_multiple_shapes and class_uri in classes_with_multiple_shapes:
             shape_to_entities = _get_entities_with_enhanced_shape_detection(
-                class_uri, classes_with_multiple_shapes
+                class_uri, classes_with_multiple_shapes, limit=COUNT_LIMIT
             )
 
             for shape_uri, entities in shape_to_entities.items():
@@ -211,7 +241,8 @@ def get_available_classes():
                     available_classes.append({
                         "uri": class_uri,
                         "label": custom_filter.human_readable_class(entity_key),
-                        "count": len(entities),
+                        "count": f"{len(entities)}+" if len(entities) >= COUNT_LIMIT else str(len(entities)),
+                        "count_numeric": len(entities),
                         "shape": shape_uri
                     })
         else:
@@ -223,6 +254,7 @@ def get_available_classes():
                     "uri": class_uri,
                     "label": custom_filter.human_readable_class(entity_key),
                     "count": class_data["display_count"],
+                    "count_numeric": class_data["numeric_count"],
                     "shape": shape_uri
                 })
 
@@ -272,17 +304,46 @@ def get_entities_for_class(
     use_shape_filtering = (selected_shape and selected_class in classes_with_multiple_shapes)
 
     if use_shape_filtering:
-        pattern = f"?subject a <{selected_class}> . ?subject ?p ?o ."
+        # For shape filtering, we need to fetch entities and check their shape
+        # Use a larger LIMIT to ensure we get enough entities after filtering
+        offset = (page - 1) * per_page
+        fetch_limit = per_page * 5  # Safety margin for filtering
+
+        # First, get the subjects with LIMIT
+        pattern = f"?subject a <{selected_class}> ."
         wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern)
 
-        query = f"""
+        subjects_query = f"""
+            SELECT DISTINCT ?subject
+            WHERE {{
+                {wrapped_pattern}
+            }}
+            LIMIT {fetch_limit}
+            OFFSET {offset}
+        """
+
+        sparql.setQuery(subjects_query)
+        sparql.setReturnFormat(JSON)
+        subjects_results = sparql.query().convert() 
+
+        subjects = [r["subject"]["value"] for r in subjects_results["results"]["bindings"]]
+
+        if not subjects:
+            return [], 0
+
+        # Now fetch triples for these specific subjects
+        subjects_filter = " ".join([f"(<{s}>)" for s in subjects])
+        pattern_with_filter = f"?subject a <{selected_class}> . ?subject ?p ?o . VALUES (?subject) {{ {subjects_filter} }}"
+        wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern_with_filter)
+
+        triples_query = f"""
             SELECT ?subject ?p ?o
             WHERE {{
                 {wrapped_pattern}
             }}
         """
 
-        sparql.setQuery(query)
+        sparql.setQuery(triples_query)
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
 
@@ -306,9 +367,10 @@ def get_entities_for_class(
             reverse_sort = sort_direction.upper() == "DESC"
             filtered_entities.sort(key=lambda x: x["label"].lower(), reverse=reverse_sort)
 
+        # For shape-filtered results, we can't accurately determine total_count without scanning all entities
+        # Return the number of filtered entities as an approximation
         total_count = len(filtered_entities)
-        offset = (page - 1) * per_page
-        return filtered_entities[offset:offset + per_page], total_count
+        return filtered_entities[:per_page], total_count
 
     # Standard pagination path
     offset = (page - 1) * per_page
@@ -333,8 +395,13 @@ def get_entities_for_class(
         OFFSET {offset}
     """
 
-    # Count using helper function
-    _, total_count = _count_class_instances(selected_class)
+    available_classes = get_available_classes()
+    class_info = next(
+        (c for c in available_classes
+         if c["uri"] == selected_class and c.get("shape") == selected_shape),
+        None
+    )
+    total_count = class_info.get("count_numeric", 0) if class_info else 0
 
     sparql.setQuery(entities_query)
     sparql.setReturnFormat(JSON)
