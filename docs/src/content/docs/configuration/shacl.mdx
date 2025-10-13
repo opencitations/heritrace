@@ -15,21 +15,21 @@ The SHACL (Shapes Constraint Language) file is a cornerstone of HERITRACE, servi
 
 In short, your SHACL file acts as a single source of truth that dictates both the data entry interface and the validation rules.
 
-## Official Documentation
+## Official documentation
 
 For a complete understanding of SHACL and its advanced features, refer to the official W3C documentation:
 
 - <a href="https://www.w3.org/TR/shacl/" target="_blank" rel="noopener noreferrer">SHACL Specification</a>: The official recommendation for the Shapes Constraint Language.
 - <a href="https://www.w3.org/TR/shacl-af/" target="_blank" rel="noopener noreferrer">SHACL Advanced Features</a>: A note detailing SPARQL-based constraints and other extensions.
 
-## File Location
+## File location
 
 The SHACL schema is located at `resources/shacl.ttl`. You can configure the path in `config.py`:
 ```python
 SHACL_PATH = 'resources/shacl.ttl'
 ```
 
-## Core Concepts
+## Core concepts
 
 ### Namespaces
 Define the ontologies and vocabularies you'll use at the top of your file.
@@ -50,7 +50,7 @@ Define the ontologies and vocabularies you'll use at the top of your file.
 @prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
 ```
 
-### Shape Definition
+### Shape definition
 Each shape targets a specific class and defines its properties.
 
 ```ttl
@@ -62,11 +62,11 @@ schema:JournalArticleShape
     ] .
 ```
 
-## Property Constraints
+## Property constraints
 
 SHACL constraints define the validation rules for properties on a targeted class.
 
-### Cardinality (`sh:minCount` & `sh:maxCount`)
+### Cardinality (`sh:minCount` and `sh:maxCount`)
 Control how many values a property can have.
 
 - `sh:minCount`: The minimum number of values. A value of `1` or more makes the property required.
@@ -109,7 +109,7 @@ sh:property [
 ] .
 ```
 
-### Value Range (`sh:in` & `sh:hasValue`)
+### Value range (`sh:in` and `sh:hasValue`)
 Restrict property values to a specific set of options.
 
 - `sh:hasValue`: The property must have at least one value that equals the specified node.
@@ -129,7 +129,7 @@ sh:property [
 ] .
 ```
 
-### Shape Reference (`sh:node`)
+### Shape reference (`sh:node`)
 Specify that a property's value must conform to another shape. This is used to validate complex objects or relationships.
 
 ```ttl
@@ -141,7 +141,7 @@ sh:property [
 ] .
 ```
 
-### Conditional Validation (`sh:condition`)
+### Conditional validation (`sh:condition`)
 Apply a constraint only when a specific condition is met. This is useful for creating validation rules that depend on the value of another property.
 
 In the example below, the `sh:pattern` is only checked if the identifier's scheme (`datacite:usesIdentifierScheme`) is `datacite:doi`.
@@ -164,7 +164,7 @@ schema:JournalArticleIdentifierShape
     ].
 ```
 
-### Pattern Matching (`sh:pattern` & `sh:message`)
+### Pattern matching (`sh:pattern` and `sh:message`)
 Use regular expressions to validate the format of string literals. You can provide a custom `sh:message` to guide users.
 
 ```ttl
@@ -180,7 +180,7 @@ sh:property [
 ] .
 ```
 
-## Complex Relationships: The Proxy Pattern
+## Complex relationships: The proxy pattern
 
 HERITRACE is data-model-agnostic. To handle complex relationships that require their own properties (for instance, defining a person's role in a project or the time frame of a collaboration), you can implement a "proxy pattern." This involves using an intermediate entity to link two other entities, where the intermediate entity holds the attributes of the relationship.
 
@@ -222,11 +222,11 @@ This pattern is central to how HERITRACE manages complex data.
 - **[Manage proxy deletion behavior in settings](/heritrace/configuration/app-settings/#entity-handling-strategies)**
 </Aside>
 
-## SHACL and Display Rules Interaction
+## SHACL and display rules interaction
 
 Understanding how SHACL and Display Rules work together is crucial for effective HERITRACE configuration. While both components are individually optional, their interaction follows specific rules that determine data validation, form generation, and user interface behavior.
 
-### Configuration Interaction Matrix
+### Configuration interaction matrix
 
 | Scenario | SHACL Schema | Display Rules | Entity Creation Method | Property Constraints | Form Generation | Display Names |
 |----------|--------------|---------------|----------------------|---------------------|-----------------|---------------|
@@ -235,35 +235,35 @@ Understanding how SHACL and Display Rules work together is crucial for effective
 | **Display Rules Only** | ❌ Absent | ✅ Present | Custom properties form (free-form) | ❌ No validation | ✅ Custom properties form | ✅ From Display Rules (if class matches) or URI |
 | **Neither Present** | ❌ Absent | ❌ Absent | Custom properties form (free-form) | ❌ No validation | ✅ Custom properties form | ✅ Auto-generated from URI |
 
-### Key Interaction Rules
+### Key interaction rules
 
-#### 1. **SHACL Has Precedence Over Properties**
+#### 1. SHACL has precedence over properties
 - **Rule**: When a SHACL shape exists for an entity class, **only properties defined in that shape** are available for entity creation and editing.
 - **Implication**: You cannot add arbitrary properties through Display Rules if they're not defined in the corresponding SHACL shape.
 - **Example**: If `JournalArticleShape` only defines `dcterms:title` and `dcterms:abstract`, you cannot create display rules for `prism:keyword` unless you first add it to the SHACL shape.
 
-#### 2. **Entity Creation Methods**
+#### 2. Entity creation methods
 - **Rule**: The presence of SHACL determines the entity creation method available to users.
 - **With SHACL**: Users get structured forms with predefined entity types and properties, limited to what's defined in SHACL shapes.
 - **Without SHACL**: Users get a flexible custom properties form where they can define any property URI and value.
 - **Example**: With SHACL, you select "Journal Article" from a dropdown and fill predefined fields. Without SHACL, you manually enter property URIs like `dcterms:title` and their values.
 
-#### 3. **Display Name Fallback Chain**
+#### 3. Display name fallback chain
 - **Rule**: Display names for properties follow this priority order:
   1. **Display Rules**: `displayName` from matching display rule
   2. **Auto-generated from URI**: Automatic formatting of property URI using `format_uri_as_readable()`
 - **Note**: The system always provides readable names by converting URIs like `dcterms:title` to `title` or `hasPublicationDate` to `has publication date`.
 
-#### 4. **Shape Priority Determines Specificity**
+#### 4. Shape priority determines specificity
 - **Rule**: When multiple SHACL shapes target the same class, Display Rules priority determines which shape to use.
 - **Implication**: Lower priority numbers (higher priority) in Display Rules affect SHACL shape selection.
 - **Example**: Both `RegularIssueShape` and `SpecialIssueShape` target `fabio:JournalIssue`, but the Display Rule with `priority: 1` determines which shape applies.
 
-#### 5. **Validation Always Follows SHACL**
+#### 5. Validation always follows SHACL
 - **Rule**: Data validation constraints come exclusively from SHACL shapes, never from Display Rules.
 - **Implication**: Display Rules control presentation and behavior, but cannot override or add validation constraints.
 
-### Best Practices for Combined Configuration
+### Best practices for combined configuration
 
 1. **Define SHACL First**: Always start by defining your SHACL shapes before creating Display Rules.
 
@@ -273,7 +273,7 @@ Understanding how SHACL and Display Rules work together is crucial for effective
 
 4. **Use Consistent Priorities**: Align Display Rules priorities with your intended SHACL shape precedence.
 
-## Testing and Updating
+## Testing and updating
 
 - **Reloading**: When running in development mode, the application will automatically restart when it detects changes to `shacl.ttl`, applying your updates instantly.
 - **Update Display Rules**: If you modify properties, remember to update `resources/display_rules.yaml` to reflect those changes in the user interface.

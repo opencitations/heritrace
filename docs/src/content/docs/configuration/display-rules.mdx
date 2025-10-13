@@ -12,7 +12,7 @@ In short, this file lets you transform raw RDF data into a user-friendly and int
 Display Rules work in conjunction with SHACL schemas. While Display Rules control presentation and user interface behavior, SHACL schemas define data validation and available properties. **Display Rules cannot override SHACL constraints** - they can only style and configure properties that are already defined in SHACL shapes. For detailed information about their interaction, see the [SHACL and Display Rules Interaction section](/heritrace/configuration/shacl/#shacl-and-display-rules-interaction).
 </Aside>
 
-## File Location
+## File location
 
 By default, the display rules file is `resources/display_rules.yaml` in the project's root directory. You can change this path in your `config.py` file:
 
@@ -20,11 +20,11 @@ By default, the display rules file is `resources/display_rules.yaml` in the proj
 DISPLAY_RULES_PATH = 'resources/display_rules.yaml'
 ```
 
-## Core Concepts
+## Core concepts
 
 The configuration is a list of rules. Each rule targets a specific type of entity and defines how it and its properties should be handled.
 
-### Targeting Entities
+### Targeting entities
 
 You can target entities with rules in three ways, allowing for granular control.
 
@@ -75,7 +75,7 @@ When an entity could be targeted by multiple rules (e.g., it has multiple types)
   # ...
 ```
 
-### Key Rule Settings
+### Key rule settings
 
 Here are the top-level settings for each rule:
 
@@ -86,7 +86,7 @@ Here are the top-level settings for each rule:
 -   `displayProperties`: A list defining how each property of the entity should be displayed and behave.
 -   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting Catalogue Items](#sorting-catalogue-items-sortableby) section for details.
 
-## Displaying Entity Labels with `fetchUriDisplay`
+## Displaying entity labels with `fetchUriDisplay`
 
 While URIs are great for machines, they are not user-friendly. The `fetchUriDisplay` setting allows you to define a human-readable label for an entity type using a SPARQL query. This label is used throughout the HERITRACE interface, for instance, in search results and breadcrumbs, to represent the entity.
 
@@ -114,7 +114,7 @@ You can find many practical examples of this in the default `resources/display_r
 ```
 This configuration takes a `JournalVolume` entity and displays it as "Volume [number] of [Journal Title]", which is much clearer than its URI.
 
-## Configuring Properties (`displayProperties`)
+## Configuring properties (`displayProperties`)
 
 This is where you define the behavior of each field in the entity view and edit forms.
 
@@ -122,7 +122,7 @@ This is where you define the behavior of each field in the entity view and edit 
 The order in which properties are listed in the `displayProperties` configuration determines the order in which they appear in the user interface. Properties listed first will appear at the top of forms and entity views, while properties listed later will appear below them.
 </Aside>
 
-### Basic Property
+### Basic property
 
 A simple property configuration might look like this:
 
@@ -138,7 +138,7 @@ A simple property configuration might look like this:
 -   `shouldBeDisplayed`: If `true`, the property is visible.
 -   `inputType`: Defines the form field. Common types include `text`, `textarea`, `date`, and `tag`.
 
-### Search and Disambiguation
+### Search and disambiguation
 
 You can enable real-time search to prevent duplicate entries.
 
@@ -156,7 +156,7 @@ You can enable real-time search to prevent duplicate entries.
     -   `self`: Searches for entities of the same type with a matching property value (e.g., finding other articles with a similar title).
     -   `parent`: Use this when a property links to a separate but related entity. This setting ensures that a search for the related entity's value returns the main (parent) entity. For example, if a bibliographic resource is linked to an `Identifier` entity (which holds a DOI), a search for the DOI value should return the resource itself, not the `Identifier` entity.
 
-### Custom Value Display with `fetchValueFromQuery`
+### Custom value display with `fetchValueFromQuery`
 
 <Aside type="note" title="`fetchUriDisplay` vs. `fetchValueFromQuery`">
 It's important to understand the distinction:
@@ -188,7 +188,7 @@ For example, an identifier is an entity itself, but we want to display it as `do
 The query uses `[[subject]]` and `[[value]]` as placeholders that HERITRACE replaces with the URI of the current entity and property value, respectively.
 </Aside>
 
-### Ordering Items (`orderedBy`)
+### Ordering items (`orderedBy`)
 
 When the order of multiple values for a property is significant (e.g., the sequence of authors for a paper), you can use the `orderedBy` key. It specifies the RDF predicate that defines this order. When `orderedBy` is configured, the interface will display drag-and-drop handles, allowing users to reorder the items manually.
 
@@ -200,7 +200,7 @@ When the order of multiple values for a property is significant (e.g., the seque
   # ... other settings
 ```
 
-#### How it Works: RDF Representation
+#### How it works: RDF representation
 
 When a user arranges items, HERITRACE uses the specified `orderedBy` property to create a linked list that connects the items sequentially. This approach is model-agnostic; it can order any set of related resources, whether they are direct properties or linked through an intermediate proxy entity.
 
@@ -225,7 +225,7 @@ For instance, if a resource has multiple related items and their order matters, 
 Currently, HERITRACE supports modeling order using a sequential property to form a linked list. We plan to support other ordering patterns, such as using an index property, in future releases.
 </Aside>
 
-### Relationship Properties (Proxy Pattern)
+### Relationship properties (proxy pattern)
 
 Sometimes a simple link between two entities isn't enough. You might need to describe the relationship itself. For example, a person can be an author of an article, but they could also be an editor. How do you capture this specific role?
 
@@ -278,11 +278,11 @@ Here is how you configure this complex relationship in `display_rules.yaml`:
 
 This configuration tells HERITRACE how to navigate the proxy relationship, distinguish between different roles using SHACL shapes, and display the final linked entity correctly in the user interface.
 
-## Sorting Catalogue Items (`sortableBy`)
+## Sorting catalogue items (`sortableBy`)
 
 The `sortableBy` configuration allows users to sort entities in the catalogue view by specific properties. When configured, sorting controls appear in the catalogue and Time Vault interfaces, letting users organize items by properties like title, publication date, or any other relevant field.
 
-### Basic Configuration
+### Basic configuration
 
 ```yaml
 - target:
@@ -305,7 +305,7 @@ The `sortableBy` configuration allows users to sort entities in the catalogue vi
 **For large datasets with thousands or millions of entities**, consider omitting the `sortableBy` configuration entirely. When no sorting properties are defined, HERITRACE does not apply any `ORDER BY` clause to the SPARQL queries that retrieve entities for the catalogue view.
 </Aside>
 
-## Best Practice: Keep it DRY with YAML Anchors
+## Best practice: Keep it DRY with YAML anchors
 
 To avoid repeating the same queries or property definitions, use YAML anchors (`&`) and aliases (`*`). This makes your configuration file shorter and much easier to maintain.
 
@@ -342,6 +342,6 @@ rules:
             fetchValueFromQuery: *author_query # Use the author query
 ```
 
-## Testing Your Rules
+## Testing your rules
 
 When running HERITRACE in development mode, any changes to `resources/display_rules.yaml` will automatically restart the server, so you can see your updates instantly.

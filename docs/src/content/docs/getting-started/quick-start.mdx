@@ -12,11 +12,11 @@ This guide will get HERITRACE running on your local machine in just a few steps.
 - <a href="https://docs.docker.com/get-docker/" target="_blank" rel="noopener noreferrer">Docker and Docker Compose installed</a>
 - Modern web browser
 
-## Quick Setup
+## Quick setup
 
 This method uses official Docker images published to Docker Hub and GitHub Container Registry. All configuration is done through environment variables in the docker-compose.yml file.
 
-### 1. Download Configuration Files
+### 1. Download configuration files
 
 Create a new directory for HERITRACE:
 ```bash
@@ -52,14 +52,14 @@ Optionally download database management scripts for quick setup:
   </TabItem>
 </Tabs>
 
-### 2. Demo Mode (No Configuration Required)
+### 2. Demo mode (no configuration required)
 
 **Demo Mode:** HERITRACE runs in demo mode by default (`FLASK_ENV=demo`) for immediate testing without authentication setup. No configuration changes are required to get started!
 
 **Optional Configuration:** Edit `docker-compose.yml` to customize:
 - **Database endpoints**: Update `DATASET_DB_URL` and `PROVENANCE_DB_URL` if using your own databases
 
-### 3. Launch Options
+### 3. Launch options
 
 **Option A: Quick start with provided databases**
 
@@ -91,7 +91,7 @@ docker compose up
 ```
 
 
-## Access the Application
+## Access the application
 
 Open your browser and navigate to:
 
@@ -103,7 +103,7 @@ http://127.0.0.1:5000
 **Demo Mode**: Runs on HTTP with authentication bypassed for immediate testing. **Production Mode**: Requires HTTPS, valid SSL certificates, and ORCID authentication setup - see [Application Settings](/heritrace/configuration/app-settings/) for configuration details.
 :::
 
-## Pre-configured Data Model
+## Pre-configured data model
 
 HERITRACE comes preloaded with validation and display rules based on a customized version of the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank" rel="noopener noreferrer">OpenCitations Data Model (OCDM)</a>:
 
@@ -111,7 +111,7 @@ HERITRACE comes preloaded with validation and display rules based on a customize
 - **YAML Display Rules** (`./display_rules.yaml`): Configure how entities appear in the interface
 - **Default Components** (`default_components/`): Contains the default URI generator and counter handler implementations
 
-## What's Next?
+## What's next?
 
 Now that HERITRACE is running, you can:
 
@@ -120,7 +120,7 @@ Now that HERITRACE is running, you can:
 3. **Configure Schemas**: Customize the [SHACL schema](/heritrace/configuration/shacl/) for your data model
 4. **Set Display Rules**: Modify the [YAML display rules](/heritrace/configuration/display-rules/) for your interface
 
-## Stopping the Application
+## Stopping the application
 
 When you're done, stop the services:
 
@@ -149,7 +149,7 @@ When you're done, stop the services:
 
 ## Troubleshooting
 
-### Port Already in Use
+### Port already in use
 If you get port conflicts, check if other services are running on the required ports:
 
 <Tabs>
@@ -177,7 +177,7 @@ If you get port conflicts, check if other services are running on the required p
   </TabItem>
 </Tabs>
 
-### Need Help?
+### Need help?
 - Review [configuration options](/heritrace/configuration/app-settings/) for advanced setup
 - Use `docker compose logs` to check application logs for specific errors
 - Visit the <a href="https://github.com/opencitations/heritrace" target="_blank" rel="noopener noreferrer">GitHub repository</a> for issues and support

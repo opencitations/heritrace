@@ -15,7 +15,7 @@ This system facilitates non-technical domain experts in enriching and editing me
 
 Complete documentation is available at: **[https://opencitations.github.io/heritrace/](https://opencitations.github.io/heritrace/)**
 
-## 🚀 Quick Start
+## 🚀 Quick start
 
 **Prerequisites:** Docker and Docker Compose
 
@@ -112,15 +112,15 @@ For development setup and testing:
 - [**CI/CD Pipeline**](https://opencitations.github.io/heritrace/testing/cicd/)
 
 
-## 📖 Key Features
+## 📖 Key features
 
 HERITRACE bridges the gap between sophisticated semantic technologies and the practical needs of cultural heritage professionals:
 
-- **Provenance Management and Change Tracking**: Complete change history and versioning with detailed tracking of who, when, and what changed
-- **Time Machine & Time Vault**: Timeline interface for version management and recovery of past versions of the data
-- **Intelligent Metadata Management**: Real-time SHACL validation, disambiguation, and dynamic field configuration
-- **ORCID Integration**: Secure authentication allowing only authorized personnel to make modifications
-- **Seamless RDF Integration**: Works out-of-the-box with existing RDF datasets and any triplestore
+- **Provenance management and change tracking**: Complete change history and versioning with detailed tracking of who, when, and what changed
+- **Time machine and Time vault**: Timeline interface for version management and recovery of past versions of the data
+- **Intelligent metadata management**: Real-time SHACL validation, disambiguation, and dynamic field configuration
+- **ORCID integration**: Secure authentication allowing only authorized personnel to make modifications
+- **Seamless RDF integration**: Works out-of-the-box with existing RDF datasets and any triplestore
 
 For a detailed overview of features and technical foundation, see our [**User Guide**](https://opencitations.github.io/heritrace/user-guide/overview/) for details on how to get started.
 

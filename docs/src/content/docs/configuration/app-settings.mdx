@@ -7,7 +7,7 @@ import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
 
 HERITRACE is configured through Docker environment variables.
 
-## Configuration Method
+## Configuration method
 
 Configure settings in your `docker-compose.yml` file:
 
@@ -40,9 +40,9 @@ environment:
 Keep sensitive credentials secure. Use Docker secrets or external secret management for production.
 </Aside>
 
-## Core Application Settings
+## Core application settings
 
-### Basic Configuration
+### Basic configuration
 
 | Environment Variable | Type | Description | Required | Default |
 |---------------------|------|-------------|----------|---------|
@@ -59,11 +59,11 @@ Set a unique `SECRET_KEY` in production.
 The performance cache prevents slow initialization queries from running on every startup. After `CACHE_VALIDITY_DAYS`, the application will reinitialize counters from the database. This setting only applies when using the internal Redis instance.
 </Aside>
 
-## Redis Configuration
+## Redis configuration
 
 HERITRACE uses Redis for counter management and caching. You can use either an internal Redis instance (default) or connect to an external Redis server.
 
-### Internal Redis (Default)
+### Internal Redis (default)
 
 By default, HERITRACE runs a Redis instance inside the application container. No additional configuration is needed.
 
@@ -90,13 +90,13 @@ environment:
 |---------------------|------|-------------|----------|---------|
 | `REDIS_URL` | String | Connection URL for external Redis server | No | `redis://localhost:6379/0` (internal) |
 
-## Database Configuration
+## Database configuration
 
 Compatible with SPARQL 1.1 triplestores. Tested with **Virtuoso** and **Blazegraph**.
 
 When `DATASET_DB_TEXT_INDEX_ENABLED` is enabled, uses database text indexing to optimize SPARQL queries on literals. Available for Virtuoso and Blazegraph only.
 
-### Triplestore Settings
+### Triplestore settings
 
 ```yaml
 environment:
@@ -116,7 +116,7 @@ environment:
   - DATASET_DB_TEXT_INDEX_ENABLED=true
 ```
 
-### Database Options
+### Database options
 
 <Tabs>
   <TabItem label="Virtuoso (Recommended)">
@@ -174,7 +174,7 @@ For comprehensive management of your Virtuoso instance—including launching the
 This Python package automates many complex tasks that can be challenging to configure and execute correctly in Virtuoso, significantly simplifying database administration.
 </Aside>
 
-### Storage Configuration
+### Storage configuration
 
 | Environment Variable | Options | Description |
 |---------------------|---------|-------------|
@@ -182,7 +182,7 @@ This Python package automates many complex tasks that can be challenging to conf
 | `PROVENANCE_IS_QUADSTORE` | `true`/`false` | Enable provenance named graphs |
 | `DATASET_DB_TEXT_INDEX_ENABLED` | `true`/`false` | Enable internal query optimization using the database's full-text search index |
 
-## Schema and Display Configuration
+## Schema and display configuration
 
 These settings control the data model's constraints and its presentation in the user interface.
 
@@ -195,7 +195,7 @@ These settings control the data model's constraints and its presentation in the 
 You can expose SHACL and display rules files as Docker volumes to customize them directly.
 </Aside>
 
-## Data Provenance and Versioning
+## Data provenance and versioning
 
 These settings configure how the application handles data provenance and versioning, aligning with the <a href="https://www.w3.org/TR/prov-o/" target="_blank" rel="noopener noreferrer">W3C PROV Ontology</a>.
 
@@ -211,7 +211,7 @@ environment:
 | `PRIMARY_SOURCE` | Defines the default primary source (DOI/URL). This value is used for the `prov:hadPrimarySource` property. It's used for the initial dataset import and proposed as the default when creating or modifying entities | Required |
 | `DATASET_GENERATION_TIME` | Specifies the creation timestamp for a pre-existing dataset. This value is used for the `prov:generatedAtTime` property in the initial historical snapshot | Current time |
 
-## URI Generation and Counter Handling
+## URI generation and counter handling
 
 HERITRACE uses a pluggable architecture for URI generation and counter management, allowing you to customize how unique identifiers are created for entities.
 
@@ -222,7 +222,7 @@ environment:
   - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
 ```
 
-### Custom Components
+### Custom components
 
 You can create custom URI generators and counter handlers by:
 
@@ -239,7 +239,7 @@ volumes:
   - ./custom_components:/app/custom_components
 ```
 
-### Default Components Configuration
+### Default components configuration
 
 The default components are configured through environment variables within their respective Python files:
 
@@ -342,9 +342,9 @@ class InMemoryCounterHandler:
 ```
 </Aside>
 
-## ORCID Integration
+## ORCID integration
 
-### Basic Setup
+### Basic setup
 
 ```yaml
 environment:
@@ -362,7 +362,7 @@ environment:
   - ORCID_WHITELIST=your-allowed-orcid-1,your-allowed-orcid-2
 ```
 
-### Setting Up ORCID
+### Setting up ORCID
 
 1.  **Create an ORCID Account**: If you don't already have one, <a href="https://orcid.org/register" target="_blank" rel="noopener noreferrer">create an ORCID account</a>.
 
@@ -392,7 +392,7 @@ environment:
       - ORCID_WHITELIST=0000-0002-1825-0097,https://orcid.org/0000-0001-5109-3700
     ```
 
-## Entity Handling Strategies
+## Entity handling strategies
 
 HERITRACE provides configurable strategies to manage how the application handles entities that are left without connections after a deletion. These strategies apply to two distinct types of entities: **orphans** and **proxies**.
 
@@ -403,7 +403,7 @@ environment:
   - PROXY_HANDLING_STRATEGY=ASK   # Options: ASK, DELETE, KEEP
 ```
 
-### Strategy Options
+### Strategy options
 
 <Tabs>
   <TabItem label="Orphan Handling">
@@ -449,7 +449,7 @@ environment:
   </TabItem>
 </Tabs>
 
-## Catalogue Settings
+## Catalogue settings
 
 These settings control the behaviour and display of the catalogue and Time Vault interfaces.
 

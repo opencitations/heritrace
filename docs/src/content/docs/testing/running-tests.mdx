@@ -7,14 +7,14 @@ import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
 
 HERITRACE uses pytest for testing. This guide covers running tests locally and understanding the testing infrastructure.
 
-## Test Overview
+## Test overview
 
-### Test Types
+### Test types
 
 - **Unit Tests**: Test individual functions and classes
 - **Integration Tests**: Test component interactions and database operations
 
-### Test Structure
+### Test structure
 
 ```
 tests/
@@ -30,7 +30,7 @@ tests/
 │   └── ...
 ```
 
-## Setting Up Test Environment
+## Setting up test environment
 
 ### Prerequisites
 
@@ -38,7 +38,7 @@ tests/
 - Docker for test databases
 - Python 3.10+ (supports 3.10, 3.11, 3.12, 3.13)
 
-### Test Database Setup
+### Test database setup
 
 Tests require dedicated databases running on different ports:
 
@@ -73,16 +73,16 @@ Tests require dedicated databases running on different ports:
 Test databases use different ports (9998, 9999) than development databases (8998, 8999) to avoid conflicts.
 </Aside>
 
-## Running Tests
+## Running tests
 
-### Install Dependencies
+### Install dependencies
 
 ```bash
 # Install all dependencies including development tools
 poetry install --with dev
 ```
 
-### Basic Test Execution
+### Basic test execution
 
 <Tabs>
   <TabItem label="All Tests">
@@ -123,7 +123,7 @@ poetry install --with dev
   </TabItem>
 </Tabs>
 
-### Coverage Analysis
+### Coverage analysis
 
 <Tabs>
   <TabItem label="Basic Coverage">
@@ -154,9 +154,9 @@ poetry install --with dev
   </TabItem>
 </Tabs>
 
-## Test Configuration
+## Test configuration
 
-### Test Settings
+### Test settings
 
 Tests use a separate configuration file:
 
@@ -197,7 +197,7 @@ def dataset_db():
 
 ## Cleanup
 
-### Stop Test Databases
+### Stop test databases
 
 When finished testing:
 

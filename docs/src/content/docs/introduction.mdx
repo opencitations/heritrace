@@ -5,13 +5,13 @@ description: Learn about HERITRACE's purpose, features, and benefits for GLAM pr
 
 HERITRACE (Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement) is a semantic data editor designed for galleries, libraries, archives, and museums (GLAM) that bridges the gap between sophisticated semantic technologies and the practical needs of cultural heritage professionals.
 
-## The Challenge
+## The challenge
 
 The widespread adoption of Semantic Web technologies in the GLAM sector has created a paradoxical situation. While these technologies have made human intervention more critical due to the semantic interpretation of data that cannot be automated, they have simultaneously limited the number of curators to those who are experts in the Semantic Web. This creates challenges in workforce scalability and accessibility.
 
 Many GLAM institutions face a choice between embracing Semantic Web technologies (requiring staff with advanced technical expertise) or avoiding them entirely to prevent curatorial complexities. HERITRACE resolves this dilemma by enabling non-technical domain experts to manage semantic data intuitively without losing its semantic integrity.
 
-## Purpose and Objectives
+## Purpose and objectives
 
 HERITRACE has been designed with five primary objectives:
 
@@ -21,9 +21,9 @@ HERITRACE has been designed with five primary objectives:
 4. **Flexible Customization**: Offering standardized configuration through SHACL and YAML rather than proprietary solutions
 5. **Seamless Integration**: Facilitating compatibility with pre-existing RDF data collections without modification
 
-## Target Users
+## Target users
 
-### End Users (GLAM Professionals)
+### End users (GLAM professionals)
 - Librarians managing bibliographic records
 - Archivists cataloguing collections  
 - Museum curators organizing metadata
@@ -31,16 +31,16 @@ HERITRACE has been designed with five primary objectives:
 
 Domain experts can enrich and edit metadata through an intuitive interface without knowing anything about the Semantic Web, while the system maintains complete semantic integrity behind the scenes.
 
-### Technical Users (Developers & System Administrators)
+### Technical users (developers and system administrators)
 - System administrators deploying and maintaining HERITRACE
 - Developers customizing schemas through SHACL definitions
 - IT professionals configuring YAML display rules and database connections
 
 Technical staff can customize HERITRACE through standardized languages (SHACL for data validation, YAML for interface configuration) rather than learning proprietary templating systems.
 
-## Key Features
+## Key features
 
-### Provenance Management and Change Tracking
+### Provenance management and change tracking
 HERITRACE employs the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank">OpenCitations Data Model (OCDM)</a> extending the <a href="https://www.w3.org/TR/prov-o/" target="_blank">PROV Ontology</a> to implement comprehensive provenance management. Every modification is captured as a snapshot with complete metadata including:
 - Timestamp of creation/invalidation
 - Responsible agent (individual, organization, or automated process)
@@ -51,21 +51,21 @@ Change tracking uses a delta-based approach storing only differences between suc
 
 ![Resource editing interface showing metadata fields and editing options](../../assets/change_tracking.png)
 
-### Time Machine and Time Vault
+### Time machine and Time vault
 The **Time Machine** feature provides a timeline interface for managing entity evolution, allowing users to view previous versions and restore earlier states with automatic adjustment of linked resources. The **Time Vault** serves as a specialized catalog for deleted entities, enabling recovery when needed.
 
 ![Time Machine interface showing version history and timeline](../../assets/time_machine.png)
 
-### Intelligent Metadata Management
+### Intelligent metadata management
 - **Real-time Validation**: SHACL-based constraints ensure data consistency and integrity
 - **Smart Disambiguation**: Automatic detection of similar entities during creation to prevent duplication
 - **Dynamic Field Configuration**: Interface adapts based on entity type and defined schemas
 - **Semantic Relationship Management**: Handle complex relationships between entities with proper validation
 
-### Seamless RDF Integration
+### Seamless RDF integration
 HERITRACE functions effectively out of the box with existing RDF datasets. Simply connect to your triplestore - no data transformation or special import procedures required. The system automatically discovers and displays entities based on their RDF types.
 
-## Technical Foundation
+## Technical foundation
 
 HERITRACE is built using modern web technologies optimized for semantic data management:
 
@@ -77,6 +77,6 @@ HERITRACE is built using modern web technologies optimized for semantic data man
 - **Deployment**: <a href="https://www.docker.com/" target="_blank">Docker</a> and Docker Compose support for easy installation
 - **Customization**: <a href="https://www.w3.org/TR/shacl/" target="_blank">SHACL</a> for data model definition, <a href="https://yaml.org/" target="_blank">YAML</a> for display rule configuration
 
-## Real-World Deployment
+## Real-world deployment
 
 HERITRACE is currently deployed in the ParaText project at the University of Bologna, managing bibliographic metadata for textual resources. The system is also planned for adoption by OpenCitations, demonstrating its scalability for large-scale, dynamic datasets in real production environments.

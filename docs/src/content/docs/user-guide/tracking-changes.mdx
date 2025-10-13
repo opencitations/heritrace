@@ -9,7 +9,7 @@ import viewVersionImage from '../../../assets/view_version.png';
 
 HERITRACE meticulously tracks every change made to your data, ensuring a transparent and auditable history for every entity.
 
-### The Time Machine
+### The Time machine
 
 The "Time Machine" provides a complete version history for each entity. Every time an entity is created, modified, or deleted, HERITRACE generates a new snapshot.
 
@@ -21,17 +21,17 @@ Each snapshot in the timeline contains detailed provenance metadata:
 -   **Primary Source**: The data source that informed the change.
 -   **Modifications**: A clear list of what was added or removed.
 
-### How to View and Restore a Previous Version
+### How to view and restore a previous version
 
 Restoring an older version is a safe, two-step process that allows you to inspect a version before you commit to restoring it.
 
-**Step 1: View a Specific Version**
+**Step 1: View a specific version**
 
 From the timeline, find the snapshot you are interested in and click the **"View version"** button.
 
 <Image src={viewVersionImage} alt="A snapshot in the Time Machine timeline with the 'View version' button highlighted." width={800} height={600} />
 
-**Step 2: Inspect and Restore**
+**Step 2: Inspect and restore**
 
 This will take you to a dedicated page showing the entity *exactly as it existed at that point in time*. The page displays a complete reconstruction of the resource, including all its metadata and linked entities from that specific snapshot.
 
@@ -43,6 +43,6 @@ On this page, you can:
 
 When you restore a version, HERITRACE also ensures that all linked resources are adjusted accordingly to maintain data consistency across your collection.
 
-### The Time Vault
+### The Time vault
 
 Deleted entities are not permanently removed from HERITRACE. Instead, they are moved to the [**Time Vault**](../time-vault). This acts as a "recycle bin," allowing you to browse deleted items, review their history, and restore them if needed. This feature ensures that no data is ever lost accidentally. 
