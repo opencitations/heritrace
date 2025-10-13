@@ -1,3 +1,36 @@
+# [2.7.0](https://github.com/opencitations/heritrace/compare/v2.6.1...v2.7.0) (2025-10-13)
+
+
+### Bug Fixes
+
+* **display-rules:** add ReverseCitationShape rule to enable form field loading ([88b153b](https://github.com/opencitations/heritrace/commit/88b153b200d601d683d0af62a11758936f32f281))
+* **display-rules:** separate citation queries for virtual properties and entities ([7c1f93a](https://github.com/opencitations/heritrace/commit/7c1f93aa9ab8ac920a87b4f34eff2067641ab708))
+* **docs:** add syntax highlighting support for Turtle/TTL code blocks ([aac1acb](https://github.com/opencitations/heritrace/commit/aac1acbafb14670c537de9fd7d6a44cd08e2e836))
+* **ui:** Remove global initialCopies variable and all caching logic ([f8e0cf1](https://github.com/opencitations/heritrace/commit/f8e0cf189bd3991c915688f86c25f021c81c2d0b))
+* **virtual-properties:** enhance citation virtual properties UX ([7b1cc57](https://github.com/opencitations/heritrace/commit/7b1cc577eec68b175a853e629aa05967981f997d))
+
+
+### Features
+
+* **config:** add configurable catalogue pagination settings ([b49817c](https://github.com/opencitations/heritrace/commit/b49817cfe48904b32fa9b1c3503a5047804f8cb6))
+* **config:** make COUNT_LIMIT configurable via environment variable ([c09ac56](https://github.com/opencitations/heritrace/commit/c09ac562cbca796862c08eac68253e8b31e4d602))
+* **display-rules:** add bidirectional citation virtual properties ([74e5d35](https://github.com/opencitations/heritrace/commit/74e5d359b69fd9775a9afefe3d2a5981bb217967))
+* **redis:** add support for external Redis configuration ([fe8215e](https://github.com/opencitations/heritrace/commit/fe8215edaea86e515b4d75a6c0e0615a4c8b7a8f))
+* **user-testing:** add participant 4t complete analysis ([d3b3894](https://github.com/opencitations/heritrace/commit/d3b3894c42d66893488ff7cd6a49e82747acfd52))
+* **user-testing:** add participant 5e analysis and refine status taxonomy ([3ab7b64](https://github.com/opencitations/heritrace/commit/3ab7b64ec909bf49a0c38b6d57ef92a5ee8fe675))
+* **user-testing:** add participant 5t complete analysis and enhance SUS visualization ([4ea9732](https://github.com/opencitations/heritrace/commit/4ea973237ffc58fbc325ac6f2defefec5bb77d10))
+* **user-testing:** add participant 6e complete analysis and enhance verification ([ce06574](https://github.com/opencitations/heritrace/commit/ce065740fe78e10a379263d9dea2882a746e6aa8))
+* **user-testing:** add participant 6t complete analysis and update aggregated metrics ([18a5ee5](https://github.com/opencitations/heritrace/commit/18a5ee56724f23834dfca6db739531e996bba27e))
+* **user-testing:** add participant 7e complete analysis and update aggregated metrics ([eb13deb](https://github.com/opencitations/heritrace/commit/eb13deb2c6674bddc36d1ff5af4b1573a6cf9b00))
+* **user-testing:** add participant 7t complete analysis and update aggregated metrics ([8b45d89](https://github.com/opencitations/heritrace/commit/8b45d897c06e0fa07c41b878834aae257e9605c9))
+* **user-testing:** add recruitment distribution analysis script ([af18407](https://github.com/opencitations/heritrace/commit/af184079c09a18dfed4081185e23c2c6eb236785))
+
+
+### Performance Improvements
+
+* **sparql:** optimize catalogue queries for large datasets ([a148bfc](https://github.com/opencitations/heritrace/commit/a148bfc1a390d6187f448d26bd5a856992d3f5aa))
+* **sparql:** optimize entity queries with LIMIT and two-stage fetching ([a1dd97b](https://github.com/opencitations/heritrace/commit/a1dd97b577ed1a2fa2c701930340586ae0940a4b))
+
 ## [2.6.1](https://github.com/opencitations/heritrace/compare/v2.6.0...v2.6.1) (2025-10-02)
 
 
