@@ -15,14 +15,23 @@ export default defineConfig({
 				src: './src/assets/logo.png',
 				alt: 'HERITRACE logo',
 			},
+			expressiveCode: {
+				shiki: {
+					// Map 'ttl' to use 'sparql' highlighting
+					langAlias: {
+						'ttl': 'sparql',
+						'turtle': 'sparql'
+					}
+				}
+			},
 			plugins: [
 				starlightImageZoom(),
 			],
 			social: [
-				{ 
-					icon: 'github', 
-					label: 'GitHub', 
-					href: 'https://github.com/opencitations/heritrace' 
+				{
+					icon: 'github',
+					label: 'GitHub',
+					href: 'https://github.com/opencitations/heritrace'
 				},
 			],
 			sidebar: [
