@@ -12,7 +12,7 @@ from heritrace import create_app
 
 
 def get_ssl_context():
-    """Get SSL context if certificates exist, or create them if they don't."""
+    """Get SSL context if certificates exist, or create them if they don't.""" 
     cert_dir = os.path.join(os.path.dirname(__file__), 'ssl')
     cert_file = os.path.join(cert_dir, 'cert.pem')
     key_file = os.path.join(cert_dir, 'key.pem')
