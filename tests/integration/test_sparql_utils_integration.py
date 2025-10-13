@@ -140,11 +140,21 @@ class TestGetAvailableClassesIntegration:
     def test_get_available_classes_real_db(self, app, setup_test_data):
         """Test getting available classes from the real test database."""
         with app.app_context():
-            # Patch the entity type visibility check to allow our test classes
+            # Patch both the classes source and visibility check to allow our test classes
             with pytest.MonkeyPatch.context() as monkeypatch:
+                # Make get_classes_from_shacl_or_display_rules return our test classes
+                monkeypatch.setattr(
+                    "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+                    lambda: ["http://example.org/Person", "http://example.org/Document"],
+                )
                 monkeypatch.setattr(
                     "heritrace.utils.sparql_utils.is_entity_type_visible",
                     lambda uri: True,
+                )
+                # Clear the cache to force recomputation
+                monkeypatch.setattr(
+                    "heritrace.utils.sparql_utils._AVAILABLE_CLASSES_CACHE",
+                    None,
                 )
 
                 classes = get_available_classes()
@@ -158,12 +168,12 @@ class TestGetAvailableClassesIntegration:
                 person_class = next(
                     c for c in classes if c["uri"] == "http://example.org/Person"
                 )
-                assert person_class["count"] == 2
+                assert person_class["count"] == "2"
 
                 document_class = next(
                     c for c in classes if c["uri"] == "http://example.org/Document"
                 )
-                assert document_class["count"] == 1
+                assert document_class["count"] == "1"
 
 
 @pytest.mark.usefixtures("setup_test_data")
@@ -173,40 +183,74 @@ class TestGetEntitiesForClassIntegration:
     def test_get_entities_for_class_real_db(self, app, setup_test_data):
         """Test getting entities for a class from the real test database."""
         with app.app_context():
-            # Get entities for the Person class
-            entities, total_count = get_entities_for_class(
-                "http://example.org/Person", 1, 10
-            )
+            # Patch to include test classes
+            with pytest.MonkeyPatch.context() as monkeypatch:
+                # Mock get_available_classes to return our test class with count
+                mock_available_classes = [
+                    {
+                        "uri": "http://example.org/Person",
+                        "label": "Person",
+                        "count": "2",
+                        "count_numeric": 2,
+                        "shape": None
+                    }
+                ]
+                monkeypatch.setattr(
+                    "heritrace.utils.sparql_utils.get_available_classes",
+                    lambda: mock_available_classes,
+                )
 
-            # Verify the results
-            assert total_count == 2
-            assert len(entities) == 2
+                # Get entities for the Person class
+                entities, total_count = get_entities_for_class(
+                    "http://example.org/Person", 1, 10
+                )
 
-            # Check that we got the expected entities
-            entity_uris = [e["uri"] for e in entities]
-            assert setup_test_data["person1_uri"] in entity_uris
-            assert setup_test_data["person2_uri"] in entity_uris
+                # Verify the results
+                assert total_count == 2
+                assert len(entities) == 2
+
+                # Check that we got the expected entities
+                entity_uris = [e["uri"] for e in entities]
+                assert setup_test_data["person1_uri"] in entity_uris
+                assert setup_test_data["person2_uri"] in entity_uris
 
     def test_get_entities_with_sorting(self, app, setup_test_data):
         """Test getting entities with sorting from the real test database."""
         with app.app_context():
-            # Get entities for the Person class, sorted by name
-            entities, total_count = get_entities_for_class(
-                "http://example.org/Person",
-                1,
-                10,
-                sort_property="http://example.org/name",
-                sort_direction="ASC",
-            )
+            # Patch to include test classes
+            with pytest.MonkeyPatch.context() as monkeypatch:
+                # Mock get_available_classes to return our test class with count
+                mock_available_classes = [
+                    {
+                        "uri": "http://example.org/Person",
+                        "label": "Person",
+                        "count": "2",
+                        "count_numeric": 2,
+                        "shape": None
+                    }
+                ]
+                monkeypatch.setattr(
+                    "heritrace.utils.sparql_utils.get_available_classes",
+                    lambda: mock_available_classes,
+                )
 
-            # Verify the results without assuming specific order
-            assert len(entities) == 2
-            assert total_count == 2
+                # Get entities for the Person class, sorted by name
+                entities, total_count = get_entities_for_class(
+                    "http://example.org/Person",
+                    1,
+                    10,
+                    sort_property="http://example.org/name",
+                    sort_direction="ASC",
+                )
 
-            # Check that both expected entities are present
-            entity_uris = [entity["uri"] for entity in entities]
-            assert setup_test_data["person1_uri"] in entity_uris
-            assert setup_test_data["person2_uri"] in entity_uris
+                # Verify the results without assuming specific order
+                assert len(entities) == 2
+                assert total_count == 2
+
+                # Check that both expected entities are present
+                entity_uris = [entity["uri"] for entity in entities]
+                assert setup_test_data["person1_uri"] in entity_uris
+                assert setup_test_data["person2_uri"] in entity_uris
 
 
 @pytest.mark.usefixtures("setup_test_data")
@@ -233,16 +277,21 @@ class TestGetCatalogDataIntegration:
                         },
                     ],
                 )
-                
-                # Create mock available_classes
-                available_classes = [
+
+                # Mock get_available_classes to return our test class with count
+                mock_available_classes = [
                     {
                         "uri": "http://example.org/Person",
                         "label": "Person",
-                        "count": 2,
+                        "count": "2",
+                        "count_numeric": 2,
                         "shape": "http://example.org/PersonShape"
                     }
                 ]
+                monkeypatch.setattr(
+                    "heritrace.utils.sparql_utils.get_available_classes",
+                    lambda: mock_available_classes,
+                )
 
                 # Get catalog data for the Person class
                 catalog_data = get_catalog_data(

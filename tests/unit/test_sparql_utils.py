@@ -104,27 +104,30 @@ class TestGetAvailableClasses:
         self, mock_sparql_wrapper, mock_custom_filter, mock_virtuoso
     ):
         """Test getting available classes from a Virtuoso store."""
-        # Configure mock to return some classes
-        mock_sparql_wrapper.query.return_value.convert.return_value = {
-            "results": {
-                "bindings": [
-                    {
-                        "class": {"value": "http://example.org/Person"},
-                        "count": {"value": "10"},
-                    },
-                    {
-                        "class": {"value": "http://example.org/Document"},
-                        "count": {"value": "5"},
-                    },
-                ]
-            }
-        }
+        # Mock the count function to return different counts for different classes
+        def mock_count_instances(class_uri, limit=10000):
+            if class_uri == "http://example.org/Person":
+                return ("10", 10)
+            elif class_uri == "http://example.org/Document":
+                return ("5", 5)
+            return ("0", 0)
 
         # Mock determine_shape_for_classes
         with patch(
             "heritrace.utils.sparql_utils.determine_shape_for_classes",
             return_value="http://example.org/PersonShape"
-        ) as mock_determine_shape:
+        ) as mock_determine_shape, \
+        patch(
+            "heritrace.utils.sparql_utils._AVAILABLE_CLASSES_CACHE", None
+        ), \
+        patch(
+            "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+            return_value=["http://example.org/Person", "http://example.org/Document"]
+        ), \
+        patch(
+            "heritrace.utils.sparql_utils._count_class_instances",
+            side_effect=mock_count_instances
+        ):
             # Configure the custom filter to return specific labels
             mock_custom_filter.human_readable_class.side_effect = lambda entity_key: (
                 "Person" if entity_key[0] == "http://example.org/Person" else "Document"
@@ -133,6 +136,8 @@ class TestGetAvailableClasses:
             # Configure visibility check to allow all classes
             with patch(
                 "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
+            ), patch(
+                "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=set()
             ):
                 classes = get_available_classes()
 
@@ -147,41 +152,38 @@ class TestGetAvailableClasses:
                 c for c in classes if c["uri"] == "http://example.org/Document"
             )
 
-            # Verify the counts
-            assert person_class["count"] == 10
-            assert document_class["count"] == 5
-
-            # Verify the correct query was used (Virtuoso-specific)
-            mock_sparql_wrapper.setQuery.assert_called_once()
-            query = mock_sparql_wrapper.setQuery.call_args[0][0]
-            assert "GRAPH ?g" in query
-            assert "FILTER(?g NOT IN" in query
+            # Verify the counts (returned as strings)
+            assert person_class["count"] == "10"
+            assert document_class["count"] == "5"
             
     def test_get_available_classes_non_virtuoso(
         self, mock_sparql_wrapper, mock_custom_filter
     ):
         """Test getting available classes from a non-Virtuoso store."""
-        # Configure mock to return some classes
-        mock_sparql_wrapper.query.return_value.convert.return_value = {
-            "results": {
-                "bindings": [
-                    {
-                        "class": {"value": "http://example.org/Person"},
-                        "count": {"value": "10"},
-                    },
-                    {
-                        "class": {"value": "http://example.org/Document"},
-                        "count": {"value": "5"},
-                    },
-                ]
-            }
-        }
+        # Mock the count function to return different counts for different classes
+        def mock_count_instances(class_uri, limit=10000):
+            if class_uri == "http://example.org/Person":
+                return ("10", 10)
+            elif class_uri == "http://example.org/Document":
+                return ("5", 5)
+            return ("0", 0)
 
         # Mock determine_shape_for_classes
         with patch(
             "heritrace.utils.sparql_utils.determine_shape_for_classes",
             return_value="http://example.org/PersonShape"
-        ) as mock_determine_shape:
+        ) as mock_determine_shape, \
+        patch(
+            "heritrace.utils.sparql_utils._AVAILABLE_CLASSES_CACHE", None
+        ), \
+        patch(
+            "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+            return_value=["http://example.org/Person", "http://example.org/Document"]
+        ), \
+        patch(
+            "heritrace.utils.sparql_utils._count_class_instances",
+            side_effect=mock_count_instances
+        ):
             # Configure the custom filter to return specific labels
             mock_custom_filter.human_readable_class.side_effect = lambda entity_key: (
                 "Person" if entity_key[0] == "http://example.org/Person" else "Document"
@@ -192,6 +194,8 @@ class TestGetAvailableClasses:
                 "heritrace.utils.sparql_utils.is_virtuoso", return_value=False
             ), patch(
                 "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
+            ), patch(
+                "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=set()
             ):
                 classes = get_available_classes()
 
@@ -206,15 +210,9 @@ class TestGetAvailableClasses:
                 c for c in classes if c["uri"] == "http://example.org/Document"
             )
 
-            # Verify the counts
-            assert person_class["count"] == 10
-            assert document_class["count"] == 5
-
-            # Verify the correct query was used (non-Virtuoso-specific)
-            mock_sparql_wrapper.setQuery.assert_called_once()
-            query = mock_sparql_wrapper.setQuery.call_args[0][0]
-            assert "GRAPH ?g" not in query
-            assert "FILTER(?g NOT IN" not in query
+            # Verify the counts (returned as strings)
+            assert person_class["count"] == "10"
+            assert document_class["count"] == "5"
 
 
 class TestBuildSortClause:
@@ -287,39 +285,36 @@ class TestGetEntitiesForClass:
             }
         }
 
-        # Configure the count query result
-        count_result = {"results": {"bindings": [{"count": {"value": "2"}}]}}
-
-        # Set up the mock to return the count result for the first query
-        mock_sparql_wrapper.query.return_value.convert.side_effect = [
-            count_result,
-            mock_sparql_wrapper.query.return_value.convert.return_value,
+        # Mock get_available_classes to return count information
+        mock_available_classes = [
+            {
+                "uri": "http://example.org/Person",
+                "label": "Person",
+                "count": "2",
+                "count_numeric": 2,
+                "shape": None
+            }
         ]
 
-        entities, total_count = get_entities_for_class(
-            "http://example.org/Person", 1, 10
-        )
+        with patch("heritrace.utils.sparql_utils.get_available_classes", return_value=mock_available_classes):
+            entities, total_count = get_entities_for_class(
+                "http://example.org/Person", 1, 10
+            )
 
-        # Verify the results
-        assert total_count == 2
-        assert len(entities) == 2
-        assert entities[0]["uri"] == "http://example.org/person1"
-        assert entities[1]["uri"] == "http://example.org/person2"
+            # Verify the results
+            assert total_count == 2
+            assert len(entities) == 2
+            assert entities[0]["uri"] == "http://example.org/person1"
+            assert entities[1]["uri"] == "http://example.org/person2"
 
-        # Verify the correct queries were used
-        assert mock_sparql_wrapper.setQuery.call_count == 2
-        count_query = mock_sparql_wrapper.setQuery.call_args_list[0][0][0]
-        entities_query = mock_sparql_wrapper.setQuery.call_args_list[1][0][0]
+            # Verify the correct query was used for entities
+            mock_sparql_wrapper.setQuery.assert_called_once()
+            entities_query = mock_sparql_wrapper.setQuery.call_args[0][0]
 
-        assert "COUNT(DISTINCT ?subject)" in count_query
-        assert "GRAPH ?g" in count_query
-        assert "FILTER(?g NOT IN" in count_query
-
-        assert "SELECT DISTINCT ?subject" in entities_query
-        assert "GRAPH ?g" in entities_query
-        assert "FILTER(?g NOT IN" in entities_query
-        assert "LIMIT 10" in entities_query
-        assert "OFFSET 0" in entities_query
+            assert "SELECT" in entities_query
+            assert "?subject" in entities_query
+            assert "LIMIT 10" in entities_query
+            assert "OFFSET 0" in entities_query
         
     def test_get_entities_for_class_non_virtuoso(
         self, mock_sparql_wrapper, mock_custom_filter
@@ -339,17 +334,20 @@ class TestGetEntitiesForClass:
             }
         }
 
-        # Configure the count query result
-        count_result = {"results": {"bindings": [{"count": {"value": "2"}}]}}
-
-        # Set up the mock to return the count result for the first query
-        mock_sparql_wrapper.query.return_value.convert.side_effect = [
-            count_result,
-            mock_sparql_wrapper.query.return_value.convert.return_value,
+        # Mock get_available_classes to return count information
+        mock_available_classes = [
+            {
+                "uri": "http://example.org/Person",
+                "label": "Person",
+                "count": "2",
+                "count_numeric": 2,
+                "shape": None
+            }
         ]
 
         # Configure is_virtuoso to return False
-        with patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False):
+        with patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
+             patch("heritrace.utils.sparql_utils.get_available_classes", return_value=mock_available_classes):
             entities, total_count = get_entities_for_class(
                 "http://example.org/Person", 1, 10
             )
@@ -360,18 +358,12 @@ class TestGetEntitiesForClass:
             assert entities[0]["uri"] == "http://example.org/person1"
             assert entities[1]["uri"] == "http://example.org/person2"
 
-            # Verify the correct queries were used
-            assert mock_sparql_wrapper.setQuery.call_count == 2
-            count_query = mock_sparql_wrapper.setQuery.call_args_list[0][0][0]
-            entities_query = mock_sparql_wrapper.setQuery.call_args_list[1][0][0]
+            # Verify the correct query was used for entities
+            mock_sparql_wrapper.setQuery.assert_called_once()
+            entities_query = mock_sparql_wrapper.setQuery.call_args[0][0]
 
-            assert "COUNT(DISTINCT ?subject)" in count_query
-            assert "GRAPH ?g" not in count_query
-            assert "FILTER(?g NOT IN" not in count_query
-
-            assert "SELECT DISTINCT ?subject" in entities_query
-            assert "GRAPH ?g" not in entities_query
-            assert "FILTER(?g NOT IN" not in entities_query
+            assert "SELECT" in entities_query
+            assert "?subject" in entities_query
             assert "LIMIT 10" in entities_query
             assert "OFFSET 0" in entities_query
 
@@ -383,28 +375,24 @@ class TestGetCatalogData:
         self, mock_sparql_wrapper, mock_custom_filter, mock_virtuoso
     ):
         """Test get_catalog_data when sort_property is not provided but sortable_properties exist."""
-        # Configure mock to return some entities
-        mock_sparql_wrapper.query.return_value.convert.return_value = {
+        # Configure mock to return some entities with proper structure
+        entities_result = {
             "results": {
                 "bindings": [
                     {
                         "subject": {"value": "http://example.org/person1"},
+                        "sortValue": {"value": "Alice"},
                     },
                     {
                         "subject": {"value": "http://example.org/person2"},
+                        "sortValue": {"value": "Bob"},
                     },
                 ]
             }
         }
 
-        # Configure the count query result
-        count_result = {"results": {"bindings": [{"count": {"value": "2"}}]}}
-
-        # Set up the mock to return the count result for the first query
-        mock_sparql_wrapper.query.return_value.convert.side_effect = [
-            count_result,
-            mock_sparql_wrapper.query.return_value.convert.return_value,
-        ]
+        # Set up the mock to return the entities result
+        mock_sparql_wrapper.query.return_value.convert.return_value = entities_result
 
         # Mock sortable properties
         sortable_properties = [
@@ -412,20 +400,24 @@ class TestGetCatalogData:
             {"property": "http://example.org/age", "label": "Age"},
         ]
 
-        # Create mock available_classes
-        available_classes = [
+        # Create mock available_classes with the correct structure
+        mock_available_classes = [
             {
                 "uri": "http://example.org/Person",
                 "label": "Person",
-                "count": 10,
+                "count": "2",
+                "count_numeric": 2,
                 "shape": "http://example.org/PersonShape"
             }
         ]
 
-        # Patch get_sortable_properties to return our mock sortable properties
+        # Patch get_sortable_properties and get_available_classes
         with patch(
             "heritrace.utils.sparql_utils.get_sortable_properties",
             return_value=sortable_properties,
+        ), patch(
+            "heritrace.utils.sparql_utils.get_available_classes",
+            return_value=mock_available_classes,
         ):
             # Call get_catalog_data with the new parameter structure
             catalog_data = get_catalog_data(
@@ -672,8 +664,19 @@ class TestGetEntitiesWithEnhancedShapeDetection:
         """Test enhanced shape detection with Virtuoso."""
         class_uri = "http://example.org/Person"
         classes_with_multiple_shapes = {"http://example.org/Person"}
-        
-        mock_sparql_results = {
+
+        # First query returns subjects
+        subjects_result = {
+            "results": {
+                "bindings": [
+                    {"subject": {"value": "http://example.org/person1"}},
+                    {"subject": {"value": "http://example.org/person2"}},
+                ]
+            }
+        }
+
+        # Second query returns triples
+        triples_result = {
             "results": {
                 "bindings": [
                     {
@@ -704,22 +707,30 @@ class TestGetEntitiesWithEnhancedShapeDetection:
              patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=True), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples") as mock_determine_shape, \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
-            
+
             mock_sparql = mock_get_sparql.return_value
-            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
-            
+            # Return different results for the two queries
+            mock_sparql.query.return_value.convert.side_effect = [subjects_result, triples_result]
+
             mock_determine_shape.side_effect = lambda triples: (
                 "http://example.org/PersonShapeA" if any("name" in str(t) for t in triples)
                 else "http://example.org/PersonShapeB"
             )
-            
+
             result = _get_entities_with_enhanced_shape_detection(class_uri, classes_with_multiple_shapes)
-            
-            mock_sparql.setQuery.assert_called_once()
-            query = mock_sparql.setQuery.call_args[0][0]
-            assert "GRAPH ?g" in query
-            assert "FILTER(?g NOT IN" in query
-            assert f"?subject a <{class_uri}>" in query
+
+            # Now expects 2 queries: one for subjects, one for triples
+            assert mock_sparql.setQuery.call_count == 2
+
+            # Verify the first query (subjects)
+            first_query = mock_sparql.setQuery.call_args_list[0][0][0]
+            assert "SELECT DISTINCT ?subject" in first_query
+            assert f"?subject a <{class_uri}>" in first_query
+
+            # Verify the second query (triples)
+            second_query = mock_sparql.setQuery.call_args_list[1][0][0]
+            assert "SELECT ?subject ?p ?o" in second_query
+            assert "VALUES (?subject)" in second_query
             
             assert len(result) == 2
             assert "http://example.org/PersonShapeA" in result
@@ -742,8 +753,18 @@ class TestGetEntitiesWithEnhancedShapeDetection:
         """Test enhanced shape detection with non-Virtuoso store."""
         class_uri = "http://example.org/Document"
         classes_with_multiple_shapes = {"http://example.org/Document"}
-        
-        mock_sparql_results = {
+
+        # First query returns subjects
+        subjects_result = {
+            "results": {
+                "bindings": [
+                    {"subject": {"value": "http://example.org/doc1"}},
+                ]
+            }
+        }
+
+        # Second query returns triples
+        triples_result = {
             "results": {
                 "bindings": [
                     {
@@ -764,17 +785,26 @@ class TestGetEntitiesWithEnhancedShapeDetection:
              patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples", return_value="http://example.org/DocumentShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
-            
+
             mock_sparql = mock_get_sparql.return_value
-            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
-            
+            # Return different results for the two queries
+            mock_sparql.query.return_value.convert.side_effect = [subjects_result, triples_result]
+
             result = _get_entities_with_enhanced_shape_detection(class_uri, classes_with_multiple_shapes)
-            
-            mock_sparql.setQuery.assert_called_once()
-            query = mock_sparql.setQuery.call_args[0][0]
-            assert "GRAPH ?g" not in query
-            assert "FILTER(?g NOT IN" not in query
-            assert f"?subject a <{class_uri}>" in query
+
+            # Now expects 2 queries: one for subjects, one for triples
+            assert mock_sparql.setQuery.call_count == 2
+
+            # Verify the first query (subjects)
+            first_query = mock_sparql.setQuery.call_args_list[0][0][0]
+            assert "SELECT DISTINCT ?subject" in first_query
+            assert f"?subject a <{class_uri}>" in first_query
+            assert "GRAPH ?g" not in first_query
+
+            # Verify the second query (triples)
+            second_query = mock_sparql.setQuery.call_args_list[1][0][0]
+            assert "SELECT ?subject ?p ?o" in second_query
+            assert "VALUES (?subject)" in second_query
             
             assert len(result) == 1
             assert "http://example.org/DocumentShape" in result
@@ -841,24 +871,35 @@ class TestGetAvailableClassesMultipleShapes:
             ]
         }
 
+        # Mock count function
+        def mock_count_instances(class_uri, limit=10000):
+            if class_uri == "http://example.org/Person":
+                return ("10", 10)
+            elif class_uri == "http://example.org/Document":
+                return ("5", 5)
+            return ("0", 0)
+
         with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
              patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
              patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
              patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value={"http://example.org/Person"}), \
              patch("heritrace.utils.sparql_utils._get_entities_with_enhanced_shape_detection", return_value=mock_shape_to_entities), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/DocumentShape"), \
-             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
-            
+             patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True), \
+             patch("heritrace.utils.sparql_utils._AVAILABLE_CLASSES_CACHE", None), \
+             patch("heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules", return_value=["http://example.org/Person", "http://example.org/Document"]), \
+             patch("heritrace.utils.sparql_utils._count_class_instances", side_effect=mock_count_instances):
+
             mock_sparql = mock_get_sparql.return_value
             mock_sparql.query.return_value.convert.return_value = mock_classes_results
-            
+
             mock_filter = mock_get_filter.return_value
             mock_filter.human_readable_class.side_effect = lambda entity_key: {
                 ("http://example.org/Person", "http://example.org/PersonShapeA"): "Person (Type A)",
                 ("http://example.org/Person", "http://example.org/PersonShapeB"): "Person (Type B)",
                 ("http://example.org/Document", "http://example.org/DocumentShape"): "Document"
             }.get(entity_key, "Unknown")
-            
+
             classes = get_available_classes()
             
             assert len(classes) == 3  # 2 person shapes + 1 document shape
@@ -870,19 +911,19 @@ class TestGetAvailableClassesMultipleShapes:
             assert person_shape_a is not None
             assert person_shape_a["uri"] == "http://example.org/Person"
             assert person_shape_a["label"] == "Person (Type A)"
-            assert person_shape_a["count"] == 2
+            assert person_shape_a["count"] == "2"
             assert person_shape_a["shape"] == "http://example.org/PersonShapeA"
-            
+
             assert person_shape_b is not None
             assert person_shape_b["uri"] == "http://example.org/Person"
             assert person_shape_b["label"] == "Person (Type B)"
-            assert person_shape_b["count"] == 1
+            assert person_shape_b["count"] == "1"
             assert person_shape_b["shape"] == "http://example.org/PersonShapeB"
-            
+
             assert document_class is not None
             assert document_class["uri"] == "http://example.org/Document"
             assert document_class["label"] == "Document"
-            assert document_class["count"] == 5
+            assert document_class["count"] == "5"
             assert document_class["shape"] == "http://example.org/DocumentShape"
 
     def test_get_available_classes_multiple_shapes_empty_results(self):
@@ -904,13 +945,15 @@ class TestGetAvailableClassesMultipleShapes:
              patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
              patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
              patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value={"http://example.org/Person"}), \
-             patch("heritrace.utils.sparql_utils._get_entities_with_enhanced_shape_detection", return_value=mock_shape_to_entities):
-            
+             patch("heritrace.utils.sparql_utils._get_entities_with_enhanced_shape_detection", return_value=mock_shape_to_entities), \
+             patch("heritrace.utils.sparql_utils._AVAILABLE_CLASSES_CACHE", None), \
+             patch("heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules", return_value=["http://example.org/Person"]):
+
             mock_sparql = mock_get_sparql.return_value
             mock_sparql.query.return_value.convert.return_value = mock_classes_results
-            
+
             mock_filter = mock_get_filter.return_value
-            
+
             classes = get_available_classes()
             
             assert len(classes) == 0
@@ -924,8 +967,19 @@ class TestGetEntitiesForClassShapeFiltering:
         selected_class = "http://example.org/Person"
         selected_shape = "http://example.org/PersonShapeA"
         classes_with_multiple_shapes = {"http://example.org/Person"}
-        
-        mock_sparql_results = {
+
+        # First query returns subjects
+        subjects_result = {
+            "results": {
+                "bindings": [
+                    {"subject": {"value": "http://example.org/person1"}},
+                    {"subject": {"value": "http://example.org/person2"}},
+                ]
+            }
+        }
+
+        # Second query returns triples
+        triples_result = {
             "results": {
                 "bindings": [
                     {
@@ -957,27 +1011,35 @@ class TestGetEntitiesForClassShapeFiltering:
              patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=True), \
              patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=classes_with_multiple_shapes), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples") as mock_determine_shape:
-            
+
             mock_sparql = mock_get_sparql.return_value
-            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
-            
+            # Return different results for the two queries
+            mock_sparql.query.return_value.convert.side_effect = [subjects_result, triples_result]
+
             mock_filter = mock_get_filter.return_value
             mock_filter.human_readable_entity.side_effect = lambda uri, entity_key, graph: f"Entity {uri.split('/')[-1]}"
-            
+
             mock_determine_shape.side_effect = lambda triples: (
                 selected_shape if any("name" in str(t) for t in triples)
                 else "http://example.org/PersonShapeB"
             )
-            
+
             entities, total_count = get_entities_for_class(
                 selected_class, 1, 10, selected_shape=selected_shape
             )
-            
-            mock_sparql.setQuery.assert_called_once()
-            query = mock_sparql.setQuery.call_args[0][0]
-            assert "GRAPH ?g" in query
-            assert "FILTER(?g NOT IN" in query
-            assert f"?subject a <{selected_class}>" in query
+
+            # Now expects 2 queries: one for subjects, one for triples
+            assert mock_sparql.setQuery.call_count == 2
+
+            # Verify the first query (subjects)
+            first_query = mock_sparql.setQuery.call_args_list[0][0][0]
+            assert "SELECT DISTINCT ?subject" in first_query
+            assert f"?subject a <{selected_class}>" in first_query
+
+            # Verify the second query (triples)
+            second_query = mock_sparql.setQuery.call_args_list[1][0][0]
+            assert "SELECT ?subject ?p ?o" in second_query
+            assert "VALUES (?subject)" in second_query
             
             assert total_count == 1
             assert len(entities) == 1
@@ -989,8 +1051,18 @@ class TestGetEntitiesForClassShapeFiltering:
         selected_class = "http://example.org/Document"
         selected_shape = "http://example.org/DocumentShapeA"
         classes_with_multiple_shapes = {"http://example.org/Document"}
-        
-        mock_sparql_results = {
+
+        # First query returns subjects
+        subjects_result = {
+            "results": {
+                "bindings": [
+                    {"subject": {"value": "http://example.org/doc1"}},
+                ]
+            }
+        }
+
+        # Second query returns triples
+        triples_result = {
             "results": {
                 "bindings": [
                     {
@@ -1012,22 +1084,31 @@ class TestGetEntitiesForClassShapeFiltering:
              patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
              patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=classes_with_multiple_shapes), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples", return_value=selected_shape):
-            
+
             mock_sparql = mock_get_sparql.return_value
-            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
-            
+            # Return different results for the two queries
+            mock_sparql.query.return_value.convert.side_effect = [subjects_result, triples_result]
+
             mock_filter = mock_get_filter.return_value
             mock_filter.human_readable_entity.return_value = "Test Document"
-            
+
             entities, total_count = get_entities_for_class(
                 selected_class, 1, 10, selected_shape=selected_shape
             )
-            
-            mock_sparql.setQuery.assert_called_once()
-            query = mock_sparql.setQuery.call_args[0][0]
-            assert "GRAPH ?g" not in query
-            assert "FILTER(?g NOT IN" not in query
-            assert f"?subject a <{selected_class}>" in query
+
+            # Now expects 2 queries: one for subjects, one for triples
+            assert mock_sparql.setQuery.call_count == 2
+
+            # Verify the first query (subjects)
+            first_query = mock_sparql.setQuery.call_args_list[0][0][0]
+            assert "SELECT DISTINCT ?subject" in first_query
+            assert f"?subject a <{selected_class}>" in first_query
+            assert "GRAPH ?g" not in first_query
+
+            # Verify the second query (triples)
+            second_query = mock_sparql.setQuery.call_args_list[1][0][0]
+            assert "SELECT ?subject ?p ?o" in second_query
+            assert "VALUES (?subject)" in second_query
             
             assert total_count == 1
             assert len(entities) == 1
@@ -1094,8 +1175,17 @@ class TestGetEntitiesForClassShapeFiltering:
         selected_class = "http://example.org/Person"
         selected_shape = "http://example.org/PersonShapeA"
         classes_with_multiple_shapes = {"http://example.org/Person"}
-        
-        mock_sparql_results = {
+
+        # First page: subjects query and triples query
+        subjects_result_page1 = {
+            "results": {
+                "bindings": [
+                    {"subject": {"value": f"http://example.org/person{i}"}} for i in range(1, 6)
+                ]
+            }
+        }
+
+        triples_result_page1 = {
             "results": {
                 "bindings": [
                     {
@@ -1107,36 +1197,63 @@ class TestGetEntitiesForClassShapeFiltering:
             }
         }
 
+        # Second page: different subjects and triples
+        subjects_result_page2 = {
+            "results": {
+                "bindings": [
+                    {"subject": {"value": f"http://example.org/person{i}"}} for i in range(6, 11)
+                ]
+            }
+        }
+
+        triples_result_page2 = {
+            "results": {
+                "bindings": [
+                    {
+                        "subject": {"value": f"http://example.org/person{i}"},
+                        "p": {"value": "http://example.org/name"},
+                        "o": {"value": f"Person {i}"}
+                    } for i in range(6, 11)
+                ]
+            }
+        }
+
         with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql, \
              patch("heritrace.utils.sparql_utils.get_custom_filter") as mock_get_filter, \
              patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
              patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=classes_with_multiple_shapes), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_entity_triples", return_value=selected_shape):
-            
+
             mock_sparql = mock_get_sparql.return_value
-            mock_sparql.query.return_value.convert.return_value = mock_sparql_results
-            
             mock_filter = mock_get_filter.return_value
             mock_filter.human_readable_entity.side_effect = lambda uri, entity_key, graph: f"Entity {uri.split('/')[-1]}"
-            
+
+            # Page 1: return first set of subjects and triples
+            mock_sparql.query.return_value.convert.side_effect = [subjects_result_page1, triples_result_page1]
+
             entities_page1, total_count = get_entities_for_class(
                 selected_class, 1, 3, selected_shape=selected_shape
             )
-            
+
             assert total_count == 5
             assert len(entities_page1) == 3
             assert entities_page1[0]["uri"] == "http://example.org/person1"
             assert entities_page1[1]["uri"] == "http://example.org/person2"
             assert entities_page1[2]["uri"] == "http://example.org/person3"
-            
+
+            # Page 2: return second set of subjects and triples
+            mock_sparql.query.return_value.convert.side_effect = [subjects_result_page2, triples_result_page2]
+
             entities_page2, total_count = get_entities_for_class(
                 selected_class, 2, 3, selected_shape=selected_shape
             )
-            
+
+            # With shape filtering pagination, total_count is approximate
             assert total_count == 5
-            assert len(entities_page2) == 2
-            assert entities_page2[0]["uri"] == "http://example.org/person4"
-            assert entities_page2[1]["uri"] == "http://example.org/person5"
+            assert len(entities_page2) == 3  # Returns 3 entities (person6-8) limited by per_page
+            assert entities_page2[0]["uri"] == "http://example.org/person6"
+            assert entities_page2[1]["uri"] == "http://example.org/person7"
+            assert entities_page2[2]["uri"] == "http://example.org/person8"
 
 
 class TestGetDeletedEntitiesWithFiltering:

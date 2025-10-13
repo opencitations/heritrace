@@ -65,3 +65,10 @@ class TestConfig(object):
 
     ORPHAN_HANDLING_STRATEGY = OrphanHandlingStrategy.ASK
     PROXY_HANDLING_STRATEGY = ProxyHandlingStrategy.ASK
+
+    # Catalogue pagination configuration
+    CATALOGUE_DEFAULT_PER_PAGE = 50
+    CATALOGUE_ALLOWED_PER_PAGE = [50, 100, 200, 500]
+
+    # Query configuration
+    COUNT_LIMIT = 10000
