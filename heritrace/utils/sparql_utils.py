@@ -50,8 +50,6 @@ def _wrap_virtuoso_graph_pattern(pattern: str) -> str:
 
 def _build_count_query_with_limit(class_uri: str, limit: int) -> str:
     """Build a COUNT query with LIMIT for a specific class."""
-    pattern = f"?subject a <{class_uri}> ."
-    wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern)
 
     return f"""
         SELECT (COUNT(?subject) as ?count)
@@ -59,7 +57,7 @@ def _build_count_query_with_limit(class_uri: str, limit: int) -> str:
             {{
                 SELECT DISTINCT ?subject
                 WHERE {{
-                    {wrapped_pattern}
+                    ?subject a <{class_uri}> .
                 }}
                 LIMIT {limit}
             }}
@@ -99,14 +97,10 @@ def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_mul
 
     sparql = get_sparql()
 
-    # First, get subject URIs with LIMIT
-    pattern = f"?subject a <{class_uri}> ."
-    wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern)
-
     subjects_query = f"""
         SELECT DISTINCT ?subject
         WHERE {{
-            {wrapped_pattern}
+            ?subject a <{class_uri}> .
         }}
         LIMIT {limit}
     """
@@ -123,12 +117,11 @@ def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_mul
     # Fetch triples only for these specific subjects
     subjects_filter = " ".join([f"(<{s}>)" for s in subjects])
     pattern_with_filter = f"?subject a <{class_uri}> . ?subject ?p ?o . VALUES (?subject) {{ {subjects_filter} }}"
-    wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern_with_filter)
 
     triples_query = f"""
         SELECT ?subject ?p ?o
         WHERE {{
-            {wrapped_pattern}
+            {pattern_with_filter}
         }}
     """
 
@@ -296,7 +289,29 @@ def build_sort_clause(sort_property: str, entity_type: str, shape_uri: str = Non
 def get_entities_for_class(
     selected_class, page, per_page, sort_property=None, sort_direction="ASC", selected_shape=None
 ):
-    """Retrieve entities for a specific class with pagination and sorting."""
+    """
+    Retrieve entities for a specific class with pagination and sorting.
+
+    Args:
+        selected_class (str): URI of the class to retrieve entities for
+        page (int): Page number (1-indexed)
+        per_page (int): Number of entities per page
+        sort_property (str, optional): Property URI to sort by. Defaults to None.
+        sort_direction (str, optional): Sort direction ("ASC" or "DESC"). Defaults to "ASC".
+        selected_shape (str, optional): Shape URI for filtering entities. Defaults to None.
+
+    Returns:
+        tuple: (list of entities, total count)
+
+    Performance Notes:
+        - If sort_property is None, NO ORDER BY clause is applied to the SPARQL query.
+          This significantly improves performance for large datasets by avoiding expensive
+          sorting operations on URIs.
+        - Without explicit ordering, the triplestore returns results in its natural order,
+          which is deterministic within a session but may vary after database reloads.
+        - For optimal performance with large datasets, configure display_rules.yaml without
+          sortableBy properties to prevent users from triggering expensive sort operations.
+    """
     sparql = get_sparql()
     custom_filter = get_custom_filter()
     classes_with_multiple_shapes = get_classes_with_multiple_shapes()
@@ -309,14 +324,10 @@ def get_entities_for_class(
         offset = (page - 1) * per_page
         fetch_limit = per_page * 5  # Safety margin for filtering
 
-        # First, get the subjects with LIMIT
-        pattern = f"?subject a <{selected_class}> ."
-        wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern)
-
         subjects_query = f"""
             SELECT DISTINCT ?subject
             WHERE {{
-                {wrapped_pattern}
+                ?subject a <{selected_class}> .
             }}
             LIMIT {fetch_limit}
             OFFSET {offset}
@@ -324,7 +335,7 @@ def get_entities_for_class(
 
         sparql.setQuery(subjects_query)
         sparql.setReturnFormat(JSON)
-        subjects_results = sparql.query().convert() 
+        subjects_results = sparql.query().convert()
 
         subjects = [r["subject"]["value"] for r in subjects_results["results"]["bindings"]]
 
@@ -333,13 +344,11 @@ def get_entities_for_class(
 
         # Now fetch triples for these specific subjects
         subjects_filter = " ".join([f"(<{s}>)" for s in subjects])
-        pattern_with_filter = f"?subject a <{selected_class}> . ?subject ?p ?o . VALUES (?subject) {{ {subjects_filter} }}"
-        wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern_with_filter)
 
         triples_query = f"""
             SELECT ?subject ?p ?o
             WHERE {{
-                {wrapped_pattern}
+                ?subject a <{selected_class}> . ?subject ?p ?o . VALUES (?subject) {{ {subjects_filter} }}
             }}
         """
 
@@ -375,20 +384,17 @@ def get_entities_for_class(
     # Standard pagination path
     offset = (page - 1) * per_page
     sort_clause = ""
-    order_clause = "ORDER BY ?subject"
+    order_clause = ""
 
     if sort_property:
         sort_clause = build_sort_clause(sort_property, selected_class, selected_shape)
         if sort_clause:
             order_clause = f"ORDER BY {sort_direction}(?sortValue)"
 
-    pattern = f"?subject a <{selected_class}> . {sort_clause}"
-    wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern)
-
     entities_query = f"""
         SELECT ?subject {f"?sortValue" if sort_property else ""}
         WHERE {{
-            {wrapped_pattern}
+            ?subject a <{selected_class}> . {sort_clause}
         }}
         {order_clause}
         LIMIT {per_page}
@@ -396,6 +402,7 @@ def get_entities_for_class(
     """
 
     available_classes = get_available_classes()
+
     class_info = next(
         (c for c in available_classes
          if c["uri"] == selected_class and c.get("shape") == selected_shape),

@@ -84,7 +84,7 @@ Here are the top-level settings for each rule:
 -   `fetchUriDisplay`: A SPARQL query that creates a user-friendly label for an entity. This is crucial for usability, as it replaces technical URIs with meaningful text.
 -   `similarity_properties`: A list of properties used to check for potential duplicates when a user creates a new entity.
 -   `displayProperties`: A list defining how each property of the entity should be displayed and behave.
--   `sortableBy`: A list of properties that users can use to sort items in the catalogue view.
+-   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting Catalogue Items](#sorting-catalogue-items-sortableby) section for details.
 
 ## Displaying Entity Labels with `fetchUriDisplay`
 
@@ -277,6 +277,33 @@ Here is how you configure this complex relationship in `display_rules.yaml`:
     -   `fetchValueFromQuery`: A SPARQL query to get the display text. **Important:** The context for this query (`[[value]]`) is the proxy entity's URI. The query must navigate *from* the proxy to the final target to get its name.
 
 This configuration tells HERITRACE how to navigate the proxy relationship, distinguish between different roles using SHACL shapes, and display the final linked entity correctly in the user interface.
+
+## Sorting Catalogue Items (`sortableBy`)
+
+The `sortableBy` configuration allows users to sort entities in the catalogue view by specific properties. When configured, sorting controls appear in the catalogue and Time Vault interfaces, letting users organize items by properties like title, publication date, or any other relevant field.
+
+### Basic Configuration
+
+```yaml
+- target:
+    class: "http://purl.org/spar/fabio/JournalArticle"
+  displayName: "Journal Article"
+  sortableBy:
+    - property: "http://purl.org/dc/terms/title"
+      sortOrder: ["asc", "desc"]
+    - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
+      sortOrder: ["desc", "asc"]
+```
+
+**Configuration options:**
+- `property`: The URI of the property to sort by
+- `sortOrder`: An array defining available sort directions. The first value is the default.
+  - `"asc"`: Ascending order (A-Z, 0-9, oldest-newest)
+  - `"desc"`: Descending order (Z-A, 9-0, newest-oldest)
+
+<Aside type="tip" title="Performance Optimization: Omitting sortableBy">
+**For large datasets with thousands or millions of entities**, consider omitting the `sortableBy` configuration entirely. When no sorting properties are defined, HERITRACE does not apply any `ORDER BY` clause to the SPARQL queries that retrieve entities for the catalogue view.
+</Aside>
 
 ## Best Practice: Keep it DRY with YAML Anchors
 

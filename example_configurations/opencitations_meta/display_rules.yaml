@@ -676,16 +676,6 @@ common_properties:
     fetchValueFromQuery: *book_query
     supportsSearch: true
 
-  sortableByTitleDate: &sortableByTitle
-    - property: "http://purl.org/dc/terms/title"
-      sortOrder: ["asc", "desc"]
-
-  sortableByTitleDate: &sortableByTitleDate
-    - property: "http://purl.org/dc/terms/title"
-      sortOrder: ["asc", "desc"]
-    - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
-      sortOrder: ["desc", "asc"]
-
 common_similarity_properties:
   title_identifier_or: &title_identifier_or
     # OR logic: Match on title OR identifier
@@ -894,10 +884,6 @@ rules:
         shouldBeDisplayed: true
         fetchValueFromQuery: *container_query
         supportsSearch: true
-    sortableBy:
-      *sortableByTitleDate
-
-
 
   - target:
       class: "http://purl.org/spar/fabio/Book"
@@ -1013,8 +999,6 @@ rules:
         displayName: "Container"
         shouldBeDisplayed: true
         supportsSearch: true
-    sortableBy:
-      *sortableByTitleDate
 
   - target:
       class: "http://purl.org/spar/fabio/JournalArticle"
@@ -1111,8 +1095,6 @@ rules:
       - *publication_date_property
       - *embodiment_property
       - *issue_volume_journal_container_property
-    sortableBy:
-      *sortableByTitleDate
 
   - target:
       class: "http://purl.org/spar/fabio/Journal"
@@ -1154,8 +1136,6 @@ rules:
       - *type_property
       - *identifier_property
       - *title_property
-    sortableBy:
-      *sortableByTitle
 
   - target:
       class: "http://purl.org/spar/fabio/JournalVolume"
@@ -1322,8 +1302,6 @@ rules:
         displayName: "Conference Proceedings"
         shouldBeDisplayed: true
         fetchValueFromQuery: *proceedings_query
-    sortableBy:
-      *sortableByTitleDate
 
   - target:
       class: "http://purl.org/spar/fabio/AcademicProceedings"
@@ -1384,8 +1362,6 @@ rules:
       - *title_property
       - *document_context_property_container
       - *publication_date_property
-    sortableBy:
-      *sortableByTitleDate
 
   - target:
       class: "http://purl.org/spar/fabio/ReferenceBook"
@@ -1489,8 +1465,6 @@ rules:
       - *title_property
       - *document_context_property
       - *publication_date_property
-    sortableBy:
-      *sortableByTitleDate
 
   - target:
       class: "http://purl.org/spar/fabio/Thesis"
@@ -1578,8 +1552,6 @@ rules:
       - *document_context_property
       - *publication_date_property
       - *embodiment_property
-    sortableBy:
-      *sortableByTitleDate
 
   - target:
       class: "http://purl.org/spar/datacite/Identifier"
