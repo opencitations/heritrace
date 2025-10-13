@@ -2110,3 +2110,1274 @@ def test_order_logic(mock_generate_unique_uri, app: Flask) -> None:
         
         # Verify the result
         assert result == mock_editor
+
+
+@patch("heritrace.routes.api.validate_new_triple")
+@patch("heritrace.routes.api.generate_unique_uri")
+def test_create_logic_with_existing_entity(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+    """Test create_logic with existing entity reference."""
+    with app.test_request_context():
+        mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
+        mock_validate_new_triple.return_value = (None, None, None)
+
+        mock_editor = MagicMock()
+
+        data = {
+            "entity_type": "http://example.org/type/1",
+            "properties": {
+                "http://example.org/property/1": [
+                    {
+                        "is_existing_entity": True,
+                        "entity_uri": "http://example.org/existing/1"
+                    }
+                ]
+            }
+        }
+
+        result = create_logic(
+            mock_editor,
+            data,
+            subject=None,
+            graph_uri=URIRef("http://example.org/graph/1")
+        )
+
+        assert result == URIRef("http://example.org/entity/new")
+        mock_editor.create.assert_called_with(
+            URIRef(result),
+            URIRef("http://example.org/property/1"),
+            URIRef("http://example.org/existing/1"),
+            URIRef("http://example.org/graph/1")
+        )
+
+
+@patch("heritrace.routes.api.validate_new_triple")
+@patch("heritrace.routes.api.generate_unique_uri")
+def test_create_logic_with_existing_entity_missing_uri(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+    """Test create_logic with existing entity reference but missing entity_uri."""
+    with app.test_request_context():
+        mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
+        mock_validate_new_triple.return_value = (None, None, None)
+
+        mock_editor = MagicMock()
+
+        data = {
+            "entity_type": "http://example.org/type/1",
+            "properties": {
+                "http://example.org/property/1": [
+                    {
+                        "is_existing_entity": True
+                    }
+                ]
+            }
+        }
+
+        with pytest.raises(ValueError, match="Missing entity_uri in existing entity reference"):
+            create_logic(
+                mock_editor,
+                data,
+                subject=None,
+                graph_uri=URIRef("http://example.org/graph/1")
+            )
+
+
+@patch("heritrace.routes.api.validate_new_triple")
+@patch("heritrace.routes.api.generate_unique_uri")
+def test_create_logic_with_custom_property_uri(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+    """Test create_logic with custom property of type URI."""
+    with app.test_request_context():
+        mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
+        mock_validate_new_triple.return_value = (None, None, None)
+
+        mock_editor = MagicMock()
+
+        data = {
+            "entity_type": "http://example.org/type/1",
+            "properties": {
+                "http://example.org/custom/property": [
+                    {
+                        "is_custom_property": True,
+                        "type": "uri",
+                        "value": "http://example.org/custom/value"
+                    }
+                ]
+            }
+        }
+
+        result = create_logic(
+            mock_editor,
+            data,
+            subject=None,
+            graph_uri=URIRef("http://example.org/graph/1")
+        )
+
+        assert result == URIRef("http://example.org/entity/new")
+        mock_editor.create.assert_called_with(
+            URIRef(result),
+            URIRef("http://example.org/custom/property"),
+            URIRef("http://example.org/custom/value"),
+            URIRef("http://example.org/graph/1")
+        )
+
+
+@patch("heritrace.routes.api.validate_new_triple")
+@patch("heritrace.routes.api.generate_unique_uri")
+def test_create_logic_with_custom_property_literal(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+    """Test create_logic with custom property of type literal."""
+    with app.test_request_context():
+        mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
+        mock_validate_new_triple.return_value = (None, None, None)
+
+        mock_editor = MagicMock()
+
+        data = {
+            "entity_type": "http://example.org/type/1",
+            "properties": {
+                "http://example.org/custom/property": [
+                    {
+                        "is_custom_property": True,
+                        "type": "literal",
+                        "value": "Custom Value",
+                        "datatype": str(XSD.string)
+                    }
+                ]
+            }
+        }
+
+        result = create_logic(
+            mock_editor,
+            data,
+            subject=None,
+            graph_uri=URIRef("http://example.org/graph/1")
+        )
+
+        assert result == URIRef("http://example.org/entity/new")
+        mock_editor.create.assert_called()
+
+
+@patch("heritrace.routes.api.validate_new_triple")
+@patch("heritrace.routes.api.generate_unique_uri")
+def test_create_logic_with_custom_property_unknown_type(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+    """Test create_logic with custom property of unknown type."""
+    with app.test_request_context():
+        mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
+        mock_validate_new_triple.return_value = (None, None, None)
+
+        mock_editor = MagicMock()
+
+        data = {
+            "entity_type": "http://example.org/type/1",
+            "properties": {
+                "http://example.org/custom/property": [
+                    {
+                        "is_custom_property": True,
+                        "type": "unknown",
+                        "value": "Custom Value"
+                    }
+                ]
+            }
+        }
+
+        with pytest.raises(ValueError, match="Unknown custom property type: unknown"):
+            create_logic(
+                mock_editor,
+                data,
+                subject=None,
+                graph_uri=URIRef("http://example.org/graph/1")
+            )
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_get_form_fields_for_entity_success(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test get_form_fields_for_entity endpoint success path."""
+    from collections import OrderedDict
+
+    mock_form_fields = OrderedDict({
+        ("http://example.org/class", "http://example.org/shape"): OrderedDict({
+            "http://example.org/property1": [{"type": "literal"}],
+            "http://example.org/property2": [{"type": "uri"}]
+        })
+    })
+    mock_get_form_fields.return_value = mock_form_fields
+
+    response = api_client.get(
+        "/api/form-fields?entity_class=http://example.org/class&entity_shape=http://example.org/shape"
+    )
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["status"] == "success"
+    assert "form_fields" in data
+    assert len(data["form_fields"]) == 2
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_get_form_fields_for_entity_missing_params(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test get_form_fields_for_entity endpoint with missing parameters."""
+    response = api_client.get("/api/form-fields?entity_class=http://example.org/class")
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert "Missing required parameters" in data["message"]
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_get_form_fields_for_entity_not_initialized(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test get_form_fields_for_entity when form fields are not initialized."""
+    mock_get_form_fields.return_value = None
+
+    response = api_client.get(
+        "/api/form-fields?entity_class=http://example.org/class&entity_shape=http://example.org/shape"
+    )
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert "Form fields not initialized" in data["message"]
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_get_form_fields_for_entity_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test get_form_fields_for_entity when entity key is not found."""
+    from collections import OrderedDict
+
+    mock_form_fields = OrderedDict({
+        ("http://example.org/other", "http://example.org/shape"): OrderedDict()
+    })
+    mock_get_form_fields.return_value = mock_form_fields
+
+    response = api_client.get(
+        "/api/form-fields?entity_class=http://example.org/class&entity_shape=http://example.org/shape"
+    )
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert "No form fields found" in data["message"]
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_get_form_fields_for_entity_exception(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test get_form_fields_for_entity when an exception occurs."""
+    mock_get_form_fields.side_effect = Exception("Test error")
+
+    response = api_client.get(
+        "/api/form-fields?entity_class=http://example.org/class&entity_shape=http://example.org/shape"
+    )
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert "Failed to load form fields" in data["message"]
+
+
+@patch("heritrace.routes.api.get_form_fields")
+@patch("heritrace.routes.api.render_template_string")
+def test_render_form_fields_html_success(mock_render, mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_form_fields_html endpoint success path."""
+    from collections import OrderedDict
+
+    mock_form_fields = OrderedDict({
+        ("http://example.org/class", "http://example.org/shape"): OrderedDict({
+            "http://example.org/property1": [{"type": "literal"}]
+        })
+    })
+    mock_get_form_fields.return_value = mock_form_fields
+    mock_render.return_value = "<div>Form HTML</div>"
+
+    response = api_client.post(
+        "/api/render-form-fields",
+        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]}
+    )
+
+    assert response.status_code == 200
+    assert b"Form HTML" in response.data
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_form_fields_html_missing_data(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_form_fields_html with missing data."""
+    response = api_client.post("/api/render-form-fields", json={})
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert "Missing required field" in data["message"]
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_form_fields_html_not_initialized(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_form_fields_html when form fields not initialized."""
+    mock_get_form_fields.return_value = None
+
+    response = api_client.post(
+        "/api/render-form-fields",
+        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]}
+    )
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_form_fields_html_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_form_fields_html when entity not found."""
+    from collections import OrderedDict
+
+    mock_form_fields = OrderedDict({
+        ("http://example.org/other", "http://example.org/shape"): OrderedDict()
+    })
+    mock_get_form_fields.return_value = mock_form_fields
+
+    response = api_client.post(
+        "/api/render-form-fields",
+        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]}
+    )
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_form_fields_html_exception(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_form_fields_html when an exception occurs."""
+    mock_get_form_fields.side_effect = Exception("Test error")
+
+    response = api_client.post(
+        "/api/render-form-fields",
+        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]}
+    )
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+
+
+@patch("heritrace.routes.api.get_form_fields")
+@patch("heritrace.routes.api.render_template_string")
+def test_render_nested_form_html_success(mock_render, mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_nested_form_html endpoint success path."""
+    from collections import OrderedDict
+
+    mock_form_fields = OrderedDict({
+        ("http://example.org/parent", "http://example.org/parent_shape"): OrderedDict({
+            "http://example.org/predicate": [{
+                "or": [{
+                    "entityType": "http://example.org/child",
+                    "nodeShape": "http://example.org/child_shape"
+                }]
+            }]
+        })
+    })
+    mock_get_form_fields.return_value = mock_form_fields
+    mock_render.return_value = "<div>Nested Form HTML</div>"
+
+    response = api_client.post(
+        "/api/render-nested-form",
+        json={
+            "parent_entity_class": "http://example.org/parent",
+            "parent_entity_shape": "http://example.org/parent_shape",
+            "entity_class": "http://example.org/child",
+            "entity_shape": "http://example.org/child_shape",
+            "predicate_uri": "http://example.org/predicate",
+            "depth": 2
+        }
+    )
+
+    assert response.status_code == 200
+    assert b"Nested Form HTML" in response.data
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_nested_form_html_missing_fields(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_nested_form_html with missing required fields."""
+    response = api_client.post(
+        "/api/render-nested-form",
+        json={"parent_entity_class": "http://example.org/parent"}
+    )
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert "Missing required fields" in data["message"]
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_nested_form_html_not_initialized(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_nested_form_html when form fields not initialized."""
+    mock_get_form_fields.return_value = None
+
+    response = api_client.post(
+        "/api/render-nested-form",
+        json={
+            "parent_entity_class": "http://example.org/parent",
+            "parent_entity_shape": "http://example.org/parent_shape",
+            "entity_class": "http://example.org/child",
+            "entity_shape": "http://example.org/child_shape",
+            "predicate_uri": "http://example.org/predicate",
+            "depth": 2
+        }
+    )
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_nested_form_html_parent_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_nested_form_html when parent entity not found."""
+    from collections import OrderedDict
+
+    mock_form_fields = OrderedDict({
+        ("http://example.org/other", "http://example.org/shape"): OrderedDict()
+    })
+    mock_get_form_fields.return_value = mock_form_fields
+
+    response = api_client.post(
+        "/api/render-nested-form",
+        json={
+            "parent_entity_class": "http://example.org/parent",
+            "parent_entity_shape": "http://example.org/parent_shape",
+            "entity_class": "http://example.org/child",
+            "entity_shape": "http://example.org/child_shape",
+            "predicate_uri": "http://example.org/predicate",
+            "depth": 2
+        }
+    )
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_nested_form_html_predicate_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_nested_form_html when predicate not found."""
+    from collections import OrderedDict
+
+    mock_form_fields = OrderedDict({
+        ("http://example.org/parent", "http://example.org/parent_shape"): OrderedDict({
+            "http://example.org/other_predicate": [{}]
+        })
+    })
+    mock_get_form_fields.return_value = mock_form_fields
+
+    response = api_client.post(
+        "/api/render-nested-form",
+        json={
+            "parent_entity_class": "http://example.org/parent",
+            "parent_entity_shape": "http://example.org/parent_shape",
+            "entity_class": "http://example.org/child",
+            "entity_shape": "http://example.org/child_shape",
+            "predicate_uri": "http://example.org/predicate",
+            "depth": 2
+        }
+    )
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_nested_form_html_shape_info_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_nested_form_html when shape info not found."""
+    from collections import OrderedDict
+
+    mock_form_fields = OrderedDict({
+        ("http://example.org/parent", "http://example.org/parent_shape"): OrderedDict({
+            "http://example.org/predicate": [{
+                "or": [{
+                    "entityType": "http://example.org/other_child",
+                    "nodeShape": "http://example.org/other_shape"
+                }]
+            }]
+        })
+    })
+    mock_get_form_fields.return_value = mock_form_fields
+
+    response = api_client.post(
+        "/api/render-nested-form",
+        json={
+            "parent_entity_class": "http://example.org/parent",
+            "parent_entity_shape": "http://example.org/parent_shape",
+            "entity_class": "http://example.org/child",
+            "entity_shape": "http://example.org/child_shape",
+            "predicate_uri": "http://example.org/predicate",
+            "depth": 2
+        }
+    )
+
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+
+
+@patch("heritrace.routes.api.get_form_fields")
+def test_render_nested_form_html_exception(mock_get_form_fields, api_client: FlaskClient) -> None:
+    """Test render_nested_form_html when an exception occurs."""
+    mock_get_form_fields.side_effect = Exception("Test error")
+
+    response = api_client.post(
+        "/api/render-nested-form",
+        json={
+            "parent_entity_class": "http://example.org/parent",
+            "parent_entity_shape": "http://example.org/parent_shape",
+            "entity_class": "http://example.org/child",
+            "entity_shape": "http://example.org/child_shape",
+            "predicate_uri": "http://example.org/predicate",
+            "depth": 2
+        }
+    )
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+
+
+def test_format_source_api_invalid_url(api_client: FlaskClient) -> None:
+    """Test format_source_api with invalid URL."""
+    response = api_client.post(
+        "/api/format-source",
+        json={"url": "not-a-valid-url"}
+    )
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "error" in data
+    assert "Invalid or missing URL" in data["error"]
+
+
+@patch("heritrace.routes.api.get_custom_filter")
+def test_format_source_api_exception(mock_get_custom_filter, api_client: FlaskClient) -> None:
+    """Test format_source_api when an exception occurs."""
+    mock_filter = MagicMock()
+    mock_filter.format_source_reference.side_effect = Exception("Test error")
+    mock_get_custom_filter.return_value = mock_filter
+
+    response = api_client.post(
+        "/api/format-source",
+        json={"url": "http://example.org/source"}
+    )
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "formatted_html" in data
+    assert "example.org" in data["formatted_html"]
+
+
+@patch("heritrace.routes.api.get_custom_filter")
+def test_format_source_api_success(mock_get_custom_filter, api_client: FlaskClient) -> None:
+    """Test format_source_api success path."""
+    mock_filter = MagicMock()
+    mock_filter.format_source_reference.return_value = "<a href='http://example.org'>Example</a>"
+    mock_get_custom_filter.return_value = mock_filter
+
+    response = api_client.post(
+        "/api/format-source",
+        json={"url": "http://example.org/source"}
+    )
+
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "formatted_html" in data
+    assert "Example" in data["formatted_html"]
+
+
+# Tests for apply_changes endpoint
+
+
+def test_apply_changes_no_data(api_client: FlaskClient) -> None:
+    """Test apply_changes with no request data."""
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[]
+    )
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "error" in data
+    assert "No request data provided" in data["error"]
+
+
+def test_apply_changes_invalid_primary_source(api_client: FlaskClient) -> None:
+    """Test apply_changes with invalid primary source URL."""
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value",
+            "primary_source": "not_a_valid_url"
+        }]
+    )
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "error" in data
+    assert "Invalid primary source URL" in data["error"]
+
+
+@patch("heritrace.routes.api.update_logic")
+@patch("heritrace.routes.api.save_user_default_primary_source")
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_save_default_source(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_import_entity,
+    mock_transform,
+    mock_save_default,
+    mock_update_logic,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes with save_default_source flag."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "update",
+        "predicate": "http://example.org/prop",
+        "object": "old_value",
+        "newObject": "new_value",
+        "primary_source": "http://example.org/source",
+        "save_default_source": True
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value",
+            "primary_source": "http://example.org/source",
+            "save_default_source": True
+        }]
+    )
+
+    assert response.status_code == 200
+    mock_save_default.assert_called_once()
+
+
+@patch("heritrace.routes.api.update_logic")
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_set_primary_source_on_editor(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_import_entity,
+    mock_transform,
+    mock_update_logic,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes sets primary source on editor."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "update",
+        "predicate": "http://example.org/prop",
+        "object": "old_value",
+        "newObject": "new_value",
+        "primary_source": "http://example.org/source"
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value",
+            "primary_source": "http://example.org/source"
+        }]
+    )
+
+    assert response.status_code == 200
+    mock_editor.set_primary_source.assert_called_once_with("http://example.org/source")
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.import_referenced_entities")
+@patch("heritrace.routes.api.create_logic")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_with_create_action(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_create_logic,
+    mock_import_referenced,
+    mock_import_entity,
+    mock_transform,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes with create action."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+    mock_create_logic.return_value = "http://example.org/new_entity"
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "create",
+        "data": {
+            "entity_type": "http://example.org/Type",
+            "properties": {}
+        }
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "create",
+            "data": {
+                "entity_type": "http://example.org/Type",
+                "properties": {}
+            }
+        }]
+    )
+
+    assert response.status_code == 200
+    mock_import_referenced.assert_called()
+    mock_create_logic.assert_called()
+
+
+@patch("heritrace.routes.api.update_logic")
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_with_quadstore(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_import_entity,
+    mock_transform,
+    mock_update_logic,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes with quadstore to extract graph URI."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_graph = MagicMock()
+    # Mock quads() to return a single quad with graph context
+    mock_quad = (
+        URIRef("http://example.org/entity1"),
+        URIRef("http://example.org/prop"),
+        Literal("value"),
+        Graph(identifier=URIRef("http://example.org/graph"))
+    )
+    mock_graph.quads.return_value = iter([mock_quad])
+    mock_editor.g_set = mock_graph
+    mock_editor.dataset_is_quadstore = True
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "update",
+        "predicate": "http://example.org/prop",
+        "object": "old_value",
+        "newObject": "new_value"
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value"
+        }]
+    )
+
+    assert response.status_code == 200
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.delete_logic")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_with_orphan_deletion(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_delete_logic,
+    mock_import_entity,
+    mock_transform,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes with orphan entity deletion."""
+    app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.DELETE
+    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.KEEP
+
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "delete",
+        "predicate": "http://example.org/prop",
+        "object": "http://example.org/entity2",
+        "affected_entities": [
+            {"uri": "http://example.org/orphan1", "is_intermediate": False}
+        ],
+        "delete_affected": True
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "delete",
+            "predicate": "http://example.org/prop",
+            "object": "http://example.org/entity2",
+            "affected_entities": [
+                {"uri": "http://example.org/orphan1", "is_intermediate": False}
+            ],
+            "delete_affected": True
+        }]
+    )
+
+    assert response.status_code == 200
+    assert mock_delete_logic.call_count >= 1
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.delete_logic")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_with_proxy_deletion(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_delete_logic,
+    mock_import_entity,
+    mock_transform,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes with proxy entity deletion."""
+    app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.KEEP
+    app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.DELETE
+
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "delete",
+        "predicate": "http://example.org/prop",
+        "object": "http://example.org/entity2",
+        "affected_entities": [
+            {"uri": "http://example.org/proxy1", "is_intermediate": True}
+        ],
+        "delete_affected": True
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "delete",
+            "predicate": "http://example.org/prop",
+            "object": "http://example.org/entity2",
+            "affected_entities": [
+                {"uri": "http://example.org/proxy1", "is_intermediate": True}
+            ],
+            "delete_affected": True
+        }]
+    )
+
+    assert response.status_code == 200
+    assert mock_delete_logic.call_count >= 1
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.delete_logic")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_delete_entity(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_delete_logic,
+    mock_import_entity,
+    mock_transform,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes with entity deletion (no predicate)."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "delete"
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "delete"
+        }]
+    )
+
+    assert response.status_code == 200
+    mock_delete_logic.assert_called()
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.update_logic")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_update_action(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_update_logic,
+    mock_import_entity,
+    mock_transform,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes with update action."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "update",
+        "predicate": "http://example.org/prop",
+        "object": "old_value",
+        "newObject": "new_value"
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value"
+        }]
+    )
+
+    assert response.status_code == 200
+    mock_update_logic.assert_called_once()
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.order_logic")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_order_action(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_order_logic,
+    mock_import_entity,
+    mock_transform,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes with order action."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "order",
+        "predicate": "http://example.org/prop",
+        "object": ["http://example.org/e1", "http://example.org/e2"],
+        "newObject": "http://example.org/orderedBy"
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "order",
+            "predicate": "http://example.org/prop",
+            "object": ["http://example.org/e1", "http://example.org/e2"],
+            "newObject": "http://example.org/orderedBy"
+        }]
+    )
+
+    assert response.status_code == 200
+    mock_order_logic.assert_called_once()
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_save_valueerror(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_import_entity,
+    mock_transform,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes when editor.save() raises ValueError."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor.save.side_effect = ValueError("Validation failed")
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "update",
+        "predicate": "http://example.org/prop",
+        "object": "old_value",
+        "newObject": "new_value"
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value"
+        }]
+    )
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert data["error_type"] == "validation"
+
+
+@patch("heritrace.routes.api.update_logic")
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.get_dataset_endpoint")
+@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.get_responsible_agent_uri")
+def test_apply_changes_save_exception(
+    mock_get_responsible,
+    mock_get_prov,
+    mock_get_dataset,
+    mock_editor_class,
+    mock_import_entity,
+    mock_transform,
+    mock_update_logic,
+    api_client: FlaskClient,
+    app: Flask
+) -> None:
+    """Test apply_changes when editor.save() raises generic Exception."""
+    mock_get_dataset.return_value = "http://dataset"
+    mock_get_prov.return_value = "http://prov"
+    mock_get_responsible.return_value = "http://agent"
+
+    mock_editor = MagicMock()
+    mock_editor.g_set = Graph()
+    mock_editor.dataset_is_quadstore = False
+    mock_editor.save.side_effect = Exception("Database error")
+    mock_editor_class.return_value = mock_editor
+    mock_import_entity.return_value = mock_editor
+
+    mock_transform.return_value = [{
+        "subject": "http://example.org/entity1",
+        "action": "update",
+        "predicate": "http://example.org/prop",
+        "object": "old_value",
+        "newObject": "new_value"
+    }]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value"
+        }]
+    )
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert data["error_type"] == "database"
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+@patch("heritrace.routes.api.import_entity_graph")
+def test_apply_changes_outer_valueerror(
+    mock_import_entity,
+    mock_transform,
+    api_client: FlaskClient
+) -> None:
+    """Test apply_changes when a ValueError is raised in outer try block."""
+    mock_transform.side_effect = ValueError("Invalid data format")
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value"
+        }]
+    )
+
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert data["error_type"] == "validation"
+
+
+@patch("heritrace.routes.api.transform_changes_with_virtual_properties")
+def test_apply_changes_outer_exception(
+    mock_transform,
+    api_client: FlaskClient
+) -> None:
+    """Test apply_changes when a generic Exception is raised in outer try block."""
+    mock_transform.side_effect = Exception("Unexpected error")
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[{
+            "subject": "http://example.org/entity1",
+            "action": "update",
+            "predicate": "http://example.org/prop",
+            "object": "old_value",
+            "newObject": "new_value"
+        }]
+    )
+
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert data["status"] == "error"
+    assert data["error_type"] == "system"
