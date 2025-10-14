@@ -1,5 +1,5 @@
 ---
-title: SHACL Configuration
+title: SHACL configuration
 description: Define your data model using SHACL for automatic form generation and validation.
 ---
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
@@ -10,8 +10,8 @@ HERITRACE implements a specific subset of the SHACL specification. This document
 
 The SHACL (Shapes Constraint Language) file is a cornerstone of HERITRACE, serving two primary functions:
 
--   **Automatic Form Generation**: The application reads your SHACL schema to dynamically generate forms for creating and editing entities. It uses property definitions to create the appropriate input fields, labels, and validation hints.
--   **Data Validation**: It enforces the constraints defined in the schema—such as data types, cardinality, and value ranges—to ensure the integrity of all data entered into the system.
+-   **Automatic form generation**: The application reads your SHACL schema to dynamically generate forms for creating and editing entities. It uses property definitions to create the appropriate input fields, labels, and validation hints.
+-   **Data validation**: It enforces the constraints defined in the schema—such as data types, cardinality, and value ranges—to ensure the integrity of all data entered into the system.
 
 In short, your SHACL file acts as a single source of truth that dictates both the data entry interface and the validation rules.
 
@@ -265,19 +265,19 @@ Understanding how SHACL and Display Rules work together is crucial for effective
 
 ### Best practices for combined configuration
 
-1. **Define SHACL First**: Always start by defining your SHACL shapes before creating Display Rules.
+1. **Define SHACL first**: Always start by defining your SHACL shapes before creating display rules.
 
-2. **Align Properties**: Ensure Display Rules only reference properties that exist in the corresponding SHACL shapes.
+2. **Align properties**: Ensure display rules only reference properties that exist in the corresponding SHACL shapes.
 
-3. **Test Iteratively**: When modifying SHACL shapes, verify that existing Display Rules still function correctly.
+3. **Test iteratively**: When modifying SHACL shapes, verify that existing display rules still function correctly.
 
-4. **Use Consistent Priorities**: Align Display Rules priorities with your intended SHACL shape precedence.
+4. **Use consistent priorities**: Align display rules priorities with your intended SHACL shape precedence.
 
 ## Testing and updating
 
 - **Reloading**: When running in development mode, the application will automatically restart when it detects changes to `shacl.ttl`, applying your updates instantly.
-- **Update Display Rules**: If you modify properties, remember to update `resources/display_rules.yaml` to reflect those changes in the user interface.
-- **Validation Testing**: After SHACL changes, test form generation and validation to ensure all constraints work as expected.
+- **Update display rules**: If you modify properties, remember to update `resources/display_rules.yaml` to reflect those changes in the user interface.
+- **Validation testing**: After SHACL changes, test form generation and validation to ensure all constraints work as expected.
 
 <Aside type="caution" title="Breaking Changes">
 Schema changes can affect existing data. Always backup your database before making significant schema modifications. Changes to SHACL shapes may invalidate existing Display Rules configurations.

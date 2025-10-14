@@ -1,6 +1,6 @@
 ---
-title: Tracking Changes
-description: Using the Time Machine and Time Vault to track history and manage versions in HERITRACE.
+title: Tracking changes
+description: Using the time machine and time vault to track history and manage versions in HERITRACE.
 ---
 import { Image } from 'astro:assets';
 import timeMachineImage from '../../../assets/time_machine.png';
@@ -9,11 +9,11 @@ import viewVersionImage from '../../../assets/view_version.png';
 
 HERITRACE meticulously tracks every change made to your data, ensuring a transparent and auditable history for every entity.
 
-### The Time machine
+### The time machine
 
-The "Time Machine" provides a complete version history for each entity. Every time an entity is created, modified, or deleted, HERITRACE generates a new snapshot.
+The time machine provides a complete version history for each entity. Every time an entity is created, modified, or deleted, HERITRACE generates a new snapshot.
 
-<Image src={timeMachineImage} alt="HERITRACE Time Machine interface" width={800} height={600} />
+<Image src={timeMachineImage} alt="HERITRACE time machine interface" width={800} height={600} />
 
 Each snapshot in the timeline contains detailed provenance metadata:
 -   **Timestamp**: When the change was made.
@@ -29,7 +29,7 @@ Restoring an older version is a safe, two-step process that allows you to inspec
 
 From the timeline, find the snapshot you are interested in and click the **"View version"** button.
 
-<Image src={viewVersionImage} alt="A snapshot in the Time Machine timeline with the 'View version' button highlighted." width={800} height={600} />
+<Image src={viewVersionImage} alt="A snapshot in the time machine timeline with the 'View version' button highlighted." width={800} height={600} />
 
 **Step 2: Inspect and restore**
 
@@ -43,6 +43,6 @@ On this page, you can:
 
 When you restore a version, HERITRACE also ensures that all linked resources are adjusted accordingly to maintain data consistency across your collection.
 
-### The Time vault
+### The time vault
 
-Deleted entities are not permanently removed from HERITRACE. Instead, they are moved to the [**Time Vault**](../time-vault). This acts as a "recycle bin," allowing you to browse deleted items, review their history, and restore them if needed. This feature ensures that no data is ever lost accidentally. 
+Deleted entities are not permanently removed from HERITRACE. Instead, they are moved to the [**time vault**](../time-vault). This acts as a "recycle bin," allowing you to browse deleted items, review their history, and restore them if needed. This feature ensures that no data is ever lost accidentally. 

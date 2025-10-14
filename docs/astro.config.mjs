@@ -36,38 +36,38 @@ export default defineConfig({
 			],
 			sidebar: [
 				{
-					label: 'Getting Started',
+					label: 'Getting started',
 					items: [
 						{ label: 'Introduction', slug: 'introduction' },
-						{ label: 'Quick Start', slug: 'getting-started/quick-start' },
+						{ label: 'Quick start', slug: 'getting-started/quick-start' },
 					],
 				},
 				{
-					label: 'User Guide',
+					label: 'User guide',
 					items: [
 						{ label: 'Overview', slug: 'user-guide/overview' },
-						{ label: 'Browsing the Catalogue', slug: 'user-guide/browsing-catalogue' },
-						{ label: 'Creating Records', slug: 'user-guide/creating-records' },
-						{ label: 'Editing Records', slug: 'user-guide/editing-records' },
-						{ label: 'Tracking Changes', slug: 'user-guide/tracking-changes' },
-						{ label: 'Merging Records', slug: 'user-guide/merging-records' },
-						{ label: 'Using the Time Vault', slug: 'user-guide/time-vault' },
+						{ label: 'Browsing the catalogue', slug: 'user-guide/browsing-catalogue' },
+						{ label: 'Creating new records', slug: 'user-guide/creating-records' },
+						{ label: 'Editing existing records', slug: 'user-guide/editing-records' },
+						{ label: 'Tracking changes', slug: 'user-guide/tracking-changes' },
+						{ label: 'Merging records', slug: 'user-guide/merging-records' },
+						{ label: 'Using the time vault', slug: 'user-guide/time-vault' },
 					],
 				},
 				{
 					label: 'Configuration',
 					items: [
-						{ label: 'Application Settings', slug: 'configuration/app-settings' },
-						{ label: 'SHACL Schema', slug: 'configuration/shacl' },
-						{ label: 'Display Rules', slug: 'configuration/display-rules' },
+						{ label: 'Application settings', slug: 'configuration/app-settings' },
+						{ label: 'SHACL configuration', slug: 'configuration/shacl' },
+						{ label: 'Display rules configuration', slug: 'configuration/display-rules' },
 					],
 				},
 				{
 					label: 'Development',
 					items: [
-						{ label: 'Development Setup', slug: 'development' },
-						{ label: 'Running Tests', slug: 'testing/running-tests' },
-						{ label: 'CI/CD Pipeline', slug: 'testing/cicd' },
+						{ label: 'Development setup', slug: 'development' },
+						{ label: 'Running tests', slug: 'testing/running-tests' },
+						{ label: 'CI/CD pipeline', slug: 'testing/cicd' },
 					],
 				},
 			],

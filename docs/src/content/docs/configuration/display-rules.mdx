@@ -1,5 +1,5 @@
 ---
-title: Display Rules Configuration
+title: Display rules configuration
 description: Customize the HERITRACE interface using the display_rules.yaml file to control how data is presented and handled.
 ---
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
@@ -77,14 +77,14 @@ When an entity could be targeted by multiple rules (e.g., it has multiple types)
 
 ### Key rule settings
 
-Here are the top-level settings for each rule:
+Here are the top-level settings for each rule, listed in order of how they are presented in this documentation:
 
 -   `displayName`: A human-readable name for the entity type (e.g., "Journal Article"). This is shown in the UI.
 -   `shouldBeDisplayed`: A boolean (`true` or `false`). If `true`, this entity type will appear in the catalogue and can be created via the "New Record" interface.
--   `fetchUriDisplay`: A SPARQL query that creates a user-friendly label for an entity. This is crucial for usability, as it replaces technical URIs with meaningful text.
--   `similarity_properties`: A list of properties used to check for potential duplicates when a user creates a new entity.
--   `displayProperties`: A list defining how each property of the entity should be displayed and behave.
--   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting Catalogue Items](#sorting-catalogue-items-sortableby) section for details.
+-   `fetchUriDisplay`: A SPARQL query that creates a user-friendly label for an entity. This is crucial for usability, as it replaces technical URIs with meaningful text. See the [Displaying entity labels](#displaying-entity-labels-with-fetchuridisplay) section for details.
+-   `displayProperties`: A list defining how each property of the entity should be displayed and behave. See the [Configuring properties](#configuring-properties-displayproperties) section for details.
+-   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting catalogue items](#sorting-catalogue-items-sortableby) section for details.
+-   `similarity_properties`: A configuration that defines which properties are used to identify potential duplicate entities. HERITRACE uses these to display "Similar Resources" on entity pages, enabling users to merge duplicates. See the [Similarity properties for duplicate detection](#similarity-properties-for-duplicate-detection) section for details.
 
 ## Displaying entity labels with `fetchUriDisplay`
 
@@ -280,7 +280,7 @@ This configuration tells HERITRACE how to navigate the proxy relationship, disti
 
 ## Sorting catalogue items (`sortableBy`)
 
-The `sortableBy` configuration allows users to sort entities in the catalogue view by specific properties. When configured, sorting controls appear in the catalogue and Time Vault interfaces, letting users organize items by properties like title, publication date, or any other relevant field.
+The `sortableBy` configuration allows users to sort entities in the catalogue view by specific properties. When configured, sorting controls appear in the catalogue and time vault interfaces, letting users organize items by properties like title, publication date, or any other relevant field.
 
 ### Basic configuration
 
@@ -305,7 +305,67 @@ The `sortableBy` configuration allows users to sort entities in the catalogue vi
 **For large datasets with thousands or millions of entities**, consider omitting the `sortableBy` configuration entirely. When no sorting properties are defined, HERITRACE does not apply any `ORDER BY` clause to the SPARQL queries that retrieve entities for the catalogue view.
 </Aside>
 
-## Best practice: Keep it DRY with YAML anchors
+## Similarity properties for duplicate detection
+
+The `similarity_properties` configuration enables HERITRACE to identify potential duplicates when users create or view entities. When configured, the system automatically searches for similar resources based on matching property values and displays them in the ["Similar Resources"](/heritrace/user-guide/merging-records/) section on entity pages, where users can initiate merge operations.
+
+### How similarity detection works
+
+HERITRACE queries the triplestore to find other entities of the same type that share matching values for the configured properties. The configuration supports flexible boolean logic combining OR and AND conditions.
+
+### Basic configuration
+
+The simplest configuration uses OR logic: entities are considered similar if they match on *any* of the specified properties.
+
+```yaml
+- target:
+    class: "http://purl.org/spar/fabio/JournalArticle"
+  displayName: "Journal Article"
+  similarity_properties:
+    - "http://purl.org/dc/terms/title"
+    - "http://purl.org/spar/datacite/hasIdentifier"
+```
+
+This configuration finds articles that share either the same title or the same identifier. For instance, if a user views an article titled "Machine Learning Applications", HERITRACE will find other articles with that exact title or with matching identifiers.
+
+### AND logic for stricter matching
+
+For more precise duplicate detection, you can require that multiple properties match simultaneously using AND logic.
+
+```yaml
+- target:
+    class: "http://purl.org/spar/fabio/JournalIssue"
+  displayName: "Journal Issue"
+  similarity_properties:
+    - and:
+      - "http://purl.org/spar/fabio/hasSequenceIdentifier"
+      - "http://purl.org/vocab/frbr/core#partOf"
+```
+
+This configuration only considers issues as similar if they have both the same sequence identifier (e.g., issue number) and belong to the same journal. This prevents false positives where different journals might use the same issue numbering scheme.
+
+### Complex matching with combined logic
+
+You can combine OR and AND logic.
+
+```yaml
+- target:
+    class: "http://xmlns.com/foaf/0.1/Agent"
+  displayName: "Agent"
+  similarity_properties:
+    - "http://xmlns.com/foaf/0.1/name"
+    - and:
+        - "http://xmlns.com/foaf/0.1/familyName"
+        - "http://xmlns.com/foaf/0.1/givenName"
+    - "http://purl.org/spar/datacite/hasIdentifier"
+```
+
+This configuration for agents (people or organizations) considers entities similar if they match on:
+- The same full name (`foaf:name`), OR
+- Both the same family name AND given name, OR
+- The same identifier (e.g., ORCID)
+
+## Best practice: keep it DRY with YAML anchors
 
 To avoid repeating the same queries or property definitions, use YAML anchors (`&`) and aliases (`*`). This makes your configuration file shorter and much easier to maintain.
 

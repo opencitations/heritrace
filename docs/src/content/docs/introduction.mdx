@@ -15,11 +15,11 @@ Many GLAM institutions face a choice between embracing Semantic Web technologies
 
 HERITRACE has been designed with five primary objectives:
 
-1. **User-Friendly Interface**: Providing an intuitive interface for domain experts to interact with semantic data without technical knowledge
-2. **Comprehensive Provenance Management**: Implementing detailed documentation of metadata modifications, including who made changes, when, and from what sources
-3. **Robust Change-Tracking**: Delivering efficient version control capabilities for reconstruction of previous data states
-4. **Flexible Customization**: Offering standardized configuration through SHACL and YAML rather than proprietary solutions
-5. **Seamless Integration**: Facilitating compatibility with pre-existing RDF data collections without modification
+1. **User-friendly interface**: Providing an intuitive interface for domain experts to interact with semantic data without technical knowledge
+2. **Comprehensive provenance management**: Implementing detailed documentation of metadata modifications, including who made changes, when, and from what sources
+3. **Robust change-tracking**: Delivering efficient version control capabilities for reconstruction of previous data states
+4. **Flexible customization**: Offering standardized configuration through SHACL and YAML rather than proprietary solutions
+5. **Seamless integration**: Facilitating compatibility with pre-existing RDF data collections without modification
 
 ## Target users
 
@@ -51,16 +51,16 @@ Change tracking uses a delta-based approach storing only differences between suc
 
 ![Resource editing interface showing metadata fields and editing options](../../assets/change_tracking.png)
 
-### Time machine and Time vault
-The **Time Machine** feature provides a timeline interface for managing entity evolution, allowing users to view previous versions and restore earlier states with automatic adjustment of linked resources. The **Time Vault** serves as a specialized catalog for deleted entities, enabling recovery when needed.
+### Time machine and time vault
+The time machine feature provides a timeline interface for managing entity evolution, allowing users to view previous versions and restore earlier states with automatic adjustment of linked resources. The time vault serves as a specialized catalog for deleted entities, enabling recovery when needed.
 
-![Time Machine interface showing version history and timeline](../../assets/time_machine.png)
+![Time machine interface showing version history and timeline](../../assets/time_machine.png)
 
 ### Intelligent metadata management
-- **Real-time Validation**: SHACL-based constraints ensure data consistency and integrity
-- **Smart Disambiguation**: Automatic detection of similar entities during creation to prevent duplication
-- **Dynamic Field Configuration**: Interface adapts based on entity type and defined schemas
-- **Semantic Relationship Management**: Handle complex relationships between entities with proper validation
+- **Real-time validation**: SHACL-based constraints ensure data consistency and integrity
+- **Smart disambiguation**: Automatic detection of similar entities during creation to prevent duplication
+- **Dynamic field configuration**: Interface adapts based on entity type and defined schemas
+- **Semantic relationship management**: Handle complex relationships between entities with proper validation
 
 ### Seamless RDF integration
 HERITRACE functions effectively out of the box with existing RDF datasets. Simply connect to your triplestore - no data transformation or special import procedures required. The system automatically discovers and displays entities based on their RDF types.
@@ -72,7 +72,7 @@ HERITRACE is built using modern web technologies optimized for semantic data man
 - **Backend**: Python <a href="https://flask.palletsprojects.com/" target="_blank">Flask</a> framework with <a href="https://rdflib.readthedocs.io/" target="_blank">RDFlib</a> for RDF processing and <a href="https://github.com/opencitations/time-agnostic-library" target="_blank">Time-agnostic Library</a> for managing version reconstruction
 - **Database**: Database-agnostic architecture supporting any RDF triplestore. Tested with <a href="https://virtuoso.openlinksw.com/" target="_blank">Virtuoso</a> and Blazegraph, but also compatible with GraphDB and Apache Jena. Virtuoso is recommended as it is open source and actively maintained, while Blazegraph is no longer maintained
 - **Frontend**: <a href="https://jinja.palletsprojects.com/" target="_blank">Jinja2</a> templating engine with <a href="https://react.dev/" target="_blank">React</a> components for interactive elements requiring reactivity
-- **Standards Compliance**: Built on <a href="https://www.w3.org/RDF/" target="_blank">RDF</a>, <a href="https://www.w3.org/TR/sparql11-query/" target="_blank">SPARQL</a>, <a href="https://www.w3.org/TR/shacl/" target="_blank">SHACL</a>, and <a href="https://www.w3.org/TR/prov-o/" target="_blank">PROV-O</a> standards
+- **Standards compliance**: Built on <a href="https://www.w3.org/RDF/" target="_blank">RDF</a>, <a href="https://www.w3.org/TR/sparql11-query/" target="_blank">SPARQL</a>, <a href="https://www.w3.org/TR/shacl/" target="_blank">SHACL</a>, and <a href="https://www.w3.org/TR/prov-o/" target="_blank">PROV-O</a> standards
 - **Authentication**: <a href="https://orcid.org/" target="_blank">ORCID</a> OAuth integration with access control
 - **Deployment**: <a href="https://www.docker.com/" target="_blank">Docker</a> and Docker Compose support for easy installation
 - **Customization**: <a href="https://www.w3.org/TR/shacl/" target="_blank">SHACL</a> for data model definition, <a href="https://yaml.org/" target="_blank">YAML</a> for display rule configuration

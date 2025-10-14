@@ -1,5 +1,5 @@
 ---
-title: Merging Records
+title: Merging records
 description: How to merge duplicate entities in HERITRACE.
 ---
 import { Image } from 'astro:assets';
@@ -7,6 +7,12 @@ import confirmMergeImage from '../../../assets/confirm_merge.png';
 import similarResourcesImage from '../../../assets/similar_resources.png';
 
 Merging is a powerful tool in HERITRACE for cleaning up your data by consolidating duplicate records. This guide explains the entire process.
+
+### Understanding similar resources
+
+HERITRACE automatically identifies potential duplicates by comparing entities based on configured similarity properties. These properties define which fields are used to detect matches (such as titles, identifiers, or names) and support flexible OR/AND logic.
+
+For detailed information about how to configure similarity properties and customize duplicate detection logic, see the [Similarity properties for duplicate detection](/heritrace/configuration/display-rules/#similarity-properties-for-duplicate-detection) section in the display rules configuration guide.
 
 ### Step 1: Identify and initiate the merge
 
@@ -39,7 +45,7 @@ Below the two boxes, the system explains the rules that will be applied automati
 Click the **"Confirm Merge"** button to finalize the process. HERITRACE will then perform the actions as described.
 
 :::tip[Is it reversible?]
-Merging is a significant action, but it is fully reversible. If you make a mistake, you can easily undo the merge by using the [**Time Machine**](./tracking-changes).
+Merging is a significant action, but it is fully reversible. If you make a mistake, you can easily undo the merge by using the [**time machine**](./tracking-changes).
 
 Simply restore the entity you kept to the version before the merge, and HERITRACE will automatically restore the deleted entity and all its previous connections.
 :::

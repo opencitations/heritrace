@@ -1,5 +1,5 @@
 ---
-title: Running Tests
+title: Running tests
 description: Execute automated tests and ensure code quality in HERITRACE
 ---
 
@@ -11,8 +11,8 @@ HERITRACE uses pytest for testing. This guide covers running tests locally and u
 
 ### Test types
 
-- **Unit Tests**: Test individual functions and classes
-- **Integration Tests**: Test component interactions and database operations
+- **Unit tests**: Test individual functions and classes
+- **Integration tests**: Test component interactions and database operations
 
 ### Test structure
 
@@ -54,18 +54,18 @@ Tests require dedicated databases running on different ports:
     ```
     
     This creates:
-    - Test Dataset database on port 9999
-    - Test Provenance database on port 9998
+    - Test dataset database on port 9999
+    - Test provenance database on port 9998
   </TabItem>
   <TabItem label="Windows PowerShell">
     ```powershell
     # Start test databases
     .\tests\Start-TestDatabases.ps1
     ```
-    
+
     This creates:
-    - Test Dataset database on port 9999
-    - Test Provenance database on port 9998
+    - Test dataset database on port 9999
+    - Test provenance database on port 9998
   </TabItem>
 </Tabs>
 
