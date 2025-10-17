@@ -431,3 +431,32 @@ uv run python task_plots.py
 - `task_success_rates.png`
 - `task_duration_expected_vs_actual.png`
 - `task_error_heatmaps.png`
+
+## Recruitment distribution software usage
+
+**Purpose**: Analyze participant familiarity with HERITRACE and SHACL (for technicians) from written answer files, generating distribution statistics and visualizations.
+
+**Running the Analysis**:
+```bash
+cd user_testing/analysis_software
+uv run python recruitment_distribution.py
+```
+
+**Prerequisites**:
+- Written answer files at `results/[endusers|technicians]/written_answers/`
+- Dependencies installed via `uv sync`
+
+**Input Data**:
+- End users: HERITRACE familiarity question responses
+- Technicians: HERITRACE and SHACL familiarity question responses
+
+**Output Files** (in `results/aggregated_analysis/recruitment/`):
+- `recruitment_distribution.json` - Detailed participant data and summary statistics
+- `recruitment_distribution_combined.png` - Combined visualization with three distribution charts:
+  - End users HERITRACE familiarity (top panel)
+  - Technicians HERITRACE familiarity (bottom left)
+  - Technicians SHACL familiarity (bottom right)
+
+**Familiarity Levels**:
+- HERITRACE: No experience, Usage knowledge, Mastered
+- SHACL: No experience, Working knowledge, Mastered

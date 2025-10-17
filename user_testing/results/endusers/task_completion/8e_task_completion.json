@@ -1,0 +1,52 @@
+{
+  "participant_id": "8e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:01:28",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:00:53",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Misleading visual affordance in merge interface: the directional arrow indicating merge direction has the same visual characteristics (color, style) as the interactive confirm button, creating a semantic inconsistency where a non-interactive graphic element appears clickable. User attempted to click the arrow thinking it was the 'merge into' button",
+          "trigger": "Attempted to click on directional arrow element in merge interface, expressing confusion: 'cliccherei su merge into ma non ho feedback'",
+          "outcome": "workaround"
+        }
+      ]
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:00:42",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:03:11",
+      "status": "partial",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "Context loss in deeply nested interface: user entered ISSN identifier directly into journal title field instead of using the dedicated identifier field. This error occurred despite user correctly adding identifiers (ORCID) to author entities earlier in the same task. The deeply nested dropdown structure caused loss of contextual awareness about which entity and which field type was being edited",
+          "trigger": "Creating journal entity within deeply nested publication form interface. User had to navigate through multiple levels of entity creation (publication → journal → journal fields) without clear visual indication of current context",
+          "outcome": "workaround"
+        }
+      ]
+    }
+  }
+}

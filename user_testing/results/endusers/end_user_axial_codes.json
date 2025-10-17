@@ -395,9 +395,45 @@
         {
           "participant_id": "7e",
           "code": "merge_suggestion_feature_appreciation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "direct_merge_initiation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "systematic_duplicate_checking"
+        },
+        {
+          "participant_id": "8e",
+          "code": "evaluating_merge_information"
+        },
+        {
+          "participant_id": "8e",
+          "code": "confident_identifier_addition"
+        },
+        {
+          "participant_id": "8e",
+          "code": "rejecting_incorrect_suggestion"
+        },
+        {
+          "participant_id": "8e",
+          "code": "creating_new_journal_entity"
+        },
+        {
+          "participant_id": "8e",
+          "code": "overall_smooth_workflow"
+        },
+        {
+          "participant_id": "8e",
+          "code": "autocomplete_feature_appreciation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "identifier_integration_appreciation"
         }
       ],
-      "category_description": "Codes representing all positive user experiences with the system, including successful functionality (autocomplete, merge operations, drag-and-drop reordering, version control, validation, entity management, identifier interoperability, similar resource detection, installation ease, autonomous problem diagnosis, learning progression, error recovery, overall system effectiveness) and positive interface design elements (visual appeal, intuitive navigation components, clear information presentation, well-organized field grouping, logical field sequence, functional design choices that enhance user experience and reduce cognitive load)",
+      "category_description": "Codes representing all positive user experiences with the system, including successful functionality (autocomplete, merge operations including direct initiation and systematic duplicate checking, drag-and-drop reordering, version control, validation, entity management including confident identifier addition and critical evaluation of suggestions, identifier interoperability, similar resource detection, installation ease, autonomous problem diagnosis, learning progression, error recovery, overall system effectiveness and smooth workflow) and positive interface design elements (visual appeal, intuitive navigation components, clear information presentation, well-organized field grouping, logical field sequence, functional design choices that enhance user experience and reduce cognitive load)",
       "task_contexts": [
         "Time machine usage",
         "Knowledge transfer",
@@ -419,10 +455,12 @@
         "Navigation",
         "Creating publications",
         "Form validation",
-        "Browsing records"
+        "Browsing records",
+        "Duplicate management",
+        "Identifier management"
       ],
       "overall_sentiment": "positive",
-      "frequency": "98"
+      "frequency": "108"
     },
     {
       "category_name": "Interface design and interaction problems",
@@ -510,9 +548,13 @@
         {
           "participant_id": "6e",
           "code": "title_paste_artifacts"
+        },
+        {
+          "participant_id": "8e",
+          "code": "misleading_merge_interface_affordance"
         }
       ],
-      "category_description": "Codes identifying interface design and form interaction problems including inconsistent visual elements, layout issues (wasted space, visual inconsistencies), unclear entity states, collapsed section visibility, confusing field structures, styling problems, unclear dialogs, performance issues, overwhelming form complexity, lack of clear feedback mechanisms, frustration with unresponsive interface elements, nested structure confusion, and data paste formatting artifacts",
+      "category_description": "Codes identifying interface design and form interaction problems including inconsistent visual elements, layout issues (wasted space, visual inconsistencies), unclear entity states, collapsed section visibility, confusing field structures, styling problems, unclear dialogs, performance issues, overwhelming form complexity, lack of clear feedback mechanisms, frustration with unresponsive interface elements, nested structure confusion, data paste formatting artifacts, and misleading visual affordances where non-interactive elements have same visual characteristics as interactive buttons causing user confusion",
       "task_contexts": [
         "Data entry",
         "Saving changes",
@@ -523,10 +565,11 @@
         "Form completion",
         "Entity creation",
         "Interface responsiveness",
-        "Comparing interface elements"
+        "Comparing interface elements",
+        "Merge operations"
       ],
       "overall_sentiment": "negative",
-      "frequency": "21"
+      "frequency": "22"
     },
     {
       "category_name": "Entity creation and management confusion",
@@ -696,9 +739,29 @@
         {
           "participant_id": "1e",
           "code": "first_time_user_perspective"
+        },
+        {
+          "participant_id": "8e",
+          "code": "expecting_navigation_tabs"
+        },
+        {
+          "participant_id": "8e",
+          "code": "direct_author_creation_approach"
+        },
+        {
+          "participant_id": "8e",
+          "code": "creating_related_entities"
+        },
+        {
+          "participant_id": "8e",
+          "code": "entering_pagination_metadata"
+        },
+        {
+          "participant_id": "8e",
+          "code": "entering_volume_issue_data"
         }
       ],
-      "category_description": "Codes representing neutral observations about system behavior, user understanding processes, hypothesis formation, gradual learning achievements, validation error recognition, workaround development including delete-and-recreate strategies, window management awareness, factual navigation activities, constructive user suggestions for system improvements (preview functionality, enhanced feedback mechanisms), and acknowledgments from first-time users navigating the system complexity without strong positive or negative sentiment",
+      "category_description": "Codes representing neutral observations about system behavior, user understanding processes, hypothesis formation, gradual learning achievements, validation error recognition, workaround development including delete-and-recreate strategies, window management awareness, factual navigation activities (tab-based catalog browsing, author creation approaches, entity relationship building, pagination and volume data entry), constructive user suggestions for system improvements (preview functionality, enhanced feedback mechanisms), and acknowledgments from first-time users navigating the system complexity without strong positive or negative sentiment",
       "task_contexts": [
         "Data entry",
         "Overall system improvement",
@@ -712,10 +775,12 @@
         "Error handling",
         "General system usage",
         "Resource creation",
-        "Form interaction"
+        "Form interaction",
+        "Catalog browsing",
+        "Metadata entry"
       ],
       "overall_sentiment": "neutral",
-      "frequency": "27"
+      "frequency": "32"
     },
     {
       "category_name": "System functionality gaps and user adaptation",
@@ -823,9 +888,17 @@
         {
           "participant_id": "3e",
           "code": "repeatedly_expressing_difficulty"
+        },
+        {
+          "participant_id": "8e",
+          "code": "repeated_search_expectation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "request_for_catalog_integration"
         }
       ],
-      "category_description": "Codes identifying missing or needed system functionality (search capabilities, better status indicators, form management features, navigation aids, visibility of critical buttons, missing metadata fields, bulk import, smart data parsing, inline validation help text, field placeholders), user strategies for navigating when faced with unclear pathways (trial-and-error approaches, hypothesis formation, workaround development, browser history navigation difficulties), and emotional responses to these gaps (frustration, disorientation, negative self-assessment)",
+      "category_description": "Codes identifying missing or needed system functionality (search capabilities with repeated user expectations across multiple sessions, better status indicators, form management features, navigation aids, visibility of critical buttons, missing metadata fields, bulk import, smart data parsing, inline validation help text, field placeholders, integration with external bibliographic catalogs for comprehensive autocomplete), user strategies for navigating when faced with unclear pathways (trial-and-error approaches, hypothesis formation, workaround development, browser history navigation difficulties), and emotional responses to these gaps (frustration, disorientation, negative self-assessment)",
       "task_contexts": [
         "System navigation",
         "Saving changes",
@@ -837,10 +910,11 @@
         "Entity creation",
         "Locating existing resources",
         "Form interaction",
-        "Catalog browsing"
+        "Catalog browsing",
+        "System improvement suggestions"
       ],
       "overall_sentiment": "negative",
-      "frequency": "26"
+      "frequency": "28"
     },
     {
       "category_name": "Timeline and version control experience",

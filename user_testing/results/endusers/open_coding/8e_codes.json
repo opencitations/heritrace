@@ -1,0 +1,192 @@
+{
+  "participant_id": "8e",
+  "user_type": "end_user",
+  "codes": [
+    {
+      "code": "catalog_as_primary_entry_point",
+      "verbatim_quote": "quello che faccio è andare al catalogo",
+      "context": "User immediately navigates to catalog section to begin searching for journal article to edit",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "expecting_navigation_tabs",
+      "verbatim_quote": "qui vedo che ho le issue come prima schermata, vado su journal article",
+      "context": "User notices catalog displays issues by default and navigates to journal article tab to find target resource",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "search_functionality_missing",
+      "verbatim_quote": "Qui mi aspetterei di trovare una barra di ricerca, onestamente",
+      "context": "Task 1: User explicitly expects to find a search bar in catalog view to locate specific journal article",
+      "sentiment": "negative"
+    },
+    {
+      "code": "manually_scanning_through_records",
+      "verbatim_quote": "uno scorro lo trovo qua, altrimenti avrei fatto un comando F",
+      "context": "Task 1: User scrolls through list to find article, mentions would have used browser's Ctrl+F if scrolling didn't work",
+      "sentiment": "negative"
+    },
+    {
+      "code": "quick_task_orientation",
+      "verbatim_quote": "Quindi dobbiamo modificare la risorsa e aggiungere un autore",
+      "context": "User quickly understands task requirement after accessing target journal article page",
+      "sentiment": "positive"
+    },
+    {
+      "code": "direct_author_creation_approach",
+      "verbatim_quote": "un autore che ha questo nome, questo nome. Lo aggiungiamo così",
+      "context": "Task 1: User creates new author entity directly by entering given name and family name",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "understanding_identifier_requirement",
+      "verbatim_quote": "altrimenti usiamo gli altri campi. La creiamo e aggiungiamo anche l'identificativo che è un ORCID con questo valore",
+      "context": "Task 1: User recognizes need to add ORCID identifier to author entity after creating it",
+      "sentiment": "positive"
+    },
+    {
+      "code": "successful_author_lookup",
+      "verbatim_quote": "Esiste già, lo aggiungiamo",
+      "context": "Task 1: System detects existing author entity matching the ORCID identifier provided",
+      "sentiment": "positive"
+    },
+    {
+      "code": "discovering_reordering_mechanism",
+      "verbatim_quote": "la spostiamo come primo autore",
+      "context": "Task 1: User successfully uses reordering functionality to move Caroline Scagel to first author position",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confirming_task_completion",
+      "verbatim_quote": "Salviamo, confermiamo. Ok, controllo e perfetto, ci risulta all'inizio",
+      "context": "Task 1: User saves changes, verifies Caroline Scagel appears as first author in updated record",
+      "sentiment": "positive"
+    },
+    {
+      "code": "recognizing_similar_resources_indicator",
+      "verbatim_quote": "andiamo a visitare la pagina dell'autore, ci sono delle similar resources",
+      "context": "Task 2: User accesses Richard Carew's author page and immediately identifies similar resources notification",
+      "sentiment": "positive"
+    },
+    {
+      "code": "direct_merge_initiation",
+      "verbatim_quote": "quindi andiamo su merge",
+      "context": "Task 2: User immediately proceeds to merge functionality upon detecting duplicate author entities",
+      "sentiment": "positive"
+    },
+    {
+      "code": "misleading_merge_interface_affordance",
+      "verbatim_quote": "qua cliccherei su merge into ma non ho feedback",
+      "context": "Task 2: User attempts to click directional arrow in merge interface, mistaking it for the 'merge into' button due to semantic inconsistency - the arrow has same visual characteristics (color, style) as interactive buttons despite being non-interactive graphic element",
+      "sentiment": "negative"
+    },
+    {
+      "code": "systematic_duplicate_checking",
+      "verbatim_quote": "Controllo che ce ne siano altri e procedo anche con questo merge",
+      "context": "Task 2: After first merge, user checks for additional duplicates and systematically merges them",
+      "sentiment": "positive"
+    },
+    {
+      "code": "evaluating_merge_information",
+      "verbatim_quote": "non ci sono delle informazioni differenti, per cui confermo e procedo",
+      "context": "Task 2: User reviews duplicate entities before merging to verify no unique information would be lost",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confident_new_record_creation",
+      "verbatim_quote": "La quarta task riguarda aggiungere questo journal article nel repository, quindi vado su new record, è un journal article",
+      "context": "Task 4: User confidently approaches new publication creation by navigating to new record and selecting journal article type",
+      "sentiment": "positive"
+    },
+    {
+      "code": "identifying_primary_identifier",
+      "verbatim_quote": "literal value con questo DOI",
+      "context": "Task 4: User correctly identifies DOI as primary identifier for journal article and enters it as literal value",
+      "sentiment": "positive"
+    },
+    {
+      "code": "systematic_metadata_completion",
+      "verbatim_quote": "poi il titolo, gli autori: Massari, Arcangelo, Peroni, Silvio, non c'è, li aggiungiamo",
+      "context": "Task 4: User methodically enters metadata fields in sequence: identifier, title, authors with given and family names",
+      "sentiment": "positive"
+    },
+    {
+      "code": "confident_identifier_addition",
+      "verbatim_quote": "Entrambi hanno sicuramente un identificativo, ed è questo per Massari, questo per Peroni",
+      "context": "Task 4: User confidently adds ORCID identifiers for both authors without hesitation",
+      "sentiment": "positive"
+    },
+    {
+      "code": "creating_related_entities",
+      "verbatim_quote": "Poi ci interessa il publisher e lo creiamo",
+      "context": "Task 4: User creates new publisher entity as part of journal article metadata completion",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "entering_pagination_metadata",
+      "verbatim_quote": "ci interessano le pagine 317 e 340",
+      "context": "Task 4: User enters start and end page numbers for journal article",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "entering_volume_issue_data",
+      "verbatim_quote": "ci interessa l'issue che è 20 e volume 9",
+      "context": "Task 4: User enters issue and volume numbers for journal article metadata",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "rejecting_incorrect_suggestion",
+      "verbatim_quote": "Ho un suggerimento, ma il nostro journal non è questo",
+      "context": "Task 4: System provides autocomplete suggestion for journal, but user correctly identifies it as wrong journal",
+      "sentiment": "positive"
+    },
+    {
+      "code": "creating_new_journal_entity",
+      "verbatim_quote": "quindi creiamo una nuova entity, e il nostro journal è invece Umanistica Digitale, e creiamo una nuova entity",
+      "context": "Task 4: After rejecting incorrect suggestion, user creates new journal entity with correct title 'Umanistica Digitale'",
+      "sentiment": "positive"
+    },
+    {
+      "code": "self_validation_of_input",
+      "verbatim_quote": "Quindi aggiungiamo il record, lo confermiamo, faccio un rapido check, e mi sembra tutto ok",
+      "context": "Task 4: Before finalizing, user performs quick self-review of entered metadata to verify correctness",
+      "sentiment": "positive"
+    },
+    {
+      "code": "rapid_task_completion_satisfaction",
+      "verbatim_quote": "e con questo direi che è finita la task 4",
+      "context": "Task 4: User confidently concludes task completion after verification check",
+      "sentiment": "positive"
+    },
+    {
+      "code": "overall_smooth_workflow",
+      "verbatim_quote": "The workflow was smooth",
+      "context": "Written reflection: User describes overall task workflow as smooth and efficient",
+      "sentiment": "positive"
+    },
+    {
+      "code": "autocomplete_feature_appreciation",
+      "verbatim_quote": "Autocomplete suggestions",
+      "context": "Written reflection: User identifies autocomplete suggestions as one of most useful features",
+      "sentiment": "positive"
+    },
+    {
+      "code": "identifier_integration_appreciation",
+      "verbatim_quote": "Orcid and other ID integration",
+      "context": "Written reflection: User appreciates integration with ORCID and other identifier systems as key useful feature",
+      "sentiment": "positive"
+    },
+    {
+      "code": "repeated_search_expectation",
+      "verbatim_quote": "I was expecting a search function to look up for articles (which I didn't find)",
+      "context": "Written reflection: User explicitly mentions expecting search functionality in both audio and non-audio test sessions, consistently not finding it",
+      "sentiment": "negative"
+    },
+    {
+      "code": "request_for_catalog_integration",
+      "verbatim_quote": "integration with existing catalogues (autocomplete of every field)",
+      "context": "Written suggestion: User desires integration with external bibliographic catalogs to enable autocomplete for all metadata fields",
+      "sentiment": "negative"
+    }
+  ]
+}

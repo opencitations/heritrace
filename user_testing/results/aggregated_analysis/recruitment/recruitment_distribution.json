@@ -1,115 +1,121 @@
 {
   "participants": [
     {
-      "participant_id": "2e",
-      "user_type": "endusers",
-      "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/endusers/written_answers/2e_written_answer.md"
-    },
-    {
-      "participant_id": "5e",
-      "user_type": "endusers",
-      "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/endusers/written_answers/5e_written_answer.md"
-    },
-    {
-      "participant_id": "6e",
-      "user_type": "endusers",
-      "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/endusers/written_answers/6e_written_answer.md"
-    },
-    {
-      "participant_id": "7e",
-      "user_type": "endusers",
-      "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/endusers/written_answers/7e_written_answer.md"
-    },
-    {
       "participant_id": "1e",
       "user_type": "endusers",
       "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/endusers/written_answers/1e_written_answer.md"
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/1e_written_answer.md"
+    },
+    {
+      "participant_id": "2e",
+      "user_type": "endusers",
+      "heritrace_familiarity": "No, I had never used it",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/2e_written_answer.md"
     },
     {
       "participant_id": "3e",
       "user_type": "endusers",
       "heritrace_familiarity": "Yes, I had usage knowledge",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/endusers/written_answers/3e_written_answer.md"
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/3e_written_answer.md"
     },
     {
       "participant_id": "4e",
       "user_type": "endusers",
       "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/endusers/written_answers/4e_written_answer.md"
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/4e_written_answer.md"
     },
     {
-      "participant_id": "2t",
-      "user_type": "technicians",
-      "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
+      "participant_id": "5e",
+      "user_type": "endusers",
       "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/technicians/written_answers/2t_written_answer.md"
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/5e_written_answer.md"
     },
     {
-      "participant_id": "3t",
-      "user_type": "technicians",
-      "shacl_familiarity": "No, not at all",
+      "participant_id": "6e",
+      "user_type": "endusers",
       "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/technicians/written_answers/3t_written_answer.md"
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/6e_written_answer.md"
     },
     {
-      "participant_id": "4t",
-      "user_type": "technicians",
-      "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
+      "participant_id": "7e",
+      "user_type": "endusers",
       "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/technicians/written_answers/4t_written_answer.md"
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/7e_written_answer.md"
     },
     {
-      "participant_id": "5t",
-      "user_type": "technicians",
-      "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
-      "heritrace_familiarity": "Yes, I had usage knowledge",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/technicians/written_answers/5t_written_answer.md"
-    },
-    {
-      "participant_id": "6t",
-      "user_type": "technicians",
-      "shacl_familiarity": "No, not at all",
+      "participant_id": "8e",
+      "user_type": "endusers",
       "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/technicians/written_answers/6t_written_answer.md"
-    },
-    {
-      "participant_id": "7t",
-      "user_type": "technicians",
-      "shacl_familiarity": "No, not at all",
-      "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/technicians/written_answers/7t_written_answer.md"
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/8e_written_answer.md"
     },
     {
       "participant_id": "1t",
       "user_type": "technicians",
       "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
       "heritrace_familiarity": "No, I had never used it",
-      "file_path": "/home/arcangelo/Desktop/repositories/heritrace/user_testing/results/technicians/written_answers/1t_written_answer.md"
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/1t_written_answer.md"
+    },
+    {
+      "participant_id": "2t",
+      "user_type": "technicians",
+      "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
+      "heritrace_familiarity": "No, I had never used it",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/2t_written_answer.md"
+    },
+    {
+      "participant_id": "3t",
+      "user_type": "technicians",
+      "shacl_familiarity": "No, not at all",
+      "heritrace_familiarity": "No, I had never used it",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/3t_written_answer.md"
+    },
+    {
+      "participant_id": "4t",
+      "user_type": "technicians",
+      "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
+      "heritrace_familiarity": "No, I had never used it",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/4t_written_answer.md"
+    },
+    {
+      "participant_id": "5t",
+      "user_type": "technicians",
+      "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
+      "heritrace_familiarity": "Yes, I had usage knowledge",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/5t_written_answer.md"
+    },
+    {
+      "participant_id": "6t",
+      "user_type": "technicians",
+      "shacl_familiarity": "No, not at all",
+      "heritrace_familiarity": "No, I had never used it",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/6t_written_answer.md"
+    },
+    {
+      "participant_id": "7t",
+      "user_type": "technicians",
+      "shacl_familiarity": "No, not at all",
+      "heritrace_familiarity": "No, I had never used it",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/7t_written_answer.md"
     }
   ],
   "summary_statistics": {
-    "total_participants": 14,
+    "total_participants": 15,
     "by_user_type": {
-      "endusers": 7,
+      "endusers": 8,
       "technicians": 7
     },
     "heritrace_distribution": {
       "Usage knowledge": 2,
-      "No experience": 12
+      "No experience": 13
     },
     "shacl_distribution": {
-      "Working knowledge": 4,
-      "No experience": 3
+      "No experience": 3,
+      "Working knowledge": 4
     }
   },
   "metadata": {
-    "total_participants": 14,
-    "endusers_count": 7,
+    "total_participants": 15,
+    "endusers_count": 8,
     "technicians_count": 7
   }
 }

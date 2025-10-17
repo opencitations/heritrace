@@ -32,7 +32,7 @@
     {
       "category": "Successful System Features",
       "relationship_to_core": "Demonstrates that the system's core semantic functionality is sound and provides value once users adapt to the complexity. This category validates that the learning curve leads to genuine capability and encourages development of autonomous problem-solving strategies.",
-      "frequency": 98,
+      "frequency": 108,
       "axial_codes_included": [
         "Successful system features and interface strengths"
       ]
@@ -48,7 +48,7 @@
     {
       "category": "Interface Design and Usability Problems",
       "relationship_to_core": "Amplifies the complexity navigation challenge by adding unnecessary cognitive load through inconsistent design elements and form interaction difficulties. These interface problems compound semantic complexity and slow the progression to system mastery.",
-      "frequency": 21,
+      "frequency": 22,
       "axial_codes_included": [
         "Interface design and interaction problems"
       ]
@@ -64,7 +64,7 @@
     {
       "category": "System Comprehension Process",
       "relationship_to_core": "Captures the neutral observations and learning process that users experience while navigating complexity. Includes workaround development strategies, constructive suggestions for improvement, and first-time user acknowledgments, showing active engagement with system learning and autonomous adaptation.",
-      "frequency": 27,
+      "frequency": 32,
       "axial_codes_included": [
         "System understanding and navigation"
       ]
@@ -72,7 +72,7 @@
     {
       "category": "User Expectations vs. System Design Mismatch",
       "relationship_to_core": "Represents a conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates initial friction as users expect browsing and discovery features in a system designed for targeted entity management and editing. The gap amplifies complexity navigation challenges during the learning phase, triggering problem-solving strategies and emotional responses.",
-      "frequency": 26,
+      "frequency": 28,
       "axial_codes_included": [
         "System functionality gaps and user adaptation"
       ]
