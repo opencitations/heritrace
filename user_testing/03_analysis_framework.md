@@ -316,14 +316,15 @@ poetry run python3 selective_code_verification.py
 - **Output**: Shows which grounded categories dominate per task
 
 
-**5. Grounded theory category TreeMap**
-- **Type**: Hierarchical TreeMap visualization (separate for each user type)
-- **Input**: Extract categories, frequencies and sentiment from `axial_codes.json` files
-- **Rectangle size**: Category frequency (from `frequency` field in JSON)
-- **Color coding**: Category sentiment (from `overall_sentiment` field: red=negative, yellow=neutral, green=positive)
-- **Hierarchical nesting**: Core categories contain related subcategories
-- **Interactive**: Click to drill down into category details and supporting quotes
-- **Output**: Visual representation of user experience themes with relative importance and emotional impact
+**5. Grounded theory analysis visualization**
+- **Type**: Horizontal bar chart (separate for each user type)
+- **Input**: Extract from `axial_codes.json` files
+- **Visualization**: Axial categories ordered by frequency
+  - Bars colored by sentiment (green=positive, yellow=neutral, red=negative, blue=mixed)
+  - Frequency labels on each bar
+  - Legend indicating sentiment categories
+  - ColorBrewer safe palette (colorblind-friendly, grayscale print compatible)
+- **Output**: Clear, readable visualization of grounded theory categories suitable for thesis inclusion
 
 # SUS analysis
 
@@ -446,3 +447,22 @@ uv run python recruitment_distribution.py
 **Familiarity Levels**:
 - HERITRACE: No experience, Usage knowledge, Mastered
 - SHACL: No experience, Working knowledge, Mastered
+
+## Grounded theory visualization software usage
+
+**Purpose**: Generate horizontal bar chart visualization of axial coding categories for thesis inclusion.
+
+**Running the Analysis**:
+```bash
+cd user_testing/analysis_software
+uv run python grounded_theory_plots.py
+```
+
+**Prerequisites**:
+- Axial coding files at `results/[endusers|technicians]/[user_type]_axial_codes.json`
+- Dependencies installed via `uv sync`
+
+**Output Files** (in `results/aggregated_analysis/grounded_theory/`):
+
+For each user type (end_user and technician):
+- `[user_type]_axial_categories.png` - Horizontal bar chart of axial categories ordered by frequency
