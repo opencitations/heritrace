@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List
 
 import matplotlib.pyplot as plt
+from matplotlib import patheffects as pe
 import numpy as np
 import pandas as pd
 
@@ -66,6 +67,14 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
         'failed_bug': '#7b3294'
     }
 
+    status_hatches = {
+        'complete': '',
+        'partial': '///',
+        'success_timeout': '|||',
+        'failed_misunderstanding': 'xxx',
+        'failed_bug': '\\\\\\'
+    }
+
     status_labels = {
         'complete': 'Complete',
         'partial': 'Partial',
@@ -125,19 +134,26 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
 
         for status in status_order:
             values = sub[status].values
-            ax.bar(x, values, bottom=bottom,
-                   color=status_colors[status],
-                   label=status_labels[status],
-                   edgecolor='white', linewidth=0.5)
+            bars = ax.bar(x, values, bottom=bottom,
+                         color=status_colors[status],
+                         label=status_labels[status],
+                         edgecolor='black', linewidth=1.0,
+                         hatch=status_hatches[status])
+
+            # Set hatch color to be less intrusive
+            for bar in bars:
+                bar.set_edgecolor('black')
 
             # Add percentage labels for segments >= 5%
             for j, val in enumerate(values):
                 if val >= 5.0:
                     y_pos = bottom[j] + val / 2
+                    # Use white text with black outline for better visibility
                     ax.text(j, y_pos, f'{val:.0f}%',
                            ha='center', va='center',
-                           fontsize=8, fontweight='bold',
-                           color='white' if status in ['complete', 'failed_misunderstanding', 'failed_bug'] else 'black')
+                           fontsize=9, fontweight='bold',
+                           color='white',
+                           path_effects=[pe.withStroke(linewidth=2, foreground='black')])
 
             bottom += values
 
@@ -150,7 +166,7 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
 
         # Add legend only to first subplot
         if i == 0:
-            ax.legend(loc='upper left', bbox_to_anchor=(0, -0.25), ncol=3, frameon=True)
+            ax.legend(loc='upper left', bbox_to_anchor=(0, -0.25), ncol=3, frameon=True, fontsize=11)
 
     fig.tight_layout()
     out = output_dir / "task_success_rates.png"
