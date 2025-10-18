@@ -2,8 +2,52 @@
   "user_type": "end_user",
   "categories": [
     {
-      "category_name": "Successful system features and interface strengths",
+      "category_name": "Interface design and visual clarity",
       "related_codes": [
+        {
+          "participant_id": "2e",
+          "code": "positive_homepage_aesthetics"
+        },
+        {
+          "participant_id": "6e",
+          "code": "positive_interface_impression"
+        },
+        {
+          "participant_id": "7e",
+          "code": "positive_interface_impression"
+        },
+        {
+          "participant_id": "4e",
+          "code": "positive_initial_intuitiveness"
+        },
+        {
+          "participant_id": "5e",
+          "code": "intuitive_catalog_interface"
+        },
+        {
+          "participant_id": "6e",
+          "code": "clear_item_presentation"
+        },
+        {
+          "participant_id": "7e",
+          "code": "clear_item_presentation"
+        },
+        {
+          "participant_id": "6e",
+          "code": "clear_field_grouping_reduces_load"
+        },
+        {
+          "participant_id": "6e",
+          "code": "logical_field_sequence_aids_workflow"
+        },
+        {
+          "participant_id": "2e",
+          "code": "ui_navigation_appreciation"
+        },
+        {
+          "participant_id": "3e",
+          "code": "recognizing_attractive_interface_despite_struggle"
+        },
         {
           "participant_id": "1e",
           "code": "login_button_visibility_good"
@@ -17,96 +61,68 @@
           "code": "external_links_proper_behavior"
         },
         {
-          "participant_id": "1e",
-          "code": "merge_interface_positive"
+          "participant_id": "6e",
+          "code": "catalog_as_primary_entry_point"
         },
         {
-          "participant_id": "2e",
-          "code": "positive_homepage_aesthetics"
+          "participant_id": "7e",
+          "code": "catalog_as_primary_entry_point"
         },
         {
-          "participant_id": "2e",
-          "code": "ui_navigation_appreciation"
+          "participant_id": "6e",
+          "code": "efficient_navigation_to_author_page"
         },
         {
-          "participant_id": "3e",
-          "code": "recognizing_attractive_interface_despite_struggle"
+          "participant_id": "6e",
+          "code": "understanding_bibliographic_structure"
         },
         {
-          "participant_id": "4e",
-          "code": "positive_initial_intuitiveness"
+          "participant_id": "7e",
+          "code": "understanding_bibliographic_structure"
         },
         {
           "participant_id": "5e",
-          "code": "intuitive_catalog_interface"
+          "code": "comparing_to_familiar_interface"
+        },
+        {
+          "participant_id": "2e",
+          "code": "finding_system_simple_overall"
         },
         {
           "participant_id": "6e",
-          "code": "positive_interface_impression"
+          "code": "overall_positive_experience_with_caveats"
         },
         {
           "participant_id": "6e",
-          "code": "clear_item_presentation"
-        },
-        {
-          "participant_id": "6e",
-          "code": "understanding_bibliographic_structure"
-        },
-        {
-          "participant_id": "6e",
-          "code": "clear_field_grouping_reduces_load"
-        },
-        {
-          "participant_id": "6e",
-          "code": "logical_field_sequence_aids_workflow"
+          "code": "smooth_installation_experience"
         },
         {
           "participant_id": "7e",
-          "code": "positive_interface_impression"
-        },
+          "code": "smooth_installation_experience"
+        }
+      ],
+      "category_description": "Visual design, aesthetics, spatial organization, navigation clarity, and intuitive layout that create positive first impressions and support efficient workflow through clear information hierarchy and logical interface structure",
+      "task_contexts": [
+        "First interactions",
+        "Initial system exploration",
+        "Navigation",
+        "Installation",
+        "Navigation between pages",
+        "Interface evaluation"
+      ],
+      "overall_sentiment": "positive",
+      "frequency": "24"
+    },
+    {
+      "category_name": "Merge and duplicate management features",
+      "related_codes": [
         {
-          "participant_id": "7e",
-          "code": "clear_item_presentation"
-        },
-        {
-          "participant_id": "7e",
-          "code": "understanding_bibliographic_structure"
+          "participant_id": "1e",
+          "code": "merge_interface_positive"
         },
         {
           "participant_id": "7e",
           "code": "merge_interface_positive"
-        },
-        {
-          "participant_id": "1e",
-          "code": "auto_suggestion_positive"
-        },
-        {
-          "participant_id": "1e",
-          "code": "author_reordering_functionality"
-        },
-        {
-          "participant_id": "1e",
-          "code": "modification_feedback_satisfaction"
-        },
-        {
-          "participant_id": "1e",
-          "code": "restore_functionality_works"
-        },
-        {
-          "participant_id": "1e",
-          "code": "timeline_understanding_improvement"
-        },
-        {
-          "participant_id": "4e",
-          "code": "time_machine_provides_reassurance"
-        },
-        {
-          "participant_id": "2e",
-          "code": "exploring_system_features_naturally"
-        },
-        {
-          "participant_id": "2e",
-          "code": "discovering_existing_entity_relief"
         },
         {
           "participant_id": "2e",
@@ -117,292 +133,24 @@
           "code": "appreciating_merge_clarity"
         },
         {
-          "participant_id": "2e",
-          "code": "understanding_time_machine_concept"
-        },
-        {
-          "participant_id": "2e",
-          "code": "adding_doi_successfully"
-        },
-        {
-          "participant_id": "2e",
-          "code": "adding_author_information_methodically"
-        },
-        {
-          "participant_id": "2e",
-          "code": "finding_system_simple_overall"
-        },
-        {
-          "participant_id": "2e",
-          "code": "autocomplete_entity_referencing_most_useful"
-        },
-        {
-          "participant_id": "2e",
-          "code": "effective_task_support_positive_evaluation"
-        },
-        {
-          "participant_id": "2e",
-          "code": "appreciating_cross_referencing_functionality"
-        },
-        {
-          "participant_id": "2e",
-          "code": "confident_task_completion"
-        },
-        {
-          "participant_id": "3e",
-          "code": "partial_success_with_browsing"
-        },
-        {
-          "participant_id": "3e",
-          "code": "eventual_target_discovery"
-        },
-        {
-          "participant_id": "3e",
-          "code": "reflecting_on_time_invested"
-        },
-        {
-          "participant_id": "3e",
-          "code": "understanding_author_addition_process"
-        },
-        {
           "participant_id": "3e",
           "code": "efficient_merge_task_completion"
-        },
-        {
-          "participant_id": "3e",
-          "code": "learning_from_previous_task"
-        },
-        {
-          "participant_id": "3e",
-          "code": "confident_new_record_creation"
-        },
-        {
-          "participant_id": "3e",
-          "code": "systematic_metadata_entry"
-        },
-        {
-          "participant_id": "3e",
-          "code": "discovering_validation_requirements"
-        },
-        {
-          "participant_id": "3e",
-          "code": "managing_complex_form_sections"
-        },
-        {
-          "participant_id": "3e",
-          "code": "completing_journal_information"
-        },
-        {
-          "participant_id": "4e",
-          "code": "discovering_reordering_functionality"
-        },
-        {
-          "participant_id": "4e",
-          "code": "task_completion_satisfaction"
         },
         {
           "participant_id": "4e",
           "code": "confident_merge_execution"
         },
         {
-          "participant_id": "4e",
-          "code": "perceiving_system_learnability"
-        },
-        {
-          "participant_id": "4e",
-          "code": "understanding_time_machine_purpose"
-        },
-        {
-          "participant_id": "4e",
-          "code": "discovering_version_history"
-        },
-        {
-          "participant_id": "4e",
-          "code": "successful_recovery_from_error"
-        },
-        {
-          "participant_id": "4e",
-          "code": "successful_entity_addition"
-        },
-        {
-          "participant_id": "4e",
-          "code": "appreciating_identifier_interoperability"
-        },
-        {
-          "participant_id": "5e",
-          "code": "successful_field_editing"
-        },
-        {
-          "participant_id": "5e",
-          "code": "positive_feedback_after_action"
-        },
-        {
           "participant_id": "5e",
           "code": "positive_merging_experience"
         },
         {
-          "participant_id": "5e",
-          "code": "comparing_to_familiar_interface"
-        },
-        {
-          "participant_id": "5e",
-          "code": "self_validation_of_input"
-        },
-        {
-          "participant_id": "5e",
-          "code": "helpful_error_messages"
-        },
-        {
-          "participant_id": "6e",
-          "code": "smooth_installation_experience"
-        },
-        {
-          "participant_id": "6e",
-          "code": "catalog_as_primary_entry_point"
-        },
-        {
-          "participant_id": "6e",
-          "code": "inferring_time_vault_purpose"
-        },
-        {
-          "participant_id": "6e",
-          "code": "quick_task_orientation"
-        },
-        {
-          "participant_id": "6e",
-          "code": "understanding_identifier_requirement"
-        },
-        {
-          "participant_id": "6e",
-          "code": "successful_author_lookup"
-        },
-        {
-          "participant_id": "6e",
-          "code": "discovering_reordering_mechanism"
-        },
-        {
-          "participant_id": "6e",
-          "code": "confirming_task_completion"
-        },
-        {
-          "participant_id": "6e",
-          "code": "rapid_task_completion_satisfaction"
-        },
-        {
-          "participant_id": "6e",
-          "code": "efficient_navigation_to_author_page"
-        },
-        {
-          "participant_id": "6e",
-          "code": "recognizing_similar_resources_indicator"
-        },
-        {
-          "participant_id": "6e",
-          "code": "trusting_merge_suggestion"
-        },
-        {
-          "participant_id": "6e",
-          "code": "confirming_merge_completion"
-        },
-        {
-          "participant_id": "6e",
-          "code": "discovering_time_machine_location"
-        },
-        {
-          "participant_id": "6e",
-          "code": "understanding_version_selection"
-        },
-        {
-          "participant_id": "6e",
-          "code": "successful_version_restoration"
-        },
-        {
-          "participant_id": "6e",
-          "code": "correct_resource_type_selection"
-        },
-        {
-          "participant_id": "6e",
-          "code": "identifying_primary_identifier"
-        },
-        {
-          "participant_id": "6e",
-          "code": "systematic_metadata_completion"
-        },
-        {
-          "participant_id": "6e",
-          "code": "successful_record_creation"
-        },
-        {
-          "participant_id": "6e",
-          "code": "overall_positive_experience_with_caveats"
-        },
-        {
-          "participant_id": "6e",
-          "code": "potential_for_automated_pipeline_integration"
-        },
-        {
-          "participant_id": "7e",
-          "code": "smooth_installation_experience"
-        },
-        {
-          "participant_id": "7e",
-          "code": "catalog_as_primary_entry_point"
-        },
-        {
-          "participant_id": "7e",
-          "code": "understanding_identifier_requirement"
-        },
-        {
-          "participant_id": "7e",
-          "code": "successful_author_lookup"
-        },
-        {
-          "participant_id": "7e",
-          "code": "modification_feedback_satisfaction"
-        },
-        {
-          "participant_id": "7e",
-          "code": "recognizing_similar_resources_indicator"
-        },
-        {
-          "participant_id": "7e",
-          "code": "discovering_time_machine_location"
-        },
-        {
-          "participant_id": "7e",
-          "code": "understanding_version_selection"
-        },
-        {
-          "participant_id": "7e",
-          "code": "successful_version_restoration"
-        },
-        {
-          "participant_id": "7e",
-          "code": "confident_new_record_creation"
-        },
-        {
-          "participant_id": "7e",
-          "code": "correct_resource_type_selection"
-        },
-        {
-          "participant_id": "7e",
-          "code": "systematic_metadata_completion"
-        },
-        {
-          "participant_id": "7e",
-          "code": "independently_diagnosing_problem"
-        },
-        {
-          "participant_id": "7e",
-          "code": "autonomous_duplicate_merging"
-        },
-        {
-          "participant_id": "7e",
-          "code": "overall_system_effectiveness"
-        },
-        {
           "participant_id": "7e",
           "code": "merge_suggestion_feature_appreciation"
+        },
+        {
+          "participant_id": "9e",
+          "code": "merge_feature_appreciation"
         },
         {
           "participant_id": "8e",
@@ -417,92 +165,12 @@
           "code": "evaluating_merge_information"
         },
         {
-          "participant_id": "8e",
-          "code": "confident_identifier_addition"
+          "participant_id": "7e",
+          "code": "autonomous_duplicate_merging"
         },
         {
-          "participant_id": "8e",
-          "code": "rejecting_incorrect_suggestion"
-        },
-        {
-          "participant_id": "8e",
-          "code": "creating_new_journal_entity"
-        },
-        {
-          "participant_id": "8e",
-          "code": "overall_smooth_workflow"
-        },
-        {
-          "participant_id": "8e",
-          "code": "autocomplete_feature_appreciation"
-        },
-        {
-          "participant_id": "8e",
-          "code": "identifier_integration_appreciation"
-        },
-        {
-          "participant_id": "8e",
-          "code": "quick_task_orientation"
-        },
-        {
-          "participant_id": "8e",
-          "code": "direct_author_creation_approach"
-        },
-        {
-          "participant_id": "8e",
-          "code": "understanding_identifier_requirement"
-        },
-        {
-          "participant_id": "8e",
-          "code": "successful_author_lookup"
-        },
-        {
-          "participant_id": "8e",
-          "code": "discovering_reordering_mechanism"
-        },
-        {
-          "participant_id": "8e",
-          "code": "confirming_task_completion"
-        },
-        {
-          "participant_id": "8e",
-          "code": "recognizing_similar_resources_indicator"
-        },
-        {
-          "participant_id": "8e",
-          "code": "confident_new_record_creation"
-        },
-        {
-          "participant_id": "8e",
-          "code": "identifying_primary_identifier"
-        },
-        {
-          "participant_id": "8e",
-          "code": "systematic_metadata_completion"
-        },
-        {
-          "participant_id": "8e",
-          "code": "confident_identifier_addition"
-        },
-        {
-          "participant_id": "8e",
-          "code": "self_validation_of_input"
-        },
-        {
-          "participant_id": "8e",
-          "code": "rapid_task_completion_satisfaction"
-        },
-        {
-          "participant_id": "9e",
-          "code": "correct_time_vault_mental_model"
-        },
-        {
-          "participant_id": "9e",
-          "code": "successful_navigation_to_catalog"
-        },
-        {
-          "participant_id": "9e",
-          "code": "successful_update_confirmation"
+          "participant_id": "6e",
+          "code": "trusting_merge_suggestion"
         },
         {
           "participant_id": "9e",
@@ -521,12 +189,97 @@
           "code": "retrospective_merge_understanding"
         },
         {
+          "participant_id": "6e",
+          "code": "confirming_merge_completion"
+        },
+        {
+          "participant_id": "6e",
+          "code": "recognizing_similar_resources_indicator"
+        },
+        {
+          "participant_id": "7e",
+          "code": "recognizing_similar_resources_indicator"
+        },
+        {
+          "participant_id": "8e",
+          "code": "recognizing_similar_resources_indicator"
+        },
+        {
           "participant_id": "9e",
           "code": "confirmation_from_no_similar_resources"
         },
         {
+          "participant_id": "8e",
+          "code": "rejecting_incorrect_suggestion"
+        },
+        {
+          "participant_id": "2e",
+          "code": "discovering_existing_entity_relief"
+        }
+      ],
+      "category_description": "Merge operations, duplicate detection, similar resource identification, and entity consolidation workflows that enable users to maintain data quality through intelligent suggestions and clear merge interfaces",
+      "task_contexts": [
+        "Merge operations",
+        "Duplicate management",
+        "Entity deduplication"
+      ],
+      "overall_sentiment": "positive",
+      "frequency": "25"
+    },
+    {
+      "category_name": "Version control and time machine functionality",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "restore_functionality_works"
+        },
+        {
+          "participant_id": "1e",
+          "code": "timeline_understanding_improvement"
+        },
+        {
+          "participant_id": "4e",
+          "code": "time_machine_provides_reassurance"
+        },
+        {
+          "participant_id": "2e",
+          "code": "understanding_time_machine_concept"
+        },
+        {
+          "participant_id": "4e",
+          "code": "understanding_time_machine_purpose"
+        },
+        {
+          "participant_id": "4e",
+          "code": "discovering_version_history"
+        },
+        {
+          "participant_id": "6e",
+          "code": "inferring_time_vault_purpose"
+        },
+        {
+          "participant_id": "9e",
+          "code": "correct_time_vault_mental_model"
+        },
+        {
+          "participant_id": "6e",
+          "code": "discovering_time_machine_location"
+        },
+        {
+          "participant_id": "7e",
+          "code": "discovering_time_machine_location"
+        },
+        {
           "participant_id": "9e",
           "code": "successful_time_machine_discovery"
+        },
+        {
+          "participant_id": "6e",
+          "code": "understanding_version_selection"
+        },
+        {
+          "participant_id": "7e",
+          "code": "understanding_version_selection"
         },
         {
           "participant_id": "9e",
@@ -537,24 +290,104 @@
           "code": "restore_capability_confirmation"
         },
         {
-          "participant_id": "9e",
+          "participant_id": "6e",
+          "code": "successful_version_restoration"
+        },
+        {
+          "participant_id": "7e",
           "code": "successful_version_restoration"
         },
         {
           "participant_id": "9e",
-          "code": "entity_type_selection_confidence"
+          "code": "successful_version_restoration"
         },
         {
-          "participant_id": "9e",
-          "code": "systematic_field_completion"
+          "participant_id": "4e",
+          "code": "successful_recovery_from_error"
+        }
+      ],
+      "category_description": "Version control features including time machine, version history, restoration capabilities, and provenance tracking that provide users with confidence in error recovery and historical data access",
+      "task_contexts": [
+        "Time machine usage",
+        "Version restoration",
+        "Entity version history",
+        "Error recovery",
+        "Error recovery confidence",
+        "Timeline navigation"
+      ],
+      "overall_sentiment": "positive",
+      "frequency": "19"
+    },
+    {
+      "category_name": "Intelligent input assistance and autocomplete",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "auto_suggestion_positive"
         },
         {
-          "participant_id": "9e",
-          "code": "author_creation_decision"
+          "participant_id": "2e",
+          "code": "autocomplete_entity_referencing_most_useful"
         },
         {
-          "participant_id": "9e",
-          "code": "name_field_order_correction"
+          "participant_id": "8e",
+          "code": "autocomplete_feature_appreciation"
+        },
+        {
+          "participant_id": "2e",
+          "code": "appreciating_cross_referencing_functionality"
+        },
+        {
+          "participant_id": "4e",
+          "code": "appreciating_identifier_interoperability"
+        },
+        {
+          "participant_id": "8e",
+          "code": "identifier_integration_appreciation"
+        },
+        {
+          "participant_id": "5e",
+          "code": "helpful_error_messages"
+        },
+        {
+          "participant_id": "5e",
+          "code": "self_validation_of_input"
+        },
+        {
+          "participant_id": "8e",
+          "code": "self_validation_of_input"
+        },
+        {
+          "participant_id": "3e",
+          "code": "discovering_validation_requirements"
+        },
+        {
+          "participant_id": "5e",
+          "code": "positive_feedback_after_action"
+        },
+        {
+          "participant_id": "1e",
+          "code": "modification_feedback_satisfaction"
+        },
+        {
+          "participant_id": "7e",
+          "code": "modification_feedback_satisfaction"
+        },
+        {
+          "participant_id": "1e",
+          "code": "author_reordering_functionality"
+        },
+        {
+          "participant_id": "4e",
+          "code": "discovering_reordering_functionality"
+        },
+        {
+          "participant_id": "6e",
+          "code": "discovering_reordering_mechanism"
+        },
+        {
+          "participant_id": "8e",
+          "code": "discovering_reordering_mechanism"
         },
         {
           "participant_id": "9e",
@@ -562,7 +395,236 @@
         },
         {
           "participant_id": "9e",
+          "code": "name_field_order_correction"
+        },
+        {
+          "participant_id": "9e",
           "code": "identifier_type_recognition"
+        }
+      ],
+      "category_description": "Autocomplete features, intelligent suggestions, validation feedback, identifier interoperability, and drag-and-drop reordering that assist users in data entry and reduce errors through proactive guidance",
+      "task_contexts": [
+        "Form interaction",
+        "Form completion",
+        "Data entry",
+        "Entity addition",
+        "Adding authors",
+        "Cross-referencing entities",
+        "Identifier management",
+        "Form validation"
+      ],
+      "overall_sentiment": "positive",
+      "frequency": "20"
+    },
+    {
+      "category_name": "Task outcomes and completion confidence",
+      "related_codes": [
+        {
+          "participant_id": "2e",
+          "code": "confident_task_completion"
+        },
+        {
+          "participant_id": "4e",
+          "code": "task_completion_satisfaction"
+        },
+        {
+          "participant_id": "6e",
+          "code": "rapid_task_completion_satisfaction"
+        },
+        {
+          "participant_id": "8e",
+          "code": "rapid_task_completion_satisfaction"
+        },
+        {
+          "participant_id": "6e",
+          "code": "quick_task_orientation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "quick_task_orientation"
+        },
+        {
+          "participant_id": "2e",
+          "code": "effective_task_support_positive_evaluation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "overall_smooth_workflow"
+        },
+        {
+          "participant_id": "7e",
+          "code": "overall_system_effectiveness"
+        },
+        {
+          "participant_id": "9e",
+          "code": "overall_positive_effectiveness"
+        },
+        {
+          "participant_id": "5e",
+          "code": "successful_field_editing"
+        },
+        {
+          "participant_id": "4e",
+          "code": "successful_entity_addition"
+        },
+        {
+          "participant_id": "6e",
+          "code": "successful_author_lookup"
+        },
+        {
+          "participant_id": "7e",
+          "code": "successful_author_lookup"
+        },
+        {
+          "participant_id": "8e",
+          "code": "successful_author_lookup"
+        },
+        {
+          "participant_id": "9e",
+          "code": "successful_navigation_to_catalog"
+        },
+        {
+          "participant_id": "9e",
+          "code": "successful_update_confirmation"
+        },
+        {
+          "participant_id": "6e",
+          "code": "successful_record_creation"
+        },
+        {
+          "participant_id": "9e",
+          "code": "successful_second_attempt"
+        },
+        {
+          "participant_id": "6e",
+          "code": "confirming_task_completion"
+        },
+        {
+          "participant_id": "8e",
+          "code": "confirming_task_completion"
+        },
+        {
+          "participant_id": "3e",
+          "code": "confident_new_record_creation"
+        },
+        {
+          "participant_id": "7e",
+          "code": "confident_new_record_creation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "confident_new_record_creation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "confident_identifier_addition"
+        }
+      ],
+      "category_description": "Successful task completion outcomes, user satisfaction with results, confidence in accomplished tasks, and positive evaluations of overall system effectiveness in supporting user goals",
+      "task_contexts": [
+        "Task completion",
+        "Overall system evaluation",
+        "Record creation",
+        "Entity addition",
+        "Form completion",
+        "Catalog navigation"
+      ],
+      "overall_sentiment": "positive",
+      "frequency": "25"
+    },
+    {
+      "category_name": "Systematic workflow execution",
+      "related_codes": [
+        {
+          "participant_id": "3e",
+          "code": "systematic_metadata_entry"
+        },
+        {
+          "participant_id": "6e",
+          "code": "systematic_metadata_completion"
+        },
+        {
+          "participant_id": "7e",
+          "code": "systematic_metadata_completion"
+        },
+        {
+          "participant_id": "8e",
+          "code": "systematic_metadata_completion"
+        },
+        {
+          "participant_id": "9e",
+          "code": "systematic_field_completion"
+        },
+        {
+          "participant_id": "2e",
+          "code": "adding_doi_successfully"
+        },
+        {
+          "participant_id": "2e",
+          "code": "adding_author_information_methodically"
+        },
+        {
+          "participant_id": "3e",
+          "code": "completing_journal_information"
+        },
+        {
+          "participant_id": "8e",
+          "code": "creating_new_journal_entity"
+        }
+      ],
+      "category_description": "Methodical and systematic approaches to data entry, metadata completion, and task execution that demonstrate organized workflow patterns and process adherence",
+      "task_contexts": [
+        "Metadata entry",
+        "Form completion",
+        "Data entry",
+        "Entity creation",
+        "Adding authors"
+      ],
+      "overall_sentiment": "positive",
+      "frequency": "9"
+    },
+    {
+      "category_name": "Entity and identifier management competence",
+      "related_codes": [
+        {
+          "participant_id": "6e",
+          "code": "correct_resource_type_selection"
+        },
+        {
+          "participant_id": "7e",
+          "code": "correct_resource_type_selection"
+        },
+        {
+          "participant_id": "6e",
+          "code": "identifying_primary_identifier"
+        },
+        {
+          "participant_id": "8e",
+          "code": "identifying_primary_identifier"
+        },
+        {
+          "participant_id": "6e",
+          "code": "understanding_identifier_requirement"
+        },
+        {
+          "participant_id": "7e",
+          "code": "understanding_identifier_requirement"
+        },
+        {
+          "participant_id": "8e",
+          "code": "understanding_identifier_requirement"
+        },
+        {
+          "participant_id": "3e",
+          "code": "understanding_author_addition_process"
+        },
+        {
+          "participant_id": "9e",
+          "code": "author_creation_decision"
+        },
+        {
+          "participant_id": "8e",
+          "code": "direct_author_creation_approach"
         },
         {
           "participant_id": "9e",
@@ -570,7 +632,7 @@
         },
         {
           "participant_id": "9e",
-          "code": "page_range_input"
+          "code": "entity_type_selection_confidence"
         },
         {
           "participant_id": "9e",
@@ -582,7 +644,7 @@
         },
         {
           "participant_id": "9e",
-          "code": "focused_correction_approach"
+          "code": "page_range_input"
         },
         {
           "participant_id": "9e",
@@ -590,51 +652,210 @@
         },
         {
           "participant_id": "9e",
-          "code": "successful_second_attempt"
-        },
-        {
-          "participant_id": "9e",
-          "code": "overall_positive_effectiveness"
-        },
-        {
-          "participant_id": "9e",
-          "code": "merge_feature_appreciation"
+          "code": "focused_correction_approach"
         }
       ],
-      "category_description": "Codes representing positive user experiences with the system, including successful functionality (autocomplete, merge operations with direct initiation and systematic duplicate checking, drag-and-drop reordering, version control including timeline understanding and psychological reassurance, validation, entity management with confident identifier addition and critical evaluation of suggestions, identifier interoperability, similar resource detection, installation ease, autonomous problem diagnosis, learning progression, error recovery, overall system effectiveness and smooth workflow) and positive interface design elements (visual appeal, intuitive navigation components, clear information presentation, well-organized field grouping, logical field sequence, functional design choices that enhance user experience and reduce cognitive load)",
+      "category_description": "Successful navigation of complex entity operations, understanding of identifier requirements, competent resource type selection, and confident management of hierarchical entity relationships",
       "task_contexts": [
-        "Time machine usage",
-        "Knowledge transfer",
-        "Adding authors",
-        "Overall system evaluation",
-        "Problem solving",
-        "System setup",
-        "Navigation between pages",
-        "Form completion",
-        "Cross-referencing entities",
-        "Initial system exploration",
-        "Form interaction",
-        "Entity addition",
-        "First interactions",
-        "Version restoration",
-        "Installation",
-        "Error recovery",
-        "Merge operations",
-        "Navigation",
-        "Creating publications",
-        "Form validation",
-        "Browsing records",
-        "Duplicate management",
+        "Entity creation",
         "Identifier management",
-        "Entity version history",
-        "Error recovery confidence",
-        "Timeline navigation"
+        "Adding authors",
+        "Resource type selection",
+        "Entity relationships"
       ],
       "overall_sentiment": "positive",
-      "frequency": "152"
+      "frequency": "17"
     },
     {
-      "category_name": "Interface design and interaction problems",
+      "category_name": "Learning, discoverability, and problem-solving",
+      "related_codes": [
+        {
+          "participant_id": "4e",
+          "code": "perceiving_system_learnability"
+        },
+        {
+          "participant_id": "3e",
+          "code": "learning_from_previous_task"
+        },
+        {
+          "participant_id": "2e",
+          "code": "exploring_system_features_naturally"
+        },
+        {
+          "participant_id": "3e",
+          "code": "partial_success_with_browsing"
+        },
+        {
+          "participant_id": "3e",
+          "code": "eventual_target_discovery"
+        },
+        {
+          "participant_id": "3e",
+          "code": "reflecting_on_time_invested"
+        },
+        {
+          "participant_id": "7e",
+          "code": "independently_diagnosing_problem"
+        },
+        {
+          "participant_id": "3e",
+          "code": "managing_complex_form_sections"
+        },
+        {
+          "participant_id": "6e",
+          "code": "potential_for_automated_pipeline_integration"
+        },
+        {
+          "participant_id": "4e",
+          "code": "gradual_understanding_achievement"
+        },
+        {
+          "participant_id": "3e",
+          "code": "incomplete_understanding_with_success"
+        },
+        {
+          "participant_id": "5e",
+          "code": "iterative_problem_solving"
+        }
+      ],
+      "category_description": "Progressive learning, feature discovery, autonomous problem-solving, gradual understanding achievement, iterative problem-solving approaches, and system learnability that enable users to build mental models and adapt their workflows over time",
+      "task_contexts": [
+        "System exploration",
+        "Knowledge transfer",
+        "Learning progression",
+        "Problem solving",
+        "Form management"
+      ],
+      "overall_sentiment": "positive",
+      "frequency": "12"
+    },
+    {
+      "category_name": "System behavior observations",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "automatic_login_unclear"
+        },
+        {
+          "participant_id": "1e",
+          "code": "url_reference_confusing"
+        },
+        {
+          "participant_id": "1e",
+          "code": "loading_indicator_noticed"
+        },
+        {
+          "participant_id": "2e",
+          "code": "navigating_to_specific_entity_page"
+        },
+        {
+          "participant_id": "2e",
+          "code": "adding_multiple_metadata_fields"
+        },
+        {
+          "participant_id": "2e",
+          "code": "believing_entities_were_saved_despite_confusion"
+        },
+        {
+          "participant_id": "2e",
+          "code": "data_validation_warnings_noticed"
+        },
+        {
+          "participant_id": "3e",
+          "code": "inferring_edit_through_record_access"
+        },
+        {
+          "participant_id": "3e",
+          "code": "doi_format_validation_uncertainty"
+        },
+        {
+          "participant_id": "3e",
+          "code": "attempting_interface_cleanup"
+        },
+        {
+          "participant_id": "4e",
+          "code": "remembering_position_requirement"
+        },
+        {
+          "participant_id": "4e",
+          "code": "validation_error_recognition"
+        },
+        {
+          "participant_id": "5e",
+          "code": "comparing_to_existing_system"
+        },
+        {
+          "participant_id": "5e",
+          "code": "organizing_screen_for_efficiency"
+        },
+        {
+          "participant_id": "6e",
+          "code": "exploratory_editing_approach"
+        },
+        {
+          "participant_id": "6e",
+          "code": "reviewing_entered_metadata"
+        },
+        {
+          "participant_id": "6e",
+          "code": "recognizing_window_management_error"
+        },
+        {
+          "participant_id": "1e",
+          "code": "first_time_user_perspective"
+        },
+        {
+          "participant_id": "8e",
+          "code": "expecting_navigation_tabs"
+        },
+        {
+          "participant_id": "8e",
+          "code": "creating_related_entities"
+        },
+        {
+          "participant_id": "8e",
+          "code": "entering_pagination_metadata"
+        },
+        {
+          "participant_id": "8e",
+          "code": "entering_volume_issue_data"
+        },
+        {
+          "participant_id": "9e",
+          "code": "interface_overview_during_exploration"
+        },
+        {
+          "participant_id": "9e",
+          "code": "title_verification_attempt"
+        },
+        {
+          "participant_id": "9e",
+          "code": "task_completion_despite_issues"
+        },
+        {
+          "participant_id": "9e",
+          "code": "repository_location_hypothesis"
+        },
+        {
+          "participant_id": "9e",
+          "code": "second_attempt_record_creation"
+        }
+      ],
+      "category_description": "Neutral observations about system behavior, factual navigation activities, validation error recognition, hypothesis formation, window management awareness, first-time user perspectives, and general task execution observations without strong positive or negative sentiment",
+      "task_contexts": [
+        "System exploration",
+        "Navigation",
+        "Data entry",
+        "Form management",
+        "Validation",
+        "General system usage",
+        "Entity management"
+      ],
+      "overall_sentiment": "neutral",
+      "frequency": "27"
+    },
+    {
+      "category_name": "Visual design and form interaction problems",
       "related_codes": [
         {
           "participant_id": "1e",
@@ -745,27 +966,20 @@
           "code": "pagination_control_limitation"
         }
       ],
-      "category_description": "Codes identifying interface design and form interaction problems including inconsistent visual elements, layout issues (wasted space, visual inconsistencies), unclear entity states, collapsed section visibility, confusing field structures, styling problems, unclear dialogs, performance issues, overwhelming form complexity, lack of clear feedback mechanisms, frustration with unresponsive interface elements, nested structure confusion, data paste formatting artifacts, misleading visual affordances where non-interactive elements have same visual characteristics as interactive buttons causing user confusion, and missing pagination controls at page bottom",
+      "category_description": "Visual design issues, layout inconsistencies, form complexity and performance problems, unclear interface elements, collapsed section visibility, confusing field structures and locations, lack of clear feedback mechanisms, slow loading times, misleading visual affordances, and frustration with unresponsive interface elements",
       "task_contexts": [
         "Data entry",
-        "Saving changes",
-        "Initial interface evaluation",
-        "Creating new publications",
+        "Form interaction",
+        "Interface evaluation",
         "Form management",
-        "Creating publications",
-        "Form completion",
-        "Entity creation",
-        "Interface responsiveness",
-        "Comparing interface elements",
         "Merge operations",
-        "Adding authors",
         "Catalog navigation"
       ],
       "overall_sentiment": "negative",
       "frequency": "27"
     },
     {
-      "category_name": "Entity creation and management confusion",
+      "category_name": "Entity creation and workflow confusion",
       "related_codes": [
         {
           "participant_id": "2e",
@@ -816,416 +1030,54 @@
           "code": "publisher_identifier_uncertainty"
         }
       ],
-      "category_description": "Codes representing user confusion and difficulties specifically related to entity creation processes, including uncertainty about when entities are created, saved, whether actions completed successfully, how the workflow functions, and ambiguity about interface controls related to saving and creating new records",
+      "category_description": "User confusion and difficulties specifically related to entity creation processes, including uncertainty about when entities are created and saved, whether actions completed successfully, how the workflow functions, ambiguity about interface controls for saving and creating new records, and the cumbersome nature of entity creation workflows identified as a primary adoption barrier",
       "task_contexts": [
-        "Creating new entities",
+        "Entity creation",
+        "Saving changes",
         "Adding authors",
-        "Saving resources",
-        "Understanding save mechanisms",
         "Publisher entity creation"
       ],
       "overall_sentiment": "negative",
       "frequency": "12"
     },
     {
-      "category_name": "System understanding and navigation",
+      "category_name": "Data entry and user control challenges",
       "related_codes": [
         {
-          "participant_id": "1e",
-          "code": "automatic_login_unclear"
-        },
-        {
-          "participant_id": "1e",
-          "code": "url_reference_confusing"
-        },
-        {
-          "participant_id": "1e",
-          "code": "loading_indicator_noticed"
-        },
-        {
-          "participant_id": "2e",
-          "code": "navigating_to_specific_entity_page"
-        },
-        {
-          "participant_id": "2e",
-          "code": "adding_multiple_metadata_fields"
-        },
-        {
-          "participant_id": "2e",
-          "code": "believing_entities_were_saved_despite_confusion"
-        },
-        {
-          "participant_id": "2e",
-          "code": "data_validation_warnings_noticed"
-        },
-        {
-          "participant_id": "3e",
-          "code": "inferring_edit_through_record_access"
-        },
-        {
-          "participant_id": "3e",
-          "code": "incomplete_understanding_with_success"
-        },
-        {
-          "participant_id": "3e",
-          "code": "doi_format_validation_uncertainty"
-        },
-        {
-          "participant_id": "3e",
-          "code": "attempting_interface_cleanup"
-        },
-        {
-          "participant_id": "4e",
-          "code": "gradual_understanding_achievement"
-        },
-        {
-          "participant_id": "4e",
-          "code": "remembering_position_requirement"
-        },
-        {
-          "participant_id": "4e",
-          "code": "validation_error_recognition"
-        },
-        {
-          "participant_id": "4e",
-          "code": "workaround_solution_implementation"
-        },
-        {
-          "participant_id": "5e",
-          "code": "comparing_to_existing_system"
-        },
-        {
-          "participant_id": "5e",
-          "code": "organizing_screen_for_efficiency"
-        },
-        {
-          "participant_id": "5e",
-          "code": "iterative_problem_solving"
-        },
-        {
-          "participant_id": "6e",
-          "code": "exploratory_editing_approach"
-        },
-        {
-          "participant_id": "6e",
-          "code": "manual_author_entry_workaround"
-        },
-        {
-          "participant_id": "6e",
-          "code": "reviewing_entered_metadata"
-        },
-        {
-          "participant_id": "6e",
-          "code": "recognizing_window_management_error"
+          "participant_id": "7e",
+          "code": "lack_of_control_over_autocomplete"
         },
         {
           "participant_id": "7e",
-          "code": "manual_author_entry_workaround"
+          "code": "discovering_reordering_mechanism"
         },
         {
           "participant_id": "7e",
-          "code": "delete_and_recreate_workaround"
+          "code": "missing_visual_preview_for_reordering"
         },
         {
-          "participant_id": "2e",
-          "code": "resource_preview_feature_request"
+          "participant_id": "6e",
+          "code": "name_field_data_entry_error"
         },
         {
-          "participant_id": "2e",
-          "code": "enhanced_entity_feedback_request"
-        },
-        {
-          "participant_id": "1e",
-          "code": "first_time_user_perspective"
-        },
-        {
-          "participant_id": "8e",
-          "code": "expecting_navigation_tabs"
-        },
-        {
-          "participant_id": "8e",
-          "code": "creating_related_entities"
-        },
-        {
-          "participant_id": "8e",
-          "code": "entering_pagination_metadata"
-        },
-        {
-          "participant_id": "8e",
-          "code": "entering_volume_issue_data"
-        },
-        {
-          "participant_id": "9e",
-          "code": "interface_overview_during_exploration"
-        },
-        {
-          "participant_id": "9e",
-          "code": "empty_field_workaround"
-        },
-        {
-          "participant_id": "9e",
-          "code": "title_verification_attempt"
-        },
-        {
-          "participant_id": "9e",
-          "code": "task_completion_despite_issues"
-        },
-        {
-          "participant_id": "9e",
-          "code": "repository_location_hypothesis"
-        },
-        {
-          "participant_id": "9e",
-          "code": "second_attempt_record_creation"
+          "participant_id": "7e",
+          "code": "encountering_empty_name_field_bug"
         }
       ],
-      "category_description": "Codes representing neutral observations about system behavior, user understanding processes, hypothesis formation, gradual learning achievements, validation error recognition, workaround development including delete-and-recreate strategies, window management awareness, factual navigation activities (tab-based catalog browsing, entity relationship building, pagination and volume data entry), constructive user suggestions for system improvements (preview functionality, enhanced feedback mechanisms), and acknowledgments from first-time users navigating the system complexity without strong positive or negative sentiment",
+      "category_description": "User concerns about loss of control when system auto-fills information, confusion during drag-and-drop reordering operations, missing real-time visual feedback for reordering, and data entry errors due to unclear field purposes, demonstrating need for better preview mechanisms and user agency in automated interactions",
       "task_contexts": [
         "Data entry",
-        "Overall system improvement",
-        "Learning progression",
-        "System feedback observation",
-        "Navigation",
-        "System exploration",
-        "Form management",
-        "Problem resolution",
-        "Entity management",
-        "Error handling",
-        "General system usage",
-        "Resource creation",
-        "Form interaction",
-        "Catalog browsing",
-        "Metadata entry"
-      ],
-      "overall_sentiment": "neutral",
-      "frequency": "37"
-    },
-    {
-      "category_name": "System functionality gaps and user adaptation",
-      "related_codes": [
-        {
-          "participant_id": "1e",
-          "code": "search_functionality_missing"
-        },
-        {
-          "participant_id": "1e",
-          "code": "creation_indicator_needed"
-        },
-        {
-          "participant_id": "1e",
-          "code": "form_collapse_needed"
-        },
-        {
-          "participant_id": "3e",
-          "code": "searching_for_search_bar"
-        },
-        {
-          "participant_id": "3e",
-          "code": "articulating_navigation_problem"
-        },
-        {
-          "participant_id": "3e",
-          "code": "manually_scanning_through_records"
-        },
-        {
-          "participant_id": "3e",
-          "code": "identifying_recognition_challenge"
-        },
-        {
-          "participant_id": "3e",
-          "code": "navigation_difficulty_returning_to_resource"
-        },
-        {
-          "participant_id": "4e",
-          "code": "save_button_discoverability_issue"
-        },
-        {
-          "participant_id": "5e",
-          "code": "requesting_expanded_form_fields"
-        },
-        {
-          "participant_id": "5e",
-          "code": "unclear_navigation_to_target_resource"
-        },
-        {
-          "participant_id": "5e",
-          "code": "confusion_about_navigation_path"
-        },
-        {
-          "participant_id": "6e",
-          "code": "searching_for_issn_field"
-        },
-        {
-          "participant_id": "6e",
-          "code": "request_for_bulk_import"
-        },
-        {
-          "participant_id": "6e",
-          "code": "request_for_smart_name_parsing"
-        },
-        {
-          "participant_id": "6e",
-          "code": "request_for_inline_validation_microcopy"
-        },
-        {
-          "participant_id": "6e",
-          "code": "request_for_field_placeholder_text"
-        },
-        {
-          "participant_id": "7e",
-          "code": "search_functionality_missing"
-        },
-        {
-          "participant_id": "7e",
-          "code": "manually_scanning_through_records"
-        },
-        {
-          "participant_id": "7e",
-          "code": "difficulty_locating_metadata_fields"
-        },
-        {
-          "participant_id": "3e",
-          "code": "exploration_without_clear_understanding"
-        },
-        {
-          "participant_id": "3e",
-          "code": "task_misunderstanding"
-        },
-        {
-          "participant_id": "3e",
-          "code": "attempting_browse_based_workaround"
-        },
-        {
-          "participant_id": "6e",
-          "code": "browser_history_navigation_confusion"
-        },
-        {
-          "participant_id": "3e",
-          "code": "severe_disorientation_and_self_criticism"
-        },
-        {
-          "participant_id": "3e",
-          "code": "repeatedly_expressing_difficulty"
-        },
-        {
-          "participant_id": "8e",
-          "code": "repeated_search_expectation"
-        },
-        {
-          "participant_id": "8e",
-          "code": "request_for_catalog_integration"
-        },
-        {
-          "participant_id": "8e",
-          "code": "search_functionality_missing"
-        },
-        {
-          "participant_id": "8e",
-          "code": "manually_scanning_through_records"
-        },
-        {
-          "participant_id": "9e",
-          "code": "search_functionality_expectation"
-        },
-        {
-          "participant_id": "9e",
-          "code": "troubleshooting_through_editing"
-        },
-        {
-          "participant_id": "9e",
-          "code": "unsuccessful_save_attempts"
-        },
-        {
-          "participant_id": "9e",
-          "code": "persistent_display_issue"
-        },
-        {
-          "participant_id": "9e",
-          "code": "abbreviation_hypothesis"
-        },
-        {
-          "participant_id": "9e",
-          "code": "delete_function_failure"
-        },
-        {
-          "participant_id": "9e",
-          "code": "record_deletion_decision"
-        },
-        {
-          "participant_id": "9e",
-          "code": "search_functionality_desire"
-        },
-        {
-          "participant_id": "9e",
-          "code": "record_location_confusion"
-        },
-        {
-          "participant_id": "9e",
-          "code": "author_filter_attempt"
-        },
-        {
-          "participant_id": "9e",
-          "code": "deletion_verification_confusion"
-        },
-        {
-          "participant_id": "9e",
-          "code": "alphabetical_pagination_search"
-        },
-        {
-          "participant_id": "9e",
-          "code": "search_bar_critical_absence"
-        },
-        {
-          "participant_id": "9e",
-          "code": "author_name_update_problem"
-        },
-        {
-          "participant_id": "9e",
-          "code": "sorting_inconsistency_issue"
-        },
-        {
-          "participant_id": "9e",
-          "code": "error_explanation_request"
-        },
-        {
-          "participant_id": "9e",
-          "code": "search_feature_priority_request"
-        },
-        {
-          "participant_id": "9e",
-          "code": "error_explanation_feature_request"
-        },
-        {
-          "participant_id": "9e",
-          "code": "bottom_pagination_feature_request"
-        },
-        {
-          "participant_id": "9e",
-          "code": "dedicated_author_section_request"
-        }
-      ],
-      "category_description": "Codes identifying missing or needed system functionality (search capabilities with repeated user expectations across multiple sessions, better status indicators, form management features, navigation aids, visibility of critical buttons, missing metadata fields, bulk import, smart data parsing, inline validation help text, field placeholders, integration with external bibliographic catalogs for comprehensive autocomplete, dedicated author section for managing entities, better error explanations, additional pagination controls at page bottom), user strategies for navigating when faced with unclear pathways (trial-and-error approaches, hypothesis formation, workaround development, browser history navigation difficulties, troubleshooting through editing and comparison, attempting deletion and recreation), system bugs encountered (save failures, delete failures, sorting inconsistencies, display errors), and emotional responses to these gaps (frustration, disorientation, negative self-assessment)",
-      "task_contexts": [
-        "System navigation",
-        "Saving changes",
-        "Task execution under time pressure",
-        "Task execution",
-        "Return navigation",
-        "Metadata entry",
-        "Resource location",
-        "Entity creation",
-        "Locating existing resources",
-        "Form interaction",
-        "Catalog browsing",
-        "System improvement suggestions",
-        "Author management",
-        "Error recovery"
+        "ORCID lookup",
+        "Author reordering",
+        "Author creation",
+        "Author addition",
+        "Drag-and-drop interaction"
       ],
       "overall_sentiment": "negative",
-      "frequency": "50"
+      "frequency": "5"
     },
     {
-      "category_name": "Timeline and version control difficulties",
+      "category_name": "Advanced feature learning and decision-making complexity",
       "related_codes": [
         {
           "participant_id": "1e",
@@ -1278,22 +1130,7 @@
         {
           "participant_id": "9e",
           "code": "time_vault_confusion"
-        }
-      ],
-      "category_description": "Codes representing user difficulties with timeline interface and version control features, including unclear labels and confusing presentation, terminology confusion between time vault and time machine, nomenclature mismatches causing user disorientation, navigation errors when trying to access version history, system bugs in snapshot generation, and uncertainty about version restoration outcomes",
-      "task_contexts": [
-        "Entity version history",
-        "Time machine usage",
-        "Version restoration",
-        "Feature identification",
-        "Timeline navigation"
-      ],
-      "overall_sentiment": "negative",
-      "frequency": "13"
-    },
-    {
-      "category_name": "Merge operation uncertainty",
-      "related_codes": [
+        },
         {
           "participant_id": "1e",
           "code": "merge_uncertainty"
@@ -1311,13 +1148,295 @@
           "code": "confusion_about_merge_count"
         }
       ],
-      "category_description": "Codes representing user uncertainty about merge decisions and operations, including uncertainty about determining whether entities should be merged, which duplicate to keep as primary, whether sequential merge operations completed successfully, and confusion about the total number of entities involved in merge",
+      "category_description": "User difficulties with advanced features requiring decision-making under uncertainty, including timeline and version control interface confusion, unclear labels and terminology mismatches between time vault and time machine, version restoration uncertainty, merge operation decision-making complexity about which entity to keep and whether sequential operations completed successfully, representing the learning curve for sophisticated system features",
       "task_contexts": [
+        "Timeline navigation",
+        "Time machine usage",
+        "Version restoration",
         "Merge operations",
-        "Entity deduplication"
+        "Entity deduplication",
+        "Feature identification"
       ],
       "overall_sentiment": "negative",
-      "frequency": "4"
+      "frequency": "17"
+    },
+    {
+      "category_name": "Missing functionality and feature requests",
+      "related_codes": [
+        {
+          "participant_id": "1e",
+          "code": "search_functionality_missing"
+        },
+        {
+          "participant_id": "1e",
+          "code": "creation_indicator_needed"
+        },
+        {
+          "participant_id": "1e",
+          "code": "form_collapse_needed"
+        },
+        {
+          "participant_id": "3e",
+          "code": "searching_for_search_bar"
+        },
+        {
+          "participant_id": "5e",
+          "code": "requesting_expanded_form_fields"
+        },
+        {
+          "participant_id": "6e",
+          "code": "searching_for_issn_field"
+        },
+        {
+          "participant_id": "6e",
+          "code": "request_for_bulk_import"
+        },
+        {
+          "participant_id": "6e",
+          "code": "request_for_smart_name_parsing"
+        },
+        {
+          "participant_id": "6e",
+          "code": "request_for_inline_validation_microcopy"
+        },
+        {
+          "participant_id": "6e",
+          "code": "request_for_field_placeholder_text"
+        },
+        {
+          "participant_id": "7e",
+          "code": "search_functionality_missing"
+        },
+        {
+          "participant_id": "7e",
+          "code": "difficulty_locating_metadata_fields"
+        },
+        {
+          "participant_id": "8e",
+          "code": "repeated_search_expectation"
+        },
+        {
+          "participant_id": "8e",
+          "code": "request_for_catalog_integration"
+        },
+        {
+          "participant_id": "8e",
+          "code": "search_functionality_missing"
+        },
+        {
+          "participant_id": "9e",
+          "code": "search_functionality_expectation"
+        },
+        {
+          "participant_id": "9e",
+          "code": "search_functionality_desire"
+        },
+        {
+          "participant_id": "9e",
+          "code": "search_bar_critical_absence"
+        },
+        {
+          "participant_id": "9e",
+          "code": "error_explanation_request"
+        },
+        {
+          "participant_id": "9e",
+          "code": "search_feature_priority_request"
+        },
+        {
+          "participant_id": "9e",
+          "code": "error_explanation_feature_request"
+        },
+        {
+          "participant_id": "9e",
+          "code": "bottom_pagination_feature_request"
+        },
+        {
+          "participant_id": "9e",
+          "code": "dedicated_author_section_request"
+        },
+        {
+          "participant_id": "2e",
+          "code": "resource_preview_feature_request"
+        },
+        {
+          "participant_id": "2e",
+          "code": "enhanced_entity_feedback_request"
+        },
+        {
+          "participant_id": "4e",
+          "code": "save_button_discoverability_issue"
+        }
+      ],
+      "category_description": "Missing or needed system functionality identified by users, including search capabilities with repeated user expectations across multiple sessions, better status indicators, form management features, navigation aids, missing metadata fields, bulk import, smart data parsing, inline validation help text, field placeholders, integration with external bibliographic catalogs, dedicated author section, better error explanations, and additional pagination controls",
+      "task_contexts": [
+        "System navigation",
+        "Metadata entry",
+        "Form interaction",
+        "Resource location",
+        "Entity creation",
+        "Catalog browsing",
+        "System improvement suggestions"
+      ],
+      "overall_sentiment": "negative",
+      "frequency": "26"
+    },
+    {
+      "category_name": "System bugs and technical failures",
+      "related_codes": [
+        {
+          "participant_id": "9e",
+          "code": "unsuccessful_save_attempts"
+        },
+        {
+          "participant_id": "9e",
+          "code": "persistent_display_issue"
+        },
+        {
+          "participant_id": "9e",
+          "code": "delete_function_failure"
+        },
+        {
+          "participant_id": "9e",
+          "code": "author_name_update_problem"
+        },
+        {
+          "participant_id": "9e",
+          "code": "sorting_inconsistency_issue"
+        }
+      ],
+      "category_description": "Actual functional defects and system bugs encountered during use, including save failures, delete function failures, display errors, update problems, and sorting inconsistencies that represent technical failures requiring fixes",
+      "task_contexts": [
+        "Saving changes",
+        "Entity deletion",
+        "Data display",
+        "Author management",
+        "Catalog sorting"
+      ],
+      "overall_sentiment": "negative",
+      "frequency": "5"
+    },
+    {
+      "category_name": "User adaptation and problem-solving strategies",
+      "related_codes": [
+        {
+          "participant_id": "3e",
+          "code": "articulating_navigation_problem"
+        },
+        {
+          "participant_id": "3e",
+          "code": "manually_scanning_through_records"
+        },
+        {
+          "participant_id": "3e",
+          "code": "identifying_recognition_challenge"
+        },
+        {
+          "participant_id": "3e",
+          "code": "navigation_difficulty_returning_to_resource"
+        },
+        {
+          "participant_id": "5e",
+          "code": "unclear_navigation_to_target_resource"
+        },
+        {
+          "participant_id": "5e",
+          "code": "confusion_about_navigation_path"
+        },
+        {
+          "participant_id": "7e",
+          "code": "manually_scanning_through_records"
+        },
+        {
+          "participant_id": "3e",
+          "code": "exploration_without_clear_understanding"
+        },
+        {
+          "participant_id": "3e",
+          "code": "task_misunderstanding"
+        },
+        {
+          "participant_id": "3e",
+          "code": "attempting_browse_based_workaround"
+        },
+        {
+          "participant_id": "6e",
+          "code": "browser_history_navigation_confusion"
+        },
+        {
+          "participant_id": "3e",
+          "code": "severe_disorientation_and_self_criticism"
+        },
+        {
+          "participant_id": "3e",
+          "code": "repeatedly_expressing_difficulty"
+        },
+        {
+          "participant_id": "8e",
+          "code": "manually_scanning_through_records"
+        },
+        {
+          "participant_id": "9e",
+          "code": "troubleshooting_through_editing"
+        },
+        {
+          "participant_id": "9e",
+          "code": "abbreviation_hypothesis"
+        },
+        {
+          "participant_id": "9e",
+          "code": "record_deletion_decision"
+        },
+        {
+          "participant_id": "9e",
+          "code": "record_location_confusion"
+        },
+        {
+          "participant_id": "9e",
+          "code": "author_filter_attempt"
+        },
+        {
+          "participant_id": "9e",
+          "code": "deletion_verification_confusion"
+        },
+        {
+          "participant_id": "9e",
+          "code": "alphabetical_pagination_search"
+        },
+        {
+          "participant_id": "4e",
+          "code": "workaround_solution_implementation"
+        },
+        {
+          "participant_id": "6e",
+          "code": "manual_author_entry_workaround"
+        },
+        {
+          "participant_id": "7e",
+          "code": "manual_author_entry_workaround"
+        },
+        {
+          "participant_id": "7e",
+          "code": "delete_and_recreate_workaround"
+        },
+        {
+          "participant_id": "9e",
+          "code": "empty_field_workaround"
+        }
+      ],
+      "category_description": "User strategies for navigating system limitations when faced with unclear pathways or missing functionality, including trial-and-error approaches, hypothesis formation, workaround development (manual entry, delete-and-recreate), browser history navigation attempts, troubleshooting through editing, manual scanning, and emotional responses to difficulties including frustration, disorientation, and negative self-assessment",
+      "task_contexts": [
+        "System navigation",
+        "Resource location",
+        "Task execution",
+        "Return navigation",
+        "Locating existing resources",
+        "Problem resolution",
+        "Error recovery",
+        "Author management"
+      ],
+      "overall_sentiment": "negative",
+      "frequency": "26"
     },
     {
       "category_name": "Integration and external lookup failures",
@@ -1339,7 +1458,7 @@
           "code": "orcid_lookup_failure"
         }
       ],
-      "category_description": "Codes representing failures in external service integrations, specifically ORCID identifier lookup functionality not working, leading users to conclude that external API integration is missing or non-functional, requiring manual workarounds",
+      "category_description": "Failures in external service integrations, specifically ORCID identifier lookup functionality not working, leading users to conclude that external API integration is missing or non-functional, requiring manual workarounds",
       "task_contexts": [
         "Author creation",
         "Entity creation",
@@ -1347,43 +1466,6 @@
       ],
       "overall_sentiment": "negative",
       "frequency": "4"
-    },
-    {
-      "category_name": "User control and data entry challenges",
-      "related_codes": [
-        {
-          "participant_id": "7e",
-          "code": "lack_of_control_over_autocomplete"
-        },
-        {
-          "participant_id": "7e",
-          "code": "discovering_reordering_mechanism"
-        },
-        {
-          "participant_id": "7e",
-          "code": "missing_visual_preview_for_reordering"
-        },
-        {
-          "participant_id": "6e",
-          "code": "name_field_data_entry_error"
-        },
-        {
-          "participant_id": "7e",
-          "code": "encountering_empty_name_field_bug"
-        }
-      ],
-      "category_description": "Codes representing user concerns about loss of control when system auto-fills information from external lookups, confusion during drag-and-drop reordering operations, missing real-time visual feedback when reordering authors, and specific user errors when entering data due to unclear field purposes (entering full names in wrong fields, leaving optional name fields empty while populating given/family names), demonstrating need for better preview mechanisms, user agency in autocomplete interactions, field clarification, and system handling of optional fields",
-      "task_contexts": [
-        "Data entry",
-        "ORCID lookup",
-        "Author reordering",
-        "Author creation",
-        "Form completion",
-        "Drag-and-drop interaction",
-        "Author addition"
-      ],
-      "overall_sentiment": "negative",
-      "frequency": "5"
     }
   ]
 }
