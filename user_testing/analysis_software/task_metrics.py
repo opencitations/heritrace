@@ -1,11 +1,11 @@
-#!/usr/bin/env python3
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 SEVERITY_WEIGHTS = {"low": 1, "medium": 2, "high": 4}
 
@@ -147,6 +147,101 @@ def build_success_rates(df: pd.DataFrame, task_key_order_by_user_type: Dict[str,
     return results
 
 
+def compute_duration_statistics(df: pd.DataFrame) -> Dict[str, Any]:
+    """Compute detailed duration statistics per task and user type."""
+    if df.empty:
+        return {}
+
+    # Filter rows with valid actual duration
+    duration_df = df.dropna(subset=['actual_duration_minutes']).copy()
+    if duration_df.empty:
+        return {}
+
+    stats_by_task = {}
+
+    # Overall statistics per task
+    for task_key, task_group in duration_df.groupby('task_key'):
+        durations = task_group['actual_duration_minutes'].values
+        n = len(durations)
+
+        if n == 0:
+            continue
+
+        mean_val = float(np.mean(durations))
+        median_val = float(np.median(durations))
+        std_val = float(np.std(durations, ddof=1)) if n > 1 else 0.0
+
+        # Interquartile range
+        q25 = float(np.percentile(durations, 25))
+        q75 = float(np.percentile(durations, 75))
+        iqr = q75 - q25
+
+        # 95% confidence interval for mean
+        if n > 1:
+            ci_95 = stats.t.interval(0.95, n - 1, loc=mean_val, scale=stats.sem(durations))
+            ci_lower = float(ci_95[0])
+            ci_upper = float(ci_95[1])
+        else:
+            ci_lower = mean_val
+            ci_upper = mean_val
+
+        # Coefficient of variation (CV)
+        cv = (std_val / mean_val * 100) if mean_val > 0 else 0.0
+
+        # 90th percentile
+        p90 = float(np.percentile(durations, 90))
+
+        stats_by_task[task_key] = {
+            'n_observations': int(n),
+            'mean': mean_val,
+            'median': median_val,
+            'std': std_val,
+            'q25': q25,
+            'q75': q75,
+            'iqr': iqr,
+            'ci_95_lower': ci_lower,
+            'ci_95_upper': ci_upper,
+            'cv_percent': cv,
+            'p90': p90,
+            'min': float(np.min(durations)),
+            'max': float(np.max(durations))
+        }
+
+        # Statistics by user type for this task
+        by_user_type = {}
+        for user_type, ut_group in task_group.groupby('user_type'):
+            ut_durations = ut_group['actual_duration_minutes'].values
+            ut_n = len(ut_durations)
+
+            if ut_n == 0:
+                continue
+
+            ut_mean = float(np.mean(ut_durations))
+            ut_median = float(np.median(ut_durations))
+            ut_std = float(np.std(ut_durations, ddof=1)) if ut_n > 1 else 0.0
+
+            if ut_n > 1:
+                ut_ci = stats.t.interval(0.95, ut_n - 1, loc=ut_mean, scale=stats.sem(ut_durations))
+                ut_ci_lower = float(ut_ci[0])
+                ut_ci_upper = float(ut_ci[1])
+            else:
+                ut_ci_lower = ut_mean
+                ut_ci_upper = ut_mean
+
+            by_user_type[user_type] = {
+                'n_observations': int(ut_n),
+                'mean': ut_mean,
+                'median': ut_median,
+                'std': ut_std,
+                'ci_95_lower': ut_ci_lower,
+                'ci_95_upper': ut_ci_upper
+            }
+
+        stats_by_task[task_key]['by_user_type'] = by_user_type
+
+    return stats_by_task
+
+
 def main():
     script_dir = Path(__file__).resolve().parent
     repo_root = script_dir.parent
@@ -172,10 +267,14 @@ def main():
 
     success_rates = build_success_rates(df, task_key_order_by_user_type)
 
+    # Compute duration statistics
+    duration_statistics = compute_duration_statistics(df)
+
     rows_out = json.loads(df.to_json(orient="records")) if not df.empty else []
     metrics = {
         "rows": rows_out,
         "success_rates": success_rates,
+        "duration_statistics": duration_statistics,
         "metadata": {
             "participants": sorted(df["participant_id"].dropna().unique().tolist()) if not df.empty else [],
             "tasks": sorted(df["task_key"].dropna().unique().tolist()) if not df.empty else [],

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import json
 from pathlib import Path
 from typing import List
@@ -7,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib import patheffects as pe
 import numpy as np
 import pandas as pd
+from matplotlib import patheffects as pe
 
 
 def load_rows(repo_root: Path) -> pd.DataFrame:
@@ -105,7 +105,7 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
             'failed_bug': (status_lower == 'failed_bug').sum() / total * 100
         })
 
-    rates = df.groupby(group_cols).apply(_status_percentages).reset_index()
+    rates = df.groupby(group_cols, group_keys=False).apply(_status_percentages, include_groups=False).reset_index()
 
     # If an order index is available, carry it for sorting within each user_type
     if "__task_order_idx" in df.columns:
@@ -175,28 +175,102 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
     print(f"Saved: {out}")
 
 
-def plot_duration_expected_vs_actual(df: pd.DataFrame, output_dir: Path):
+def plot_duration_distributions(df: pd.DataFrame, output_dir: Path):
+    """Box plots showing distribution of actual durations per task with confidence intervals."""
     if df.empty:
         return
-    plot_df = df.dropna(subset=['expected_duration_minutes', 'actual_duration_minutes']).copy()
-    if plot_df.empty:
+
+    duration_df = df.dropna(subset=['actual_duration_minutes']).copy()
+    if duration_df.empty:
         return
-    fig, ax = plt.subplots(figsize=(7, 6))
-    for ut, sub in plot_df.groupby('user_type'):
-        ax.scatter(sub['expected_duration_minutes'], sub['actual_duration_minutes'], label=_humanize_user_type(ut), alpha=0.85)
-    lim = max(plot_df['expected_duration_minutes'].max(), plot_df['actual_duration_minutes'].max())
-    ax.plot([0, lim], [0, lim], ls='--', c='gray', alpha=0.7)
-    ax.set_xlabel('Expected duration (min)')
-    ax.set_ylabel('Actual duration (min)')
-    ax.set_title('Duration: Expected vs Actual')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    out = output_dir / "task_duration_expected_vs_actual.png"
+
+    task_label_map = _task_key_to_label_map(df)
+
+    # Load duration statistics for confidence intervals
+    json_path = output_dir / "task_metrics.json"
+    duration_stats = {}
+    if json_path.exists():
+        with open(json_path, "r") as f:
+            data = json.load(f)
+            duration_stats = data.get("duration_statistics", {})
+
+    user_types = sorted(duration_df['user_type'].unique().tolist())
+    n_user_types = len(user_types)
+
+    # Create figure
+    fig, axs = plt.subplots(1, n_user_types, figsize=(7 * n_user_types, 6), squeeze=False)
+
+    for i, user_type in enumerate(user_types):
+        ax = axs[0, i]
+        ut_df = duration_df[duration_df['user_type'] == user_type].copy()
+
+        # Order tasks by execution order if available
+        if "__task_order_idx" in ut_df.columns:
+            order_df = ut_df.dropna(subset=['task_key']).groupby('task_key')['__task_order_idx'].min().reset_index()
+            order_df.sort_values(['__task_order_idx', 'task_key'], inplace=True)
+            task_keys = order_df['task_key'].tolist()
+        else:
+            task_keys = sorted(ut_df['task_key'].unique().tolist())
+
+        # Prepare data for box plot
+        box_data = []
+        labels = []
+        means = []
+        ci_lowers = []
+        ci_uppers = []
+
+        for task_key in task_keys:
+            task_durations = ut_df[ut_df['task_key'] == task_key]['actual_duration_minutes'].values
+            if len(task_durations) > 0:
+                box_data.append(task_durations)
+                labels.append(task_label_map.get(task_key, _humanize_text(task_key)))
+
+                # Get stats from JSON
+                task_stat = duration_stats.get(task_key, {})
+                ut_stat = task_stat.get('by_user_type', {}).get(user_type, {})
+                if ut_stat:
+                    means.append(ut_stat.get('mean', np.mean(task_durations)))
+                    ci_lowers.append(ut_stat.get('ci_95_lower', np.mean(task_durations)))
+                    ci_uppers.append(ut_stat.get('ci_95_upper', np.mean(task_durations)))
+                else:
+                    mean_val = np.mean(task_durations)
+                    means.append(mean_val)
+                    ci_lowers.append(mean_val)
+                    ci_uppers.append(mean_val)
+
+        if not box_data:
+            continue
+
+        # Create box plot
+        bp = ax.boxplot(box_data, tick_labels=labels, patch_artist=True,
+                       showmeans=True, meanline=False,
+                       meanprops=dict(marker='D', markerfacecolor='red', markeredgecolor='black', markersize=6))
+
+        # Color boxes
+        for patch in bp['boxes']:
+            patch.set_facecolor('#a8dadc')
+            patch.set_alpha(0.7)
+
+        # Add confidence interval error bars
+        x_positions = np.arange(1, len(means) + 1)
+        ci_errors = [np.array(means) - np.array(ci_lowers), np.array(ci_uppers) - np.array(means)]
+
+        ax.errorbar(x_positions, means, yerr=ci_errors,
+                   fmt='none', ecolor='darkgreen', capsize=5, capthick=2,
+                   linewidth=2, alpha=0.8, label='95% CI')
+
+        ax.set_ylabel('Duration (min)', fontsize=11)
+        ax.set_title(f'Task duration distribution — {_humanize_user_type(user_type)}',
+                    fontsize=12)
+        ax.set_xticklabels(labels, rotation=30, ha='right')
+        ax.grid(True, alpha=0.3, axis='y')
+        ax.legend(loc='upper left', fontsize=9)
+
     fig.tight_layout()
-    fig.savefig(out, dpi=300, bbox_inches='tight')
+    out = output_dir / "task_duration_distributions.png"
+    fig.savefig(out, dpi=300, bbox_inches='tight', pad_inches=0.3)
     plt.close(fig)
     print(f"Saved: {out}")
-
 
 def _draw_heatmap(ax: plt.Axes, matrix: np.ndarray, row_labels: List[str], col_labels: List[str], title: str, cmap: str):
     im = ax.imshow(matrix, aspect='auto', cmap=cmap)
@@ -285,9 +359,12 @@ def main():
 
     df = load_rows(repo_root)
 
+    # Task completion analysis
     plot_success_rates(df, output_dir)
-    plot_duration_expected_vs_actual(df, output_dir)
     plot_error_heatmaps(df, output_dir)
+
+    # Duration analysis (essential plots only)
+    plot_duration_distributions(df, output_dir)
 
 
 if __name__ == "__main__":
