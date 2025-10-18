@@ -338,15 +338,6 @@ The System Usability Scale (SUS) provides a standardized usability metric. Calcu
 2. **Total calculation**: Sum all scores and multiply by 2.5
 3. **Range**: Final scores range from 0-100
 
-## SUS subscales (usability & learnability)
-
-### Calculation
-- **Usability (8 item)**: items 1,2,3,5,6,7,8,9
-- **Learnability (2 item)**: items 4,10
-
-Conversion is identical to SUS total (each item to 0–4). For each subscale:
-- Compute the mean of its items (0–4) and multiply by 25 → 0–100 scale.
-
 ## SUS data processing
 
 **Input files**: Extract ratings from `results/[endusers|technicians]/sus/[participant_id]_sus.md`
@@ -359,8 +350,8 @@ sus_visualizations.png
 ```
 
 Notes:
-- `sus_individual_scores.json` includes `usability_score` and `learnability_score` per participant.
-- `sus_aggregated_report.json` includes `subscales_summary` per user type.
+- `sus_individual_scores.json` includes individual participant SUS scores.
+- `sus_aggregated_report.json` includes aggregated statistics per user type.
 
 **Aggregated metrics by user type**:
 - Mean SUS score
@@ -386,12 +377,7 @@ Reference benchmarks for interpretation:
 **2. Statistics Summary Table**
 - **Type**: Text-based summary table
 - **Input**: Aggregated statistics by user type
-- **Output**: Count, mean, standard deviation, median, and range for each user type
-
-**3. Subscale Distributions by User Type**
-- **Type**: Two box plots — one per subscale (Usability, Learnability)
-- **Overlays**: horizontal guides at 60 (needs improvement) e 80 (excellent)
-- **Output**: Distribuzione delle sottoscale per tipo utente con soglie di interpretazione
+- **Output**: Count, mean, median, percentiles, and range for each user type
 
 ## SUS software usage
 

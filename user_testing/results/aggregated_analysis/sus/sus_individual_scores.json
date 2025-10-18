@@ -16,8 +16,6 @@
         1
       ],
       "sus_score": 60.0,
-      "usability_score": 53.125,
-      "learnability_score": 87.5,
       "file_path": "../results/endusers/sus/1e_sus.md"
     },
     {
@@ -36,8 +34,6 @@
         1
       ],
       "sus_score": 82.5,
-      "usability_score": 81.25,
-      "learnability_score": 87.5,
       "file_path": "../results/endusers/sus/2e_sus.md"
     },
     {
@@ -56,8 +52,6 @@
         2
       ],
       "sus_score": 65.0,
-      "usability_score": 59.375,
-      "learnability_score": 87.5,
       "file_path": "../results/endusers/sus/3e_sus.md"
     },
     {
@@ -76,8 +70,6 @@
         2
       ],
       "sus_score": 70.0,
-      "usability_score": 65.625,
-      "learnability_score": 87.5,
       "file_path": "../results/endusers/sus/4e_sus.md"
     },
     {
@@ -96,8 +88,6 @@
         3
       ],
       "sus_score": 62.5,
-      "usability_score": 68.75,
-      "learnability_score": 37.5,
       "file_path": "../results/endusers/sus/5e_sus.md"
     },
     {
@@ -116,8 +106,6 @@
         1
       ],
       "sus_score": 95.0,
-      "usability_score": 93.75,
-      "learnability_score": 100.0,
       "file_path": "../results/endusers/sus/6e_sus.md"
     },
     {
@@ -136,8 +124,6 @@
         1
       ],
       "sus_score": 90.0,
-      "usability_score": 87.5,
-      "learnability_score": 100.0,
       "file_path": "../results/endusers/sus/7e_sus.md"
     },
     {
@@ -156,8 +142,6 @@
         1
       ],
       "sus_score": 92.5,
-      "usability_score": 90.625,
-      "learnability_score": 100.0,
       "file_path": "../results/endusers/sus/8e_sus.md"
     },
     {
@@ -176,8 +160,6 @@
         1
       ],
       "sus_score": 92.5,
-      "usability_score": 90.625,
-      "learnability_score": 100.0,
       "file_path": "../results/endusers/sus/9e_sus.md"
     },
     {
@@ -196,8 +178,6 @@
         1
       ],
       "sus_score": 85.0,
-      "usability_score": 84.375,
-      "learnability_score": 87.5,
       "file_path": "../results/technicians/sus/1t_sus.md"
     },
     {
@@ -216,8 +196,6 @@
         2
       ],
       "sus_score": 85.0,
-      "usability_score": 84.375,
-      "learnability_score": 87.5,
       "file_path": "../results/technicians/sus/2t_sus.md"
     },
     {
@@ -236,8 +214,6 @@
         1
       ],
       "sus_score": 87.5,
-      "usability_score": 87.5,
-      "learnability_score": 87.5,
       "file_path": "../results/technicians/sus/3t_sus.md"
     },
     {
@@ -256,8 +232,6 @@
         3
       ],
       "sus_score": 67.5,
-      "usability_score": 68.75,
-      "learnability_score": 62.5,
       "file_path": "../results/technicians/sus/4t_sus.md"
     },
     {
@@ -276,8 +250,6 @@
         2
       ],
       "sus_score": 77.5,
-      "usability_score": 84.375,
-      "learnability_score": 50.0,
       "file_path": "../results/technicians/sus/5t_sus.md"
     },
     {
@@ -296,8 +268,6 @@
         3
       ],
       "sus_score": 82.5,
-      "usability_score": 90.625,
-      "learnability_score": 50.0,
       "file_path": "../results/technicians/sus/6t_sus.md"
     },
     {
@@ -316,8 +286,6 @@
         2
       ],
       "sus_score": 82.5,
-      "usability_score": 81.25,
-      "learnability_score": 87.5,
       "file_path": "../results/technicians/sus/7t_sus.md"
     },
     {
@@ -336,8 +304,6 @@
         1
       ],
       "sus_score": 92.5,
-      "usability_score": 90.625,
-      "learnability_score": 100.0,
       "file_path": "../results/technicians/sus/8t_sus.md"
     }
   ],
@@ -347,6 +313,6 @@
       "endusers",
       "technicians"
     ],
-    "analysis_date": "2025-10-18T14:59:06.118304"
+    "analysis_date": "2025-10-18T16:14:20.376762"
   }
 }

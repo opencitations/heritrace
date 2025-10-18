@@ -68,31 +68,6 @@ class SUSCalculator:
                 
         return score * 2.5
     
-    def calculate_subscale_scores(self, ratings: List[int]) -> Dict[str, float]:
-        """Calculate Usability (8 items) and Learnability (2 items) subscales.
-
-        Returns scores on 0–100 scale for both subscales.
-        """
-        if len(ratings) != 10:
-            raise ValueError(f"Expected 10 ratings, got {len(ratings)}")
-
-        contributions: List[int] = []
-        for i, rating in enumerate(ratings):
-            if i % 2 == 0:  # Items 1,3,5,7,9 (zero-indexed even)
-                contributions.append(rating - 1)
-            else:  # Items 2,4,6,8,10
-                contributions.append(5 - rating)
-
-        usability_indices = [0, 1, 2, 4, 5, 6, 7, 8]  # items 1,2,3,5,6,7,8,9
-        learnability_indices = [3, 9]  # items 4,10
-
-        usability_mean = float(np.mean([contributions[i] for i in usability_indices]))
-        learnability_mean = float(np.mean([contributions[i] for i in learnability_indices]))
-
-        return {
-            'usability_score': usability_mean * 25.0,
-            'learnability_score': learnability_mean * 25.0,
-        }
     
     def process_user_type(self, user_type: str) -> List[Dict]:
         """Process all SUS files for a specific user type."""
@@ -107,14 +82,11 @@ class SUSCalculator:
             parsed = self.parse_sus_file(sus_file)
             if parsed:
                 score = self.calculate_sus_score(parsed['ratings'])
-                subscales = self.calculate_subscale_scores(parsed['ratings'])
                 results.append({
                     'participant_id': parsed['participant_id'],
                     'user_type': user_type,
                     'ratings': parsed['ratings'],
                     'sus_score': score,
-                    'usability_score': subscales['usability_score'],
-                    'learnability_score': subscales['learnability_score'],
                     'file_path': parsed['file_path']
                 })
                 
@@ -140,53 +112,33 @@ class SUSCalculator:
             
         return stats
     
-    def generate_subscale_stats(self, all_results: List[Dict]) -> Dict[str, Dict[str, Dict[str, float]]]:
-        """Generate aggregated statistics for Usability and Learnability by user type.
-
-        Returns a nested dict: { user_type: { 'usability': {...}, 'learnability': {...} } }
-        """
-        if not all_results:
-            return {}
-
-        df = pd.DataFrame(all_results)
-        stats: Dict[str, Dict[str, Dict[str, float]]] = {}
-        for user_type, group in df.groupby('user_type'):
-            stats[user_type] = {}
-            for metric in ['usability_score', 'learnability_score']:
-                values = group[metric].dropna().values.tolist()
-                if not values:
-                    continue
-                stats[user_type][metric.replace('_score', '')] = {
-                    'count': len(values),
-                    'mean': float(np.mean(values)),
-                    'std': float(np.std(values, ddof=1)) if len(values) > 1 else 0.0,
-                    'median': float(np.median(values)),
-                    'min': float(np.min(values)),
-                    'max': float(np.max(values)),
-                }
-        return stats
     
     def create_visualizations(self, all_results: List[Dict]):
-        """Generate visualizations for SUS and its subscales."""
+        """Generate visualizations for SUS scores."""
         if not all_results:
             print("No data to visualize")
             return
-            
+
         df = pd.DataFrame(all_results)
-        
-        # Create figure with subplots (2x2): SUS + Usability + Learnability + Summary
-        fig, axs = plt.subplots(2, 2, figsize=(14, 10))
-        ax1, ax2, ax3, ax4 = axs[0, 0], axs[0, 1], axs[1, 0], axs[1, 1]
-        fig.suptitle('SUS and Subscales Analysis', fontsize=16, fontweight='bold')
-        
+
+        # Create figure with subplots (1x2): SUS boxplot + Summary
+        # Use 16:9 aspect ratio to better utilize horizontal space
+        fig = plt.figure(figsize=(12, 6.75))
+        gs = fig.add_gridspec(1, 2, width_ratios=[1.5, 1], wspace=0.3, top=0.95, bottom=0.22)
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[0, 1])
+
         # 1. Box plot by user type
         user_types = list(df['user_type'].unique())
         box_data = [df[df['user_type'] == ut]['sus_score'].values for ut in user_types]
-        box_plot = ax1.boxplot(box_data, tick_labels=user_types, patch_artist=True)
-        ax1.set_title('SUS Score Distribution by User Type')
-        ax1.set_ylabel('SUS Score')
+        box_plot = ax1.boxplot(box_data, tick_labels=user_types, patch_artist=True,
+                               medianprops=dict(color='darkblue', linewidth=2.5))
+        ax1.set_title('SUS score distribution by user type')
+        ax1.set_ylabel('SUS score')
         ax1.axhline(y=68, color='orange', linestyle='--', alpha=0.7, label='Average threshold')
         ax1.axhline(y=80.3, color='green', linestyle='--', alpha=0.7, label='Excellent threshold')
+        # Add median to legend
+        ax1.plot([], [], color='darkblue', linewidth=2.5, label='Median')
         ax1.legend()
         ax1.grid(True, alpha=0.3)
         
@@ -195,35 +147,10 @@ class SUSCalculator:
         colors = (base_colors * ((len(user_types) // len(base_colors)) + 1))[: len(user_types)]
         for patch, color in zip(box_plot['boxes'], colors):
             patch.set_facecolor(color)
-        
-        # 2. Usability box plot by user type
-        usability_box_data = [df[df['user_type'] == ut]['usability_score'].values for ut in user_types]
-        usability_plot = ax2.boxplot(usability_box_data, tick_labels=user_types, patch_artist=True)
-        ax2.set_title('Usability Score Distribution by User Type')
-        ax2.set_ylabel('Usability (0–100)')
-        # Thresholds for subscale interpretation
-        ax2.axhline(y=60, color='red', linestyle='--', alpha=0.6, label='Needs improvement')
-        ax2.axhline(y=80, color='green', linestyle='--', alpha=0.6, label='Excellent')
-        ax2.legend()
-        ax2.grid(True, alpha=0.3)
-        for patch, color in zip(usability_plot['boxes'], colors):
-            patch.set_facecolor(color)
 
-        # 3. Learnability box plot by user type
-        learn_box_data = [df[df['user_type'] == ut]['learnability_score'].values for ut in user_types]
-        learn_plot = ax3.boxplot(learn_box_data, tick_labels=user_types, patch_artist=True)
-        ax3.set_title('Learnability Score Distribution by User Type')
-        ax3.set_ylabel('Learnability (0–100)')
-        ax3.axhline(y=60, color='red', linestyle='--', alpha=0.6, label='Needs improvement')
-        ax3.axhline(y=80, color='green', linestyle='--', alpha=0.6, label='Excellent')
-        ax3.legend()
-        ax3.grid(True, alpha=0.3)
-        for patch, color in zip(learn_plot['boxes'], colors):
-            patch.set_facecolor(color)
-
-        # 4. Comparison table (text-based)
-        ax4.axis('off')
-        stats_lines = ["SUS Statistics Summary", ""]
+        # 2. Summary statistics table (text-based)
+        ax2.axis('off')
+        stats_lines = ["SUS statistics summary", ""]
         for user_type in user_types:
             user_data = df[df['user_type'] == user_type]['sus_score']
             q1 = user_data.quantile(0.25)
@@ -239,15 +166,22 @@ class SUSCalculator:
             stats_lines.append(f"  Q1 (25th percentile): {q1:.1f}")
             stats_lines.append(f"  Q3 (75th percentile): {q3:.1f}")
             stats_lines.append(f"  Range: {min_val:.1f}-{max_val:.1f}")
-            stats_lines.append(f"  Mean Usability: {df[df['user_type']==user_type]['usability_score'].mean():.1f}")
-            stats_lines.append(f"  Mean Learnability: {df[df['user_type']==user_type]['learnability_score'].mean():.1f}")
             stats_lines.append("")
         stats_text = "\n".join(stats_lines)
-        ax4.text(0.05, 0.95, stats_text, transform=ax4.transAxes, fontsize=10,
+        ax2.text(0.05, 0.95, stats_text, transform=ax2.transAxes, fontsize=10,
                  verticalalignment='top', fontfamily='monospace')
-        
-        plt.tight_layout()
-        
+
+        # Add box plot legend explaining elements (positioned below the plot)
+        legend_text = (
+            "Box plot elements:\n"
+            "• Box edges: 25th (Q1) and 75th (Q3) percentiles (interquartile range, IQR)\n"
+            "• Blue line: Median (50th percentile)\n"
+            "• Whiskers: Extend to the most extreme data point within 1.5×IQR from box edges\n"
+            "• Circles: Outliers (values beyond 1.5×IQR from box edges)"
+        )
+        fig.text(0.5, 0.04, legend_text, ha='center', fontsize=10,
+                 verticalalignment='bottom', multialignment='left')
+
         # Save visualization
         output_file = self.output_dir / "sus_visualizations.png"
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
@@ -276,8 +210,7 @@ class SUSCalculator:
             scores_by_type[user_type].append(result['sus_score'])
             
         aggregated_stats = self.generate_aggregated_stats(scores_by_type)
-        subscale_stats = self.generate_subscale_stats(all_results)
-        
+
         individual_scores = {
             'participants': all_results,
             'metadata': {
@@ -286,10 +219,9 @@ class SUSCalculator:
                 'analysis_date': pd.Timestamp.now().isoformat()
             }
         }
-        
+
         aggregated_report = {
             'summary_statistics': aggregated_stats,
-            'subscales_summary': subscale_stats,
             'benchmarking': {
                 'participants_below_average': len([r for r in all_results if r['sus_score'] < 68]),
                 'participants_above_average': len([r for r in all_results if 68 <= r['sus_score'] < 80.3]),
@@ -333,21 +265,10 @@ def main():
         print("\nSUS Analysis Complete!")
         print(f"Total participants analyzed: {len(reports['all_results'])}")
 
-        subscales_by_type = reports['aggregated_report'].get('subscales_summary', {})
-
         for user_type, stats in reports['aggregated_report']['summary_statistics'].items():
             print(f"\n{user_type.replace('_', ' ').title()} (n={stats['count']}):")
             print(f"  Mean SUS score: {stats['mean']:.1f}")
             print(f"  Median SUS score: {stats['median']:.1f}")
-
-            metrics = subscales_by_type.get(user_type, {})
-            usability = metrics.get('usability', {})
-            learnability = metrics.get('learnability', {})
-            if usability or learnability:
-                print(
-                    f"  Usability mean: {usability.get('mean', float('nan')):.1f}  |  "
-                    f"Learnability mean: {learnability.get('mean', float('nan')):.1f}"
-                )
 
         benchmarking = reports['aggregated_report']['benchmarking']
         print(f"\nBenchmarking results:")
