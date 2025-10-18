@@ -32,7 +32,7 @@
     {
       "category": "Successful System Features",
       "relationship_to_core": "Demonstrates that the system's core semantic functionality is sound and provides value once users adapt to the complexity. This category validates that the learning curve leads to genuine capability and encourages development of autonomous problem-solving strategies.",
-      "frequency": 135,
+      "frequency": 152,
       "axial_codes_included": [
         "Successful system features and interface strengths"
       ]
@@ -55,16 +55,16 @@
     },
     {
       "category": "Advanced Feature Learning Curve",
-      "relationship_to_core": "Illustrates the dual-phase pattern where complex features (timeline, version control, merge operations) initially confuse users but eventually become valued capabilities. Includes both usability challenges and system bugs that prevent functionality. Shows that semantic system adoption requires patience and proper support for conceptual understanding.",
-      "frequency": 19,
+      "relationship_to_core": "Illustrates the dual-phase pattern where complex features (timeline, version control) initially confuse users through unclear interface labels, terminology mismatches, and navigation errors, but eventually become valued capabilities when properly understood. Includes both usability challenges and system bugs that prevent functionality. Shows that semantic system adoption requires patience and proper support for conceptual understanding.",
+      "frequency": 13,
       "axial_codes_included": [
-        "Timeline and version control experience"
+        "Timeline and version control difficulties"
       ]
     },
     {
       "category": "System Comprehension Process",
       "relationship_to_core": "Captures the neutral observations and learning process that users experience while navigating complexity. Includes workaround development strategies, constructive suggestions for improvement, and first-time user acknowledgments, showing active engagement with system learning and autonomous adaptation.",
-      "frequency": 38,
+      "frequency": 37,
       "axial_codes_included": [
         "System understanding and navigation"
       ]
@@ -72,7 +72,7 @@
     {
       "category": "User Expectations vs. System Design Mismatch",
       "relationship_to_core": "Represents a critical conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates substantial friction as users repeatedly expect search and browsing features in a system designed for targeted entity management and editing. The absence of search functionality generates the most consistent user frustration across participants, amplifying complexity navigation challenges and triggering extensive problem-solving attempts and emotional responses.",
-      "frequency": 48,
+      "frequency": 50,
       "axial_codes_included": [
         "System functionality gaps and user adaptation"
       ]
@@ -91,6 +91,14 @@
       "frequency": 5,
       "axial_codes_included": [
         "User control and data entry challenges"
+      ]
+    },
+    {
+      "category": "Merge Operation Decision-Making Complexity",
+      "relationship_to_core": "Represents a specific complexity navigation challenge within the semantic data management workflow. While merge operations are generally successful and valued, users experience uncertainty when making merge decisions about which entity to keep as primary, whether entities should be merged, and confirming sequential merge completions. This category demonstrates that even well-designed advanced features require clear decision-support mechanisms to reduce cognitive load during complexity navigation.",
+      "frequency": 4,
+      "axial_codes_included": [
+        "Merge operation uncertainty"
       ]
     }
   ]
