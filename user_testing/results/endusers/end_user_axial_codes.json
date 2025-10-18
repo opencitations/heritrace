@@ -93,6 +93,14 @@
           "code": "restore_functionality_works"
         },
         {
+          "participant_id": "1e",
+          "code": "timeline_understanding_improvement"
+        },
+        {
+          "participant_id": "4e",
+          "code": "time_machine_provides_reassurance"
+        },
+        {
           "participant_id": "2e",
           "code": "exploring_system_features_naturally"
         },
@@ -541,7 +549,7 @@
           "code": "merge_feature_appreciation"
         }
       ],
-      "category_description": "Codes representing all positive user experiences with the system, including successful functionality (autocomplete, merge operations including direct initiation and systematic duplicate checking, drag-and-drop reordering, version control, validation, entity management including confident identifier addition and critical evaluation of suggestions, identifier interoperability, similar resource detection, installation ease, autonomous problem diagnosis, learning progression, error recovery, overall system effectiveness and smooth workflow) and positive interface design elements (visual appeal, intuitive navigation components, clear information presentation, well-organized field grouping, logical field sequence, functional design choices that enhance user experience and reduce cognitive load)",
+      "category_description": "Codes representing all positive user experiences with the system, including successful functionality (autocomplete, merge operations including direct initiation and systematic duplicate checking, drag-and-drop reordering, version control including timeline understanding improvement and psychological reassurance from time machine, validation, entity management including confident identifier addition and critical evaluation of suggestions, identifier interoperability, similar resource detection, installation ease, autonomous problem diagnosis, learning progression, error recovery, overall system effectiveness and smooth workflow) and positive interface design elements (visual appeal, intuitive navigation components, clear information presentation, well-organized field grouping, logical field sequence, functional design choices that enhance user experience and reduce cognitive load)",
       "task_contexts": [
         "Time machine usage",
         "Knowledge transfer",
@@ -565,10 +573,13 @@
         "Form validation",
         "Browsing records",
         "Duplicate management",
-        "Identifier management"
+        "Identifier management",
+        "Entity version history",
+        "Error recovery confidence",
+        "Timeline navigation"
       ],
       "overall_sentiment": "positive",
-      "frequency": "135"
+      "frequency": "137"
     },
     {
       "category_name": "Interface design and interaction problems",
@@ -1158,7 +1169,7 @@
       "frequency": "48"
     },
     {
-      "category_name": "Timeline and version control experience",
+      "category_name": "Timeline and version control difficulties",
       "related_codes": [
         {
           "participant_id": "1e",
@@ -1209,13 +1220,24 @@
           "code": "confusing_time_vault_with_time_machine"
         },
         {
-          "participant_id": "1e",
-          "code": "timeline_understanding_improvement"
-        },
-        {
-          "participant_id": "4e",
-          "code": "time_machine_provides_reassurance"
-        },
+          "participant_id": "9e",
+          "code": "time_vault_confusion"
+        }
+      ],
+      "category_description": "Codes representing user difficulties with timeline interface and version control features, including unclear labels and confusing presentation, terminology confusion between time vault and time machine, nomenclature mismatches causing user disorientation, navigation errors when trying to access version history, system bugs in snapshot generation, and uncertainty about version restoration outcomes",
+      "task_contexts": [
+        "Entity version history",
+        "Time machine usage",
+        "Version restoration",
+        "Feature identification",
+        "Timeline navigation"
+      ],
+      "overall_sentiment": "negative",
+      "frequency": "13"
+    },
+    {
+      "category_name": "Merge operation uncertainty",
+      "related_codes": [
         {
           "participant_id": "1e",
           "code": "merge_uncertainty"
@@ -1231,25 +1253,15 @@
         {
           "participant_id": "9e",
           "code": "confusion_about_merge_count"
-        },
-        {
-          "participant_id": "9e",
-          "code": "time_vault_confusion"
         }
       ],
-      "category_description": "Codes representing the complete user journey with timeline interface and version control features, including initial difficulties (unclear labels, confusing presentation, terminology confusion between time vault and time machine, nomenclature mismatches, navigation errors, system bugs), eventual understanding and successful use, psychological reassurance about error recovery, and uncertainty about merge decisions (determining whether entities should be merged, which duplicate to keep as primary, whether sequential operations completed successfully, confusion about total number of entities involved in merge)",
+      "category_description": "Codes representing user uncertainty about merge decisions and operations, including uncertainty about determining whether entities should be merged, which duplicate to keep as primary, whether sequential merge operations completed successfully, and confusion about the total number of entities involved in merge",
       "task_contexts": [
-        "Entity version history",
-        "Error recovery confidence",
-        "Time machine usage",
-        "Version restoration",
-        "Feature identification",
-        "Timeline navigation",
         "Merge operations",
         "Entity deduplication"
       ],
-      "overall_sentiment": "mixed",
-      "frequency": "19"
+      "overall_sentiment": "negative",
+      "frequency": "4"
     },
     {
       "category_name": "Integration and external lookup failures",

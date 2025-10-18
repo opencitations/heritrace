@@ -13,9 +13,7 @@ warnings.filterwarnings('ignore')
 # Color palettes
 SENTIMENT_COLORS = {
     'positive': '#1b7837',  # Green
-    'neutral': '#fdae61',   # Yellow-orange
-    'negative': '#d73027',  # Red
-    'mixed': '#4575b4'      # Blue
+    'negative': '#d73027'   # Red
 }
 
 
@@ -44,15 +42,17 @@ def create_horizontal_bar_chart(user_type: str, repo_root: Path, output_dir: Pat
     axial = load_axial_codes(user_type, repo_root)
     categories = axial['categories']
 
-    # Extract data
+    # Extract data (filter out neutral categories)
     cat_names = []
     frequencies = []
     sentiments = []
 
     for cat in categories:
-        cat_names.append(cat['category_name'])
-        frequencies.append(int(cat['frequency']))
-        sentiments.append(cat['overall_sentiment'])
+        sentiment = cat['overall_sentiment']
+        if sentiment != 'neutral':
+            cat_names.append(cat['category_name'])
+            frequencies.append(int(cat['frequency']))
+            sentiments.append(sentiment)
 
     # Create DataFrame and sort by frequency
     df = pd.DataFrame({
@@ -76,21 +76,19 @@ def create_horizontal_bar_chart(user_type: str, repo_root: Path, output_dir: Pat
         ax.text(freq + max(df['frequency']) * 0.01, i, f' {freq}',
                 va='center', ha='left', fontsize=9, fontweight='bold')
 
+    # Set x-axis limit to accommodate the labels
+    ax.set_xlim(0, max(df['frequency']) * 1.15)
+
     ax.set_xlabel('Frequency', fontsize=12, fontweight='bold')
-    ax.set_title(f'Axial Categories by Frequency — {humanize_user_type(user_type)}',
+    ax.set_title(f'Axial categories by frequency — {humanize_user_type(user_type)}',
                 fontsize=14, fontweight='bold', pad=20)
     ax.grid(axis='x', alpha=0.3, linestyle='--')
 
     # Create legend
     legend_elements = [
         mpatches.Patch(facecolor=SENTIMENT_COLORS['positive'], edgecolor='black', label='Positive'),
-        mpatches.Patch(facecolor=SENTIMENT_COLORS['neutral'], edgecolor='black', label='Neutral'),
         mpatches.Patch(facecolor=SENTIMENT_COLORS['negative'], edgecolor='black', label='Negative'),
     ]
-    if 'mixed' in df['sentiment'].values:
-        legend_elements.append(
-            mpatches.Patch(facecolor=SENTIMENT_COLORS['mixed'], edgecolor='black', label='Mixed')
-        )
 
     ax.legend(handles=legend_elements, loc='lower right', frameon=True, fontsize=10)
 
