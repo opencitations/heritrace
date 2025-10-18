@@ -5,34 +5,34 @@
   "theoretical_propositions": [
     {
       "proposition": "Technical users with semantic web expertise can successfully configure complex systems through pattern replication when configuration files maintain internal consistency and provide discoverable examples",
-      "explanation": "This explains why technicians successfully completed configuration tasks despite minimal documentation. Their ability to identify similar existing structures, understand underlying patterns, and adapt them to new requirements demonstrates that consistent configuration design enables learning by example. The pattern-based approach (copying, modifying, and testing) proved effective across both SHACL validation and display rule configuration. Participants with minimal SHACL experience successfully completed tasks using this strategy, confirming that pattern-based learning compensates for knowledge gaps."
+      "explanation": "Technicians successfully completed configuration tasks despite minimal documentation by identifying similar structures, understanding patterns, and adapting them to new requirements. This pattern-based approach (copying, modifying, testing) proved effective across SHACL validation and display rules, with even minimal-SHACL-experience participants succeeding, confirming that pattern learning compensates for knowledge gaps."
     },
     {
       "proposition": "Immediate visual feedback in configuration workflows reduces cognitive load and provides essential verification for technical users, accelerating task completion and increasing confidence",
-      "explanation": "This explains the high value technicians placed on seeing configuration changes reflected instantly in the UI. The immediate feedback loop allowed them to validate their understanding, confirm correct syntax and semantics, and iterate rapidly without consulting external documentation. This tight integration between file-based configuration and visual representation bridged the gap between backend configuration and frontend behavior. Multiple participants emphasized that real-time visualization aided both understanding what needed configuration and how to configure it."
+      "explanation": "Immediate feedback loops allowed technicians to validate understanding, confirm correct syntax, and iterate rapidly without external documentation. Tight integration between file-based configuration and visual representation bridged backend-frontend gaps, with participants emphasizing that real-time visualization aided understanding both what needed configuration and how to configure it."
     },
     {
       "proposition": "Mental model mismatches between web-based interfaces and file-based configuration create initial friction that technical expertise can overcome but represents an architectural trade-off that affects discoverability",
-      "explanation": "This explains why technicians initially searched for configuration options within the web interface before realizing the file-based approach. The expectation that a web application would provide web-based administration reflects common architectural patterns in modern systems. While technical users successfully adapted once they understood the paradigm, this mismatch represents a conceptual barrier that could be addressed through better signposting or hybrid approaches."
+      "explanation": "Technicians initially searched for web-based configuration options before discovering the file-based approach. This expectation reflects common architectural patterns in modern systems. While technical users adapted once they understood the paradigm, this mismatch represents a conceptual barrier addressable through better signposting or hybrid approaches."
     },
     {
       "proposition": "Semantic reasoning capabilities enable technical users to translate natural language requirements into formal constraints and infer technical details from domain knowledge, reducing dependency on prescriptive documentation",
-      "explanation": "This explains how technicians successfully created SHACL constraints from task descriptions without step-by-step guidance. Their ability to infer datatypes from property semantics, specify constraints from requirements, and verify structural consistency demonstrates that domain expertise compensates for documentation gaps. However, uncertainty around optional parameters suggests that even expert users benefit from explicit documentation of implicit rules and conventions. One participant encountering SHACL for the first time assessed the syntax as straightforward and successfully implemented constraints, confirming that semantic reasoning extends beyond prior technology-specific knowledge."
+      "explanation": "Technicians created SHACL constraints from task descriptions without step-by-step guidance by inferring datatypes from semantics, specifying constraints from requirements, and verifying structural consistency. Domain expertise compensates for documentation gaps, though uncertainty around optional parameters shows even experts benefit from explicit documentation of implicit rules. First-time SHACL users successfully implemented constraints, confirming semantic reasoning extends beyond prior technology-specific knowledge."
     },
     {
       "proposition": "Iterative testing approaches and exploratory learning strategies characterize technical user behavior when working with configuration systems that provide rapid feedback and consistent patterns",
-      "explanation": "This explains the pragmatic problem-solving style observed across technicians. Rather than exhaustively studying documentation before implementation, they preferred to make changes, test results, and refine their approach based on observations. This trial-and-error methodology succeeds when the system provides immediate feedback and when failures are low-cost and easily reversible. The approach reflects confidence in their ability to diagnose and correct issues through experimentation. Participants leveraged features such as version restoration to safely test configuration hypotheses without permanent consequences."
+      "explanation": "Rather than exhaustively studying documentation, technicians preferred making changes, testing results, and refining based on observations. This trial-and-error methodology succeeds when systems provide immediate feedback and failures are low-cost and reversible. Participants leveraged version restoration to safely test configuration hypotheses, reflecting confidence in diagnosing and correcting issues through experimentation."
     },
     {
       "proposition": "File-based configuration systems create architectural sustainability challenges when they combine intuitive user interfaces with technically complex configuration layers, establishing persistent dependency on expert-non-expert collaboration that may not be sustainable at individual project scales",
-      "explanation": "This explains the fundamental paradox identified where user-facing interfaces remain intuitive while underlying configuration systems require technical expertise. Realistic usage patterns emerge where technical experts perform initial configuration while non-technical users handle data entry, but the iterative nature of real-world use means non-technical users inevitably discover missing features requiring ongoing technical support for configuration modifications. This dependency structure raises questions about project-level sustainability, particularly when Docker deployment, semantic web knowledge, and computational thinking mindsets compound the technical barriers. The gap between expecting such support and actually receiving it represents a critical architectural consideration for long-term system viability."
+      "explanation": "User-facing interfaces remain intuitive while underlying configuration requires technical expertise. Realistic usage patterns involve technical experts performing initial configuration while non-technical users handle data entry, but iterative real-world use means non-technical users inevitably discover missing features requiring ongoing technical support. This dependency structure raises sustainability questions, particularly when Docker deployment, semantic web knowledge, and computational thinking mindsets compound barriers. The gap between expecting such support and receiving it represents a critical architectural consideration for long-term viability."
     }
   ],
   "supporting_categories": [
     {
       "category": "Technical competence and domain expertise foundation",
-      "relationship_to_core": "This category establishes the foundational expertise that enables the pattern-based learning and semantic reasoning at the core of technician success. The intuitive navigation, semantic reasoning capabilities, and successful verification demonstrate that technicians possess the prerequisite knowledge to work effectively with the system's configuration paradigm. Documentation effectiveness confirms that well-designed learning resources support this expertise development, even for technicians without prior SHACL knowledge. One participant explicitly characterized the system as self-explanatory, requiring documentation only to locate specific files rather than as a prerequisite for understanding configuration concepts.",
-      "frequency": 72,
+      "relationship_to_core": "Establishes foundational expertise enabling pattern-based learning and semantic reasoning. Intuitive navigation, semantic reasoning capabilities, and successful verification demonstrate prerequisite knowledge for effective configuration. Documentation effectiveness supports expertise development even without prior SHACL knowledge.",
+      "frequency": 75,
       "axial_codes_included": [
         "Intuitive interface exploration and navigation",
         "Semantic and technical reasoning",
@@ -42,8 +42,8 @@
     },
     {
       "category": "Pattern-based learning and iterative problem-solving strategies",
-      "relationship_to_core": "This category directly manifests the core theory by showing how technicians actively employ pattern replication, analogical reasoning, and iterative testing to accomplish configuration goals. The configuration through pattern replication and iterative approach represent the primary mechanisms through which technical expertise translates into successful outcomes despite system constraints. All participants adopted copy-paste-modify workflows and leveraged existing examples as templates for new configurations.",
-      "frequency": 27,
+      "relationship_to_core": "Directly manifests core theory through pattern replication, analogical reasoning, and iterative testing. These represent primary mechanisms translating technical expertise into successful outcomes despite system constraints. All participants adopted copy-paste-modify workflows using existing examples as templates.",
+      "frequency": 28,
       "axial_codes_included": [
         "Configuration through pattern replication",
         "Iterative testing and validation approach"
@@ -51,8 +51,8 @@
     },
     {
       "category": "System design affordances enabling expert workflows",
-      "relationship_to_core": "This category explains how specific system design decisions support the core pattern-based learning approach. Immediate visual feedback provides the rapid validation loops that technicians need to work efficiently, while positive feature experiences demonstrate appreciation for well-designed functionality. These affordances reduce the cost of experimentation and confirm that configuration changes achieve intended effects. Participants consistently verified that new fields appeared correctly in forms after modifications, expressing satisfaction with instant visual feedback.",
-      "frequency": 26,
+      "relationship_to_core": "System design decisions support pattern-based learning through immediate visual feedback providing rapid validation loops. These affordances reduce experimentation costs and confirm configuration changes achieve intended effects. Positive feature experiences demonstrate appreciation for well-designed functionality.",
+      "frequency": 37,
       "axial_codes_included": [
         "Immediate visual feedback appreciation",
         "Positive feature experiences and interface design appreciation"
@@ -60,8 +60,8 @@
     },
     {
       "category": "Conceptual and documentation barriers requiring expert compensation",
-      "relationship_to_core": "This category identifies the system constraints that technical expertise must overcome. The delayed understanding of file-based configuration, documentation gaps, parameter uncertainty, task comprehension challenges, and accessibility barriers represent friction points that technicians navigate through their domain knowledge and problem-solving skills, but which could be reduced through improved system design, documentation, and task presentation. Technical users demonstrate awareness that their expertise enables logical leaps inaccessible to non-experts. One participant explicitly disclosed novice status with SHACL while successfully completing tasks, attributing difficulty to personal knowledge gaps rather than system design, demonstrating that the system enables task completion even with limited domain expertise.",
-      "frequency": 40,
+      "relationship_to_core": "Identifies system constraints that technical expertise must overcome including file-based configuration paradigm, documentation gaps, parameter uncertainty, and accessibility barriers. Technicians navigate these friction points through domain knowledge and problem-solving skills, though improvements in system design and documentation could reduce barriers. System enables task completion even with limited domain expertise.",
+      "frequency": 43,
       "axial_codes_included": [
         "Delayed understanding of file-based configuration paradigm",
         "Configuration file documentation gaps",
@@ -72,26 +72,27 @@
     },
     {
       "category": "Quality and usability refinement opportunities",
-      "relationship_to_core": "This category captures issues that do not prevent successful configuration but represent opportunities for system improvement. Validation bugs, UI inconsistencies, interface change detection failures, and validation feedback gaps are identified by technically skilled users during their work but do not fundamentally impede the pattern-based learning approach. One participant discovered that maxCount validation silently prevents adding fields without explaining why, representing a gap where the system enforces constraints without user feedback. These findings demonstrate that expert users can work around imperfections while still identifying areas for refinement.",
-      "frequency": 13,
+      "relationship_to_core": "Captures issues not preventing successful configuration but representing improvement opportunities. Validation bugs, UI inconsistencies, feedback gaps, and code editor challenges are identified by skilled users but do not fundamentally impede pattern-based learning. Expert users work around imperfections while identifying refinement areas.",
+      "frequency": 14,
       "axial_codes_included": [
         "System validation and quality issues",
         "Minor UI presentation inconsistencies",
         "Interface change detection failures",
-        "Validation feedback gaps"
+        "Validation feedback gaps",
+        "Code editor workflow challenges"
       ]
     },
     {
       "category": "Constructive enhancement suggestions from expert perspective",
-      "relationship_to_core": "This category represents technicians' forward-looking suggestions based on their experience with the system. The suggestions for missing features and contextual guidance bridge the gap between the current file-based configuration paradigm and more discoverable approaches, reflecting technicians' understanding of both the system's current architecture and potential improvements that would benefit users with varying expertise levels. Identified gaps include retrospective validation, contextual UI help, visual SHACL editors, validation tooling, search functionality clarity, and specific error messaging. One participant expressed no need for additional features, indicating satisfaction with available resources, while another desired visibility into the UI generation engine to understand system capabilities beyond configuration files.",
-      "frequency": 14,
+      "relationship_to_core": "Forward-looking suggestions bridge the gap between current file-based configuration and more discoverable approaches. Identified gaps include retrospective validation, contextual UI help, visual SHACL editors, validation tooling, and search functionality. Reflects understanding of both current architecture and potential improvements benefiting users with varying expertise levels.",
+      "frequency": 17,
       "axial_codes_included": [
         "Missing feature identification and enhancement suggestions"
       ]
     },
     {
       "category": "System architecture and sustainability concerns",
-      "relationship_to_core": "This category reveals critical insights about long-term architectural viability that emerge from technical users' reflection on the configuration experience. The fundamental paradox where intuitive user interfaces depend on unintuitive configuration systems creates a realistic usage pattern requiring ongoing expert-non-expert collaboration. This dependency structure, compounded by Docker deployment complexity and semantic web prerequisites, raises sustainability questions about whether continuous technical support is feasible at individual project scales. These concerns directly challenge the assumption that file-based configuration adequately serves the needs of diverse user populations and highlight the tension between technical flexibility and broader accessibility.",
+      "relationship_to_core": "Reveals critical insights about long-term architectural viability. The paradox where intuitive interfaces depend on unintuitive configuration creates realistic usage patterns requiring ongoing expert-non-expert collaboration. This dependency structure, compounded by Docker and semantic web prerequisites, raises sustainability questions about feasibility at individual project scales, challenging assumptions about file-based configuration serving diverse user populations.",
       "frequency": 6,
       "axial_codes_included": [
         "System architecture and sustainability concerns"
@@ -99,7 +100,7 @@
     },
     {
       "category": "Docker deployment and operational complexity",
-      "relationship_to_core": "This category identifies how containerized deployment adds an additional layer of technical complexity beyond configuration tasks themselves. Docker knowledge serves as a prerequisite barrier before users even reach configuration activities, and operational challenges such as container restart procedures and Docker log debugging compound the existing technical demands. This operational complexity layer affects the overall accessibility of the configuration workflow, particularly for users less familiar with containerized deployment environments.",
+      "relationship_to_core": "Containerized deployment adds technical complexity beyond configuration tasks. Docker knowledge serves as prerequisite barrier, with operational challenges (container restarts, log debugging) compounding technical demands. This complexity layer affects configuration workflow accessibility, particularly for users unfamiliar with containerized environments.",
       "frequency": 2,
       "axial_codes_included": [
         "Docker deployment and troubleshooting challenges"
@@ -107,8 +108,8 @@
     },
     {
       "category": "Feature expectations and mental model formation",
-      "relationship_to_core": "This category demonstrates how technically sophisticated users form expectations and mental models through configuration file inspection and system exploration. Their ability to infer feature behavior from YAML properties, develop hypotheses about search functionality, and identify configuration expansion needs shows pattern-based learning extending beyond immediate task completion to broader system understanding. These mental models sometimes reveal feature implementation uncertainties or gaps between configuration and actual system behavior, providing valuable feedback for system development. Some participants exhibited misunderstandings about interface behavior during exploration, such as pagination dynamics and deletion cascade mechanics, representing gaps in mental model formation that resolved through continued interaction.",
-      "frequency": 27,
+      "relationship_to_core": "Demonstrates how technically sophisticated users form expectations and mental models through configuration inspection and exploration. Ability to infer feature behavior from YAML properties and develop hypotheses shows pattern-based learning extending beyond immediate tasks to broader system understanding. Mental models sometimes reveal implementation uncertainties or gaps between configuration and actual behavior, with misunderstandings resolving through continued interaction.",
+      "frequency": 30,
       "axial_codes_included": [
         "Feature expectations and mental models",
         "Interface behavior misunderstandings"

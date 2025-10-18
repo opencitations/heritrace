@@ -1,0 +1,156 @@
+{
+  "participant_id": "8t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "uri_based_display_configuration_gap_identification",
+      "verbatim_quote": "avendo qua soltanto gli URI, tipo qua, secondo me ci dovrebbe essere il tipo di oggetto che stai descrivendo, questo dell'URI che immagino sia tra le cose non configurate ancora",
+      "context": "Participant identifies unconfigured entities showing only URIs instead of human-readable labels and correctly infers this represents incomplete configuration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "back_navigation_button_absence_frustration",
+      "verbatim_quote": "forse un bel go back, perché questa, forse l'avrei voluto, un go back a questo punto, da qualche parte qua su in alto, o che mi segue mentre scrollo",
+      "context": "Participant expects dedicated back navigation button, especially sticky header positioning, for browsing workflow involving forward-backward navigation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "catalog_versus_editing_modification_expectation",
+      "verbatim_quote": "Il catalogo è l'area di pubblicazione, però quelle due parti non sono modificabili, ma in catalogo non è modificabile by default. Non lo so. Sì, non che sia estremamente rilevante",
+      "context": "Participant suggests that non-modifiable properties in the catalog (which is already a read-only publication area by default) should perhaps be hidden entirely rather than displayed, though considers it a minor issue",
+      "sentiment": "negative"
+    },
+    {
+      "code": "input_format_guidance_absence",
+      "verbatim_quote": "Forse avere delle guidelines qui dove tu puoi aggiungere, cioè hai un info button, immagino che è customizzabile rispetto a che tipo di proprietà stai aggiungendo, dove ti dice come la vuoi inserita se è una stringa",
+      "context": "Participant suggests contextual info button providing input format guidelines, expressing uncertainty about whether to enter 'Fabio' or 'F.' for given name",
+      "sentiment": "negative"
+    },
+    {
+      "code": "semantic_property_interpretation_uncertainty",
+      "verbatim_quote": "Primary source intendi l'articolo con la fonte primaria. Io immagino sia l'url dell'articolo. Io credo di sì, ma non ne sono certa... Continuo a non essere convinta del significato semantico che io ho attribuito a questa cosa",
+      "context": "Participant uncertain about semantic meaning of 'primary source' property, guessing it refers to article URL but lacking confidence in interpretation",
+      "sentiment": "negative"
+    },
+    {
+      "code": "automatic_entity_creation_appreciation",
+      "verbatim_quote": "Perfetto. Bello che me lo crea in automatico. Bello",
+      "context": "Participant appreciates automatic entity name creation after form submission",
+      "sentiment": "positive"
+    },
+    {
+      "code": "search_functionality_absence",
+      "verbatim_quote": "oddio forse qua una search per le stringhe sarebbe molto utile. By the way, io sono l'ultima che l'ha inserito e quindi è facile facile. Però insomma se uno deve cercare un paper del 2009 forse ha un po' di difficoltà",
+      "context": "Participant identifies absence of search functionality, recognizing it poses difficulty for locating older entries in catalog",
+      "sentiment": "negative"
+    },
+    {
+      "code": "time_machine_provenance_understanding",
+      "verbatim_quote": "Quindi questo è tipo in questo momento questa entità è stata fatta così e la posso visualizzare dentro a questo fighissimo view version",
+      "context": "Participant understands time machine shows entity state at specific moments with version viewing capability, expressing enthusiasm",
+      "sentiment": "positive"
+    },
+    {
+      "code": "orphan_prevention_deletion_logic_appreciation",
+      "verbatim_quote": "Orphans will no longer be connected. Oh, wow... Would you like to delete all these entities now? Sì. Bello. Bello, molto intelligente... Quindi giustamente così non mi lascia figli orfani. Non fa assolutamente una piega",
+      "context": "Participant appreciates system logic that identifies and offers to delete orphaned entities when deleting referenced resource",
+      "sentiment": "positive"
+    },
+    {
+      "code": "provenance_restoration_enthusiasm",
+      "verbatim_quote": "Last valid version. Restore. Assolutamente... Bellissimo. Wow. Splendido",
+      "context": "Participant tests restoration of deleted entity and expresses strong enthusiasm for provenance restoration functionality",
+      "sentiment": "positive"
+    },
+    {
+      "code": "warm_up_time_underestimation",
+      "verbatim_quote": "Quindi immagino che dovevo fare due minuti. Penso di averti fatto mezz'ora. Però ero incuriosita",
+      "context": "Participant significantly exceeded expected warm-up time due to curiosity-driven exploration, recognizing time overrun but attributing to engagement",
+      "sentiment": "positive"
+    },
+    {
+      "code": "pattern_replication_strategy",
+      "verbatim_quote": "Beh direi dopo. Mi sento che lo metto qua. Quindi sarà quello che mi hai detto tu ossia per questa va bene",
+      "context": "For Task 1, participant adopts pattern replication strategy, copying existing property structure for abstract field",
+      "sentiment": "positive"
+    },
+    {
+      "code": "shacl_target_class_verification",
+      "verbatim_quote": "No ho sbagliato. Chiaro, chiaro, chiaro. Perché questo è la shape che la target class certo vabbè vabbè credo sia così",
+      "context": "Participant initially uncertain about SHACL structure, then verifies target class relationship and confirms understanding",
+      "sentiment": "negative"
+    },
+    {
+      "code": "label_configuration_recognition",
+      "verbatim_quote": "Giustamente poi non ho configurato le label. Va bene",
+      "context": "Participant recognizes abstract field displays without proper labels because display rules haven't been configured yet",
+      "sentiment": "positive"
+    },
+    {
+      "code": "yaml_structure_unfamiliarity",
+      "verbatim_quote": "Dammi tempo. Perché io questa roba non l'ho mai vista prima d'ora",
+      "context": "For Task 2, participant explicitly states never having seen YAML display rules configuration before, requesting patience",
+      "sentiment": "negative"
+    },
+    {
+      "code": "configuration_element_function_uncertainty",
+      "verbatim_quote": "Questo veramente non so cosa sia... Display prop non è comunque relazionato a quello che devo fare",
+      "context": "Participant encounters YAML configuration elements whose function is unclear but determines they're not relevant to current task",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "code_folding_frustration",
+      "verbatim_quote": "Quindi queste questo magari se riuscissi a chiudere le cose appropriatamente sarebbe meglio però. E anche tu? No. Benissimo. Quindi anche tu. Non me ne frega niente. Chiudi. Chiudi. Chiudi. Oh. Così riesco a pensare",
+      "context": "Participant struggles with code editor folding, expressing frustration at inability to collapse sections, hindering focus and comprehension",
+      "sentiment": "negative"
+    },
+    {
+      "code": "display_order_implicit_mechanism_discovery",
+      "verbatim_quote": "Quindi abbiamo detto che noi dobbiamo mettere dopo il title. Gentilmente. Farò così. E sarà abstract se non sbaglio",
+      "context": "Participant deduces abstract property should be placed after title in YAML to achieve required display order",
+      "sentiment": "positive"
+    },
+    {
+      "code": "search_configuration_irrelevance_hypothesis",
+      "verbatim_quote": "Support search no min chart support search 2 penso sia irrelevant target self search target self penso che entrambe siano irrelevant nel momento stesso in cui dici false no? Lo scopriremo soltanto vivendo",
+      "context": "Participant hypothesizes that search-related configuration properties become irrelevant when support_search is false, adopting wait-and-see verification approach",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "configuration_error_handling_blindness",
+      "verbatim_quote": "Additionally, from my attempts, it didn't triggered any error in the UI - so I have no knowledge on how configuration errors or invalid inputs are handled in the UI",
+      "context": "Participant identifies inability to assess error handling quality because no errors occurred during configuration tasks",
+      "sentiment": "neutral"
+    },
+    {
+      "code": "configuration_ease_and_speed",
+      "verbatim_quote": "Configuration task was easy and quick to perform",
+      "context": "Participant characterizes overall configuration experience as easy and quick",
+      "sentiment": "positive"
+    },
+    {
+      "code": "simple_configuration_file_structure",
+      "verbatim_quote": "Easy files to configure",
+      "context": "Participant found configuration file structure straightforward and accessible",
+      "sentiment": "positive"
+    },
+    {
+      "code": "immediate_interface_change_visibility",
+      "verbatim_quote": "Changes displayed in the interface",
+      "context": "Participant appreciates seeing configuration changes immediately reflected in interface",
+      "sentiment": "positive"
+    },
+    {
+      "code": "non_frustrating_experience_overall",
+      "verbatim_quote": "No frustration at all",
+      "context": "Participant explicitly states experiencing no frustration during configuration tasks",
+      "sentiment": "positive"
+    },
+    {
+      "code": "configuration_field_explanation_need",
+      "verbatim_quote": "Having clear guidelines that explain which fields in the configuration files are relevant and how they should be used would be helpful",
+      "context": "Participant suggests need for documentation explaining configuration field relevance and usage patterns",
+      "sentiment": "negative"
+    }
+  ]
+}

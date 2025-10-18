@@ -1,0 +1,48 @@
+{
+  "participant_id": "8t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:02:38",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "medium",
+          "symptom": "User initially copied the target class value as datatype instead of referencing similar properties",
+          "trigger": "While defining the SHACL constraint datatype, user copied 'journal article' from the shape's target class: 'Journal article a me mi pare che qua non ci sia niente'. User then self-corrected: 'No ho sbagliato. Chiaro, chiaro, chiaro. Perché questo è la shape che la target class', realizing journal article is the shape's target class, not a property datatype",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:04:47",
+      "status": "complete",
+      "errors_encountered": 3,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "User acknowledged complete unfamiliarity with YAML display rules configuration format",
+          "trigger": "At the start of the task, user explicitly stated: 'Dammi tempo. Perché io questa roba non l'ho mai vista prima d'ora' (line 179), indicating no prior exposure to this configuration format",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "medium",
+          "symptom": "User struggled to understand the structure and meaning of display rule properties",
+          "trigger": "While examining the YAML file, user expressed confusion about multiple properties: 'Questo veramente non so cosa sia' and 'Display prop non è comunque relazionato a quello che devo fare', showing difficulty comprehending the configuration schema",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "User questioned the relevance of certain configuration properties when support_search is set to false",
+          "trigger": "While configuring display rules, user wondered about property necessity: 'min chart support search 2 penso sia irrelevant target self search target self penso che entrambe siano irrelevant nel momento stesso in cui dici false no? Lo scopriremo soltanto vivendo', uncertain whether these properties matter when search support is disabled",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}
