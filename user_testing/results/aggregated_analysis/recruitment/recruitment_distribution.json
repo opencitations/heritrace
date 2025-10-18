@@ -49,6 +49,12 @@
       "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/8e_written_answer.md"
     },
     {
+      "participant_id": "9e",
+      "user_type": "endusers",
+      "heritrace_familiarity": "No, I had never used it",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/endusers/written_answers/9e_written_answer.md"
+    },
+    {
       "participant_id": "1t",
       "user_type": "technicians",
       "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
@@ -106,14 +112,14 @@
     }
   ],
   "summary_statistics": {
-    "total_participants": 16,
+    "total_participants": 17,
     "by_user_type": {
-      "endusers": 8,
+      "endusers": 9,
       "technicians": 8
     },
     "heritrace_distribution": {
       "Usage knowledge": 2,
-      "No experience": 14
+      "No experience": 15
     },
     "shacl_distribution": {
       "No experience": 3,
@@ -121,8 +127,8 @@
     }
   },
   "metadata": {
-    "total_participants": 16,
-    "endusers_count": 8,
+    "total_participants": 17,
+    "endusers_count": 9,
     "technicians_count": 8
   }
 }

@@ -1,7 +1,7 @@
 {
   "user_type": "end_user",
   "core_category": "Semantic system adoption through complexity navigation",
-  "theory_statement": "End users of the HERITRACE semantic content management system experience a dual-phase interaction pattern characterized by initial complexity barriers followed by functional mastery. The system delivers powerful semantic data management capabilities but creates user friction through interface inconsistencies, unclear entity management workflows, complex form interactions, and user control conflicts with automated features. Users who persist through the learning curve discover valuable features like autocomplete, merge operations, and version control, ultimately finding the system effective for their tasks. Success depends primarily on overcoming usability barriers and developing autonomous problem-solving strategies, though occasional system bugs can create genuine functional failures that extend beyond complexity navigation challenges.",
+  "theory_statement": "End users of the HERITRACE semantic content management system experience a dual-phase interaction pattern characterized by initial complexity barriers followed by functional mastery. The system delivers powerful semantic data management capabilities but creates user friction through interface inconsistencies, unclear entity management workflows, complex form interactions, user control conflicts with automated features, and conceptual mismatches between user expectations for search-oriented discovery versus the system's editing-focused design. Users who persist through the learning curve discover valuable features like autocomplete, merge operations, and version control, ultimately finding the system effective for their tasks. Success depends primarily on overcoming usability barriers and developing autonomous problem-solving strategies, though system bugs (including delete failures, display errors, and sorting inconsistencies) can create genuine functional failures that extend beyond complexity navigation challenges.",
   "theoretical_propositions": [
     {
       "proposition": "Functional complexity with usability barriers creates a learning curve that leads to eventual user satisfaction",
@@ -20,8 +20,8 @@
       "explanation": "Timeline and Version Control Challenges (9 codes) initially confuse users, but Timeline Feature Success (2 codes) plus appreciation for merge operations and time machine functionality show that complex features become assets when properly understood and supported."
     },
     {
-      "proposition": "System bugs in advanced features can undermine user confidence and trigger self-blame despite being technical failures",
-      "explanation": "Timeline and Version Control Challenges (9 codes) includes genuine system bugs that prevent core functionality like version restoration. Users may internalize these failures as personal errors rather than recognizing them as technical defects, complicating the distinction between usability challenges and functional failures."
+      "proposition": "System bugs in multiple functional areas can undermine user confidence and trigger self-blame despite being technical failures",
+      "explanation": "Multiple categories document genuine system bugs including version restoration failures, delete operation failures, author display errors, and sorting inconsistencies. Users may internalize these failures as personal errors rather than recognizing them as technical defects, complicating the distinction between usability challenges and functional failures."
     },
     {
       "proposition": "Automated assistance features require careful balance between system intelligence and user control to avoid creating new usability barriers",
@@ -32,7 +32,7 @@
     {
       "category": "Successful System Features",
       "relationship_to_core": "Demonstrates that the system's core semantic functionality is sound and provides value once users adapt to the complexity. This category validates that the learning curve leads to genuine capability and encourages development of autonomous problem-solving strategies.",
-      "frequency": 108,
+      "frequency": 135,
       "axial_codes_included": [
         "Successful system features and interface strengths"
       ]
@@ -40,7 +40,7 @@
     {
       "category": "Entity Management Complexity Barriers",
       "relationship_to_core": "Represents the primary complexity navigation challenge that users must overcome. Entity creation uncertainty constitutes the main adoption barrier that separates initial confusion from eventual mastery, specifically in understanding when and how entities are saved and created.",
-      "frequency": 11,
+      "frequency": 12,
       "axial_codes_included": [
         "Entity creation and management confusion"
       ]
@@ -48,15 +48,15 @@
     {
       "category": "Interface Design and Usability Problems",
       "relationship_to_core": "Amplifies the complexity navigation challenge by adding unnecessary cognitive load through inconsistent design elements and form interaction difficulties. These interface problems compound semantic complexity and slow the progression to system mastery.",
-      "frequency": 22,
+      "frequency": 27,
       "axial_codes_included": [
         "Interface design and interaction problems"
       ]
     },
     {
       "category": "Advanced Feature Learning Curve",
-      "relationship_to_core": "Illustrates the dual-phase pattern where complex features (timeline, version control, merge operations) initially confuse users but eventually become valued capabilities. Includes both usability challenges and occasional system bugs that prevent functionality. Shows that semantic system adoption requires patience and proper support for conceptual understanding.",
-      "frequency": 17,
+      "relationship_to_core": "Illustrates the dual-phase pattern where complex features (timeline, version control, merge operations) initially confuse users but eventually become valued capabilities. Includes both usability challenges and system bugs that prevent functionality. Shows that semantic system adoption requires patience and proper support for conceptual understanding.",
+      "frequency": 19,
       "axial_codes_included": [
         "Timeline and version control experience"
       ]
@@ -64,15 +64,15 @@
     {
       "category": "System Comprehension Process",
       "relationship_to_core": "Captures the neutral observations and learning process that users experience while navigating complexity. Includes workaround development strategies, constructive suggestions for improvement, and first-time user acknowledgments, showing active engagement with system learning and autonomous adaptation.",
-      "frequency": 32,
+      "frequency": 38,
       "axial_codes_included": [
         "System understanding and navigation"
       ]
     },
     {
       "category": "User Expectations vs. System Design Mismatch",
-      "relationship_to_core": "Represents a conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates initial friction as users expect browsing and discovery features in a system designed for targeted entity management and editing. The gap amplifies complexity navigation challenges during the learning phase, triggering problem-solving strategies and emotional responses.",
-      "frequency": 28,
+      "relationship_to_core": "Represents a critical conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates substantial friction as users repeatedly expect search and browsing features in a system designed for targeted entity management and editing. The absence of search functionality generates the most consistent user frustration across participants, amplifying complexity navigation challenges and triggering extensive problem-solving attempts and emotional responses.",
+      "frequency": 48,
       "axial_codes_included": [
         "System functionality gaps and user adaptation"
       ]

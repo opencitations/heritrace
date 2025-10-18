@@ -1,0 +1,107 @@
+{
+  "participant_id": "9e",
+  "user_type": "end_user",
+  "tasks": {
+    "edit_publication": {
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": "00:02:56",
+      "status": "complete",
+      "errors_encountered": 2,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Unclear feedback when adding existing entity: interface does not clearly communicate that the existing author entity (Carolyn Scagel) has been successfully added, causing user to doubt correctness of the operation ('Chissà, l'avrò messo giusto?... Mi fa esitare, forse. Non lo so'). This issue was also reported by other testers",
+          "trigger": "After adding Carolyn Scagel as an existing entity and entering the ORCID identifier 0000-0002-4269-6240",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Unclear interface for specifying primary resource: user did not understand the interface mechanism for designating which resource should be the primary one when adding the author as first author ('Comunque è come primo autore, quindi proviamo a metterlo qua... Confermo? Sì, suppongo'). The mental model did not include the concept of primary resource selection",
+          "trigger": "After adding the new author and attempting to designate them as first author in the author list",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "merge_authors": {
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": "00:01:06",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "restore_version": {
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": "00:01:30",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Confusion about Time Vault purpose: user initially expected Time Vault to contain version history, but found it empty and realized it's for deleted items ('Ok, nel Time Vault non c'è niente. Forse questo è per le cose eliminate')",
+          "trigger": "Accessed Time Vault looking for version history before finding Time Machine feature on the record page",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "create_publication": {
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": "00:10:18",
+      "status": "complete",
+      "errors_encountered": 8,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "Name field confusion: user initially entered given name in family name field and vice versa, then corrected the mistake ('No, ho sbagliato. Family name Massari, given name Arcangelo')",
+          "trigger": "Creating new author entity for Arcangelo Massari",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "high",
+          "symptom": "Author display error showing 'nessuno' (nobody): after creating the publication, one author appeared as 'nessuno' instead of showing the actual name ('Nessuno però, perché \"nessuno\", Arcangelo non esiste')",
+          "trigger": "Viewing the created publication record showing authors",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Repeated save failures: user attempted multiple times to edit and save author information but continued to get errors ('Errore. Lasciamo vuoto. Successo')",
+          "trigger": "Trying to fix the 'nessuno' author display issue by editing the author entity",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Unable to delete author: user tried to delete the problematic author entry but received errors ('Se lo voglio eliminare perché non me lo fa fare. Errore. Continuo a dare errore')",
+          "trigger": "Attempting to delete the author entity showing as 'nessuno'",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "medium",
+          "symptom": "Confusion about why one author worked and other did not: user questioned why Silvio Peroni displayed correctly but Arcangelo Massari showed as 'nessuno' ('Peroni Silvio invece andava bene. Perché?')",
+          "trigger": "Comparing the two authors after creation, one showing correctly and one showing as 'nessuno'",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "high",
+          "symptom": "Unable to locate created publication: user could not find the newly created publication record when browsing the catalogue ('Non lo trovo. Perché non lo trovo?')",
+          "trigger": "After deleting and attempting to recreate the publication, searching through journal articles",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "low",
+          "symptom": "Missing search functionality: user expressed desire for a search feature to find records more easily ('Sarebbe comodo una ricerca')",
+          "trigger": "Attempting to locate the created publication in the catalogue list",
+          "outcome": "workaround"
+        },
+        {
+          "severity": "low",
+          "symptom": "Confusion about record visibility after deletion: user questioned whether they had deleted the record and why Arcangelo still appeared somewhere ('L'ho cancellato? Perché non appare Arcangelo che invece ho cancellato? Come autore?')",
+          "trigger": "Searching for the publication after deleting it",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}

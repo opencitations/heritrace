@@ -417,6 +417,58 @@
       "blocked": false
     },
     {
+      "participant_id": "9e",
+      "user_type": "end_user",
+      "task_key": "edit_publication",
+      "task_name": "Edit existing publication record",
+      "expected_duration_minutes": 8,
+      "actual_duration_minutes": 2.9333333333,
+      "status": "complete",
+      "errors_encountered": 2,
+      "severity_weighted_score": 2,
+      "error_rate_per_minute": 0.6818181818,
+      "blocked": false
+    },
+    {
+      "participant_id": "9e",
+      "user_type": "end_user",
+      "task_key": "merge_authors",
+      "task_name": "Merge duplicate author entities",
+      "expected_duration_minutes": 10,
+      "actual_duration_minutes": 1.1,
+      "status": "complete",
+      "errors_encountered": 0,
+      "severity_weighted_score": 0,
+      "error_rate_per_minute": 0.0,
+      "blocked": false
+    },
+    {
+      "participant_id": "9e",
+      "user_type": "end_user",
+      "task_key": "restore_version",
+      "task_name": "Restore previous version",
+      "expected_duration_minutes": 7,
+      "actual_duration_minutes": 1.5,
+      "status": "complete",
+      "errors_encountered": 1,
+      "severity_weighted_score": 1,
+      "error_rate_per_minute": 0.6666666667,
+      "blocked": false
+    },
+    {
+      "participant_id": "9e",
+      "user_type": "end_user",
+      "task_key": "create_publication",
+      "task_name": "Create new publication record",
+      "expected_duration_minutes": 20,
+      "actual_duration_minutes": 10.3,
+      "status": "complete",
+      "errors_encountered": 8,
+      "severity_weighted_score": 17,
+      "error_rate_per_minute": 0.7766990291,
+      "blocked": false
+    },
+    {
       "participant_id": "1t",
       "user_type": "technician",
       "task_key": "add_shacl_validation",
@@ -629,18 +681,18 @@
     "end_user": [
       {
         "task_key": "edit_publication",
-        "total": 8,
-        "complete": 6,
+        "total": 9,
+        "complete": 7,
         "partial": 0,
         "success_timeout": 2,
         "failed_misunderstanding": 0,
         "failed_bug": 0,
-        "success_rate": 75.0
+        "success_rate": 77.77777777777779
       },
       {
         "task_key": "merge_authors",
-        "total": 8,
-        "complete": 8,
+        "total": 9,
+        "complete": 9,
         "partial": 0,
         "success_timeout": 0,
         "failed_misunderstanding": 0,
@@ -649,23 +701,23 @@
       },
       {
         "task_key": "restore_version",
-        "total": 8,
-        "complete": 6,
+        "total": 9,
+        "complete": 7,
         "partial": 0,
         "success_timeout": 0,
         "failed_misunderstanding": 1,
         "failed_bug": 1,
-        "success_rate": 75.0
+        "success_rate": 77.77777777777779
       },
       {
         "task_key": "create_publication",
-        "total": 8,
-        "complete": 5,
+        "total": 9,
+        "complete": 6,
         "partial": 3,
         "success_timeout": 0,
         "failed_misunderstanding": 0,
         "failed_bug": 0,
-        "success_rate": 81.25
+        "success_rate": 83.33333333333334
       }
     ],
     "technician": [
@@ -708,7 +760,8 @@
       "7e",
       "7t",
       "8e",
-      "8t"
+      "8t",
+      "9e"
     ],
     "tasks": [
       "add_display_support",
