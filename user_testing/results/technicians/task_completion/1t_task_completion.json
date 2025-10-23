@@ -22,25 +22,13 @@
       "expected_duration_minutes": 23,
       "actual_duration_minutes": "00:07:00",
       "status": "complete",
-      "errors_encountered": 3,
+      "errors_encountered": 1,
       "errors": [
-        {
-          "severity": "high",
-          "symptom": "Abstract field disappears when user changes input type from textarea to text",
-          "trigger": "Modifying display rule input type configuration",
-          "outcome": "blocked"
-        },
         {
           "severity": "low",
           "symptom": "User uncertain about display order configuration and whether positioning under title works as expected",
           "trigger": "Placing abstract display rule under title property in YAML configuration",
           "outcome": "recovered"
-        },
-        {
-          "severity": "low",
-          "symptom": "User expects primary source configuration to persist but system doesn't retain previous setting",
-          "trigger": "Saving changes and expecting previously specified primary source to remain selected",
-          "outcome": "workaround"
         }
       ]
     }

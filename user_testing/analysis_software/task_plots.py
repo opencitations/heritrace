@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from matplotlib import patheffects as pe
 import numpy as np
 import pandas as pd
-from matplotlib import patheffects as pe
+
+from stats_utils import calculate_mean_confidence_interval, get_boxplot_legend_text
 
 
 def load_rows(repo_root: Path) -> pd.DataFrame:
@@ -34,7 +35,9 @@ def load_rows(repo_root: Path) -> pd.DataFrame:
 def _humanize_text(value: str) -> str:
     if value is None or (isinstance(value, float) and np.isnan(value)):
         return ""
-    return str(value).replace("_", " ").strip().title()
+    # Use sentence case: only first letter capitalized
+    text = str(value).replace("_", " ").strip()
+    return text.capitalize() if text else ""
 
 
 def _humanize_user_type(user_type: str) -> str:
@@ -186,22 +189,25 @@ def plot_duration_distributions(df: pd.DataFrame, output_dir: Path):
 
     task_label_map = _task_key_to_label_map(df)
 
-    # Load duration statistics for confidence intervals
-    json_path = output_dir / "task_metrics.json"
-    duration_stats = {}
-    if json_path.exists():
-        with open(json_path, "r") as f:
-            data = json.load(f)
-            duration_stats = data.get("duration_statistics", {})
-
     user_types = sorted(duration_df['user_type'].unique().tolist())
     n_user_types = len(user_types)
 
-    # Create figure
-    fig, axs = plt.subplots(1, n_user_types, figsize=(7 * n_user_types, 6), squeeze=False)
+    # Define colors for user types (consistent with SUS)
+    user_type_colors = {
+        'end_user': 'lightblue',
+        'technician': 'lightcoral'
+    }
+
+    # Create figure with vertical layout (one row per user type)
+    # Each row has: plot (left) + statistics (right)
+    fig = plt.figure(figsize=(10, 5 * n_user_types))
+    gs = fig.add_gridspec(n_user_types, 2, width_ratios=[1.5, 1], wspace=0.3,
+                         hspace=0.3, top=0.95, bottom=0.05)
 
     for i, user_type in enumerate(user_types):
-        ax = axs[0, i]
+        ax_plot = fig.add_subplot(gs[i, 0])
+        ax_stats = fig.add_subplot(gs[i, 1])
+
         ut_df = duration_df[duration_df['user_type'] == user_type].copy()
 
         # Order tasks by execution order if available
@@ -218,55 +224,91 @@ def plot_duration_distributions(df: pd.DataFrame, output_dir: Path):
         means = []
         ci_lowers = []
         ci_uppers = []
+        stats_lines = ["Duration statistics", ""]
 
         for task_key in task_keys:
             task_durations = ut_df[ut_df['task_key'] == task_key]['actual_duration_minutes'].values
             if len(task_durations) > 0:
                 box_data.append(task_durations)
-                labels.append(task_label_map.get(task_key, _humanize_text(task_key)))
+                task_label = task_label_map.get(task_key, _humanize_text(task_key))
+                labels.append(task_label)
 
-                # Get stats from JSON
-                task_stat = duration_stats.get(task_key, {})
-                ut_stat = task_stat.get('by_user_type', {}).get(user_type, {})
-                if ut_stat:
-                    means.append(ut_stat.get('mean', np.mean(task_durations)))
-                    ci_lowers.append(ut_stat.get('ci_95_lower', np.mean(task_durations)))
-                    ci_uppers.append(ut_stat.get('ci_95_upper', np.mean(task_durations)))
-                else:
-                    mean_val = np.mean(task_durations)
-                    means.append(mean_val)
-                    ci_lowers.append(mean_val)
-                    ci_uppers.append(mean_val)
+                # Calculate mean and CI using common function
+                mean_val, ci_lower, ci_upper = calculate_mean_confidence_interval(task_durations)
+                means.append(mean_val)
+                ci_lowers.append(ci_lower)
+                ci_uppers.append(ci_upper)
+
+                # Add statistics for this task
+                median_val = np.median(task_durations)
+                q1 = np.percentile(task_durations, 25)
+                q3 = np.percentile(task_durations, 75)
+                stats_lines.append(f"{task_label}:")
+                stats_lines.append(f"  Count: {len(task_durations)}")
+                stats_lines.append(f"  Mean: {np.mean(task_durations):.1f} min")
+                stats_lines.append(f"  Median: {median_val:.1f} min")
+                stats_lines.append(f"  Q1: {q1:.1f} min")
+                stats_lines.append(f"  Q3: {q3:.1f} min")
+                stats_lines.append("")
 
         if not box_data:
             continue
 
-        # Create box plot
-        bp = ax.boxplot(box_data, tick_labels=labels, patch_artist=True,
-                       showmeans=True, meanline=False,
-                       meanprops=dict(marker='D', markerfacecolor='red', markeredgecolor='black', markersize=6))
+        # Create box plot with blue median line
+        bp = ax_plot.boxplot(box_data, tick_labels=labels, patch_artist=True,
+                            showmeans=True, meanline=False,
+                            medianprops=dict(color='darkblue', linewidth=2.5),
+                            meanprops=dict(marker='D', markerfacecolor='red',
+                                         markeredgecolor='black', markersize=6))
 
-        # Color boxes
+        # Color boxes based on user type (consistent with SUS)
+        box_color = user_type_colors.get(user_type, 'lightblue')
         for patch in bp['boxes']:
-            patch.set_facecolor('#a8dadc')
+            patch.set_facecolor(box_color)
             patch.set_alpha(0.7)
 
         # Add confidence interval error bars
         x_positions = np.arange(1, len(means) + 1)
-        ci_errors = [np.array(means) - np.array(ci_lowers), np.array(ci_uppers) - np.array(means)]
+        ci_errors = [np.array(means) - np.array(ci_lowers),
+                     np.array(ci_uppers) - np.array(means)]
 
-        ax.errorbar(x_positions, means, yerr=ci_errors,
-                   fmt='none', ecolor='darkgreen', capsize=5, capthick=2,
-                   linewidth=2, alpha=0.8, label='95% CI')
+        ax_plot.errorbar(x_positions, means, yerr=ci_errors,
+                        fmt='none', ecolor='darkgreen', capsize=5, capthick=2,
+                        linewidth=2, alpha=0.8, label='95% CI')
 
-        ax.set_ylabel('Duration (min)', fontsize=11)
-        ax.set_title(f'Task duration distribution — {_humanize_user_type(user_type)}',
-                    fontsize=12)
-        ax.set_xticklabels(labels, rotation=30, ha='right')
-        ax.grid(True, alpha=0.3, axis='y')
-        ax.legend(loc='upper left', fontsize=9)
+        ax_plot.plot([], [], color='darkblue', linewidth=2.5, label='Median')
+        ax_plot.plot([], [], marker='D', color='red', linestyle='None',
+                    markeredgecolor='black', markersize=6, label='Mean')
+        ax_plot.plot([], [], marker='o', markerfacecolor='none', markeredgecolor='black',
+                    linestyle='None', markersize=5, label='Outliers')
+        # Position legend based on user type to avoid outlier overlap
+        if 'end' in user_type.lower():
+            # End user: above plot with more padding from top edge
+            ax_plot.legend(loc='upper center', bbox_to_anchor=(0.5, 0.98), ncol=2,
+                          frameon=True, fontsize=9)
+        else:
+            # Technician: upper left with padding from edges
+            ax_plot.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), ncol=2,
+                          frameon=True, fontsize=9)
 
-    fig.tight_layout()
+        ax_plot.set_ylabel('Duration (min)', fontsize=11)
+        ax_plot.set_title(f'Task duration distribution — {_humanize_user_type(user_type)}',
+                         fontsize=12)
+        ax_plot.set_xticklabels(labels, rotation=30, ha='right')
+        ax_plot.grid(True, alpha=0.3, axis='y')
+
+        # Add box plot legend only in the last panel
+        if i == n_user_types - 1:
+            stats_lines.append("")
+            legend_text = get_boxplot_legend_text()
+            stats_lines.extend(legend_text.split("\n"))
+
+        # Add statistics panel with box plot legend
+        ax_stats.axis('off')
+        stats_text = "\n".join(stats_lines)
+        ax_stats.text(0.05, 0.95, stats_text, transform=ax_stats.transAxes,
+                     fontsize=10, verticalalignment='top', fontfamily='monospace')
+
     out = output_dir / "task_duration_distributions.png"
     fig.savefig(out, dpi=300, bbox_inches='tight', pad_inches=0.3)
     plt.close(fig)

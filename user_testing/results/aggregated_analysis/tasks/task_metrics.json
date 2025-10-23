@@ -489,10 +489,10 @@
       "expected_duration_minutes": 23,
       "actual_duration_minutes": 7.0,
       "status": "complete",
-      "errors_encountered": 3,
-      "severity_weighted_score": 6,
-      "error_rate_per_minute": 0.4285714286,
-      "blocked": true
+      "errors_encountered": 1,
+      "severity_weighted_score": 1,
+      "error_rate_per_minute": 0.1428571429,
+      "blocked": false
     },
     {
       "participant_id": "2t",

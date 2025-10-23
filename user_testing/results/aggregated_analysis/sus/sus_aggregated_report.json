@@ -1,6 +1,6 @@
 {
   "summary_statistics": {
-    "endusers": {
+    "end_user": {
       "count": 9,
       "mean": 78.88888888888889,
       "std": 14.421723583230651,
@@ -19,7 +19,7 @@
         92.5
       ]
     },
-    "technicians": {
+    "technician": {
       "count": 8,
       "mean": 82.5,
       "std": 7.44023809142845,
@@ -44,7 +44,7 @@
     "participants_excellent": 11
   },
   "metadata": {
-    "analysis_date": "2025-10-22T15:00:56.175772",
+    "analysis_date": "2025-10-23T13:18:28.925493",
     "benchmark_thresholds": {
       "below_average": "< 68",
       "above_average": "68-80.3",

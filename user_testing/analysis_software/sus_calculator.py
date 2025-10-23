@@ -13,8 +13,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from stats_utils import calculate_mean_confidence_interval, get_boxplot_legend_text
+
 
 class SUSCalculator:
+    # Map normalized user types to directory names
+    USER_TYPE_TO_DIR = {
+        'end_user': 'endusers',
+        'technician': 'technicians'
+    }
+
     def __init__(self, results_dir: str = "../results"):
         self.results_dir = Path(results_dir)
         self.output_dir = self.results_dir / "aggregated_analysis" / "sus"
@@ -70,26 +78,32 @@ class SUSCalculator:
     
     
     def process_user_type(self, user_type: str) -> List[Dict]:
-        """Process all SUS files for a specific user type."""
-        sus_dir = self.results_dir / user_type / "sus"
+        """Process all SUS files for a specific user type.
+
+        Args:
+            user_type: Normalized user type ('end_user' or 'technician')
+        """
+        # Map normalized user type to directory name
+        dir_name = self.USER_TYPE_TO_DIR.get(user_type, user_type)
+        sus_dir = self.results_dir / dir_name / "sus"
         results = []
-        
+
         if not sus_dir.exists():
             print(f"Warning: SUS directory not found: {sus_dir}")
             return results
-            
+
         for sus_file in sus_dir.glob("*_sus.md"):
             parsed = self.parse_sus_file(sus_file)
             if parsed:
                 score = self.calculate_sus_score(parsed['ratings'])
                 results.append({
                     'participant_id': parsed['participant_id'],
-                    'user_type': user_type,
+                    'user_type': user_type,  # Use normalized name in output
                     'ratings': parsed['ratings'],
                     'sus_score': score,
                     'file_path': parsed['file_path']
                 })
-                
+
         return results
     
     def generate_aggregated_stats(self, scores_by_type: Dict[str, List[float]]) -> Dict:
@@ -122,33 +136,76 @@ class SUSCalculator:
         df = pd.DataFrame(all_results)
 
         # Create figure with subplots (1x2): SUS boxplot + Summary
-        # Use 16:9 aspect ratio to better utilize horizontal space
-        fig = plt.figure(figsize=(12, 6.75))
-        gs = fig.add_gridspec(1, 2, width_ratios=[1.5, 1], wspace=0.3, top=0.95, bottom=0.22)
+        # Compact layout with reduced dimensions
+        fig = plt.figure(figsize=(10, 5.5))
+        gs = fig.add_gridspec(1, 2, width_ratios=[1.5, 1], wspace=0.3, top=0.95, bottom=0.10)
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
 
         # 1. Box plot by user type
         user_types = list(df['user_type'].unique())
         box_data = [df[df['user_type'] == ut]['sus_score'].values for ut in user_types]
-        box_plot = ax1.boxplot(box_data, tick_labels=user_types, patch_artist=True,
-                               medianprops=dict(color='darkblue', linewidth=2.5))
+
+        # Map user types to proper labels
+        user_type_labels = []
+        for ut in user_types:
+            if 'enduser' in ut.lower():
+                user_type_labels.append('End user')
+            elif 'technician' in ut.lower():
+                user_type_labels.append('Technician')
+            else:
+                user_type_labels.append(ut.replace('_', ' ').capitalize())
+
+        box_plot = ax1.boxplot(box_data, tick_labels=user_type_labels, patch_artist=True,
+                               showmeans=True, meanline=False,
+                               medianprops=dict(color='darkblue', linewidth=2.5),
+                               meanprops=dict(marker='D', markerfacecolor='red',
+                                            markeredgecolor='black', markersize=6))
         ax1.set_title('SUS score distribution by user type')
         ax1.set_ylabel('SUS score')
         ax1.axhline(y=68, color='orange', linestyle='--', alpha=0.7, label='Average threshold')
         ax1.axhline(y=80.3, color='green', linestyle='--', alpha=0.7, label='Excellent threshold')
-        # Add median to legend
+
+        # Calculate 95% CI for mean using t-Student distribution
+        means = []
+        ci_lowers = []
+        ci_uppers = []
+        for data in box_data:
+            mean_val, ci_lower, ci_upper = calculate_mean_confidence_interval(data)
+            means.append(mean_val)
+            ci_lowers.append(ci_lower)
+            ci_uppers.append(ci_upper)
+
+        # Add confidence interval error bars
+        x_positions = np.arange(1, len(means) + 1)
+        ci_errors = [np.array(means) - np.array(ci_lowers),
+                     np.array(ci_uppers) - np.array(means)]
+        ax1.errorbar(x_positions, means, yerr=ci_errors,
+                    fmt='none', ecolor='darkgreen', capsize=5, capthick=2,
+                    linewidth=2, alpha=0.8, label='95% CI')
+
+        # Updated legend with all elements
         ax1.plot([], [], color='darkblue', linewidth=2.5, label='Median')
-        ax1.legend()
+        ax1.plot([], [], marker='D', color='red', linestyle='None',
+                markeredgecolor='black', markersize=6, label='Mean')
+        ax1.plot([], [], marker='o', markerfacecolor='none', markeredgecolor='black',
+                linestyle='None', markersize=5, label='Outliers')
+        # Extend Y-axis to create space for legend at bottom-right
+        ax1.set_ylim(bottom=50)
+        # Position legend in lower right with padding
+        ax1.legend(loc='lower right', frameon=True, fontsize=9)
         ax1.grid(True, alpha=0.3)
-        
-        # Color boxes
-        base_colors = ['lightblue', 'lightcoral', 'lightgreen', 'wheat', 'plum', 'khaki']
-        colors = (base_colors * ((len(user_types) // len(base_colors)) + 1))[: len(user_types)]
-        for patch, color in zip(box_plot['boxes'], colors):
+
+        # Color boxes (consistent with task duration plots)
+        user_type_colors = {
+            'end_user': 'lightblue',
+            'technician': 'lightcoral'
+        }
+        for patch, user_type in zip(box_plot['boxes'], user_types):
+            color = user_type_colors.get(user_type, 'lightgray')
             patch.set_facecolor(color)
 
-        # 2. Summary statistics table (text-based)
+        # 2. Summary statistics table (text-based) with box plot elements below
         ax2.axis('off')
         stats_lines = ["SUS statistics summary", ""]
         for user_type in user_types:
@@ -159,7 +216,14 @@ class SUSCalculator:
             min_val = user_data.min()
             max_val = user_data.max()
 
-            stats_lines.append(f"{user_type.replace('_', ' ').title()}:")
+            # Map user types to proper labels
+            if 'enduser' in user_type.lower():
+                user_type_label = 'End user'
+            elif 'technician' in user_type.lower():
+                user_type_label = 'Technician'
+            else:
+                user_type_label = user_type.replace('_', ' ').capitalize()
+            stats_lines.append(f"{user_type_label}:")
             stats_lines.append(f"  Count: {len(user_data)}")
             stats_lines.append(f"  Mean SUS: {user_data.mean():.1f}")
             stats_lines.append(f"  Median: {median:.1f}")
@@ -167,20 +231,15 @@ class SUSCalculator:
             stats_lines.append(f"  Q3 (75th percentile): {q3:.1f}")
             stats_lines.append(f"  Range: {min_val:.1f}-{max_val:.1f}")
             stats_lines.append("")
+
+        # Add box plot legend directly after statistics
+        stats_lines.append("")
+        legend_text = get_boxplot_legend_text()
+        stats_lines.extend(legend_text.split("\n"))
+
         stats_text = "\n".join(stats_lines)
         ax2.text(0.05, 0.95, stats_text, transform=ax2.transAxes, fontsize=10,
                  verticalalignment='top', fontfamily='monospace')
-
-        # Add box plot legend explaining elements (positioned below the plot)
-        legend_text = (
-            "Box plot elements:\n"
-            "• Box edges: 25th (Q1) and 75th (Q3) percentiles (interquartile range, IQR)\n"
-            "• Blue line: Median (50th percentile)\n"
-            "• Whiskers: Extend to the most extreme data point within 1.5×IQR from box edges\n"
-            "• Circles: Outliers (values beyond 1.5×IQR from box edges)"
-        )
-        fig.text(0.5, 0.04, legend_text, ha='center', fontsize=10,
-                 verticalalignment='bottom', multialignment='left')
 
         # Save visualization
         output_file = self.output_dir / "sus_visualizations.png"
@@ -191,8 +250,9 @@ class SUSCalculator:
     def generate_reports(self) -> Dict:
         """Generate comprehensive SUS analysis reports."""
         all_results = []
-        
-        user_types = ['endusers', 'technicians']
+
+        # Use normalized user type names
+        user_types = ['end_user', 'technician']
 
         for user_type in user_types:
             results = self.process_user_type(user_type)
