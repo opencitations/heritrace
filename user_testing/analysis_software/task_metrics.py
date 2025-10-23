@@ -5,7 +5,8 @@ from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
-from scipy import stats
+
+from stats_utils import calculate_mean_confidence_interval
 
 SEVERITY_WEIGHTS = {"low": 1, "medium": 2, "high": 4}
 
@@ -177,13 +178,7 @@ def compute_duration_statistics(df: pd.DataFrame) -> Dict[str, Any]:
         iqr = q75 - q25
 
         # 95% confidence interval for mean
-        if n > 1:
-            ci_95 = stats.t.interval(0.95, n - 1, loc=mean_val, scale=stats.sem(durations))
-            ci_lower = float(ci_95[0])
-            ci_upper = float(ci_95[1])
-        else:
-            ci_lower = mean_val
-            ci_upper = mean_val
+        _, ci_lower, ci_upper = calculate_mean_confidence_interval(durations)
 
         # Coefficient of variation (CV)
         cv = (std_val / mean_val * 100) if mean_val > 0 else 0.0
@@ -220,13 +215,8 @@ def compute_duration_statistics(df: pd.DataFrame) -> Dict[str, Any]:
             ut_median = float(np.median(ut_durations))
             ut_std = float(np.std(ut_durations, ddof=1)) if ut_n > 1 else 0.0
 
-            if ut_n > 1:
-                ut_ci = stats.t.interval(0.95, ut_n - 1, loc=ut_mean, scale=stats.sem(ut_durations))
-                ut_ci_lower = float(ut_ci[0])
-                ut_ci_upper = float(ut_ci[1])
-            else:
-                ut_ci_lower = ut_mean
-                ut_ci_upper = ut_mean
+            # 95% confidence interval for mean
+            _, ut_ci_lower, ut_ci_upper = calculate_mean_confidence_interval(ut_durations)
 
             by_user_type[user_type] = {
                 'n_observations': int(ut_n),

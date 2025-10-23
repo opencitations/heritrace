@@ -7,7 +7,17 @@ from matplotlib import patheffects as pe
 import numpy as np
 import pandas as pd
 
-from stats_utils import calculate_mean_confidence_interval, get_boxplot_legend_text
+from stats_utils import get_boxplot_legend_text
+
+
+def load_duration_statistics(repo_root: Path) -> dict:
+    """Load pre-computed duration statistics including confidence intervals."""
+    json_path = repo_root / "results" / "aggregated_analysis" / "tasks" / "task_metrics.json"
+    if not json_path.exists():
+        return {}
+    with open(json_path, "r") as f:
+        data = json.load(f)
+    return data["duration_statistics"]
 
 
 def load_rows(repo_root: Path) -> pd.DataFrame:
@@ -16,16 +26,16 @@ def load_rows(repo_root: Path) -> pd.DataFrame:
         return pd.DataFrame()
     with open(json_path, "r") as f:
         data = json.load(f)
-    rows = data.get("rows", [])
+    rows = data["rows"]
     df = pd.DataFrame(rows)
     # Attach desired order per user type if present in metadata
-    metadata = data.get("metadata", {})
-    order_by_user_type = metadata.get("task_order_by_user_type", {})
+    metadata = data["metadata"]
+    order_by_user_type = metadata["task_order_by_user_type"]
     if not df.empty and order_by_user_type:
         def order_index(row):
-            desired = order_by_user_type.get(str(row.get('user_type')), [])
+            desired = order_by_user_type[str(row['user_type'])]
             try:
-                return desired.index(row.get('task_key'))
+                return desired.index(row['task_key'])
             except Exception:
                 return 10_000
         df['__task_order_idx'] = df.apply(order_index, axis=1)
@@ -128,7 +138,7 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
         else:
             sub.sort_values('task_key', inplace=True)
 
-        labels = [task_label_map.get(k, _humanize_text(k)) for k in sub['task_key'].tolist()]
+        labels = [task_label_map[k] for k in sub['task_key'].tolist()]
         x = np.arange(len(sub))
 
         # Create stacked bars
@@ -178,8 +188,14 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
     print(f"Saved: {out}")
 
 
-def plot_duration_distributions(df: pd.DataFrame, output_dir: Path):
-    """Box plots showing distribution of actual durations per task with confidence intervals."""
+def plot_duration_distributions(df: pd.DataFrame, duration_stats: dict, output_dir: Path):
+    """Box plots showing distribution of actual durations per task with confidence intervals.
+
+    Args:
+        df: DataFrame with task completion data
+        duration_stats: Pre-computed duration statistics including CIs
+        output_dir: Directory where to save the plot
+    """
     if df.empty:
         return
 
@@ -230,11 +246,15 @@ def plot_duration_distributions(df: pd.DataFrame, output_dir: Path):
             task_durations = ut_df[ut_df['task_key'] == task_key]['actual_duration_minutes'].values
             if len(task_durations) > 0:
                 box_data.append(task_durations)
-                task_label = task_label_map.get(task_key, _humanize_text(task_key))
+                task_label = task_label_map[task_key]
                 labels.append(task_label)
 
-                # Calculate mean and CI using common function
-                mean_val, ci_lower, ci_upper = calculate_mean_confidence_interval(task_durations)
+                # Use pre-computed mean and CI from duration statistics
+                task_stats = duration_stats[task_key]
+                ut_stats = task_stats['by_user_type'][user_type]
+                mean_val = ut_stats['mean']
+                ci_lower = ut_stats['ci_95_lower']
+                ci_upper = ut_stats['ci_95_upper']
                 means.append(mean_val)
                 ci_lowers.append(ci_lower)
                 ci_uppers.append(ci_upper)
@@ -262,7 +282,7 @@ def plot_duration_distributions(df: pd.DataFrame, output_dir: Path):
                                          markeredgecolor='black', markersize=6))
 
         # Color boxes based on user type (consistent with SUS)
-        box_color = user_type_colors.get(user_type, 'lightblue')
+        box_color = user_type_colors[user_type]
         for patch in bp['boxes']:
             patch.set_facecolor(box_color)
             patch.set_alpha(0.7)
@@ -399,7 +419,7 @@ def plot_error_heatmaps(df: pd.DataFrame, output_dir: Path):
         else:
             tasks_keys = sorted(ut_df['task_key'].dropna().unique().tolist())
         
-        tasks = [task_label_map.get(k, _humanize_text(k)) for k in tasks_keys]
+        tasks = [task_label_map[k] for k in tasks_keys]
         
         if not participants or not tasks:
             continue
@@ -432,13 +452,14 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     df = load_rows(repo_root)
+    duration_stats = load_duration_statistics(repo_root)
 
     # Task completion analysis
     plot_success_rates(df, output_dir)
     plot_error_heatmaps(df, output_dir)
 
     # Duration analysis (essential plots only)
-    plot_duration_distributions(df, output_dir)
+    plot_duration_distributions(df, duration_stats, output_dir)
 
 
 if __name__ == "__main__":

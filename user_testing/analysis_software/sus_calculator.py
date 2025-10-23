@@ -84,7 +84,7 @@ class SUSCalculator:
             user_type: Normalized user type ('end_user' or 'technician')
         """
         # Map normalized user type to directory name
-        dir_name = self.USER_TYPE_TO_DIR.get(user_type, user_type)
+        dir_name = self.USER_TYPE_TO_DIR[user_type]
         sus_dir = self.results_dir / dir_name / "sus"
         results = []
 
@@ -109,26 +109,36 @@ class SUSCalculator:
     def generate_aggregated_stats(self, scores_by_type: Dict[str, List[float]]) -> Dict:
         """Generate aggregated statistics by user type for primary SUS scores."""
         stats = {}
-        
+
         for user_type, scores in scores_by_type.items():
             if not scores:
                 continue
-                
+
+            # Calculate 95% confidence interval for mean
+            mean_val, ci_lower, ci_upper = calculate_mean_confidence_interval(np.array(scores))
+
             stats[user_type] = {
                 'count': len(scores),
-                'mean': np.mean(scores),
+                'mean': mean_val,
                 'std': np.std(scores, ddof=1) if len(scores) > 1 else 0,
-                'median': np.median(scores),
-                'min': np.min(scores),
-                'max': np.max(scores),
+                'median': float(np.median(scores)),
+                'min': float(np.min(scores)),
+                'max': float(np.max(scores)),
+                'ci_95_lower': ci_lower,
+                'ci_95_upper': ci_upper,
                 'scores': scores
             }
-            
+
         return stats
     
     
-    def create_visualizations(self, all_results: List[Dict]):
-        """Generate visualizations for SUS scores."""
+    def create_visualizations(self, all_results: List[Dict], aggregated_stats: Dict):
+        """Generate visualizations for SUS scores.
+
+        Args:
+            all_results: List of individual participant results
+            aggregated_stats: Pre-computed aggregated statistics including CIs
+        """
         if not all_results:
             print("No data to visualize")
             return
@@ -166,15 +176,15 @@ class SUSCalculator:
         ax1.axhline(y=68, color='orange', linestyle='--', alpha=0.7, label='Average threshold')
         ax1.axhline(y=80.3, color='green', linestyle='--', alpha=0.7, label='Excellent threshold')
 
-        # Calculate 95% CI for mean using t-Student distribution
+        # Use pre-computed 95% CI from aggregated statistics
         means = []
         ci_lowers = []
         ci_uppers = []
-        for data in box_data:
-            mean_val, ci_lower, ci_upper = calculate_mean_confidence_interval(data)
-            means.append(mean_val)
-            ci_lowers.append(ci_lower)
-            ci_uppers.append(ci_upper)
+        for ut in user_types:
+            ut_stats = aggregated_stats[ut]
+            means.append(ut_stats['mean'])
+            ci_lowers.append(ut_stats['ci_95_lower'])
+            ci_uppers.append(ut_stats['ci_95_upper'])
 
         # Add confidence interval error bars
         x_positions = np.arange(1, len(means) + 1)
@@ -202,7 +212,7 @@ class SUSCalculator:
             'technician': 'lightcoral'
         }
         for patch, user_type in zip(box_plot['boxes'], user_types):
-            color = user_type_colors.get(user_type, 'lightgray')
+            color = user_type_colors[user_type]
             patch.set_facecolor(color)
 
         # 2. Summary statistics table (text-based) with box plot elements below
@@ -306,8 +316,8 @@ class SUSCalculator:
         with open(aggregated_file, 'w') as f:
             json.dump(aggregated_report, f, indent=2)
         print(f"Aggregated report saved to: {aggregated_file}")
-        
-        self.create_visualizations(all_results)
+
+        self.create_visualizations(all_results, aggregated_stats)
         
         return {
             'individual_scores': individual_scores,

@@ -7,6 +7,8 @@
       "median": 82.5,
       "min": 60.0,
       "max": 95.0,
+      "ci_95_lower": 67.80337081565511,
+      "ci_95_upper": 89.97440696212266,
       "scores": [
         60.0,
         82.5,
@@ -26,6 +28,8 @@
       "median": 83.75,
       "min": 67.5,
       "max": 92.5,
+      "ci_95_lower": 76.2798052936595,
+      "ci_95_upper": 88.7201947063405,
       "scores": [
         85.0,
         85.0,
@@ -44,7 +48,7 @@
     "participants_excellent": 11
   },
   "metadata": {
-    "analysis_date": "2025-10-23T13:18:28.925493",
+    "analysis_date": "2025-10-23T14:04:05.308847",
     "benchmark_thresholds": {
       "below_average": "< 68",
       "above_average": "68-80.3",
