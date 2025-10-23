@@ -118,12 +118,12 @@
       "technicians": 8
     },
     "heritrace_distribution": {
-      "Usage knowledge": 2,
-      "No experience": 15
+      "No experience": 15,
+      "Usage knowledge": 2
     },
     "shacl_distribution": {
-      "No experience": 3,
-      "Working knowledge": 5
+      "Working knowledge": 5,
+      "No experience": 3
     }
   },
   "metadata": {

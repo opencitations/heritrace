@@ -272,8 +272,8 @@ def plot_duration_distributions(df: pd.DataFrame, output_dir: Path):
     plt.close(fig)
     print(f"Saved: {out}")
 
-def _draw_heatmap(ax: plt.Axes, matrix: np.ndarray, row_labels: List[str], col_labels: List[str], title: str, cmap: str):
-    im = ax.imshow(matrix, aspect='auto', cmap=cmap)
+def _draw_heatmap(ax: plt.Axes, matrix: np.ndarray, row_labels: List[str], col_labels: List[str], title: str, cmap: str, vmin: float = None, vmax: float = None):
+    im = ax.imshow(matrix, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
     ax.set_xticks(np.arange(len(col_labels)))
     ax.set_xticklabels(col_labels, rotation=30, ha='right')
     ax.set_yticks(np.arange(len(row_labels)))
@@ -306,7 +306,39 @@ def plot_error_heatmaps(df: pd.DataFrame, output_dir: Path):
     # Ensure axs is always 2D
     if n_user_types == 1:
         axs = axs.reshape(1, -1)
-    
+
+    # Pre-calculate global max values for unified color scales
+    global_max_count = 0.0
+    global_max_weight = 0.0
+
+    for user_type in user_types:
+        ut_df = df[df['user_type'] == user_type].copy()
+        if ut_df.empty:
+            continue
+
+        participants_raw = sorted(ut_df['participant_id'].dropna().unique().tolist())
+
+        if "__task_order_idx" in ut_df.columns:
+            order_df = ut_df.dropna(subset=['task_key']).groupby('task_key')['__task_order_idx'].min().reset_index()
+            order_df.sort_values(['__task_order_idx', 'task_key'], inplace=True)
+            tasks_keys = order_df['task_key'].tolist()
+        else:
+            tasks_keys = sorted(ut_df['task_key'].dropna().unique().tolist())
+
+        if not participants_raw or not tasks_keys:
+            continue
+
+        pivot_count = ut_df.pivot_table(index='participant_id', columns='task_key', values='errors_encountered', aggfunc='first').reindex(index=participants_raw, columns=tasks_keys)
+        pivot_weight = ut_df.pivot_table(index='participant_id', columns='task_key', values='severity_weighted_score', aggfunc='first').reindex(index=participants_raw, columns=tasks_keys)
+
+        max_count = np.nanmax(pivot_count.to_numpy(dtype=float))
+        max_weight = np.nanmax(pivot_weight.to_numpy(dtype=float))
+
+        if not np.isnan(max_count):
+            global_max_count = max(global_max_count, max_count)
+        if not np.isnan(max_weight):
+            global_max_weight = max(global_max_weight, max_weight)
+
     for ut_idx, user_type in enumerate(user_types):
         # Filter data for this user type
         ut_df = df[df['user_type'] == user_type].copy()
@@ -336,9 +368,9 @@ def plot_error_heatmaps(df: pd.DataFrame, output_dir: Path):
         m_count = pivot_count.to_numpy(dtype=float)
         m_weight = pivot_weight.to_numpy(dtype=float)
         
-        # Draw heatmaps for this user type
-        im1 = _draw_heatmap(axs[ut_idx, 0], m_count, participants, tasks, f'Errors per Task — {_humanize_user_type(user_type)}', 'Reds')
-        im2 = _draw_heatmap(axs[ut_idx, 1], m_weight, participants, tasks, f'Severity-weighted Score per Task — {_humanize_user_type(user_type)}', 'Oranges')
+        # Draw heatmaps for this user type with unified color scales
+        im1 = _draw_heatmap(axs[ut_idx, 0], m_count, participants, tasks, f'Errors per Task — {_humanize_user_type(user_type)}', 'Reds', vmin=0, vmax=global_max_count)
+        im2 = _draw_heatmap(axs[ut_idx, 1], m_weight, participants, tasks, f'Severity-weighted Score per Task — {_humanize_user_type(user_type)}', 'Oranges', vmin=0, vmax=global_max_weight)
         
         # Add colorbars
         fig.colorbar(im1, ax=axs[ut_idx, 0], fraction=0.046, pad=0.04)
