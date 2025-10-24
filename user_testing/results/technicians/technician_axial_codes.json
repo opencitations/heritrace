@@ -103,15 +103,27 @@
         {
           "participant_id": "8t",
           "code": "configuration_field_explanation_need"
+        },
+        {
+          "participant_id": "9t",
+          "code": "lack_of_understanding_shacl_vs_display_rules_separation"
+        },
+        {
+          "participant_id": "9t",
+          "code": "expectation_of_automatic_display_rule_generation_from_shacl"
+        },
+        {
+          "participant_id": "9t",
+          "code": "misinterpretation_of_support_search_as_catalog_search"
         }
       ],
-      "category_description": "Participants successfully learned configuration through inspection and pattern replication but identified documentation gaps. Inline YAML comments would accelerate understanding and reduce external documentation dependency. Confusion occurred about separation of concerns between SHACL validation and display rules configuration. Clear guidelines explaining which fields are relevant, their purpose, and which file controls which aspects would reduce cognitive effort and misdirected exploration.",
+      "category_description": "Participants successfully learned configuration through inspection and pattern replication but identified documentation gaps. Confusion occurred about separation between SHACL validation and display rules, with expectation that display rules would auto-generate from SHACL changes. Misunderstandings also occurred about search configuration parameters. Clear guidelines explaining which file controls which aspects and what parameters do would reduce cognitive effort and misdirected exploration.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "negative",
-      "frequency": "6"
+      "frequency": "9"
     },
     {
       "category_name": "Configuration through pattern replication",
@@ -203,6 +215,26 @@
         {
           "participant_id": "8t",
           "code": "pattern_replication_strategy"
+        },
+        {
+          "participant_id": "9t",
+          "code": "pattern_replication_strategy"
+        },
+        {
+          "participant_id": "9t",
+          "code": "shacl_structure_navigation_through_inspection"
+        },
+        {
+          "participant_id": "9t",
+          "code": "pattern_search_through_existing_configuration"
+        },
+        {
+          "participant_id": "9t",
+          "code": "analogical_reasoning_with_similar_properties"
+        },
+        {
+          "participant_id": "9t",
+          "code": "display_order_positioning_hypothesis"
         }
       ],
       "category_description": "Participants consistently copied existing SHACL and YAML structures and modified them rather than creating from scratch. This involved identifying similar properties, understanding structure through inspection, and adapting to new requirements. The pattern replication approach proved effective for both SHACL validation and display rule configuration, suggesting configuration files have sufficient internal consistency to support learning by example.",
@@ -211,7 +243,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "22"
+      "frequency": "27"
     },
     {
       "category_name": "Delayed understanding of file-based configuration paradigm",
@@ -283,6 +315,10 @@
         {
           "participant_id": "7t",
           "code": "documentation_organization_appreciation"
+        },
+        {
+          "participant_id": "9t",
+          "code": "accessibility_for_non_shacl_experts"
         }
       ],
       "category_description": "Documentation and system feedback effectively supported configuration tasks. Participants with no prior SHACL knowledge found documentation clear and beginner-friendly. Inline examples within configuration files supported pattern-based learning. System error messages helped identify configuration mistakes. One participant characterized the system as self-explanatory, requiring documentation only to locate files. Documentation serves as a reference rather than a prerequisite, with system design being sufficiently transparent for novice technical users.",
@@ -291,7 +327,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "6"
+      "frequency": "7"
     },
     {
       "category_name": "Feature expectations and mental models",
@@ -452,6 +488,10 @@
         {
           "participant_id": "8t",
           "code": "immediate_interface_change_visibility"
+        },
+        {
+          "participant_id": "9t",
+          "code": "immediate_validation_through_ui_inspection"
         }
       ],
       "category_description": "Immediate visual feedback when making configuration changes provided confirmation that modifications were applied correctly. Automatic backend hot-reloading of SHACL files (despite requiring manual frontend refresh) accelerated the iterative trial-and-error process. Real-time visualization aided understanding of both what needed configuration and how to configure it, serving as essential validation.",
@@ -460,7 +500,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "10"
+      "frequency": "11"
     },
     {
       "category_name": "Interface change detection failures",
@@ -592,6 +632,14 @@
         {
           "participant_id": "7t",
           "code": "deletion_verification_through_counting"
+        },
+        {
+          "participant_id": "9t",
+          "code": "automatic_authentication_discovery"
+        },
+        {
+          "participant_id": "9t",
+          "code": "vault_purpose_inference"
         }
       ],
       "category_description": "Participants quickly understood and navigated the interface through exploration, successfully grasping navigation menu items, resource organization, and specialized features. They systematically enumerated collections, verified functionality, made logical inferences, and understood entity relationships. Participants appreciated the minimalist design with clear information hierarchy. The interface provides sufficient visual and organizational cues for technical users to orient themselves without extensive documentation.",
@@ -599,7 +647,7 @@
         "warm_up_exploration"
       ],
       "overall_sentiment": "positive",
-      "frequency": "27"
+      "frequency": "29"
     },
     {
       "category_name": "Iterative testing and validation approach",
@@ -627,6 +675,10 @@
         {
           "participant_id": "6t",
           "code": "edit_mode_exploration_facilitation"
+        },
+        {
+          "participant_id": "9t",
+          "code": "ui_outcome_visualization_before_modification"
         }
       ],
       "category_description": "Participants adopted an iterative approach of making changes, saving, and testing to verify results. They systematically reviewed configuration completeness, understood requirements through examples, and leveraged version restoration to safely test hypotheses. This trial-and-error methodology proved effective and reflects a pragmatic problem-solving style of testing and observing rather than exhaustive planning.",
@@ -635,7 +687,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "neutral",
-      "frequency": "6"
+      "frequency": "7"
     },
     {
       "category_name": "Minor UI presentation inconsistencies",
@@ -659,6 +711,10 @@
         {
           "participant_id": "7t",
           "code": "form_route_cleanliness_issues"
+        },
+        {
+          "participant_id": "9t",
+          "code": "screen_space_utilization_concern"
         }
       ],
       "category_description": "Technicians noticed minor UI presentation issues such as unexpected field rendering, capitalization inconsistencies, redundant navigation paths where both value links and buttons perform the same action, inconsistent appearance of validation icons across different entity pages, and uncleaned form routes representing technical debt. While these issues were observed and sometimes mentioned, they did not prevent task completion and were typically deprioritized or considered unimportant. One participant explicitly stated these were not frustrations. This suggests these are low-severity polish issues rather than critical usability problems.",
@@ -668,7 +724,7 @@
         "warm_up_exploration"
       ],
       "overall_sentiment": "negative",
-      "frequency": "5"
+      "frequency": "6"
     },
     {
       "category_name": "Missing feature identification and enhancement suggestions",
@@ -718,8 +774,8 @@
           "code": "external_resource_access_limitation"
         },
         {
-          "participant_id": "6t",
-          "code": "no_additional_features_needed"
+          "participant_id": "9t",
+          "code": "default_input_type_inadequacy_confirmation"
         },
         {
           "participant_id": "7t",
@@ -740,16 +796,32 @@
         {
           "participant_id": "8t",
           "code": "back_navigation_button_absence_frustration"
+        },
+        {
+          "participant_id": "9t",
+          "code": "link_function_differentiation_suggestion"
+        },
+        {
+          "participant_id": "9t",
+          "code": "suggestion_to_hide_ontological_complexity_from_data_curators"
+        },
+        {
+          "participant_id": "9t",
+          "code": "field_name_semantic_disambiguation_need"
+        },
+        {
+          "participant_id": "9t",
+          "code": "suggestion_of_existing_feature_due_to_incomplete_documentation_reading"
         }
       ],
-      "category_description": "Participants identified system gaps and suggested enhancements including missing features (search functionality, SHACL editor, validation documentation, back navigation button) and contextual guidance improvements (tooltips, input format guidelines). Some participants desired deeper customization capabilities and visibility into the UI generation engine to understand limitations. One participant stated all necessary resources were present. This demonstrates technical users' analytical approach to identifying improvements, with varying satisfaction regarding feature completeness.",
+      "category_description": "Participants identified system gaps and suggested enhancements including missing features (search functionality, SHACL editor, validation documentation, back navigation button) and contextual guidance improvements (tooltips, input format guidelines). Some participants desired deeper customization capabilities and visibility into the UI generation engine to understand limitations.",
       "task_contexts": [
         "add_display_support",
         "add_shacl_validation",
         "warm_up_exploration"
       ],
-      "overall_sentiment": "neutral",
-      "frequency": "17"
+      "overall_sentiment": "negative",
+      "frequency": "21"
     },
     {
       "category_name": "Positive feature experiences and interface design appreciation",
@@ -861,6 +933,26 @@
         {
           "participant_id": "8t",
           "code": "non_frustrating_experience_overall"
+        },
+        {
+          "participant_id": "9t",
+          "code": "similar_resources_feature_appreciation"
+        },
+        {
+          "participant_id": "9t",
+          "code": "dynamic_form_behavior_discovery"
+        },
+        {
+          "participant_id": "9t",
+          "code": "system_utility_recognition_despite_unfamiliarity"
+        },
+        {
+          "participant_id": "9t",
+          "code": "shacl_to_ui_mapping_ease"
+        },
+        {
+          "participant_id": "6t",
+          "code": "no_additional_features_needed"
         }
       ],
       "category_description": "Participants expressed positive reactions to version control, provenance tracking, time machine functionality, minimalist interface design, and efficient workflows. They assessed features as well-integrated and complete, characterizing the system as ideal for the target domain. Specific appreciation included automatic entity creation, orphan prevention logic, date validation, identifier validation, SPARQL display mechanisms, and configuration file structure simplicity. Despite configuration complexity, user-facing features resonated strongly with technical users who appreciated well-designed functionality and reported non-frustrating experiences.",
@@ -870,7 +962,7 @@
         "warm_up_exploration"
       ],
       "overall_sentiment": "positive",
-      "frequency": "27"
+      "frequency": "32"
     },
     {
       "category_name": "Semantic and technical reasoning",
@@ -946,6 +1038,18 @@
         {
           "participant_id": "8t",
           "code": "semantic_property_interpretation_uncertainty"
+        },
+        {
+          "participant_id": "9t",
+          "code": "task_requirements_comprehension"
+        },
+        {
+          "participant_id": "9t",
+          "code": "constraint_specification_from_requirements"
+        },
+        {
+          "participant_id": "9t",
+          "code": "syntax_familiarity_enables_straightforward_modification"
         }
       ],
       "category_description": "Participants demonstrated strong semantic web and technical reasoning, successfully translating requirements into SHACL constraints, inferring datatypes from semantics, verifying namespace availability, and exploring datatype-widget relationships. They correctly attributed interface constraints to SHACL, identified data model gaps, and distinguished configuration file purposes. Participants with first-time SHACL exposure assessed syntax as straightforward and correctly interpreted requirements. However, semantic ambiguities in property definitions created uncertainty even for technical users. This shows technicians possess needed domain knowledge but benefit from clear patterns and examples.",
@@ -954,7 +1058,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "18"
+      "frequency": "21"
     },
     {
       "category_name": "Successful implementation and verification",
@@ -1054,6 +1158,22 @@
         {
           "participant_id": "8t",
           "code": "display_order_implicit_mechanism_discovery"
+        },
+        {
+          "participant_id": "9t",
+          "code": "successful_docker_startup"
+        },
+        {
+          "participant_id": "9t",
+          "code": "configuration_file_location_identification"
+        },
+        {
+          "participant_id": "9t",
+          "code": "required_field_indicator_verification"
+        },
+        {
+          "participant_id": "9t",
+          "code": "successful_verification_after_second_reload"
         }
       ],
       "category_description": "All participants successfully completed configuration tasks and verified changes through the UI. They discovered implicit ordering mechanisms and systematically debugged by reverting and reapplying changes when needed. Despite making errors, participants characterized the experience as smooth and not complex, noting helpful error guidance. Quick completion times suggest the configuration workflow is reasonably efficient for technical users once they understand the approach.",
@@ -1062,7 +1182,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "24"
+      "frequency": "28"
     },
     {
       "category_name": "System architecture and sustainability concerns",
@@ -1122,15 +1242,19 @@
         {
           "participant_id": "5t",
           "code": "docker_crash_ambiguity"
+        },
+        {
+          "participant_id": "9t",
+          "code": "backend_restart_delay_confusion"
         }
       ],
-      "category_description": "Technicians discovered multiple system bugs during testing. One discovered a validation bug where changing identifier type from ISSN to DOI while keeping an invalid value neither triggered validation errors nor registered as a change when saving. Another encountered a string input handling bug that triggered cryptic, uninformative validation error messages despite correct SHACL configuration, causing confusion and extensive troubleshooting. Two participants experienced application crashes after YAML configuration changes, requiring container restart. In one case, the participant was unable to determine whether the crash was caused by a configuration error or local machine issue. These issues represent genuine quality problems requiring developer attention.",
+      "category_description": "Technicians discovered multiple system bugs and technical issues during testing. System bugs included validation failures, cryptic error messages, and application crashes after YAML changes. Additionally, backend restart delays after configuration changes caused confusion when UI changes were not immediately visible on first page reload. These issues represent technical problems requiring developer attention.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "negative",
-      "frequency": "5"
+      "frequency": "6"
     },
     {
       "category_name": "Task requirement comprehension failures",
@@ -1245,14 +1369,26 @@
         {
           "participant_id": "7t",
           "code": "deletion_cascade_misunderstanding"
+        },
+        {
+          "participant_id": "9t",
+          "code": "misinterpretation_of_unconfigured_entities_as_ui_inconsistency"
+        },
+        {
+          "participant_id": "9t",
+          "code": "expectation_of_preconfigured_category_descriptions"
+        },
+        {
+          "participant_id": "9t",
+          "code": "confusion_between_uris_and_missing_configured_labels"
         }
       ],
-      "category_description": "One participant misunderstood pagination behavior (not recognizing adaptive controls), failed to distinguish configured vs. unconfigured entities, and misinterpreted cascade deletion dialog behavior (thinking 'No' cancels entire deletion rather than only deleting main resource). These misunderstandings represent mental model gaps during initial exploration but did not prevent task completion.",
+      "category_description": "Participants misunderstood interface behavior and system configuration model. Misunderstandings included pagination behavior, cascade deletion dialogs, and failure to distinguish configured vs. unconfigured entities. One participant interpreted unconfigured entities (missing labels, category descriptions) as UI inconsistencies rather than recognizing configuration as their responsibility. These represent mental model gaps during exploration but did not prevent task completion.",
       "task_contexts": [
         "warm_up_exploration"
       ],
       "overall_sentiment": "negative",
-      "frequency": "4"
+      "frequency": "7"
     },
     {
       "category_name": "Validation feedback gaps",

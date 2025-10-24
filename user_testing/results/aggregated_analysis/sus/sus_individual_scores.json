@@ -305,14 +305,32 @@
       ],
       "sus_score": 92.5,
       "file_path": "../results/technicians/sus/8t_sus.md"
+    },
+    {
+      "participant_id": "9t",
+      "user_type": "technician",
+      "ratings": [
+        5,
+        1,
+        4,
+        3,
+        4,
+        1,
+        4,
+        2,
+        3,
+        2
+      ],
+      "sus_score": 77.5,
+      "file_path": "../results/technicians/sus/9t_sus.md"
     }
   ],
   "metadata": {
-    "total_participants": 17,
+    "total_participants": 18,
     "user_types": [
       "end_user",
       "technician"
     ],
-    "analysis_date": "2025-10-23T14:04:05.308816"
+    "analysis_date": "2025-10-24T17:42:46.753378"
   }
 }

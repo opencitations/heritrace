@@ -22,14 +22,14 @@
       ]
     },
     "technician": {
-      "count": 8,
-      "mean": 82.5,
-      "std": 7.44023809142845,
-      "median": 83.75,
+      "count": 9,
+      "mean": 81.94444444444444,
+      "std": 7.156485015549029,
+      "median": 82.5,
       "min": 67.5,
       "max": 92.5,
-      "ci_95_lower": 76.2798052936595,
-      "ci_95_upper": 88.7201947063405,
+      "ci_95_lower": 76.44348309798355,
+      "ci_95_upper": 87.44540579090534,
       "scores": [
         85.0,
         85.0,
@@ -38,17 +38,18 @@
         77.5,
         82.5,
         82.5,
-        92.5
+        92.5,
+        77.5
       ]
     }
   },
   "benchmarking": {
     "participants_below_average": 4,
-    "participants_above_average": 2,
+    "participants_above_average": 3,
     "participants_excellent": 11
   },
   "metadata": {
-    "analysis_date": "2025-10-23T14:04:05.308847",
+    "analysis_date": "2025-10-24T17:42:46.753415",
     "benchmark_thresholds": {
       "below_average": "< 68",
       "above_average": "68-80.3",

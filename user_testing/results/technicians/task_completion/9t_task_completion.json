@@ -1,0 +1,35 @@
+{
+  "participant_id": "9t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:03:13",
+      "status": "complete",
+      "errors_encountered": 0,
+      "errors": []
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:04:58",
+      "status": "complete",
+      "errors_encountered": 2,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "User expected display rules to automatically update after modifying SHACL shape, not understanding the separation between data model configuration and UI presentation rules",
+          "trigger": "After adding abstract property in SHACL, user expected YAML display rules to auto-generate ('mi aspetto che le display rules allora cambino direttamente sulla base delle shacl shape'), then searched unsuccessfully for 'dcterms abstract' in configuration files",
+          "outcome": "recovered"
+        },
+        {
+          "severity": "low",
+          "symptom": "Configuration changes not visible on first page reload due to backend restart delay",
+          "trigger": "Backend required several seconds to restart after YAML configuration modification, causing changes to not appear on first page reload ('Non è cambiato niente'). User reloaded page a second time and changes appeared",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}

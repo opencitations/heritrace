@@ -1,0 +1,210 @@
+{
+  "participant_id": "9t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "successful_docker_startup",
+      "verbatim_quote": "La prima cosa è far partire Docker. Se io lo seleziono e faccio partire questo Docker così, dovrebbe essere partito. Sembrerebbe di sì",
+      "context": "Participant successfully starts Docker and verifies application is running before beginning exploration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "automatic_authentication_discovery",
+      "verbatim_quote": "Sì, avevo letto che mi fa direttamente entrare come utente, molto carino",
+      "context": "Participant discovers automatic authentication feature and expresses appreciation for the convenience",
+      "sentiment": "positive"
+    },
+    {
+      "code": "misinterpretation_of_unconfigured_entities_as_ui_inconsistency",
+      "verbatim_quote": "la prima cosa che posso vedere è una cosa puramente tecnica: è il fatto che queste sono maiuscole e queste non sono maiuscole. Non so se interessa, però c'è questo",
+      "context": "Participant perceives capitalization differences as UI inconsistency rather than recognizing these are unconfigured entities requiring configuration",
+      "sentiment": "negative"
+    },
+    {
+      "code": "screen_space_utilization_concern",
+      "verbatim_quote": "Questo potrebbe essere un pochettino più largo, forse. Sarà che io adesso sono su un monitor molto molto largo, però non c'è motivo per cui ci sia tutto questo bianco qui",
+      "context": "Participant notices excessive whitespace on wide monitor and suggests better use of available screen space",
+      "sentiment": "negative"
+    },
+    {
+      "code": "expectation_of_preconfigured_category_descriptions",
+      "verbatim_quote": "Sarebbe carino, Journal Issue, qua sotto mettere una piccola didascalia del tipo 'In this category you can find the issues of blah blah blah', giusto perché così io non abbia proprio dubbi",
+      "context": "Participant requests category descriptions as UI improvement, not recognizing that adding such descriptions is part of configurator role",
+      "sentiment": "negative"
+    },
+    {
+      "code": "link_function_differentiation_suggestion",
+      "verbatim_quote": "una possibile miglioria potrebbe essere che, a questo punto, se clicco qui mi spara al sito effettivo, se clicco qui mi spara invece alla pagina dentro HERITRACE di questo oggetto",
+      "context": "Participant discovers redundant links leading to same destination and proposes functional differentiation: external link versus internal catalog page",
+      "sentiment": "negative"
+    },
+    {
+      "code": "confusion_between_uris_and_missing_configured_labels",
+      "verbatim_quote": "questi link qui non sono parlanti. Perché in teoria qui ci sono tutte le issues... Al posto di questa entry qui ci potrebbe essere il titolo, perché questa cosa qui non è parlante e ovviamente io così vado a caso",
+      "context": "Participant complains about non-descriptive URIs without recognizing that missing human-readable labels indicate unconfigured entities that configurator should populate",
+      "sentiment": "negative"
+    },
+    {
+      "code": "similar_resources_feature_appreciation",
+      "verbatim_quote": "Ah no, questo è part of blablabla, però è bello che ci sia Similar Resources. Questo similar non so come sia calcolato però sembra molto figo, molto interessante",
+      "context": "Participant discovers similar resources feature and expresses curiosity and appreciation despite not understanding calculation mechanism",
+      "sentiment": "positive"
+    },
+    {
+      "code": "vault_purpose_inference",
+      "verbatim_quote": "Vault, ok, immagino che siano risorse eliminate. Forse questo parla manutenzione, mantenimento, visto che poi ci sono degli esercizi di manutenzione di un catalogo stesso, quindi mi aspetto che questo non sia solo per consultare ma sia anche per manutenere",
+      "context": "Participant correctly infers vault section contains deleted resources and recognizes system serves catalog maintenance purpose",
+      "sentiment": "positive"
+    },
+    {
+      "code": "dynamic_form_behavior_discovery",
+      "verbatim_quote": "Ah, quindi giustamente sì, perché Author rimane perché io posso avere più di un autore, ma se faccio Publication Date mi rimane lo stesso? No, figo, questo, questo è bello perché io posso avere più di un autore quindi è giusto che io abbia Add Author di nuovo",
+      "context": "Participant discovers and appreciates intelligent form behavior where repeatable fields maintain add buttons while singular fields do not",
+      "sentiment": "positive"
+    },
+    {
+      "code": "suggestion_to_hide_ontological_complexity_from_data_curators",
+      "verbatim_quote": "Io la sto approcciando come da una persona che non sa esattamente che cosa sia neanche un'ontologia, cioè che utilizza questa interfaccia per manutenere un catalogo senza preoccuparsi del fatto che sotto ci sia un grafo. Per cui se devo utilizzare certe categorie che sono rese esplicite vorrei sapere che cosa vuol dire questo Responsible Agent",
+      "context": "Participant argues that users performing data curation tasks should not be exposed to ontological terminology like 'Responsible Agent' or class names, suggesting interface should hide implementation details or provide contextual explanations",
+      "sentiment": "negative"
+    },
+    {
+      "code": "field_name_semantic_disambiguation_need",
+      "verbatim_quote": "Name, Given Name, Family Name, non sono sicuro di sapere la differenza tra questi, però vabbè, ok",
+      "context": "Participant uncertain about semantic distinctions between similar field names during form exploration",
+      "sentiment": "negative"
+    },
+    {
+      "code": "task_requirements_comprehension",
+      "verbatim_quote": "Ok, quindi nella SHACL shape bisogna includere dcterms abstract per journal article e aggiungere il constraint per mettere un massimo di un abstract e un minimo di zero",
+      "context": "Participant reads task description and accurately verbalizes requirements: add abstract property with cardinality 0..1",
+      "sentiment": "positive"
+    },
+    {
+      "code": "configuration_file_location_identification",
+      "verbatim_quote": "Mi veniva detto prima che, immagino che ci sia nei file di config, le SHACL shape, dovrebbe essere qui, shacl.ttl",
+      "context": "Participant recalls documentation guidance and successfully locates SHACL configuration file",
+      "sentiment": "positive"
+    },
+    {
+      "code": "ui_outcome_visualization_before_modification",
+      "verbatim_quote": "Ok, aspetta un attimo allora, intanto fammi vedere la UI changes. New Record, immagino che sia, sta ancora andando? No? Sì, ok, sta ancora andando. Ok, per cui qui vedo quelli esistenti, New Record, ok, quindi ho title qui, Add Author, Add Publication, immagino che debba finire più o meno qui, Add Abstract",
+      "context": "Before making changes, participant examines current UI state to visualize where new abstract field should appear",
+      "sentiment": "positive"
+    },
+    {
+      "code": "shacl_structure_navigation_through_inspection",
+      "verbatim_quote": "Dicevamo per journal article, eccolo qui, dobbiamo aggiungere un dcterms abstract, per cui questo è journal article identifier shape, agent shape, journal shape. Quindi direi che è la prima sopra, journal article, e property, journal article",
+      "context": "Participant navigates SHACL structure by reading shape names and identifying correct location for new property",
+      "sentiment": "positive"
+    },
+    {
+      "code": "pattern_replication_strategy",
+      "verbatim_quote": "Per cui se io faccio così, e aggiungo questa roba qui, ma al posto di dcterms title ci metto dcterms abstract",
+      "context": "Participant adopts pattern replication approach, copying existing title property structure and modifying for abstract",
+      "sentiment": "positive"
+    },
+    {
+      "code": "constraint_specification_from_requirements",
+      "verbatim_quote": "Data type string, sì, direi che è una stringa, e abbiamo detto che il minimum count dovrebbe essere 0 e il maximum count 1, giusto? Quindi abbiamo un minimum 0 e un maximum 1",
+      "context": "Participant translates natural language requirements into SHACL constraint syntax accurately",
+      "sentiment": "positive"
+    },
+    {
+      "code": "immediate_validation_through_ui_inspection",
+      "verbatim_quote": "Dovremmo aver aggiunto questa roba qui come property della journal article shape, quindi se io salvo, e poi andiamo direttamente qui, e ricarico, bingo, Add Abstract, e ho questa roba qui",
+      "context": "After saving SHACL changes, participant immediately reloads UI and verifies abstract field appears correctly",
+      "sentiment": "positive"
+    },
+    {
+      "code": "lack_of_understanding_shacl_vs_display_rules_separation",
+      "verbatim_quote": "Non è estendibile come questa finestra, però in teoria dovrebbe funzionare, se, se... Hm, title, chissà perché non è estendibile, boh, vabbè non credo che sia il focus di questa roba qui",
+      "context": "Participant notices abstract field is not extensible after adding it via SHACL, not understanding that SHACL only controls data model while UI presentation requires separate YAML display rules configuration",
+      "sentiment": "negative"
+    },
+    {
+      "code": "required_field_indicator_verification",
+      "verbatim_quote": "infatti non c'è, non c'è la, la stellina per cui non è, non è required, bene, molto bello",
+      "context": "Participant verifies abstract field correctly shows as optional by checking absence of required field indicator",
+      "sentiment": "positive"
+    },
+    {
+      "code": "syntax_familiarity_enables_straightforward_modification",
+      "verbatim_quote": "non ho incontrato particolari difficoltà nella modifica della SHACL shape, di fatto, vabbè, ok, ho un minimo di familiarità con questo tipo di formalismi però è letteralmente una copia in colla di un oggetto di cui c'è un corrispettivo uno a uno tra questo tipo di elemento di sintassi e questo oggetto che compare nell'interfaccia",
+      "context": "Participant reflects that minimal SHACL familiarity combined with clear one-to-one mapping between syntax and UI made task straightforward",
+      "sentiment": "positive"
+    },
+    {
+      "code": "default_input_type_inadequacy_confirmation",
+      "verbatim_quote": "Ah, è quello che vedevamo prima di fatto, perché è quello che si vedeva nell'altro video, cioè il fatto che appunto questa finestra qui non essendo estendibile, se io vado oltre un certo numero di caratteri comincio a non avere più la vista di insieme. Ok, mi sembra idoneo",
+      "context": "For Task 2, participant confirms default text input limitation observed earlier: non-extensible field prevents overview of long text",
+      "sentiment": "negative"
+    },
+    {
+      "code": "expectation_of_automatic_display_rule_generation_from_shacl",
+      "verbatim_quote": "Immagino che esattamente come l'esistenza di un certo campo la modifico dall'shacl shape, le display rules, mi aspetto che le display rules allora cambino direttamente sulla base delle shacl shape",
+      "context": "Participant expects YAML display rules to auto-generate from SHACL modifications, not understanding separation between data model configuration (SHACL) and UI presentation rules (YAML)",
+      "sentiment": "negative"
+    },
+    {
+      "code": "pattern_search_through_existing_configuration",
+      "verbatim_quote": "Allora, io immagino che questa roba qui sia, noi la vogliamo il più simile possibile a title, quindi ci sarà qualcosa dall'altra parte che si chiama title, immagino. Aspetta, proviamo con la T maiuscola e a matchare direttamente il, eccolo qua",
+      "context": "Participant searches YAML for title property configuration to use as template for abstract",
+      "sentiment": "positive"
+    },
+    {
+      "code": "analogical_reasoning_with_similar_properties",
+      "verbatim_quote": "Allora, property title input text area, deve essere questa roba qui, l'input type, deve essere questa roba qui, credo. Support search through, main characters for search 2, search target self. E questo è per il titolo. Ok. Però mi diceva qualcos'altro nel README",
+      "context": "Participant examines title display configuration and reasons by analogy to determine appropriate settings for abstract",
+      "sentiment": "positive"
+    },
+    {
+      "code": "display_order_positioning_hypothesis",
+      "verbatim_quote": "E poi il terzo requirement è property should appear under the title in the display order, quindi immagino che debba finire da qua sotto a qua sopra, con una formulazione simile a questa, ma senza essere necessario",
+      "context": "Participant hypothesizes that YAML file position determines display order, planning to place abstract configuration below title",
+      "sentiment": "positive"
+    },
+    {
+      "code": "misinterpretation_of_support_search_as_catalog_search",
+      "verbatim_quote": "Nel momento in cui dovesse esserci, probabilmente io potrò cercare non soltanto quello che c'è nel titolo, ma anche quello che c'è nell'abstract. Se così fosse, sì, avrebbe senso tenerlo, perché magari nell'abstract c'è una qualche forma di terminologia, una menzione a un qualche approccio",
+      "context": "Participant misunderstands support_search configuration parameter, thinking it enables catalog-wide search functionality, when it actually triggers entity deduplication suggestions while typing in the field to prevent creating duplicate entities",
+      "sentiment": "negative"
+    },
+    {
+      "code": "backend_restart_delay_confusion",
+      "verbatim_quote": "Lo salvo, lo ricarico, e vediamo se... Si è rotto? No. Non si è rotto, ma non è cambiato niente. Non è cambiato niente. Riproviamo. Mi sono perso qualcosa, forse",
+      "context": "After saving YAML display rules, participant reloads page but changes not yet visible because backend requires several seconds to restart. Participant initially concerned about missing configuration step",
+      "sentiment": "negative"
+    },
+    {
+      "code": "successful_verification_after_second_reload",
+      "verbatim_quote": "Mi stavo preoccupando. Ho una curiosità. Se io lo faccio così, l'abstract viene di lunghezza standard, quindi questa è la dimensione standard a cui compare anche title, dopo di che io posso ridimensionarlo volendo",
+      "context": "After reloading page a second time, backend restart completed and changes now visible. Participant expresses relief and explores textarea resizing behavior",
+      "sentiment": "positive"
+    },
+    {
+      "code": "system_utility_recognition_despite_unfamiliarity",
+      "verbatim_quote": "I was not familiar with heritrace, but if I were to maintain this kind of data it would be very useful",
+      "context": "Despite being unfamiliar with system, participant recognizes its utility for data maintenance workflows",
+      "sentiment": "positive"
+    },
+    {
+      "code": "shacl_to_ui_mapping_ease",
+      "verbatim_quote": "Creating visual options via SHACL shapes is very easy, and with a simple copy-paste I was able to extend the structure in a few minutes",
+      "context": "Participant highlights ease of creating UI components through SHACL configuration using pattern replication",
+      "sentiment": "positive"
+    },
+    {
+      "code": "accessibility_for_non_shacl_experts",
+      "verbatim_quote": "No real weaknesses, I think it would be easy to use even for people not familiar with SHACL, with a brief introduction to this kind of syntax (even people familiar with html would understand delimiters of certain 'blocks' of code, and probably operates successfully.)",
+      "context": "Participant assesses system as accessible to non-SHACL experts, drawing parallel to HTML familiarity enabling success with basic training",
+      "sentiment": "positive"
+    },
+    {
+      "code": "suggestion_of_existing_feature_due_to_incomplete_documentation_reading",
+      "verbatim_quote": "For future implementation, I suggest, generally speaking, architectural modularisation, which would mean e.g. the possibility to replace Virtuoso with Qlever, etc. depending on advancements of the state of the art",
+      "context": "Participant suggests implementing triplestore swapping capability as future feature, unaware this architectural modularity already exists in the system because documentation was not fully read",
+      "sentiment": "negative"
+    }
+  ]
+}

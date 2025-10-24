@@ -675,6 +675,32 @@
       "severity_weighted_score": 4,
       "error_rate_per_minute": 0.6271777003,
       "blocked": false
+    },
+    {
+      "participant_id": "9t",
+      "user_type": "technician",
+      "task_key": "add_shacl_validation",
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": 3.2166666667,
+      "status": "complete",
+      "errors_encountered": 0,
+      "severity_weighted_score": 0,
+      "error_rate_per_minute": 0.0,
+      "blocked": false
+    },
+    {
+      "participant_id": "9t",
+      "user_type": "technician",
+      "task_key": "add_display_support",
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": 4.9666666667,
+      "status": "complete",
+      "errors_encountered": 2,
+      "severity_weighted_score": 2,
+      "error_rate_per_minute": 0.4026845638,
+      "blocked": false
     }
   ],
   "success_rates": {
@@ -723,74 +749,74 @@
     "technician": [
       {
         "task_key": "add_shacl_validation",
-        "total": 8,
-        "complete": 7,
+        "total": 9,
+        "complete": 8,
         "partial": 1,
         "success_timeout": 0,
         "failed_misunderstanding": 0,
         "failed_bug": 0,
-        "success_rate": 93.75
+        "success_rate": 94.44444444444444
       },
       {
         "task_key": "add_display_support",
-        "total": 8,
-        "complete": 7,
+        "total": 9,
+        "complete": 8,
         "partial": 0,
         "success_timeout": 1,
         "failed_misunderstanding": 0,
         "failed_bug": 0,
-        "success_rate": 87.5
+        "success_rate": 88.88888888888889
       }
     ]
   },
   "duration_statistics": {
     "add_display_support": {
-      "n_observations": 8,
-      "mean": 9.462499999999999,
-      "median": 5.7666666666666675,
-      "std": 11.897748052894663,
-      "q25": 4.241666666666666,
-      "q75": 7.558333333333334,
-      "iqr": 3.3166666666666673,
-      "ci_95_lower": -0.48426629249910214,
-      "ci_95_upper": 19.409266292499098,
-      "cv_percent": 125.7357786303267,
-      "p90": 17.97333333333333,
+      "n_observations": 9,
+      "mean": 8.962962962962962,
+      "median": 5.666666666666667,
+      "std": 11.229768158837231,
+      "q25": 4.783333333333333,
+      "q75": 7.0,
+      "iqr": 2.216666666666667,
+      "ci_95_lower": 0.3309990257420523,
+      "ci_95_upper": 17.59492690018387,
+      "cv_percent": 125.29080177215096,
+      "p90": 15.060000000000004,
       "min": 2.1666666666666665,
       "max": 38.36666666666667,
       "by_user_type": {
         "technician": {
-          "n_observations": 8,
-          "mean": 9.462499999999999,
-          "median": 5.7666666666666675,
-          "std": 11.897748052894663,
-          "ci_95_lower": -0.48426629249910214,
-          "ci_95_upper": 19.409266292499098
+          "n_observations": 9,
+          "mean": 8.962962962962962,
+          "median": 5.666666666666667,
+          "std": 11.229768158837231,
+          "ci_95_lower": 0.3309990257420523,
+          "ci_95_upper": 17.59492690018387
         }
       }
     },
     "add_shacl_validation": {
-      "n_observations": 8,
-      "mean": 4.4375,
-      "median": 3.1,
-      "std": 3.2097414967860693,
-      "q25": 2.4333333333333336,
-      "q75": 6.754166666666667,
-      "iqr": 4.320833333333334,
-      "ci_95_lower": 1.7540889556637809,
-      "ci_95_upper": 7.12091104433622,
-      "cv_percent": 72.3322027444748,
-      "p90": 8.841666666666667,
+      "n_observations": 9,
+      "mean": 4.301851851851852,
+      "median": 3.2,
+      "std": 3.0298909547260715,
+      "q25": 2.6333333333333333,
+      "q75": 6.133333333333334,
+      "iqr": 3.5000000000000004,
+      "ci_95_lower": 1.9728714949131794,
+      "ci_95_upper": 6.630832208790525,
+      "cv_percent": 70.43224776375713,
+      "p90": 8.766666666666667,
       "min": 0.7166666666666667,
       "max": 9.366666666666667,
       "by_user_type": {
         "technician": {
-          "n_observations": 8,
-          "mean": 4.4375,
-          "median": 3.1,
-          "std": 3.2097414967860693,
-          "ci_95_lower": 1.7540889556637809,
-          "ci_95_upper": 7.12091104433622
+          "n_observations": 9,
+          "mean": 4.301851851851852,
+          "median": 3.2,
+          "std": 3.0298909547260715,
+          "ci_95_lower": 1.9728714949131794,
+          "ci_95_upper": 6.630832208790525
         }
       }
     },
@@ -913,7 +939,8 @@
       "7t",
       "8e",
       "8t",
-      "9e"
+      "9e",
+      "9t"
     ],
     "tasks": [
       "add_display_support",
