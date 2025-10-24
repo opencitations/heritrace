@@ -15,12 +15,6 @@
       "sentiment": "positive"
     },
     {
-      "code": "internal_linking_expectation_mismatch",
-      "verbatim_quote": "ah ok, io pensavo che appunto era il link a proprio l'entità in nome di OpenCitation, invece l'apre in HERITRACE",
-      "context": "Participant expected links to external OpenCitations resources but discovered they point to internal HERITRACE entity pages instead",
-      "sentiment": "neutral"
-    },
-    {
       "code": "external_resource_access_limitation",
       "verbatim_quote": "Quindi non posso però risalire alla cosa originale, alla Openalex o a DOI a questo punto, e questo sempre HERITRACE, quindi tutti i link a questo punto mi sembra che portino a HERITRACE stesso, non ci sono dei link esterni",
       "context": "Participant identifies absence of external links to original sources (Openalex, DOI), all navigation remains within HERITRACE",
@@ -30,12 +24,6 @@
       "code": "entity_relationship_navigation_understanding",
       "verbatim_quote": "quindi sono part of questo, part of quello per esempio, part of questo",
       "context": "Participant understands and navigates hierarchical entity relationships displayed in the interface",
-      "sentiment": "positive"
-    },
-    {
-      "code": "file_location_immediate_navigation",
-      "verbatim_quote": "Quindi dovrò andare nel file di configurazione immagino di SHACL qua e metterci Abstract",
-      "context": "For Task 1, participant immediately identifies correct configuration file location without exploration",
       "sentiment": "positive"
     },
     {
@@ -57,22 +45,10 @@
       "sentiment": "positive"
     },
     {
-      "code": "task_requirement_clarification_need",
-      "verbatim_quote": "Ah, perché? Ah, adesso non volevamo metterlo tipo title, forse Ok Input type appropriate for long-term text Think alone, va bene",
-      "context": "Participant experiences momentary confusion about Task 2 requirements before understanding textarea input type is needed for long-form text",
-      "sentiment": "neutral"
-    },
-    {
       "code": "configuration_file_differentiation",
       "verbatim_quote": "Ah ok, quindi questo punto non è SHACL.ttl ma direi che è questo",
       "context": "Participant correctly distinguishes between SHACL validation file and display rules YAML file for Task 2",
       "sentiment": "positive"
-    },
-    {
-      "code": "yaml_structure_learning_through_inspection",
-      "verbatim_quote": "Ok, aperto qui Rules Display name, journal article Ok, che è quindi quello che stiamo facendo noi Display properties, quindi queste sono le sue proprietà",
-      "context": "Participant reads through YAML structure, verbalizing elements to understand configuration format",
-      "sentiment": "neutral"
     },
     {
       "code": "property_template_identification",
@@ -127,12 +103,6 @@
       "verbatim_quote": "At one point, Docker stopped running, but it was difficult to determine whether this was due to a specific configuration mistake I made or simply an issue with my local machine",
       "context": "Participant unable to determine if Docker crash was caused by configuration error or local machine issue",
       "sentiment": "negative"
-    },
-    {
-      "code": "technical_background_bias_acknowledgment",
-      "verbatim_quote": "Since I have a somewhat technical background, I may be biased in this evaluation",
-      "context": "Participant acknowledges their technical expertise may bias their assessment of task difficulty",
-      "sentiment": "neutral"
     },
     {
       "code": "UI_driven_configuration_generation_vision",

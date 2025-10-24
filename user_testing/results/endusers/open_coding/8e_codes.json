@@ -3,18 +3,6 @@
   "user_type": "end_user",
   "codes": [
     {
-      "code": "catalog_as_primary_entry_point",
-      "verbatim_quote": "quello che faccio è andare al catalogo",
-      "context": "User immediately navigates to catalog section to begin searching for journal article to edit",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "expecting_navigation_tabs",
-      "verbatim_quote": "qui vedo che ho le issue come prima schermata, vado su journal article",
-      "context": "User notices catalog displays issues by default and navigates to journal article tab to find target resource",
-      "sentiment": "neutral"
-    },
-    {
       "code": "search_functionality_missing",
       "verbatim_quote": "Qui mi aspetterei di trovare una barra di ricerca, onestamente",
       "context": "Task 1: User explicitly expects to find a search bar in catalog view to locate specific journal article",
@@ -31,12 +19,6 @@
       "verbatim_quote": "Quindi dobbiamo modificare la risorsa e aggiungere un autore",
       "context": "User quickly understands task requirement after accessing target journal article page",
       "sentiment": "positive"
-    },
-    {
-      "code": "direct_author_creation_approach",
-      "verbatim_quote": "un autore che ha questo nome, questo nome. Lo aggiungiamo così",
-      "context": "Task 1: User creates new author entity directly by entering given name and family name",
-      "sentiment": "neutral"
     },
     {
       "code": "understanding_identifier_requirement",
@@ -115,24 +97,6 @@
       "verbatim_quote": "Entrambi hanno sicuramente un identificativo, ed è questo per Massari, questo per Peroni",
       "context": "Task 4: User confidently adds ORCID identifiers for both authors without hesitation",
       "sentiment": "positive"
-    },
-    {
-      "code": "creating_related_entities",
-      "verbatim_quote": "Poi ci interessa il publisher e lo creiamo",
-      "context": "Task 4: User creates new publisher entity as part of journal article metadata completion",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "entering_pagination_metadata",
-      "verbatim_quote": "ci interessano le pagine 317 e 340",
-      "context": "Task 4: User enters start and end page numbers for journal article",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "entering_volume_issue_data",
-      "verbatim_quote": "ci interessa l'issue che è 20 e volume 9",
-      "context": "Task 4: User enters issue and volume numbers for journal article metadata",
-      "sentiment": "neutral"
     },
     {
       "code": "rejecting_incorrect_suggestion",

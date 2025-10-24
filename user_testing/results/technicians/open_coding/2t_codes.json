@@ -81,18 +81,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "requirements_comprehension_through_examples",
-      "verbatim_quote": "After task one you can add abstract to journal articles, however the default text input is not ideal for long form text. Okay, esempio, okay, perfetto",
-      "context": "Participant reads task description with example and immediately understands the UX problem being addressed",
-      "sentiment": "positive"
-    },
-    {
-      "code": "yaml_structure_learning_through_inspection",
-      "verbatim_quote": "Display name, general article similarity properties, fetch URI, display query, query, query, display properties, property, type as identifier, title",
-      "context": "Participant reads through existing YAML structure, verbalizing elements to understand format",
-      "sentiment": "neutral"
-    },
-    {
       "code": "copy_paste_modification_workflow",
       "verbatim_quote": "Allora, property abbiamo, tanto è lo stesso identico. Aspetta, sì? Sì, il prefisso è quello. Copiato, incollato e cambio solo questo: abstract, ok",
       "context": "Participant explicitly uses copy-paste-modify approach to add new display rule entry",
@@ -111,12 +99,6 @@
       "sentiment": "positive"
     },
     {
-      "code": "iterative_testing_approach",
-      "verbatim_quote": "Io al momento servirei così e vediamo cosa viene fuori se faccio refresh",
-      "context": "Participant adopts trial-and-error approach, saving configuration and testing to see results",
-      "sentiment": "neutral"
-    },
-    {
       "code": "rapid_task_completion_perception",
       "verbatim_quote": "Direi che il task è stato fatto, non so se è tutto. Quindi io direi che ho finito e penso di aver fatto molto presto",
       "context": "Participant completes task quickly and expresses uncertainty about whether additional steps might be needed",
@@ -133,18 +115,6 @@
       "verbatim_quote": "Però trovandomi davanti, visto che lancio un software che mi rimanda a una pagina web, mi aspettavo di poter configurare da qui",
       "context": "Participant articulates mental model where web-based application interface implies web-based configuration capability",
       "sentiment": "negative"
-    },
-    {
-      "code": "suggestion_for_contextual_guidance",
-      "verbatim_quote": "Se io sono un utente con diritti da admin, più che vedere il back end potrebbe aver senso almeno avere un alert da qualche parte, magari quando creo un new record, che mi dice: vuoi una nuova feature? Ok, devi andare nel file di configurazione a modificare",
-      "context": "Participant proposes UI enhancement where admin users receive contextual hints about configuration file location when encountering configuration needs",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "documentation_acknowledgment_with_usability_concern",
-      "verbatim_quote": "È vero che queste cose ci sono nella documentazione, assolutamente, però secondo me non farebbe male una cosa di questo genere",
-      "context": "Participant acknowledges documentation exists but suggests in-context guidance would still improve usability",
-      "sentiment": "neutral"
     }
   ]
 }

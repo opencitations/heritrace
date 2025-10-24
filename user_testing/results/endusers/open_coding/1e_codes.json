@@ -3,22 +3,10 @@
   "user_type": "end_user",
   "codes": [
     {
-      "code": "automatic_login_unclear",
-      "verbatim_quote": "mi fa il login automatico quindi non saprò mai se il catalogo è accessibile anche da un anonimo",
-      "context": "Exploring the system during warm-up, trying to understand access levels",
-      "sentiment": "neutral"
-    },
-    {
       "code": "layout_space_wasted",
       "verbatim_quote": "L'unica cosa che non mi piace è che qui c'è un max width qualcosa che... cioè ho tutto questo spazio vuoto a destra e a sinistra, non mi piace per niente",
       "context": "Initial interface evaluation on wide screen",
       "sentiment": "negative"
-    },
-    {
-      "code": "url_reference_confusing",
-      "verbatim_quote": "Volevo capire quindi tu richiami questa risorsa attraverso una URL, un po' strano però ok ci sta",
-      "context": "Trying to understand how to access specific resources via URLs",
-      "sentiment": "neutral"
     },
     {
       "code": "search_functionality_missing",
@@ -127,18 +115,6 @@
       "verbatim_quote": "Ok sembra che abbia funzionato",
       "context": "Successfully restoring previous version using time machine",
       "sentiment": "positive"
-    },
-    {
-      "code": "loading_indicator_noticed",
-      "verbatim_quote": "Visto anche un caricamento",
-      "context": "Noticing loading indicator when entering title",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "first_time_user_perspective",
-      "verbatim_quote": "Non lo so, tu dirai ma questo è scemo ma è la prima volta che sto facendo questa roba",
-      "context": "Acknowledging being a first-time user when struggling with form structure",
-      "sentiment": "negative"
     },
     {
       "code": "form_collapse_needed",

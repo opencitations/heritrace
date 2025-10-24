@@ -33,23 +33,19 @@ def load_axial_categories(file_path: str) -> Dict[str, int]:
 
 
 def load_selective_categories(file_path: str) -> Tuple[Set[str], Dict[str, int]]:
-    """Load all categories referenced in selective coding file and their frequencies."""
+    """Load all axial codes referenced in selective coding file and their frequencies."""
     selective_categories = set()
     selective_frequencies = {}
 
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
-        # Add core category
-        core_category = data["core_category"]
-        selective_categories.add(core_category)
-
-        # Add supporting categories
+        # Only add axial codes included in supporting categories
+        # (NOT the supporting category names themselves, as those are theoretical groupings)
         for category in data["supporting_categories"]:
             category_name = category["category"]
-            selective_categories.add(category_name)
 
-            # Store frequency
+            # Store frequency for this supporting category
             frequency = category["frequency"]
             if isinstance(frequency, str) and frequency.isdigit():
                 frequency = int(frequency)
@@ -57,7 +53,7 @@ def load_selective_categories(file_path: str) -> Tuple[Set[str], Dict[str, int]]
                 frequency = 0
             selective_frequencies[category_name] = frequency
 
-            # Also add axial codes included
+            # Add only the axial codes that are included in this supporting category
             for axial_code in category["axial_codes_included"]:
                 selective_categories.add(axial_code)
 

@@ -15,30 +15,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "url_encoding_curiosity",
-      "verbatim_quote": "questo è il suo ed open citations, che è interessante il fatto che non sia stato escaped",
-      "context": "Participant notices that entity URL within page URL is not escaped and finds it technically interesting, expressing curiosity rather than concern",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "dual_button_redundancy_confusion",
-      "verbatim_quote": "Quindi scusami, se io clicco qui cosa faccio? Ah, lento del DOI. E invece, ah ok, la stessa cosa, due bottoni fanno la stessa cosa",
-      "context": "Participant discovers two different buttons perform identical function, causing initial confusion about their purpose",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "authentication_state_uncertainty",
-      "verbatim_quote": "Tanto mi ha loggato, mi sa che a me non mi sono loggato in nessun modo. Forse è una parte dello test, ok",
-      "context": "Participant uncertain about authentication state, noting being logged in without explicit login action",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "title_concatenation_mystery",
-      "verbatim_quote": "Questo è un esempio quindi questo titolo è una concatenazione di string, è tipo la reference, però è da capire come è stata messa una concatenazione di string",
-      "context": "Participant recognizes title field as string concatenation but uncertain about implementation mechanism",
-      "sentiment": "neutral"
-    },
-    {
       "code": "configured_vs_unconfigured_entities_failure",
       "verbatim_quote": "journal issue. Devo sapere quali sono, però issue non è tipo issue uno su due dal 2005 per esempio, questi non ok, non riesco a trovare qualcosa se no non capivo effettivamente cosa fosse. Vabbè, journal volume anche questo, anche questo non ci capisco tanto",
       "context": "Participant fails to distinguish between fully configured entities and those requiring additional configuration work, misinterpreting incomplete entities as semantic confusion",
@@ -48,12 +24,6 @@
       "code": "info_message_delayed_recognition",
       "verbatim_quote": "ah ok, l'ho visto, non l'avevo visto questo qui azzurrino. Forse l'avrei fatto più, non mi sono accorto fino ad adesso che l'ho già loggato comunque",
       "context": "Participant notices logged-in info message late in exploration and suggests alternative color, but this is standard info styling for non-critical information",
-      "sentiment": "negative"
-    },
-    {
-      "code": "autocomplete_scope_misunderstanding",
-      "verbatim_quote": "Ah interessante, questo è molto interessante. E parte con 3, sono 5 entities, solo 5 forse perché sì, avrei tipo il limit",
-      "context": "Participant explores autocomplete search functionality but misunderstands that search operates on current database rather than external sources",
       "sentiment": "negative"
     },
     {

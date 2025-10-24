@@ -3,12 +3,6 @@
   "user_type": "end_user",
   "codes": [
     {
-      "code": "interface_overview_during_exploration",
-      "verbatim_quote": "Vedo un'interfaccia, un catalogo, l'aggiunta di nuovi record e il Time Vault, probabilmente un cestino temporaneo",
-      "context": "During warm-up exploration, user systematically scans and verbalizes main interface components",
-      "sentiment": "neutral"
-    },
-    {
       "code": "correct_time_vault_mental_model",
       "verbatim_quote": "il Time Vault, probabilmente un cestino temporaneo",
       "context": "User correcly assumes Time Vault is a temporary trash bin",
@@ -201,12 +195,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "empty_field_workaround",
-      "verbatim_quote": "Lasciamo vuoto. Successo",
-      "context": "User discovers leaving problematic field empty results in successful save",
-      "sentiment": "neutral"
-    },
-    {
       "code": "persistent_display_issue",
       "verbatim_quote": "Non lo so. Torniamo qua. Ma è ancora 'nessuno'. Qualcosa non va qui. Forse metto il nome completo. Non lo so",
       "context": "User finds issue persists even after successful save and tries alternative approaches",
@@ -255,34 +243,16 @@
       "sentiment": "negative"
     },
     {
-      "code": "title_verification_attempt",
-      "verbatim_quote": "Ho sbagliato a scrivere il titolo? Ah, HERITRACE. Non è user-friendly. Colpa mia",
-      "context": "User questions own input accuracy and checks multiple pages alphabetically",
-      "sentiment": "neutral"
-    },
-    {
       "code": "alphabetical_pagination_search",
       "verbatim_quote": "Quindi andiamo per la H. Non è qui. Seconda pagina. Non c'è comunque. Non c'è comunque. Non sto capendo per quale motivo",
       "context": "User systematically searches through pages but cannot locate record",
       "sentiment": "negative"
     },
     {
-      "code": "task_completion_despite_issues",
-      "verbatim_quote": "Ok, questo forse l'ho sbagliato in qualche modo. Detto ciò, credo di aver finito. Magari provo a ricrearlo. Vediamo cosa succede",
-      "context": "User acknowledges possible error but decides to attempt recreation to complete task",
-      "sentiment": "neutral"
-    },
-    {
       "code": "second_attempt_record_creation",
       "verbatim_quote": "Allora, nuovo record. Journal article, avevamo detto. Identifier. DOI. È quello che abbiamo aggiunto prima. Vediamo un po'",
       "context": "User begins second attempt at creating same record with more confidence",
       "sentiment": "positive"
-    },
-    {
-      "code": "repository_location_hypothesis",
-      "verbatim_quote": "Forse era da un'altra parte perché il repository era diverso. Vediamo un po'",
-      "context": "User hypothesizes record location might depend on repository value",
-      "sentiment": "neutral"
     },
     {
       "code": "focused_correction_approach",

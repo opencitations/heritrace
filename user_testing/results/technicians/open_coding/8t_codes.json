@@ -93,12 +93,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "configuration_element_function_uncertainty",
-      "verbatim_quote": "Questo veramente non so cosa sia... Display prop non è comunque relazionato a quello che devo fare",
-      "context": "Participant encounters YAML configuration elements whose function is unclear but determines they're not relevant to current task",
-      "sentiment": "neutral"
-    },
-    {
       "code": "code_folding_frustration",
       "verbatim_quote": "Quindi queste questo magari se riuscissi a chiudere le cose appropriatamente sarebbe meglio però. E anche tu? No. Benissimo. Quindi anche tu. Non me ne frega niente. Chiudi. Chiudi. Chiudi. Oh. Così riesco a pensare",
       "context": "Participant struggles with code editor folding, expressing frustration at inability to collapse sections, hindering focus and comprehension",
@@ -109,18 +103,6 @@
       "verbatim_quote": "Quindi abbiamo detto che noi dobbiamo mettere dopo il title. Gentilmente. Farò così. E sarà abstract se non sbaglio",
       "context": "Participant deduces abstract property should be placed after title in YAML to achieve required display order",
       "sentiment": "positive"
-    },
-    {
-      "code": "search_configuration_irrelevance_hypothesis",
-      "verbatim_quote": "Support search no min chart support search 2 penso sia irrelevant target self search target self penso che entrambe siano irrelevant nel momento stesso in cui dici false no? Lo scopriremo soltanto vivendo",
-      "context": "Participant hypothesizes that search-related configuration properties become irrelevant when support_search is false, adopting wait-and-see verification approach",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "configuration_error_handling_blindness",
-      "verbatim_quote": "Additionally, from my attempts, it didn't triggered any error in the UI - so I have no knowledge on how configuration errors or invalid inputs are handled in the UI",
-      "context": "Participant identifies inability to assess error handling quality because no errors occurred during configuration tasks",
-      "sentiment": "neutral"
     },
     {
       "code": "configuration_ease_and_speed",

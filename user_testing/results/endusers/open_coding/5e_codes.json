@@ -15,12 +15,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "comparing_to_existing_system",
-      "verbatim_quote": "it kind of reminds me of Zenodo interface",
-      "context": "Drawing comparisons between HERITRACE and familiar repository system Zenodo",
-      "sentiment": "neutral"
-    },
-    {
       "code": "requesting_expanded_form_fields",
       "verbatim_quote": "it would be better to have a preview, not just by clicking on the single items, but when you access the page, everything that is already clearly open, just like Zenodo does",
       "context": "During new entity creation, user expressed frustration about having to manually click on each property to expand it. Would prefer all form fields visible immediately like in Zenodo interface",
@@ -63,12 +57,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "iterative_problem_solving",
-      "verbatim_quote": "I'm going back to this first, no, what's that? So I'm starting from the first task",
-      "context": "Restarting task execution after encountering confusion and errors",
-      "sentiment": "neutral"
-    },
-    {
       "code": "positive_merging_experience",
       "verbatim_quote": "This is very intuitive. I really like this merging",
       "context": "Expressing strong satisfaction with the entity merging functionality",
@@ -85,12 +73,6 @@
       "verbatim_quote": "I don't have the button to restore the version... even if I managed to restore a previous version as a first attempt, after adding another edit, I couldn't restore the first version",
       "context": "User encountered a system bug: editing first author directly (instead of adding new author as first in sequence) prevented Time Machine snapshot generation, making restore button unavailable. User successfully restored once but subsequent edit triggered the bug",
       "sentiment": "negative"
-    },
-    {
-      "code": "organizing_screen_for_efficiency",
-      "verbatim_quote": "I will put it this way, so I can follow all that",
-      "context": "Arranging workspace to view task instructions while using the system",
-      "sentiment": "neutral"
     },
     {
       "code": "confusion_from_nested_identifier_structure",

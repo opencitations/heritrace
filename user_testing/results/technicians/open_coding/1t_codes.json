@@ -27,12 +27,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "need_to_verify_SHACL_structure",
-      "verbatim_quote": "I'll try and see if there is any other mention of fabio:JournalArticle in the SHACL Shape file",
-      "context": "User double-checking SHACL file structure before modifying shapes to ensure no conflicts",
-      "sentiment": "neutral"
-    },
-    {
       "code": "successful_SHACL_implementation",
       "verbatim_quote": "So I'll save this and try to try the reloading. Okay, and let's see if I can, for example, modify a journal article by adding an abstract. So, okay, journal article expression, title, author... uh, let's try edit resource. I don't want to add an identifier. I would like to add... add... add abstract. Here it is, okay",
       "context": "User successfully implemented SHACL validation for abstract property and immediately verified it works by finding the new field available",
@@ -43,12 +37,6 @@
       "verbatim_quote": "This is kind of strange. I would like to see like just the abstract, like label, and not the whole UI",
       "context": "User noticing that abstract field appears differently than expected after adding SHACL validation",
       "sentiment": "negative"
-    },
-    {
-      "code": "uncertainty_about_display_rule_ordering",
-      "verbatim_quote": "I'm not sure that this is already like enforced by placing abstract here right under the display rule for the title property",
-      "context": "User expressing doubt about whether position in display rules affects field ordering in the interface",
-      "sentiment": "neutral"
     },
     {
       "code": "intuitive_display_rules_configuration",

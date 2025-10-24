@@ -173,7 +173,7 @@ From the templates above, compute:
       "code": "[PARTICIPANT_EXACT_WORDS]",
       "verbatim_quote": "[EXACT_QUOTE_FROM_DATA]",
       "context": "[SITUATION_DESCRIPTION]",
-      "sentiment": "[positive|neutral|negative]"
+      "sentiment": "[positive|negative]"
     }
   ]
 }
@@ -195,7 +195,7 @@ From the templates above, compute:
       ],
       "category_description": "[HOW_CODES_RELATE]",
       "task_contexts": ["[TASK1]", "[TASK2]"],
-      "overall_sentiment": "[positive|neutral|negative]",
+      "overall_sentiment": "[positive|negative]",
       "frequency": "[NUMBER_OF_RELATED_CODES]"
     }
   ]
@@ -320,7 +320,7 @@ poetry run python3 selective_code_verification.py
 - **Type**: Horizontal bar chart (separate for each user type)
 - **Input**: Extract from `axial_codes.json` files
 - **Visualization**: Axial categories ordered by frequency
-  - Bars colored by sentiment (green=positive, yellow=neutral, red=negative, blue=mixed)
+  - Bars colored by sentiment (green=positive, red=negative)
   - Frequency labels on each bar
   - Legend indicating sentiment categories
   - ColorBrewer safe palette (colorblind-friendly, grayscale print compatible)

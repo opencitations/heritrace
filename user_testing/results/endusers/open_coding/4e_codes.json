@@ -39,18 +39,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "gradual_understanding_achievement",
-      "verbatim_quote": "ok, adesso penso di aver capito... secondo me questa cosa, ok, adesso penso di aver capito, adesso spero di non averlo sbagliato di nuovo",
-      "context": "User gradually understands interface behavior through trial and error, though remains uncertain",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "remembering_position_requirement",
-      "verbatim_quote": "Vediamo, sì, ok, adesso, ok, però devo metterla al primo posto, cosa che non ho fatto, ovviamente",
-      "context": "User remembers task requirement to place author in first position and corrects their work",
-      "sentiment": "neutral"
-    },
-    {
       "code": "task_completion_satisfaction",
       "verbatim_quote": "Penso che il primo task dovrebbe essere stato fatto, ok. Andiamo in giù. Bello",
       "context": "User expresses satisfaction and confidence in completing the first task successfully",
@@ -109,18 +97,6 @@
       "verbatim_quote": "Ok, se aggiungo... L'author è... Ok. Perfetto. Sì, devo metterci anche l'altro, così",
       "context": "User successfully adds author entities to publication record",
       "sentiment": "positive"
-    },
-    {
-      "code": "validation_error_recognition",
-      "verbatim_quote": "Ok, perfetto. Ok, allora, questo qui è un effetto che mi ha fatto notare che ho sbagliato qualcosa. Allora... Ok",
-      "context": "User recognizes validation error feedback indicating a mistake in data entry",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "workaround_solution_implementation",
-      "verbatim_quote": "Ho utilizzato l'identificatore di Wikidata per l'università di Bologna. Adesso, ok. Apposto",
-      "context": "User resolves validation error by adding Wikidata identifier, though could have deleted empty field",
-      "sentiment": "neutral"
     },
     {
       "code": "appreciating_identifier_interoperability",

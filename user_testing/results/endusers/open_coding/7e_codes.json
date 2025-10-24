@@ -21,12 +21,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "catalog_as_primary_entry_point",
-      "verbatim_quote": "Catalog. Ok, qua mi aspetto di trovare effettivamente le 100 entità che mi erano state promesse",
-      "context": "User immediately identifies catalog as location to access preloaded bibliographic resources",
-      "sentiment": "neutral"
-    },
-    {
       "code": "understanding_bibliographic_structure",
       "verbatim_quote": "Un journal, 15 issues e 5 volumi. Fammi un attimo vedere quel che c'è dentro, come si configura questa faccenda",
       "context": "Exploring journal entity to understand hierarchical structure of volumes and issues",
@@ -55,12 +49,6 @@
       "verbatim_quote": "Mi sposterò con un Ctrl F. Ok, perfetto",
       "context": "Task 1: Using browser's native find function (Ctrl+F) as workaround for missing search functionality",
       "sentiment": "negative"
-    },
-    {
-      "code": "understanding_identifier_requirement",
-      "verbatim_quote": "C'ho forse mezzo dubbio su quale sia il... Ci posso sparare dentro soltanto l'identifier a secco? Ah no, lui mi chiede",
-      "context": "Task 1: Initial uncertainty about identifier entry, then discovering system prompts for required information",
-      "sentiment": "neutral"
     },
     {
       "code": "successful_author_lookup",
@@ -159,12 +147,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "manual_author_entry_workaround",
-      "verbatim_quote": "Arcangelo. Massari. Add identifier. Metto l'ORCID. ORCID. Literal value",
-      "context": "Task 4: Manually entering first author with ORCID identifier after lookup failure",
-      "sentiment": "neutral"
-    },
-    {
       "code": "systematic_metadata_completion",
       "verbatim_quote": "Publisher. Quindi aggiungo il publisher... Pages. Aggiungo le pagine... Publication date. Metto la data... Issue... Volume... Journal",
       "context": "Task 4: Methodically entering all required metadata fields in sequence for new publication",
@@ -181,12 +163,6 @@
       "verbatim_quote": "[Audio corrupted - behavior reconstructed from video]",
       "context": "Task 4: User autonomously identified that the invisible author name issue was caused by incorrectly populated entity fields, without requiring external assistance or prompting",
       "sentiment": "positive"
-    },
-    {
-      "code": "delete_and_recreate_workaround",
-      "verbatim_quote": "[Audio corrupted - behavior reconstructed from video]",
-      "context": "Task 4: After diagnosing the empty name field problem, user decided to delete incorrectly created author entities and recreate them from scratch with proper field values",
-      "sentiment": "neutral"
     },
     {
       "code": "autonomous_duplicate_merging",

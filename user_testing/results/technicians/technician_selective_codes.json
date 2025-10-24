@@ -20,8 +20,8 @@
       "explanation": "Technicians created SHACL constraints from task descriptions without step-by-step guidance by inferring datatypes from semantics, specifying constraints from requirements, and verifying structural consistency. Domain expertise compensates for documentation gaps, though uncertainty around optional parameters shows even experts benefit from explicit documentation of implicit rules. First-time SHACL users successfully implemented constraints, confirming semantic reasoning extends beyond prior technology-specific knowledge."
     },
     {
-      "proposition": "Iterative testing approaches and exploratory learning strategies characterize technical user behavior when working with configuration systems that provide rapid feedback and consistent patterns",
-      "explanation": "Rather than exhaustively studying documentation, technicians preferred making changes, testing results, and refining based on observations. This trial-and-error methodology succeeds when systems provide immediate feedback and failures are low-cost and reversible. Participants leveraged version restoration to safely test configuration hypotheses, reflecting confidence in diagnosing and correcting issues through experimentation."
+      "proposition": "Pattern-based exploration with rapid validation feedback characterizes technical user configuration workflows, enabling learning through low-cost experimentation",
+      "explanation": "Rather than exhaustively studying documentation, technicians preferred identifying existing patterns, replicating structures, and refining based on immediate visual feedback. This exploratory methodology succeeds through copy-modify-verify workflows where systems provide rapid feedback and failures are low-cost and reversible. Participants leveraged version restoration to safely test configuration hypotheses and pattern variations, reflecting confidence in diagnosing and correcting issues through experimentation. Pattern replication combined with immediate feedback creates effective learning loops that reduce dependency on comprehensive documentation."
     },
     {
       "proposition": "File-based configuration systems create architectural sustainability challenges when they combine intuitive user interfaces with technically complex configuration layers, establishing persistent dependency on expert-non-expert collaboration that may not be sustainable at individual project scales",
@@ -32,7 +32,7 @@
     {
       "category": "Technical competence and domain expertise foundation",
       "relationship_to_core": "Establishes foundational expertise enabling pattern-based learning and semantic reasoning. Intuitive navigation, semantic reasoning capabilities, and successful verification demonstrate prerequisite knowledge for effective configuration. Documentation effectiveness supports expertise development even without prior SHACL knowledge.",
-      "frequency": 85,
+      "frequency": 87,
       "axial_codes_included": [
         "Intuitive interface exploration and navigation",
         "Semantic and technical reasoning",
@@ -41,12 +41,11 @@
       ]
     },
     {
-      "category": "Pattern-based learning and iterative problem-solving strategies",
-      "relationship_to_core": "Directly manifests core theory through pattern replication, analogical reasoning, and iterative testing. These represent primary mechanisms translating technical expertise into successful outcomes despite system constraints. All participants adopted copy-paste-modify workflows using existing examples as templates.",
-      "frequency": 34,
+      "category": "Pattern-based configuration learning",
+      "relationship_to_core": "Directly manifests core theory through pattern replication and analogical reasoning as primary mechanisms translating technical expertise into successful outcomes despite system constraints. All participants adopted copy-paste-modify workflows using existing examples as templates, identifying similar structures and adapting them to new requirements. This pattern-based approach proved effective for both SHACL validation and display rule configuration, demonstrating that configuration files maintain sufficient internal consistency to support learning by example.",
+      "frequency": 27,
       "axial_codes_included": [
-        "Configuration through pattern replication",
-        "Iterative testing and validation approach"
+        "Configuration through pattern replication"
       ]
     },
     {
@@ -61,9 +60,8 @@
     {
       "category": "Conceptual and documentation barriers requiring expert compensation",
       "relationship_to_core": "Identifies system constraints that technical expertise must overcome including file-based configuration paradigm, documentation gaps, parameter uncertainty, and accessibility barriers. Technicians navigate these friction points through domain knowledge and problem-solving skills, though improvements in system design and documentation could reduce barriers. System enables task completion even with limited domain expertise.",
-      "frequency": 46,
+      "frequency": 36,
       "axial_codes_included": [
-        "Delayed understanding of file-based configuration paradigm",
         "Configuration file documentation gaps",
         "Uncertainty with optional configuration parameters",
         "Task requirement comprehension failures",
@@ -73,19 +71,17 @@
     {
       "category": "Quality and usability refinement opportunities",
       "relationship_to_core": "Captures issues not preventing successful configuration but representing improvement opportunities. Validation bugs, UI inconsistencies, feedback gaps, and code editor challenges are identified by skilled users but do not fundamentally impede pattern-based learning. Expert users work around imperfections while identifying refinement areas.",
-      "frequency": 16,
+      "frequency": 15,
       "axial_codes_included": [
         "System validation and quality issues",
         "Minor UI presentation inconsistencies",
-        "Interface change detection failures",
-        "Validation feedback gaps",
-        "Code editor workflow challenges"
+        "Minor quality and usability issues"
       ]
     },
     {
       "category": "Constructive enhancement suggestions from expert perspective",
       "relationship_to_core": "Forward-looking suggestions bridge the gap between current file-based configuration and more discoverable approaches. Identified gaps include retrospective validation, contextual UI help, visual SHACL editors, validation tooling, and search functionality. Reflects understanding of both current architecture and potential improvements benefiting users with varying expertise levels.",
-      "frequency": 21,
+      "frequency": 18,
       "axial_codes_included": [
         "Missing feature identification and enhancement suggestions"
       ]
@@ -99,19 +95,10 @@
       ]
     },
     {
-      "category": "Docker deployment and operational complexity",
-      "relationship_to_core": "Containerized deployment adds technical complexity beyond configuration tasks. Docker knowledge serves as prerequisite barrier, with operational challenges (container restarts, log debugging) compounding technical demands. This complexity layer affects configuration workflow accessibility, particularly for users unfamiliar with containerized environments.",
-      "frequency": 2,
+      "category": "Interface behavior misunderstandings",
+      "relationship_to_core": "Represents mental model gaps and misconceptions about system behavior that technical users encounter during exploration. Misunderstandings include pagination behavior assumptions, cascade deletion dialog interpretation, and failure to distinguish configured versus unconfigured entities. Participants sometimes interpreted missing configuration (labels, category descriptions) as UI inconsistencies rather than recognizing these as their configuration responsibility. These mental model gaps represent temporary comprehension barriers during system exploration but did not prevent ultimate task completion as misunderstandings resolved through continued interaction.",
+      "frequency": 8,
       "axial_codes_included": [
-        "Docker deployment and troubleshooting challenges"
-      ]
-    },
-    {
-      "category": "Feature expectations and mental model formation",
-      "relationship_to_core": "Demonstrates how technically sophisticated users form expectations and mental models through configuration inspection and exploration. Ability to infer feature behavior from YAML properties and develop hypotheses shows pattern-based learning extending beyond immediate tasks to broader system understanding. Mental models sometimes reveal implementation uncertainties or gaps between configuration and actual behavior, with misunderstandings resolving through continued interaction.",
-      "frequency": 33,
-      "axial_codes_included": [
-        "Feature expectations and mental models",
         "Interface behavior misunderstandings"
       ]
     }

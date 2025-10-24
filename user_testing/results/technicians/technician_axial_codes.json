@@ -6,10 +6,6 @@
       "related_codes": [
         {
           "participant_id": "4t",
-          "code": "accessibility_reflection_for_non_experts"
-        },
-        {
-          "participant_id": "4t",
           "code": "technical_barrier_acknowledgment"
         },
         {
@@ -30,10 +26,6 @@
         },
         {
           "participant_id": "4t",
-          "code": "semantic_web_prerequisite_knowledge"
-        },
-        {
-          "participant_id": "4t",
           "code": "SHACL_learnability_with_foundation"
         },
         {
@@ -45,37 +37,37 @@
           "code": "trial_and_error_mindset_requirement"
         },
         {
-          "participant_id": "5t",
-          "code": "technical_background_bias_acknowledgment"
-        },
-        {
-          "participant_id": "6t",
-          "code": "novice_self_disclosure_with_task_engagement"
-        },
-        {
-          "participant_id": "6t",
-          "code": "personal_knowledge_limitation_attribution"
-        },
-        {
-          "participant_id": "6t",
-          "code": "personal_knowledge_gap_as_primary_frustration"
-        },
-        {
           "participant_id": "6t",
           "code": "minimal_knowledge_task_completion_enablement"
         },
         {
           "participant_id": "8t",
           "code": "yaml_structure_unfamiliarity"
+        },
+        {
+          "participant_id": "4t",
+          "code": "container_restart_unfamiliarity"
+        },
+        {
+          "participant_id": "2t",
+          "code": "delayed_realization_file_based_configuration"
+        },
+        {
+          "participant_id": "2t",
+          "code": "expectation_of_web_based_configuration"
+        },
+        {
+          "participant_id": "2t",
+          "code": "mental_model_web_interface_equals_web_configuration"
         }
       ],
-      "category_description": "Configuration requires significant technical prerequisites including Docker deployment, semantic web concepts, and SHACL knowledge. Participants identified computational thinking mindset - the iterative, experimental approach of modifying and testing - as the core challenge, more critical than specific technology knowledge. This trial-and-error process may frustrate non-technical users. Participants demonstrated awareness that their technical expertise enables understanding inaccessible to non-experts. Despite these barriers, the system enables task completion even for users with limited domain expertise who attribute difficulties to knowledge gaps rather than system design.",
+      "category_description": "Configuration requires significant technical prerequisites including Docker deployment, semantic web concepts, and SHACL knowledge, compounded by mental model mismatches where web-based interfaces create expectations of web-based configuration. Participants identified computational thinking mindset - the iterative, experimental approach of modifying and testing - as a core competence requirement. Initial paradigm confusion where technicians searched for GUI-based configuration options reflects common architectural assumptions. Technical barriers include Docker, semantic web knowledge, SHACL syntax, YAML structure familiarity, and container restart procedures.",
       "task_contexts": [
         "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "negative",
-      "frequency": "16"
+      "frequency": "14"
     },
     {
       "category_name": "Configuration file documentation gaps",
@@ -246,50 +238,6 @@
       "frequency": "27"
     },
     {
-      "category_name": "Delayed understanding of file-based configuration paradigm",
-      "related_codes": [
-        {
-          "participant_id": "2t",
-          "code": "delayed_realization_file_based_configuration"
-        },
-        {
-          "participant_id": "2t",
-          "code": "expectation_of_web_based_configuration"
-        },
-        {
-          "participant_id": "2t",
-          "code": "mental_model_web_interface_equals_web_configuration"
-        }
-      ],
-      "category_description": "One technician initially expected to configure the system through the web interface rather than by editing files. This mental model mismatch, where a web-based application interface implies web-based configuration capability, caused initial exploration of the UI looking for configuration options. Once the file-based approach was understood, the participant successfully completed tasks, but the initial confusion represents a conceptual friction point.",
-      "task_contexts": [
-        "add_shacl_validation",
-        "add_display_support"
-      ],
-      "overall_sentiment": "negative",
-      "frequency": "3"
-    },
-    {
-      "category_name": "Docker deployment and troubleshooting challenges",
-      "related_codes": [
-        {
-          "participant_id": "4t",
-          "code": "container_restart_unfamiliarity"
-        },
-        {
-          "participant_id": "4t",
-          "code": "docker_logs_as_primary_debugging_tool"
-        }
-      ],
-      "category_description": "One technician encountered challenges with Docker-based workflow despite successful initial deployment. When the application became unresponsive during configuration work, the participant was unfamiliar with container restart procedures and had to learn how to recover the system. Additionally, Docker logs became the essential debugging tool for troubleshooting configuration issues, which the participant acknowledged is a highly technical requirement that creates additional barriers for less experienced users. This highlights that Docker deployment, while standard in modern development, adds operational complexity that compounds the existing configuration complexity.",
-      "task_contexts": [
-        "add_shacl_validation",
-        "add_display_support"
-      ],
-      "overall_sentiment": "negative",
-      "frequency": "2"
-    },
-    {
       "category_name": "Documentation and learning resource effectiveness",
       "related_codes": [
         {
@@ -328,123 +276,6 @@
       ],
       "overall_sentiment": "positive",
       "frequency": "7"
-    },
-    {
-      "category_name": "Feature expectations and mental models",
-      "related_codes": [
-        {
-          "participant_id": "4t",
-          "code": "orphaned_entity_relationship_concern"
-        },
-        {
-          "participant_id": "4t",
-          "code": "textarea_expectation_for_long_content"
-        },
-        {
-          "participant_id": "4t",
-          "code": "search_configuration_mental_model"
-        },
-        {
-          "participant_id": "4t",
-          "code": "autocomplete_search_expectation"
-        },
-        {
-          "participant_id": "4t",
-          "code": "feature_implementation_uncertainty"
-        },
-        {
-          "participant_id": "4t",
-          "code": "class_addition_configuration_interest"
-        },
-        {
-          "participant_id": "4t",
-          "code": "class_expansion_necessity"
-        },
-        {
-          "participant_id": "4t",
-          "code": "UI_configuration_issue_identification"
-        },
-        {
-          "participant_id": "4t",
-          "code": "file_location_immediate_navigation"
-        },
-        {
-          "participant_id": "4t",
-          "code": "yaml_file_location_recall"
-        },
-        {
-          "participant_id": "5t",
-          "code": "file_location_immediate_navigation"
-        },
-        {
-          "participant_id": "5t",
-          "code": "internal_linking_expectation_mismatch"
-        },
-        {
-          "participant_id": "6t",
-          "code": "dual_button_destination_hypothesis"
-        },
-        {
-          "participant_id": "6t",
-          "code": "new_record_function_hypothesis_verification"
-        },
-        {
-          "participant_id": "6t",
-          "code": "time_vault_metaphor_interpretation"
-        },
-        {
-          "participant_id": "6t",
-          "code": "property_location_alternative_hypothesis"
-        },
-        {
-          "participant_id": "7t",
-          "code": "url_encoding_curiosity"
-        },
-        {
-          "participant_id": "7t",
-          "code": "dual_button_redundancy_confusion"
-        },
-        {
-          "participant_id": "7t",
-          "code": "authentication_state_uncertainty"
-        },
-        {
-          "participant_id": "7t",
-          "code": "title_concatenation_mystery"
-        },
-        {
-          "participant_id": "7t",
-          "code": "autocomplete_scope_misunderstanding"
-        },
-        {
-          "participant_id": "7t",
-          "code": "inline_entity_creation_navigation"
-        },
-        {
-          "participant_id": "7t",
-          "code": "external_configuration_hypothesis"
-        },
-        {
-          "participant_id": "8t",
-          "code": "catalog_versus_editing_modification_expectation"
-        },
-        {
-          "participant_id": "8t",
-          "code": "configuration_error_handling_blindness"
-        },
-        {
-          "participant_id": "8t",
-          "code": "search_configuration_irrelevance_hypothesis"
-        }
-      ],
-      "category_description": "Participants formed sophisticated mental models about system features and behavior through exploration. They questioned orphaned entity handling, expected textarea widgets for long-form content, developed mental models of search functionality from YAML inspection, and tested hypotheses about interface behavior. Observations included expectations about external vs. internal links, button redundancy, authentication state, autocomplete scope, and configuration file separation. Technical users actively formed and tested expectations through system exploration and configuration inspection.",
-      "task_contexts": [
-        "warm_up_exploration",
-        "add_shacl_validation",
-        "add_display_support"
-      ],
-      "overall_sentiment": "neutral",
-      "frequency": "26"
     },
     {
       "category_name": "Immediate visual feedback appreciation",
@@ -501,26 +332,6 @@
       ],
       "overall_sentiment": "positive",
       "frequency": "11"
-    },
-    {
-      "category_name": "Interface change detection failures",
-      "related_codes": [
-        {
-          "participant_id": "3t",
-          "code": "UI_field_visibility_failure"
-        },
-        {
-          "participant_id": "3t",
-          "code": "yaml_file_location_recall"
-        }
-      ],
-      "category_description": "One technician failed to notice that the abstract field appeared in the form interface immediately after adding the SHACL property definition. Instead of recognizing this change, the participant proceeded to unnecessarily modify YAML display rules, navigating to the YAML configuration file with some uncertainty about its location. This suggests the participant may have had expectations about what changes would occur when and did not carefully inspect the UI after the SHACL modification, or that the new field was not sufficiently prominent to catch attention.",
-      "task_contexts": [
-        "add_shacl_validation",
-        "add_display_support"
-      ],
-      "overall_sentiment": "negative",
-      "frequency": "2"
     },
     {
       "category_name": "Intuitive interface exploration and navigation",
@@ -615,10 +426,6 @@
         },
         {
           "participant_id": "6t",
-          "code": "modification_action_available_but_deferred"
-        },
-        {
-          "participant_id": "6t",
           "code": "entity_metadata_systematic_enumeration"
         },
         {
@@ -640,6 +447,26 @@
         {
           "participant_id": "9t",
           "code": "vault_purpose_inference"
+        },
+        {
+          "participant_id": "6t",
+          "code": "edit_mode_exploration_facilitation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "new_record_function_hypothesis_verification"
+        },
+        {
+          "participant_id": "6t",
+          "code": "time_vault_metaphor_interpretation"
+        },
+        {
+          "participant_id": "6t",
+          "code": "version_restoration_hypothesis_testing_enablement"
+        },
+        {
+          "participant_id": "7t",
+          "code": "inline_entity_creation_navigation"
         }
       ],
       "category_description": "Participants quickly understood and navigated the interface through exploration, successfully grasping navigation menu items, resource organization, and specialized features. They systematically enumerated collections, verified functionality, made logical inferences, and understood entity relationships. Participants appreciated the minimalist design with clear information hierarchy. The interface provides sufficient visual and organizational cues for technical users to orient themselves without extensive documentation.",
@@ -647,47 +474,7 @@
         "warm_up_exploration"
       ],
       "overall_sentiment": "positive",
-      "frequency": "29"
-    },
-    {
-      "category_name": "Iterative testing and validation approach",
-      "related_codes": [
-        {
-          "participant_id": "2t",
-          "code": "iterative_testing_approach"
-        },
-        {
-          "participant_id": "2t",
-          "code": "requirements_comprehension_through_examples"
-        },
-        {
-          "participant_id": "3t",
-          "code": "prior_configuration_verification"
-        },
-        {
-          "participant_id": "4t",
-          "code": "self_verification_through_enumeration"
-        },
-        {
-          "participant_id": "6t",
-          "code": "version_restoration_hypothesis_testing_enablement"
-        },
-        {
-          "participant_id": "6t",
-          "code": "edit_mode_exploration_facilitation"
-        },
-        {
-          "participant_id": "9t",
-          "code": "ui_outcome_visualization_before_modification"
-        }
-      ],
-      "category_description": "Participants adopted an iterative approach of making changes, saving, and testing to verify results. They systematically reviewed configuration completeness, understood requirements through examples, and leveraged version restoration to safely test hypotheses. This trial-and-error methodology proved effective and reflects a pragmatic problem-solving style of testing and observing rather than exhaustive planning.",
-      "task_contexts": [
-        "add_shacl_validation",
-        "add_display_support"
-      ],
-      "overall_sentiment": "neutral",
-      "frequency": "7"
+      "frequency": "33"
     },
     {
       "category_name": "Minor UI presentation inconsistencies",
@@ -730,14 +517,6 @@
       "category_name": "Missing feature identification and enhancement suggestions",
       "related_codes": [
         {
-          "participant_id": "2t",
-          "code": "suggestion_for_contextual_guidance"
-        },
-        {
-          "participant_id": "2t",
-          "code": "documentation_acknowledgment_with_usability_concern"
-        },
-        {
           "participant_id": "3t",
           "code": "retrospective_validation_need_identification"
         },
@@ -764,10 +543,6 @@
         {
           "participant_id": "4t",
           "code": "time_machine_interface_compression_concern"
-        },
-        {
-          "participant_id": "4t",
-          "code": "textarea_expectation_for_long_content"
         },
         {
           "participant_id": "5t",
@@ -821,7 +596,7 @@
         "warm_up_exploration"
       ],
       "overall_sentiment": "negative",
-      "frequency": "21"
+      "frequency": "18"
     },
     {
       "category_name": "Positive feature experiences and interface design appreciation",
@@ -968,10 +743,6 @@
       "category_name": "Semantic and technical reasoning",
       "related_codes": [
         {
-          "participant_id": "1t",
-          "code": "need_to_verify_SHACL_structure"
-        },
-        {
           "participant_id": "2t",
           "code": "data_model_gap_identification"
         },
@@ -990,14 +761,6 @@
         {
           "participant_id": "4t",
           "code": "namespace_verification_before_use"
-        },
-        {
-          "participant_id": "4t",
-          "code": "datatype_input_relationship_exploration"
-        },
-        {
-          "participant_id": "4t",
-          "code": "search_configuration_decision_making"
         },
         {
           "participant_id": "5t",
@@ -1050,6 +813,10 @@
         {
           "participant_id": "9t",
           "code": "syntax_familiarity_enables_straightforward_modification"
+        },
+        {
+          "participant_id": "7t",
+          "code": "external_configuration_hypothesis"
         }
       ],
       "category_description": "Participants demonstrated strong semantic web and technical reasoning, successfully translating requirements into SHACL constraints, inferring datatypes from semantics, verifying namespace availability, and exploring datatype-widget relationships. They correctly attributed interface constraints to SHACL, identified data model gaps, and distinguished configuration file purposes. Participants with first-time SHACL exposure assessed syntax as straightforward and correctly interpreted requirements. However, semantic ambiguities in property definitions created uncertainty even for technical users. This shows technicians possess needed domain knowledge but benefit from clear patterns and examples.",
@@ -1058,7 +825,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "positive",
-      "frequency": "21"
+      "frequency": "19"
     },
     {
       "category_name": "Successful implementation and verification",
@@ -1141,10 +908,6 @@
         },
         {
           "participant_id": "6t",
-          "code": "satisfaction_with_embarrassment"
-        },
-        {
-          "participant_id": "6t",
           "code": "complexity_disagreement_despite_errors"
         },
         {
@@ -1174,6 +937,10 @@
         {
           "participant_id": "9t",
           "code": "successful_verification_after_second_reload"
+        },
+        {
+          "participant_id": "9t",
+          "code": "ui_outcome_visualization_before_modification"
         }
       ],
       "category_description": "All participants successfully completed configuration tasks and verified changes through the UI. They discovered implicit ordering mechanisms and systematically debugged by reverting and reapplying changes when needed. Despite making errors, participants characterized the experience as smooth and not complex, noting helpful error guidance. Quick completion times suggest the configuration workflow is reasonably efficient for technical users once they understand the approach.",
@@ -1193,23 +960,23 @@
         },
         {
           "participant_id": "4t",
-          "code": "cms_style_configuration_interface_exploration"
-        },
-        {
-          "participant_id": "4t",
-          "code": "expert_non_expert_collaboration_necessity"
-        },
-        {
-          "participant_id": "4t",
-          "code": "iterative_reconfiguration_reality"
-        },
-        {
-          "participant_id": "4t",
           "code": "project_sustainability_configuration_concern"
         },
         {
           "participant_id": "5t",
           "code": "UI_driven_configuration_generation_vision"
+        },
+        {
+          "participant_id": "4t",
+          "code": "accessibility_reflection_for_non_experts"
+        },
+        {
+          "participant_id": "4t",
+          "code": "cms_style_configuration_interface_exploration"
+        },
+        {
+          "participant_id": "4t",
+          "code": "iterative_reconfiguration_reality"
         }
       ],
       "category_description": "Technicians identified fundamental system design tensions and sustainability concerns. The core paradox is that the user-facing interface is intuitive but the underlying configuration system enabling that interface is not intuitive for non-experts. This leads to a realistic usage pattern where technical experts perform initial configuration while non-technical users handle data entry. However, the iterative nature of real-world use means non-technical users will inevitably discover missing features and require ongoing technical support for configuration modifications. Participants questioned whether this dependency on continuous technical support is sustainable at the project level, noting that expecting such support and actually receiving it are different matters. Participants suggested exploring alternatives such as CMS-style configuration interfaces or UI-driven configuration generation where interface manipulation automatically generates configuration code for non-technical users.",
@@ -1264,10 +1031,6 @@
           "code": "task_requirement_misinterpretation"
         },
         {
-          "participant_id": "5t",
-          "code": "task_requirement_clarification_need"
-        },
-        {
           "participant_id": "6t",
           "code": "reference_property_search_strategy"
         },
@@ -1282,10 +1045,6 @@
         {
           "participant_id": "6t",
           "code": "viewer_apology_for_errors"
-        },
-        {
-          "participant_id": "6t",
-          "code": "time_vault_modification_trigger"
         }
       ],
       "category_description": "Participants experienced task comprehension issues and user errors including misreading requirements (setting abstract as required instead of optional), searching in wrong configuration sections, placement errors, and capitalization typos. These errors caused embarrassment and consumed troubleshooting time but represent task comprehension challenges rather than system usability issues. Participants eventually discovered and corrected errors after systematic debugging.",
@@ -1294,22 +1053,14 @@
         "add_display_support"
       ],
       "overall_sentiment": "negative",
-      "frequency": "7"
+      "frequency": "5"
     },
     {
       "category_name": "Uncertainty with optional configuration parameters",
       "related_codes": [
         {
-          "participant_id": "1t",
-          "code": "uncertainty_about_display_rule_ordering"
-        },
-        {
           "participant_id": "2t",
           "code": "optional_parameter_uncertainty"
-        },
-        {
-          "participant_id": "3t",
-          "code": "property_placement_non_concern"
         },
         {
           "participant_id": "3t",
@@ -1338,10 +1089,6 @@
         {
           "participant_id": "7t",
           "code": "display_title_positioning_misinterpretation"
-        },
-        {
-          "participant_id": "8t",
-          "code": "configuration_element_function_uncertainty"
         }
       ],
       "category_description": "Participants expressed uncertainty about optional configuration parameters and implicit rules including display rule positioning effects, whether to omit or set optional parameters, property removal safety, and unfamiliar properties like search configuration. Display property ordering was non-intuitive without prior experience, though participants successfully deduced mechanisms through experimentation. Confusion occurred distinguishing between concatenated display titles and actual properties. Clearer documentation of implicit rules would reduce cognitive load.",
@@ -1349,7 +1096,7 @@
         "add_display_support"
       ],
       "overall_sentiment": "negative",
-      "frequency": "11"
+      "frequency": "8"
     },
     {
       "category_name": "Interface behavior misunderstandings",
@@ -1381,6 +1128,10 @@
         {
           "participant_id": "9t",
           "code": "confusion_between_uris_and_missing_configured_labels"
+        },
+        {
+          "participant_id": "8t",
+          "code": "catalog_versus_editing_modification_expectation"
         }
       ],
       "category_description": "Participants misunderstood interface behavior and system configuration model. Misunderstandings included pagination behavior, cascade deletion dialogs, and failure to distinguish configured vs. unconfigured entities. One participant interpreted unconfigured entities (missing labels, category descriptions) as UI inconsistencies rather than recognizing configuration as their responsibility. These represent mental model gaps during exploration but did not prevent task completion.",
@@ -1388,37 +1139,31 @@
         "warm_up_exploration"
       ],
       "overall_sentiment": "negative",
-      "frequency": "7"
+      "frequency": "8"
     },
     {
-      "category_name": "Validation feedback gaps",
+      "category_name": "Minor quality and usability issues",
       "related_codes": [
+        {
+          "participant_id": "3t",
+          "code": "UI_field_visibility_failure"
+        },
         {
           "participant_id": "7t",
           "code": "maxcount_validation_limitation_discovery"
-        }
-      ],
-      "category_description": "One technician discovered that maxCount validation prevents adding a second abstract field but the system provides no error feedback to inform the user why the additional field cannot be added. This represents a gap in validation feedback where the system silently enforces constraints without explaining the reason to users, potentially causing confusion about whether the system is malfunctioning or correctly enforcing a rule.",
-      "task_contexts": [
-        "add_shacl_validation"
-      ],
-      "overall_sentiment": "negative",
-      "frequency": "1"
-    },
-    {
-      "category_name": "Code editor workflow challenges",
-      "related_codes": [
+        },
         {
           "participant_id": "8t",
           "code": "code_folding_frustration"
         }
       ],
-      "category_description": "One technician struggled with code editor folding, expressing frustration at inability to collapse sections, hindering focus and comprehension. This represents a workflow impediment specific to the code editing environment that impacted the participant's ability to manage cognitive complexity when working with configuration files.",
+      "category_description": "Minor quality issues and usability refinement opportunities including interface change detection failures, validation feedback gaps, and code editor workflow challenges. These represent low-severity issues that did not prevent task completion.",
       "task_contexts": [
+        "add_shacl_validation",
         "add_display_support"
       ],
       "overall_sentiment": "negative",
-      "frequency": "1"
+      "frequency": "3"
     }
   ]
 }

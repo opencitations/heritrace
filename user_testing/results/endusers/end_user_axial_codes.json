@@ -62,14 +62,6 @@
         },
         {
           "participant_id": "6e",
-          "code": "catalog_as_primary_entry_point"
-        },
-        {
-          "participant_id": "7e",
-          "code": "catalog_as_primary_entry_point"
-        },
-        {
-          "participant_id": "6e",
           "code": "efficient_navigation_to_author_page"
         },
         {
@@ -111,7 +103,7 @@
         "Interface evaluation"
       ],
       "overall_sentiment": "positive",
-      "frequency": "24"
+      "frequency": "22"
     },
     {
       "category_name": "Merge and duplicate management features",
@@ -518,6 +510,10 @@
         {
           "participant_id": "8e",
           "code": "confident_identifier_addition"
+        },
+        {
+          "participant_id": "3e",
+          "code": "second_attempt_record_creation"
         }
       ],
       "category_description": "Successful task completion outcomes, user satisfaction with results, confidence in accomplished tasks, and positive evaluations of overall system effectiveness in supporting user goals",
@@ -530,7 +526,7 @@
         "Catalog navigation"
       ],
       "overall_sentiment": "positive",
-      "frequency": "25"
+      "frequency": "26"
     },
     {
       "category_name": "Systematic workflow execution",
@@ -623,10 +619,6 @@
           "code": "author_creation_decision"
         },
         {
-          "participant_id": "8e",
-          "code": "direct_author_creation_approach"
-        },
-        {
           "participant_id": "9e",
           "code": "entity_creation_confidence"
         },
@@ -664,7 +656,7 @@
         "Entity relationships"
       ],
       "overall_sentiment": "positive",
-      "frequency": "17"
+      "frequency": "16"
     },
     {
       "category_name": "Learning, discoverability, and problem-solving",
@@ -704,18 +696,6 @@
         {
           "participant_id": "6e",
           "code": "potential_for_automated_pipeline_integration"
-        },
-        {
-          "participant_id": "4e",
-          "code": "gradual_understanding_achievement"
-        },
-        {
-          "participant_id": "3e",
-          "code": "incomplete_understanding_with_success"
-        },
-        {
-          "participant_id": "5e",
-          "code": "iterative_problem_solving"
         }
       ],
       "category_description": "Progressive learning, feature discovery, autonomous problem-solving, gradual understanding achievement, iterative problem-solving approaches, and system learnability that enable users to build mental models and adapt their workflows over time",
@@ -727,132 +707,7 @@
         "Form management"
       ],
       "overall_sentiment": "positive",
-      "frequency": "12"
-    },
-    {
-      "category_name": "System behavior observations",
-      "related_codes": [
-        {
-          "participant_id": "1e",
-          "code": "automatic_login_unclear"
-        },
-        {
-          "participant_id": "1e",
-          "code": "url_reference_confusing"
-        },
-        {
-          "participant_id": "1e",
-          "code": "loading_indicator_noticed"
-        },
-        {
-          "participant_id": "2e",
-          "code": "navigating_to_specific_entity_page"
-        },
-        {
-          "participant_id": "2e",
-          "code": "adding_multiple_metadata_fields"
-        },
-        {
-          "participant_id": "2e",
-          "code": "believing_entities_were_saved_despite_confusion"
-        },
-        {
-          "participant_id": "2e",
-          "code": "data_validation_warnings_noticed"
-        },
-        {
-          "participant_id": "3e",
-          "code": "inferring_edit_through_record_access"
-        },
-        {
-          "participant_id": "3e",
-          "code": "doi_format_validation_uncertainty"
-        },
-        {
-          "participant_id": "3e",
-          "code": "attempting_interface_cleanup"
-        },
-        {
-          "participant_id": "4e",
-          "code": "remembering_position_requirement"
-        },
-        {
-          "participant_id": "4e",
-          "code": "validation_error_recognition"
-        },
-        {
-          "participant_id": "5e",
-          "code": "comparing_to_existing_system"
-        },
-        {
-          "participant_id": "5e",
-          "code": "organizing_screen_for_efficiency"
-        },
-        {
-          "participant_id": "6e",
-          "code": "exploratory_editing_approach"
-        },
-        {
-          "participant_id": "6e",
-          "code": "reviewing_entered_metadata"
-        },
-        {
-          "participant_id": "6e",
-          "code": "recognizing_window_management_error"
-        },
-        {
-          "participant_id": "1e",
-          "code": "first_time_user_perspective"
-        },
-        {
-          "participant_id": "8e",
-          "code": "expecting_navigation_tabs"
-        },
-        {
-          "participant_id": "8e",
-          "code": "creating_related_entities"
-        },
-        {
-          "participant_id": "8e",
-          "code": "entering_pagination_metadata"
-        },
-        {
-          "participant_id": "8e",
-          "code": "entering_volume_issue_data"
-        },
-        {
-          "participant_id": "9e",
-          "code": "interface_overview_during_exploration"
-        },
-        {
-          "participant_id": "9e",
-          "code": "title_verification_attempt"
-        },
-        {
-          "participant_id": "9e",
-          "code": "task_completion_despite_issues"
-        },
-        {
-          "participant_id": "9e",
-          "code": "repository_location_hypothesis"
-        },
-        {
-          "participant_id": "9e",
-          "code": "second_attempt_record_creation"
-        }
-      ],
-      "category_description": "Neutral observations about system behavior, factual navigation activities, validation error recognition, hypothesis formation, window management awareness, first-time user perspectives, and general task execution observations without strong positive or negative sentiment",
-      "task_contexts": [
-        "System exploration",
-        "Navigation",
-        "Data entry",
-        "Form management",
-        "Validation",
-        "General system usage",
-        "Entity management"
-      ],
-      "overall_sentiment": "neutral",
-      "frequency": "27"
+      "frequency": "9"
     },
     {
       "category_name": "Visual design and form interaction problems",
@@ -1002,10 +857,6 @@
           "code": "uncertain_about_successful_addition"
         },
         {
-          "participant_id": "2e",
-          "code": "isolating_entity_creation_as_main_problem"
-        },
-        {
           "participant_id": "3e",
           "code": "uncertainty_about_save_confirmation"
         },
@@ -1038,7 +889,7 @@
         "Publisher entity creation"
       ],
       "overall_sentiment": "negative",
-      "frequency": "12"
+      "frequency": "11"
     },
     {
       "category_name": "Data entry and user control challenges",
@@ -1176,10 +1027,6 @@
           "code": "form_collapse_needed"
         },
         {
-          "participant_id": "3e",
-          "code": "searching_for_search_bar"
-        },
-        {
           "participant_id": "5e",
           "code": "requesting_expanded_form_fields"
         },
@@ -1256,14 +1103,6 @@
           "code": "dedicated_author_section_request"
         },
         {
-          "participant_id": "2e",
-          "code": "resource_preview_feature_request"
-        },
-        {
-          "participant_id": "2e",
-          "code": "enhanced_entity_feedback_request"
-        },
-        {
           "participant_id": "4e",
           "code": "save_button_discoverability_issue"
         }
@@ -1279,7 +1118,7 @@
         "System improvement suggestions"
       ],
       "overall_sentiment": "negative",
-      "frequency": "26"
+      "frequency": "23"
     },
     {
       "category_name": "System bugs and technical failures",
@@ -1303,6 +1142,10 @@
         {
           "participant_id": "9e",
           "code": "sorting_inconsistency_issue"
+        },
+        {
+          "participant_id": "9e",
+          "code": "recognizing_window_management_error"
         }
       ],
       "category_description": "Actual functional defects and system bugs encountered during use, including save failures, delete function failures, display errors, update problems, and sorting inconsistencies that represent technical failures requiring fixes",
@@ -1314,7 +1157,7 @@
         "Catalog sorting"
       ],
       "overall_sentiment": "negative",
-      "frequency": "5"
+      "frequency": "6"
     },
     {
       "category_name": "User adaptation and problem-solving strategies",
@@ -1402,26 +1245,6 @@
         {
           "participant_id": "9e",
           "code": "alphabetical_pagination_search"
-        },
-        {
-          "participant_id": "4e",
-          "code": "workaround_solution_implementation"
-        },
-        {
-          "participant_id": "6e",
-          "code": "manual_author_entry_workaround"
-        },
-        {
-          "participant_id": "7e",
-          "code": "manual_author_entry_workaround"
-        },
-        {
-          "participant_id": "7e",
-          "code": "delete_and_recreate_workaround"
-        },
-        {
-          "participant_id": "9e",
-          "code": "empty_field_workaround"
         }
       ],
       "category_description": "User strategies for navigating system limitations when faced with unclear pathways or missing functionality, including trial-and-error approaches, hypothesis formation, workaround development (manual entry, delete-and-recreate), browser history navigation attempts, troubleshooting through editing, manual scanning, and emotional responses to difficulties including frustration, disorientation, and negative self-assessment",
@@ -1436,7 +1259,7 @@
         "Author management"
       ],
       "overall_sentiment": "negative",
-      "frequency": "26"
+      "frequency": "21"
     },
     {
       "category_name": "Integration and external lookup failures",

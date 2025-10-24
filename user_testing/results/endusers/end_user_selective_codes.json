@@ -24,8 +24,8 @@
       "explanation": "System bugs and technical failures (5 codes) document genuine functional defects including save failures, delete failures, display errors, and sorting inconsistencies. These technical failures are analytically distinct from usability barriers, as they prevent functionality regardless of user expertise or learning."
     },
     {
-      "proposition": "User learning and adaptation strategies evolve through systematic observation and problem-solving",
-      "explanation": "System behavior observations (27 neutral codes) combined with user adaptation and problem-solving strategies (26 negative codes) reveal that users actively engage with system learning through hypothesis formation, workaround development, and iterative problem-solving. This neutral-to-negative progression shows users systematically navigating complexity, though this navigation process generates friction and requires sustained effort."
+      "proposition": "User adaptation strategies emerge through trial-and-error problem-solving and workaround development",
+      "explanation": "User adaptation and problem-solving strategies (26 codes) reveal that users actively develop workarounds and coping mechanisms when facing system limitations. This includes hypothesis formation, trial-and-error approaches, manual scanning, browser history navigation, delete-and-recreate solutions, and emotional responses to difficulties including frustration and disorientation. The adaptation process represents effortful work users must invest to navigate complexity, demonstrating autonomous problem-solving capabilities but also revealing friction points that require sustained user engagement."
     },
     {
       "proposition": "Missing expected functionality amplifies complexity navigation challenges when user mental models mismatch system design",
@@ -36,7 +36,7 @@
     {
       "category": "Successful system features and user competence development",
       "relationship_to_core": "Demonstrates that the system's core semantic functionality is sound and provides value across multiple dimensions once users adapt to the complexity. Encompasses interface appreciation, successful use of advanced features (merge, version control, autocomplete), confident task completion, systematic work approaches, entity management competence, and progressive learning capabilities. This multi-faceted success validates that the learning curve leads to genuine capability across all aspects of semantic data management.",
-      "frequency": 151,
+      "frequency": 146,
       "axial_codes_included": [
         "Interface design and visual clarity",
         "Merge and duplicate management features",
@@ -51,7 +51,7 @@
     {
       "category": "Entity management complexity barriers",
       "relationship_to_core": "Represents the primary complexity navigation challenge that users must overcome. Entity creation and workflow confusion constitutes the main adoption barrier separating initial confusion from eventual mastery, specifically regarding when and how entities are saved and created. This barrier requires users to develop a mental model of the system's entity lifecycle distinct from traditional form-based workflows.",
-      "frequency": 12,
+      "frequency": 11,
       "axial_codes_included": [
         "Entity creation and workflow confusion"
       ]
@@ -74,18 +74,17 @@
       ]
     },
     {
-      "category": "System comprehension and adaptive problem-solving process",
-      "relationship_to_core": "Captures the active learning journey users experience while navigating complexity. Neutral observations document hypothesis formation, validation recognition, and exploratory approaches, while adaptation strategies reveal trial-and-error methods, workaround development, and emotional responses to difficulties. This category demonstrates that complexity navigation is an active, effortful process requiring sustained user engagement and autonomous problem-solving, representing the work users must invest to achieve system mastery.",
-      "frequency": 53,
+      "category": "User adaptation and workaround development strategies",
+      "relationship_to_core": "Captures the active problem-solving journey users undertake when navigating system complexity and limitations. Adaptation strategies reveal trial-and-error methods, workaround development (manual entry, delete-and-recreate, browser history navigation), hypothesis formation, troubleshooting through editing, manual scanning, and emotional responses to difficulties including frustration, disorientation, and negative self-assessment. This category demonstrates that complexity navigation requires sustained user engagement and autonomous problem-solving, representing the effortful work users must invest to overcome usability barriers and achieve system mastery despite missing functionality and unclear pathways.",
+      "frequency": 21,
       "axial_codes_included": [
-        "System behavior observations",
         "User adaptation and problem-solving strategies"
       ]
     },
     {
       "category": "User expectations vs. system design mismatch",
       "relationship_to_core": "Represents a critical conceptual barrier where users approach HERITRACE with expectations from search-oriented systems rather than understanding its editing-focused design. This mismatch creates substantial friction as users repeatedly expect search and browsing features in a system designed for targeted entity management. The absence of search functionality generates the most consistent frustration, amplifying complexity navigation challenges and triggering emotional responses.",
-      "frequency": 26,
+      "frequency": 23,
       "axial_codes_included": [
         "Missing functionality and feature requests"
       ]
@@ -93,7 +92,7 @@
     {
       "category": "System bugs and technical failures",
       "relationship_to_core": "Represents genuine functional defects that create barriers distinct from usability challenges. Unlike complexity navigation issues that users can overcome through learning, these technical failures (save failures, delete failures, display errors, sorting inconsistencies) prevent intended functionality regardless of user expertise. This category distinguishes between learnable complexity and actual system defects requiring technical fixes.",
-      "frequency": 5,
+      "frequency": 6,
       "axial_codes_included": [
         "System bugs and technical failures"
       ]

@@ -15,12 +15,6 @@
       "sentiment": "positive"
     },
     {
-      "code": "catalog_as_primary_entry_point",
-      "verbatim_quote": "I think that the catalog is the point we are looking for",
-      "context": "User correctly identifies catalog as main navigation point for browsing resources",
-      "sentiment": "neutral"
-    },
-    {
       "code": "slow_loading_time",
       "verbatim_quote": "loading 100 of items takes a little bit time",
       "context": "Noticing performance delay when catalog loads full list of 100 items during initial exploration",
@@ -49,12 +43,6 @@
       "verbatim_quote": "It's exactly what we were looking for. So, we have to make some changes in the authors lists",
       "context": "Immediately understanding task requirements after accessing the target bibliographic record",
       "sentiment": "positive"
-    },
-    {
-      "code": "exploratory_editing_approach",
-      "verbatim_quote": "We can try to make it this way. We need to add new author. That's interesting",
-      "context": "Beginning to interact with author editing interface, taking exploratory approach to learn functionality",
-      "sentiment": "neutral"
     },
     {
       "code": "understanding_identifier_requirement",
@@ -189,12 +177,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "manual_author_entry_workaround",
-      "verbatim_quote": "Okay, then we add the author manually",
-      "context": "Working around ORCID lookup failure by manually entering author information",
-      "sentiment": "neutral"
-    },
-    {
       "code": "repeated_orcid_lookup_failure",
       "verbatim_quote": "And we need to add Silvio Peroni as another author with ORCID. Okay, and again no results. So, we need to add by hand again",
       "context": "Experiencing same ORCID lookup failure for second author Silvio Peroni",
@@ -223,12 +205,6 @@
       "verbatim_quote": "What else we have about the journal? Aha, we have the journal title. Yes, and we have where we can add ISSN. No field for ISSN, right? Hmm. So, we have no place for ISSN",
       "context": "Looking for field to enter journal ISSN identifier but unable to locate it in form structure",
       "sentiment": "negative"
-    },
-    {
-      "code": "reviewing_entered_metadata",
-      "verbatim_quote": "Okay. So, let's check what we added. We have journal article with the title. Okay. Two authors, publisher name, publication date. Okay. We have all the necessary fields except ISSN",
-      "context": "Conducting self-review of completed form before submission, noting missing ISSN field",
-      "sentiment": "neutral"
     },
     {
       "code": "successful_record_creation",

@@ -33,12 +33,6 @@
       "sentiment": "positive"
     },
     {
-      "code": "property_placement_non_concern",
-      "verbatim_quote": "Sarà un sh:property per forza. La metterò, non credo conti l'ordine però mettiamolo sotto titolo",
-      "context": "Participant assumes property order is not significant while adding abstract property to SHACL, though chooses to place it under title anyway",
-      "sentiment": "neutral"
-    },
-    {
       "code": "confidence_in_SHACL_implementation",
       "verbatim_quote": "Ok, penso che così va bene",
       "context": "Participant expresses confidence in SHACL property addition without extensive verification",
@@ -57,12 +51,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "yaml_file_location_recall",
-      "verbatim_quote": "Sarà sempre in config. Dobbiamo andare su browser, journal article, display name, journal article, ok. Display properties, credo",
-      "context": "Participant navigates to YAML configuration file with some uncertainty about exact location within file structure",
-      "sentiment": "neutral"
-    },
-    {
       "code": "pattern_matching_configuration_strategy",
       "verbatim_quote": "Title. Ok, penso che vada bene. Ecco, abstract, ok",
       "context": "Participant uses existing title property as template for adding abstract display rule",
@@ -73,12 +61,6 @@
       "verbatim_quote": "L'unica cosa è, forse sarebbe utile avere un modo per capire quali risorse sono incomplete a seconda dello schema SHACL che voglio utilizzare",
       "context": "Participant identifies missing feature: need for system to flag resources that no longer validate against modified SHACL schema",
       "sentiment": "negative"
-    },
-    {
-      "code": "prior_configuration_verification",
-      "verbatim_quote": "Ok, mi sa che l'avevo già fatto perché ho già messo textarea. Se non sbaglio, eh. Se non sbaglio l'avevo già fatto",
-      "context": "Participant checks whether textarea configuration was already completed in previous task",
-      "sentiment": "neutral"
     },
     {
       "code": "backend_hot_reloading_efficiency",

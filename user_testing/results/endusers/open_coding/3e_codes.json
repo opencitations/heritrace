@@ -3,18 +3,6 @@
   "user_type": "end_user",
   "codes": [
     {
-      "code": "searching_for_search_bar",
-      "verbatim_quote": "Sto cercando una barra di ricerca",
-      "context": "User's first action when tasked to edit an existing publication, looking for search functionality",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "inferring_edit_through_record_access",
-      "verbatim_quote": "Forse le modifiche si fanno dal record",
-      "context": "User hypothesizes that editing might be done through the record itself rather than through a search interface",
-      "sentiment": "neutral"
-    },
-    {
       "code": "exploration_without_clear_understanding",
       "verbatim_quote": "Non mi sembra un cerco, però proviamoci",
       "context": "User proceeds with trial-and-error approach despite uncertainty about the correct path",
@@ -117,22 +105,10 @@
       "sentiment": "positive"
     },
     {
-      "code": "incomplete_understanding_with_success",
-      "verbatim_quote": "questo continuiamo a farlo così perché non abbiamo capito cos'è per fortuna abbiamo salvato tutto bene",
-      "context": "User achieves task success despite not fully understanding all interface elements",
-      "sentiment": "neutral"
-    },
-    {
       "code": "confident_new_record_creation",
       "verbatim_quote": "aggiungiamo un nuovo journal article se volete sì che lo aggiungiamo quindi record poi journal article journal article",
       "context": "User navigates new record creation with more confidence than earlier tasks",
       "sentiment": "positive"
-    },
-    {
-      "code": "doi_format_validation_uncertainty",
-      "verbatim_quote": "questo è il DOI è stato ben formato? No",
-      "context": "User questions whether the DOI format is correct but receives clear feedback",
-      "sentiment": "neutral"
     },
     {
       "code": "systematic_metadata_entry",
@@ -157,12 +133,6 @@
       "verbatim_quote": "add new record non capisco se aggiungo un nuovo record o è questo che ho aggiunto si sto pensando",
       "context": "User unclear whether 'add new record' button creates a new resource or confirms current one",
       "sentiment": "negative"
-    },
-    {
-      "code": "attempting_interface_cleanup",
-      "verbatim_quote": "allora chiudiamo qua per vedere un attimo facendo pulizia com'è?",
-      "context": "User tries to close sections to better understand the current state of the form",
-      "sentiment": "neutral"
     },
     {
       "code": "seeking_alternative_save_method",

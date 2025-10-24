@@ -39,33 +39,15 @@
       "sentiment": "positive"
     },
     {
-      "code": "UI_configuration_issue_identification",
-      "verbatim_quote": "qua immagino che ci sia qualcosa da sistemare, lato interfaccia probabilmente, cioè lato configurazione, suppongo",
-      "context": "While exploring, participant identifies interface elements that appear to need configuration adjustment",
-      "sentiment": "neutral"
-    },
-    {
       "code": "time_vault_provenance_understanding",
       "verbatim_quote": "Se invece cancello la risorsa, ok, infatti, il time vault immaginavo che fosse una funzionalità di questo tipo. Qua viene chiamata time machine, ma immagino che time vault e time machine siano la stessa cosa",
       "context": "Participant correctly infers time vault/time machine functionality and recognizes terminology inconsistency",
       "sentiment": "positive"
     },
     {
-      "code": "orphaned_entity_relationship_concern",
-      "verbatim_quote": "Se io cancello questo journal article, queste entità non saranno più collegate a nient'altro perché evidentemente sono connesse solamente a questa. Quindi le rendo orfane, ok? Mi chiedo se la time machine, o vault che sia, mi permette di tornare indietro anche rispetto a questo aspetto",
-      "context": "Participant demonstrates sophisticated understanding of entity relationships and questions whether provenance tracking handles orphaned entities when referenced resource is deleted",
-      "sentiment": "neutral"
-    },
-    {
       "code": "provenance_restoration_verification",
       "verbatim_quote": "Quindi questo l'ho cancellato, restore, yes. Beh, gli identifier ci sono ancora, quindi direi che probabilmente questa cosa funziona",
       "context": "Participant tests deletion and restoration to verify provenance system handles related entities correctly",
-      "sentiment": "positive"
-    },
-    {
-      "code": "file_location_immediate_navigation",
-      "verbatim_quote": "Va bene, iniziamo con questo, quindi vado qua e direi che è il config e direi che è questo qui. Quindi è journal article shape, certo",
-      "context": "For Task 1, participant quickly navigates to correct SHACL configuration file without hesitation",
       "sentiment": "positive"
     },
     {
@@ -87,46 +69,16 @@
       "sentiment": "positive"
     },
     {
-      "code": "self_verification_through_enumeration",
-      "verbatim_quote": "Cosa mi sto dimenticando? Data type string, min count 0, max count 1. Cosa mi sto dimenticando? Include constraint, fatto, fatto, fatto",
-      "context": "Participant reviews SHACL property components systematically to ensure nothing was missed",
-      "sentiment": "neutral"
-    },
-    {
       "code": "UI_field_visibility_verification",
       "verbatim_quote": "Ok, fatto reload. Ah, ad abstract, ok, non l'avevo visto. Perfetto, va bene",
       "context": "After SHACL modification, participant reloads interface and discovers abstract field now appears, confirming successful implementation",
       "sentiment": "positive"
     },
     {
-      "code": "textarea_expectation_for_long_content",
-      "verbatim_quote": "Allora, per l'abstract adesso, qua vi dovrei vedere, mi aspettavo una text area, perché appunto, tipo title, tipo questo qua di title. Anzi, mi aspetterei proprio il contrario, cioè tipo per l'abstract una text area molto più grande",
-      "context": "Participant expects textarea input type for abstract property given its long-form nature, contrasting with title field",
-      "sentiment": "negative"
-    },
-    {
-      "code": "datatype_input_relationship_exploration",
-      "verbatim_quote": "Mi chiedo se sia determinata dal data type, tipo se io vado su title, XSD string, no, è la stessa",
-      "context": "Participant investigates whether SHACL datatype determines UI input widget type, discovers both fields use same datatype despite different UI needs",
-      "sentiment": "neutral"
-    },
-    {
       "code": "string_input_bug_cryptic_validation_failure",
       "verbatim_quote": "Ah, aha. Ok, qua il messaggio non mi è chiarissimo, devo essere sincero. Mi dice che l'input time non è valido e che si aspetta un... però non mi dice cosa. Forse devo refreshare anche qui, non lo so. Blah, niente. Ok. Mi chiedo se ho sbagliato qualcosa. Però no. Perché qua il min count è 0, max count 1. Quindi direi che è giusto. A me sembra corretto, quindi non so. Vabbè, magari è la task 2. Ah, ecco, perfetto. Non avevo letto il continuo, cosa che forse dovrei fare più spesso",
       "context": "After successfully adding abstract field to SHACL, participant attempts to test it by inserting an abstract value. System rejects input with cryptic validation error message. Despite SHACL constraints being correct (min count 0, max count 1), a string input handling bug triggers incomprehensible validation error that confuses participant. They attempt troubleshooting (frontend refresh, SHACL verification) but cannot resolve issue. Eventually realizes Task 2 (display rules) might address the problem, though the root cause was actually a system bug in string input validation rather than missing display configuration.",
       "sentiment": "negative"
-    },
-    {
-      "code": "yaml_file_location_recall",
-      "verbatim_quote": "Display rules. Quindi le display rules sono nel file yaml. Giusto. File yaml. Journal article",
-      "context": "For Task 2, participant recalls that display rules are configured in YAML file and navigates to journal article section",
-      "sentiment": "positive"
-    },
-    {
-      "code": "yaml_structure_learning_through_inspection",
-      "verbatim_quote": "Eh... Quindi. Ok, quindi qua è display target, should be displayed true. Display name, va bene. Display properties. Ok. As identified, va bene. Property title",
-      "context": "Participant reads through existing YAML structure, verbalizing elements to understand format",
-      "sentiment": "neutral"
     },
     {
       "code": "copy_paste_modification_workflow",
@@ -139,12 +91,6 @@
       "verbatim_quote": "Should appear under the title in the display order. Ah, questo è il display order. Ok. Non lo so se questa cosa... Innanzitutto, una cosa alla volta. Quindi... Se il display order non è una proprietà ma è una cosa che segue il letterale ordine delle proprietà messe qui, allora io lo metto qua sotto",
       "context": "Participant deduces that display order is determined by position in YAML file rather than explicit property value",
       "sentiment": "positive"
-    },
-    {
-      "code": "search_configuration_decision_making",
-      "verbatim_quote": "Support search, direi false. O true, lo so. Non lo farei che supporta la ricerca, onestamente",
-      "context": "Participant makes design decision to disable search support for abstract field, showing understanding of search configuration semantics",
-      "sentiment": "neutral"
     },
     {
       "code": "accessibility_reflection_for_non_experts",
@@ -249,46 +195,10 @@
       "sentiment": "negative"
     },
     {
-      "code": "search_configuration_mental_model",
-      "verbatim_quote": "Guardando la configurazione mi pareva di aver capito che io potessi, per esempio, determinare l'utilizzo di alcune proprietà, cioè i valori di alcune proprietà tipo title, come uno degli strumenti, cioè uno dei valori che va visto sostanzialmente dal sistema quando io ricerco",
-      "context": "Participant developed mental model of search configuration from YAML properties: certain properties like title can be designated as searchable with minimum character thresholds",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "autocomplete_search_expectation",
-      "verbatim_quote": "il titolo è una proprietà utilizzata per supportare la ricerca, diciamo, in quei due caratteri e main chars for search sono il minimo numero di caratteri che sono utili per la ricerca, quindi già da 2 inizia ad attivarsi tipo, che ne so, le entità consigliate, ecco, sulla base di quei due caratteri che io ho iniziato a digitare",
-      "context": "Participant expects search configuration to enable autocomplete/suggestion functionality after typing minimum characters",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "feature_implementation_uncertainty",
-      "verbatim_quote": "Non so se è un mio volo a caso oppure se c'è questa intenzione dietro e se c'è questa intenzione dietro qui non la vedo, quindi non so se è da implementare oppure se sto sbagliando qualcosa io",
-      "context": "Participant uncertain whether search feature is planned but not implemented, or if their expectation is incorrect",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "class_addition_configuration_interest",
-      "verbatim_quote": "Sono curioso di una cosa, cioè un conto è inserire una proprietà, però per esempio secondo me potrebbe essere interessante vedere come le persone si trovano nell'inserire classi. Non so, magari è ugualmente facile, è ugualmente basico, però potrebbe essere un'attività ancora più interessante",
-      "context": "Participant expresses curiosity about class-level configuration difficulty compared to property-level configuration tested in tasks",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "class_expansion_necessity",
-      "verbatim_quote": "sicuramente necessaria perché prima o poi, cioè io questo catalogo lo voglio espandere, non mettere solamente articoli di giornale ma mettere anche dataset o cose di questo genere",
-      "context": "Participant identifies need for class-level configuration to expand catalog beyond journal articles to datasets and other types",
-      "sentiment": "neutral"
-    },
-    {
       "code": "docker_prerequisite_barrier",
       "verbatim_quote": "Per farlo partire devi conoscere Docker. Docker è già fantascienza per alcune persone, quindi già quello, anche solo per installarlo",
       "context": "Participant identifies Docker knowledge as initial barrier, noting it's overwhelming for some users even before reaching configuration tasks",
       "sentiment": "negative"
-    },
-    {
-      "code": "semantic_web_prerequisite_knowledge",
-      "verbatim_quote": "Poi, cosa devi sapere? Vabbè, conoscere il Linked Open Data, Linked Data in generale, Semantic Web, le solite cose, ma quello è il minimo",
-      "context": "Participant lists semantic web technologies as minimum prerequisite knowledge for system configuration",
-      "sentiment": "neutral"
     },
     {
       "code": "SHACL_learnability_with_foundation",
@@ -307,12 +217,6 @@
       "verbatim_quote": "durante l'editing è sembrato più un processo di trial and error. E senza particolari feedback da parte del sistema",
       "context": "Participant describes configuration as trial-and-error process with limited system feedback during editing",
       "sentiment": "negative"
-    },
-    {
-      "code": "docker_logs_as_primary_debugging_tool",
-      "verbatim_quote": "Perché i messaggi di errore che chiamo con docker logs heritrace... Oddio, cosa che era? Mi sono dimenticato. docker logs heritrace app. E anche qui è una cosa molto tecnica come roba. Perché qui per sostanzialmente risolvere il mio lavoro cioè realizzare il mio lavoro è stato quello",
-      "context": "Participant identifies Docker logs as essential debugging tool for configuration work, acknowledging this is highly technical requirement",
-      "sentiment": "neutral"
     },
     {
       "code": "visual_feedback_validation_importance",
@@ -336,19 +240,13 @@
       "code": "cms_style_configuration_interface_exploration",
       "verbatim_quote": "Mi chiedo se esistano altri strumenti possibili per la configurazione però effettiva. Cioè, a me viene in mente che magari in determinati CMS o altri strumenti di questo tipo esistono pagine dove fai effettivamente una configurazione di cose",
       "context": "Participant suggests exploring CMS-style configuration interfaces as alternative to file-based configuration",
-      "sentiment": "neutral"
-    },
-    {
-      "code": "expert_non_expert_collaboration_necessity",
-      "verbatim_quote": "Perché altrimenti qua, io ripeto, vedo tanto la necessità di un tecnico che prende per mano il non tecnico e lo aiuta. Oppure che gli fa tutto il lavoro di configurazione iniziale e poi il non tecnico si limita al data entry e bella lì",
-      "context": "Participant predicts realistic usage pattern: technical expert performs initial configuration while non-technical user handles data entry",
-      "sentiment": "neutral"
+      "sentiment": "negative"
     },
     {
       "code": "iterative_reconfiguration_reality",
       "verbatim_quote": "Però sappiamo, perché comunque è normale che succeda, che ad un certo punto il non tecnico si rende conto che mancano cose o robe di questo genere e richiama di nuovo il tecnico che deve aggiungere altre cose, che deve togliere altre, eccetera. Tutti processi normalissimi che per carità fanno anche parte del gioco",
       "context": "Participant acknowledges iterative nature of configuration - users discover missing features during use and require technical support for modifications",
-      "sentiment": "neutral"
+      "sentiment": "negative"
     },
     {
       "code": "project_sustainability_configuration_concern",

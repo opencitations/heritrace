@@ -9,12 +9,6 @@
       "sentiment": "positive"
     },
     {
-      "code": "dual_button_destination_hypothesis",
-      "verbatim_quote": "Sospetto che questi due bottoni mi portino alla stessa destinazione",
-      "context": "Participant hypothesizes that multiple interface buttons lead to same destination before testing hypothesis",
-      "sentiment": "neutral"
-    },
-    {
       "code": "catalog_statistics_verification",
       "verbatim_quote": "Infatti, ecco qui, cento journal articles, tutti afferenti a una sola rivista, divisa in cinque volumi e quindici issue",
       "context": "Participant verifies interface statistics match documentation description of catalog composition",
@@ -25,12 +19,6 @@
       "verbatim_quote": "diciamo che noto subito che il sistema è molto essenziale, nel senso tutte le informazioni importanti sono ben visibili",
       "context": "Participant characterizes interface as minimalist with clear information hierarchy",
       "sentiment": "positive"
-    },
-    {
-      "code": "modification_action_available_but_deferred",
-      "verbatim_quote": "vedo la possibilità di modificare una risorsa, cosa che adesso mi astengo dal fare, e anche di cancellarla. Allo stesso modo non lo farò",
-      "context": "Participant identifies modification and deletion actions but deliberately avoids executing them during exploration",
-      "sentiment": "neutral"
     },
     {
       "code": "entity_metadata_systematic_enumeration",
@@ -75,12 +63,6 @@
       "sentiment": "positive"
     },
     {
-      "code": "novice_self_disclosure_with_task_engagement",
-      "verbatim_quote": "Dunque, io ripeto, non sono un esperto di SHACL, è la prima volta che vado a lavorare con questo tipo di informazioni",
-      "context": "Participant explicitly states SHACL novice status while proceeding with configuration task",
-      "sentiment": "neutral"
-    },
-    {
       "code": "property_path_interpretation",
       "verbatim_quote": "Il path di questa property, che se ricordo bene, è indicante di ciò che deve andare a definire, è dcterms:abstract, come indicato dal task stesso",
       "context": "Participant correctly interprets sh:path as property definition mechanism and applies dcterms:abstract from task requirements",
@@ -123,12 +105,6 @@
       "sentiment": "negative"
     },
     {
-      "code": "property_location_alternative_hypothesis",
-      "verbatim_quote": "Io sospetto anche a questo punto che l'add abstract non andrebbe effettivamente qui, ma qui. Ed avrebbe anche senso",
-      "context": "Participant generates hypothesis that abstract property belongs in different section of YAML file, beginning to suspect the journal vs fabio:JournalArticle placement error",
-      "sentiment": "neutral"
-    },
-    {
       "code": "capitalization_typo_discovery_embarrassment",
       "verbatim_quote": "Ah, aspetta. Io ho messo T maiuscola. Sono veramente imbarazzato. Cioè, imbarazzato",
       "context": "Participant discovers dcterms:Abstract has capital A instead of lowercase a, expressing strong embarrassment at typo",
@@ -159,12 +135,6 @@
       "sentiment": "positive"
     },
     {
-      "code": "time_vault_modification_trigger",
-      "verbatim_quote": "E... sto cliccando su Time Machine perché prima non c'era e chiaro... probabilmente è per via del fatto che ho cambiato il... l'abstract che ho aggiunto prima",
-      "context": "Participant notices previous abstract modification now appears in Time Vault due to changes made",
-      "sentiment": "neutral"
-    },
-    {
       "code": "display_order_verification",
       "verbatim_quote": "Molto interessante il fatto che ha... io però adesso per... perché non mi fa più vedere? Ah, certo, perché è sotto title. Effettivamente adesso è nell'ordine corretto",
       "context": "Participant verifies abstract now appears below title in correct display order as required",
@@ -175,12 +145,6 @@
       "verbatim_quote": "Io adesso però per... pura... curiosità voglio vedere se effettivamente l'abstract adesso viene visualizzato bene. Intanto è l'abstract effettivamente dell'articolo salviamo i cambiamenti, confermiamo. Perfetto. Oh, adesso è tutto come dovrebbe essere",
       "context": "Participant saves article with abstract in proper textarea field and confirms it displays correctly in entity view",
       "sentiment": "positive"
-    },
-    {
-      "code": "satisfaction_with_embarrassment",
-      "verbatim_quote": "Sono molto soddisfatto e allo stesso tempo imbarazzato degli errori che ho commesso",
-      "context": "Participant expresses mixed emotions of satisfaction at successful completion alongside embarrassment about errors made",
-      "sentiment": "neutral"
     },
     {
       "code": "system_error_feedback_helpfulness",
@@ -205,12 +169,6 @@
       "verbatim_quote": "Voglio dire, almeno per un utente Windows... questo test si trattava di cliccare due volte su Start e... modificare due file in una maniera piuttosto semplice",
       "context": "Participant characterizes entire configuration process as simple for Windows users: two clicks and two file modifications",
       "sentiment": "positive"
-    },
-    {
-      "code": "personal_knowledge_limitation_attribution",
-      "verbatim_quote": "Metterò quattro, ma per il semplice fatto che... è una mia questione personale. Non l'ho trovato semplicissimo da usare, ma per mia, diciamo, ignoranza di alcune... frange del mondo IT",
-      "context": "Participant rates ease of use as 4 instead of 5, attributing difficulty to personal knowledge gaps in IT domains rather than system design",
-      "sentiment": "neutral"
     },
     {
       "code": "user_autonomy_with_curiosity_prerequisite",
@@ -241,12 +199,6 @@
       "verbatim_quote": "La semplice possibilità di aggiunta nella modalità edit dei file mi ha allo stesso modo permesso di esplorare le possibili soluzioni che stavo testando per i task",
       "context": "Participant valued ability to add properties in edit mode as mechanism for exploring potential configuration solutions",
       "sentiment": "positive"
-    },
-    {
-      "code": "personal_knowledge_gap_as_primary_frustration",
-      "verbatim_quote": "Le più grandi frustrazioni derivavano da mia ignoranza personale nei confronti delle conoscenze necessarie per adempiere efficientemente ai task richiesti per il test tecnico di Heritrace",
-      "context": "Participant attributes primary frustration to personal knowledge gaps rather than system design issues",
-      "sentiment": "neutral"
     },
     {
       "code": "minimal_knowledge_task_completion_enablement",

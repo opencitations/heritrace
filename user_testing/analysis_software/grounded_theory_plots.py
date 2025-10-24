@@ -42,17 +42,16 @@ def create_horizontal_bar_chart(user_type: str, repo_root: Path, output_dir: Pat
     axial = load_axial_codes(user_type, repo_root)
     categories = axial['categories']
 
-    # Extract data (filter out neutral categories)
+    # Extract data
     cat_names = []
     frequencies = []
     sentiments = []
 
     for cat in categories:
         sentiment = cat['overall_sentiment']
-        if sentiment != 'neutral':
-            cat_names.append(cat['category_name'])
-            frequencies.append(int(cat['frequency']))
-            sentiments.append(sentiment)
+        cat_names.append(cat['category_name'])
+        frequencies.append(int(cat['frequency']))
+        sentiments.append(sentiment)
 
     # Create DataFrame and sort by frequency
     df = pd.DataFrame({
