@@ -469,6 +469,32 @@
       "blocked": false
     },
     {
+      "participant_id": "10t",
+      "user_type": "technician",
+      "task_key": "add_shacl_validation",
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": 6.05,
+      "status": "complete",
+      "errors_encountered": 1,
+      "severity_weighted_score": 1,
+      "error_rate_per_minute": 0.1652892562,
+      "blocked": false
+    },
+    {
+      "participant_id": "10t",
+      "user_type": "technician",
+      "task_key": "add_display_support",
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": 3.8166666667,
+      "status": "complete",
+      "errors_encountered": 1,
+      "severity_weighted_score": 1,
+      "error_rate_per_minute": 0.2620087336,
+      "blocked": false
+    },
+    {
       "participant_id": "1t",
       "user_type": "technician",
       "task_key": "add_shacl_validation",
@@ -749,74 +775,74 @@
     "technician": [
       {
         "task_key": "add_shacl_validation",
-        "total": 9,
-        "complete": 8,
+        "total": 10,
+        "complete": 9,
         "partial": 1,
         "success_timeout": 0,
         "failed_misunderstanding": 0,
         "failed_bug": 0,
-        "success_rate": 94.44444444444444
+        "success_rate": 95.0
       },
       {
         "task_key": "add_display_support",
-        "total": 9,
-        "complete": 8,
+        "total": 10,
+        "complete": 9,
         "partial": 0,
         "success_timeout": 1,
         "failed_misunderstanding": 0,
         "failed_bug": 0,
-        "success_rate": 88.88888888888889
+        "success_rate": 90.0
       }
     ]
   },
   "duration_statistics": {
     "add_display_support": {
-      "n_observations": 9,
-      "mean": 8.962962962962962,
-      "median": 5.666666666666667,
-      "std": 11.229768158837231,
-      "q25": 4.783333333333333,
-      "q75": 7.0,
-      "iqr": 2.216666666666667,
-      "ci_95_lower": 0.3309990257420523,
-      "ci_95_upper": 17.59492690018387,
-      "cv_percent": 125.29080177215096,
-      "p90": 15.060000000000004,
+      "n_observations": 10,
+      "mean": 8.448333333333334,
+      "median": 5.316666666666666,
+      "std": 10.711870218605476,
+      "q25": 4.058333333333334,
+      "q75": 6.716666666666667,
+      "iqr": 2.658333333333333,
+      "ci_95_lower": 0.7855229964030777,
+      "ci_95_upper": 16.11114367026359,
+      "cv_percent": 126.79270331748442,
+      "p90": 12.146666666666656,
       "min": 2.1666666666666665,
       "max": 38.36666666666667,
       "by_user_type": {
         "technician": {
-          "n_observations": 9,
-          "mean": 8.962962962962962,
-          "median": 5.666666666666667,
-          "std": 11.229768158837231,
-          "ci_95_lower": 0.3309990257420523,
-          "ci_95_upper": 17.59492690018387
+          "n_observations": 10,
+          "mean": 8.448333333333334,
+          "median": 5.316666666666666,
+          "std": 10.711870218605476,
+          "ci_95_lower": 0.7855229964030777,
+          "ci_95_upper": 16.11114367026359
         }
       }
     },
     "add_shacl_validation": {
-      "n_observations": 9,
-      "mean": 4.301851851851852,
-      "median": 3.2,
-      "std": 3.0298909547260715,
-      "q25": 2.6333333333333333,
-      "q75": 6.133333333333334,
-      "iqr": 3.5000000000000004,
-      "ci_95_lower": 1.9728714949131794,
-      "ci_95_upper": 6.630832208790525,
-      "cv_percent": 70.43224776375713,
-      "p90": 8.766666666666667,
+      "n_observations": 10,
+      "mean": 4.4766666666666675,
+      "median": 3.2083333333333335,
+      "std": 2.909607330004311,
+      "q25": 2.725,
+      "q75": 6.112500000000001,
+      "iqr": 3.3875000000000006,
+      "ci_95_lower": 2.395258969433789,
+      "ci_95_upper": 6.5580743638995465,
+      "cv_percent": 64.99495152652965,
+      "p90": 8.691666666666666,
       "min": 0.7166666666666667,
       "max": 9.366666666666667,
       "by_user_type": {
         "technician": {
-          "n_observations": 9,
-          "mean": 4.301851851851852,
-          "median": 3.2,
-          "std": 3.0298909547260715,
-          "ci_95_lower": 1.9728714949131794,
-          "ci_95_upper": 6.630832208790525
+          "n_observations": 10,
+          "mean": 4.4766666666666675,
+          "median": 3.2083333333333335,
+          "std": 2.909607330004311,
+          "ci_95_lower": 2.395258969433789,
+          "ci_95_upper": 6.5580743638995465
         }
       }
     },
@@ -923,6 +949,7 @@
   },
   "metadata": {
     "participants": [
+      "10t",
       "1e",
       "1t",
       "2e",

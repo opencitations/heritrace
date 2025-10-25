@@ -350,15 +350,22 @@ def _draw_heatmap(ax: plt.Axes, matrix: np.ndarray, row_labels: List[str], col_l
     return im
 
 
+def _natural_sort_key(participant_id: str) -> int:
+    """Extract numeric part from participant ID for natural sorting."""
+    import re
+    match = re.search(r'\d+', str(participant_id))
+    return int(match.group()) if match else 0
+
+
 def plot_error_heatmaps(df: pd.DataFrame, output_dir: Path):
     if df.empty:
         return
-    
+
     # Get task order from metadata
     user_types = sorted(df['user_type'].dropna().unique().tolist())
     if not user_types:
         return
-    
+
     task_label_map = _task_key_to_label_map(df)
     
     # Create separate heatmaps for each user type
@@ -378,7 +385,8 @@ def plot_error_heatmaps(df: pd.DataFrame, output_dir: Path):
         if ut_df.empty:
             continue
 
-        participants_raw = sorted(ut_df['participant_id'].dropna().unique().tolist())
+        participants_raw = sorted(ut_df['participant_id'].dropna().unique().tolist(),
+                                 key=_natural_sort_key)
 
         if "__task_order_idx" in ut_df.columns:
             order_df = ut_df.dropna(subset=['task_key']).groupby('task_key')['__task_order_idx'].min().reset_index()
@@ -404,11 +412,12 @@ def plot_error_heatmaps(df: pd.DataFrame, output_dir: Path):
     for ut_idx, user_type in enumerate(user_types):
         # Filter data for this user type
         ut_df = df[df['user_type'] == user_type].copy()
-        
+
         if ut_df.empty:
             continue
-            
-        participants_raw = sorted(ut_df['participant_id'].dropna().unique().tolist())
+
+        participants_raw = sorted(ut_df['participant_id'].dropna().unique().tolist(),
+                                 key=_natural_sort_key)
         participants = [str(p) for p in participants_raw]
         
         # Order tasks by desired execution order for this user type

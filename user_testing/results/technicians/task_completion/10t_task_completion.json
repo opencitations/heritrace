@@ -1,0 +1,36 @@
+{
+  "participant_id": "10t",
+  "user_type": "technician",
+  "tasks": {
+    "add_shacl_validation": {
+      "task_name": "Add SHACL validation for abstract",
+      "expected_duration_minutes": 22,
+      "actual_duration_minutes": "00:06:03",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "User uncertain about correct placement of new property within SHACL shape definition",
+          "trigger": "Adding abstract property to Fabio journal article shape without explicit positioning guidelines",
+          "outcome": "recovered"
+        }
+      ]
+    },
+    "add_display_support": {
+      "task_name": "Add abstract display support",
+      "expected_duration_minutes": 23,
+      "actual_duration_minutes": "00:03:49",
+      "status": "complete",
+      "errors_encountered": 1,
+      "errors": [
+        {
+          "severity": "low",
+          "symptom": "User uncertain whether SPARQL query modification is necessary for abstract display",
+          "trigger": "When beginning display support task, user initially thought they would need to edit the SPARQL query for fetching URI displays: 'There is, for example, this huge SPARQL query for fetching URI displays, which I will probably have to edit'. After reflection, realized: 'actually, no, I actually don't need to do that, considering I edited the resource, and the abstract is displaying itself'. Expressed confusion about SPARQL query purpose: 'In that case, why would we need the SPARQL query?'",
+          "outcome": "recovered"
+        }
+      ]
+    }
+  }
+}

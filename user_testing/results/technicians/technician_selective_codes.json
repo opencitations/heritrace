@@ -32,7 +32,7 @@
     {
       "category": "Technical competence and domain expertise foundation",
       "relationship_to_core": "Establishes foundational expertise enabling pattern-based learning and semantic reasoning. Intuitive navigation, semantic reasoning capabilities, and successful verification demonstrate prerequisite knowledge for effective configuration. Documentation effectiveness supports expertise development even without prior SHACL knowledge.",
-      "frequency": 87,
+      "frequency": 95,
       "axial_codes_included": [
         "Intuitive interface exploration and navigation",
         "Semantic and technical reasoning",
@@ -51,7 +51,7 @@
     {
       "category": "System design affordances enabling expert workflows",
       "relationship_to_core": "System design decisions support pattern-based learning through immediate visual feedback providing rapid validation loops. These affordances reduce experimentation costs and confirm configuration changes achieve intended effects. Positive feature experiences demonstrate appreciation for well-designed functionality.",
-      "frequency": 43,
+      "frequency": 50,
       "axial_codes_included": [
         "Immediate visual feedback appreciation",
         "Positive feature experiences and interface design appreciation"
@@ -60,7 +60,7 @@
     {
       "category": "Conceptual and documentation barriers requiring expert compensation",
       "relationship_to_core": "Identifies system constraints that technical expertise must overcome including file-based configuration paradigm, documentation gaps, parameter uncertainty, and accessibility barriers. Technicians navigate these friction points through domain knowledge and problem-solving skills, though improvements in system design and documentation could reduce barriers. System enables task completion even with limited domain expertise.",
-      "frequency": 36,
+      "frequency": 39,
       "axial_codes_included": [
         "Configuration file documentation gaps",
         "Uncertainty with optional configuration parameters",
@@ -71,7 +71,7 @@
     {
       "category": "Quality and usability refinement opportunities",
       "relationship_to_core": "Captures issues not preventing successful configuration but representing improvement opportunities. Validation bugs, UI inconsistencies, feedback gaps, and code editor challenges are identified by skilled users but do not fundamentally impede pattern-based learning. Expert users work around imperfections while identifying refinement areas.",
-      "frequency": 15,
+      "frequency": 18,
       "axial_codes_included": [
         "System validation and quality issues",
         "Minor UI presentation inconsistencies",
@@ -81,7 +81,7 @@
     {
       "category": "Constructive enhancement suggestions from expert perspective",
       "relationship_to_core": "Forward-looking suggestions bridge the gap between current file-based configuration and more discoverable approaches. Identified gaps include retrospective validation, contextual UI help, visual SHACL editors, validation tooling, and search functionality. Reflects understanding of both current architecture and potential improvements benefiting users with varying expertise levels.",
-      "frequency": 18,
+      "frequency": 20,
       "axial_codes_included": [
         "Missing feature identification and enhancement suggestions"
       ]

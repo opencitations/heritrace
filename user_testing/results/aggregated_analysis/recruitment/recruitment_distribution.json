@@ -116,26 +116,33 @@
       "shacl_familiarity": "Yes, I had working knowledge (not too in-depth)",
       "heritrace_familiarity": "No, I had never used it",
       "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/9t_written_answer.md"
+    },
+    {
+      "participant_id": "10t",
+      "user_type": "technicians",
+      "shacl_familiarity": "No, not at all",
+      "heritrace_familiarity": "No, I had never used it",
+      "file_path": "/home/arcangelo/Documents/heritrace/user_testing/results/technicians/written_answers/10t_written_answer.md"
     }
   ],
   "summary_statistics": {
-    "total_participants": 18,
+    "total_participants": 19,
     "by_user_type": {
       "endusers": 9,
-      "technicians": 9
+      "technicians": 10
     },
     "heritrace_distribution": {
       "Usage knowledge": 2,
-      "No experience": 16
+      "No experience": 17
     },
     "shacl_distribution": {
-      "No experience": 3,
-      "Working knowledge": 6
+      "Working knowledge": 6,
+      "No experience": 4
     }
   },
   "metadata": {
-    "total_participants": 18,
+    "total_participants": 19,
     "endusers_count": 9,
-    "technicians_count": 9
+    "technicians_count": 10
   }
 }

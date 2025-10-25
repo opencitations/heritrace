@@ -1,0 +1,144 @@
+{
+  "participant_id": "10t",
+  "user_type": "technician",
+  "codes": [
+    {
+      "code": "animated_landing_page_appreciation",
+      "verbatim_quote": "The landing page has a cute little animation",
+      "context": "Participant notices and appreciates landing page animation during initial exploration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "cross_entity_linking_appreciation",
+      "verbatim_quote": "for the journal I have used 10.1.1234, example journal. Okay, it's linking it nicely. I will add this as a new record",
+      "context": "Participant successfully links journal article to journal entity and appreciates smooth linking mechanism",
+      "sentiment": "positive"
+    },
+    {
+      "code": "modification_workflow_validation",
+      "verbatim_quote": "If I edit this, example journal article 2.0, save changes, confirm, success",
+      "context": "Participant tests edit functionality and receives successful confirmation of changes",
+      "sentiment": "positive"
+    },
+    {
+      "code": "alphabetical_sorting_front_position_expectation",
+      "verbatim_quote": "considering I am looking for a journal article and I'm sorting by the title, the items are sorted by the title, it's correct, but the names, the titles of the articles do not appear at the front. I imagine this is normal, but for me as a new user, this is a bit weird",
+      "context": "Participant finds alphabetically sorted titles counterintuitive when title text doesn't appear at front of concatenated display string, questioning placement despite recognizing it may be intentional",
+      "sentiment": "negative"
+    },
+    {
+      "code": "provenance_snapshot_understanding",
+      "verbatim_quote": "if I go to the Time Vault, there's snapshot 1 where I created this, snapshot 2 where I changed the title name",
+      "context": "Participant understands Time Vault shows provenance snapshots corresponding to creation and modification events",
+      "sentiment": "positive"
+    },
+    {
+      "code": "time_vault_sorting_feature_recognition",
+      "verbatim_quote": "we can sort them by the deletion time or by title, ascending or descending, same limits for items per page",
+      "context": "Participant identifies available sorting options in Time Vault for deleted entities",
+      "sentiment": "positive"
+    },
+    {
+      "code": "bootstrap_container_width_constraint_frustration",
+      "verbatim_quote": "I often dislike how when you put something in the containers in Bootstrap, they are very, very narrow. So, as you can probably see here, I use a 1440p screen, so the content of the page is tiny, takes a quarter of the width probably",
+      "context": "Participant dislikes that available horizontal space is not fully utilized. Though this narrow layout was an intentional design decision to improve readability, participant finds it frustrating and suggests CSS width customization for larger displays",
+      "sentiment": "negative"
+    },
+    {
+      "code": "dark_mode_preference",
+      "verbatim_quote": "I would like actually, I would like to see a dark mode. the landing page is much more comfortable for me to look at than the catalog. Especially there is this immediate contrast that you're, when you move pages from this very dark, almost black landing page to this very light gray background of the catalog",
+      "context": "Participant requests dark mode feature, noting uncomfortable contrast between dark landing page and light catalog interface",
+      "sentiment": "negative"
+    },
+    {
+      "code": "property_placement_uncertainty",
+      "verbatim_quote": "I am unsure if we need... if there is a preference where I need to put the new property. I imagine not, or rather I assume that there is none, and I will put it at the end",
+      "context": "For Task 1, participant uncertain about property placement convention in SHACL shape, assumes no specific requirement and chooses end position",
+      "sentiment": "negative"
+    },
+    {
+      "code": "shacl_node_vs_datatype_distinction_understanding",
+      "verbatim_quote": "sh:node uses different shapes, from what I can understand, because we have a schema shape, which has the rdf:type of node shape, so if we wanted to use this new property as a new shape of its own, new object type, we would use sh:node, but we don't",
+      "context": "Participant demonstrates understanding of distinction between sh:node for complex shapes versus direct datatype specification",
+      "sentiment": "positive"
+    },
+    {
+      "code": "xsd_string_datatype_selection_reasoning",
+      "verbatim_quote": "we are interested only in the textual representation, so I will use the same as the title here: sh:datatype xsd:string. I believe that this is the only basic XSD type that exists solely for the purpose of textual representation",
+      "context": "Participant selects xsd:string datatype by examining title property pattern and reasoning about appropriate XSD types for text",
+      "sentiment": "positive"
+    },
+    {
+      "code": "cardinality_constraint_specification",
+      "verbatim_quote": "adding a limit to the number of abstracts, so if either an article doesn't have an abstract, so a min count of 0, or it has an abstract, therefore the max count is 1",
+      "context": "Participant correctly interprets and specifies cardinality constraints: minCount 0, maxCount 1 for optional single abstract",
+      "sentiment": "positive"
+    },
+    {
+      "code": "unlabeled_property_default_display",
+      "verbatim_quote": "we specified, well, we added the abstract, the dcterms abstract as a property. However, it doesn't have a label, and by default, I would say, it doesn't cut off in a full sense, but the display cuts off, it's scalable horizontally, you can see the entirety of it",
+      "context": "After SHACL modification, participant observes abstract field appears but lacks display label and has limited default text display width (that is normal since the display rules weren't updated yet)",
+      "sentiment": "negative"
+    },
+    {
+      "code": "sparql_query_necessity_questioning",
+      "verbatim_quote": "there is, for example, this huge SPARQL query for fetching URI displays, which I will probably have to edit, in order to, actually, no, I actually don't need to do that, considering I edited the resource, and the abstract is displaying itself, there should be no need to, there should be no need to actually edit it, which is interesting. In that case, why would we need the SPARQL query?",
+      "context": "For Task 2, participant initially expects to modify SPARQL query but discovers abstract displays without query modification, leading to confusion about query's purpose",
+      "sentiment": "negative"
+    },
+    {
+      "code": "display_property_order_mechanism_discovery",
+      "verbatim_quote": "it also moved the abstract under the title, which actually does fulfill subtask number three, which is supposed to show abstract under the title, so this means that the order of display of properties of each object depends on how they are listed in the display properties",
+      "context": "Participant discovers display property order determined by sequence in display_rules.yaml file when abstract automatically appears below title",
+      "sentiment": "positive"
+    },
+    {
+      "code": "long_word_line_breaking_concern",
+      "verbatim_quote": "I'm honestly unsure on whether or not very long words are organic in English, like they are, for example, in German, but let's say I put a very long string without any spaces, just characters, like A, right? So I want to save it, and what I'm wondering is: will this long string of characters result in new line breakages?",
+      "context": "Participant tests edge case of extremely long unbroken character strings to check word-wrap behavior in textarea",
+      "sentiment": "negative"
+    },
+    {
+      "code": "protein_name_edge_case_awareness",
+      "verbatim_quote": "the only actual problematic thing that I can think of right now is the potential usage of very long, very long protein names. Like if you have a journal article that will have in its abstract a full name of a protein, which shouldn't happen, but it could hypothetically, then you would have the same result as here",
+      "context": "Participant identifies realistic edge case where scientific protein names could cause text overflow issues in textarea display",
+      "sentiment": "negative"
+    },
+    {
+      "code": "virtuoso_interface_appreciation",
+      "verbatim_quote": "if I go look at the layout of the testing package, if I go to the database, I can see that the database is hosted in OpenLink Virtuoso, and any application that provides me with an interface to interact with whatever's in Virtuoso is a positive thing",
+      "context": "In SUS questionnaire reflection, participant expresses appreciation for system providing user-friendly interface to Virtuoso triplestore",
+      "sentiment": "positive"
+    },
+    {
+      "code": "xml_editing_background_facilitating_adoption",
+      "verbatim_quote": "I actually do like XML files because, it's a long story, but this is basically XML files, editing XML files for video games was how I started my journey to becoming a technical person. So, I can read, I can write XML files, like related markup languages pretty quickly",
+      "context": "Participant's background with XML editing for video game modding provides transferable skills for working with TTL and markup-based configuration",
+      "sentiment": "positive"
+    },
+    {
+      "code": "automatic_bidirectional_linking_appreciation",
+      "verbatim_quote": "What I hate about editing those files by hand with more complex examples is actually something HERITRACE does very well, and that is linking between existing objects. So, normally in an XML file or a TTL file, you would have to manually specify the links between objects, between object 1 and 2, in object 1 and 2, etc. Here you add the link in one of the objects and it is done for you",
+      "context": "Participant strongly appreciates automatic bidirectional linking feature that eliminates manual link specification in both related entities",
+      "sentiment": "positive"
+    },
+    {
+      "code": "technical_person_identity_affecting_support_needs",
+      "verbatim_quote": "I would need the support of a technical person to be able to use this system. I am a technical person, I will put strongly disagree here. I assume that this question is, would I need the support of another technical person in this specific case",
+      "context": "Participant interprets SUS question about technical support needs through lens of own technical identity",
+      "sentiment": "positive"
+    },
+    {
+      "code": "near_realtime_change_visibility_value",
+      "verbatim_quote": "I could actually, I can see the changes that I've made in the shacl.ttl file, in the display, upon saving and reloading. So, not live, but almost live changes",
+      "context": "Participant values ability to see configuration changes reflected in UI with only save-and-reload cycle, characterizing as near-realtime feedback",
+      "sentiment": "positive"
+    },
+    {
+      "code": "edit_resource_interface_as_primary_interaction_point",
+      "verbatim_quote": "the editing, edit resource, part of, let's say the object subpage, the object page probably. Since it's here where the object actually appears, where it changed place, when I changed the display rules",
+      "context": "Participant identifies edit resource interface as most useful feature, serving as primary interaction point for configuration verification",
+      "sentiment": "positive"
+    }
+  ]
+}
