@@ -1,3 +1,17 @@
+# [2.8.0](https://github.com/opencitations/heritrace/compare/v2.7.0...v2.8.0) (2025-10-26)
+
+
+### Bug Fixes
+
+* **user-testing:** improve task success rate chart print readability ([dec7cba](https://github.com/opencitations/heritrace/commit/dec7cba2048ec1f2f9a2a328c4aad6470ef1bb8e))
+
+
+### Features
+
+* **user-testing:** add grounded theory axial categories visualization ([0d2f08d](https://github.com/opencitations/heritrace/commit/0d2f08d9809d7524cfb7af97afdf683760b575fb))
+* **user-testing:** add unified color scales to task error heatmaps for improved comparison ([6f39edc](https://github.com/opencitations/heritrace/commit/6f39edc094bad8abe7268ceda514dfe2571f343b))
+* **user-testing:** replace expected vs actual scatter plot with distribution box plots showing 95% confidence intervals ([7e0876a](https://github.com/opencitations/heritrace/commit/7e0876a193f0264bdcfb899807419483899b502b))
+
 # [2.7.0](https://github.com/opencitations/heritrace/compare/v2.6.1...v2.7.0) (2025-10-13)
 
 
