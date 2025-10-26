@@ -60,6 +60,7 @@ export default defineConfig({
 						{ label: 'Application settings', slug: 'configuration/app-settings' },
 						{ label: 'SHACL configuration', slug: 'configuration/shacl' },
 						{ label: 'Display rules configuration', slug: 'configuration/display-rules' },
+						{ label: 'Virtual properties', slug: 'configuration/virtual-properties' },
 					],
 				},
 				{

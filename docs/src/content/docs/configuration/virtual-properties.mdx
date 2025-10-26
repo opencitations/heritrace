@@ -1,0 +1,268 @@
+---
+title: Virtual properties
+description: Configure virtual properties in HERITRACE to align the user interface with user mental models while maintaining ontological correctness in the underlying RDF data.
+---
+import { Aside, Code } from '@astrojs/starlight/components';
+
+Virtual properties allow you to create properties that appear in the user interface but don't exist directly as predicates in your RDF graph. They bridge the gap between how data is ontologically modeled (often as classes) and how users naturally think about it (typically as relationships), making the interface more intuitive without compromising the integrity of your data model.
+
+## What are virtual properties?
+
+A virtual property is a user-facing field that, when populated, automatically creates one or more intermediate entities in the knowledge graph. From the user's perspective, they're adding a simple relationship. Behind the scenes, HERITRACE creates the necessary RDF structure to represent it correctly.
+
+<Aside type="note" title="Virtual vs. Regular Properties">
+**Regular properties** directly correspond to RDF predicates in your data model. When you add a value, a triple is created.
+
+**Virtual properties** have no direct RDF predicate. When you add a value, HERITRACE creates intermediate entities with specific properties based on your configuration.
+</Aside>
+
+## Why use virtual properties?
+
+The primary purpose of virtual properties is to **bridge the gap between ontological representation and user mental models**.
+
+In RDF ontologies, certain concepts are correctly modeled as classes (first-class entities) because they carry important metadata and enable complex relationships. However, domain experts often think of these same concepts as simple relationships or attributes. This mismatch creates cognitive friction and makes the interface harder to use.
+
+For example, in the CITO ontology, citations are modeled as a `cito:Citation` class—an entity that links two bibliographic resources. This is ontologically correct: citations can have types, contexts, and other metadata. But when users edit an article, they think "I want to cite this paper," not "I want to create a Citation entity that links my article to that paper."
+
+Virtual properties resolve this tension by:
+
+- **Presenting a simplified view**: Users interact with what appears to be a simple relationship field
+- **Managing complexity automatically**: HERITRACE creates and configures the intermediate entities behind the scenes
+- **Maintaining data model integrity**: The underlying RDF structure remains correct and compliant with the ontology
+- **Supporting bidirectional navigation**: Both directions of a relationship can be shown (e.g., "Citations" and "Is Cited By") even though they're backed by the same entities in the graph
+
+Use virtual properties when your ontology models something as a class, but users naturally think of it as a relationship or when you need to hide implementation details from domain experts who shouldn't need to understand the full ontological structure.
+
+## Configuration structure
+
+Virtual properties are configured within the `displayProperties` section of a display rule, using several specific keys.
+
+### Basic structure
+
+```yaml
+displayProperties:
+  - displayName: "Property Label"
+    isVirtual: true
+    shouldBeDisplayed: true
+    fetchValueFromQuery: |
+      # SPARQL query to fetch and format values
+    implementedVia:
+      target:
+        class: "http://example.org/IntermediateClass"
+        shape: "http://example.org/IntermediateShape"
+      fieldOverrides:
+        "http://example.org/property1":
+          shouldBeDisplayed: false
+          value: "${currentEntity}"
+        "http://example.org/property2":
+          displayName: "User-Facing Label"
+```
+
+### Configuration keys
+
+- **`isVirtual`**: Must be set to `true` to enable virtual property behavior
+- **`displayName`**: The label shown in the user interface for this property
+- **`shouldBeDisplayed`**: Controls whether this property appears in forms and entity views
+- **`fetchValueFromQuery`**: A SPARQL query that retrieves and formats the display value. The query context is the intermediate entity, referenced by `[[value]]`
+- **`implementedVia`**: Defines how the virtual property is implemented in the RDF graph
+
+#### The `implementedVia` section
+
+This section tells HERITRACE what kind of intermediate entity to create and how to configure its properties.
+
+**`target`**: Specifies the type of intermediate entity
+- `class`: The RDF class (`rdf:type`) for the intermediate entity
+- `shape`: The SHACL shape the intermediate entity conforms to
+
+**`fieldOverrides`**: A mapping of property URIs to their configuration
+- Each key is a property URI on the intermediate entity
+- Each value is an object that can contain:
+  - `shouldBeDisplayed`: If `false`, the field is hidden from the user and automatically populated
+  - `value`: The value to set automatically. Can use the special placeholder `${currentEntity}` to reference the URI of the entity being edited
+  - `displayName`: A custom label for fields that are shown to the user
+
+## Complete example: Bidirectional citations
+
+This example shows how to configure virtual properties for a citation system where citations can be viewed from both directions.
+
+### The scenario
+
+You have bibliographic resources that cite each other. In your RDF model, a `Citation` entity represents each citation, linking the citing resource to the cited resource. You want users to see:
+
+- On the citing resource: A "Citations" property showing what it cites
+- On the cited resource: An "Is Cited By" property showing what cites it
+
+But you only want to store one `Citation` entity in the graph, not duplicate data.
+
+### The data model
+
+```turtle
+@prefix cito: <http://purl.org/spar/cito/> .
+@prefix : <http://example.org/> .
+
+# A citation entity links the two resources
+:citation1 a cito:Citation ;
+    cito:hasCitingEntity :articleA ;
+    cito:hasCitedEntity :articleB ;
+    cito:hasCitationCharacterization cito:cites .
+```
+
+In this model:
+- `:articleA` is the resource that cites
+- `:articleB` is the resource being cited
+- The `Citation` entity holds the relationship and can describe it (e.g., the type of citation)
+
+### Configuring the "Citations" property
+
+This virtual property appears on the citing resource and shows what it cites.
+
+```yaml
+# First, define the query as a reusable anchor
+queries:
+  citations_query: &citations_query |
+    PREFIX cito: <http://purl.org/spar/cito/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT ?display ?target WHERE {
+      [[value]] a cito:Citation ;
+                cito:hasCitingEntity [[subject]] ;
+                cito:hasCitedEntity ?target .
+      ?target dcterms:title ?title .
+      BIND(CONCAT(?title, " (", STR(?target), ")") AS ?display)
+    }
+
+# Then use it in a virtual property
+virtual_properties:
+  citations_property: &citations_property
+    displayName: "Citations"
+    isVirtual: true
+    shouldBeDisplayed: true
+    fetchValueFromQuery: *citations_query
+    implementedVia:
+      target:
+        class: "http://purl.org/spar/cito/Citation"
+        shape: "http://schema.org/CitationShape"
+      fieldOverrides:
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+          shouldBeDisplayed: false
+          value: "http://purl.org/spar/cito/Citation"
+        "http://purl.org/spar/cito/hasCitingEntity":
+          shouldBeDisplayed: false
+          value: "${currentEntity}"
+        "http://purl.org/spar/cito/hasCitedEntity":
+          displayName: "Cited Resource"
+        "http://purl.org/spar/cito/hasCitationCharacterization":
+          displayName: "Citation Type"
+```
+
+**What happens when a user adds a citation:**
+
+1. The user sees a "Citations" field and a form to add a cited resource
+2. The `rdf:type` field is hidden and automatically set to `cito:Citation`
+3. The `cito:hasCitingEntity` field is hidden and automatically set to the current article's URI
+4. The user selects the cited resource in the `cito:hasCitedEntity` field (labeled "Cited Resource")
+5. The user optionally selects a citation type in the `cito:hasCitationCharacterization` field
+6. HERITRACE creates a new `Citation` entity with all these properties
+
+### Configuring the "Is Cited By" property
+
+This virtual property appears on the cited resource and shows what cites it. It queries for `Citation` entities where the current resource is the cited entity.
+
+```yaml
+# Define the inverse query
+queries:
+  citing_entity_query: &citing_entity_query |
+    PREFIX cito: <http://purl.org/spar/cito/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    SELECT ?display ?target WHERE {
+      [[value]] cito:hasCitingEntity ?target .
+      ?target dcterms:title ?title .
+      BIND(CONCAT(?title, " (", STR(?target), ")") AS ?display)
+    }
+
+# Configure the reverse virtual property
+virtual_properties:
+  is_cited_by_property: &is_cited_by_property
+    displayName: "Is Cited By"
+    isVirtual: true
+    shouldBeDisplayed: true
+    fetchValueFromQuery: *citing_entity_query
+    implementedVia:
+      target:
+        class: "http://purl.org/spar/cito/Citation"
+        shape: "http://schema.org/ReverseCitationShape"
+      fieldOverrides:
+        "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
+          shouldBeDisplayed: false
+          value: "http://purl.org/spar/cito/Citation"
+        "http://purl.org/spar/cito/hasCitedEntity":
+          shouldBeDisplayed: false
+          value: "${currentEntity}"
+        "http://purl.org/spar/cito/hasCitingEntity":
+          displayName: "Citing Resource"
+        "http://purl.org/spar/cito/hasCitationCharacterization":
+          displayName: "Citation Type"
+```
+
+**Key differences from the forward citation:**
+- The `fetchValueFromQuery` retrieves the citing entity instead of the cited entity
+- `hasCitedEntity` is now automatically set to `${currentEntity}` (instead of `hasCitingEntity`)
+- `hasCitingEntity` is now the user-facing field (instead of `hasCitedEntity`)
+- A different SHACL shape (`ReverseCitationShape`) distinguishes it from forward citations
+
+### Using the virtual properties in display rules
+
+Once defined, you use the virtual properties in your entity rules:
+
+```yaml
+rules:
+  - target:
+      class: "http://purl.org/spar/fabio/JournalArticle"
+    displayName: "Journal Article"
+    displayProperties:
+      # ... other properties ...
+      - *citations_property
+      - *is_cited_by_property
+```
+
+Now, when a user views or edits a journal article, they see both "Citations" and "Is Cited By" fields, even though the underlying data is stored as `Citation` entities.
+
+## The `${currentEntity}` placeholder
+
+The special `${currentEntity}` placeholder is replaced with the URI of the entity currently being created or edited. This is essential for linking the intermediate entity back to the main entity.
+
+**Example:**
+```yaml
+fieldOverrides:
+  "http://example.org/linksBackTo":
+    shouldBeDisplayed: false
+    value: "${currentEntity}"
+```
+
+When creating a citation from Article A's page, `${currentEntity}` becomes Article A's URI. This ensures the `Citation` entity correctly references Article A.
+
+## Understanding `fetchValueFromQuery` context
+
+For virtual properties, the `fetchValueFromQuery` has a specific context:
+
+- `[[subject]]`: The URI of the main entity being viewed (e.g., the article)
+- `[[value]]`: The URI of the intermediate entity (e.g., the `Citation` entity)
+
+The query starts from the intermediate entity and navigates to retrieve the display value.
+
+**Example:**
+```sparql
+SELECT ?display ?target WHERE {
+  # [[value]] is the Citation entity URI
+  [[value]] cito:hasCitedEntity ?target .
+
+  # Navigate from the Citation to get the cited resource's title
+  ?target dcterms:title ?title .
+
+  # Format the display string
+  BIND(CONCAT(?title, " (citation)") AS ?display)
+}
+```
+
+The query must return two variables in order:
+1. The formatted display string
+2. The URI of the final target entity

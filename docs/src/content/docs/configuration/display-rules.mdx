@@ -402,6 +402,37 @@ rules:
             fetchValueFromQuery: *author_query # Use the author query
 ```
 
+## Virtual properties: Bridging user mental models and data models
+
+Sometimes, the way data is structured in your RDF ontology doesn't align with how users naturally think about it. **Virtual properties** are HERITRACE's solution to this mismatch, allowing you to present data in a way that matches users' mental models while maintaining the integrity of your underlying data model.
+
+### The problem: Ontological vs. intuitive representation
+
+Consider citations. In the CITO ontology, a citation is modeled as a **first-class entity** (a `cito:Citation` class) that links two bibliographic resources:
+
+```turtle
+:citation1 a cito:Citation ;
+    cito:hasCitingEntity :articleA ;
+    cito:hasCitedEntity :articleB .
+```
+
+This is ontologically sound and enables rich metadata about citations (citation type, semantics, etc.). However, most users think of citations as **relationships**, not entities. When editing an article, users expect to simply "add a citation" to another resource, not "create a Citation entity that links this article to another resource."
+
+### The solution: Virtual properties
+
+Virtual properties let you hide the complexity of the underlying data model and present a simpler, more intuitive interface. When a user adds a value to a virtual property, HERITRACE automatically creates and manages the intermediate entities behind the scenes.
+
+For the citation example, you can configure:
+- A "Citations" virtual property that appears as a simple relationship field
+- When the user adds a citation, HERITRACE creates the `Citation` entity automatically
+- The user never sees or manages the `Citation` entity directly
+
+You can even show both directions of the relationship ("Citations" and "Is Cited By") as separate virtual properties, even though they're backed by the same set of `Citation` entities in the graph.
+
+### Learn more
+
+For detailed configuration instructions, complete examples, and best practices, see the [Virtual properties configuration guide](/heritrace/configuration/virtual-properties/).
+
 ## Testing your rules
 
 When running HERITRACE in development mode, any changes to `resources/display_rules.yaml` will automatically restart the server, so you can see your updates instantly.
