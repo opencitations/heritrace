@@ -75,9 +75,9 @@ class Config(object):
     ORCID_API_URL = os.environ.get("ORCID_API_URL", "https://pub.orcid.org/v2.1")
     ORCID_SCOPE = os.environ.get("ORCID_SCOPE", "/authenticate")
 
-    # Parse ORCID whitelist from environment (comma-separated)
-    _orcid_whitelist_str = os.environ.get("ORCID_WHITELIST", "your-allowed-orcid-1,your-allowed-orcid-2")
-    ORCID_WHITELIST = [orcid.strip() for orcid in _orcid_whitelist_str.split(",") if orcid.strip()]
+    # Parse ORCID safelist from environment (comma-separated)
+    _orcid_safelist_str = os.environ.get("ORCID_SAFELIST", "your-allowed-orcid-1,your-allowed-orcid-2")
+    ORCID_SAFELIST = [orcid.strip() for orcid in _orcid_safelist_str.split(",") if orcid.strip()]
 
     # Entity handling configuration - strategies can be configured via environment variables
     # Available options: ASK, DELETE, KEEP

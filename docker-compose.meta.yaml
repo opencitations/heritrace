@@ -36,7 +36,7 @@ services:
       # ORCID Configuration (placeholder values - not used in demo mode)
       - ORCID_CLIENT_ID=your-orcid-client-id
       - ORCID_CLIENT_SECRET=your-orcid-client-secret
-      - ORCID_WHITELIST=0000-0000-0000-0000
+      - ORCID_SAFELIST=0000-0000-0000-0000
       - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
       - ORCID_TOKEN_URL=https://orcid.org/oauth/token
       - ORCID_API_URL=https://pub.orcid.org/v2.1

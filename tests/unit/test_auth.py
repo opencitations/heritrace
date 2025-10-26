@@ -47,7 +47,7 @@ def test_callback_success(client: FlaskClient, app: Flask):
         mock_session.fetch_token.return_value = test_token
         mock_oauth.return_value = mock_session
 
-        app.config["ORCID_WHITELIST"] = ["0000-0000-0000-0001"]
+        app.config["ORCID_SAFELIST"] = ["0000-0000-0000-0001"]
         with app.test_request_context():
             expected_url = url_for("main.catalogue")
         response = client.get("/auth/callback?code=test-code&state=test-state")
@@ -76,7 +76,7 @@ def test_callback_unauthorized_orcid(client: FlaskClient, app: Flask):
         mock_session.fetch_token.return_value = test_token
         mock_oauth.return_value = mock_session
 
-        app.config["ORCID_WHITELIST"] = ["0000-0000-0000-0001"]
+        app.config["ORCID_SAFELIST"] = ["0000-0000-0000-0001"]
         with app.test_request_context():
             expected_url = url_for("auth.login")
         response = client.get("/auth/callback?code=test-code&state=test-state")
@@ -174,8 +174,8 @@ def test_login_demo_mode(client: FlaskClient, app: Flask):
             assert sess.get("_user_id") == "http://example.org/demo/test_demo"
 
 
-def test_callback_no_whitelist(client: FlaskClient, app: Flask):
-    """Test callback when whitelist is empty."""
+def test_callback_no_safelist(client: FlaskClient, app: Flask):
+    """Test callback when safelist is empty."""
     test_token = {
         "access_token": "test-token",
         "name": "Test User",
@@ -190,7 +190,7 @@ def test_callback_no_whitelist(client: FlaskClient, app: Flask):
         mock_session.fetch_token.return_value = test_token
         mock_oauth.return_value = mock_session
 
-        app.config["ORCID_WHITELIST"] = []
+        app.config["ORCID_SAFELIST"] = []
         with app.test_request_context():
             expected_url = url_for("main.catalogue")
         response = client.get("/auth/callback?code=test-code&state=test-state")

@@ -70,12 +70,12 @@ def callback():
         return redirect(url_for("auth.login"))
     orcid_id = token["orcid"]
 
-    whitelist = current_app.config["ORCID_WHITELIST"]
-    if whitelist:
-        normalized_whitelist = {
-            extract_orcid_id(item) if is_orcid_url(item) else item for item in whitelist
+    safelist = current_app.config["ORCID_SAFELIST"]
+    if safelist:
+        normalized_safelist = {
+            extract_orcid_id(item) if is_orcid_url(item) else item for item in safelist
         }
-        if orcid_id not in normalized_whitelist:
+        if orcid_id not in normalized_safelist:
             flash(
                 gettext("Your ORCID is not authorized to access this application"),
                 "danger",

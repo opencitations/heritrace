@@ -29,7 +29,7 @@ services:
       # ORCID authentication (REQUIRED: Get from https://orcid.org/developer-tools)
       - ORCID_CLIENT_ID=your-client-id
       - ORCID_CLIENT_SECRET=your-client-secret
-      - ORCID_WHITELIST=0000-0000-0000-0000,0000-0000-0000-0001  # Comma-separated ORCID IDs
+      - ORCID_SAFELIST=0000-0000-0000-0000,0000-0000-0000-0001  # Comma-separated ORCID IDs
       - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
       - ORCID_TOKEN_URL=https://orcid.org/oauth/token
       - ORCID_API_URL=https://pub.orcid.org/v2.1

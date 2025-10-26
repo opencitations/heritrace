@@ -33,7 +33,7 @@ environment:
   # ORCID authentication
   - ORCID_CLIENT_ID=your-client-id
   - ORCID_CLIENT_SECRET=your-client-secret
-  - ORCID_WHITELIST=0000-0000-0000-0000,0000-0000-0000-0001
+  - ORCID_SAFELIST=0000-0000-0000-0000,0000-0000-0000-0001
 ```
 
 <Aside type="tip">
@@ -359,7 +359,7 @@ environment:
   - ORCID_SCOPE=/authenticate
 
   # Access Control
-  - ORCID_WHITELIST=your-allowed-orcid-1,your-allowed-orcid-2
+  - ORCID_SAFELIST=your-allowed-orcid-1,your-allowed-orcid-2
 ```
 
 ### Setting up ORCID
@@ -383,13 +383,13 @@ environment:
       - ORCID_CLIENT_SECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     ```
 
-5.  **Whitelist Your ORCID ID**:
-    To enable access, you must add authorized ORCID IDs to the `ORCID_WHITELIST`. The application automatically extracts the ID from full ORCID URLs, so you can use either format.
+5.  **Safelist Your ORCID ID**:
+    To enable access, you must add authorized ORCID IDs to the `ORCID_SAFELIST`. The application automatically extracts the ID from full ORCID URLs, so you can use either format.
 
     ```yaml
     environment:
       # Allow specific researchers by ID or full URL (comma-separated)
-      - ORCID_WHITELIST=0000-0002-1825-0097,https://orcid.org/0000-0001-5109-3700
+      - ORCID_SAFELIST=0000-0002-1825-0097,https://orcid.org/0000-0001-5109-3700
     ```
 
 ## Entity handling strategies
