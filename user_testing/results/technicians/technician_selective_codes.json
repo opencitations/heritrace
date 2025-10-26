@@ -59,13 +59,13 @@
     },
     {
       "category": "Conceptual and documentation barriers requiring expert compensation",
-      "relationship_to_core": "Identifies system constraints that technical expertise must overcome including file-based configuration paradigm, documentation gaps, parameter uncertainty, and accessibility barriers. Technicians navigate these friction points through domain knowledge and problem-solving skills, though improvements in system design and documentation could reduce barriers. System enables task completion even with limited domain expertise.",
+      "relationship_to_core": "Identifies system constraints that technical expertise must overcome including file-based configuration paradigm, documentation gaps, parameter uncertainty, and usability barriers. Technicians navigate these friction points through domain knowledge and problem-solving skills, though improvements in system design and documentation could reduce barriers. System enables task completion even with limited domain expertise.",
       "frequency": 39,
       "axial_codes_included": [
         "Configuration file documentation gaps",
         "Uncertainty with optional configuration parameters",
         "Task requirement comprehension failures",
-        "Configuration complexity and accessibility barriers"
+        "Configuration complexity and usability barriers"
       ]
     },
     {

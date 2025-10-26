@@ -195,7 +195,7 @@
       "sentiment": "positive"
     },
     {
-      "code": "accessibility_for_non_shacl_experts",
+      "code": "usability_for_non_shacl_experts",
       "verbatim_quote": "No real weaknesses, I think it would be easy to use even for people not familiar with SHACL, with a brief introduction to this kind of syntax (even people familiar with html would understand delimiters of certain 'blocks' of code, and probably operates successfully.)",
       "context": "Participant assesses system as accessible to non-SHACL experts, drawing parallel to HTML familiarity enabling success with basic training",
       "sentiment": "positive"

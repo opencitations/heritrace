@@ -2,7 +2,7 @@
   "user_type": "technician",
   "categories": [
     {
-      "category_name": "Configuration complexity and accessibility barriers",
+      "category_name": "Configuration complexity and usability barriers",
       "related_codes": [
         {
           "participant_id": "4t",
@@ -18,7 +18,7 @@
         },
         {
           "participant_id": "4t",
-          "code": "configuration_accessibility_user_dependency"
+          "code": "configuration_usability_user_dependency"
         },
         {
           "participant_id": "4t",
@@ -274,7 +274,7 @@
         },
         {
           "participant_id": "9t",
-          "code": "accessibility_for_non_shacl_experts"
+          "code": "usability_for_non_shacl_experts"
         }
       ],
       "category_description": "Documentation and system feedback effectively supported configuration tasks. Participants with no prior SHACL knowledge found documentation clear and beginner-friendly. Inline examples within configuration files supported pattern-based learning. System error messages helped identify configuration mistakes. One participant characterized the system as self-explanatory, requiring documentation only to locate files. Documentation serves as a reference rather than a prerequisite, with system design being sufficiently transparent for novice technical users.",
@@ -1048,7 +1048,7 @@
         },
         {
           "participant_id": "4t",
-          "code": "accessibility_reflection_for_non_experts"
+          "code": "usability_reflection_for_non_experts"
         },
         {
           "participant_id": "4t",

@@ -93,9 +93,9 @@
       "sentiment": "positive"
     },
     {
-      "code": "accessibility_reflection_for_non_experts",
+      "code": "usability_reflection_for_non_experts",
       "verbatim_quote": "Allora, io onestamente provo a mettermi nei panni di qualcuno che non ha mai messo mano su cose di questo tipo. Pur essendo gli YAML... In particolare gli YAML abbastanza accessibili come formato. Facilmente leggibile, comprensibile. Forse il Turtle, gli SHACL così un po' meno",
-      "context": "Participant reflects on accessibility of configuration formats for non-experts, recognizing YAML is more accessible than Turtle/SHACL but still technical",
+      "context": "Participant reflects on usability of configuration formats for non-experts, recognizing YAML is more usable than Turtle/SHACL but still technical",
       "sentiment": "neutral"
     },
     {
@@ -119,7 +119,7 @@
     {
       "code": "expertise_privilege_awareness",
       "verbatim_quote": "Però se ha funzionato questa mia attività, per me è molto intuitiva. Per una persona che magari non è abituata a fare questo tipo di voli pindarici, no. E questa è una challenge che intravedo eventualmente",
-      "context": "Participant recognizes their technical intuition allows logical leaps that would be challenging for non-technical users, identifying accessibility gap",
+      "context": "Participant recognizes their technical intuition allows logical leaps that would be challenging for non-technical users, identifying usability gap",
       "sentiment": "negative"
     },
     {
@@ -147,7 +147,7 @@
       "sentiment": "positive"
     },
     {
-      "code": "configuration_accessibility_user_dependency",
+      "code": "configuration_usability_user_dependency",
       "verbatim_quote": "Sì. Allora, io no, però secondo me una persona non tecnica per forza, per forza. Non è un applicativo che è, come posso dire, ben disposto verso i non tecnici per quanto riguarda la configurazione",
       "context": "During SUS questionnaire, participant distinguishes between own experience (not needing support) and non-technical users (definitely needing support) for configuration tasks",
       "sentiment": "negative"

@@ -95,7 +95,7 @@
     {
       "code": "visual_editor_feature_request",
       "verbatim_quote": "Visual SHACL editor: A guided interface to add or modify SHACL constraints without needing to edit raw TTL (Turtle) could make the platform more beginner-friendly",
-      "context": "Participant suggested a visual SHACL editor as an alternative to raw TTL editing to improve accessibility for beginners",
+      "context": "Participant suggested a visual SHACL editor as an alternative to raw TTL editing to improve usability for beginners",
       "sentiment": "negative"
     },
     {
