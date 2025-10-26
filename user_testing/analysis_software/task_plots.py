@@ -7,7 +7,7 @@ from matplotlib import patheffects as pe
 import numpy as np
 import pandas as pd
 
-from stats_utils import get_boxplot_legend_text
+from stats_utils import compact_outliers
 
 
 def load_duration_statistics(repo_root: Path) -> dict:
@@ -214,16 +214,8 @@ def plot_duration_distributions(df: pd.DataFrame, duration_stats: dict, output_d
         'technician': 'lightcoral'
     }
 
-    # Create figure with vertical layout (one row per user type)
-    # Each row has: plot (left) + statistics (right)
-    fig = plt.figure(figsize=(10, 5 * n_user_types))
-    gs = fig.add_gridspec(n_user_types, 2, width_ratios=[1.5, 1], wspace=0.3,
-                         hspace=0.3, top=0.95, bottom=0.05)
-
-    for i, user_type in enumerate(user_types):
-        ax_plot = fig.add_subplot(gs[i, 0])
-        ax_stats = fig.add_subplot(gs[i, 1])
-
+    # Create separate figure for each user type
+    for user_type in user_types:
         ut_df = duration_df[duration_df['user_type'] == user_type].copy()
 
         # Order tasks by execution order if available
@@ -234,13 +226,13 @@ def plot_duration_distributions(df: pd.DataFrame, duration_stats: dict, output_d
         else:
             task_keys = sorted(ut_df['task_key'].unique().tolist())
 
-        # Prepare data for box plot
+        # Prepare data for box plot and statistics
         box_data = []
         labels = []
         means = []
         ci_lowers = []
         ci_uppers = []
-        stats_lines = ["Duration statistics", ""]
+        task_stats_list = []
 
         for task_key in task_keys:
             task_durations = ut_df[ut_df['task_key'] == task_key]['actual_duration_minutes'].values
@@ -259,29 +251,54 @@ def plot_duration_distributions(df: pd.DataFrame, duration_stats: dict, output_d
                 ci_lowers.append(ci_lower)
                 ci_uppers.append(ci_upper)
 
-                # Add statistics for this task
+                # Calculate statistics for this task
                 median_val = np.median(task_durations)
                 q1 = np.percentile(task_durations, 25)
                 q3 = np.percentile(task_durations, 75)
-                stats_lines.append(f"{task_label}:")
-                stats_lines.append(f"  Count: {len(task_durations)}")
-                stats_lines.append(f"  Mean: {np.mean(task_durations):.1f} min")
-                stats_lines.append(f"  Median: {median_val:.1f} min")
-                stats_lines.append(f"  Q1: {q1:.1f} min")
-                stats_lines.append(f"  Q3: {q3:.1f} min")
-                stats_lines.append("")
+                std_val = np.std(task_durations, ddof=1) if len(task_durations) > 1 else 0
+                min_val = np.min(task_durations)
+                max_val = np.max(task_durations)
+
+                # Calculate outliers (values beyond 1.5×IQR from box edges)
+                iqr = q3 - q1
+                lower_bound = q1 - 1.5 * iqr
+                upper_bound = q3 + 1.5 * iqr
+                outliers = [x for x in task_durations if x < lower_bound or x > upper_bound]
+                outliers_str = compact_outliers(outliers)
+
+                # Store statistics for this task
+                task_stats_list.append({
+                    'label': task_label,
+                    'n': len(task_durations),
+                    'mean': mean_val,
+                    'median': median_val,
+                    'std': std_val,
+                    'ci_lower': ci_lower,
+                    'ci_upper': ci_upper,
+                    'q1': q1,
+                    'q3': q3,
+                    'min': min_val,
+                    'max': max_val,
+                    'outliers_str': outliers_str
+                })
 
         if not box_data:
             continue
 
-        # Create box plot with blue median line
+        # Create figure with plot above and statistics below
+        n_tasks = len(box_data)
+        fig = plt.figure(figsize=(max(10, 3 * n_tasks), 8))
+        gs = fig.add_gridspec(2, 1, height_ratios=[2, 1], hspace=0.35)
+
+        # Create box plot
+        ax_plot = fig.add_subplot(gs[0, 0])
         bp = ax_plot.boxplot(box_data, tick_labels=labels, patch_artist=True,
                             showmeans=True, meanline=False,
                             medianprops=dict(color='darkblue', linewidth=2.5),
                             meanprops=dict(marker='D', markerfacecolor='red',
                                          markeredgecolor='black', markersize=6))
 
-        # Color boxes based on user type (consistent with SUS)
+        # Color boxes based on user type
         box_color = user_type_colors[user_type]
         for patch in bp['boxes']:
             patch.set_facecolor(box_color)
@@ -301,13 +318,12 @@ def plot_duration_distributions(df: pd.DataFrame, duration_stats: dict, output_d
                     markeredgecolor='black', markersize=6, label='Mean')
         ax_plot.plot([], [], marker='o', markerfacecolor='none', markeredgecolor='black',
                     linestyle='None', markersize=5, label='Outliers')
-        # Position legend based on user type to avoid outlier overlap
+
+        # Position legend
         if 'end' in user_type.lower():
-            # End user: above plot with more padding from top edge
             ax_plot.legend(loc='upper center', bbox_to_anchor=(0.5, 0.98), ncol=2,
                           frameon=True, fontsize=9)
         else:
-            # Technician: upper left with padding from edges
             ax_plot.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98), ncol=2,
                           frameon=True, fontsize=9)
 
@@ -317,22 +333,48 @@ def plot_duration_distributions(df: pd.DataFrame, duration_stats: dict, output_d
         ax_plot.set_xticklabels(labels, rotation=30, ha='right')
         ax_plot.grid(True, alpha=0.3, axis='y')
 
-        # Add box plot legend only in the last panel
-        if i == n_user_types - 1:
-            stats_lines.append("")
-            legend_text = get_boxplot_legend_text()
-            stats_lines.extend(legend_text.split("\n"))
-
-        # Add statistics panel with box plot legend
+        # Add statistics panel below with columns
+        ax_stats = fig.add_subplot(gs[1, 0])
         ax_stats.axis('off')
-        stats_text = "\n".join(stats_lines)
-        ax_stats.text(0.05, 0.95, stats_text, transform=ax_stats.transAxes,
-                     fontsize=10, verticalalignment='top', fontfamily='monospace')
 
-    out = output_dir / "task_duration_distributions.png"
-    fig.savefig(out, dpi=300, bbox_inches='tight', pad_inches=0.3)
-    plt.close(fig)
-    print(f"Saved: {out}")
+        # Arrange statistics in columns (one per task)
+        if n_tasks == 2:
+            positions = [(0.1, 'left'), (0.6, 'left')]
+        elif n_tasks == 3:
+            positions = [(0.05, 'left'), (0.38, 'left'), (0.71, 'left')]
+        elif n_tasks == 4:
+            positions = [(0.02, 'left'), (0.27, 'left'), (0.52, 'left'), (0.77, 'left')]
+        else:
+            # Fallback for other numbers
+            positions = [(i / n_tasks, 'left') for i in range(n_tasks)]
+
+        for idx, task_stat in enumerate(task_stats_list):
+            x_pos, h_align = positions[idx]
+
+            stats_lines = []
+            stats_lines.append(f"{task_stat['label']}:")
+            stats_lines.append(f"N: {task_stat['n']}")
+            stats_lines.append(f"Mean: {task_stat['mean']:.1f} min")
+            stats_lines.append(f"Median: {task_stat['median']:.1f} min")
+            stats_lines.append(f"Std Dev: {task_stat['std']:.1f} min")
+            stats_lines.append(f"95% CI: [{task_stat['ci_lower']:.1f}, {task_stat['ci_upper']:.1f}]")
+            stats_lines.append(f"Q1: {task_stat['q1']:.1f} min")
+            stats_lines.append(f"Q3: {task_stat['q3']:.1f} min")
+            stats_lines.append(f"Min: {task_stat['min']:.1f} min")
+            stats_lines.append(f"Max: {task_stat['max']:.1f} min")
+            if task_stat['outliers_str']:
+                stats_lines.append(f"Outliers: {task_stat['outliers_str']}")
+
+            stats_text = "\n".join(stats_lines)
+            ax_stats.text(x_pos, 0.85, stats_text, transform=ax_stats.transAxes,
+                         fontsize=9, verticalalignment='top', ha=h_align,
+                         fontfamily='monospace')
+
+        # Save figure
+        out = output_dir / f"task_duration_distributions_{user_type}.png"
+        fig.savefig(out, dpi=300, bbox_inches='tight', pad_inches=0.3)
+        plt.close(fig)
+        print(f"Saved: {out}")
 
 def _draw_heatmap(ax: plt.Axes, matrix: np.ndarray, row_labels: List[str], col_labels: List[str], title: str, cmap: str, vmin: float = None, vmax: float = None):
     im = ax.imshow(matrix, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)

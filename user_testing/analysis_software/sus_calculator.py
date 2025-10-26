@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from stats_utils import calculate_mean_confidence_interval, get_boxplot_legend_text
+from stats_utils import calculate_mean_confidence_interval, compact_outliers
 
 
 class SUSCalculator:
@@ -215,7 +215,7 @@ class SUSCalculator:
             color = user_type_colors[user_type]
             patch.set_facecolor(color)
 
-        # 2. Summary statistics table (text-based) with box plot elements below
+        # 2. Summary statistics table (text-based)
         ax2.axis('off')
         stats_lines = ["SUS statistics summary", ""]
         for user_type in user_types:
@@ -226,6 +226,19 @@ class SUSCalculator:
             min_val = user_data.min()
             max_val = user_data.max()
 
+            # Get pre-computed statistics from aggregated_stats
+            ut_stats = aggregated_stats[user_type]
+            std_val = ut_stats['std']
+            ci_lower = ut_stats['ci_95_lower']
+            ci_upper = ut_stats['ci_95_upper']
+
+            # Calculate outliers (values beyond 1.5×IQR from box edges)
+            iqr = q3 - q1
+            lower_bound = q1 - 1.5 * iqr
+            upper_bound = q3 + 1.5 * iqr
+            outliers = [x for x in user_data if x < lower_bound or x > upper_bound]
+            outliers_str = compact_outliers(outliers)
+
             # Map user types to proper labels
             if 'enduser' in user_type.lower():
                 user_type_label = 'End user'
@@ -234,18 +247,18 @@ class SUSCalculator:
             else:
                 user_type_label = user_type.replace('_', ' ').capitalize()
             stats_lines.append(f"{user_type_label}:")
-            stats_lines.append(f"  Count: {len(user_data)}")
-            stats_lines.append(f"  Mean SUS: {user_data.mean():.1f}")
+            stats_lines.append(f"  N: {len(user_data)}")
+            stats_lines.append(f"  Mean: {user_data.mean():.1f}")
             stats_lines.append(f"  Median: {median:.1f}")
-            stats_lines.append(f"  Q1 (25th percentile): {q1:.1f}")
-            stats_lines.append(f"  Q3 (75th percentile): {q3:.1f}")
-            stats_lines.append(f"  Range: {min_val:.1f}-{max_val:.1f}")
+            stats_lines.append(f"  Std Dev: {std_val:.1f}")
+            stats_lines.append(f"  95% CI: [{ci_lower:.1f}, {ci_upper:.1f}]")
+            stats_lines.append(f"  Q1: {q1:.1f}")
+            stats_lines.append(f"  Q3: {q3:.1f}")
+            stats_lines.append(f"  Min: {min_val:.1f}")
+            stats_lines.append(f"  Max: {max_val:.1f}")
+            if outliers_str:
+                stats_lines.append(f"  Outliers: {outliers_str}")
             stats_lines.append("")
-
-        # Add box plot legend directly after statistics
-        stats_lines.append("")
-        legend_text = get_boxplot_legend_text()
-        stats_lines.extend(legend_text.split("\n"))
 
         stats_text = "\n".join(stats_lines)
         ax2.text(0.05, 0.95, stats_text, transform=ax2.transAxes, fontsize=10,

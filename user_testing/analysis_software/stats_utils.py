@@ -5,6 +5,7 @@ Common statistical calculations used across different analysis modules
 import numpy as np
 from scipy import stats
 from typing import Tuple
+from collections import Counter
 
 
 def get_boxplot_legend_text() -> str:
@@ -55,3 +56,43 @@ def calculate_mean_confidence_interval(data: np.ndarray, confidence: float = 0.9
     ci_upper = float(ci[1])
 
     return (mean_val, ci_lower, ci_upper)
+
+
+def compact_outliers(outliers: list, max_unique: int = 10) -> str:
+    """Compact outliers by grouping repeated values with intelligent precision reduction.
+
+    Args:
+        outliers: List of outlier values
+        max_unique: Maximum number of unique values before reducing precision
+
+    Returns:
+        Formatted string with compacted outliers, e.g., "1.5 (×2), 3.0"
+        Returns None if no outliers
+    """
+
+    if not outliers:
+        return None
+
+    # Try different precision levels until we get few enough unique values
+    for decimals in [1, 0]:
+        rounded_outliers = [round(o, decimals) for o in outliers]
+        outlier_counts = Counter(rounded_outliers)
+        if len(outlier_counts) <= max_unique:
+            break
+    else:
+        # If still too many, round to nearest 10
+        rounded_outliers = [round(o / 10) * 10 for o in outliers]
+        outlier_counts = Counter(rounded_outliers)
+        decimals = 0
+
+    # Format output based on precision used
+    if decimals == 1:
+        return ", ".join([
+            f"{val:.1f} (×{count})" if count > 1 else f"{val:.1f}"
+            for val, count in sorted(outlier_counts.items())
+        ])
+    else:
+        return ", ".join([
+            f"{int(val)} (×{count})" if count > 1 else f"{int(val)}"
+            for val, count in sorted(outlier_counts.items())
+        ])
