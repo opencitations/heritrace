@@ -1,6 +1,6 @@
 services:
   web:
-    image: arcangelo7/heritrace:2.7.0
+    image: arcangelo7/heritrace:2.8.0
     ports:
       - "5000:5000"
     environment:
