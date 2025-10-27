@@ -7,6 +7,7 @@ from matplotlib import patheffects as pe
 import numpy as np
 import pandas as pd
 
+from plot_utils import STATUS_COLORS, STATUS_HATCHES, STATUS_LABELS, USER_TYPE_COLORS
 from stats_utils import compact_outliers
 
 
@@ -72,30 +73,6 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
         return
     task_label_map = _task_key_to_label_map(df)
 
-    status_colors = {
-        'complete': '#1b7837',
-        'partial': '#fdae61',
-        'success_timeout': '#4575b4',
-        'failed_misunderstanding': '#d73027',
-        'failed_bug': '#7b3294'
-    }
-
-    status_hatches = {
-        'complete': '',
-        'partial': '///',
-        'success_timeout': '|||',
-        'failed_misunderstanding': 'xxx',
-        'failed_bug': '\\\\\\'
-    }
-
-    status_labels = {
-        'complete': 'Complete',
-        'partial': 'Partial',
-        'success_timeout': 'Success: Timeout',
-        'failed_misunderstanding': 'Failed: Misunderstanding',
-        'failed_bug': 'Failed: Bug'
-    }
-
     # Compute status counts by user_type and task_key
     group_cols = ["user_type", "task_key"]
 
@@ -148,10 +125,10 @@ def plot_success_rates(df: pd.DataFrame, output_dir: Path):
         for status in status_order:
             values = sub[status].values
             bars = ax.bar(x, values, bottom=bottom,
-                         color=status_colors[status],
-                         label=status_labels[status],
+                         color=STATUS_COLORS[status],
+                         label=STATUS_LABELS[status],
                          edgecolor='black', linewidth=1.0,
-                         hatch=status_hatches[status])
+                         hatch=STATUS_HATCHES[status])
 
             # Set hatch color to be less intrusive
             for bar in bars:
@@ -206,13 +183,6 @@ def plot_duration_distributions(df: pd.DataFrame, duration_stats: dict, output_d
     task_label_map = _task_key_to_label_map(df)
 
     user_types = sorted(duration_df['user_type'].unique().tolist())
-    n_user_types = len(user_types)
-
-    # Define colors for user types (consistent with SUS)
-    user_type_colors = {
-        'end_user': 'lightblue',
-        'technician': 'lightcoral'
-    }
 
     # Create separate figure for each user type
     for user_type in user_types:
@@ -299,7 +269,7 @@ def plot_duration_distributions(df: pd.DataFrame, duration_stats: dict, output_d
                                          markeredgecolor='black', markersize=6))
 
         # Color boxes based on user type
-        box_color = user_type_colors[user_type]
+        box_color = USER_TYPE_COLORS[user_type]
         for patch in bp['boxes']:
             patch.set_facecolor(box_color)
             patch.set_alpha(0.7)

@@ -7,14 +7,9 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from plot_utils import SENTIMENT_COLORS, SENTIMENT_HATCHES
+
 warnings.filterwarnings('ignore')
-
-
-# Color palettes
-SENTIMENT_COLORS = {
-    'positive': '#1b7837',  # Green
-    'negative': '#d73027'   # Red
-}
 
 
 def load_axial_codes(user_type: str, repo_root: Path) -> Dict:
@@ -64,11 +59,16 @@ def create_horizontal_bar_chart(user_type: str, repo_root: Path, output_dir: Pat
     # Create plot
     fig, ax = plt.subplots(figsize=(10, max(6, len(df) * 0.4)))
 
-    # Map sentiments to colors
+    # Map sentiments to colors and hatch patterns
     colors = [SENTIMENT_COLORS[s] for s in df['sentiment']]
+    hatches = [SENTIMENT_HATCHES[s] for s in df['sentiment']]
 
-    # Create horizontal bars
-    ax.barh(df['category'], df['frequency'], color=colors, edgecolor='black', linewidth=0.8)
+    # Create horizontal bars with hatch patterns for black & white readability
+    bars = ax.barh(df['category'], df['frequency'], color=colors, edgecolor='black', linewidth=0.8)
+
+    # Apply hatch patterns to each bar
+    for bar, hatch in zip(bars, hatches):
+        bar.set_hatch(hatch)
 
     # Add frequency labels at the end of each bar
     for i, (freq, cat) in enumerate(zip(df['frequency'], df['category'])):
@@ -83,13 +83,16 @@ def create_horizontal_bar_chart(user_type: str, repo_root: Path, output_dir: Pat
                 fontsize=14, fontweight='bold', pad=20)
     ax.grid(axis='x', alpha=0.3, linestyle='--')
 
-    # Create legend
+    # Create legend with hatch patterns for black & white readability
     legend_elements = [
-        mpatches.Patch(facecolor=SENTIMENT_COLORS['positive'], edgecolor='black', label='Positive'),
-        mpatches.Patch(facecolor=SENTIMENT_COLORS['negative'], edgecolor='black', label='Negative'),
+        mpatches.Patch(facecolor=SENTIMENT_COLORS['positive'], edgecolor='black',
+                      hatch=SENTIMENT_HATCHES['positive'], label='Positive'),
+        mpatches.Patch(facecolor=SENTIMENT_COLORS['negative'], edgecolor='black',
+                      hatch=SENTIMENT_HATCHES['negative'], label='Negative'),
     ]
 
-    ax.legend(handles=legend_elements, loc='lower right', frameon=True, fontsize=10)
+    ax.legend(handles=legend_elements, loc='lower right', frameon=True, fontsize=12,
+             handlelength=2.5, handleheight=1.5)
 
     plt.tight_layout()
     output_file = output_dir / f'{user_type}_axial_categories.png'
