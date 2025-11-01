@@ -24,6 +24,7 @@ from heritrace.utils.sparql_utils import (find_orphaned_entities,
                                           get_available_classes,
                                           get_catalog_data,
                                           get_deleted_entities_with_filtering,
+                                          get_triples_from_graph,
                                           import_entity_graph,
                                           import_referenced_entities)
 from heritrace.utils.strategies import (OrphanHandlingStrategy,
@@ -947,7 +948,7 @@ def rebuild_entity_order(
     """
     # First, remove all existing ordering relationships
     for entity in entities:
-        for s, p, o in list(editor.g_set.triples((entity, ordered_by_uri, None))):
+        for s, p, o in list(get_triples_from_graph(editor.g_set, (entity, ordered_by_uri, None))):
             editor.delete(entity, ordered_by_uri, o, graph_uri)
     
     # Then rebuild the chain with the entities
@@ -998,7 +999,7 @@ def order_logic(
     ordered_by_uri = URIRef(ordered_by)
     # Ottieni tutte le entità ordinate attuali direttamente dall'editor
     current_entities = [
-        o for _, _, o in editor.g_set.triples((subject_uri, predicate_uri, None))
+        o for _, _, o in get_triples_from_graph(editor.g_set, (subject_uri, predicate_uri, None))
     ]
 
     # Dizionario per mappare le vecchie entità alle nuove
@@ -1008,7 +1009,7 @@ def order_logic(
     for old_entity in current_entities:
         if str(old_entity) in new_order:  # Processa solo le entità preesistenti
             # Memorizza tutte le proprietà dell'entità attuale
-            entity_properties = list(editor.g_set.triples((old_entity, None, None)))
+            entity_properties = list(get_triples_from_graph(editor.g_set, (old_entity, None, None)))
 
             entity_type = next(
                 (o for _, p, o in entity_properties if p == RDF.type), None

@@ -5,7 +5,8 @@ from typing import Dict, List, Optional, Tuple, Union
 import validators
 from flask_babel import gettext
 from heritrace.extensions import get_custom_filter, get_shacl_graph
-from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
+from heritrace.utils.sparql_utils import (fetch_data_graph_for_subject,
+                                          get_triples_from_graph)
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from rdflib import RDF, XSD, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
@@ -177,7 +178,7 @@ def validate_new_triple(
     if old_value is not None:
         matching_triples = [
             triple[2]
-            for triple in data_graph.triples((URIRef(subject), URIRef(predicate), None))
+            for triple in get_triples_from_graph(data_graph, (URIRef(subject), URIRef(predicate), None))
             if str(triple[2]) == str(old_value)
         ]
         # Only update old_value if we found a match in the graph
@@ -199,7 +200,7 @@ def validate_new_triple(
                 return Literal(new_value), old_value, ""
 
     s_types = [
-        triple[2] for triple in data_graph.triples((URIRef(subject), RDF.type, None))
+        triple[2] for triple in get_triples_from_graph(data_graph, (URIRef(subject), RDF.type, None))
     ]
     highest_priority_class = get_highest_priority_class(s_types)
 
@@ -219,9 +220,9 @@ def validate_new_triple(
     #   * An ORCID for a person follows yet another
     # By including these "inverse" types, we ensure validation considers the full context
     inverse_types = []
-    for s, p, o in data_graph.triples((None, None, URIRef(subject))):
+    for s, p, o in get_triples_from_graph(data_graph, (None, None, URIRef(subject))):
         # Ottieni i tipi dell'entità che ha il soggetto come oggetto
-        s_types_inverse = [t[2] for t in data_graph.triples((s, RDF.type, None))]
+        s_types_inverse = [t[2] for t in get_triples_from_graph(data_graph, (s, RDF.type, None))]
         inverse_types.extend(s_types_inverse)
 
     # Add inverse types to s_types
@@ -317,7 +318,7 @@ def validate_new_triple(
     min_count = int(min_count[0]) if min_count else None
 
     current_values = list(
-        data_graph.triples((URIRef(subject), URIRef(predicate), None))
+        get_triples_from_graph(data_graph, (URIRef(subject), URIRef(predicate), None))
     )
     current_count = len(current_values)
 
@@ -389,7 +390,7 @@ def validate_new_triple(
                 if path and value:
                     # Check if the condition triple exists in the data graph
                     condition_exists = any(
-                        data_graph.triples((URIRef(subject), URIRef(path), URIRef(value)))
+                        get_triples_from_graph(data_graph, (URIRef(subject), URIRef(path), URIRef(value)))
                     )
                     if not condition_exists:
                         conditions_met = False
@@ -485,7 +486,7 @@ def convert_to_matching_class(object_value, classes, entity_types=None):
         
     # Fetch data graph and get types
     data_graph = fetch_data_graph_for_subject(object_value)
-    o_types = {str(c[2]) for c in data_graph.triples((URIRef(object_value), RDF.type, None))}
+    o_types = {str(c[2]) for c in get_triples_from_graph(data_graph, (URIRef(object_value), RDF.type, None))}
 
     # If entity_types is provided and o_types is empty, use entity_types
     if entity_types and not o_types:

@@ -23,7 +23,7 @@ requests-oauthlib = "^2.0.0"
 flask-login = "^0.6.3"
 rdflib-ocdm = "^1.0.7"
 pyopenssl = "^24.3.0"
-time-agnostic-library = "^5.0.5"
+time-agnostic-library = "^5.0.6"
 
 
 [tool.poetry.group.dev.dependencies]

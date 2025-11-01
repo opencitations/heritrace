@@ -26,6 +26,29 @@ from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
 
 _AVAILABLE_CLASSES_CACHE = None
+
+
+def get_triples_from_graph(graph_or_dataset, pattern):
+    """
+    Get triples from a Graph or Dataset, handling both cases correctly.
+
+    For Dataset (quadstore), converts quads to triples by extracting (s, p, o).
+    For Graph (triplestore), uses triples() directly.
+
+    Args:
+        graph_or_dataset: Graph or Dataset instance
+        pattern: Triple pattern tuple (s, p, o) where each can be None
+
+    Returns:
+        Generator of triples (s, p, o)
+    """
+    if isinstance(graph_or_dataset, Dataset):
+        # For Dataset, use quads() and extract only (s, p, o)
+        for s, p, o, g in graph_or_dataset.quads(pattern):
+            yield (s, p, o)
+    else:
+        # For Graph, use triples() directly
+        yield from graph_or_dataset.triples(pattern)
 COUNT_LIMIT = int(os.getenv("COUNT_LIMIT", "10000"))
 
 
@@ -750,7 +773,7 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
 
     entity_types = [
         str(o)
-        for s, p, o in last_valid_state.triples((URIRef(entity_uri), RDF.type, None))
+        for s, p, o in get_triples_from_graph(last_valid_state, (URIRef(entity_uri), RDF.type, None))
     ]
     highest_priority_type = get_highest_priority_class(entity_types)
     shape = determine_shape_for_classes([highest_priority_type])
@@ -763,8 +786,8 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
         prop_uri = prop["property"]
         values = [
             str(o)
-            for s, p, o in last_valid_state.triples(
-            (URIRef(entity_uri), URIRef(prop_uri), None)
+            for s, p, o in get_triples_from_graph(
+                last_valid_state, (URIRef(entity_uri), URIRef(prop_uri), None)
             )
         ]
         sort_values[prop_uri] = values[0] if values else ""

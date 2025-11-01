@@ -36,8 +36,8 @@ from heritrace.utils.shacl_utils import (determine_shape_for_entity_triples,
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
     determine_shape_for_classes, fetch_current_state_with_related_entities,
-    fetch_data_graph_for_subject, get_entity_types, import_referenced_entities,
-    parse_sparql_update)
+    fetch_data_graph_for_subject, get_entity_types, get_triples_from_graph,
+    import_referenced_entities, parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
 from heritrace.utils.virtual_properties import \
     get_virtual_properties_for_entity, \
@@ -109,14 +109,14 @@ def get_deleted_entity_context_info(is_deleted: bool, sorted_timestamps: List[st
         
         subject_classes = [
             o
-            for _, _, o in context_snapshot.triples(
-                (URIRef(subject), RDF.type, None)
+            for _, _, o in get_triples_from_graph(
+                context_snapshot, (URIRef(subject), RDF.type, None)
             )
         ]
-        
+
         highest_priority_class = get_highest_priority_class(subject_classes)
         entity_shape = determine_shape_for_entity_triples(
-            list(context_snapshot.triples((URIRef(subject), None, None)))
+            list(get_triples_from_graph(context_snapshot, (URIRef(subject), None, None)))
         )
         
         return context_snapshot, highest_priority_class, entity_shape
@@ -186,16 +186,10 @@ def about(subject):
             abort(404)
 
         if data_graph:
-            # For Dataset (quadstore), we need to use quads() instead of triples()
-            if isinstance(data_graph, Dataset):
-                # Convert quads to triples by extracting only s, p, o
-                triples = [(s, p, o) for s, p, o, g in data_graph.quads((None, None, None))]
-                subject_classes = [o for s, p, o, g in data_graph.quads((URIRef(subject), RDF.type, None))]
-                subject_triples = [(s, p, o) for s, p, o, g in data_graph.quads((URIRef(subject), None, None))]
-            else:
-                triples = list(data_graph.triples((None, None, None)))
-                subject_classes = [o for s, p, o in data_graph.triples((URIRef(subject), RDF.type, None))]
-                subject_triples = list(data_graph.triples((URIRef(subject), None, None)))
+            # Use helper function to handle both Graph and Dataset correctly
+            triples = list(get_triples_from_graph(data_graph, (None, None, None)))
+            subject_classes = [o for s, p, o in get_triples_from_graph(data_graph, (URIRef(subject), RDF.type, None))]
+            subject_triples = list(get_triples_from_graph(data_graph, (URIRef(subject), None, None)))
 
             highest_priority_class = get_highest_priority_class(subject_classes)
             entity_shape = determine_shape_for_entity_triples(subject_triples)
@@ -897,11 +891,11 @@ def entity_history(entity_uri):
     else:
         context_snapshot = history[entity_uri][sorted_timestamps[-1]]
 
-    entity_classes = [str(triple[2]) for triple in context_snapshot.triples((URIRef(entity_uri), RDF.type, None))]
+    entity_classes = [str(triple[2]) for triple in get_triples_from_graph(context_snapshot, (URIRef(entity_uri), RDF.type, None))]
     highest_priority_class = get_highest_priority_class(entity_classes)
-    
+
     snapshot_entity_shape = determine_shape_for_entity_triples(
-        list(context_snapshot.triples((URIRef(entity_uri), None, None)))
+        list(get_triples_from_graph(context_snapshot, (URIRef(entity_uri), None, None)))
     )
 
     # Generate timeline events
@@ -1060,8 +1054,8 @@ def _format_snapshot_description(
                     if previous_snapshot_graph:
                         raw_merged_entity_classes = [
                             str(o)
-                            for s, p, o in previous_snapshot_graph.triples(
-                                (URIRef(merged_entity_uri_from_desc), RDF.type, None)
+                            for s, p, o in get_triples_from_graph(
+                                previous_snapshot_graph, (URIRef(merged_entity_uri_from_desc), RDF.type, None)
                             )
                         ]
                         highest_priority_merged_class = get_highest_priority_class(
@@ -1146,7 +1140,7 @@ def entity_version(entity_uri, timestamp):
     )
 
     version = main_entity_history[closest_timestamp]
-    triples = list(version.triples((URIRef(entity_uri), None, None)))
+    triples = list(get_triples_from_graph(version, (URIRef(entity_uri), None, None)))
 
     entity_metadata = provenance.get(entity_uri, {})
     closest_metadata = None
@@ -1184,17 +1178,17 @@ def entity_version(entity_uri, timestamp):
     if is_deletion_snapshot and len(sorted_timestamps) > 1:
         subject_classes = [
             o
-            for _, _, o in context_version.triples((URIRef(entity_uri), RDF.type, None))
+            for _, _, o in get_triples_from_graph(context_version, (URIRef(entity_uri), RDF.type, None))
         ]
     else:
         subject_classes = [
-            o for _, _, o in version.triples((URIRef(entity_uri), RDF.type, None))
+            o for _, _, o in get_triples_from_graph(version, (URIRef(entity_uri), RDF.type, None))
         ]
-    
+
     highest_priority_class = get_highest_priority_class(subject_classes)
-    
+
     entity_shape = determine_shape_for_entity_triples(
-        list(context_version.triples((URIRef(entity_uri), None, None)))
+        list(get_triples_from_graph(context_version, (URIRef(entity_uri), None, None)))
     )
 
     _, _, _, _, _, valid_predicates = get_valid_predicates(triples, highest_priority_class=highest_priority_class)
@@ -1304,7 +1298,7 @@ def restore_version(entity_uri, timestamp):
 
     current_graph = fetch_current_state_with_related_entities(provenance)
 
-    is_deleted = len(list(current_graph.triples((URIRef(entity_uri), None, None)))) == 0
+    is_deleted = len(list(get_triples_from_graph(current_graph, (URIRef(entity_uri), None, None)))) == 0
 
     triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(
         current_graph, historical_graph
@@ -1400,8 +1394,8 @@ def compute_graph_differences(
         current_data = set(current_graph.quads())
         historical_data = set(historical_graph.quads())
     else:
-        current_data = set(current_graph.triples((None, None, None)))
-        historical_data = set(historical_graph.triples((None, None, None)))
+        current_data = set(get_triples_from_graph(current_graph, (None, None, None)))
+        historical_data = set(get_triples_from_graph(historical_graph, (None, None, None)))
     triples_or_quads_to_delete = current_data - historical_data
     triples_or_quads_to_add = historical_data - current_data
 
@@ -1533,16 +1527,16 @@ def determine_object_class_and_shape(object_value: str, relevant_snapshot: Graph
     """
     if not validators.url(str(object_value)) or not relevant_snapshot:
         return None, None
-        
-    object_triples = list(relevant_snapshot.triples((URIRef(object_value), None, None)))
+
+    object_triples = list(get_triples_from_graph(relevant_snapshot, (URIRef(object_value), None, None)))
     if not object_triples:
         return None, None
-    
+
     object_shape_uri = determine_shape_for_entity_triples(object_triples)
     object_classes = [
         str(o)
-        for _, _, o in relevant_snapshot.triples(
-            (URIRef(object_value), RDF.type, None)
+        for _, _, o in get_triples_from_graph(
+            relevant_snapshot, (URIRef(object_value), RDF.type, None)
         )
     ]
     object_class = get_highest_priority_class(object_classes) if object_classes else None
