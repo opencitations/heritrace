@@ -31,7 +31,7 @@ from heritrace.routes.entity import (compute_graph_differences,
 from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
 from heritrace.utils.filters import Filter
 from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
-from rdflib import RDF, XSD, ConjunctiveGraph, Literal, URIRef
+from rdflib import RDF, XSD, Dataset, Literal, URIRef
 
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
@@ -688,67 +688,8 @@ def test_entity_modification_workflow(app: Flask) -> None:
             ), f"I timestamp non sono in ordine crescente: {timestamps[i-1][0]} >= {timestamps[i][0]}"
 
 
-@patch('heritrace.routes.entity.get_form_fields')
-def test_create_nested_entity(mock_get_form_fields, logged_in_client: FlaskClient, app: Flask) -> None:
+def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None:
     """Test creating an entity with nested entities."""
-    mock_form_fields = {
-        ("http://purl.org/spar/fabio/JournalArticle", None): {
-            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [{
-                "fixed_value": "http://purl.org/spar/fabio/JournalArticle"
-            }],
-            "http://purl.org/dc/terms/title": [{
-                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
-                "minCount": 1,
-                "maxCount": 1,
-            }],
-            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [{
-                "datatypes": ["http://www.w3.org/2001/XMLSchema#date"],
-                "minCount": 1,
-                "maxCount": 1,
-            }],
-            "http://purl.org/spar/pro/isDocumentContextFor": [{
-                "subjectShape": "http://purl.org/spar/pro/AuthorShape",
-                "minCount": 0,
-                "maxCount": -1,
-            }]
-        },
-        ("http://purl.org/spar/pro/RoleInTime", "http://purl.org/spar/pro/AuthorShape"): {
-            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [{
-                "fixed_value": "http://purl.org/spar/pro/RoleInTime"
-            }],
-            "http://purl.org/spar/pro/withRole": [{
-                "fixed_value": "http://purl.org/spar/pro/author",
-                "min": 1,
-                "max": 1,
-            }],
-            "http://purl.org/spar/pro/isHeldBy": [{
-                "subjectShape": "http://schema.org/ResponsibleAgentShape",
-                "min": 1,
-                "max": 1,
-            }]
-        },
-        ("http://xmlns.com/foaf/0.1/Agent", "http://schema.org/ResponsibleAgentShape"): {
-            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [{
-                "fixed_value": "http://xmlns.com/foaf/0.1/Agent"
-            }],
-            "http://xmlns.com/foaf/0.1/name": [{
-                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
-                "min": 0,
-                "max": 1,
-            }],
-            "http://xmlns.com/foaf/0.1/givenName": [{
-                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
-                "min": 0,
-                "max": 1,
-            }],
-            "http://xmlns.com/foaf/0.1/familyName": [{
-                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
-                "min": 0,
-                "max": 1,
-            }]
-        }
-    }
-    mock_get_form_fields.return_value = mock_form_fields
     
     entity_data = {
         "entity_type": "http://purl.org/spar/fabio/JournalArticle",
@@ -1040,7 +981,7 @@ def test_compute_graph_differences():
     Test the compute_graph_differences function.
     """
     # Create two graphs with some differences
-    graph1 = ConjunctiveGraph()
+    graph1 = Dataset()
     graph1.add(
         (
             URIRef("http://example.org/s1"),
@@ -1058,7 +999,7 @@ def test_compute_graph_differences():
         )
     )
 
-    graph2 = ConjunctiveGraph()
+    graph2 = Dataset()
     graph2.add(
         (
             URIRef("http://example.org/s1"),

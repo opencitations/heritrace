@@ -8,7 +8,7 @@ from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
                    render_template, request, url_for)
 from flask_babel import gettext
 from flask_login import current_user, login_required
-from rdflib import RDF, XSD, ConjunctiveGraph, Graph, Literal, URIRef
+from rdflib import RDF, XSD, Dataset, Graph, Literal, URIRef
 from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
@@ -186,13 +186,19 @@ def about(subject):
             abort(404)
 
         if data_graph:
-            triples = list(data_graph.triples((None, None, None)))
-            subject_classes = [o for s, p, o in data_graph.triples((URIRef(subject), RDF.type, None))]
+            # For Dataset (quadstore), we need to use quads() instead of triples()
+            if isinstance(data_graph, Dataset):
+                # Convert quads to triples by extracting only s, p, o
+                triples = [(s, p, o) for s, p, o, g in data_graph.quads((None, None, None))]
+                subject_classes = [o for s, p, o, g in data_graph.quads((URIRef(subject), RDF.type, None))]
+                subject_triples = [(s, p, o) for s, p, o, g in data_graph.quads((URIRef(subject), None, None))]
+            else:
+                triples = list(data_graph.triples((None, None, None)))
+                subject_classes = [o for s, p, o in data_graph.triples((URIRef(subject), RDF.type, None))]
+                subject_triples = list(data_graph.triples((URIRef(subject), None, None)))
 
             highest_priority_class = get_highest_priority_class(subject_classes)
-            entity_shape = determine_shape_for_entity_triples(
-                list(data_graph.triples((URIRef(subject), None, None)))
-            )
+            entity_shape = determine_shape_for_entity_triples(subject_triples)
             
             (
                 can_be_added,
@@ -432,7 +438,7 @@ def create_nested_entity(
     editor: Editor, entity_uri, entity_data, graph_uri=None
 ):
     form_fields = get_form_fields()
-    
+
     editor.create(
         entity_uri,
         URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
@@ -1388,7 +1394,7 @@ def restore_version(entity_uri, timestamp):
 
 
 def compute_graph_differences(
-    current_graph: Graph | ConjunctiveGraph, historical_graph: Graph | ConjunctiveGraph
+    current_graph: Graph | Dataset, historical_graph: Graph | Dataset
 ):
     if get_dataset_is_quadstore():
         current_data = set(current_graph.quads())

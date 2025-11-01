@@ -13,7 +13,7 @@ from datetime import datetime
 # Import the editor module
 from heritrace.editor import Editor
 from rdflib import RDF, XSD, Literal, URIRef
-from rdflib_ocdm.ocdm_graph import OCDMConjunctiveGraph, OCDMGraph
+from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from tests.test_config import TestConfig
 
 
@@ -63,7 +63,7 @@ def reset_editor_after_test(editor: Editor):
     yield
     # Reset editor state
     editor.g_set = (
-        OCDMConjunctiveGraph(editor.counter_handler)
+        OCDMDataset(editor.counter_handler)
         if editor.dataset_is_quadstore
         else OCDMGraph(editor.counter_handler)
     )

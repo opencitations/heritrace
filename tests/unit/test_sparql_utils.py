@@ -18,7 +18,7 @@ from heritrace.utils.sparql_utils import (
     import_entity_graph,
     process_deleted_entity,
 )
-from rdflib import URIRef, Graph, ConjunctiveGraph, Literal, XSD
+from rdflib import URIRef, Graph, Dataset, Literal, XSD
 
 
 @pytest.fixture
@@ -504,7 +504,7 @@ class TestFetchDataGraphForSubject:
 
             # Verify the graph contains the expected triples
             assert len(graph) == 2
-            assert isinstance(graph, Graph)  # Should be a regular Graph, not ConjunctiveGraph
+            assert isinstance(graph, Graph)  # Should be a regular Graph, not Dataset
             
             # Verify that the specific triples were added correctly
             subject_uri = URIRef("http://example.org/person1")
@@ -638,7 +638,7 @@ class TestFetchCurrentStateWithRelatedEntities:
             result = fetch_current_state_with_related_entities(provenance)
 
             assert isinstance(result, Graph)
-            assert not isinstance(result, ConjunctiveGraph)
+            assert not isinstance(result, Dataset)
 
             assert len(result) == 2
             assert (
@@ -1674,8 +1674,8 @@ class TestProcessDeletedEntity:
         """Test basic functionality of process_deleted_entity."""
         sortable_properties = [{"property": "http://example.org/name", "displayName": "Name"}]
         
-        # Create a mock ConjunctiveGraph with test data
-        mock_graph = ConjunctiveGraph()
+        # Create a mock Dataset with test data
+        mock_graph = Dataset()
         mock_graph.add((
             URIRef("http://example.org/person1"),
             URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
@@ -1737,8 +1737,8 @@ class TestProcessDeletedEntity:
     ):
         """Test process_deleted_entity without agent data."""
         sortable_properties = []
-        
-        mock_graph = ConjunctiveGraph()
+
+        mock_graph = Dataset()
         mock_graph.add((
             URIRef("http://example.org/person1"),
             URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
@@ -1795,8 +1795,8 @@ class TestProcessDeletedEntity:
     ):
         """Test process_deleted_entity when entity has no visible types."""
         sortable_properties = []
-        
-        mock_graph = ConjunctiveGraph()
+
+        mock_graph = Dataset()
         mock_graph.add((
             URIRef("http://example.org/person1"),
             URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
@@ -1832,8 +1832,8 @@ class TestProcessDeletedEntity:
             {"property": "http://example.org/age", "displayName": "Age"},
             {"property": "http://example.org/nonexistent", "displayName": "Non-existent"}
         ]
-        
-        mock_graph = ConjunctiveGraph()
+
+        mock_graph = Dataset()
         mock_graph.add((
             URIRef("http://example.org/person1"),
             URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),

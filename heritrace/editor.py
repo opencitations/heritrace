@@ -5,7 +5,7 @@ from typing import List, Set
 from heritrace.extensions import SPARQLWrapperWithRetry
 from rdflib import Graph, Literal, URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
-from rdflib_ocdm.ocdm_graph import OCDMConjunctiveGraph, OCDMGraph
+from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from rdflib_ocdm.reader import Reader
 from rdflib_ocdm.storer import Storer
 from SPARQLWrapper import JSON
@@ -30,7 +30,7 @@ class Editor:
         self.c_time = self.to_posix_timestamp(c_time)
         self.dataset_is_quadstore = dataset_is_quadstore
         self.g_set = (
-            OCDMConjunctiveGraph(self.counter_handler)
+            OCDMDataset(self.counter_handler)
             if self.dataset_is_quadstore
             else OCDMGraph(self.counter_handler)
         )

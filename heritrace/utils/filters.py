@@ -10,7 +10,7 @@ from flask import url_for
 from flask_babel import format_datetime, gettext, lazy_gettext
 from heritrace.apis.orcid import format_orcid_attribution, is_orcid_url
 from heritrace.apis.zenodo import format_zenodo_source, is_zenodo_url
-from rdflib import ConjunctiveGraph, Graph
+from rdflib import Dataset, Graph
 from SPARQLWrapper import JSON
 
 
@@ -91,7 +91,7 @@ class Filter:
         return format_uri_as_readable(class_uri)
 
     def human_readable_entity(
-        self, uri: str, entity_key: tuple[str, str | None], graph: Graph | ConjunctiveGraph = None
+        self, uri: str, entity_key: tuple[str, str | None], graph: Graph | Dataset = None
     ) -> str:
         """Convert an entity URI to human-readable format using display rules.
         
@@ -123,7 +123,7 @@ class Filter:
         return uri
 
     def get_fetch_uri_display(
-        self, uri: str, rule: dict, graph: Graph | ConjunctiveGraph = None
+        self, uri: str, rule: dict, graph: Graph | Dataset = None
     ) -> str | None:
         """Get a display value for an entity URI using fetchUriDisplay rules.
         

@@ -4,7 +4,7 @@ from urllib.parse import unquote
 
 from heritrace.extensions import (get_custom_filter, get_display_rules,
                                   get_form_fields, get_sparql)
-from rdflib import ConjunctiveGraph, Graph, Literal, URIRef
+from rdflib import Dataset, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateQuery
 from rdflib.plugins.sparql.parser import parseQuery
 from SPARQLWrapper import JSON
@@ -629,7 +629,7 @@ def process_ordering(
     grouped_triples,
     display_name,
     fetched_values_map,
-    historical_snapshot: ConjunctiveGraph | Graph | None = None,
+    historical_snapshot: Dataset | Graph | None = None,
 ):
     def get_ordered_sequence(order_results):
         order_map = {}

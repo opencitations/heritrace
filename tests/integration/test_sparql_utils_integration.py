@@ -425,7 +425,7 @@ class TestFetchDataGraphForSubjectIntegration:
                 )
                 assert name_exists
 
-                # Verify that the graph is a ConjunctiveGraph (quadstore)
+                # Verify that the graph is a Dataset (quadstore)
                 assert hasattr(graph, "quads")
 
 

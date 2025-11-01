@@ -5,7 +5,7 @@ from heritrace.editor import Editor
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
-from rdflib_ocdm.ocdm_graph import OCDMConjunctiveGraph, OCDMGraph
+from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from SPARQLWrapper import JSON
 
 DATASET_ENDPOINT = "http://localhost:9999/blazegraph/sparql"
@@ -79,7 +79,7 @@ def editor_instance(mock_counter_handler, mock_reader, mock_storer):
         provenance_endpoint=PROVENANCE_ENDPOINT,
         counter_handler=mock_counter_handler,
         resp_agent=RESP_AGENT,
-        dataset_is_quadstore=True # Use OCDMConjunctiveGraph
+        dataset_is_quadstore=True # Use OCDMDataset
     )
     return editor
 
@@ -135,7 +135,7 @@ def test_merge_basic(editor_instance, mock_sparql_wrapper, mock_reader, mock_sto
     mock_reader.assert_called_once()
     call_args, call_kwargs = mock_reader.call_args
     # The first arg to import_entities_from_triplestore is the graph set instance
-    assert isinstance(call_args[0], OCDMConjunctiveGraph) # Check it's the real graph
+    assert isinstance(call_args[0], OCDMDataset) # Check it's the real graph
     assert call_args[1] == DATASET_ENDPOINT
     assert set(call_args[2]) == expected_import_entities
 
@@ -144,7 +144,7 @@ def test_merge_basic(editor_instance, mock_sparql_wrapper, mock_reader, mock_sto
     assert mock_storer.call_count == 2
     # Check arguments passed to Storer.__init__
     init_call_args_list = mock_storer.call_args_list
-    assert isinstance(init_call_args_list[0][0][0], OCDMConjunctiveGraph) # First call with dataset graph
+    assert isinstance(init_call_args_list[0][0][0], OCDMDataset) # First call with dataset graph
     assert isinstance(init_call_args_list[1][0][0], Graph) # Second call with provenance graph (g_set.provenance)
 
     # Check calls to the mocked Storer instance's upload_all method
@@ -174,7 +174,7 @@ def test_merge_no_incoming(editor_instance, mock_sparql_wrapper, mock_reader, mo
     expected_import_entities = {KEEP_URI, DELETE_URI}
     mock_reader.assert_called_once()
     call_args, _ = mock_reader.call_args
-    assert isinstance(call_args[0], OCDMConjunctiveGraph)
+    assert isinstance(call_args[0], OCDMDataset)
     assert call_args[1] == DATASET_ENDPOINT
     assert set(call_args[2]) == expected_import_entities
 
@@ -198,7 +198,7 @@ def test_merge_no_outgoing(editor_instance, mock_sparql_wrapper, mock_reader, mo
     expected_import_entities = {KEEP_URI, DELETE_URI, INCOMING_SUBJ_URI}
     mock_reader.assert_called_once()
     call_args, _ = mock_reader.call_args
-    assert isinstance(call_args[0], OCDMConjunctiveGraph)
+    assert isinstance(call_args[0], OCDMDataset)
     assert call_args[1] == DATASET_ENDPOINT
     assert set(call_args[2]) == expected_import_entities
 
@@ -371,7 +371,7 @@ def test_merge_skip_blank_node(editor_instance, mock_sparql_wrapper, mock_reader
     expected_import_entities = {KEEP_URI, DELETE_URI}
     mock_reader.assert_called_once()
     call_args, _ = mock_reader.call_args
-    assert isinstance(call_args[0], OCDMConjunctiveGraph) # Assuming quadstore instance
+    assert isinstance(call_args[0], OCDMDataset) # Assuming quadstore instance
     assert call_args[1] == DATASET_ENDPOINT
     assert set(call_args[2]) == expected_import_entities
 

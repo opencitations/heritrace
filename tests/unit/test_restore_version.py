@@ -1,15 +1,6 @@
-import pytest
 from unittest.mock import patch, MagicMock
-from rdflib import Graph, ConjunctiveGraph, URIRef, Literal
-from flask import Flask
-
-from heritrace.routes.entity import (
-    compute_graph_differences,
-    get_entities_to_restore,
-    prepare_entity_snapshots,
-    find_appropriate_snapshot,
-)
-from heritrace.editor import Editor
+from rdflib import Dataset, URIRef, Literal
+from heritrace.routes.entity import compute_graph_differences
 
 
 def test_restore_version_with_quadstore():
@@ -18,7 +9,7 @@ def test_restore_version_with_quadstore():
     mock_get_dataset_is_quadstore = MagicMock(return_value=True)
     
     # Create test data
-    current_graph = ConjunctiveGraph()
+    current_graph = Dataset()
     editor = MagicMock()
     editor.g_set = MagicMock()
     
@@ -279,8 +270,8 @@ def test_compute_graph_differences_quadstore(mock_get_dataset_is_quadstore):
     mock_get_dataset_is_quadstore.return_value = True
     
     # Create test graphs
-    current_graph = ConjunctiveGraph()
-    historical_graph = ConjunctiveGraph()
+    current_graph = Dataset()
+    historical_graph = Dataset()
     
     # Add test quads to current graph
     current_graph.add((
@@ -325,9 +316,9 @@ def test_compute_graph_differences_quadstore(mock_get_dataset_is_quadstore):
     assert delete_quad[0] == URIRef("http://example.org/subject2")
     assert delete_quad[1] == URIRef("http://example.org/predicate2")
     assert delete_quad[2] == Literal("value2")
-    assert str(delete_quad[3].identifier) == "http://example.org/graph2"
-    
+    assert str(delete_quad[3]) == "http://example.org/graph2"
+
     assert add_quad[0] == URIRef("http://example.org/subject3")
     assert add_quad[1] == URIRef("http://example.org/predicate3")
     assert add_quad[2] == Literal("value3")
-    assert str(add_quad[3].identifier) == "http://example.org/graph3" 
+    assert str(add_quad[3]) == "http://example.org/graph3" 

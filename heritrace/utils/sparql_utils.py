@@ -3,7 +3,7 @@ from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List
 
-from rdflib import RDF, ConjunctiveGraph, Graph, Literal, URIRef
+from rdflib import RDF, Dataset, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
 from SPARQLWrapper import JSON
@@ -482,7 +482,7 @@ def get_catalog_data(
     }
 
 
-def fetch_data_graph_for_subject(subject: str) -> Graph | ConjunctiveGraph:
+def fetch_data_graph_for_subject(subject: str) -> Graph | Dataset:
     """
     Fetch all triples/quads associated with a subject from the dataset.
     Handles both triplestore and quadstore cases appropriately.
@@ -491,9 +491,9 @@ def fetch_data_graph_for_subject(subject: str) -> Graph | ConjunctiveGraph:
         subject (str): The URI of the subject to fetch data for
 
     Returns:
-        Graph|ConjunctiveGraph: A graph containing all triples/quads for the subject
+        Graph|Dataset: A graph containing all triples/quads for the subject
     """
-    g = ConjunctiveGraph() if get_dataset_is_quadstore() else Graph()
+    g = Dataset() if get_dataset_is_quadstore() else Graph()
     sparql = get_sparql()
 
     if is_virtuoso():
@@ -593,7 +593,7 @@ def parse_sparql_update(query) -> dict:
 
 def fetch_current_state_with_related_entities(
     provenance: dict,
-) -> Graph | ConjunctiveGraph:
+) -> Graph | Dataset:
     """
     Fetch the current state of an entity and all its related entities known from provenance.
 
@@ -601,9 +601,9 @@ def fetch_current_state_with_related_entities(
         provenance (dict): Dictionary containing provenance metadata for main entity and related entities
 
     Returns:
-        ConjunctiveGraph: A graph containing the current state of all entities
+        Dataset: A graph containing the current state of all entities
     """
-    combined_graph = ConjunctiveGraph() if get_dataset_is_quadstore() else Graph()
+    combined_graph = Dataset() if get_dataset_is_quadstore() else Graph()
 
     # Fetch state for all entities mentioned in provenance
     for entity_uri in provenance.keys():
@@ -746,7 +746,7 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
         return None
 
     last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
-    last_valid_state: ConjunctiveGraph = state[entity_uri][last_valid_time]
+    last_valid_state: Dataset = state[entity_uri][last_valid_time]
 
     entity_types = [
         str(o)

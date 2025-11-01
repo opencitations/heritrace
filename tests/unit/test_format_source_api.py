@@ -80,6 +80,10 @@ def test_format_source_api_exception(
     """
     Test the /api/format-source endpoint when an exception occurs during formatting.
     """
+    # Explicitly set logger to be a regular MagicMock to avoid AsyncMock issues
+    mock_current_app.logger = MagicMock()
+    mock_current_app.logger.error = MagicMock()
+
     mock_filter_instance = MagicMock()
     exception_message = "Formatting failed"
     mock_filter_instance.format_source_reference.side_effect = Exception(
