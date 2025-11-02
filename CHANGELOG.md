@@ -1,3 +1,15 @@
+## [2.8.1](https://github.com/opencitations/heritrace/compare/v2.8.0...v2.8.1) (2025-11-02)
+
+
+### Bug Fixes
+
+* [release] prevent accidental entity deletion in Dataset graph checks ([867c738](https://github.com/opencitations/heritrace/commit/867c738defbc2e14dbe4c07488253dd9c17a1512))
+* add citation support for Miscellany (Series) entities ([85f5cee](https://github.com/opencitations/heritrace/commit/85f5cee105840d096e091f4bf3c7bda6a5f7082f))
+* enable automatic cache refresh for small datasets and optimize configuration ([a429e42](https://github.com/opencitations/heritrace/commit/a429e42162cee2356242ff4a2a7b55859ad05b91))
+* handle Dataset.triples() calls correctly in quadstore mode ([84845eb](https://github.com/opencitations/heritrace/commit/84845eb7c7bdd5aea73fbc73db2a236c150e07a1))
+* handle virtual properties explicitly in display rules utils ([d9a40a9](https://github.com/opencitations/heritrace/commit/d9a40a98eb0f3ab9599e241146339bfbe656613b))
+* include Review and ReviewArticle in citation display queries ([2ba321b](https://github.com/opencitations/heritrace/commit/2ba321b94b65579c065ceb96ce22e16d866088db))
+
 # [2.8.0](https://github.com/opencitations/heritrace/compare/v2.7.0...v2.8.0) (2025-10-26)
 
 
