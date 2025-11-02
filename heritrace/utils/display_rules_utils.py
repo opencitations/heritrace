@@ -746,9 +746,13 @@ def get_property_order_from_rules(highest_priority_class: str, shape_uri: str = 
     
     ordered_properties = []
     for prop in rule.get("displayProperties", []):
-        if isinstance(prop, dict) and "property" in prop:
+        if not isinstance(prop, dict):
+            continue
+        if prop.get("isVirtual"):
+            continue  # Virtual properties don't have RDF predicates
+        if "property" in prop:
             ordered_properties.append(prop["property"])
-    
+
     return ordered_properties
 
 
@@ -771,11 +775,15 @@ def get_predicate_ordering_info(predicate_uri: str, highest_priority_class: str,
     rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
     if not rule:
         return None
-    
+
     for prop in rule.get("displayProperties", []):
-        if isinstance(prop, dict) and prop.get("property") == predicate_uri:
+        if not isinstance(prop, dict):
+            continue
+        if prop.get("isVirtual"):
+            continue  # Virtual properties don't have RDF predicates or ordering
+        if prop.get("property") == predicate_uri:
             return prop.get("orderedBy")
-    
+
     return None
 
 
@@ -798,13 +806,19 @@ def get_shape_order_from_display_rules(highest_priority_class: str, entity_shape
     rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
     if not rule or "displayProperties" not in rule:
         return []
-    
+
     for prop_config in rule["displayProperties"]:
+        if not isinstance(prop_config, dict):
+            continue
+        if prop_config.get("isVirtual"):
+            continue  # Virtual properties don't have RDF predicates or display rules
+        if "property" not in prop_config:
+            continue  # Defensive check for malformed configuration
         if prop_config["property"] == predicate_uri:
             if "displayRules" in prop_config:
-                return [display_rule.get("shape") for display_rule in prop_config["displayRules"] 
+                return [display_rule.get("shape") for display_rule in prop_config["displayRules"]
                        if display_rule.get("shape")]
-    
+
     return []
 
 
