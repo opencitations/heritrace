@@ -870,13 +870,6 @@ common_properties:
             ?journal a fabio:Journal ;
                     dcterms:title ?journalTitle .
           }
-          # Book Chapter info
-          OPTIONAL {
-            FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
-            ?target frbr:partOf ?book .
-            ?book a fabio:Book ;
-                  dcterms:title ?bookTitle .
-          }
           # Page information
           OPTIONAL {
             ?target frbr:embodiment ?embodiment .
@@ -915,24 +908,6 @@ common_properties:
               ), ""),
               IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
               IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
-              IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
-              COALESCE(?startPage, ""),
-              IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
-              COALESCE(?endPage, ""),
-              "."),
-          IF(?entityType IN (fabio:BookChapter, fabio:Expression),
-            CONCAT(
-              COALESCE(?authorList, ""),
-              IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-              IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-              IF(BOUND(?title), CONCAT(
-                IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
-                ?title
-              ), ""),
-              IF(BOUND(?bookTitle), CONCAT(
-                IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
-                ?bookTitle
-              ), ""),
               IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
               COALESCE(?startPage, ""),
               IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
@@ -1009,14 +984,6 @@ common_properties:
                     dcterms:title ?journalTitle .
           }
 
-          # Book Chapter info
-          OPTIONAL {
-            FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
-            ?target frbr:partOf ?book .
-            ?book a fabio:Book ;
-                  dcterms:title ?bookTitle .
-          }
-
           # Page information
           OPTIONAL {
             ?target frbr:embodiment ?embodiment .
@@ -1043,24 +1010,6 @@ common_properties:
             ), ""),
             IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
             IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
-            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
-            COALESCE(?startPage, ""),
-            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
-            COALESCE(?endPage, ""),
-            "."),
-        IF(?entityType IN (fabio:BookChapter, fabio:Expression),
-          CONCAT(
-            COALESCE(?authorList, ""),
-            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-            IF(BOUND(?title), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
-              ?title
-            ), ""),
-            IF(BOUND(?bookTitle), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
-              ?bookTitle
-            ), ""),
             IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
             COALESCE(?startPage, ""),
             IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
@@ -1135,14 +1084,6 @@ common_properties:
                     dcterms:title ?journalTitle .
           }
 
-          # Book Chapter info
-          OPTIONAL {
-            FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
-            ?target frbr:partOf ?book .
-            ?book a fabio:Book ;
-                  dcterms:title ?bookTitle .
-          }
-
           # Page information
           OPTIONAL {
             ?target frbr:embodiment ?embodiment .
@@ -1169,24 +1110,6 @@ common_properties:
             ), ""),
             IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
             IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
-            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
-            COALESCE(?startPage, ""),
-            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
-            COALESCE(?endPage, ""),
-            "."),
-        IF(?entityType IN (fabio:BookChapter, fabio:Expression),
-          CONCAT(
-            COALESCE(?authorList, ""),
-            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-            IF(BOUND(?title), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
-              ?title
-            ), ""),
-            IF(BOUND(?bookTitle), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
-              ?bookTitle
-            ), ""),
             IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
             COALESCE(?startPage, ""),
             IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
@@ -1261,14 +1184,6 @@ common_properties:
                     dcterms:title ?journalTitle .
           }
 
-          # Book Chapter info
-          OPTIONAL {
-            FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
-            ?target frbr:partOf ?book .
-            ?book a fabio:Book ;
-                  dcterms:title ?bookTitle .
-          }
-
           # Page information
           OPTIONAL {
             ?target frbr:embodiment ?embodiment .
@@ -1295,24 +1210,6 @@ common_properties:
             ), ""),
             IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
             IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
-            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
-            COALESCE(?startPage, ""),
-            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
-            COALESCE(?endPage, ""),
-            "."),
-        IF(?entityType IN (fabio:BookChapter, fabio:Expression),
-          CONCAT(
-            COALESCE(?authorList, ""),
-            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-            IF(BOUND(?title), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
-              ?title
-            ), ""),
-            IF(BOUND(?bookTitle), CONCAT(
-              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
-              ?bookTitle
-            ), ""),
             IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
             COALESCE(?startPage, ""),
             IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
@@ -1471,15 +1368,7 @@ rules:
                         dcterms:title ?journalTitle .
               }
             }
-            
-            # Book Chapter specific info
-            OPTIONAL {
-              FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
-              [[uri]] frbr:partOf ?book .
-              ?book a fabio:Book ;
-                    dcterms:title ?bookTitle .
-            }
-            
+
             # Proceedings Paper specific info
             OPTIONAL {
               FILTER(?entityType IN (fabio:ProceedingsPaper, fabio:Expression))
@@ -1508,17 +1397,6 @@ rules:
                   IF(BOUND(?journalTitle), CONCAT(". ", ?journalTitle), ""),
                   IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
                   IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
-                  IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
-                  COALESCE(?startPage, ""),
-                  IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
-                  COALESCE(?endPage, ""),
-                  "."),
-          IF(?entityType IN (fabio:BookChapter, fabio:Expression),
-            CONCAT(COALESCE(?authorList, ""),
-                  IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-                  IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-                  IF(BOUND(?title), CONCAT(". ", ?title), ""),
-                  IF(BOUND(?bookTitle), CONCAT(". In: ", ?bookTitle), ""),
                   IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
                   COALESCE(?startPage, ""),
                   IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
@@ -2414,6 +2292,8 @@ rules:
       - *keyword_property
       - *document_context_property_container
       - *publication_date_property
+      - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 
