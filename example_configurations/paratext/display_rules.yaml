@@ -1816,6 +1816,8 @@ rules:
       - *keyword_property
       - *document_context_property_container
       - *publication_date_property
+      - *citations_property
+      - *is_cited_by_property
     sortableBy:
       *sortableByTitleDate
 

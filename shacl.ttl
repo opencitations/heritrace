@@ -1800,7 +1800,7 @@ schema:CitationShape
   sh:targetClass cito:Citation ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue cito:Citation ; 
+    sh:hasValue cito:Citation ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -1817,6 +1817,7 @@ schema:CitationShape
       [ sh:node schema:ReviewShape ]
       [ sh:node schema:ReviewArticleShape ]
       [ sh:node schema:ThesisShape ]
+      [ sh:node schema:SeriesShape ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -1834,6 +1835,7 @@ schema:CitationShape
       [ sh:node schema:ReviewShape ]
       [ sh:node schema:ReviewArticleShape ]
       [ sh:node schema:ThesisShape ]
+      [ sh:node schema:SeriesShape ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -1872,6 +1874,7 @@ schema:ReverseCitationShape
       [ sh:node schema:ReviewShape ]
       [ sh:node schema:ReviewArticleShape ]
       [ sh:node schema:ThesisShape ]
+      [ sh:node schema:SeriesShape ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -1889,6 +1892,7 @@ schema:ReverseCitationShape
       [ sh:node schema:ReviewShape ]
       [ sh:node schema:ReviewArticleShape ]
       [ sh:node schema:ThesisShape ]
+      [ sh:node schema:SeriesShape ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;

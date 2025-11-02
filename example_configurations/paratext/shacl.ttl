@@ -519,6 +519,11 @@ schema:ExpressionShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path datacite:hasIdentifier ;
+    sh:node schema:IdentifierShape ;
+    sh:minCount 0 ;
+  ] ;
+  sh:property [
     sh:path dcterms:title ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
@@ -1795,7 +1800,7 @@ schema:CitationShape
   sh:targetClass cito:Citation ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue cito:Citation ; 
+    sh:hasValue cito:Citation ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -1812,6 +1817,7 @@ schema:CitationShape
       [ sh:node schema:ReviewShape ]
       [ sh:node schema:ReviewArticleShape ]
       [ sh:node schema:ThesisShape ]
+      [ sh:node schema:SeriesShape ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -1829,6 +1835,7 @@ schema:CitationShape
       [ sh:node schema:ReviewShape ]
       [ sh:node schema:ReviewArticleShape ]
       [ sh:node schema:ThesisShape ]
+      [ sh:node schema:SeriesShape ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -1840,6 +1847,63 @@ schema:CitationShape
       [ sh:hasValue cito:citesAsRelated ]
       [ sh:hasValue cito:repliesTo ]
       [ sh:hasValue cito:updates ]
+    ) ;
+    sh:minCount 0 ;
+    sh:maxCount 1 ;
+  ] .
+
+schema:ReverseCitationShape
+  a sh:NodeShape ;
+  sh:targetClass cito:Citation ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue cito:Citation ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitedEntity ;
+    sh:or (
+      [ sh:node schema:ArticleShape ]
+      [ sh:node schema:JournalArticleShape ]
+      [ sh:node schema:BookShape ]
+      [ sh:node schema:ProceedingsPaperShape ]
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:ReferenceBookShape ]
+      [ sh:node schema:ReviewShape ]
+      [ sh:node schema:ReviewArticleShape ]
+      [ sh:node schema:ThesisShape ]
+      [ sh:node schema:SeriesShape ]
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitingEntity ;
+    sh:or (
+      [ sh:node schema:ArticleShape ]
+      [ sh:node schema:JournalArticleShape ]
+      [ sh:node schema:BookShape ]
+      [ sh:node schema:ProceedingsPaperShape ]
+      [ sh:node schema:ProceedingsShape ]
+      [ sh:node schema:SpecialIssueShape ]
+      [ sh:node schema:ReferenceBookShape ]
+      [ sh:node schema:ReviewShape ]
+      [ sh:node schema:ReviewArticleShape ]
+      [ sh:node schema:ThesisShape ]
+      [ sh:node schema:SeriesShape ]
+    ) ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path cito:hasCitationCharacterization ;
+    sh:or (
+      [ sh:hasValue cito:isReviewedBy ]
+      [ sh:hasValue cito:isCitedAsRelatedBy ]
+      [ sh:hasValue cito:hasReplyFrom ]
+      [ sh:hasValue cito:isUpdatedBy ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
