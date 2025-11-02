@@ -382,39 +382,6 @@ queries:
       )
     }
 
-  book_query: &book_query |
-    PREFIX fabio: <http://purl.org/spar/fabio/>
-    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX datacite: <http://purl.org/spar/datacite/>
-    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-    SELECT ?bookDisplay ?book
-    WHERE {
-      [[subject]] frbr:partOf ?book.
-      ?book a fabio:Book;
-          dcterms:title ?bookTitle.
-
-      {
-        SELECT ?book (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
-        WHERE {
-          OPTIONAL {
-            ?book datacite:hasIdentifier ?identifier .
-            ?identifier datacite:usesIdentifierScheme ?scheme ;
-                      literal:hasLiteralValue ?value .
-            BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
-          }
-        }
-        GROUP BY ?book
-      }
-      
-      BIND(STR(?book) AS ?uriString)
-      BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-      BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?bookTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?bookTitle, " [omid:", ?omid, "]")
-        ) AS ?bookDisplay)
-    }
-
   proceedings_query: &proceedings_query |
     PREFIX fabio: <http://purl.org/spar/fabio/>
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
@@ -468,27 +435,6 @@ queries:
           )
         ) AS ?nextRoleDisplay
       )
-    }
-
-  volume_query: &volume_query |
-    PREFIX fabio: <http://purl.org/spar/fabio/>
-    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-    SELECT ?volumeNumber ?volume
-    WHERE {
-        [[subject]] frbr:partOf+ ?volume.
-        ?volume a fabio:JournalVolume;
-                fabio:hasSequenceIdentifier ?volumeNumber.
-    }
-
-  issue_query: &issue_query |
-    PREFIX fabio: <http://purl.org/spar/fabio/>
-    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-    SELECT ?issueNumber ?issue
-    WHERE {
-        [[subject]] frbr:partOf ?issue.
-        ?issue a fabio:JournalIssue;
-                fabio:hasSequenceIdentifier ?issueNumber.
     }
 
   issue_volume_journal_container_query: &issue_volume_journal_container_query |
@@ -787,14 +733,7 @@ common_properties:
     fetchValueFromQuery: *issue_volume_journal_container_query
     supportsSearch: true
 
-  book_container_property: &book_container_property
-    property: "http://purl.org/vocab/frbr/core#partOf"
-    displayName: "Book"
-    shouldBeDisplayed: true
-    fetchValueFromQuery: *book_query
-    supportsSearch: true
-
-  sortableByTitleDate: &sortableByTitle
+  sortableByTitle: &sortableByTitle
     - property: "http://purl.org/dc/terms/title"
       sortOrder: ["asc", "desc"]
 
@@ -914,7 +853,7 @@ common_properties:
               COALESCE(?endPage, ""),
               "."),
           COALESCE(?title, STR(?target))
-          )),
+          ),
           IF(BOUND(?characterization), "\"", "")
         ) AS ?display)
     }
