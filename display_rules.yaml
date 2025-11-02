@@ -857,9 +857,9 @@ common_properties:
               ) AS ?authorName)
             }
           }
-          # Journal Article info
+          # Journal Article, Review, and ReviewArticle info
           OPTIONAL {
-            FILTER(?entityType IN (fabio:JournalArticle, fabio:Expression))
+            FILTER(?entityType IN (fabio:JournalArticle, fabio:Review, fabio:ReviewArticle, fabio:Expression))
             ?target frbr:partOf ?issue .
             ?issue a fabio:JournalIssue ;
                    fabio:hasSequenceIdentifier ?issueNumber ;
@@ -995,9 +995,9 @@ common_properties:
             }
           }
 
-          # Journal Article info
+          # Journal Article, Review, and ReviewArticle info
           OPTIONAL {
-            FILTER(?entityType IN (fabio:JournalArticle, fabio:Expression))
+            FILTER(?entityType IN (fabio:JournalArticle, fabio:Review, fabio:ReviewArticle, fabio:Expression))
             ?target frbr:partOf ?issue .
             ?issue a fabio:JournalIssue ;
                    fabio:hasSequenceIdentifier ?issueNumber ;
@@ -1028,7 +1028,7 @@ common_properties:
       }
 
       BIND(
-        IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
+        IF(?entityType IN (fabio:JournalArticle, fabio:Review, fabio:ReviewArticle, fabio:Expression),
           CONCAT(
             COALESCE(?authorList, ""),
             IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
@@ -1121,9 +1121,9 @@ common_properties:
             }
           }
 
-          # Journal Article info
+          # Journal Article, Review, and ReviewArticle info
           OPTIONAL {
-            FILTER(?entityType IN (fabio:JournalArticle, fabio:Expression))
+            FILTER(?entityType IN (fabio:JournalArticle, fabio:Review, fabio:ReviewArticle, fabio:Expression))
             ?target frbr:partOf ?issue .
             ?issue a fabio:JournalIssue ;
                    fabio:hasSequenceIdentifier ?issueNumber ;
@@ -1154,7 +1154,7 @@ common_properties:
       }
 
       BIND(
-        IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
+        IF(?entityType IN (fabio:JournalArticle, fabio:Review, fabio:ReviewArticle, fabio:Expression),
           CONCAT(
             COALESCE(?authorList, ""),
             IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
@@ -1247,9 +1247,9 @@ common_properties:
             }
           }
 
-          # Journal Article info
+          # Journal Article, Review, and ReviewArticle info
           OPTIONAL {
-            FILTER(?entityType IN (fabio:JournalArticle, fabio:Expression))
+            FILTER(?entityType IN (fabio:JournalArticle, fabio:Review, fabio:ReviewArticle, fabio:Expression))
             ?target frbr:partOf ?issue .
             ?issue a fabio:JournalIssue ;
                    fabio:hasSequenceIdentifier ?issueNumber ;
@@ -1280,7 +1280,7 @@ common_properties:
       }
 
       BIND(
-        IF(?entityType IN (fabio:JournalArticle, fabio:Expression),
+        IF(?entityType IN (fabio:JournalArticle, fabio:Review, fabio:ReviewArticle, fabio:Expression),
           CONCAT(
             COALESCE(?authorList, ""),
             IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
