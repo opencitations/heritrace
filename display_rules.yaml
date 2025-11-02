@@ -2722,9 +2722,8 @@ rules:
           GROUP BY ?title ?pubDate ?publisher ?edition
         }
         
-        BIND(
-          IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(?editorList, " (Ed.)"),
-            COALESCE(?authorList, "")),
+        BIND(CONCAT(
+          IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(?editorList, " (Ed.)"), COALESCE(?authorList, "")),
           IF((BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList)) && BOUND(?pubDate), " ", ""),
           IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
           IF(BOUND(?title) && STRLEN(?title) > 0, CONCAT(

@@ -36,6 +36,11 @@ class Config(object):
     REDIS_URL = os.environ.get("REDIS_URL")
 
     # Query Configuration
+    # COUNT_LIMIT serves dual purpose:
+    # 1. Maximum entity count to display (shows "10000+" if exceeded)
+    # 2. Threshold for automatic cache refresh after entity modifications
+    #    - Datasets below this limit: auto-refresh enabled (always accurate counts)
+    #    - Datasets above this limit: cache remains static (manual refresh via admin endpoint)
     COUNT_LIMIT = int(os.environ.get("COUNT_LIMIT", "10000"))
 
     # Database configuration

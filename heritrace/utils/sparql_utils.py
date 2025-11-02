@@ -199,8 +199,14 @@ def get_available_classes():
     """
     Fetch and format all available entity classes.
     Returns cached result if available (computed at startup).
+    For small datasets (< COUNT_LIMIT), cache is invalidated to keep counts accurate.
     """
     global _AVAILABLE_CLASSES_CACHE
+
+    if _AVAILABLE_CLASSES_CACHE is not None:
+        total_count = sum(cls.get('count_numeric', 0) for cls in _AVAILABLE_CLASSES_CACHE)
+        if total_count < COUNT_LIMIT:
+            _AVAILABLE_CLASSES_CACHE = None
 
     if _AVAILABLE_CLASSES_CACHE is not None:
         return _AVAILABLE_CLASSES_CACHE
