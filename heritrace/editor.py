@@ -183,10 +183,11 @@ class Editor:
                         self.g_set.remove(triple)
 
         # Check if the entity is now empty and mark it as deleted if so
-        if len(list(self.g_set.triples((subject, None, None)))) == 0:
+        from heritrace.utils.sparql_utils import get_triples_from_graph
+        if len(list(get_triples_from_graph(self.g_set, (subject, None, None)))) == 0:
             self.g_set.mark_as_deleted(subject)
 
-    def import_entity(self, subject):
+    def import_entity(self, subject): 
         Reader.import_entities_from_triplestore(
             self.g_set, self.dataset_endpoint, [subject]
         )
