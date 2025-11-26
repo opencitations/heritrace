@@ -955,7 +955,7 @@ common_properties:
             COALESCE(?endPage, ""),
             "."),
         COALESCE(?title, STR(?target))
-        )) AS ?display)
+        ) AS ?display)
     }
 
   citing_entity_from_value_query: &citing_entity_from_value_query |
@@ -1055,7 +1055,7 @@ common_properties:
             COALESCE(?endPage, ""),
             "."),
         COALESCE(?title, STR(?target))
-        )) AS ?display)
+        ) AS ?display)
     }
 
   cited_entity_query: &cited_entity_query |
@@ -1155,7 +1155,7 @@ common_properties:
             COALESCE(?endPage, ""),
             "."),
         COALESCE(?title, STR(?target))
-        )) AS ?display)
+        ) AS ?display)
     }
 
 virtual_properties:
