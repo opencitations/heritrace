@@ -34,7 +34,7 @@ tests/
 
 ### Prerequisites
 
-- Poetry for dependency management
+- uv for dependency management
 - Docker for test databases
 - Python 3.10+ (supports 3.10, 3.11, 3.12, 3.13)
 
@@ -79,7 +79,7 @@ Test databases use different ports (9998, 9999) than development databases (8998
 
 ```bash
 # Install all dependencies including development tools
-poetry install --with dev
+uv sync --locked --dev
 ```
 
 ### Basic test execution
@@ -88,37 +88,37 @@ poetry install --with dev
   <TabItem label="All Tests">
     ```bash
     # Run all tests
-    poetry run pytest
+    uv run pytest
     
     # Run with verbose output
-    poetry run pytest -v
+    uv run pytest -v
     
     # Run with detailed output
-    poetry run pytest -vvv
+    uv run pytest -vvv
     ```
   </TabItem>
   <TabItem label="Specific Test Files">
     ```bash
     # Run unit tests only
-    poetry run pytest tests/unit/
+    uv run pytest tests/unit/
     
     # Run integration tests only
-    poetry run pytest tests/integration/
+    uv run pytest tests/integration/
     
     # Run specific test file
-    poetry run pytest tests/unit/test_api.py
+    uv run pytest tests/unit/test_api.py
     ```
   </TabItem>
   <TabItem label="Specific Test Cases">
     ```bash
     # Run specific test function
-    poetry run pytest tests/unit/test_api.py::test_get_entity
+    uv run pytest tests/unit/test_api.py::test_get_entity
     
     # Run tests matching pattern
-    poetry run pytest -k "test_entity"
+    uv run pytest -k "test_entity"
     
     # Run tests with specific marker
-    poetry run pytest -m "integration"
+    uv run pytest -m "integration"
     ```
   </TabItem>
 </Tabs>
@@ -129,16 +129,16 @@ poetry install --with dev
   <TabItem label="Basic Coverage">
     ```bash
     # Run tests with coverage
-    poetry run pytest --cov=heritrace
+    uv run pytest --cov=heritrace
     
     # Coverage with missing lines
-    poetry run pytest --cov=heritrace --cov-report=term-missing
+    uv run pytest --cov=heritrace --cov-report=term-missing
     ```
   </TabItem>
   <TabItem label="HTML Coverage Report">
     ```bash
     # Generate HTML coverage report
-    poetry run pytest --cov=heritrace --cov-report=html
+    uv run pytest --cov=heritrace --cov-report=html
     
     # Open the report
     open htmlcov/index.html  # macOS
@@ -149,7 +149,7 @@ poetry install --with dev
   <TabItem label="XML Coverage">
     ```bash
     # Generate XML coverage (for CI/CD)
-    poetry run pytest --cov=heritrace --cov-report=xml
+    uv run pytest --cov=heritrace --cov-report=xml
     ```
   </TabItem>
 </Tabs>

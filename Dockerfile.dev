@@ -12,14 +12,15 @@ RUN apt-get update && apt-get install -y lsb-release curl gpg && \
 
 RUN mkdir -p /app/heritrace /app/babel
 
-COPY pyproject.toml poetry.toml poetry.lock README.md ./
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY pyproject.toml uv.lock README.md ./
 COPY heritrace ./heritrace
 
 COPY config.example.py ./config.py
 COPY generate_ssl_cert.py ./generate_ssl_cert.py
 
-RUN poetry config virtualenvs.in-project true
-RUN poetry install --with dev
+RUN uv sync --locked
 
 COPY package.json package-lock.json ./
 RUN npm install

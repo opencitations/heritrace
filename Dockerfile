@@ -12,7 +12,9 @@ RUN apt-get update && apt-get install -y lsb-release curl gpg && \
 
 RUN mkdir -p /app/heritrace /app/babel
 
-COPY pyproject.toml poetry.toml poetry.lock README.md ./
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+COPY pyproject.toml uv.lock README.md ./
 COPY heritrace ./heritrace
 COPY default_components ./default_components
 
@@ -21,8 +23,7 @@ COPY shacl.ttl ./shacl.ttl
 COPY display_rules.yaml ./display_rules.yaml
 COPY babel ./babel
 
-RUN poetry config virtualenvs.in-project true
-RUN poetry install --only main
+RUN uv sync --locked --no-dev
 
 COPY package.json package-lock.json ./
 RUN npm install

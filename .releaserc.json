@@ -7,13 +7,13 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "poetry version ${nextRelease.version}"
+        "prepareCmd": "uv version ${nextRelease.version} && uv lock"
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["pyproject.toml", "CHANGELOG.md"],
+        "assets": ["pyproject.toml", "uv.lock", "CHANGELOG.md"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],

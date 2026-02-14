@@ -7,138 +7,92 @@
 [![Flask](https://img.shields.io/badge/Flask-2.3.3-red)](https://flask.palletsprojects.com/)
 [![License](https://img.shields.io/badge/license-ISC-green)](https://github.com/arcangelo7/heritrace)
 
-HERITRACE (Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement) is a semantic editor designed for professionals in galleries, libraries, archives, and museums (GLAM).
+HERITRACE is a Web-based semantic editor for galleries, libraries, archives, and museums (GLAM). It allows domain experts without technical background to edit and enrich RDF metadata, while keeping track of every change with full provenance.
 
-This system facilitates non-technical domain experts in enriching and editing metadata in a semantically robust manner. It is developed with a focus on user-friendliness, provenance management, change tracking, customization, and integration with heterogeneous data sources.
+The full documentation is at [opencitations.github.io/heritrace](https://opencitations.github.io/heritrace/).
 
-## 📚 Documentation
+## Quick start
 
-Complete documentation is available at: **[https://opencitations.github.io/heritrace/](https://opencitations.github.io/heritrace/)**
+You need Docker and Docker Compose.
 
-## 🚀 Quick start
-
-**Prerequisites:** Docker and Docker Compose
-
-Download HERITRACE configuration:
+Download the compose file:
 ```bash
 curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
 ```
 
-Optionally download database management scripts for quick setup:
+Optionally, download the database management scripts:
 
-**For Unix/Linux/macOS:**
+**Unix/Linux/macOS:**
 ```bash
 curl -o start-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/start-databases.sh
-```
-```bash
 curl -o stop-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/stop-databases.sh
-```
-```bash
 chmod +x start-databases.sh stop-databases.sh
 ```
 
-**For Windows:**
+**Windows:**
 ```bash
 curl -o Start-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Start-Databases.ps1
-```
-```bash
 curl -o Stop-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Stop-Databases.ps1
 ```
 
-**Demo Mode:** HERITRACE runs in demo mode by default (`FLASK_ENV=demo`) for immediate testing without authentication setup.
+By default HERITRACE starts in demo mode (`FLASK_ENV=demo`), so you can try it without setting up ORCID authentication.
 
-**Optional Configuration:** Edit `docker-compose.yml` to customize:
-- **Database endpoints**: Update `DATASET_DB_URL` and `PROVENANCE_DB_URL` if using your own databases
+### With the provided databases
 
-**Launch Options:**
-
-**Option A: Quick start with provided databases**
-
-Start databases first:
 ```bash
-./start-databases.sh
-```
-or on Windows:
-```bash
-.\Start-Databases.ps1
+./start-databases.sh   # .\Start-Databases.ps1 on Windows
+docker compose up
 ```
 
-Start HERITRACE:
+### With your own databases
+
+Edit `docker-compose.yml` to set `DATASET_DB_URL` and `PROVENANCE_DB_URL`, then:
 ```bash
 docker compose up
 ```
 
-**Option B: Use your existing databases**
+The application will be available at `http://localhost:5000`.
 
-Edit docker-compose.yml with your database URLs, then start HERITRACE:
-```bash
-docker compose up
-```
+### Stopping
 
-
-The application will be available at `http://127.0.0.1:5000`
-
-
-**Stopping the application:**
-
-Stop HERITRACE:
 ```bash
 docker compose down
+./stop-databases.sh    # if you used the provided databases
 ```
 
-Stop databases (if using provided scripts):
-```bash
-./stop-databases.sh
-```
-or on Windows:
-```bash
-.\Stop-Databases.ps1
-```
+For production setup with ORCID authentication, see [Application settings](https://opencitations.github.io/heritrace/configuration/app-settings/).
 
-For production setup with ORCID authentication and advanced configuration, see: [**Application Settings**](https://opencitations.github.io/heritrace/configuration/app-settings/)
+## Features
 
-## 🎯 Customization
+- **Provenance and change tracking** -- every edit records who changed what and when, with full version history
+- **Time machine** -- browse and restore previous versions of any entity
+- **SHACL validation** -- forms and constraints are generated from SHACL shapes, with real-time validation and disambiguation
+- **ORCID authentication** -- restricts editing to authorized users
+- **Works with any RDF dataset** -- connects to any SPARQL-compatible triplestore, no data migration needed
 
-HERITRACE is data model agnostic: use SHACL to define forms and validation constraints for your domain, and YAML display rules to customize the visual presentation.
+See the [user guide](https://opencitations.github.io/heritrace/user-guide/overview/) for more details.
 
-- [**Application Settings**](https://opencitations.github.io/heritrace/configuration/app-settings/)
-- [**SHACL Schema Configuration**](https://opencitations.github.io/heritrace/configuration/shacl/)
-- [**Display Rules Configuration**](https://opencitations.github.io/heritrace/configuration/display-rules/)
+## Customization
 
-## 🔧 Development
+HERITRACE is data model agnostic. You define your domain through SHACL shapes (for forms and validation) and YAML display rules (for presentation):
 
-For development setup and testing:
-- [**Testing Guide**](https://opencitations.github.io/heritrace/testing/running-tests/)
-- [**CI/CD Pipeline**](https://opencitations.github.io/heritrace/testing/cicd/)
+- [Application settings](https://opencitations.github.io/heritrace/configuration/app-settings/)
+- [SHACL schema](https://opencitations.github.io/heritrace/configuration/shacl/)
+- [Display rules](https://opencitations.github.io/heritrace/configuration/display-rules/)
 
+## Development
 
-## 📖 Key features
+- [Testing guide](https://opencitations.github.io/heritrace/testing/running-tests/)
+- [CI/CD pipeline](https://opencitations.github.io/heritrace/testing/cicd/)
 
-HERITRACE bridges the gap between sophisticated semantic technologies and the practical needs of cultural heritage professionals:
+## Paper
 
-- **Provenance management and change tracking**: Complete change history and versioning with detailed tracking of who, when, and what changed
-- **Time machine and Time vault**: Timeline interface for version management and recovery of past versions of the data
-- **Intelligent metadata management**: Real-time SHACL validation, disambiguation, and dynamic field configuration
-- **ORCID integration**: Secure authentication allowing only authorized personnel to make modifications
-- **Seamless RDF integration**: Works out-of-the-box with existing RDF datasets and any triplestore
+Massari, A., & Peroni, S. (2025). HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions. *Umanistica Digitale*, 9(20), 317--340. https://doi.org/10.6092/issn.2532-8816/21218
 
-For a detailed overview of features and technical foundation, see our [**User Guide**](https://opencitations.github.io/heritrace/user-guide/overview/) for details on how to get started.
+## Acknowledgments
 
-## 📄 Paper
+HERITRACE was developed as part of the PhD thesis of [Arcangelo Massari](https://www.unibo.it/sitoweb/arcangelo.massari/en), a joint doctorate between the University of Bologna (PhD in Cultural Heritage in the Digital Ecosystem, Cycle 38) and KU Leuven (Arenberg Doctoral School, Faculty of Engineering Technology), supervised by Silvio Peroni and Anastasia Dimou.
 
-Massari, A., & Peroni, S. (2025). HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions. *Umanistica Digitale*, 9(20), 317–340. https://doi.org/10.6092/issn.2532-8816/21218
+## License
 
-*[Arcangelo Massari](https://www.unibo.it/sitoweb/arcangelo.massari/en) is a PhD candidate in [Cultural Heritage in the digital ecosystem](https://phd.unibo.it/chede/en) at the University of Bologna.*
-
-## 🙏 Acknowledgments
-
-This work has been partially funded by Project PE 0000020 CHANGES - CUP B53C22003780006, NRP Mission 4 Component 2 Investment 1.3, Funded by the European Union - NextGenerationEU.
-
-## 📄 License
-
-This project is licensed under the ISC License. See the [LICENSE](https://github.com/opencitations/heritrace/blob/main/LICENSE) file for details.
-
-## 🔗 Links
-
-- [Documentation](https://opencitations.github.io/heritrace/)
-- [OpenCitations](http://opencitations.net)
+ISC. See the [LICENSE](https://github.com/opencitations/heritrace/blob/main/LICENSE) file.

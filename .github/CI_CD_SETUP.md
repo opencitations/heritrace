@@ -7,7 +7,7 @@ This repository uses GitHub Actions for Continuous Integration and Continuous De
 The main workflow (`python-tests.yml`) runs on every push to any branch and on pull requests to the main branch. It:
 
 1. Sets up Python (versions 3.10, 3.11, 3.12, and 3.13)
-2. Installs Poetry using the dedicated GitHub Action
+2. Installs uv using the dedicated GitHub Action
 3. Installs project dependencies
 4. Runs pytest with coverage reporting
 5. Generates HTML coverage reports
@@ -35,10 +35,10 @@ To run the same tests locally that GitHub Actions runs:
 
 ```bash
 # Install dependencies including dev dependencies
-poetry install --with dev
+uv sync --locked --dev
 
 # Run tests with coverage
-poetry run pytest --cov=heritrace
+uv run pytest --cov=heritrace
 ```
 
 ## Customizing the Workflow

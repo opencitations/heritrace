@@ -1,45 +1,42 @@
-[tool.poetry]
+[project]
 name = "heritrace"
 version = "2.8.1"
 description = "An environment for data modification"
-authors = ["arcangelo7 <arcangelomas@gmail.com>"]
-license = "ISC"
+authors = [{name = "arcangelo7", email = "arcangelomas@gmail.com"}]
+license = {text = "ISC"}
 readme = "README.md"
-packages = [{include = "heritrace"}]
-
-[tool.poetry.dependencies]
-python = "^3.10,<3.14"
-flask = "^2.3.3"
-sparqlwrapper = "^2.0.0"
-pyyaml = "^6.0.1"
-flask-babel = "^4.0.0"
-validators = "0.20.0"
-requests = "^2.31.0"
-flask-wtf = "^1.1.1"
-pyshacl = "^0.30.1"
-setuptools = "^68.2.2"
-docker = "^7.1.0"
-requests-oauthlib = "^2.0.0"
-flask-login = "^0.6.3"
-rdflib-ocdm = "^1.0.7"
-pyopenssl = "^24.3.0"
-time-agnostic-library = "^5.0.6"
-gunicorn = "^25.1.0"
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.4"
-pytest-cov = "^6.0.0"
-coverage = "^7.6.12"
-isort = "^6.0.1"
-beautifulsoup4 = "^4.13.3"
-responses = "^0.25.6"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.10, <3.14"
+dependencies = [
+    "docker>=7.1.0",
+    "flask>=3.1.2",
+    "flask-babel>=4.0.0",
+    "flask-login>=0.6.3",
+    "flask-wtf>=1.1.1",
+    "gunicorn>=25.1.0",
+    "pyopenssl>=24.3.0",
+    "pyshacl>=0.30.1",
+    "python-dateutil>=2.9.0.post0",
+    "pyyaml>=6.0.1",
+    "rdflib-ocdm>=1.0.7",
+    "requests>=2.31.0",
+    "requests-oauthlib>=2.0.0",
+    "setuptools>=68.2.2",
+    "sparqlwrapper>=2.0.0",
+    "time-agnostic-library>=5.0.6,<6.0.0",
+    "validators==0.20.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
 addopts = "--junitxml=pytest-report.xml --cov=heritrace --cov-report=xml"
+
+[dependency-groups]
+dev = [
+    "beautifulsoup4>=4.13.3",
+    "coverage>=7.6.12",
+    "isort>=6.0.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=6.0.0",
+    "responses>=0.25.6",
+]
