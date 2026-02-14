@@ -44,7 +44,7 @@ until redis-cli ping > /dev/null 2>&1; do\n\
   sleep 1\n\
 done\n\
 echo "Redis is ready"\n\
-echo "Starting Flask app..."\n\
+echo "Starting Gunicorn..."\n\
 \n\
 # Trap SIGTERM and SIGINT to save Redis data before shutdown\n\
 cleanup() {\n\
@@ -69,4 +69,4 @@ ENV FLASK_APP=app.py
 
 EXPOSE 5000
 
-CMD ["/app/start.sh", "/app/.venv/bin/python", "app.py"]
+CMD ["/app/start.sh", "sh", "-c", "/app/.venv/bin/gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-$(python -c 'import os; print(os.cpu_count() * 2 + 1)')} --timeout ${GUNICORN_TIMEOUT:-120} app:app"]

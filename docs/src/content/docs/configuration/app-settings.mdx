@@ -59,6 +59,23 @@ Set a unique `SECRET_KEY` in production.
 The performance cache prevents slow initialization queries from running on every startup. After `CACHE_VALIDITY_DAYS`, the application will reinitialize counters from the database. This setting only applies when using the internal Redis instance.
 </Aside>
 
+## Gunicorn configuration
+
+Both development and production environments use Gunicorn as the WSGI server. The number of workers and request timeout are configurable.
+
+```yaml
+environment:
+  - GUNICORN_WORKERS=4
+  - GUNICORN_TIMEOUT=120
+```
+
+| Environment Variable | Type | Description | Default |
+|---------------------|------|-------------|---------|
+| `GUNICORN_WORKERS` | Integer | Number of Gunicorn worker processes | `(2 * CPU cores) + 1` |
+| `GUNICORN_TIMEOUT` | Integer | Maximum seconds a worker can spend handling a single request before being restarted | `120` |
+
+In production, Gunicorn serves plain HTTP. Use a reverse proxy (e.g., nginx) to terminate HTTPS. In development, Gunicorn serves HTTPS directly using a self-signed certificate generated on first startup.
+
 ## Redis configuration
 
 HERITRACE uses Redis for counter management and caching. You can use either an internal Redis instance (default) or connect to an external Redis server.

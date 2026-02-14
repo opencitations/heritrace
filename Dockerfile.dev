@@ -16,6 +16,7 @@ COPY pyproject.toml poetry.toml poetry.lock README.md ./
 COPY heritrace ./heritrace
 
 COPY config.example.py ./config.py
+COPY generate_ssl_cert.py ./generate_ssl_cert.py
 
 RUN poetry config virtualenvs.in-project true
 RUN poetry install --with dev
@@ -43,7 +44,10 @@ else\n\
   echo "Skipping internal Redis startup"\n\
 fi\n\
 \n\
-echo "Starting development server..."\n\
+# Generate self-signed SSL certificates if they do not exist\n\
+/app/.venv/bin/python /app/generate_ssl_cert.py\n\
+\n\
+echo "Starting Gunicorn (dev)..."\n\
 \n\
 # Trap SIGTERM and SIGINT to save Redis data before shutdown\n\
 cleanup() {\n\
@@ -73,4 +77,4 @@ ENV FLASK_APP=app.py
 
 EXPOSE 5000
 
-CMD ["/app/start-dev.sh", "sh", "-c", "npm run build && poetry run python app.py"]
+CMD ["/app/start-dev.sh", "sh", "-c", "npm run build && /app/.venv/bin/gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-$(python -c 'import os; print(os.cpu_count() * 2 + 1)')} --timeout ${GUNICORN_TIMEOUT:-120} --certfile /app/ssl/cert.pem --keyfile /app/ssl/key.pem --reload app:app"]

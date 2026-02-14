@@ -45,9 +45,9 @@ docker compose -f docker-compose.dev.yaml up --build
 The development environment will:
 - Build the application with development dependencies
 - Mount source code for live editing
-- Enable hot reload for Python changes
-- Run in demo mode (authentication bypassed)
-- Start the application on `http://localhost:5000`
+- Serve the application with Gunicorn (`--reload` for automatic restarts on code changes)
+- Generate a self-signed SSL certificate on first startup
+- Start the application on `https://localhost:5000`
 
 ## Development features
 
@@ -58,10 +58,9 @@ The development environment runs with `FLASK_ENV=demo`, which:
 - Uses development-friendly settings
 
 ### Hot reload
-Changes to the following files trigger automatic application reload:
+Gunicorn runs with `--reload`, so changes to Python files automatically restart the workers. Watched paths include:
 - Python source files in `heritrace/`
-- Configuration files (`app.py`, `config.py`, `shacl.ttl`, `display_rules.yaml`)
-- Templates and static files
+- `app.py`, `config.py`
 
 ### Volume mounts
 The following directories are mounted for live editing:

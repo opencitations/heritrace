@@ -50,6 +50,10 @@ services:
       - ORPHAN_HANDLING_STRATEGY=ASK
       - PROXY_HANDLING_STRATEGY=ASK
 
+      # Gunicorn Configuration
+      # - GUNICORN_WORKERS=2
+      # - GUNICORN_TIMEOUT=120
+
       # Catalogue pagination settings
       - CATALOGUE_DEFAULT_PER_PAGE=5
       - CATALOGUE_ALLOWED_PER_PAGE=5,10,20

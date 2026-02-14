@@ -24,6 +24,7 @@ flask-login = "^0.6.3"
 rdflib-ocdm = "^1.0.7"
 pyopenssl = "^24.3.0"
 time-agnostic-library = "^5.0.6"
+gunicorn = "^25.1.0"
 
 
 [tool.poetry.group.dev.dependencies]
