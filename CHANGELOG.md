@@ -1,3 +1,26 @@
+# [3.0.0](https://github.com/opencitations/heritrace/compare/v2.8.1...v3.0.0) (2026-02-14)
+
+
+* build!: adapt to time-agnostic-library v6.0.0 ([947b6ee](https://github.com/opencitations/heritrace/commit/947b6ee4f46219e32dfc2f1102301a85313b3a63))
+
+
+### Bug Fixes
+
+* add build-system section for package installability ([857a097](https://github.com/opencitations/heritrace/commit/857a097ba658584819c181d212907e86a225286b))
+* balance parentheses in SPARQL citation queries ([6c4aac3](https://github.com/opencitations/heritrace/commit/6c4aac39161c2ff8ca37c95ff60c1a25fbf13d9d))
+* resolve issues after time-agnostic-library v6.0.0 migration ([31caf51](https://github.com/opencitations/heritrace/commit/31caf51bb1c736a81520d87b2fc09394eb5ba1f9))
+* **test:** use --help flag to test CLI group existence ([eb8405d](https://github.com/opencitations/heritrace/commit/eb8405d603ee68be5f8cf2c232dd9ebed322a27b))
+
+
+### Features
+
+* replace Flask dev server with Gunicorn ([626b266](https://github.com/opencitations/heritrace/commit/626b26634d89538aec89e2f8fb904105ac1d2d68))
+
+
+### BREAKING CHANGES
+
+* requires time-agnostic-library >= 6.0.0
+
 ## [2.8.1](https://github.com/opencitations/heritrace/compare/v2.8.0...v2.8.1) (2025-11-02)
 
 

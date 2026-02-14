@@ -1,6 +1,6 @@
 [project]
 name = "heritrace"
-version = "2.8.1"
+version = "3.0.0"
 description = "An environment for data modification"
 authors = [{name = "arcangelo7", email = "arcangelomas@gmail.com"}]
 license = {text = "ISC"}
