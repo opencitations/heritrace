@@ -67,6 +67,9 @@
         $(".delete-button").show();
         $(".text-info").removeClass('d-none');
         $(".drag-handle").children().removeClass('d-none');
+        $('[data-repeater-list][data-ordered-by]').each(function() {
+            updateSortable($(this));
+        });
         $("#saveChangesBtn").show();
         $("#cancelChangesBtn").show();
 

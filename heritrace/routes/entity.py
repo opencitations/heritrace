@@ -1643,7 +1643,9 @@ def generate_modification_text(
         def get_cached_position(triple, predicate_uri):
             object_value = str(triple[2])
             position_key = (object_value, predicate_uri)
-            return entity_position_cache.get(position_key, float('inf'))
+            if position_key in entity_position_cache:
+                return entity_position_cache[position_key]
+            return float('inf')
 
         for predicate in ordered_properties:
             shape_order = get_shape_order_from_display_rules(highest_priority_class, entity_shape, predicate)

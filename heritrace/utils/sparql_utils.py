@@ -4,6 +4,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import List
 
 from rdflib import RDF, Dataset, Graph, Literal, URIRef
+from rdflib.term import Node
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
 from rdflib.util import from_n3
@@ -29,17 +30,22 @@ from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
 _AVAILABLE_CLASSES_CACHE = None
 
 
+def _parse_n3(value: str) -> Node:
+    result = from_n3(value)
+    if not isinstance(result, Node):
+        raise ValueError(f"Cannot parse N3 value: {value}")
+    return result
+
+
 def n3_set_to_graph(n3_set: set[tuple[str, ...]], is_quadstore: bool) -> Graph | Dataset:
     if is_quadstore:
-        g = Dataset()
+        g = Dataset(default_union=True)
         for tup in n3_set:
-            s, p, o = from_n3(tup[0]), from_n3(tup[1]), from_n3(tup[2])
-            graph = from_n3(tup[3])
-            g.add((s, p, o, graph))
+            g.add((_parse_n3(tup[0]), _parse_n3(tup[1]), _parse_n3(tup[2]), _parse_n3(tup[3])))  # type: ignore[arg-type]
     else:
         g = Graph()
         for tup in n3_set:
-            g.add((from_n3(tup[0]), from_n3(tup[1]), from_n3(tup[2])))
+            g.add((_parse_n3(tup[0]), _parse_n3(tup[1]), _parse_n3(tup[2])))
     return g
 
 
@@ -800,7 +806,7 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
         return None
 
     last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
-    last_valid_state: Dataset = state[entity_uri][last_valid_time]
+    last_valid_state: Graph | Dataset = state[entity_uri][last_valid_time]
 
     entity_types = [
         str(o)
