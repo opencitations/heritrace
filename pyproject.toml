@@ -22,7 +22,7 @@ dependencies = [
     "requests-oauthlib>=2.0.0",
     "setuptools>=68.2.2",
     "sparqlwrapper>=2.0.0",
-    "time-agnostic-library>=5.0.6,<6.0.0",
+    "time-agnostic-library>=6.0.0",
     "validators==0.20.0",
 ]
 

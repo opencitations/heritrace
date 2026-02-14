@@ -35,9 +35,10 @@ from heritrace.utils.shacl_utils import (determine_shape_for_entity_triples,
                                          get_entity_position_in_sequence)
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
-    determine_shape_for_classes, fetch_current_state_with_related_entities,
-    fetch_data_graph_for_subject, get_entity_types, get_triples_from_graph,
-    import_referenced_entities, parse_sparql_update)
+    convert_to_rdflib_graphs, determine_shape_for_classes,
+    fetch_current_state_with_related_entities, fetch_data_graph_for_subject,
+    get_entity_types, get_triples_from_graph, import_referenced_entities,
+    parse_sparql_update)
 from heritrace.utils.uri_utils import generate_unique_uri
 from heritrace.utils.virtual_properties import \
     get_virtual_properties_for_entity, \
@@ -141,6 +142,7 @@ def about(subject):
         res=subject, config=change_tracking_config, include_related_objects=False, include_merged_entities=False, include_reverse_relations=False
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+    history = convert_to_rdflib_graphs(history, get_dataset_is_quadstore())
 
     is_deleted = False
     context_snapshot = None
@@ -869,6 +871,7 @@ def entity_history(entity_uri):
         res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+    history = convert_to_rdflib_graphs(history, get_dataset_is_quadstore())
 
     sorted_metadata = sorted(
         provenance[entity_uri].items(),
@@ -1124,6 +1127,7 @@ def entity_version(entity_uri, timestamp):
         res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+    history = convert_to_rdflib_graphs(history, get_dataset_is_quadstore())
     main_entity_history = history.get(entity_uri, {})
     sorted_timestamps = sorted(
         main_entity_history.keys(), key=lambda t: convert_to_datetime(t)
@@ -1291,6 +1295,7 @@ def restore_version(entity_uri, timestamp):
         res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+    history = convert_to_rdflib_graphs(history, get_dataset_is_quadstore())
 
     historical_graph = history.get(entity_uri, {}).get(timestamp)
     if historical_graph is None:

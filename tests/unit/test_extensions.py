@@ -374,66 +374,57 @@ def test_initialize_change_tracking_config(app, cleanup_nonexistent_config):
     app.config['DATASET_IS_QUADSTORE'] = False
     app.config['PROVENANCE_IS_QUADSTORE'] = False
     app.config['PROVENANCE_DIRS'] = []
-    app.config['CACHE_ENDPOINT'] = 'http://localhost:8080/cache'
-    app.config['CACHE_UPDATE_ENDPOINT'] = 'http://localhost:8080/cache/update'
-    
     # Mock the generate_config_file function
     mock_config = {
-        'cache_triplestore_url': {
-            'endpoint': 'http://localhost:8080/cache',
-            'update_endpoint': 'http://localhost:8080/cache/update'
-        }
+        'dataset': {'is_quadstore': False},
     }
-    
+
     # Test when config path is provided and file exists
     app.config['CHANGE_TRACKING_CONFIG'] = 'existing_config.json'
-    
+
     with patch('os.path.exists', return_value=True), \
          patch('builtins.open', MagicMock()), \
-         patch('json.load', return_value=mock_config), \
-         patch('heritrace.extensions.adjust_endpoint_url', lambda x: x + '_adjusted'):
-        
+         patch('json.load', return_value=mock_config):
+
         config = initialize_change_tracking_config(app)
-        
+
         # Check that the config was loaded
         assert config is not None
-        assert 'cache_triplestore_url' in config
-    
+        assert 'dataset' in config
+
     # Test when config path is provided but file doesn't exist
     app.config['CHANGE_TRACKING_CONFIG'] = 'nonexistent_config.json'
-    
+
     with patch('os.path.exists', return_value=False), \
          patch('os.makedirs', MagicMock()), \
-         patch('time_agnostic_library.support.generate_config_file', return_value=mock_config), \
-         patch('heritrace.extensions.adjust_endpoint_url', lambda x: x + '_adjusted'):
-        
+         patch('time_agnostic_library.support.generate_config_file', return_value=mock_config):
+
         config = initialize_change_tracking_config(app)
-        
+
         # Check that the config was generated
         assert config is not None
-        assert 'cache_triplestore_url' in config
-    
+        assert 'dataset' in config
+
     # Test when CHANGE_TRACKING_CONFIG is not in app.config (else branch)
     if 'CHANGE_TRACKING_CONFIG' in app.config:
         del app.config['CHANGE_TRACKING_CONFIG']
-    
+
     # We need to mock the actual file operations in generate_config_file
     mock_open = MagicMock()
-    
+
     with patch('os.path.join', return_value='instance/change_tracking_config.json'), \
          patch('os.makedirs', MagicMock()) as mock_makedirs, \
          patch('builtins.open', mock_open), \
-         patch('time_agnostic_library.support.generate_config_file', side_effect=lambda **kwargs: mock_config), \
-         patch('heritrace.extensions.adjust_endpoint_url', lambda x: x + '_adjusted'):
-        
+         patch('time_agnostic_library.support.generate_config_file', side_effect=lambda **kwargs: mock_config):
+
         config = initialize_change_tracking_config(app)
-        
+
         # Check that the directory was created
         mock_makedirs.assert_called_once_with(app.instance_path, exist_ok=True)
-        
+
         # Check that the config was generated
         assert config is not None
-        assert 'cache_triplestore_url' in config
+        assert 'dataset' in config
 
 
 def test_initialize_change_tracking_config_exceptions(app, cleanup_nonexistent_config):
@@ -446,9 +437,6 @@ def test_initialize_change_tracking_config_exceptions(app, cleanup_nonexistent_c
     app.config['DATASET_IS_QUADSTORE'] = False
     app.config['PROVENANCE_IS_QUADSTORE'] = False
     app.config['PROVENANCE_DIRS'] = []
-    app.config['CACHE_ENDPOINT'] = 'http://localhost:8080/cache'
-    app.config['CACHE_UPDATE_ENDPOINT'] = 'http://localhost:8080/cache/update'
-    
     # Test exception when generating config file
     app.config['CHANGE_TRACKING_CONFIG'] = 'nonexistent_config.json'
     

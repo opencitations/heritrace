@@ -1696,23 +1696,25 @@ class TestProcessDeletedEntity:
         
         with patch("heritrace.utils.sparql_utils.get_change_tracking_config") as mock_get_config, \
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
+             patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
              patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
              patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
-            
+
             mock_config = {"test": "config"}
             mock_get_config.return_value = mock_config
-            
+
             mock_entity_instance = mock_agnostic_entity.return_value
             mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
-            
+
             mock_custom_filter.format_agent_reference.return_value = "Test Agent"
             mock_custom_filter.human_readable_predicate.return_value = "Person"
             mock_custom_filter.human_readable_entity.return_value = "John Doe"
-            
+
             result = process_deleted_entity(mock_result_data, sortable_properties)
-            
+
             assert result is not None
             assert result["uri"] == "http://example.org/person1"
             assert result["deletionTime"] == "2023-01-15T10:30:00Z"
@@ -1722,7 +1724,7 @@ class TestProcessDeletedEntity:
             assert result["label"] == "John Doe"
             assert result["entity_types"] == ["http://example.org/Person"]
             assert result["sort_values"]["http://example.org/name"] == "John Doe"
-            
+
             # Verify AgnosticEntity was called with correct parameters
             mock_agnostic_entity.assert_called_once_with(
                 res="http://example.org/person1",
@@ -1753,20 +1755,22 @@ class TestProcessDeletedEntity:
         
         with patch("heritrace.utils.sparql_utils.get_change_tracking_config"), \
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
+             patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
              patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
              patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
-            
+
             mock_entity_instance = mock_agnostic_entity.return_value
             mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
-            
+
             mock_custom_filter.format_agent_reference.return_value = ""
             mock_custom_filter.human_readable_predicate.return_value = "Person"
             mock_custom_filter.human_readable_entity.return_value = "Person Entity"
-            
+
             result = process_deleted_entity(mock_result_data_no_agent, sortable_properties)
-            
+
             assert result is not None
             assert result["deletedBy"] == ""
 
@@ -1781,13 +1785,15 @@ class TestProcessDeletedEntity:
         
         with patch("heritrace.utils.sparql_utils.get_change_tracking_config"), \
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
+             patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
              patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"):
-            
+
             mock_entity_instance = mock_agnostic_entity.return_value
             mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
-            
+
             result = process_deleted_entity(mock_result_data, sortable_properties)
-            
+
             assert result is None
 
     def test_process_deleted_entity_no_visible_types(
@@ -1811,16 +1817,18 @@ class TestProcessDeletedEntity:
         
         with patch("heritrace.utils.sparql_utils.get_change_tracking_config"), \
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
+             patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
              patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
              patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/HiddenType"), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/HiddenShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=False):
-            
+
             mock_entity_instance = mock_agnostic_entity.return_value
             mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
-            
+
             result = process_deleted_entity(mock_result_data, sortable_properties)
-            
+
             assert result is None
 
     def test_process_deleted_entity_with_sort_values(
@@ -1858,18 +1866,20 @@ class TestProcessDeletedEntity:
         
         with patch("heritrace.utils.sparql_utils.get_change_tracking_config"), \
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
+             patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
+             patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
              patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
              patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
-            
+
             mock_entity_instance = mock_agnostic_entity.return_value
             mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
-            
+
             mock_custom_filter.format_agent_reference.return_value = "Test Agent"
             mock_custom_filter.human_readable_predicate.return_value = "Person"
             mock_custom_filter.human_readable_entity.return_value = "Alice"
-            
+
             result = process_deleted_entity(mock_result_data, sortable_properties)
             
             assert result is not None

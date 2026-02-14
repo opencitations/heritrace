@@ -169,19 +169,16 @@ def initialize_change_tracking_config(app: Flask, adjusted_dataset_endpoint=None
     if config_needs_generation:
         dataset_urls = [adjusted_dataset_endpoint] if adjusted_dataset_endpoint else []
         provenance_urls = [adjusted_provenance_endpoint] if adjusted_provenance_endpoint else []
-        
-        cache_endpoint = adjust_endpoint_url(app.config.get('CACHE_ENDPOINT', ''))
-        cache_update_endpoint = adjust_endpoint_url(app.config.get('CACHE_UPDATE_ENDPOINT', ''))
-        
+
         db_triplestore = app.config.get('DATASET_DB_TRIPLESTORE', '').lower()
         text_index_enabled = app.config.get('DATASET_DB_TEXT_INDEX_ENABLED', False)
-        
+
         blazegraph_search = db_triplestore == 'blazegraph' and text_index_enabled
         fuseki_search = db_triplestore == 'fuseki' and text_index_enabled
         virtuoso_search = db_triplestore == 'virtuoso' and text_index_enabled
-        
+
         graphdb_connector = '' #TODO: Add graphdb support
-        
+
         try:
             config = generate_config_file(
                 config_path=config_path,
@@ -195,8 +192,6 @@ def initialize_change_tracking_config(app: Flask, adjusted_dataset_endpoint=None
                 fuseki_full_text_search=fuseki_search,
                 virtuoso_full_text_search=virtuoso_search,
                 graphdb_connector_name=graphdb_connector,
-                cache_endpoint=cache_endpoint,
-                cache_update_endpoint=cache_update_endpoint
             )
             app.logger.info(f"Generated new change tracking configuration at: {config_path}")
         except Exception as e:
@@ -207,18 +202,7 @@ def initialize_change_tracking_config(app: Flask, adjusted_dataset_endpoint=None
         if not config:
             with open(config_path, 'r', encoding='utf8') as f:
                 config = json.load(f)
-            
-        # Adjust cache URLs if needed
-        if config['cache_triplestore_url'].get('endpoint'):
-            config['cache_triplestore_url']['endpoint'] = adjust_endpoint_url(
-                config['cache_triplestore_url']['endpoint']
-            )
-            
-        if config['cache_triplestore_url'].get('update_endpoint'):
-            config['cache_triplestore_url']['update_endpoint'] = adjust_endpoint_url(
-                config['cache_triplestore_url']['update_endpoint']
-            )
-            
+
     except json.JSONDecodeError as e:
         raise RuntimeError(f"Invalid change tracking configuration JSON at {config_path}: {str(e)}")
     except Exception as e:

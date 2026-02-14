@@ -6,6 +6,7 @@ from typing import List
 from rdflib import RDF, Dataset, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
+from rdflib.util import from_n3
 from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
@@ -26,6 +27,29 @@ from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
                                             is_virtuoso)
 
 _AVAILABLE_CLASSES_CACHE = None
+
+
+def n3_set_to_graph(n3_set: set[tuple[str, ...]], is_quadstore: bool) -> Graph | Dataset:
+    if is_quadstore:
+        g = Dataset()
+        for tup in n3_set:
+            s, p, o = from_n3(tup[0]), from_n3(tup[1]), from_n3(tup[2])
+            graph = from_n3(tup[3])
+            g.add((s, p, o, graph))
+    else:
+        g = Graph()
+        for tup in n3_set:
+            g.add((from_n3(tup[0]), from_n3(tup[1]), from_n3(tup[2])))
+    return g
+
+
+def convert_to_rdflib_graphs(snapshots: dict, is_quadstore: bool) -> dict:
+    converted = {}
+    for entity_uri, timestamps in snapshots.items():
+        converted[entity_uri] = {}
+        for ts, n3_set in timestamps.items():
+            converted[entity_uri][ts] = n3_set_to_graph(n3_set, is_quadstore)
+    return converted
 
 
 def get_triples_from_graph(graph_or_dataset, pattern):
@@ -770,6 +794,7 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
     state, _, _ = agnostic_entity.get_state_at_time(
         (last_valid_snapshot_time, last_valid_snapshot_time)
     )
+    state = convert_to_rdflib_graphs(state, get_dataset_is_quadstore())
 
     if entity_uri not in state:
         return None
