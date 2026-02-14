@@ -15,7 +15,7 @@ def app():
 def test_translate_group_exists(app):
     """Test that the translate command group exists"""
     runner = app.test_cli_runner()
-    result = runner.invoke(args=["translate"])
+    result = runner.invoke(args=["translate", "--help"])
     assert result.exit_code == 0
     assert "Translation and localization commands" in result.output
 
