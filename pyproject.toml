@@ -39,6 +39,7 @@ addopts = "--junitxml=pytest-report.xml --cov=heritrace --cov-report=xml"
 dev = [
     "beautifulsoup4>=4.13.3",
     "coverage>=7.6.12",
+    "genbadge[coverage]>=1.1.3",
     "isort>=6.0.1",
     "pytest>=9.0.2",
     "pytest-cov>=6.0.0",
