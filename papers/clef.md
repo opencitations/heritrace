@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # CLEF. A Linked Open Data Native System for Crowdsourcing 
 
 MARILENA DAQUINO, University of Bologna<br>MARI WIGHAM, The Netherlands Institute for Sound and Vision<br>ENRICO DAGA, The Open University<br>LUCIA GIAGNOLINI and FRANCESCA TOMASI, University of Bologna

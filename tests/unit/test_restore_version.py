@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 from unittest.mock import patch, MagicMock
 from rdflib import Dataset, URIRef, Literal
 from heritrace.routes.entity import compute_graph_differences

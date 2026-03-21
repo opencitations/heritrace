@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # Virtuoso entrypoint script for Heritrace
 # This script runs the standard Virtuoso startup and loads data if needed
 

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Starlight Starter Kit: Basics
 
 [![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)

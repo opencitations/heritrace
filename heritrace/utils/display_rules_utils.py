@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Evaluating Citation Functions in CiTO: Cognitive Issues 
 
 Paolo Ciancarini ${ }^{1,2}$, Angelo Di Iorio ${ }^{1}$, Andrea Giovanni Nuzzolese ${ }^{1,2}$, Silvio Peroni ${ }^{1,2}$, and Fabio Vitali ${ }^{1}$<br>${ }^{1}$ Department of Computer Science and Engineering, University of Bologna, Italy<br>${ }^{2}$ STLab-ISTC, Consiglio Nazionale delle Ricerche, Italy<br>\{ciancarini, diiorio, nuzzoles, fabio\}@cs.unibo.it, silvio.peroni@unibo.it

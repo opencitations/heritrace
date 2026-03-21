@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # HERITRACE User Testing Protocol
 
 This directory contains user testing protocols for HERITRACE (Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement).

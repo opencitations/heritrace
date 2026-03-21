@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+//
+// SPDX-License-Identifier: ISC
+
 import React from 'react';
 import { SortAsc } from 'lucide-react';
 

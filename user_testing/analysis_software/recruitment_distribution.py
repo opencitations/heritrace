@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 """
 Recruitment distribution analysis for HERITRACE user testing
 Analyzes participant familiarity with HERITRACE and SHACL from written answers

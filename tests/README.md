@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Testing Heritrace
 
 This directory contains tests for the Heritrace application.

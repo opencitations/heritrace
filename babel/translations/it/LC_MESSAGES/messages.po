@@ -1,8 +1,4 @@
 # Italian translations for PROJECT.
-# Copyright (C) 2023 Arcangelo Massari
-# This file is distributed under the same license as the PROJECT project.
-# Arcangelo Massari <arcangelo.massari@unibo.it>, 2023.
-#
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT 1.0\n"

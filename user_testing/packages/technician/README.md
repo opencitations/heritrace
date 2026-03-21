@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # HERITRACE Configurator Testing Package
 
 **What is HERITRACE?**: HERITRACE is a customizable semantic data editing tool with provenance and change tracking capabilities that enables non-technical domain experts to enrich and edit data without knowing anything about Semantic Web technologies. Configurators can set up the editing system using SHACL to generate forms and YAML configuration to customize the display.

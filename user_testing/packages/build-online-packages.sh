@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # HERITRACE User Testing Online Package Builder
 # This script creates two standalone ZIP packages for user testing with pre-built online images
 

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # GitHub Actions CI/CD Setup
 
 This repository uses GitHub Actions for Continuous Integration and Continuous Deployment (CI/CD).

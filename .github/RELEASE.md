@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Release Process
 
 This project uses [semantic-release](https://github.com/semantic-release/semantic-release) to automate the release process. The release workflow is triggered when a commit is pushed to the `main` branch with the keyword `[release]` in the commit message.

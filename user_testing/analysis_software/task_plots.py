@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 import json
 from pathlib import Path
 from typing import List

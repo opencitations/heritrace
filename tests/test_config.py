@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 import os
 
 from default_components.meta_counter_handler import MetaCounterHandler

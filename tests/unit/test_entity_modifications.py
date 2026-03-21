@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 """
 Unit tests for entity modification functions in entity.py.
 These tests focus on the apply_modifications and validate_modification functionality.

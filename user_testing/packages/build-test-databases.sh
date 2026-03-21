@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # HERITRACE Test Database Builder
 # This script creates packages for building and pushing test databases to Docker Hub
 # The test databases contain a subset of OpenCitations Meta data for testing purposes

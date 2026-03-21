@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 queries:
   identifier_query: &identifier_query |
     PREFIX datacite: <http://purl.org/spar/datacite/>

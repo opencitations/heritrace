@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 from wtforms import Form, HiddenField, SelectField, StringField
 from wtforms.validators import DataRequired
 

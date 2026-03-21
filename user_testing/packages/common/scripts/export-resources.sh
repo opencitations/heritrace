@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # HERITRACE Testing - Resources Export Script
 # This script exports the modified resources (Shacl and Display Rules) from Docker volumes
 

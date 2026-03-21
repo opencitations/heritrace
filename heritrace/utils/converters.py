@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 from datetime import timezone
 
 import dateutil.parser

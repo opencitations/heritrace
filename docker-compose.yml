@@ -1,3 +1,8 @@
+# SPDX-FileCopyrightText: 2025-2026 GitHub Action <action@github.com>
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 services:
   web:
     image: arcangelo7/heritrace:3.0.0

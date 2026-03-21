@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 import os
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed

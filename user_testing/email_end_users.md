@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Email for end users - HERITRACE user testing
 
 **Subject:** Invitation to participate in HERITRACE user testing - semantic data editor

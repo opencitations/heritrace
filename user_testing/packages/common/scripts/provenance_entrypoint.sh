@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # Provenance database entrypoint script for Heritrace
 # This script runs the standard Virtuoso startup and sets up the provenance database
 

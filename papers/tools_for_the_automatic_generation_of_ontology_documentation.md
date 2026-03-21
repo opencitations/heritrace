@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Tools for the Automatic Generation of Ontology Documentation: A Task-Based Evaluation 
 
 Silvio Peroni, Department of Computer Science and Engineering, University of Bologna, Bologna, Italy<br>David Shotton, Department of Zoology, University of Oxford, Oxford, UK<br>Fabio Vitali, Department of Computer Science and Engineering, University of Bologna, Bologna, Italy

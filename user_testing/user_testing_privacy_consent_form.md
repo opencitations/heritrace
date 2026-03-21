@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Information on the processing of personal data pursuant to art. 13 of Regulation (EU) 2016/679 
 
 You are invited to participate in a study that aims to evaluate the usability and user experience of the HERITRACE system carried out in the Department of Classical Philology and Italian Studies (FICLIT), University of Bologna.

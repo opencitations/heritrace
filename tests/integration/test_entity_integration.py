@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 """
 Tests for the entity module.
 These tests focus on the entity routes and functionality using real data on test databases.

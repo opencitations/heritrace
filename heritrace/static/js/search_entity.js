@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+//
+// SPDX-License-Identifier: ISC
+
 // Cache object to store search results keyed by the complete search parameters
 const searchCache = {
     results: {},    // Store results by cache key and offset

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # Email for configurators - HERITRACE user testing
 
 **Subject:** Invitation to participate in HERITRACE configuration testing - technical user study

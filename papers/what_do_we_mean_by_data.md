@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # What do we mean by "data"? A proposed classification of data types in the arts and humanities 
 
 Bianca Gualandi<br>Research Services Coordination Unit, Research Services Division (ARIC), University of Bologna, Bologna, Italy<br>Luca Pareschi<br>School of Economics, University of Rome Tor Vergata, Roma, Italy, and Silvio Peroni<br>Department of Classical Philology and Italian Studies, University of Bologna, Bologna, Italy

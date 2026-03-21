@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # Script to build and push auxiliary Docker images to Docker Hub
 # Usage: ./push-to-dockerhub.sh [version] [docker_username]
 

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 """
 Unit tests for entity validation functionality.
 These tests focus on validating entity data against form fields and SHACL shapes.

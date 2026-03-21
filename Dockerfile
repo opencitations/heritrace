@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 FROM nikolaik/python-nodejs:python3.13-nodejs23-slim
 
 WORKDIR /app

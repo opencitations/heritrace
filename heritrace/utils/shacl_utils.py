@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 from typing import List, Optional, Tuple
 
 from flask import Flask

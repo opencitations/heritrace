@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 import traceback
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple

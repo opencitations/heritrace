@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 # PowerShell script to start test databases for HERITRACE using virtuoso-launch
 
 function Write-Info {

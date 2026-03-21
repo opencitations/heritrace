@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # HERITRACE End User Testing Package
 
 **What is HERITRACE?**: HERITRACE is a customizable semantic data editing tool with provenance and change tracking capabilities that enables non-technical domain experts to enrich and edit data without knowing anything about Semantic Web technologies.

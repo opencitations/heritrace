@@ -1,8 +1,4 @@
 # English translations for .
-# Copyright (C) 2023 Arcangelo Massari
-# This file is distributed under the same license as the  project.
-# Arcangelo Massari <arcangelo.massari@unibo.it>, 2023.
-#
 msgid ""
 msgstr ""
 "Project-Id-Version:  1.0\n"

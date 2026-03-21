@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+
+SPDX-License-Identifier: ISC
+-->
+
 # HERITRACE in Action: The ParaText Project as a Case Study for Semantic Data Management in Classical Philology
 
 ## Abstract

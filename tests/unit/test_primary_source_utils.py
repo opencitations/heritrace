@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 from unittest.mock import MagicMock, patch
 
 from heritrace.utils.primary_source_utils import (

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+//
+// SPDX-License-Identifier: ISC
+
 import React, { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import CatalogueInterface from './CatalogueInterface';

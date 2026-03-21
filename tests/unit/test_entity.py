@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
 """
 Unit tests for entity-related functions in entity.py.
 These tests focus on the modification, references, and snapshot functionality.
