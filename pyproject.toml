@@ -33,7 +33,17 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
-addopts = "--junitxml=pytest-report.xml --cov=heritrace --cov-report=xml"
+addopts = "--junitxml=pytest-report.xml"
+
+[tool.coverage.run]
+source = ["heritrace"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+]
 
 [dependency-groups]
 dev = [
