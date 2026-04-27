@@ -1,7 +1,7 @@
 <!--
 SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
 
-SPDX-License-Identifier: ISC
+SPDX-License-Identifier: CC0-1.0
 -->
 
 # Enduser 7e transcription

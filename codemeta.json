@@ -1,0 +1,52 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "HERITRACE",
+  "description": "A domain-agnostic web application for SHACL-driven RDF data curation with provenance documentation and change tracking",
+  "version": "3.0.0",
+  "license": "https://spdx.org/licenses/ISC",
+  "url": "https://opencitations.github.io/heritrace/",
+  "codeRepository": "https://github.com/opencitations/heritrace",
+  "issueTracker": "https://github.com/opencitations/heritrace/issues",
+  "identifier": "https://doi.org/10.5281/ZENODO.18642856",
+  "programmingLanguage": [
+    "Python",
+    "JavaScript"
+  ],
+  "runtimePlatform": "Python 3.10+",
+  "softwareRequirements": [
+    "Docker",
+    "Docker Compose"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Arcangelo",
+      "familyName": "Massari",
+      "@id": "https://orcid.org/0000-0002-8420-0696",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "University of Bologna"
+      }
+    }
+  ],
+  "maintainer": [
+    {
+      "@type": "Person",
+      "givenName": "Arcangelo",
+      "familyName": "Massari",
+      "@id": "https://orcid.org/0000-0002-8420-0696"
+    }
+  ],
+  "keywords": [
+    "Semantic Web",
+    "RDF",
+    "data curation",
+    "provenance",
+    "change tracking",
+    "SHACL",
+    "cultural heritage"
+  ],
+  "developmentStatus": "active",
+  "referencePublication": "https://doi.org/10.6092/ISSN.2532-8816/21218"
+}

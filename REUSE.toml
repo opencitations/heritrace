@@ -13,21 +13,17 @@ SPDX-License-Identifier = "ISC"
 
 [[annotations]]
 path = [
-    "babel/babel.cfg",
-    "change_tracking.json",
     "heritrace/static/favicon/**",
     "heritrace/static/images/**",
     "heritrace/templates/errors/404.jinja",
     "heritrace/templates/index.jinja",
     "heritrace/templates/login.jinja",
-    "rules.log",
 ]
 SPDX-FileCopyrightText = "2024 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "ISC"
 
 [[annotations]]
 path = [
-    ".gitignore",
     "babel/translations/en/LC_MESSAGES/messages.mo",
     "babel/translations/it/LC_MESSAGES/messages.mo",
     "heritrace/templates/_base.jinja",
@@ -41,7 +37,6 @@ path = [
     "heritrace/templates/navigation.jinja",
     "heritrace/templates/time_vault.jinja",
     "heritrace/templates/validation.jinja",
-    "package-lock.json",
 ]
 SPDX-FileCopyrightText = "2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
 SPDX-License-Identifier = "ISC"
@@ -49,11 +44,58 @@ SPDX-License-Identifier = "ISC"
 [[annotations]]
 path = [
     "heritrace/templates/lock_workflow.jinja",
+]
+SPDX-FileCopyrightText = "2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "docs/architecture/diagrams/*.puml",
+    "docs/architecture/diagrams/output/**",
+    "docs/architecture/diagrams/style.iuml",
+    "docs/public/favicon.svg",
+    "docs/src/assets/**",
+    "heritrace/templates/custom_properties.jinja",
+    "heritrace/templates/entity/linked_resources.jinja",
+    "heritrace/templates/entity/merge_confirm.jinja",
+    "heritrace/templates/entity/similar_resources.jinja",
+    "heritrace/templates/primary_source_handler.jinja",
+    "heritrace/templates/top_level_search.jinja",
+    "user_testing/packages/build-online-packages.cmd",
+    "user_testing/packages/build-test-databases.cmd",
+    "user_testing/packages/common/dockerfiles/**",
+    "user_testing/packages/common/scripts/*.cmd",
+    "user_testing/packages/common/templates/**/*.cmd.template",
+    "user_testing/packages/common/templates/**/*.sh.template",
+]
+SPDX-FileCopyrightText = "2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "ISC"
+
+[[annotations]]
+path = [
+    "babel/babel.cfg",
+    "change_tracking.json",
+    "codemeta.json",
+    "rules.log",
+]
+SPDX-FileCopyrightText = "2024 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [
+    ".gitignore",
+    "package-lock.json",
+]
+SPDX-FileCopyrightText = "2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [
     "package.json",
     "pyproject.toml",
 ]
 SPDX-FileCopyrightText = "2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
-SPDX-License-Identifier = "ISC"
+SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
 path = [
@@ -61,24 +103,11 @@ path = [
     "LICENSE",
     "dataset_database/virtuoso.ini",
     "docs/.gitignore",
-    "docs/architecture/diagrams/*.puml",
-    "docs/architecture/diagrams/output/**",
-    "docs/architecture/diagrams/style.iuml",
     "docs/package-lock.json",
     "docs/package.json",
-    "docs/public/favicon.svg",
-    "docs/src/assets/**",
     "docs/tsconfig.json",
     "example_configurations/**/*.ttl",
-    "heritrace/templates/custom_properties.jinja",
-    "heritrace/templates/entity/linked_resources.jinja",
-    "heritrace/templates/entity/merge_confirm.jinja",
-    "heritrace/templates/entity/similar_resources.jinja",
-    "heritrace/templates/primary_source_handler.jinja",
-    "heritrace/templates/top_level_search.jinja",
     "heritrace/utils/context.json",
-    "papers/**/*.pdf",
-    "papers/**/*.png",
     "prov_database/virtuoso.ini",
     "shacl.ttl",
     "tests/meta_subset.zip",
@@ -87,26 +116,23 @@ path = [
     "user_testing/analysis_software/.python-version",
     "user_testing/analysis_software/pyproject.toml",
     "user_testing/analysis_software/uv.lock",
-    "user_testing/packages/build-online-packages.cmd",
-    "user_testing/packages/build-test-databases.cmd",
     "user_testing/packages/common/data/**",
-    "user_testing/packages/common/dockerfiles/**",
-    "user_testing/packages/common/scripts/*.cmd",
-    "user_testing/packages/common/templates/**/*.cmd.template",
-    "user_testing/packages/common/templates/**/*.sh.template",
     "user_testing/packages/common/templates/virtuoso_*.ini",
     "user_testing/packages/enduser/config/shacl.ttl",
     "user_testing/packages/technician/config/shacl.ttl",
-    "user_testing/results/aggregated_analysis/**/*.json",
-    "user_testing/results/aggregated_analysis/**/*.png",
-    "user_testing/results/endusers/**/*.json",
-    "user_testing/results/technicians/**/*.json",
-    "user_testing/results/templates/**",
+    "user_testing/packages/heritrace-enduser-testing/dataset_database/virtuoso.ini",
+    "user_testing/packages/heritrace-enduser-testing/prov_database/virtuoso.ini",
+    "user_testing/packages/heritrace-enduser-testing/user_testing_privacy_consent_form.pdf",
     "user_testing/user_testing_privacy_consent_form.odt",
     "user_testing/user_testing_privacy_consent_form.pdf",
+    "user_testing/results/endusers/task_completion/*.json",
+    "user_testing/results/technicians/task_completion/*.json",
+    "user_testing/results/aggregated_analysis/recruitment/*",
+    "user_testing/results/aggregated_analysis/sus/*",
+    "user_testing/results/aggregated_analysis/tasks/*",
 ]
 SPDX-FileCopyrightText = "2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
-SPDX-License-Identifier = "ISC"
+SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
 path = [
@@ -115,11 +141,27 @@ path = [
     "uv.lock",
 ]
 SPDX-FileCopyrightText = "2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
-SPDX-License-Identifier = "ISC"
+SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
 path = [
     ".python-version",
 ]
 SPDX-FileCopyrightText = "2026 Arcangelo Massari <arcangelo.massari@unibo.it>"
-SPDX-License-Identifier = "ISC"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [
+    "user_testing/results/endusers/open_coding/*.json",
+    "user_testing/results/endusers/end_user_axial_codes.json",
+    "user_testing/results/endusers/end_user_selective_codes.json",
+    "user_testing/results/endusers/TEMPLATE_task_completion.json",
+    "user_testing/results/technicians/open_coding/*.json",
+    "user_testing/results/technicians/technician_axial_codes.json",
+    "user_testing/results/technicians/technician_selective_codes.json",
+    "user_testing/results/technicians/TEMPLATE_task_completion.json",
+    "user_testing/results/aggregated_analysis/grounded_theory/*",
+    "user_testing/results/templates/**",
+]
+SPDX-FileCopyrightText = "2025 Arcangelo Massari <arcangelo.massari@unibo.it>"
+SPDX-License-Identifier = "CC-BY-4.0"
