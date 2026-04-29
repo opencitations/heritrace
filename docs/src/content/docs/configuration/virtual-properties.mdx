@@ -24,7 +24,7 @@ A virtual property is a user-facing field that, when populated, automatically cr
 
 The primary purpose of virtual properties is to **bridge the gap between ontological representation and user mental models**.
 
-In RDF ontologies, certain concepts are correctly modeled as classes (first-class entities) because they carry important metadata and enable complex relationships. However, domain experts often think of these same concepts as simple relationships or attributes. This mismatch creates cognitive friction and makes the interface harder to use.
+In RDF ontologies, certain concepts are correctly modeled as classes (first-class entities) because they carry important metadata and enable complex relationships. However, users often think of these same concepts as simple relationships or attributes. This mismatch creates cognitive friction and makes the interface harder to use.
 
 For example, in the CITO ontology, citations are modeled as a `cito:Citation` class—an entity that links two bibliographic resources. This is ontologically correct: citations can have types, contexts, and other metadata. But when users edit an article, they think "I want to cite this paper," not "I want to create a Citation entity that links my article to that paper."
 
@@ -35,7 +35,7 @@ Virtual properties resolve this tension by:
 - **Maintaining data model integrity**: The underlying RDF structure remains correct and compliant with the ontology
 - **Supporting bidirectional navigation**: Both directions of a relationship can be shown (e.g., "Citations" and "Is Cited By") even though they're backed by the same entities in the graph
 
-Use virtual properties when your ontology models something as a class, but users naturally think of it as a relationship or when you need to hide implementation details from domain experts who shouldn't need to understand the full ontological structure.
+Use virtual properties when your ontology models something as a class, but users naturally think of it as a relationship or when you need to hide implementation details from users who shouldn't need to understand the full ontological structure.
 
 ## Configuration structure
 
@@ -232,7 +232,7 @@ Now, when a user views or edits a journal article, they see both "Citations" and
 
 ## The `${currentEntity}` placeholder
 
-The special `${currentEntity}` placeholder is replaced with the URI of the entity currently being created or edited. This is essential for linking the intermediate entity back to the main entity.
+The special `${currentEntity}` placeholder is replaced with the URI of the entity currently being created or edited. This is needed to link the intermediate entity back to the main entity.
 
 **Example:**
 ```yaml

@@ -151,7 +151,7 @@ environment:
     **Pros:**
     - Mature and battle-tested database
     - Open source and SPARQL 1.1 compliant
-    - Excellent performance even with large datasets
+    - Good performance with large datasets
     - Full-text indexing and named graph support
     
     **Cons:**
@@ -190,9 +190,7 @@ While the system functions correctly with external databases, using Docker conta
 </Aside>
 
 <Aside type="tip" title="Pro Tip: Managing Virtuoso with `virtuoso-utilities`">
-For comprehensive management of your Virtuoso instance—including launching the server, bulk-loading data, exporting dumps, and rebuilding the full-text index—we highly recommend using <a href="https://github.com/opencitations/virtuoso_utilities" target="_blank" rel="noopener noreferrer">**virtuoso-utilities**</a>.
-
-This Python package automates many complex tasks that can be challenging to configure and execute correctly in Virtuoso, significantly simplifying database administration.
+For managing your Virtuoso instance (launching the server, bulk-loading data, exporting dumps, rebuilding the full-text index), see <a href="https://github.com/opencitations/virtuoso_utilities" target="_blank" rel="noopener noreferrer">**virtuoso-utilities**</a>. This Python package automates tasks that are otherwise tedious to configure in Virtuoso.
 </Aside>
 
 ### Storage configuration
@@ -311,7 +309,7 @@ class UUIDURIGenerator(URIGenerator):
 The `COUNTER_HANDLER` is only required if your `URI_GENERATOR` uses a counter-based strategy. If you use a different approach (like the UUID example above), this component is not needed and can be omitted from the configuration.
 </Aside>
 
-The `COUNTER_HANDLER` is a component designed to work with **counter-based** URI generators. It manages the persistent state of the numerical counters. While optional, it is crucial for ensuring URI uniqueness across application restarts when using a counter-based strategy.
+The `COUNTER_HANDLER` is a component designed to work with **counter-based** URI generators. It manages the persistent state of the numerical counters. Without it, counter-based URI generators cannot guarantee uniqueness across application restarts.
 
 A custom counter handler should implement the following methods:
 -   **`read_counter(entity_name: str) -> int`**: Returns the current counter value for a given entity type. Should return `0` if the counter doesn't exist.
@@ -491,7 +489,7 @@ environment:
 | `CATALOGUE_ALLOWED_PER_PAGE` | String | Comma-separated list of pagination options available to users | `50,100,200,500` |
 
 <Aside type="note" title="Query Performance Optimization">
-`COUNT_LIMIT` optimizes catalog queries for large datasets. When counting entities of a specific class, the query stops at `COUNT_LIMIT + 1`. If the limit is exceeded, the catalog displays "LIMIT+" (e.g., "10000+") instead of the exact count, preventing timeouts on extremely large result sets.
+`COUNT_LIMIT` optimizes catalog queries for large datasets. When counting entities of a specific class, the query stops at `COUNT_LIMIT + 1`. If the limit is exceeded, the catalog displays "LIMIT+" (e.g., "10000+") instead of the exact count, preventing timeouts on very large result sets.
 </Aside>
 
 <Aside type="tip" title="Pagination Performance Considerations">

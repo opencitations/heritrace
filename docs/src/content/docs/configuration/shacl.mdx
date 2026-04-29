@@ -228,7 +228,7 @@ This pattern is central to how HERITRACE manages complex data.
 
 ## SHACL and display rules interaction
 
-Understanding how SHACL and Display Rules work together is crucial for effective HERITRACE configuration. While both components are individually optional, their interaction follows specific rules that determine data validation, form generation, and user interface behavior.
+SHACL and Display Rules are both individually optional, but their interaction follows specific rules that determine data validation, form generation, and user interface behavior.
 
 ### Configuration interaction matrix
 
@@ -249,7 +249,7 @@ Understanding how SHACL and Display Rules work together is crucial for effective
 #### 2. Entity creation methods
 - **Rule**: The presence of SHACL determines the entity creation method available to users.
 - **With SHACL**: Users get structured forms with predefined entity types and properties, limited to what's defined in SHACL shapes.
-- **Without SHACL**: Users get a flexible custom properties form where they can define any property URI and value.
+- **Without SHACL**: Users get a custom properties form where they can define any property URI and value.
 - **Example**: With SHACL, you select "Journal Article" from a dropdown and fill predefined fields. Without SHACL, you manually enter property URIs like `dcterms:title` and their values.
 
 #### 3. Display name fallback chain

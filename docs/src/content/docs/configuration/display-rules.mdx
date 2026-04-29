@@ -10,7 +10,7 @@ import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
 
 The `resources/display_rules.yaml` file is the heart of HERITRACE's user interface customization. It allows you to control how data is presented and handled without touching a single line of code. This configuration determines how different types of entities are displayed, what properties are visible, and how forms behave for creating and editing data.
 
-In short, this file lets you transform raw RDF data into a user-friendly and intuitive experience for domain experts.
+In short, this file lets you transform raw RDF data into a user-friendly interface.
 
 <Aside type="note" title="Display Rules and SHACL Integration">
 Display Rules work in conjunction with SHACL schemas. While Display Rules control presentation and user interface behavior, SHACL schemas define data validation and available properties. **Display Rules cannot override SHACL constraints** - they can only style and configure properties that are already defined in SHACL shapes. For detailed information about their interaction, see the [SHACL and Display Rules Interaction section](/heritrace/configuration/shacl/#shacl-and-display-rules-interaction).
@@ -85,7 +85,7 @@ Here are the top-level settings for each rule, listed in order of how they are p
 
 -   `displayName`: A human-readable name for the entity type (e.g., "Journal Article"). This is shown in the UI.
 -   `shouldBeDisplayed`: A boolean (`true` or `false`). If `true`, this entity type will appear in the catalogue and can be created via the "New Record" interface.
--   `fetchUriDisplay`: A SPARQL query that creates a user-friendly label for an entity. This is crucial for usability, as it replaces technical URIs with meaningful text. See the [Displaying entity labels](#displaying-entity-labels-with-fetchuridisplay) section for details.
+-   `fetchUriDisplay`: A SPARQL query that creates a user-friendly label for an entity, replacing technical URIs with meaningful text. See the [Displaying entity labels](#displaying-entity-labels-with-fetchuridisplay) section for details.
 -   `displayProperties`: A list defining how each property of the entity should be displayed and behave. See the [Configuring properties](#configuring-properties-displayproperties) section for details.
 -   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting catalogue items](#sorting-catalogue-items-sortableby) section for details.
 -   `similarity_properties`: A configuration that defines which properties are used to identify potential duplicate entities. HERITRACE uses these to display "Similar Resources" on entity pages, enabling users to merge duplicates. See the [Similarity properties for duplicate detection](#similarity-properties-for-duplicate-detection) section for details.
@@ -315,7 +315,7 @@ The `similarity_properties` configuration enables HERITRACE to identify potentia
 
 ### How similarity detection works
 
-HERITRACE queries the triplestore to find other entities of the same type that share matching values for the configured properties. The configuration supports flexible boolean logic combining OR and AND conditions.
+HERITRACE queries the triplestore to find other entities of the same type that share matching values for the configured properties. The configuration supports boolean logic combining OR and AND conditions.
 
 ### Basic configuration
 

@@ -14,7 +14,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'HERITRACE',
-			description: 'Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement',
+			description: 'A web-based semantic data editor with provenance and change tracking',
 			logo: {
 				src: './src/assets/logo.png',
 				alt: 'HERITRACE logo',
@@ -43,13 +43,11 @@ export default defineConfig({
 					label: 'Getting started',
 					items: [
 						{ label: 'Introduction', slug: 'introduction' },
-						{ label: 'Quick start', slug: 'getting-started/quick-start' },
 					],
 				},
 				{
 					label: 'User guide',
 					items: [
-						{ label: 'Overview', slug: 'user-guide/overview' },
 						{ label: 'Browsing the catalogue', slug: 'user-guide/browsing-catalogue' },
 						{ label: 'Creating new records', slug: 'user-guide/creating-records' },
 						{ label: 'Editing existing records', slug: 'user-guide/editing-records' },

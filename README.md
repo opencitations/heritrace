@@ -14,7 +14,7 @@ SPDX-License-Identifier: ISC
 [![License](https://img.shields.io/badge/license-ISC-green)](https://github.com/arcangelo7/heritrace)
 [![REUSE](https://github.com/opencitations/heritrace/actions/workflows/reuse.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/reuse.yml)
 
-HERITRACE is a Web-based semantic editor for galleries, libraries, archives, and museums (GLAM). It allows domain experts without technical background to edit and enrich RDF metadata, while keeping track of every change with full provenance.
+HERITRACE is a web-based semantic data editor. It allows users without technical background to edit and enrich RDF metadata, while keeping track of every change with full provenance.
 
 The full documentation is at [opencitations.github.io/heritrace](https://opencitations.github.io/heritrace/).
 
@@ -77,7 +77,7 @@ For production setup with ORCID authentication, see [Application settings](https
 - **ORCID authentication** -- restricts editing to authorized users
 - **Works with any RDF dataset** -- connects to any SPARQL-compatible triplestore, no data migration needed
 
-See the [user guide](https://opencitations.github.io/heritrace/user-guide/overview/) for more details.
+See the [user guide](https://opencitations.github.io/heritrace/user-guide/browsing-catalogue/) for more details.
 
 ## Customization
 
