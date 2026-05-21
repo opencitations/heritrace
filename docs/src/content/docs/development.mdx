@@ -24,7 +24,17 @@ git clone https://github.com/opencitations/heritrace.git
 cd heritrace
 ```
 
-### 2. Start databases
+### 2. Configure environment
+
+Copy the example environment file and edit it with your settings:
+
+```bash
+cp .env.example .env
+```
+
+The default configuration runs in demo mode (`FLASK_ENV=demo`), which bypasses ORCID authentication. To enable ORCID login, set `FLASK_ENV=development` and configure `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, and `ORCID_SAFELIST` in `.env`.
+
+### 3. Start databases
 
 Start the required databases (if not already running):
 
@@ -40,7 +50,7 @@ This will start:
 - Virtuoso triplestore for main data (port 8999)
 - Virtuoso triplestore for provenance data (port 8998)
 
-### 3. Start development environment
+### 4. Start development environment
 
 ```bash
 docker compose -f docker-compose.dev.yaml up --build
@@ -56,10 +66,9 @@ The development environment will:
 ## Development features
 
 ### Demo mode
-The development environment runs with `FLASK_ENV=demo`, which:
+Setting `FLASK_ENV=demo` in `.env`:
 - Bypasses ORCID authentication
-- Allows immediate access without configuration
-- Uses development-friendly settings
+- Allows immediate access without ORCID configuration
 
 ### Hot reload
 Gunicorn runs with `--reload`, so changes to Python files automatically restart the workers. Watched paths include:

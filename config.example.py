@@ -8,95 +8,71 @@ from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStra
 
 BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-def _load_class(class_path: str):
-    """Dynamically load a class from a module path."""
-    module_path, class_name = class_path.rsplit('.', 1)
+
+def _load_class(class_path):
+    module_path, class_name = class_path.rsplit(".", 1)
     module = __import__(module_path, fromlist=[class_name])
     return getattr(module, class_name)
 
-counter_handler_class_path = os.environ.get('COUNTER_HANDLER_CLASS', 'default_components.meta_counter_handler.MetaCounterHandler')
-uri_generator_class_path = os.environ.get('URI_GENERATOR_CLASS', 'default_components.meta_uri_generator.MetaURIGenerator')
 
-counter_handler_class = _load_class(counter_handler_class_path)
-uri_generator_class = _load_class(uri_generator_class_path)
-
+counter_handler_class = _load_class(os.environ["COUNTER_HANDLER_CLASS"])
+uri_generator_class = _load_class(os.environ["URI_GENERATOR_CLASS"])
 counter_handler = counter_handler_class()
-meta_uri_generator = uri_generator_class(counter_handler)
-
-shacl_path = os.path.join(BASE_HERITRACE_DIR, "shacl.ttl")
-display_rules_path = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
+uri_generator = uri_generator_class(counter_handler)
 
 
-class Config(object):
-    APP_TITLE = os.environ.get("APP_TITLE", "HERITRACE")
-    APP_SUBTITLE = os.environ.get("APP_SUBTITLE", "Heritage Enhanced Repository Interface")
+class Config:
+    APP_TITLE = os.environ["APP_TITLE"]
+    APP_SUBTITLE = os.environ["APP_SUBTITLE"]
+    SECRET_KEY = os.environ["SECRET_KEY"]
+    CACHE_VALIDITY_DAYS = int(os.environ["CACHE_VALIDITY_DAYS"])
 
-    SECRET_KEY = os.environ.get("SECRET_KEY", "generate-a-secure-random-key")
-
-    CACHE_VALIDITY_DAYS = int(os.environ.get("CACHE_VALIDITY_DAYS", "7"))
-
-    # Redis Configuration
     # If REDIS_URL is not set, the application uses an internal Redis instance
     REDIS_URL = os.environ.get("REDIS_URL")
 
-    # Query Configuration
     # COUNT_LIMIT serves dual purpose:
     # 1. Maximum entity count to display (shows "10000+" if exceeded)
     # 2. Threshold for automatic cache refresh after entity modifications
     #    - Datasets below this limit: auto-refresh enabled (always accurate counts)
     #    - Datasets above this limit: cache remains static (manual refresh via admin endpoint)
-    COUNT_LIMIT = int(os.environ.get("COUNT_LIMIT", "10000"))
+    COUNT_LIMIT = int(os.environ["COUNT_LIMIT"])
 
-    # Database configuration
-    DATASET_DB_TRIPLESTORE = os.environ.get("DATASET_DB_TRIPLESTORE", "virtuoso")  # Options: 'virtuoso' or 'blazegraph'
-    DATASET_DB_TEXT_INDEX_ENABLED = os.environ.get("DATASET_DB_TEXT_INDEX_ENABLED", "true").lower() == "true"
-    PROVENANCE_DB_TRIPLESTORE = os.environ.get("PROVENANCE_DB_TRIPLESTORE", "virtuoso")
+    # Options: 'virtuoso' or 'blazegraph'
+    DATASET_DB_TRIPLESTORE = os.environ["DATASET_DB_TRIPLESTORE"]
+    DATASET_DB_TEXT_INDEX_ENABLED = os.environ["DATASET_DB_TEXT_INDEX_ENABLED"].lower() == "true"
+    PROVENANCE_DB_TRIPLESTORE = os.environ["PROVENANCE_DB_TRIPLESTORE"]
 
-    # Database endpoints
-    DATASET_DB_URL = os.environ.get("DATASET_DB_URL", "http://localhost:8999/sparql")
-    PROVENANCE_DB_URL = os.environ.get("PROVENANCE_DB_URL", "http://localhost:8998/sparql")
+    DATASET_DB_URL = os.environ["DATASET_DB_URL"]
+    PROVENANCE_DB_URL = os.environ["PROVENANCE_DB_URL"]
 
-    # Database store types
-    DATASET_IS_QUADSTORE = os.environ.get("DATASET_IS_QUADSTORE", "true").lower() == "true"
-    PROVENANCE_IS_QUADSTORE = os.environ.get("PROVENANCE_IS_QUADSTORE", "true").lower() == "true"
+    DATASET_IS_QUADSTORE = os.environ["DATASET_IS_QUADSTORE"].lower() == "true"
+    PROVENANCE_IS_QUADSTORE = os.environ["PROVENANCE_IS_QUADSTORE"].lower() == "true"
 
-    DATASET_GENERATION_TIME = os.environ.get("DATASET_GENERATION_TIME", "2024-12-25T00:00:00+00:00")
-    URI_GENERATOR = meta_uri_generator
+    DATASET_GENERATION_TIME = os.environ["DATASET_GENERATION_TIME"]
+    URI_GENERATOR = uri_generator
     COUNTER_HANDLER = counter_handler
 
-    # Internationalization
     LANGUAGES = ["en", "it"]
-    BABEL_TRANSLATION_DIRECTORIES = os.path.join(
-        BASE_HERITRACE_DIR, "babel", "translations"
-    )
-
+    BABEL_TRANSLATION_DIRECTORIES = os.path.join(BASE_HERITRACE_DIR, "babel", "translations")
     CHANGE_TRACKING_CONFIG = os.path.join(BASE_HERITRACE_DIR, "change_tracking.json")
-    PRIMARY_SOURCE = os.environ.get("PRIMARY_SOURCE", "https://doi.org/your-doi")
-    SHACL_PATH = shacl_path
-    DISPLAY_RULES_PATH = display_rules_path
+    PRIMARY_SOURCE = os.environ["PRIMARY_SOURCE"]
+    SHACL_PATH = os.path.join(BASE_HERITRACE_DIR, "shacl.ttl")
+    DISPLAY_RULES_PATH = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
 
     # ORCID Integration
-    # Get these values from https://orcid.org/developer-tools
-    ORCID_CLIENT_ID = os.environ.get("ORCID_CLIENT_ID", "your-client-id")
-    ORCID_CLIENT_SECRET = os.environ.get("ORCID_CLIENT_SECRET", "your-client-secret")
-    ORCID_AUTHORIZE_URL = os.environ.get("ORCID_AUTHORIZE_URL", "https://orcid.org/oauth/authorize")
-    ORCID_TOKEN_URL = os.environ.get("ORCID_TOKEN_URL", "https://orcid.org/oauth/token")
-    ORCID_API_URL = os.environ.get("ORCID_API_URL", "https://pub.orcid.org/v2.1")
-    ORCID_SCOPE = os.environ.get("ORCID_SCOPE", "/authenticate")
+    # Get credentials from https://orcid.org/developer-tools
+    ORCID_CLIENT_ID = os.environ["ORCID_CLIENT_ID"]
+    ORCID_CLIENT_SECRET = os.environ["ORCID_CLIENT_SECRET"]
+    ORCID_AUTHORIZE_URL = "https://orcid.org/oauth/authorize"
+    ORCID_TOKEN_URL = "https://orcid.org/oauth/token"
+    ORCID_API_URL = "https://pub.orcid.org/v2.1"
+    ORCID_SCOPE = "/authenticate"
+    # Comma-separated ORCID IDs in .env
+    ORCID_SAFELIST = [s.strip() for s in os.environ["ORCID_SAFELIST"].split(",")]
 
-    # Parse ORCID safelist from environment (comma-separated)
-    _orcid_safelist_str = os.environ.get("ORCID_SAFELIST", "your-allowed-orcid-1,your-allowed-orcid-2")
-    ORCID_SAFELIST = [orcid.strip() for orcid in _orcid_safelist_str.split(",") if orcid.strip()]
-
-    # Entity handling configuration - strategies can be configured via environment variables
     # Available options: ASK, DELETE, KEEP
-    _orphan_strategy_str = os.environ.get("ORPHAN_HANDLING_STRATEGY", "ASK").upper()
-    ORPHAN_HANDLING_STRATEGY = getattr(OrphanHandlingStrategy, _orphan_strategy_str, OrphanHandlingStrategy.ASK)
+    ORPHAN_HANDLING_STRATEGY = getattr(OrphanHandlingStrategy, os.environ["ORPHAN_HANDLING_STRATEGY"].upper())
+    PROXY_HANDLING_STRATEGY = getattr(ProxyHandlingStrategy, os.environ["PROXY_HANDLING_STRATEGY"].upper())
 
-    _proxy_strategy_str = os.environ.get("PROXY_HANDLING_STRATEGY", "DELETE").upper()
-    PROXY_HANDLING_STRATEGY = getattr(ProxyHandlingStrategy, _proxy_strategy_str, ProxyHandlingStrategy.DELETE)
-
-    # Catalogue pagination configuration
-    CATALOGUE_DEFAULT_PER_PAGE = int(os.environ.get("CATALOGUE_DEFAULT_PER_PAGE", "50"))
-    _catalogue_allowed_per_page_str = os.environ.get("CATALOGUE_ALLOWED_PER_PAGE", "50,100,200,500")
-    CATALOGUE_ALLOWED_PER_PAGE = [int(x.strip()) for x in _catalogue_allowed_per_page_str.split(",") if x.strip()]
+    CATALOGUE_DEFAULT_PER_PAGE = int(os.environ["CATALOGUE_DEFAULT_PER_PAGE"])
+    CATALOGUE_ALLOWED_PER_PAGE = [int(x) for x in os.environ["CATALOGUE_ALLOWED_PER_PAGE"].split(",")]
