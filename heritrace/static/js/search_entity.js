@@ -544,10 +544,21 @@ function setupInputSearchHandling(input, container, resultsContainer, isParentSe
     // Add loading spinner
     addLoadingSpinner(input);
     input.after(resultsContainer);
-    
+
+    // Prevent dropdown clicks from stealing focus and triggering focusout
+    resultsContainer.on('mousedown', function(e) {
+        e.preventDefault();
+    });
+
+    // Close dropdown when input loses focus
+    input.on('focusout', function() {
+        resultsContainer.addClass('d-none');
+        container.find('.search-spinner').addClass('d-none');
+    });
+
     // Handle input with debounce
     let searchTimeout;
-    
+
     input.on('input', function() {
         const term = $(this).val().trim();
         const spinner = container.find('.search-spinner');
@@ -748,14 +759,10 @@ function enhanceInputWithSearch(input) {
 $(document).ready(function() {
     $('head').append(style);
 
-    // Handle clicks outside of search results
-    $(document).on('click', function(e) {
-        // Ignora i click programmatici (non generati dall'utente)
-        if (!e.isTrusted) {
-            return;
-        }
-
-        if (!$(e.target).closest('.newEntityPropertyContainer').length) {
+    // Close dropdowns when clicking outside
+    $(document).on('mousedown', function(e) {
+        if (!e.isTrusted) return;
+        if (!$(e.target).closest('.entity-search-results').length) {
             $('.entity-search-results').addClass('d-none');
             $('.search-spinner').addClass('d-none');
         }
