@@ -25,7 +25,7 @@ from heritrace.utils.filters import Filter
 from rdflib import Graph
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from redis import Redis
-from SPARQLWrapper import JSON, SPARQLWrapper
+from SPARQLWrapper import JSON, POST, SPARQLWrapper
 from time_agnostic_library.support import generate_config_file
 
 # Global variables
@@ -56,8 +56,9 @@ class SPARQLWrapperWithRetry(SPARQLWrapper):
         query_timeout = kwargs.pop('timeout', 5.0)
         
         super().__init__(endpoint, **kwargs)
-        
+
         self.setTimeout(int(query_timeout))
+        self.setMethod(POST)
     
     def query(self):
         """
