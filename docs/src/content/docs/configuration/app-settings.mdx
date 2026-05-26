@@ -29,8 +29,8 @@ environment:
   - COUNT_LIMIT=10000
 
   # Database endpoints
-  - DATASET_DB_URL=http://host.docker.internal:8999/sparql
-  - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
+  - DATASET_DB_URL=http://dataset-db:8890/sparql
+  - PROVENANCE_DB_URL=http://provenance-db:8890/sparql
   - DATASET_DB_TRIPLESTORE=virtuoso
   - PROVENANCE_DB_TRIPLESTORE=virtuoso
 
@@ -126,8 +126,8 @@ environment:
   - PROVENANCE_DB_TRIPLESTORE=virtuoso   # 'virtuoso' or 'blazegraph'
 
   # Database URLs  
-  - DATASET_DB_URL=http://localhost:8999/sparql
-  - PROVENANCE_DB_URL=http://localhost:8998/sparql
+  - DATASET_DB_URL=http://dataset-db:8890/sparql
+  - PROVENANCE_DB_URL=http://provenance-db:8890/sparql
 
   # Storage Types
   - DATASET_IS_QUADSTORE=true

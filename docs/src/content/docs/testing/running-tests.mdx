@@ -18,22 +18,6 @@ HERITRACE uses pytest for testing. This guide covers running tests locally and u
 - **Unit tests**: Test individual functions and classes
 - **Integration tests**: Test component interactions and database operations
 
-### Test structure
-
-```
-tests/
-├── conftest.py                      # Pytest configuration and fixtures
-├── unit/                           # Unit tests
-│   ├── test_api.py
-│   ├── test_auth.py
-│   ├── test_editor.py
-│   └── ...
-├── integration/                    # Integration tests
-│   ├── test_entity_integration.py
-│   ├── test_shacl_utils_integration.py
-│   └── ...
-```
-
 ## Setting up test environment
 
 ### Prerequisites
@@ -72,10 +56,6 @@ Tests require dedicated databases running on different ports:
     - Test provenance database on port 9998
   </TabItem>
 </Tabs>
-
-<Aside type="caution" title="Port Separation">
-Test databases use different ports (9998, 9999) than development databases (8998, 8999) to avoid conflicts.
-</Aside>
 
 ## Running tests
 

@@ -75,7 +75,7 @@ docker run -d `
     -e DBA_PASSWORD=dba `
     -e DAV_PASSWORD=dba `
     -e CONTAINER_TYPE=dataset `
-    arcangelo7/heritrace-testing-virtuoso-dataset:1.0.2
+    arcangelo7/heritrace-demo-dataset:1.0.0
 
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Dataset database started successfully"
@@ -93,7 +93,7 @@ docker run -d `
     -e DBA_PASSWORD=dba `
     -e DAV_PASSWORD=dba `
     -e CONTAINER_TYPE=provenance `
-    arcangelo7/heritrace-testing-virtuoso-provenance:1.0.2
+    arcangelo7/heritrace-demo-dataset:1.0.0
 
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Provenance database started successfully"

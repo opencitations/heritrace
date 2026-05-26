@@ -4,51 +4,90 @@
 # SPDX-License-Identifier: ISC
 
 services:
+  dataset-db:
+    image: arcangelo7/heritrace-demo-dataset:1.0.0
+    restart: unless-stopped
+    environment:
+      - DBA_PASSWORD=dba
+      - DAV_PASSWORD=dba
+      - CONTAINER_TYPE=dataset
+    volumes:
+      - ./dataset_database:/database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - heritrace-network
+
+  provenance-db:
+    image: arcangelo7/heritrace-demo-dataset:1.0.0
+    restart: unless-stopped
+    environment:
+      - DBA_PASSWORD=dba
+      - DAV_PASSWORD=dba
+      - CONTAINER_TYPE=provenance
+    volumes:
+      - ./prov_database:/database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - heritrace-network
+
   web:
     image: arcangelo7/heritrace:3.0.0
     ports:
       - "5000:5000"
+    depends_on:
+      dataset-db:
+        condition: service_healthy
+      provenance-db:
+        condition: service_healthy
     environment:
       # Application settings
       - FLASK_ENV=demo
       - APP_TITLE=HERITRACE
       - APP_SUBTITLE=A semantic editor for heritage data
-      
+
       # Security (REQUIRED: Change this!)
       - SECRET_KEY=your-secure-secret-key-here
-      
-      # Database endpoints (REQUIRED: Configure these to point to your databases)
-      - DATASET_DB_URL=http://host.docker.internal:8999/sparql
-      - PROVENANCE_DB_URL=http://host.docker.internal:8998/sparql
+
+      # Database endpoints
+      - DATASET_DB_URL=http://dataset-db:8890/sparql
+      - PROVENANCE_DB_URL=http://provenance-db:8890/sparql
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
-      
+
       # Query Configuration
       - COUNT_LIMIT=10000
-      
+
       # Database settings
       - DATASET_DB_TEXT_INDEX_ENABLED=false
       - DATASET_IS_QUADSTORE=true
       - PROVENANCE_IS_QUADSTORE=true
-      
-      # ORCID authentication (REQUIRED: Get from https://orcid.org/developer-tools)
+
+      # ORCID authentication (get from https://orcid.org/developer-tools)
       - ORCID_CLIENT_ID=your-client-id
       - ORCID_CLIENT_SECRET=your-client-secret
       - ORCID_SAFELIST=0000-0000-0000-0000,0000-0000-0000-0001  # Comma-separated ORCID IDs
       - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
       - ORCID_TOKEN_URL=https://orcid.org/oauth/token
       - ORCID_API_URL=https://pub.orcid.org/v2.1
-      
+
       # Provenance settings
       - DATASET_GENERATION_TIME=2024-01-01T00:00:00+00:00
       - PRIMARY_SOURCE=https://example.org
-      
+
       # Entity handling strategies (Options: ASK, DELETE, KEEP)
       - ORPHAN_HANDLING_STRATEGY=ASK
       - PROXY_HANDLING_STRATEGY=ASK
 
       # Gunicorn Configuration
-      # - GUNICORN_WORKERS=4
+      - GUNICORN_WORKERS=2
       # - GUNICORN_TIMEOUT=120
 
       # Catalogue pagination settings
@@ -57,22 +96,20 @@ services:
 
       # Component classes - specify custom implementations via these variables
       - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
-      - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator 
+      - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
     volumes:
       # Expose configuration files for customization (optional)
       # - ./shacl.ttl:/app/shacl.ttl
       # - ./display_rules.yaml:/app/display_rules.yaml
-      
+
       # Default components
       # - ./default_components:/app/default_components
-      
+
       # Mount custom components (optional - create your own directory)
       # - ./custom_components:/app/custom_components
-      
+
       # Redis data persistence
       - ./redis-data:/data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - heritrace-network
 

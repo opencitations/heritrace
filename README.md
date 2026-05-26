@@ -22,49 +22,27 @@ The full documentation is at [opencitations.github.io/heritrace](https://opencit
 
 You need Docker and Docker Compose.
 
-Download the compose file:
 ```bash
+mkdir heritrace && cd heritrace
 curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
-```
-
-Optionally, download the database management scripts:
-
-**Unix/Linux/macOS:**
-```bash
-curl -o start-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/start-databases.sh
-curl -o stop-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/stop-databases.sh
-chmod +x start-databases.sh stop-databases.sh
-```
-
-**Windows:**
-```bash
-curl -o Start-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Start-Databases.ps1
-curl -o Stop-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Stop-Databases.ps1
-```
-
-By default HERITRACE starts in demo mode (`FLASK_ENV=demo`), so you can try it without setting up ORCID authentication.
-
-### With the provided databases
-
-```bash
-./start-databases.sh   # .\Start-Databases.ps1 on Windows
 docker compose up
 ```
+
+The compose file includes two Virtuoso databases and the web application. Once the databases pass their health checks, the application starts at `http://localhost:5000`.
+
+By default HERITRACE runs in demo mode (`FLASK_ENV=demo`), so you can try it without setting up ORCID authentication.
 
 ### With your own databases
 
-Edit `docker-compose.yml` to set `DATASET_DB_URL` and `PROVENANCE_DB_URL`, then:
+Edit `docker-compose.yml`: remove the `dataset-db`, `provenance-db`, and `networks` blocks, remove `depends_on` and `networks` from the `web` service, then set `DATASET_DB_URL` and `PROVENANCE_DB_URL` to your database endpoints.
 ```bash
 docker compose up
 ```
-
-The application will be available at `http://localhost:5000`.
 
 ### Stopping
 
 ```bash
 docker compose down
-./stop-databases.sh    # if you used the provided databases
 ```
 
 For production setup with ORCID authentication, see [Application settings](https://opencitations.github.io/heritrace/configuration/app-settings/).

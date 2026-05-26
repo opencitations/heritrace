@@ -40,15 +40,15 @@ Start the required databases (if not already running):
 
 ```bash
 # Linux/macOS
-./start-databases.sh
+./dev/start-databases.sh
 
 # Windows
-.\Start-Databases.ps1
+.\dev\Start-Databases.ps1
 ```
 
 This will start:
-- Virtuoso triplestore for main data (port 8999)
-- Virtuoso triplestore for provenance data (port 8998)
+- Virtuoso triplestore for main data (port 8890)
+- Virtuoso triplestore for provenance data (port 8891)
 
 ### 4. Start development environment
 
@@ -105,12 +105,12 @@ docker compose -f docker-compose.dev.yaml restart web
 ### Database management
 ```bash
 # Start databases
-./start-databases.sh  # Linux/macOS
-.\Start-Databases.ps1  # Windows
+./dev/start-databases.sh  # Linux/macOS
+.\dev\Start-Databases.ps1  # Windows
 
 # Stop databases
-./stop-databases.sh  # Linux/macOS
-.\Stop-Databases.ps1  # Windows
+./dev/stop-databases.sh  # Linux/macOS
+.\dev\Stop-Databases.ps1  # Windows
 ```
 
 ## Architecture for development
@@ -126,7 +126,7 @@ docker compose -f docker-compose.dev.yaml restart web
 - Configuration: `config.py`
 
 ### Database development
-- Main data: Virtuoso triplestore on port 8999
-- Provenance data: Virtuoso triplestore on port 8998
+- Main data: Virtuoso triplestore on port 8890
+- Provenance data: Virtuoso triplestore on port 8891
 - SPARQL endpoints available at `/sparql`
 - Internal Redis cache within the container for performance optimization

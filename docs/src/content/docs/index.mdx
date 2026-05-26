@@ -20,80 +20,25 @@ HERITRACE is a web-based semantic data editor. It lets users enrich and edit RDF
 
 This method uses official Docker images published to Docker Hub and GitHub Container Registry. All configuration is done through environment variables in the docker-compose.yml file.
 
-### 1. Download configuration files
+### 1. Download the compose file
 
-Create a new directory for HERITRACE:
+Create a new directory for HERITRACE and download the configuration:
 ```bash
 mkdir heritrace && cd heritrace
-```
-
-Download HERITRACE configuration:
-```bash
 curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
 ```
 
-Optionally download database management scripts for quick setup:
+### 2. Launch
 
-<Tabs>
-  <TabItem label="Linux/MacOS">
-    ```bash
-    curl -o start-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/start-databases.sh
-    ```
-    ```bash
-    curl -o stop-databases.sh https://raw.githubusercontent.com/opencitations/heritrace/main/stop-databases.sh
-    ```
-    ```bash
-    chmod +x start-databases.sh stop-databases.sh
-    ```
-  </TabItem>
-  <TabItem label="Windows">
-    ```bash
-    curl -o Start-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Start-Databases.ps1
-    ```
-    ```bash
-    curl -o Stop-Databases.ps1 https://raw.githubusercontent.com/opencitations/heritrace/main/Stop-Databases.ps1
-    ```
-  </TabItem>
-</Tabs>
-
-### 2. Demo mode (no configuration required)
-
-**Demo Mode:** HERITRACE runs in demo mode by default (`FLASK_ENV=demo`) for immediate testing without authentication setup. No configuration changes are required to get started!
-
-**Optional Configuration:** Edit `docker-compose.yml` to customize:
-- **Database endpoints**: Update `DATASET_DB_URL` and `PROVENANCE_DB_URL` if using your own databases
-
-### 3. Launch options
-
-**Option A: Quick start with provided databases**
-
-Start databases first:
-
-<Tabs>
-  <TabItem label="Linux/MacOS">
-    ```bash
-    ./start-databases.sh
-    ```
-  </TabItem>
-  <TabItem label="Windows">
-    ```bash
-    .\Start-Databases.ps1
-    ```
-  </TabItem>
-</Tabs>
-
-Start HERITRACE:
 ```bash
 docker compose up
 ```
 
-**Option B: Use your existing databases**
+The compose file includes two Virtuoso databases and the web application. Once the databases pass their health checks, the application starts automatically.
 
-Edit docker-compose.yml with your database URLs, then start HERITRACE:
-```bash
-docker compose up
-```
+HERITRACE runs in demo mode by default (`FLASK_ENV=demo`) for immediate testing without authentication setup.
 
+To use your own databases instead, edit `docker-compose.yml`: remove the `dataset-db`, `provenance-db`, and `networks` blocks, remove `depends_on` and `networks` from the `web` service, then set `DATASET_DB_URL` and `PROVENANCE_DB_URL` to your database endpoints.
 
 ## Access the application
 
@@ -126,57 +71,30 @@ Now that HERITRACE is running, you can:
 
 ## Stopping the application
 
-When you're done, stop the services:
-
-<Tabs>
-  <TabItem label="Stop Application">
-    Press Ctrl+C in the terminal running docker compose, or run:
-    ```bash
-    docker compose down
-    ```
-  </TabItem>
-  <TabItem label="Stop Databases">
-    <Tabs>
-      <TabItem label="Linux/MacOS">
-        ```bash
-        ./stop-databases.sh
-        ```
-      </TabItem>
-      <TabItem label="Windows">
-        ```powershell
-        .\Stop-Databases.ps1
-        ```
-      </TabItem>
-    </Tabs>
-  </TabItem>
-</Tabs>
+Press Ctrl+C in the terminal running docker compose, or run:
+```bash
+docker compose down
+```
 
 ## Troubleshooting
 
 ### Port already in use
-If you get port conflicts, check if other services are running on the required ports:
+If you get a port conflict on 5000, check what is using it:
 
 <Tabs>
   <TabItem label="Linux">
     ```bash
-    # Modern Linux (ss command - usually preinstalled)
-    ss -tulpn | grep -E ':(5000|8998|8999)\s'
+    ss -tulpn | grep ':5000\s'
     ```
   </TabItem>
   <TabItem label="macOS">
     ```bash
-    netstat -an | grep -E ':(5000|8998|8999)\s'
+    netstat -an | grep ':5000\s'
     ```
   </TabItem>
   <TabItem label="Windows">
-    Check ports using netstat:
-    ```cmd
-    netstat -ano | findstr ":5000 :8998 :8999"
-    ```
-    
-    Or using PowerShell:
     ```powershell
-    Get-NetTCPConnection | Where-Object {$_.LocalPort -in 5000,8998,8999}
+    Get-NetTCPConnection | Where-Object {$_.LocalPort -eq 5000}
     ```
   </TabItem>
 </Tabs>
