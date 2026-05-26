@@ -205,14 +205,18 @@ For managing your Virtuoso instance (launching the server, bulk-loading data, ex
 
 These settings control the data model's constraints and its presentation in the user interface.
 
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `SHACL_PATH` | Path to the [SHACL schema file](/heritrace/configuration/shacl/) that defines data validation rules | `./shacl.ttl` |
-| `DISPLAY_RULES_PATH` | Path to the YAML display rules file that controls how entities are rendered | `./display_rules.yaml` |
+| Environment Variable | Description |
+|---------------------|-------------|
+| `SHACL_PATH` | Path to the [SHACL schema file](/heritrace/configuration/shacl/) that defines data validation rules |
+| `DISPLAY_RULES_PATH` | Path to the [display rules file](/heritrace/configuration/display-rules/) that controls how entities are rendered |
 
-<Aside type="note" title="File Customization">
-You can expose SHACL and display rules files as Docker volumes to customize them directly.
-</Aside>
+Mount your configuration files as Docker volumes to customize them:
+
+```yaml
+volumes:
+  - ./my_shacl.ttl:/app/shacl.ttl
+  - ./my_display_rules.yaml:/app/display_rules.yaml
+```
 
 ## Data provenance and versioning
 
@@ -443,7 +447,7 @@ environment:
 
     #### Defining a Proxy Relationship
     
-    A property is treated as a proxy relationship in `resources/display_rules.yaml` by using the `intermediateRelation` key. This key tells HERITRACE to create an intermediate entity to connect the subject to the target object.
+    A property is treated as a proxy relationship in `display_rules.yaml` by using the `intermediateRelation` key. This key tells HERITRACE to create an intermediate entity to connect the subject to the target object.
 
     You must specify two things under `intermediateRelation`:
     - `class`: The RDF class of the intermediate entity (e.g., `pro:RoleInTime`).
@@ -454,7 +458,7 @@ environment:
     </Aside>
 
     ```yaml
-    # In resources/display_rules.yaml
+    # In display_rules.yaml
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
       displayName: "Author"
       intermediateRelation:

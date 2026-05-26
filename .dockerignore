@@ -36,6 +36,7 @@ prov_database/
 # Docker files (to avoid recursive copying)
 Dockerfile
 docker-compose*.yaml
+docker/
 .dockerignore
 
 # Other

@@ -8,9 +8,7 @@ description: Customize the HERITRACE interface using the display_rules.yaml file
 ---
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
 
-The `resources/display_rules.yaml` file is the heart of HERITRACE's user interface customization. It allows you to control how data is presented and handled without touching a single line of code. This configuration determines how different types of entities are displayed, what properties are visible, and how forms behave for creating and editing data.
-
-In short, this file lets you transform raw RDF data into a user-friendly interface.
+The display rules file is the heart of HERITRACE's user interface customization. It controls how data is presented and handled without touching a single line of code: which types of entities are displayed, what properties are visible, and how forms behave for creating and editing data.
 
 <Aside type="note" title="Display Rules and SHACL Integration">
 Display Rules work in conjunction with SHACL schemas. While Display Rules control presentation and user interface behavior, SHACL schemas define data validation and available properties. **Display Rules cannot override SHACL constraints** - they can only style and configure properties that are already defined in SHACL shapes. For detailed information about their interaction, see the [SHACL and Display Rules Interaction section](/heritrace/configuration/shacl/#shacl-and-display-rules-interaction).
@@ -18,11 +16,7 @@ Display Rules work in conjunction with SHACL schemas. While Display Rules contro
 
 ## File location
 
-By default, the display rules file is `resources/display_rules.yaml` in the project's root directory. You can change this path in your `config.py` file:
-
-```python
-DISPLAY_RULES_PATH = 'resources/display_rules.yaml'
-```
+Set the path to your display rules file via the `DISPLAY_RULES_PATH` environment variable. Example configurations are available in `example_configurations/`.
 
 ## Core concepts
 
@@ -98,7 +92,7 @@ The query uses `[[uri]]` as a placeholder, which HERITRACE dynamically replaces 
 
 Your SPARQL query for `fetchUriDisplay` **must `SELECT` a single variable**. This variable holds the final formatted string that will be shown to the user.
 
-You can find many practical examples of this in the default `resources/display_rules.yaml` file.
+You can find many practical examples of this in the default `display_rules.yaml` file.
 
 ```yaml
 # Example for a Journal Volume
@@ -439,4 +433,4 @@ For detailed configuration instructions, complete examples, and best practices, 
 
 ## Testing your rules
 
-When running HERITRACE in development mode, any changes to `resources/display_rules.yaml` will automatically restart the server, so you can see your updates instantly.
+When running HERITRACE in development mode, any changes to `display_rules.yaml` will automatically restart the server, so you can see your updates instantly.

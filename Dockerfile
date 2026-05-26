@@ -23,8 +23,8 @@ COPY heritrace ./heritrace
 COPY default_components ./default_components
 
 COPY config.example.py ./config.py
-COPY shacl.ttl ./shacl.ttl
-COPY display_rules.yaml ./display_rules.yaml
+COPY example_configurations/opencitations_meta/shacl.ttl ./shacl.ttl
+COPY example_configurations/opencitations_meta/display_rules.yaml ./display_rules.yaml
 COPY babel ./babel
 
 RUN uv sync --locked --no-dev

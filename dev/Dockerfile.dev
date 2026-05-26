@@ -22,7 +22,7 @@ COPY pyproject.toml uv.lock README.md ./
 COPY heritrace ./heritrace
 
 COPY config.example.py ./config.py
-COPY generate_ssl_cert.py ./generate_ssl_cert.py
+COPY dev/generate_ssl_cert.py ./generate_ssl_cert.py
 
 RUN uv sync --locked
 

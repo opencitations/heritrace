@@ -28,10 +28,7 @@ For a complete understanding of SHACL and its advanced features, refer to the of
 
 ## File location
 
-The SHACL schema is located at `resources/shacl.ttl`. You can configure the path in `config.py`:
-```python
-SHACL_PATH = 'resources/shacl.ttl'
-```
+Set the path to your SHACL schema via the `SHACL_PATH` environment variable. Example configurations are available in `example_configurations/`.
 
 ## Core concepts
 
@@ -280,7 +277,7 @@ SHACL and Display Rules are both individually optional, but their interaction fo
 ## Testing and updating
 
 - **Reloading**: When running in development mode, the application will automatically restart when it detects changes to `shacl.ttl`, applying your updates instantly.
-- **Update display rules**: If you modify properties, remember to update `resources/display_rules.yaml` to reflect those changes in the user interface.
+- **Update display rules**: If you modify properties, remember to update `display_rules.yaml` to reflect those changes in the user interface.
 - **Validation testing**: After SHACL changes, test form generation and validation to ensure all constraints work as expected.
 
 <Aside type="caution" title="Breaking Changes">

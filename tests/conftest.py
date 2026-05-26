@@ -1,12 +1,9 @@
-# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
-"""
-Configuration file for pytest.
-This file contains fixtures and configuration for the test suite.
-"""
-
+import subprocess
+from pathlib import Path
 from typing import Generator
 
 import pytest
@@ -16,50 +13,70 @@ from heritrace import create_app
 from redis import Redis
 from tests.test_config import TestConfig
 
+COMPOSE_FILE = str(Path(__file__).parent / "docker-compose.yml")
+
+VIRTUOSO_GRANTS = (
+    "GRANT SPARQL_UPDATE TO \"SPARQL\"; "
+    "GRANT execute ON \"DB.DBA.SPARQL_INSERT_DICT_CONTENT\" TO \"SPARQL\"; "
+    "GRANT execute ON \"DB.DBA.SPARQL_DELETE_DICT_CONTENT\" TO \"SPARQL\"; "
+    "DB.DBA.RDF_DEFAULT_USER_PERMS_SET ('nobody', 7);"
+)
+
+
+def _grant_virtuoso_permissions(container: str) -> None:
+    subprocess.run(
+        [
+            "docker", "exec", container,
+            "/opt/virtuoso-opensource/bin/isql", "-U", "dba", "-P", "dba",
+            f"exec={VIRTUOSO_GRANTS}",
+        ],
+        check=True,
+        capture_output=True,
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def docker_services() -> Generator[None, None, None]:
+    subprocess.run(
+        ["docker", "compose", "-f", COMPOSE_FILE, "up", "-d", "--wait"],
+        check=True,
+    )
+    _grant_virtuoso_permissions("tests-dataset-db-1")
+    _grant_virtuoso_permissions("tests-provenance-db-1")
+    yield
+    subprocess.run(
+        ["docker", "compose", "-f", COMPOSE_FILE, "down"],
+        check=True,
+    )
+
 
 @pytest.fixture
 def app() -> Generator[Flask, None, None]:
-    """Create and configure a Flask application for testing."""
     app = create_app(TestConfig)
-
-    # Create application context
     with app.app_context():
         yield app
 
 
 @pytest.fixture
 def client(app: Flask) -> FlaskClient:
-    """A test client for the app."""
     return app.test_client()
 
 
 @pytest.fixture
 def runner(app: Flask) -> FlaskCliRunner:
-    """A test CLI runner for the app."""
     return app.test_cli_runner()
 
 
 @pytest.fixture
 def redis_client() -> Generator[Redis, None, None]:
-    """Create a Redis client for testing.
-
-    This connects to the Redis instance running on port 6380 (database 1)
-    which is started by the test database scripts.
-    """
     client = Redis.from_url(TestConfig.REDIS_URL)
-
-    # Clear any existing test data
     client.flushdb()
-
     yield client
-
-    # Clean up after tests
     client.flushdb()
 
 
 @pytest.fixture
 def logged_in_client(client: FlaskClient) -> Generator[FlaskClient, None, None]:
-    """Create a client with a logged-in user session."""
     with client.session_transaction() as sess:
         sess["user_id"] = "0000-0000-0000-0000"
         sess["user_name"] = "Test User"
@@ -69,8 +86,6 @@ def logged_in_client(client: FlaskClient) -> Generator[FlaskClient, None, None]:
         sess["_fresh"] = True
         sess["_id"] = "test-session-id"
         sess["_user_id"] = "0000-0000-0000-0000"
-
-        # Add OAuth token information if needed
         sess["oauth_token"] = {
             "access_token": "test-access-token",
             "token_type": "bearer",
@@ -80,5 +95,4 @@ def logged_in_client(client: FlaskClient) -> Generator[FlaskClient, None, None]:
             "name": "Test User",
             "orcid": "0000-0000-0000-0000",
         }
-
     yield client

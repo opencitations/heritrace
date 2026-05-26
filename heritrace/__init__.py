@@ -34,7 +34,7 @@ def create_app(config_object=None):
         babel = Babel()
         login_manager = LoginManager()
         
-        redis_url = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+        redis_url = app.config.get('REDIS_URL', os.environ.get('REDIS_URL', 'redis://localhost:6379/0'))
         app.logger.info(f"Connecting to Redis at: {redis_url}")
         redis_client = Redis.from_url(redis_url, decode_responses=True)
 

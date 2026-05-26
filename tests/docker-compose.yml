@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+services:
+  dataset-db:
+    image: openlink/virtuoso-opensource-7:7.2.16
+    ports:
+      - "41800:8890"
+      - "41801:1111"
+    environment:
+      DBA_PASSWORD: dba
+      SPARQL_UPDATE: "true"
+    volumes:
+      - dataset_data:/database
+    healthcheck:
+      test: ["CMD", "/opt/virtuoso-opensource/bin/isql", "-U", "dba", "-P", "dba", "exec=status();"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  provenance-db:
+    image: openlink/virtuoso-opensource-7:7.2.16
+    ports:
+      - "41802:8890"
+      - "41803:1111"
+    environment:
+      DBA_PASSWORD: dba
+      SPARQL_UPDATE: "true"
+    volumes:
+      - provenance_data:/database
+    healthcheck:
+      test: ["CMD", "/opt/virtuoso-opensource/bin/isql", "-U", "dba", "-P", "dba", "exec=status();"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "41804:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dataset_data:
+  provenance_data:

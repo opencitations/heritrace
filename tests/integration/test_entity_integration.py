@@ -500,8 +500,8 @@ def test_generate_unique_uri(app: Flask) -> None:
             assert str(uri2).startswith("http://example.org/")
             assert uri1 != uri2  # URIs should be different
             
-            # Create a counter handler with default configuration
             counter_handler = MetaCounterHandler()
+            counter_handler.port = 41804
 
             # Create a MetaURIGenerator instance
             meta_generator = MetaURIGenerator(counter_handler)
@@ -799,8 +799,9 @@ def test_format_triple_modification(app: Flask) -> None:
 
             # Load display rules from configuration
             display_rules = None
-            if os.path.exists("display_rules.yaml"):
-                with open("display_rules.yaml", "r") as f:
+            display_rules_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "tests", "display_rules.yaml")
+            if os.path.exists(display_rules_path):
+                with open(display_rules_path, "r") as f:
                     yaml_content = yaml.safe_load(f)
                     display_rules = yaml_content.get("rules", [])
 

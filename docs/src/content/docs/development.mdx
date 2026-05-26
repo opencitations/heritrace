@@ -53,7 +53,7 @@ This will start:
 ### 4. Start development environment
 
 ```bash
-docker compose -f docker-compose.dev.yaml up --build
+docker compose -f dev/docker-compose.dev.yaml up --build
 ```
 
 The development environment will:
@@ -79,27 +79,26 @@ Gunicorn runs with `--reload`, so changes to Python files automatically restart 
 The following directories are mounted for live editing:
 - `./heritrace` → Application source code
 - `./default_components` → Default URI generator and counter handler
-- `./shacl.ttl` → SHACL schema file
-- `./display_rules.yaml` → Display rules configuration
+- SHACL schema and display rules from `example_configurations/`
 
 ## Development commands
 
 ### Application management
 ```bash
 # Start development environment
-docker compose -f docker-compose.dev.yaml up --build
+docker compose -f dev/docker-compose.dev.yaml up --build
 
 # Start without rebuilding
-docker compose -f docker-compose.dev.yaml up
+docker compose -f dev/docker-compose.dev.yaml up
 
 # View application logs
-docker compose -f docker-compose.dev.yaml logs web
+docker compose -f dev/docker-compose.dev.yaml logs web
 
 # Stop development environment
-docker compose -f docker-compose.dev.yaml down
+docker compose -f dev/docker-compose.dev.yaml down
 
 # Restart just the web service
-docker compose -f docker-compose.dev.yaml restart web
+docker compose -f dev/docker-compose.dev.yaml restart web
 ```
 
 ### Database management

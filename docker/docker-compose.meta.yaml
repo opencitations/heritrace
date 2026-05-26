@@ -5,8 +5,8 @@
 services:
   web:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ..
+      dockerfile: dev/Dockerfile.dev
     ports:
       - "5000:5000"
       - "6379:6379"  # Redis port for development
@@ -71,16 +71,16 @@ services:
       - SHACL_PATH=/app/shacl.ttl
       - DISPLAY_RULES_PATH=/app/display_rules.yaml
     volumes:
-      - ./heritrace:/app/heritrace
-      - ./app.py:/app/app.py
-      - ./default_components:/app/default_components
-      - ./pyproject.toml:/app/pyproject.toml
-      - ./uv.lock:/app/uv.lock
-      - ./example_configurations/opencitations_meta/shacl.ttl:/app/shacl.ttl
-      - ./example_configurations/opencitations_meta/display_rules.yaml:/app/display_rules.yaml
-      - ./babel:/app/babel
-      - ./webpack.config.js:/app/webpack.config.js
-      - ./redis-data:/data
+      - ../heritrace:/app/heritrace
+      - ../app.py:/app/app.py
+      - ../default_components:/app/default_components
+      - ../pyproject.toml:/app/pyproject.toml
+      - ../uv.lock:/app/uv.lock
+      - ../example_configurations/opencitations_meta/shacl.ttl:/app/shacl.ttl
+      - ../example_configurations/opencitations_meta/display_rules.yaml:/app/display_rules.yaml
+      - ../babel:/app/babel
+      - ../webpack.config.js:/app/webpack.config.js
+      - ../redis-data:/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:

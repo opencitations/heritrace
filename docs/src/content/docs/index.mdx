@@ -52,13 +52,15 @@ http://127.0.0.1:5000
 **Demo Mode**: Runs on HTTP with authentication bypassed for immediate testing. **Production Mode**: Requires HTTPS, valid SSL certificates, and ORCID authentication setup - see [Application Settings](/heritrace/configuration/app-settings/) for configuration details.
 :::
 
-## Pre-configured data model
+## Configuration
 
-HERITRACE comes preloaded with validation and display rules based on a customized version of the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank" rel="noopener noreferrer">OpenCitations Data Model (OCDM)</a>:
+HERITRACE requires two configuration files:
 
-- **SHACL schema** (`./shacl.ttl`): Defines the data model, classes, and properties.
-- **YAML display rules** (`./display_rules.yaml`): Configure how entities appear in the interface
-- **Default components** (`default_components/`): Contains the default URI generator and counter handler implementations
+- **SHACL schema** (`.ttl`): Defines the data model, classes, and properties. See [SHACL configuration](/heritrace/configuration/shacl/).
+- **Display rules** (`.yaml`): Controls how entities appear in the interface. See [Display rules configuration](/heritrace/configuration/display-rules/).
+- **Custom components** (`default_components/`): URI generator and counter handler implementations. See [Application settings](/heritrace/configuration/app-settings/#custom-components).
+
+The `example_configurations/` directory contains examples to use as a starting point, including one based on the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank" rel="noopener noreferrer">OpenCitations Data Model (OCDM)</a>.
 
 ## What's next?
 

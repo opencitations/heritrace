@@ -16,6 +16,7 @@ heritrace/static/dist/
 .venv/
 tests/test_cache.json
 redis-data
+change_tracking.json
 heritrace-*-local/
 heritrace-*-local.zip
 heritrace-*-testing/
@@ -34,6 +35,3 @@ coverage.xml
 .hypothesis/
 nosetests.xml
 
-# Virtuoso lock files
-tests/test_dataset_db/*
-tests/test_provenance_db/*

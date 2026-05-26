@@ -13,11 +13,12 @@ from heritrace.utils.strategies import (OrphanHandlingStrategy,
 BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 test_counter_handler = MetaCounterHandler()
+test_counter_handler.port = 41804
 
 test_meta_uri_generator = MetaURIGenerator(test_counter_handler)
 
-test_shacl_path = os.path.join(BASE_HERITRACE_DIR, "shacl.ttl")
-test_display_rules_path = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
+test_shacl_path = os.path.join(BASE_HERITRACE_DIR, "tests", "shacl.ttl")
+test_display_rules_path = os.path.join(BASE_HERITRACE_DIR, "tests", "display_rules.yaml")
 
 
 class TestConfig(object):
@@ -33,14 +34,14 @@ class TestConfig(object):
     CACHE_VALIDITY_DAYS = 1
     TESTING = True
     
-    REDIS_URL = "redis://localhost:6379/0"
+    REDIS_URL = "redis://localhost:41804/0"
 
     DATASET_DB_TRIPLESTORE = "virtuoso"
     DATASET_DB_TEXT_INDEX_ENABLED = True
     PROVENANCE_DB_TRIPLESTORE = "virtuoso"
 
-    DATASET_DB_URL = "http://localhost:9999/sparql"
-    PROVENANCE_DB_URL = "http://localhost:9998/sparql"
+    DATASET_DB_URL = "http://localhost:41800/sparql"
+    PROVENANCE_DB_URL = "http://localhost:41802/sparql"
 
     DATASET_IS_QUADSTORE = True
     PROVENANCE_IS_QUADSTORE = True
