@@ -21,27 +21,15 @@ HERITRACE uses GitHub Actions for continuous integration and release automation.
 
 The CI pipeline performs the following steps:
 
-1.  **Set up Python**: It tests the project against multiple Python versions (3.10, 3.11, 3.12, and 3.13) to ensure compatibility.
-2.  **Install Dependencies**: It uses uv to install project dependencies, including development dependencies.
-3.  **Start Test Databases**: It runs the `./tests/start-test-databases.sh` script to set up the required Virtuoso databases for the integration tests.
-4.  **Run Tests**: It executes the test suite using `pytest` and generates a coverage report.
-5.  **Upload Coverage Report**: The HTML coverage report is uploaded as a build artifact, allowing for inspection and analysis for all branches and Python versions.
-6.  **Generate Coverage Badge**: A coverage badge is generated for each branch using the results from the Python 3.10 test run. This provides a quick visual indicator of the test coverage status directly in the `README.md` file.
+1.  **Set up Python**: Tests against multiple Python versions (3.10, 3.11, 3.12, 3.13) to ensure compatibility.
+2.  **Install dependencies**: Uses uv to install project dependencies, including development dependencies.
+3.  **Run tests**: Executes the test suite using pytest with coverage. Test databases start automatically via the `docker_services` pytest fixture.
+4.  **Upload coverage report**: On the main branch (Python 3.10 only), the HTML coverage report and badge are uploaded as build artifacts.
+5.  **Deploy to GitHub Pages**: A separate job builds the documentation site, downloads the coverage artifacts, and deploys everything to GitHub Pages.
 
-### Coverage badge setup
+### Coverage badge
 
-The workflow uses the <a href="https://github.com/marketplace/actions/bring-your-own-badge" target="_blank">BYOB (Bring Your Own Badge) GitHub Action</a> to generate coverage badges. To set this up:
-
-1.  Create a Personal Access Token (PAT) with access to the repository where badges will be stored.
-2.  Add the token as a secret in your GitHub repository:
-    - Go to your GitHub repository.
-    - Click on "Settings" > "Secrets and variables" > "Actions".
-    - Click "New repository secret".
-    - **Name**: `GIST_PAT`
-    - **Value**: Your Personal Access Token
-    - Click "Add secret".
-
-The badge will be generated for each branch and will include the branch name in the badge label.
+The workflow uses <a href="https://pypi.org/project/genbadge/" target="_blank">genbadge</a> to generate an SVG badge from `coverage.xml`. The badge and HTML report are deployed to GitHub Pages alongside the documentation.
 
 ## Release workflow
 
@@ -65,12 +53,10 @@ The workflow automatically uses the `GITHUB_TOKEN` for GitHub Container Registry
 
 ### Docker image tags
 
-The workflow generates multiple tags for each image:
+The workflow generates the following tags:
 
 - `latest`: For the main branch
-- Version tags: `v1.0.0`, `1.0.0`, `1.0`, `1` (based on semantic versioning)
-- Branch tags: For feature branches
-- PR tags: For pull requests
+- Version tag (e.g. `1.0.0`): The semantic version
 
 ### Published images
 

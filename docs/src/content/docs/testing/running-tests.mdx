@@ -26,36 +26,15 @@ HERITRACE uses pytest for testing. This guide covers running tests locally and u
 - Docker for test databases
 - Python 3.10+ (supports 3.10, 3.11, 3.12, 3.13)
 
-### Test database setup
+### Test database lifecycle
 
-Tests require dedicated databases running on different ports:
+Test databases start and stop automatically. A session-scoped pytest fixture (`docker_services` in `tests/conftest.py`) runs `docker compose -f tests/docker-compose.yml up -d --wait` before the first test and `docker compose down` after the last test. No manual setup or teardown is needed.
 
-<Tabs>
-  <TabItem label="Linux/MacOS">
-    ```bash
-    # Make scripts executable
-    chmod +x ./tests/start-test-databases.sh
-    chmod +x ./tests/stop-test-databases.sh
-    
-    # Start test databases
-    ./tests/start-test-databases.sh
-    ```
-    
-    This creates:
-    - Test dataset database on port 9999
-    - Test provenance database on port 9998
-  </TabItem>
-  <TabItem label="Windows PowerShell">
-    ```powershell
-    # Start test databases
-    .\tests\Start-TestDatabases.ps1
-    ```
+The test services and their host ports:
 
-    This creates:
-    - Test dataset database on port 9999
-    - Test provenance database on port 9998
-  </TabItem>
-</Tabs>
+- Dataset database (Virtuoso): port 41800
+- Provenance database (Virtuoso): port 41802
+- Redis: port 41804
 
 ## Running tests
 
@@ -146,54 +125,45 @@ Tests use a separate configuration file:
 
 ```python
 # tests/test_config.py
-class TestConfig(Config):
+class TestConfig(object):
     TESTING = True
-    DATASET_DB_URL = 'http://localhost:9999/sparql'
-    PROVENANCE_DB_URL = 'http://localhost:9998/sparql'
-    SECRET_KEY = 'test-secret-key'
-    
-    # Disable external services in tests
-    ORCID_CLIENT_ID = 'test-client-id'
-    ORCID_CLIENT_SECRET = 'test-client-secret'
+    DATASET_DB_URL = "http://localhost:41800/sparql"
+    PROVENANCE_DB_URL = "http://localhost:41802/sparql"
+    REDIS_URL = "redis://localhost:41804/0"
+    SECRET_KEY = "test-secret-key-for-testing-only"
+    CACHE_VALIDITY_DAYS = 1
+
+    ORCID_CLIENT_ID = "test-client-id"
+    ORCID_CLIENT_SECRET = "test-client-secret"
+    # ...
 ```
 
 ### Fixtures
 
-Common test fixtures are defined in `conftest.py`:
+Common test fixtures are defined in `tests/conftest.py`:
 
 ```python
+@pytest.fixture(scope="session", autouse=True)
+def docker_services():
+    subprocess.run(
+        ["docker", "compose", "-f", COMPOSE_FILE, "up", "-d", "--wait"],
+        check=True,
+    )
+    yield
+    subprocess.run(
+        ["docker", "compose", "-f", COMPOSE_FILE, "down"],
+        check=True,
+    )
+
 @pytest.fixture
 def app():
-    """Create application instance for testing."""
     app = create_app(TestConfig)
-    return app
+    with app.app_context():
+        yield app
 
 @pytest.fixture
 def client(app):
-    """Create test client."""
     return app.test_client()
-
-@pytest.fixture
-def dataset_db():
-    """Dataset database connection."""
-    # Database setup logic
 ```
 
-## Cleanup
-
-### Stop test databases
-
-When finished testing:
-
-<Tabs>
-  <TabItem label="Linux/MacOS">
-    ```bash
-    ./tests/stop-test-databases.sh
-    ```
-  </TabItem>
-  <TabItem label="Windows PowerShell">
-    ```powershell
-    .\tests\Stop-TestDatabases.ps1
-    ```
-  </TabItem>
-</Tabs>
+Test databases are stopped automatically when the pytest session ends.

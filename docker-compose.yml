@@ -51,10 +51,11 @@ services:
       # Application settings
       - FLASK_ENV=demo
       - APP_TITLE=HERITRACE
-      - APP_SUBTITLE=A semantic editor for heritage data
+      - APP_SUBTITLE=An environment for semantic data curation
 
       # Security (REQUIRED: Change this!)
       - SECRET_KEY=your-secure-secret-key-here
+      - CACHE_VALIDITY_DAYS=7
 
       # Database endpoints
       - DATASET_DB_URL=http://dataset-db:8890/sparql
@@ -74,9 +75,6 @@ services:
       - ORCID_CLIENT_ID=your-client-id
       - ORCID_CLIENT_SECRET=your-client-secret
       - ORCID_SAFELIST=0000-0000-0000-0000,0000-0000-0000-0001  # Comma-separated ORCID IDs
-      - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
-      - ORCID_TOKEN_URL=https://orcid.org/oauth/token
-      - ORCID_API_URL=https://pub.orcid.org/v2.1
 
       # Provenance settings
       - DATASET_GENERATION_TIME=2024-01-01T00:00:00+00:00

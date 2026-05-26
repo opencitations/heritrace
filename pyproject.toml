@@ -1,8 +1,8 @@
 [project]
 name = "heritrace"
 version = "3.0.0"
-description = "An environment for data modification"
-authors = [{name = "arcangelo7", email = "arcangelomas@gmail.com"}]
+description = "An environment for semantic data curation"
+authors = [{name = "Arcangelo Massari", email = "arcangelo.massari@unibo.it"}]
 license = {text = "ISC"}
 readme = "README.md"
 requires-python = ">=3.10, <3.14"

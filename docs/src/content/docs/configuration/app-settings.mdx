@@ -205,12 +205,7 @@ For managing your Virtuoso instance (launching the server, bulk-loading data, ex
 
 These settings control the data model's constraints and its presentation in the user interface.
 
-| Environment Variable | Description |
-|---------------------|-------------|
-| `SHACL_PATH` | Path to the [SHACL schema file](/heritrace/configuration/shacl/) that defines data validation rules |
-| `DISPLAY_RULES_PATH` | Path to the [display rules file](/heritrace/configuration/display-rules/) that controls how entities are rendered |
-
-Mount your configuration files as Docker volumes to customize them:
+The application reads SHACL and display rules from fixed paths inside the container: `/app/shacl.ttl` and `/app/display_rules.yaml`. These are not configurable via environment variables. To customize them, mount your files as Docker volumes:
 
 ```yaml
 volumes:
@@ -375,15 +370,15 @@ environment:
   - ORCID_CLIENT_ID=your-client-id
   - ORCID_CLIENT_SECRET=your-client-secret
 
-  # ORCID Endpoints
-  - ORCID_AUTHORIZE_URL=https://orcid.org/oauth/authorize
-  - ORCID_TOKEN_URL=https://orcid.org/oauth/token
-  - ORCID_API_URL=https://pub.orcid.org/v2.1
-  - ORCID_SCOPE=/authenticate
-
   # Access Control
   - ORCID_SAFELIST=your-allowed-orcid-1,your-allowed-orcid-2
 ```
+
+ORCID endpoint URLs and scope are hardcoded in `config.py` and do not need to be configured:
+- Authorize URL: `https://orcid.org/oauth/authorize`
+- Token URL: `https://orcid.org/oauth/token`
+- API URL: `https://pub.orcid.org/v2.1`
+- Scope: `/authenticate`
 
 ### Setting up ORCID
 
