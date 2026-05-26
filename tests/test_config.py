@@ -60,10 +60,6 @@ class TestConfig(object):
 
     ORCID_CLIENT_ID = "test-client-id"
     ORCID_CLIENT_SECRET = "test-client-secret"
-    ORCID_AUTHORIZE_URL = "https://orcid.org/oauth/authorize"
-    ORCID_TOKEN_URL = "https://orcid.org/oauth/token"
-    ORCID_API_URL = "https://pub.orcid.org/v2.1"
-    ORCID_SCOPE = "/authenticate"
     ORCID_SAFELIST = [
         "0000-0000-0000-0000",
     ]

@@ -59,15 +59,8 @@ class Config:
     SHACL_PATH = os.path.join(BASE_HERITRACE_DIR, "shacl.ttl")
     DISPLAY_RULES_PATH = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
 
-    # ORCID Integration
-    # Get credentials from https://orcid.org/developer-tools
     ORCID_CLIENT_ID = os.environ["ORCID_CLIENT_ID"]
     ORCID_CLIENT_SECRET = os.environ["ORCID_CLIENT_SECRET"]
-    ORCID_AUTHORIZE_URL = "https://orcid.org/oauth/authorize"
-    ORCID_TOKEN_URL = "https://orcid.org/oauth/token"
-    ORCID_API_URL = "https://pub.orcid.org/v2.1"
-    ORCID_SCOPE = "/authenticate"
-    # Comma-separated ORCID IDs in .env
     ORCID_SAFELIST = [s.strip() for s in os.environ["ORCID_SAFELIST"].split(",")]
 
     # Available options: ASK, DELETE, KEEP

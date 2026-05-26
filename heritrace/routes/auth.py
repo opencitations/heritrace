@@ -39,10 +39,10 @@ def login():
     orcid = OAuth2Session(
         current_app.config["ORCID_CLIENT_ID"],
         redirect_uri=callback_url,
-        scope=[current_app.config["ORCID_SCOPE"], "openid"],
+        scope=["/authenticate", "openid"],
     )
     authorization_url, state = orcid.authorization_url(
-        current_app.config["ORCID_AUTHORIZE_URL"],
+        "https://orcid.org/oauth/authorize",
         prompt="login",  # Forza il re-login
         nonce=os.urandom(16).hex(),  # Aggiungiamo un nonce per sicurezza
     )
@@ -62,7 +62,7 @@ def callback():
     )
     try:
         token = orcid.fetch_token(
-            current_app.config["ORCID_TOKEN_URL"],
+            "https://orcid.org/oauth/token",
             client_secret=current_app.config["ORCID_CLIENT_SECRET"],
             authorization_response=secure_url,
         )
