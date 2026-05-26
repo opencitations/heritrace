@@ -20,11 +20,11 @@ The full documentation is at [opencitations.github.io/heritrace](https://opencit
 
 ## Quick start
 
-You need Docker and Docker Compose.
+You need [Docker and Docker Compose](https://docs.docker.com/get-started/get-docker/).
 
 ```bash
-mkdir heritrace && cd heritrace
-curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml
+mkdir heritrace && cd heritrace && \
+curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/heritrace/main/docker-compose.yml && \
 docker compose up
 ```
 
