@@ -7,7 +7,6 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional, Tuple, List
 
 from flask_login import current_user
 from redis import Redis
@@ -32,7 +31,7 @@ class LockInfo:
     user_name: str
     timestamp: str
     resource_uri: str
-    linked_resources: List[str] = None
+    linked_resources: list[str] | None = None
 
     def __post_init__(self):
         if self.linked_resources is None:
@@ -48,8 +47,8 @@ class ResourceLockManager:
     - reverse_links:{resource_uri} - Stores a set of resources that link to this resource
     """
 
-    def __init__(self, redis_client: Redis):
-        self.redis = redis_client
+    def __init__(self, redis_client: Redis):  # type: ignore[type-arg]
+        self.redis: Redis[str] = redis_client  # type: ignore[assignment]
         self.lock_duration = 300  # 5 minutes in seconds
         self.lock_prefix = "resource_lock:"
         self.reverse_links_prefix = "reverse_links:"    # Reverse links: resources that link to this resource
@@ -62,7 +61,7 @@ class ResourceLockManager:
         """Generate a Redis key for storing resources that link to this resource."""
         return f"{self.reverse_links_prefix}{resource_uri}"
 
-    def get_lock_info(self, resource_uri: str) -> Optional[LockInfo]:
+    def get_lock_info(self, resource_uri: str) -> LockInfo | None:
         """
         Get information about the current lock on a resource.
 
@@ -78,7 +77,7 @@ class ResourceLockManager:
         if not lock_data:
             return None
 
-        data = json.loads(lock_data)
+        data = json.loads(lock_data)  # type: ignore[arg-type]
         linked_resources = data.get("linked_resources", [])
         return LockInfo(
             user_id=data["user_id"],
@@ -90,7 +89,7 @@ class ResourceLockManager:
 
     def check_lock_status(
         self, resource_uri: str
-    ) -> Tuple[LockStatus, Optional[LockInfo]]:
+    ) -> tuple[LockStatus, LockInfo | None]:
         """
         Check if a resource is locked and return its status.
         This method efficiently checks if:
@@ -102,7 +101,7 @@ class ResourceLockManager:
             resource_uri: URI of the resource to check
 
         Returns:
-            Tuple of (LockStatus, Optional[LockInfo])
+            Tuple of (LockStatus, LockInfo | None)
         """            
         try:
             # 1. Check direct lock on the resource
@@ -116,8 +115,8 @@ class ResourceLockManager:
             # 3. Check if any resource that links to this resource is locked by another user
             # Get the resources that link to this resource (reverse links)
             reverse_links_key = self._generate_reverse_links_key(resource_uri)
-            reverse_links = self.redis.smembers(reverse_links_key)
-            
+            reverse_links: set[str] = self.redis.smembers(reverse_links_key)  # type: ignore[assignment]
+
             # Check if any of these resources is locked
             for linking_uri_item in reverse_links:
                 # Use helper method to standardize format
@@ -150,7 +149,7 @@ class ResourceLockManager:
             return item.decode('utf-8')
         return str(item)
     
-    def acquire_lock(self, resource_uri: str, linked_resources: List[str]) -> bool:
+    def acquire_lock(self, resource_uri: str, linked_resources: list[str]) -> bool:
         """
         Try to acquire a lock on a resource.
         This method efficiently checks and acquires locks using Redis sets
@@ -190,7 +189,7 @@ class ResourceLockManager:
             logger.error(f"Error acquiring lock for {resource_uri}: {str(e)}")
             return False
 
-    def _create_resource_lock(self, resource_uri: str, current_user, linked_resources: List[str]) -> bool:
+    def _create_resource_lock(self, resource_uri: str, current_user, linked_resources: list[str]) -> bool:
         """
         Helper method to create a lock for a resource.
         

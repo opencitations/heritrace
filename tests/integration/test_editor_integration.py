@@ -6,18 +6,17 @@
 Tests for the editor module.
 """
 
-from unittest.mock import MagicMock
-from SPARQLWrapper import JSON, SPARQLWrapper
+from datetime import datetime
+from typing import cast
+from unittest.mock import MagicMock, patch
 
 import pytest
-from rdflib_ocdm.ocdm_graph import OCDMGraph
-from unittest.mock import patch
-from datetime import datetime
-
-# Import the editor module
-from heritrace.editor import Editor
+from SPARQLWrapper import JSON, SPARQLWrapper
 from rdflib import RDF, XSD, Literal, URIRef
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
+
+from heritrace.editor import Editor
+from heritrace.sparql import get_sparql_bindings
 from tests.test_config import TestConfig
 
 
@@ -94,17 +93,17 @@ def test_create_method(editor: Editor) -> None:
     editor.create(subject, predicate, uri_value, graph)
 
     # Verify the triple was added with graph context
-    assert (subject, predicate, uri_value, graph) in editor.g_set
+    assert (subject, predicate, uri_value, graph) in editor.g_set  # type: ignore[operator]
 
     # Test creating a literal with datatype
     literal_value = Literal("42", datatype=XSD.integer)
     editor.create(subject, predicate, literal_value, graph)
-    assert (subject, predicate, literal_value, graph) in editor.g_set
+    assert (subject, predicate, literal_value, graph) in editor.g_set  # type: ignore[operator]
 
     # Test creating a string literal
     string_value = Literal("test string")
     editor.create(subject, predicate, string_value, graph)
-    assert (subject, predicate, string_value, graph) in editor.g_set
+    assert (subject, predicate, string_value, graph) in editor.g_set  # type: ignore[operator]
 
     # Test creating without graph context
     editor.dataset_is_quadstore = False
@@ -122,12 +121,12 @@ def test_update_method_with_and_without_graph(editor: Editor) -> None:
 
     # Add initial triple
     editor.create(subject, predicate, old_value, graph)
-    assert (subject, predicate, old_value, graph) in editor.g_set
+    assert (subject, predicate, old_value, graph) in editor.g_set  # type: ignore[operator]
 
     # Test update with graph context
     editor.update(subject, predicate, old_value, new_value, graph)
-    assert (subject, predicate, old_value, graph) not in editor.g_set
-    assert (subject, predicate, new_value, graph) in editor.g_set
+    assert (subject, predicate, old_value, graph) not in editor.g_set  # type: ignore[operator]
+    assert (subject, predicate, new_value, graph) in editor.g_set  # type: ignore[operator]
 
     # Test update without graph context
     editor.dataset_is_quadstore = False
@@ -146,11 +145,11 @@ def test_update_method_with_uri_values(editor: Editor) -> None:
     uri_new = URIRef("http://example.org/new")
 
     editor.create(subject, predicate, uri_old, graph)
-    assert (subject, predicate, uri_old, graph) in editor.g_set
+    assert (subject, predicate, uri_old, graph) in editor.g_set  # type: ignore[operator]
 
     editor.update(subject, predicate, uri_old, uri_new, graph)
-    assert (subject, predicate, uri_old, graph) not in editor.g_set
-    assert (subject, predicate, uri_new, graph) in editor.g_set
+    assert (subject, predicate, uri_old, graph) not in editor.g_set  # type: ignore[operator]
+    assert (subject, predicate, uri_new, graph) in editor.g_set  # type: ignore[operator]
 
 
 def test_delete_method(editor: Editor) -> None:
@@ -166,13 +165,13 @@ def test_delete_method(editor: Editor) -> None:
 
     # Test deleting a specific triple
     editor.delete(subject, predicate, value, graph)
-    assert (subject, predicate, value, graph) not in editor.g_set
+    assert (subject, predicate, value, graph) not in editor.g_set  # type: ignore[operator]
     assert (
         subject,
         RDF.type,
         URIRef("http://example.org/TestType"),
         graph,
-    ) in editor.g_set
+    ) in editor.g_set  # type: ignore[operator]
 
     # Test deleting all triples with a specific predicate
     editor.create(subject, predicate, Literal("value1"), graph)
@@ -200,7 +199,7 @@ def test_create_with_provenance(real_editor: Editor) -> None:
         real_editor.save()
 
         # Verify the triple was actually added
-        assert (subject, predicate, value, graph) in real_editor.g_set
+        assert (subject, predicate, value, graph) in real_editor.g_set  # type: ignore[operator]
 
         # Setup SPARQL wrapper for provenance database
         provenance_sparql = SPARQLWrapper(real_editor.provenance_endpoint)
@@ -223,7 +222,7 @@ def test_create_with_provenance(real_editor: Editor) -> None:
         results = provenance_sparql.queryAndConvert()
 
         # Convert results to a more manageable format
-        bindings = results["results"]["bindings"]
+        bindings = get_sparql_bindings(results)
 
         assert len(bindings) > 0, "No provenance found"
         assert any(
@@ -247,7 +246,7 @@ def test_create_with_provenance(real_editor: Editor) -> None:
             provenance_sparql.addParameter("subject", str(subject))
             provenance_sparql.addParameter("primary_source", str(real_editor.source))
             result = provenance_sparql.queryAndConvert()
-            assert result["boolean"], "Source not found in provenance"
+            assert cast(dict, result)["boolean"], "Source not found in provenance"
 
     finally:
         # Cleanup: delete the test data
@@ -298,7 +297,7 @@ def test_update_with_provenance(real_editor: Editor) -> None:
         results = provenance_sparql.queryAndConvert()
 
         # Convert results to a more manageable format
-        bindings = results["results"]["bindings"]
+        bindings = get_sparql_bindings(results)
 
         assert len(bindings) > 0, "No provenance found"
         assert any(
@@ -322,7 +321,7 @@ def test_update_with_provenance(real_editor: Editor) -> None:
             provenance_sparql.addParameter("subject", str(subject))
             provenance_sparql.addParameter("primary_source", str(real_editor.source))
             result = provenance_sparql.queryAndConvert()
-            assert result["boolean"], "Source not found in provenance"
+            assert cast(dict, result)["boolean"], "Source not found in provenance"
 
     finally:
         # Cleanup: delete the test data
@@ -380,7 +379,7 @@ def test_delete_with_provenance(real_editor: Editor) -> None:
         results = provenance_sparql.queryAndConvert()
 
         # Convert results to a more manageable format
-        bindings = results["results"]["bindings"]
+        bindings = get_sparql_bindings(results)
 
         assert len(bindings) > 0, "No provenance found"
         assert any(
@@ -421,16 +420,16 @@ def test_batch_operations(editor: Editor) -> None:
     editor.create(subject, predicate2, value2, graph)
 
     # Verify all triples were created
-    assert (subject, predicate1, value1, graph) in editor.g_set
-    assert (subject, predicate2, value2, graph) in editor.g_set
+    assert (subject, predicate1, value1, graph) in editor.g_set  # type: ignore[operator]
+    assert (subject, predicate2, value2, graph) in editor.g_set  # type: ignore[operator]
 
     # Update one triple and delete another
     editor.update(subject, predicate1, value1, Literal("new value"), graph)
     editor.delete(subject, predicate2, value2, graph)
 
     # Verify final state
-    assert (subject, predicate1, Literal("new value"), graph) in editor.g_set
-    assert (subject, predicate2, value2, graph) not in editor.g_set
+    assert (subject, predicate1, Literal("new value"), graph) in editor.g_set  # type: ignore[operator]
+    assert (subject, predicate2, value2, graph) not in editor.g_set  # type: ignore[operator]
 
     # Delete the entire entity
     editor.delete(subject)
@@ -464,10 +463,10 @@ def test_error_handling(editor: Editor) -> None:
 
     # Test creating invalid triple (e.g., with None values)
     with pytest.raises(Exception):
-        editor.create(None, predicate, value)
+        editor.create(None, predicate, value)  # type: ignore[arg-type]
 
     with pytest.raises(Exception):
-        editor.create(subject, None, value)
+        editor.create(subject, None, value)  # type: ignore[arg-type]
 
 
 def test_complex_entity_operations(editor: Editor) -> None:
@@ -488,9 +487,9 @@ def test_complex_entity_operations(editor: Editor) -> None:
     editor.create(subject, date_pred, date_value, graph)
 
     # Verify all properties were added
-    assert (subject, type_pred, type_value, graph) in editor.g_set
-    assert (subject, label_pred, label_value, graph) in editor.g_set
-    assert (subject, date_pred, date_value, graph) in editor.g_set
+    assert (subject, type_pred, type_value, graph) in editor.g_set  # type: ignore[operator]
+    assert (subject, label_pred, label_value, graph) in editor.g_set  # type: ignore[operator]
+    assert (subject, date_pred, date_value, graph) in editor.g_set  # type: ignore[operator]
 
     # Update some properties
     new_label = Literal("Updated Test Entity")
@@ -500,9 +499,9 @@ def test_complex_entity_operations(editor: Editor) -> None:
     editor.delete(subject, date_pred, date_value, graph)
 
     # Verify final state
-    assert (subject, type_pred, type_value, graph) in editor.g_set
-    assert (subject, label_pred, new_label, graph) in editor.g_set
-    assert (subject, date_pred, date_value, graph) not in editor.g_set
+    assert (subject, type_pred, type_value, graph) in editor.g_set  # type: ignore[operator]
+    assert (subject, label_pred, new_label, graph) in editor.g_set  # type: ignore[operator]
+    assert (subject, date_pred, date_value, graph) not in editor.g_set  # type: ignore[operator]
 
 
 def test_nested_entity_handling(editor: Editor) -> None:
@@ -527,16 +526,16 @@ def test_nested_entity_handling(editor: Editor) -> None:
     editor.create(main_entity, has_nested, nested_entity, graph)
 
     # Verify the structure
-    assert (main_entity, type_pred, main_type, graph) in editor.g_set
-    assert (nested_entity, type_pred, nested_type, graph) in editor.g_set
-    assert (main_entity, has_nested, nested_entity, graph) in editor.g_set
+    assert (main_entity, type_pred, main_type, graph) in editor.g_set  # type: ignore[operator]
+    assert (nested_entity, type_pred, nested_type, graph) in editor.g_set  # type: ignore[operator]
+    assert (main_entity, has_nested, nested_entity, graph) in editor.g_set  # type: ignore[operator]
 
     # Delete nested entity and verify cascading effects
     editor.delete(nested_entity)
 
     # Main entity should still exist but relationship should be gone
-    assert (main_entity, type_pred, main_type, graph) in editor.g_set
-    assert (main_entity, has_nested, nested_entity, graph) not in editor.g_set
+    assert (main_entity, type_pred, main_type, graph) in editor.g_set  # type: ignore[operator]
+    assert (main_entity, has_nested, nested_entity, graph) not in editor.g_set  # type: ignore[operator]
     assert len(list(editor.g_set.triples((nested_entity, None, None)))) == 0
 
 
@@ -627,26 +626,12 @@ def test_update_triple_removal_and_addition_non_quadstore(editor: Editor) -> Non
     # Verify the new triple was added
     assert (subject, predicate, new_value) in editor.g_set
     
-    # Test with string predicate that needs to be normalized to URIRef
-    string_predicate = "http://example.org/string-predicate"
-    editor.create(subject, string_predicate, old_value)
-    
-    # Verify the triple was created with normalized predicate
-    assert (subject, URIRef(string_predicate), old_value) in editor.g_set
-    
-    # Update using string predicate
-    editor.update(subject, string_predicate, old_value, new_value)
-    
-    # Verify the old triple was removed and new one added with normalized predicate
-    assert (subject, URIRef(string_predicate), old_value) not in editor.g_set
-    assert (subject, URIRef(string_predicate), new_value) in editor.g_set
-    
     # Verify the responsible agent and primary source were set correctly
     # Get all triples for the subject
     triples = list(editor.g_set.triples((subject, None, None)))
-    
-    # Verify there are two triples (one for each predicate)
-    assert len(triples) == 2
+
+    # Verify there is one triple
+    assert len(triples) == 1
     
     # Test with URI values
     uri_old = URIRef("http://example.org/old")

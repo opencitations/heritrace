@@ -18,6 +18,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 from bs4 import BeautifulSoup
+from rdflib import Dataset
 from default_components.meta_counter_handler import MetaCounterHandler
 from default_components.meta_uri_generator import MetaURIGenerator
 from flask import Flask
@@ -277,7 +278,8 @@ def test_restore_version(
         ]
 
         # Get the initial entity graph to verify later
-        initial_graph = fetch_data_graph_for_subject(str(test_entity))
+        initial_graph = fetch_data_graph_for_subject(test_entity)
+        assert isinstance(initial_graph, Dataset)
 
         # Store the initial state (empty or with properties)
         initial_properties = {}
@@ -298,10 +300,11 @@ def test_restore_version(
             dataset_is_quadstore=True,
         )
 
-        entity_graph = fetch_data_graph_for_subject(str(test_entity))
+        entity_graph = fetch_data_graph_for_subject(test_entity)
+        assert isinstance(entity_graph, Dataset)
 
         for quad in entity_graph.quads():
-            editor.g_set.add(quad)
+            editor.g_set.add(quad)  # type: ignore[arg-type]
 
         editor.preexisting_finished()
 
@@ -323,7 +326,8 @@ def test_restore_version(
 
         editor.save()
 
-        modified_graph = fetch_data_graph_for_subject(str(test_entity))
+        modified_graph = fetch_data_graph_for_subject(test_entity)
+        assert isinstance(modified_graph, Dataset)
 
         modified_properties = {}
         for s, p, o, g in modified_graph.quads():
@@ -333,10 +337,10 @@ def test_restore_version(
 
         assert len(modified_graph) > 0, "Modified graph should not be empty"
         assert URIRef("http://purl.org/dc/terms/title") in [
-            p for s, p, o, g in modified_graph.quads()
+            p for s, p, o, g in modified_graph.quads()  # type: ignore[misc]
         ], "Title should be present in modified graph"
         assert URIRef("http://purl.org/dc/terms/description") in [
-            p for s, p, o, g in modified_graph.quads()
+            p for s, p, o, g in modified_graph.quads()  # type: ignore[misc]
         ], "Description should be present in modified graph"
 
     restore_response = logged_in_client.post(
@@ -346,7 +350,8 @@ def test_restore_version(
     assert f"/about/{test_entity}" in restore_response.location
 
     with app.app_context():
-        restored_graph = fetch_data_graph_for_subject(str(test_entity))
+        restored_graph = fetch_data_graph_for_subject(test_entity)
+        assert isinstance(restored_graph, Dataset)
         restored_properties = {}
         for s, p, o, g in restored_graph.quads():
             if p not in restored_properties:
@@ -356,7 +361,7 @@ def test_restore_version(
         title_found = False
         description_found = False
 
-        for s, p, o, g in restored_graph.quads():
+        for s, p, o, g in restored_graph.quads():  # type: ignore[misc]
             if p == URIRef("http://purl.org/dc/terms/title") and "Modified Test Article" in str(o):
                 title_found = True
             if p == URIRef("http://purl.org/dc/terms/description") and "This is a test description" in str(o):
@@ -605,9 +610,10 @@ def test_entity_modification_workflow(app: Flask) -> None:
         )
         
         # Load the current state of the entity
-        current_graph = fetch_data_graph_for_subject(str(entity_uri))
+        current_graph = fetch_data_graph_for_subject(entity_uri)
+        assert isinstance(current_graph, Dataset)
         for quad in current_graph.quads():
-            editor.g_set.add(quad)
+            editor.g_set.add(quad)  # type: ignore[arg-type]
             
         # Mark these triples as preexisting to track changes properly
         editor.preexisting_finished()
@@ -639,7 +645,8 @@ def test_entity_modification_workflow(app: Flask) -> None:
         time.sleep(3)
 
         # 4. Verifica che l'entità sia stata aggiornata correttamente
-        updated_graph = fetch_data_graph_for_subject(str(entity_uri))
+        updated_graph = fetch_data_graph_for_subject(entity_uri)
+        assert isinstance(updated_graph, Dataset)
 
         # Verifica che il titolo sia stato aggiunto
         title_found = False
@@ -651,7 +658,7 @@ def test_entity_modification_workflow(app: Flask) -> None:
 
         # Verifica che la descrizione sia stata aggiunta
         description_found = False
-        for s, p, o, g in updated_graph.quads():
+        for s, p, o, g in updated_graph.quads():  # type: ignore[misc]
             if p == description_predicate and str(o) == description_value:
                 description_found = True
                 break
@@ -987,43 +994,36 @@ def test_compute_graph_differences():
     """
     # Create two graphs with some differences
     graph1 = Dataset()
-    graph1.add(
-        (
+    graph1.add((  # type: ignore[arg-type]
             URIRef("http://example.org/s1"),
             URIRef("http://example.org/p1"),
             Literal("o1"),
             URIRef("http://example.org/graph1"),
-        )
-    )
-    graph1.add(
-        (
+        ))
+    graph1.add((  # type: ignore[arg-type]
             URIRef("http://example.org/s1"),
             URIRef("http://example.org/p2"),
             Literal("o2"),
             URIRef("http://example.org/graph1"),
-        )
-    )
+        ))
 
     graph2 = Dataset()
-    graph2.add(
-        (
+    graph2.add((  # type: ignore[arg-type]
             URIRef("http://example.org/s1"),
             URIRef("http://example.org/p1"),
             Literal("o1"),
             URIRef("http://example.org/graph1"),
-        )
-    )
-    graph2.add(
-        (
+        ))
+    graph2.add((  # type: ignore[arg-type]
             URIRef("http://example.org/s1"),
             URIRef("http://example.org/p3"),
             Literal("o3"),
             URIRef("http://example.org/graph1"),
-        )
-    )
+        ))
 
     # Compute differences
-    to_delete, to_add = compute_graph_differences(graph1, graph2)
+    with patch("heritrace.routes.entity.get_dataset_is_quadstore", return_value=True):
+        to_delete, to_add = compute_graph_differences(graph1, graph2)
 
     # Check results
     assert len(to_delete) == 1

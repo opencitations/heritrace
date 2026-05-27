@@ -614,6 +614,7 @@ class TestTransformVirtualPropertyDeletion:
         }
 
         result = transform_virtual_property_deletion(change)
+        assert result is not None
 
         assert result['action'] == 'delete'
         assert result['subject'] == 'http://example.org/intermediate123'

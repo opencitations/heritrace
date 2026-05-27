@@ -286,6 +286,7 @@ def test_acquire_lock_success(
     # Verify the lock was created
     lock_data = resource_lock_manager.redis.get(lock_key)
     assert lock_data is not None
+    assert isinstance(lock_data, bytes)
     lock_info = json.loads(lock_data)
     assert lock_info["user_id"] == "user123"
     assert lock_info["user_name"] == "Test User"

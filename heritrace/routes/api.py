@@ -5,7 +5,7 @@
 # heritrace/routes/api.py
 
 import traceback
-from typing import Dict, Optional
+from typing import NotRequired, TypedDict, cast
 
 import validators
 from flask import (Blueprint, current_app, g, jsonify, render_template_string,
@@ -378,9 +378,9 @@ def check_orphans():
             for change in changes:
                 if change["action"] == "delete":
                     found_orphans, found_intermediates = find_orphaned_entities(
-                        change["subject"],
+                        URIRef(change["subject"]),
                         entity_type,
-                        change.get("predicate"),
+                        URIRef(change["predicate"]) if change.get("predicate") else None,
                         change.get("object"),
                     )
                     # Only collect orphans if we need to handle them
@@ -506,42 +506,43 @@ def apply_changes():
             return jsonify({"error": "No request data provided"}), 400
 
         first_change = changes[0] if changes else {}
-        subject = first_change.get("subject")
+        subject = URIRef(first_change.get("subject", ""))
         affected_entities = first_change.get("affected_entities", [])
         delete_affected = first_change.get("delete_affected", False)
         primary_source = first_change.get("primary_source")
         save_default_source = first_change.get("save_default_source", False)
-        
+
         if primary_source and not validators.url(primary_source):
             return jsonify({"error": "Invalid primary source URL"}), 400
-        
+
         if save_default_source and primary_source and validators.url(primary_source):
             save_user_default_primary_source(current_user.orcid, primary_source)
-        
+
         changes = transform_changes_with_virtual_properties(changes)
 
-        deleted_entities = set()
+        deleted_entities: set[URIRef] = set()
+        resp_agent = get_responsible_agent_uri(current_user.orcid)
         editor = Editor(
             get_dataset_endpoint(),
             get_provenance_endpoint(),
             current_app.config["COUNTER_HANDLER"],
-            URIRef(get_responsible_agent_uri(current_user.orcid)),
+            resp_agent,
             current_app.config["PRIMARY_SOURCE"],
             current_app.config["DATASET_GENERATION_TIME"],
             dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
         )
-        
+
         if primary_source and validators.url(primary_source):
-            editor.set_primary_source(primary_source)
-        
+            editor.set_primary_source(URIRef(primary_source))
+
         has_entity_deletion = any(
-            change["action"] == "delete" and not change.get("predicate") 
+            change["action"] == "delete" and not change.get("predicate")
             for change in changes
         )
-        
+
         editor = import_entity_graph(
-            editor, 
-            subject, 
+            editor,
+            subject,
             include_referencing_entities=has_entity_deletion
         )
         
@@ -553,11 +554,10 @@ def apply_changes():
         
         editor.preexisting_finished()
 
-        graph_uri = None
+        graph_uri: URIRef | None = None
         if editor.dataset_is_quadstore:
-            for quad in editor.g_set.quads((URIRef(subject), None, None, None)):
-                graph_context = quad[3]
-                graph_uri = get_graph_uri_from_context(graph_context)
+            for quad in editor.g_set.quads((subject, None, None, None)):  # type: ignore[union-attr]
+                graph_uri = get_graph_uri_from_context(quad[3])
                 break
 
         temp_id_to_uri = {}
@@ -565,7 +565,8 @@ def apply_changes():
             if change["action"] == "create":
                 data = change.get("data")
                 if data:
-                    change_subject = change.get("subject")
+                    change_subject_str = change.get("subject")
+                    change_subject = URIRef(change_subject_str) if change_subject_str else None
                     created_subject = create_logic(
                         editor,
                         data,
@@ -574,7 +575,6 @@ def apply_changes():
                         temp_id_to_uri=temp_id_to_uri,
                         parent_entity_type=None,
                     )
-                    # Only update the main subject if this is the main entity
                     if change_subject is not None:
                         subject = created_subject
 
@@ -602,10 +602,10 @@ def apply_changes():
             
             if should_delete_orphans and orphans:
                 for orphan in orphans:
-                    orphan_uri = orphan["uri"]
+                    orphan_uri = URIRef(orphan["uri"])
                     if orphan_uri in deleted_entities:
                         continue
-                    
+
                     delete_logic(editor, orphan_uri, graph_uri=graph_uri)
                     deleted_entities.add(orphan_uri)
             
@@ -617,42 +617,37 @@ def apply_changes():
             
             if should_delete_proxies and proxies:
                 for proxy in proxies:
-                    proxy_uri = proxy["uri"]
+                    proxy_uri = URIRef(proxy["uri"])
                     if proxy_uri in deleted_entities:
                         continue
-                    
+
                     delete_logic(editor, proxy_uri, graph_uri=graph_uri)
                     deleted_entities.add(proxy_uri)
         
         # Fase 2: Processa tutte le altre modifiche
         for change in changes:
             if change["action"] == "delete":
-                subject_uri = change["subject"]
-                predicate = change.get("predicate")
+                change_subject = URIRef(change["subject"])
+                change_predicate = URIRef(change["predicate"]) if change.get("predicate") else None
                 object_value = change.get("object")
-                
-                # Se stiamo eliminando un'intera entità
-                if not predicate:
-                    if subject_uri in deleted_entities:
-                        continue
-                    
-                    delete_logic(editor, subject_uri, graph_uri=graph_uri, entity_type=change.get("entity_type"), entity_shape=change.get("entity_shape"))
-                    deleted_entities.add(subject_uri)
-                # Se stiamo eliminando una tripla specifica
-                elif object_value:
-                    # Controlla se l'oggetto è un'entità che è già stata eliminata
-                    if object_value in deleted_entities:
-                        continue
-                    
-                    delete_logic(editor, subject_uri, predicate, object_value, graph_uri, change.get("entity_type"), change.get("entity_shape"))
 
-                # La gestione degli orfani e dei proxy è stata spostata all'inizio del ciclo
+                if not change_predicate:
+                    if change_subject in deleted_entities:
+                        continue
+
+                    delete_logic(editor, change_subject, graph_uri=graph_uri, entity_type=change.get("entity_type"), entity_shape=change.get("entity_shape"))
+                    deleted_entities.add(change_subject)
+                elif object_value:
+                    if URIRef(object_value) in deleted_entities:
+                        continue
+
+                    delete_logic(editor, change_subject, change_predicate, object_value, graph_uri, change.get("entity_type"), change.get("entity_shape"))
 
             elif change["action"] == "update":
                 update_logic(
                     editor,
-                    change["subject"],
-                    change["predicate"],
+                    URIRef(change["subject"]),
+                    URIRef(change["predicate"]),
                     change["object"],
                     change["newObject"],
                     graph_uri,
@@ -662,10 +657,10 @@ def apply_changes():
             elif change["action"] == "order":
                 order_logic(
                     editor,
-                    change["subject"],
-                    change["predicate"],
+                    URIRef(change["subject"]),
+                    URIRef(change["predicate"]),
                     change["object"],
-                    change["newObject"],
+                    URIRef(change["newObject"]),
                     graph_uri,
                     temp_id_to_uri,
                 )
@@ -728,19 +723,10 @@ def apply_changes():
         )
 
 
-def get_graph_uri_from_context(graph_context):
-    """Extract the graph URI from a graph context.
-    
-    Args:
-        graph_context: Either a Graph object or a direct URI reference
-        
-    Returns:
-        The graph URI
-    """
+def get_graph_uri_from_context(graph_context) -> URIRef:
     if isinstance(graph_context, Graph):
-        return graph_context.identifier
-    else:
-        return graph_context
+        return cast(URIRef, graph_context.identifier)
+    return cast(URIRef, graph_context)
 
 
 def determine_datatype(value, datatype_uris):
@@ -754,63 +740,33 @@ def determine_datatype(value, datatype_uris):
     return XSD.string
 
 
+class CreateEntityData(TypedDict):
+    entity_type: NotRequired[str]
+    # TODO: tighten this type after normalizing the frontend payload to a consistent shape
+    properties: NotRequired[dict[str, list | dict | str]]
+    tempId: NotRequired[str]
+
+
 def create_logic(
     editor: Editor,
-    data: Dict[str, dict],
-    subject=None,
-    graph_uri=None,
-    parent_subject=None,
-    parent_predicate=None,
-    temp_id_to_uri=None,
-    parent_entity_type=None,
+    data: CreateEntityData,
+    subject: URIRef | None = None,
+    graph_uri: URIRef | None = None,
+    parent_subject: URIRef | None = None,
+    parent_predicate: URIRef | None = None,
+    temp_id_to_uri: dict | None = None,
+    parent_entity_type: str | None = None,
 ):
-    """
-    Recursively creates an entity and its properties based on a dictionary.
-
-    This function handles the creation of a main entity and any nested entities
-    defined within its properties. It validates each triple before creation and
-    can link the new entity to a parent entity.
-
-    Args:
-        editor (Editor): The editor instance for graph operations.
-        data (Dict[str, dict]): A dictionary describing the entity to create.
-        subject (URIRef, optional): The subject URI of the entity. If None, a new URI is generated.
-        graph_uri (str, optional): The named graph URI for the operations.
-        parent_subject (URIRef, optional): The subject URI of the parent entity.
-        parent_predicate (URIRef, optional): The predicate URI linking the parent to this entity.
-        temp_id_to_uri (Dict, optional): A dictionary mapping temporary frontend IDs to backend URIs.
-        parent_entity_type (str, optional): The RDF type of the parent entity, for validation.
-
-    Example of `data` structure:
-    {
-        "entity_type": "http://purl.org/spar/fabio/JournalArticle",
-        "properties": {
-            "http://purl.org/spar/pro/isDocumentContextFor": [
-                {
-                    "entity_type": "http://purl.org/spar/pro/RoleInTime",
-                    "properties": {
-                        "http://purl.org/spar/pro/isHeldBy": [
-                            "https://w3id.org/oc/meta/ra/09110374"
-                        ],
-                        "http://purl.org/spar/pro/withRole": "http://purl.org/spar/pro/author"
-                    },
-                    "tempId": "temp-1"
-                }
-            ]
-        }
-    }
-    """
-    entity_type = data.get("entity_type")
-    properties = data.get("properties", {})
-    temp_id = data.get("tempId")
+    entity_type: str | None = data.get("entity_type")
+    properties: dict = data.get("properties", {})
+    temp_id: str | None = data.get("tempId")
 
     if subject is None:
-        subject = generate_unique_uri(entity_type, data)
+        subject = generate_unique_uri(entity_type, cast(dict, data))
 
     if temp_id and temp_id_to_uri is not None:
         temp_id_to_uri[temp_id] = str(subject)
 
-    # Create the entity type using validate_new_triple
     if parent_subject is not None:
         type_value, _, error_message = validate_new_triple(
             subject, RDF.type, entity_type, "create", entity_types=entity_type
@@ -819,12 +775,9 @@ def create_logic(
             raise ValueError(error_message)
 
         if type_value is not None:
-            editor.create(URIRef(subject), RDF.type, type_value, graph_uri)
+            editor.create(subject, RDF.type, type_value, graph_uri)
 
-    # Create the relationship to the parent using validate_new_triple
     if parent_subject and parent_predicate:
-        # When creating a relationship, we need to validate that the parent can have this relationship
-        # with an entity of our type. Pass our entity_type as the object_entity_type for validation
         parent_value, _, error_message = validate_new_triple(
             parent_subject,
             parent_predicate,
@@ -836,50 +789,32 @@ def create_logic(
             raise ValueError(error_message)
 
         if parent_value is not None:
-            editor.create(
-                URIRef(parent_subject),
-                URIRef(parent_predicate),
-                parent_value,
-                graph_uri,
-            )
+            editor.create(parent_subject, parent_predicate, parent_value, graph_uri)
 
-    for predicate, values in properties.items():
+    for predicate_str, values in properties.items():
+        predicate = URIRef(predicate_str)
         if not isinstance(values, list):
             values = [values]
         for value in values:
-            # CASE 1: Nested Entity.
-            # If the value is a dictionary containing 'entity_type', it's a nested entity
-            # that needs to be created recursively.
             if isinstance(value, dict) and "entity_type" in value:
-                # A new URI is generated for the nested entity.
                 nested_subject = generate_unique_uri(value["entity_type"])
-                # The function calls itself to create the nested entity. The current entity
-                # becomes the parent for the nested one.
                 create_logic(
                     editor,
-                    value,
+                    cast(CreateEntityData, value),
                     nested_subject,
                     graph_uri,
-                    subject,  # Current entity is the parent subject
-                    predicate,  # The predicate linking parent to child
+                    subject,
+                    predicate,
                     temp_id_to_uri,
                     parent_entity_type=entity_type,
                 )
-            # CASE 2: Existing Entity Reference.
             elif isinstance(value, dict) and value.get("is_existing_entity", False):
                 entity_uri = value.get("entity_uri")
                 if entity_uri:
-                    object_value = URIRef(entity_uri)
-                    editor.create(
-                        URIRef(subject), URIRef(predicate), object_value, graph_uri
-                    )
+                    editor.create(subject, predicate, URIRef(entity_uri), graph_uri)
                 else:
                     raise ValueError("Missing entity_uri in existing entity reference")
-            # CASE 3: Custom Property.
-            # If the value is a dictionary marked as 'is_custom_property', it's a property
-            # that is not defined in the SHACL shape and should be added without validation.
             elif isinstance(value, dict) and value.get("is_custom_property", False):
-                # The property is created directly based on its type ('uri' or 'literal').
                 if value["type"] == "uri":
                     object_value = URIRef(value["value"])
                 elif value["type"] == "literal":
@@ -891,17 +826,9 @@ def create_logic(
                     object_value = Literal(value["value"], datatype=datatype)
                 else:
                     raise ValueError(f"Unknown custom property type: {value['type']}")
-                
-                editor.create(
-                    URIRef(subject), URIRef(predicate), object_value, graph_uri
-                )
-            # CASE 4: Standard Property.
-            # This is the default case for all other properties. The value can be a
-            # simple literal (e.g., a string, number) or a URI string.
+
+                editor.create(subject, predicate, object_value, graph_uri)
             else:
-                # The value is validated against the SHACL shape for the current entity type.
-                # `validate_new_triple` checks if the triple is valid and returns the
-                # correctly typed RDF object (e.g., Literal, URIRef).
                 object_value, _, error_message = validate_new_triple(
                     subject, predicate, value, "create", entity_types=entity_type
                 )
@@ -909,20 +836,18 @@ def create_logic(
                     raise ValueError(error_message)
 
                 if object_value is not None:
-                    editor.create(
-                        URIRef(subject), URIRef(predicate), object_value, graph_uri
-                    )
+                    editor.create(subject, predicate, object_value, graph_uri)
 
     return subject
 
 
 def update_logic(
     editor: Editor,
-    subject,
-    predicate,
+    subject: URIRef,
+    predicate: URIRef,
     old_value,
     new_value,
-    graph_uri=None,
+    graph_uri: URIRef | None = None,
     entity_type=None,
     entity_shape=None,
 ):
@@ -932,28 +857,18 @@ def update_logic(
     if error_message:
         raise ValueError(error_message)
 
-    editor.update(URIRef(subject), URIRef(predicate), old_value, new_value, graph_uri)
+    editor.update(subject, predicate, cast(Literal | URIRef, old_value), cast(Literal | URIRef, new_value), graph_uri)
 
 
 def rebuild_entity_order(
     editor: Editor,
     ordered_by_uri: URIRef,
     entities: list,
-    graph_uri=None
+    graph_uri: URIRef | None = None,
 ):
-    """
-    Rebuild the ordering chain for a list of entities.
-    
-    Args:
-        editor: The editor instance
-        ordered_by_uri: The property used for ordering
-        entities: List of entities to be ordered
-        graph_uri: Optional graph URI
-    """
-    # First, remove all existing ordering relationships
     for entity in entities:
         for s, p, o in list(get_triples_from_graph(editor.g_set, (entity, ordered_by_uri, None))):
-            editor.delete(entity, ordered_by_uri, o, graph_uri)
+            editor.delete(entity, ordered_by_uri, cast(Literal | URIRef, o), graph_uri)
     
     # Then rebuild the chain with the entities
     for i in range(len(entities) - 1):
@@ -966,53 +881,40 @@ def rebuild_entity_order(
 
 def delete_logic(
     editor: Editor,
-    subject,
-    predicate=None,
+    subject: URIRef,
+    predicate: URIRef | None = None,
     object_value=None,
-    graph_uri=None,
+    graph_uri: URIRef | None = None,
     entity_type=None,
     entity_shape=None,
 ):
-    # Ensure we have the correct data types for all values
-    subject_uri = URIRef(subject)
-    predicate_uri = URIRef(predicate) if predicate else None
-
-    # Validate and get correctly typed object value if we have a predicate
     if predicate and object_value:
-        # Use validate_new_triple to validate the deletion and get the correctly typed object
         _, object_value, error_message = validate_new_triple(
             subject, predicate, None, "delete", object_value, entity_types=entity_type, entity_shape=entity_shape
         )
         if error_message:
             raise ValueError(error_message)
 
-    editor.delete(subject_uri, predicate_uri, object_value, graph_uri)
+    editor.delete(subject, predicate, cast(Literal | URIRef | None, object_value), graph_uri)
 
 
 def order_logic(
     editor: Editor,
-    subject,
-    predicate,
+    subject: URIRef,
+    predicate: URIRef,
     new_order,
-    ordered_by,
-    graph_uri=None,
-    temp_id_to_uri: Optional[Dict] = None,
+    ordered_by: URIRef,
+    graph_uri: URIRef | None = None,
+    temp_id_to_uri: dict | None = None,
 ):
-    subject_uri = URIRef(subject)
-    predicate_uri = URIRef(predicate)
-    ordered_by_uri = URIRef(ordered_by)
-    # Ottieni tutte le entità ordinate attuali direttamente dall'editor
     current_entities = [
-        o for _, _, o in get_triples_from_graph(editor.g_set, (subject_uri, predicate_uri, None))
+        o for _, _, o in get_triples_from_graph(editor.g_set, (subject, predicate, None))
     ]
 
-    # Dizionario per mappare le vecchie entità alle nuove
     old_to_new_mapping = {}
 
-    # Per ogni entità attuale
     for old_entity in current_entities:
-        if str(old_entity) in new_order:  # Processa solo le entità preesistenti
-            # Memorizza tutte le proprietà dell'entità attuale
+        if str(old_entity) in new_order:
             entity_properties = list(get_triples_from_graph(editor.g_set, (old_entity, None, None)))
 
             entity_type = next(
@@ -1024,33 +926,27 @@ def order_logic(
                     f"Impossibile determinare il tipo dell'entità per {old_entity}"
                 )
 
-            # Crea una nuova entità
-            new_entity_uri = generate_unique_uri(entity_type)
+            new_entity_uri = generate_unique_uri(str(entity_type))
             old_to_new_mapping[old_entity] = new_entity_uri
 
-            # Cancella la vecchia entità
-            editor.delete(subject_uri, predicate_uri, old_entity, graph_uri)
-            editor.delete(old_entity, graph=graph_uri)
+            editor.delete(subject, predicate, cast(Literal | URIRef, old_entity), graph_uri)
+            editor.delete(cast(URIRef, old_entity), graph=graph_uri)
 
-            # Ricrea il collegamento tra il soggetto principale e la nuova entità
-            editor.create(subject_uri, predicate_uri, new_entity_uri, graph_uri)
+            editor.create(subject, predicate, new_entity_uri, graph_uri)
 
-            # Ripristina tutte le altre proprietà per la nuova entità
             for _, p, o in entity_properties:
-                if p != predicate_uri and p != ordered_by_uri:
-                    editor.create(new_entity_uri, p, o, graph_uri) 
+                if p != predicate and p != ordered_by:
+                    editor.create(new_entity_uri, cast(URIRef, p), cast(Literal | URIRef, o), graph_uri)
 
-    # Prepara la lista delle entità nel nuovo ordine
     ordered_entities = []
     for entity in new_order:
         new_entity_uri = old_to_new_mapping.get(URIRef(entity))
         if not new_entity_uri:
-            new_entity_uri = URIRef(temp_id_to_uri.get(entity, entity))
+            new_entity_uri = URIRef(temp_id_to_uri.get(entity, entity) if temp_id_to_uri else entity)
         ordered_entities.append(new_entity_uri)
-    
-    # Ricostruisci l'ordine
+
     if ordered_entities:
-        rebuild_entity_order(editor, ordered_by_uri, ordered_entities, graph_uri)
+        rebuild_entity_order(editor, ordered_by, ordered_entities, graph_uri)
 
     return editor
 

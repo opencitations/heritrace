@@ -5,9 +5,8 @@
 import json
 import os
 from collections import OrderedDict, defaultdict
-from typing import List
-
 from flask import Flask
+from heritrace.sparql import select_results
 from heritrace.utils.filters import Filter
 from rdflib import Graph, URIRef
 from rdflib.plugins.sparql import prepareQuery
@@ -198,7 +197,7 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
 
 
 def process_nested_shapes(
-    shacl: Graph, display_rules: List[dict], shape_uri: str, app: Flask, depth=0, processed_shapes=None
+    shacl: Graph, display_rules: list[dict] | None, shape_uri: str, app: Flask, depth=0, processed_shapes=None
 ):
     """
     Processa ricorsivamente le shape annidate.
@@ -661,7 +660,7 @@ def get_shape_target_class(shacl, shape_uri):
         initNs={"sh": "http://www.w3.org/ns/shacl#"},
     )
     results = execute_shacl_query(shacl, query, {"shape": URIRef(shape_uri)})
-    for row in results:
+    for row in select_results(results):
         return str(row.targetClass)
     return None
 
@@ -704,7 +703,7 @@ def get_object_class(shacl, shape_uri, predicate_uri):
     )
 
     # Prendiamo il primo risultato valido
-    for row in results:
+    for row in select_results(results):
         if row.targetClass:
             return str(row.targetClass)
     return None

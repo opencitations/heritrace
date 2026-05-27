@@ -91,6 +91,7 @@ def test_get_orcid_data_success(app):
     )
     with app.app_context():
         result = get_orcid_data(orcid_id)
+        assert result is not None
         assert result["name"] == "John Doe"
         assert result["other_names"] == ["Johnny"]
         assert result["biography"] == "Researcher"

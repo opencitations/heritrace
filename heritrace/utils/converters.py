@@ -2,19 +2,18 @@
 #
 # SPDX-License-Identifier: ISC
 
-from datetime import timezone
+from datetime import datetime, timezone
 
 import dateutil.parser
 
 
-def convert_to_datetime(date_str, stringify=False):
+def convert_to_datetime(date_str: str) -> datetime | None:
     try:
         dt = dateutil.parser.parse(date_str)
-        # Convert to UTC timezone regardless of input timezone
         if dt.tzinfo is not None:
             dt = dt.astimezone(timezone.utc)
         else:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt if not stringify else dt.isoformat()
+        return dt
     except (ValueError, TypeError):
         return None

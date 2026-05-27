@@ -9,7 +9,6 @@ from typing import Generator
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient, FlaskCliRunner
-from heritrace import create_app
 from redis import Redis
 from tests.test_config import TestConfig
 
@@ -48,13 +47,6 @@ def docker_services() -> Generator[None, None, None]:
         ["docker", "compose", "-f", COMPOSE_FILE, "down"],
         check=True,
     )
-
-
-@pytest.fixture
-def app() -> Generator[Flask, None, None]:
-    app = create_app(TestConfig)
-    with app.app_context():
-        yield app
 
 
 @pytest.fixture

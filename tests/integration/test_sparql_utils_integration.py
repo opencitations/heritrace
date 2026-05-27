@@ -8,7 +8,7 @@ Integration tests for the SPARQL utilities module using real test databases.
 
 import uuid
 import pytest
-from rdflib import URIRef, Literal, RDF
+from rdflib import Dataset, URIRef, Literal, RDF
 from SPARQLWrapper import SPARQLWrapper
 from rdflib.plugins.sparql.parser import parseUpdate
 from rdflib.plugins.sparql.algebra import translateUpdate
@@ -336,11 +336,7 @@ class TestGetCatalogDataIntegration:
     def test_get_catalog_data_no_class(self, app):
         """Test getting catalog data with no class selected."""
         with app.app_context():
-            # Create empty available_classes
-            available_classes = []
-            
-            # Get catalog data with no class selected
-            catalog_data = get_catalog_data(None, 1, 10, available_classes)
+            catalog_data = get_catalog_data(None, 1, 10)
 
             # Verify the catalog data
             assert catalog_data["total_count"] == 0
@@ -359,18 +355,17 @@ class TestFetchDataGraphForSubjectIntegration:
         """Test fetching data for a subject from the real test database."""
         with app.app_context():
             # Fetch data for person1
-            graph = fetch_data_graph_for_subject(setup_test_data["person1_uri"])
+            person_uri = URIRef(setup_test_data["person1_uri"])
+            graph = fetch_data_graph_for_subject(person_uri)
 
             # Verify the graph contains the expected triples
             assert len(graph) > 0
-
-            # Check for specific triples
-            person_uri = URIRef(setup_test_data["person1_uri"])
             type_triple = (person_uri, RDF.type, URIRef("http://example.org/Person"))
             name_pred = URIRef("http://example.org/name")
 
             # For quadstore, we need to check if the triple exists in any context
             if hasattr(graph, "quads"):
+                assert isinstance(graph, Dataset)
                 # Check if the type triple exists in any context
                 type_exists = any(
                     s == person_uri
@@ -403,17 +398,16 @@ class TestFetchDataGraphForSubjectIntegration:
                 monkeypatch.setattr("heritrace.utils.sparql_utils.get_dataset_is_quadstore", lambda: True)
 
                 # Fetch data for person1
-                graph = fetch_data_graph_for_subject(setup_test_data["person1_uri"])
+                person_uri = URIRef(setup_test_data["person1_uri"])
+                graph = fetch_data_graph_for_subject(person_uri)
 
                 # Verify the graph contains the expected triples
                 assert len(graph) > 0
-
-                # Check for specific triples
-                person_uri = URIRef(setup_test_data["person1_uri"])
                 type_triple = (person_uri, RDF.type, URIRef("http://example.org/Person"))
                 name_pred = URIRef("http://example.org/name")
 
                 # Since we're testing quadstore, we need to check if the triples exist in any context
+                assert isinstance(graph, Dataset)
                 # Check if the type triple exists in any context
                 type_exists = any(
                     s == person_uri
@@ -460,6 +454,7 @@ class TestFetchCurrentStateWithRelatedEntitiesIntegration:
 
             # For quadstore, we need to check if the triples exist in any context
             if hasattr(combined_graph, "quads"):
+                assert isinstance(combined_graph, Dataset)
                 # Check if person1 type triple exists
                 person1_type_exists = any(
                     s == person1_uri
@@ -571,7 +566,7 @@ class TestFindOrphanedEntitiesIntegration:
                 orphaned, intermediate_orphans = find_orphaned_entities(
                     setup_test_data["document1_uri"],
                     "http://example.org/Document",
-                    predicate="http://example.org/author",
+                    predicate=URIRef("http://example.org/author"),
                     object_value=setup_test_data["person1_uri"],
                 )
 

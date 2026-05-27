@@ -5,10 +5,9 @@
 from __future__ import annotations
 
 import threading
-from typing import Tuple
 from urllib.parse import quote, urlparse
 
-import dateutil
+from dateutil import parser as dateutil_parser
 import validators
 from flask import url_for
 from flask_babel import format_datetime, gettext, lazy_gettext
@@ -19,7 +18,7 @@ from SPARQLWrapper import JSON
 
 
 class Filter:
-    def __init__(self, context: dict, display_rules: dict, sparql_endpoint: str):
+    def __init__(self, context: dict, display_rules: list[dict] | None, sparql_endpoint: str):
         from heritrace.extensions import get_sparql
 
         self.context = context
@@ -28,7 +27,7 @@ class Filter:
         self.sparql.setReturnFormat(JSON)
         self._query_lock = threading.Lock()
 
-    def human_readable_predicate(self, predicate_uri: str, entity_key: tuple[str, str], is_link=False, object_shape_uri: str = None):
+    def human_readable_predicate(self, predicate_uri: str, entity_key: tuple[str | None, str | None], is_link: bool = False, object_shape_uri: str | None = None):
         """Get human readable label for a predicate in the context of an entity.
         
         Args:
@@ -62,12 +61,12 @@ class Filter:
         first_part, _ = split_namespace(predicate_uri) 
         if first_part in self.context:
             return format_uri_as_readable(predicate_uri)
-        elif validators.url(predicate_uri) and is_link:
+        elif validators.url(predicate_uri) and is_link:  # type: ignore[arg-type]
             return f"<a href='{url_for('entity.about', subject=quote(predicate_uri))}' alt='{gettext('Link to the entity %(entity)s', entity=predicate_uri)}'>{predicate_uri}</a>"
         else:
             return str(predicate_uri)
 
-    def human_readable_class(self, entity_key):
+    def human_readable_class(self, entity_key: tuple[str | None, str | None] | None):
         """
         Converts a class URI to human-readable format.
 
@@ -80,22 +79,27 @@ class Filter:
         from heritrace.utils.display_rules_utils import find_matching_rule
         from heritrace.utils.shacl_utils import determine_shape_for_classes
 
+        if entity_key is None:
+            return "Unknown"
+
         class_uri, shape_uri = entity_key
 
         if class_uri is None and shape_uri is None:
             return "Unknown"
 
-        if shape_uri is None:
+        if shape_uri is None and class_uri is not None:
             shape_uri = determine_shape_for_classes([class_uri])
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
 
         if rule and "displayName" in rule:
             return rule["displayName"]
 
+        if class_uri is None:
+            return "Unknown"
         return format_uri_as_readable(class_uri)
 
     def human_readable_entity(
-        self, uri: str, entity_key: tuple[str, str | None], graph: Graph | Dataset = None
+        self, uri: str, entity_key: tuple[str | None, str | None], graph: Graph | Dataset | None = None
     ) -> str:
         """Convert an entity URI to human-readable format using display rules.
         
@@ -127,25 +131,17 @@ class Filter:
         return uri
 
     def get_fetch_uri_display(
-        self, uri: str, rule: dict, graph: Graph | Dataset = None
+        self, uri: str, rule: dict, graph: Graph | Dataset | None = None
     ) -> str | None:
-        """Get a display value for an entity URI using fetchUriDisplay rules.
-        
-        Args:
-            uri: The URI to get a display value for
-            rule: The display rule containing the fetchUriDisplay query
-            graph: Optional graph to use for fetching URI display values
-            
-        Returns:
-            str | None: The display value if found, None otherwise
-        """
+        from heritrace.sparql import get_sparql_bindings, select_results
+
         if "fetchUriDisplay" in rule:
             query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri}>")
             if graph is not None:
                 try:
                     with self._query_lock:
                         results = graph.query(query)
-                    for row in results:
+                    for row in select_results(results):
                         return str(row[0])
                 except Exception as e:
                     print(
@@ -154,9 +150,9 @@ class Filter:
             else:
                 self.sparql.setQuery(query)
                 try:
-                    results = self.sparql.query().convert()
-                    if results["results"]["bindings"]:
-                        first_binding = results["results"]["bindings"][0]
+                    bindings = get_sparql_bindings(self.sparql.query().convert())
+                    if bindings:
+                        first_binding = bindings[0]
                         first_key = list(first_binding.keys())[0]
                         return first_binding[first_key]["value"]
                 except Exception as e:
@@ -164,13 +160,13 @@ class Filter:
         return None
 
     def human_readable_datetime(self, dt_str):
-        dt = dateutil.parser.parse(dt_str)
+        dt = dateutil_parser.parse(dt_str)
         return format_datetime(dt, format="long")
 
 
     def human_readable_primary_source(self, primary_source: str | None) -> str:
         if primary_source is None:
-            return lazy_gettext("Unknown")
+            return str(lazy_gettext("Unknown"))
         if "/prov/se" in primary_source:
             version_url = f"/entity-version/{primary_source.replace('/prov/se', '')}"
             return (
@@ -181,7 +177,7 @@ class Filter:
                 + "</a>"
             )
         else:
-            if validators.url(primary_source):
+            if validators.url(primary_source):  # type: ignore[arg-type]
                 return f"<a href='{primary_source}' alt='{lazy_gettext('Link to the primary source description')} target='_blank'>{primary_source}</a>"
             else:
                 return primary_source
@@ -224,14 +220,14 @@ class Filter:
             return format_orcid_attribution(url)
 
         # For now, just return a simple linked version for other URLs
-        if validators.url(url):
+        if validators.url(url):  # type: ignore[arg-type]
             return f'<a href="{url}" target="_blank">{url}</a>'
 
         # If it's not a URL at all, just return the raw value
         return url
 
 
-def split_namespace(uri: str) -> Tuple[str, str]:
+def split_namespace(uri: str) -> tuple[str, str]:
     """
     Split a URI into namespace and local part.
 

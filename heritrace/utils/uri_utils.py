@@ -6,7 +6,7 @@ from flask import current_app
 from rdflib import URIRef
 
 
-def generate_unique_uri(entity_type: URIRef | str = None, context_data: dict = None) -> URIRef:
+def generate_unique_uri(entity_type: str | None = None, context_data: dict | None = None) -> URIRef:
     """
     Generate a unique URI for a given entity type using the application's URI generator.
     The counter increment is handled internally by the URI generator.

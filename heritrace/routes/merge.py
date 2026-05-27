@@ -2,9 +2,11 @@
 #
 # SPDX-License-Identifier: ISC
 
+from __future__ import annotations
+
 import traceback
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import validators
 from flask import (Blueprint, current_app, flash, jsonify, redirect,
@@ -17,6 +19,7 @@ from heritrace.extensions import (get_counter_handler, get_custom_filter,
                                   get_dataset_endpoint,
                                   get_dataset_is_quadstore,
                                   get_provenance_endpoint, get_sparql)
+from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.display_rules_utils import (get_highest_priority_class,
                                                  get_similarity_properties)
 from heritrace.utils.primary_source_utils import (
@@ -30,7 +33,7 @@ from SPARQLWrapper import JSON
 merge_bp = Blueprint("merge", __name__)
 
 
-def get_entity_details(entity_uri: str) -> Tuple[Optional[Dict[str, Any]], List[str]]:
+def get_entity_details(entity_uri: URIRef) -> tuple[dict[str, list[dict[str, Any]]] | None, list[str]]:
     """
     Fetches all properties (predicates and objects) for a given entity URI,
     grouped by predicate, along with its types.
@@ -48,8 +51,8 @@ def get_entity_details(entity_uri: str) -> Tuple[Optional[Dict[str, Any]], List[
     """
     sparql = get_sparql()
     custom_filter = get_custom_filter()
-    grouped_properties: Dict[str, List[Dict[str, Any]]] = {}
-    entity_types: List[str] = []
+    grouped_properties: dict[str, list[dict[str, Any]]] = {}
+    entity_types: list[str] = []
 
     try:
         entity_types = get_entity_types(entity_uri)
@@ -65,7 +68,7 @@ def get_entity_details(entity_uri: str) -> Tuple[Optional[Dict[str, Any]], List[
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
 
-        bindings = results.get("results", {}).get("bindings", [])
+        bindings = get_sparql_bindings(results)
         for binding in bindings:
             predicate = binding["p"]["value"]
             obj_node = binding["o"]
@@ -77,9 +80,12 @@ def get_entity_details(entity_uri: str) -> Tuple[Optional[Dict[str, Any]], List[
                 "readable_label": None
             }
             if obj_details["type"] == 'uri':
-                obj_types = get_entity_types(obj_details["value"])
+                obj_types = get_entity_types(URIRef(obj_details["value"]))
                 obj_type = get_highest_priority_class(obj_types)
-                obj_details["readable_label"] = custom_filter.human_readable_entity(obj_details["value"], (obj_type, None))
+                if obj_type:
+                    obj_details["readable_label"] = custom_filter.human_readable_entity(obj_details["value"], (obj_type, None))
+                else:
+                    obj_details["readable_label"] = obj_details["value"]
             else:
                  obj_details["readable_label"] = obj_details["value"]
 
@@ -104,22 +110,25 @@ def execute_merge():
     to ensure provenance and data model agnosticism.
     Entity 1 (keep) absorbs Entity 2 (delete).
     """
-    entity1_uri = request.form.get("entity1_uri")
-    entity2_uri = request.form.get("entity2_uri")
+    entity1_uri_str = request.form.get("entity1_uri")
+    entity2_uri_str = request.form.get("entity2_uri")
     primary_source = request.form.get("primary_source")
     save_default_source = request.form.get("save_default_source") == "true"
 
     # TODO: Implement CSRF validation if using Flask-WTF
 
-    if not entity1_uri or not entity2_uri:
+    if not entity1_uri_str or not entity2_uri_str:
         flash(gettext("Missing entity URIs for merge."), "danger")
         return redirect(url_for("main.catalogue"))
+
+    entity1_uri = URIRef(entity1_uri_str)
+    entity2_uri = URIRef(entity2_uri_str)
         
-    if primary_source and not validators.url(primary_source):
+    if primary_source and not validators.url(primary_source):  # type: ignore[arg-type]
         flash(gettext("Invalid primary source URL provided."), "danger")
         return redirect(url_for('.compare_and_merge', subject=entity1_uri, other_subject=entity2_uri))
-        
-    if save_default_source and primary_source and validators.url(primary_source):
+
+    if save_default_source and primary_source and validators.url(primary_source):  # type: ignore[arg-type]
         save_user_default_primary_source(current_user.orcid, primary_source)
 
     try:
@@ -132,12 +141,12 @@ def execute_merge():
         entity2_type = get_highest_priority_class(entity2_types)
         entity1_shape = determine_shape_for_classes(entity1_types)
         entity2_shape = determine_shape_for_classes(entity2_types)
-        entity1_label = custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape)) or entity1_uri
-        entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) or entity2_uri
+        entity1_label = custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape)) if entity1_type else entity1_uri
+        entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) if entity2_type else entity2_uri
 
         counter_handler = get_counter_handler()
-        resp_agent_uri = URIRef(get_responsible_agent_uri(current_user.orcid)) if current_user.is_authenticated and hasattr(current_user, 'orcid') else None
-        
+        resp_agent = get_responsible_agent_uri(current_user.orcid)
+
         dataset_endpoint = get_dataset_endpoint()
         provenance_endpoint = get_provenance_endpoint()
         dataset_is_quadstore = get_dataset_is_quadstore()
@@ -146,12 +155,12 @@ def execute_merge():
             dataset_endpoint=dataset_endpoint,
             provenance_endpoint=provenance_endpoint,
             counter_handler=counter_handler,
-            resp_agent=resp_agent_uri,
+            resp_agent=resp_agent,
             dataset_is_quadstore=dataset_is_quadstore
         )
         
-        if primary_source and validators.url(primary_source):
-            editor.set_primary_source(primary_source)
+        if primary_source and validators.url(primary_source):  # type: ignore[arg-type]
+            editor.set_primary_source(URIRef(primary_source))
 
         editor.merge(keep_entity_uri=entity1_uri, delete_entity_uri=entity2_uri)
 
@@ -190,14 +199,17 @@ def compare_and_merge():
     """
     Route to display details of two entities side-by-side for merge confirmation.
     """
-    entity1_uri = request.args.get("subject")
-    entity2_uri = request.args.get("other_subject")
+    entity1_uri_str = request.args.get("subject")
+    entity2_uri_str = request.args.get("other_subject")
     custom_filter = get_custom_filter()
 
 
-    if not entity1_uri or not entity2_uri:
+    if not entity1_uri_str or not entity2_uri_str:
         flash(gettext("Two entities must be selected for merging/comparison."), "warning")
         return redirect(url_for("main.catalogue"))
+
+    entity1_uri = URIRef(entity1_uri_str)
+    entity2_uri = URIRef(entity2_uri_str)
 
     entity1_props, entity1_types = get_entity_details(entity1_uri)
     entity2_props, entity2_types = get_entity_details(entity2_uri)
@@ -210,8 +222,8 @@ def compare_and_merge():
     entity2_type = get_highest_priority_class(entity2_types)
     entity1_shape = determine_shape_for_classes(entity1_types)
     entity2_shape = determine_shape_for_classes(entity2_types)
-    entity1_label = custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape)) or entity1_uri
-    entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) or entity2_uri
+    entity1_label = custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape)) if entity1_type else entity1_uri
+    entity2_label = custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape)) if entity2_type else entity2_uri
 
 
     entity1_data = {
@@ -312,7 +324,7 @@ def find_similar_resources():
         sparql.setQuery(fetch_comparison_values_query)
         sparql.setReturnFormat(JSON)
         subject_values_results = sparql.query().convert()
-        subject_bindings = subject_values_results.get("results", {}).get("bindings", [])
+        subject_bindings = get_sparql_bindings(subject_values_results)
 
         if not subject_bindings:
             return jsonify({"status": "success", "results": [], "has_more": False})
@@ -346,7 +358,7 @@ def find_similar_resources():
                     continue
 
                 for prop_uri in and_props:
-                    prop_values = subject_values_by_prop.get(prop_uri)
+                    prop_values = subject_values_by_prop[prop_uri]
                     var_counter += 1
                     values_filter = ", ".join(prop_values)
                     and_patterns.append(f"    ?similar <{prop_uri}> ?o_{var_counter} . FILTER(?o_{var_counter} IN ({values_filter})) .")
@@ -376,7 +388,7 @@ def find_similar_resources():
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
 
-        bindings = results.get("results", {}).get("bindings", [])
+        bindings = get_sparql_bindings(results)
         candidate_uris = [item["similar"]["value"] for item in bindings]
 
         has_more = len(candidate_uris) > limit

@@ -41,9 +41,9 @@ def create_app(config_object=None):
         from heritrace.extensions import init_extensions
         from heritrace.routes import register_blueprints
 
-        init_extensions(app, babel, login_manager, redis_client)
-
         with app.app_context():
+            init_extensions(app, babel, login_manager, redis_client)
+
             app.logger.info("[STARTUP] Pre-computing available classes cache...")
             precompute_available_classes_cache()
             app.logger.info("[STARTUP] Available classes cache computed successfully")

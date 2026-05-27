@@ -46,7 +46,7 @@ def ensure_merge_bp(app):
 @patch('heritrace.routes.merge.get_entity_types')
 def test_get_entity_details_success(mock_get_entity_types, mock_get_custom_filter, mock_get_sparql, app):
     """Test get_entity_details successfully fetches properties and types."""
-    entity1_uri = "http://test.com/entityDetailSuccess"
+    entity1_uri = URIRef("http://test.com/entityDetailSuccess")
     entity1_types = ["http://test.com/TypeA"]
     obj_uri = "http://obj.uri/detail"
     obj_type = ["http://test.com/ObjectType"]
@@ -77,6 +77,7 @@ def test_get_entity_details_success(mock_get_entity_types, mock_get_custom_filte
         props, types = get_entity_details(entity1_uri)
 
     assert types == entity1_types
+    assert props is not None
     assert prop1 in props
     assert props[prop1][0]["value"] == literal_val
     assert props[prop1][0]["readable_label"] == literal_val
@@ -85,7 +86,7 @@ def test_get_entity_details_success(mock_get_entity_types, mock_get_custom_filte
     assert props[prop2][0]["readable_label"] == readable_obj_label
     assert mock_get_entity_types.call_count == 2
     mock_get_entity_types.assert_any_call(entity1_uri)
-    mock_get_entity_types.assert_any_call(obj_uri)
+    mock_get_entity_types.assert_any_call(URIRef(obj_uri))
     mock_custom_filter_instance.human_readable_entity.assert_called_once_with(obj_uri, (obj_type[0], None))
 
 
@@ -93,7 +94,7 @@ def test_get_entity_details_success(mock_get_entity_types, mock_get_custom_filte
 @patch('heritrace.routes.merge.get_entity_types', return_value=[])
 def test_get_entity_details_no_types(mock_get_entity_types, mock_get_sparql, app):
     """Test get_entity_details when no types are found for the entity."""
-    entity1_uri = "http://test.com/entityDetailNoTypes"
+    entity1_uri = URIRef("http://test.com/entityDetailNoTypes")
     mock_sparql_instance = MagicMock()
     mock_sparql_instance.query().convert.return_value = { "results": { "bindings": [] } }
     mock_get_sparql.return_value = mock_sparql_instance
@@ -110,7 +111,7 @@ def test_get_entity_details_no_types(mock_get_entity_types, mock_get_sparql, app
 @patch('heritrace.routes.merge.get_entity_types')
 def test_get_entity_details_sparql_error(mock_get_entity_types, mock_get_sparql, app):
     """Test get_entity_details handles SPARQL query errors."""
-    entity1_uri = "http://test.com/entityDetailSparqlError"
+    entity1_uri = URIRef("http://test.com/entityDetailSparqlError")
     entity1_types = ["http://test.com/TypeAOnError"]
 
     mock_sparql_instance = MagicMock()
@@ -260,7 +261,7 @@ def test_execute_merge_save_default_source(
 
     mock_save_source.assert_called_once_with(mock_user.orcid, primary_source)
     
-    mock_editor_instance.set_primary_source.assert_called_once_with(primary_source)
+    mock_editor_instance.set_primary_source.assert_called_once_with(URIRef(primary_source))
 
 
 @patch('flask_login.utils._get_user')
@@ -441,8 +442,8 @@ def test_compare_and_merge_success(mock_current_user, mock_get_details, mock_get
     assert merge_test_data["entity1_label"].encode() in response.data
     assert merge_test_data["entity2_label"].encode() in response.data
     assert b"Confirm Entity Merge" in response.data
-    mock_get_details.assert_any_call(merge_test_data["entity1_uri"])
-    mock_get_details.assert_any_call(merge_test_data["entity2_uri"])
+    mock_get_details.assert_any_call(URIRef(merge_test_data["entity1_uri"]))
+    mock_get_details.assert_any_call(URIRef(merge_test_data["entity2_uri"]))
 
 @patch('flask_login.utils._get_user')
 def test_compare_and_merge_missing_uris(mock_current_user, client, mock_user, merge_test_data):
@@ -730,7 +731,7 @@ def test_find_similar_resources_invalid_limit_offset_value(mock_current_user, cl
 
 @patch('heritrace.routes.merge.get_sparql')
 @patch('flask_login.utils._get_user')
-def test_find_similar_resources_exception(mock_current_user, mock_get_sparql, client, mock_user, similar_test_data):
+def test_find_similar_resources_database_exception(mock_current_user, mock_get_sparql, client, mock_user, similar_test_data):
     """Test handling of general exceptions during similarity search."""
     mock_current_user.return_value = mock_user
     mock_get_sparql.side_effect = Exception("Database connection failed similar")

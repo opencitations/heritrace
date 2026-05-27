@@ -6,8 +6,10 @@ import urllib.parse
 import redis
 import os
 
+from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 
-class MetaCounterHandler:
+
+class MetaCounterHandler(CounterHandler):
     def __init__(self) -> None:
         """
         Constructor of the ``MetaCounterHandler`` class.

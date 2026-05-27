@@ -528,4 +528,4 @@ def test_create_entity_save_default_primary_source(mock_get_prov, mock_get_datas
     call_args, call_kwargs = mock_editor.call_args
     # Editor arguments are positional: (dataset_endpoint, prov_endpoint, counter_handler, user_uri, primary_source, ...)
     assert len(call_args) >= 5  # Ensure enough positional arguments were passed
-    assert call_args[4] == primary_source_url # Check the 5th positional argument (index 4)
+    assert call_args[4] == URIRef(primary_source_url)

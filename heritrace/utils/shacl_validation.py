@@ -4,11 +4,12 @@
 
 import re
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from collections.abc import Sequence
 
 import validators
 from flask_babel import gettext
 from heritrace.extensions import get_custom_filter, get_shacl_graph
+from heritrace.sparql import select_results
 from heritrace.utils.sparql_utils import (fetch_data_graph_for_subject,
                                           get_triples_from_graph)
 from heritrace.utils.display_rules_utils import get_highest_priority_class
@@ -18,9 +19,9 @@ from heritrace.utils.datatypes import DATATYPE_MAPPING
 
 
 def get_valid_predicates(
-    triples: List[Tuple[URIRef, URIRef, Union[URIRef, Literal]]],
+    triples: Sequence[tuple[URIRef, URIRef, URIRef | Literal]],
     highest_priority_class: URIRef
-) -> Tuple[List[str], List[str], Dict, Dict, Dict, List[str]]:
+) -> tuple[list[str], list[str], dict, dict, dict, set[str]]:
     shacl = get_shacl_graph()
 
     existing_predicates = [triple[1] for triple in triples]
@@ -52,7 +53,7 @@ def get_valid_predicates(
             default_datatypes,
             dict(),
             dict(),
-            [str(predicate) for predicate in existing_predicates],
+            {str(predicate) for predicate in existing_predicates},
         )
     if not shacl:
         return (
@@ -61,7 +62,7 @@ def get_valid_predicates(
             default_datatypes,
             dict(),
             dict(),
-            [str(predicate) for predicate in existing_predicates],
+            {str(predicate) for predicate in existing_predicates},
         )
 
     query_string = f"""
@@ -97,13 +98,8 @@ def get_valid_predicates(
         },
     )
     results = shacl.query(query)
-    
-    # Convert results to list to properly check if there are any results
-    # SPARQL iterators can be misleading about their emptiness
-    results_list = list(results)
-    
-    # If there are no results, it means there are no shapes defined for this class
-    # In this case, everything is allowed - behave as if there is no SHACL
+    results_list = list(select_results(results))
+
     if not results_list:
         return (
             [str(predicate) for predicate in existing_predicates],
@@ -111,9 +107,9 @@ def get_valid_predicates(
             default_datatypes,
             dict(),
             dict(),
-            [str(predicate) for predicate in existing_predicates],
+            {str(predicate) for predicate in existing_predicates},
         )
-    
+
     valid_predicates = [
         {
             str(row.predicate): {
@@ -176,13 +172,13 @@ def get_valid_predicates(
 
 
 def validate_new_triple(
-    subject, predicate, new_value, action: str, old_value=None, entity_types=None, entity_shape=None
+    subject: URIRef, predicate: URIRef, new_value, action: str, old_value=None, entity_types=None, entity_shape=None
 ):
     data_graph = fetch_data_graph_for_subject(subject)
     if old_value is not None:
         matching_triples = [
             triple[2]
-            for triple in get_triples_from_graph(data_graph, (URIRef(subject), URIRef(predicate), None))
+            for triple in get_triples_from_graph(data_graph, (subject, predicate, None))
             if str(triple[2]) == str(old_value)
         ]
         # Only update old_value if we found a match in the graph
@@ -204,7 +200,7 @@ def validate_new_triple(
                 return Literal(new_value), old_value, ""
 
     s_types = [
-        triple[2] for triple in get_triples_from_graph(data_graph, (URIRef(subject), RDF.type, None))
+        triple[2] for triple in get_triples_from_graph(data_graph, (subject, RDF.type, None))
     ]
     highest_priority_class = get_highest_priority_class(s_types)
 
@@ -224,7 +220,7 @@ def validate_new_triple(
     #   * An ORCID for a person follows yet another
     # By including these "inverse" types, we ensure validation considers the full context
     inverse_types = []
-    for s, p, o in get_triples_from_graph(data_graph, (None, None, URIRef(subject))):
+    for s, p, o in get_triples_from_graph(data_graph, (None, None, subject)):
         # Ottieni i tipi dell'entità che ha il soggetto come oggetto
         s_types_inverse = [t[2] for t in get_triples_from_graph(data_graph, (s, RDF.type, None))]
         inverse_types.extend(s_types_inverse)
@@ -243,7 +239,7 @@ def validate_new_triple(
                 sh:property ?propertyShape .
             ?propertyShape sh:path ?path .
             FILTER(?path = <{predicate}>)
-            VALUES ?type {{<{'> <'.join(s_types)}>}}
+            VALUES ?type {{<{'> <'.join(str(t) for t in s_types)}>}}
             OPTIONAL {{?propertyShape sh:datatype ?datatype .}}
             OPTIONAL {{?propertyShape sh:maxCount ?maxCount .}}
             OPTIONAL {{?propertyShape sh:minCount ?minCount .}}
@@ -277,13 +273,11 @@ def validate_new_triple(
     shacl = get_shacl_graph()
     custom_filter = get_custom_filter()
     results = shacl.query(query)
-    
-    # Convert results to list to properly check if there are any results
-    # SPARQL iterators can be misleading about their emptiness
-    results_list = list(results)
+    results_list = list(select_results(results))
     property_exists = [row.path for row in results_list]
     shapes = [row.shape for row in results_list if row.shape is not None]
     current_shape = shapes[0] if shapes else None
+    entity_key = (str(highest_priority_class or ""), str(current_shape or ""))
     if not property_exists:
         if not s_types:
             return (
@@ -322,7 +316,7 @@ def validate_new_triple(
     min_count = int(min_count[0]) if min_count else None
 
     current_values = list(
-        get_triples_from_graph(data_graph, (URIRef(subject), URIRef(predicate), None))
+        get_triples_from_graph(data_graph, (subject, predicate, None))
     )
     current_count = len(current_values)
 
@@ -340,7 +334,7 @@ def validate_new_triple(
             old_value,
             gettext(
                 "The property %(predicate)s allows at most %(max_count)s %(value)s",
-                predicate=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
+                predicate=custom_filter.human_readable_predicate(predicate, entity_key),
                 max_count=max_count,
                 value=value,
             ),
@@ -352,7 +346,7 @@ def validate_new_triple(
             old_value,
             gettext(
                 "The property %(predicate)s requires at least %(min_count)s %(value)s",
-                predicate=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
+                predicate=custom_filter.human_readable_predicate(predicate, entity_key),
                 min_count=min_count,
                 value=value,
             ),
@@ -365,7 +359,7 @@ def validate_new_triple(
 
     if optional_values and new_value not in optional_values:
         optional_value_labels = [
-            custom_filter.human_readable_predicate(value, (highest_priority_class, current_shape))
+            custom_filter.human_readable_predicate(value, entity_key)
             for value in optional_values
         ]
         return (
@@ -373,8 +367,8 @@ def validate_new_triple(
             old_value,
             gettext(
                 "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires one of the following values: %(o_values)s",
-                new_value=custom_filter.human_readable_predicate(new_value, (highest_priority_class, current_shape)),
-                property=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
+                new_value=custom_filter.human_readable_predicate(new_value, entity_key),
+                property=custom_filter.human_readable_predicate(predicate, entity_key),
                 o_values=", ".join(
                     [f"<code>{label}</code>" for label in optional_value_labels]
                 ),
@@ -394,7 +388,7 @@ def validate_new_triple(
                 if path and value:
                     # Check if the condition triple exists in the data graph
                     condition_exists = any(
-                        get_triples_from_graph(data_graph, (URIRef(subject), URIRef(path), URIRef(value)))
+                        get_triples_from_graph(data_graph, (subject, URIRef(path), URIRef(value)))
                     )
                     if not condition_exists:
                         conditions_met = False
@@ -414,11 +408,11 @@ def validate_new_triple(
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate(new_value, (highest_priority_class, current_shape)),
-                    property=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
+                    new_value=custom_filter.human_readable_predicate(new_value, entity_key),
+                    property=custom_filter.human_readable_predicate(predicate, entity_key),
                     o_types=", ".join(
                         [
-                            f"<code>{custom_filter.human_readable_class((c, current_shape))}</code>"
+                            f"<code>{custom_filter.human_readable_class((c, str(current_shape or "")))}</code>"
                             for c in classes
                         ]
                     ),
@@ -433,11 +427,11 @@ def validate_new_triple(
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate(new_value, (highest_priority_class, current_shape)),
-                    property=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
+                    new_value=custom_filter.human_readable_predicate(new_value, entity_key),
+                    property=custom_filter.human_readable_predicate(predicate, entity_key),
                     o_types=", ".join(
                         [
-                            f"<code>{custom_filter.human_readable_class((c, current_shape))}</code>"
+                            f"<code>{custom_filter.human_readable_class((c, str(current_shape or "")))}</code>"
                             for c in classes
                         ]
                     ),
@@ -453,8 +447,8 @@ def validate_new_triple(
                 old_value,
                 gettext(
                     "<code>%(new_value)s</code> is not a valid value. The <code>%(property)s</code> property requires values of type %(o_types)s",
-                    new_value=custom_filter.human_readable_predicate(new_value, (highest_priority_class, current_shape)),
-                    property=custom_filter.human_readable_predicate(predicate, (highest_priority_class, current_shape)),
+                    new_value=custom_filter.human_readable_predicate(new_value, entity_key),
+                    property=custom_filter.human_readable_predicate(predicate, entity_key),
                     o_types=", ".join(
                         [f"<code>{label}</code>" for label in datatype_labels]
                     ),
@@ -485,11 +479,11 @@ def convert_to_matching_class(object_value, classes, entity_types=None):
         return None
         
     # Check if the value is a valid URI
-    if not validators.url(str(object_value)):
+    if not validators.url(str(object_value)):  # type: ignore[arg-type]
         return None
         
     # Fetch data graph and get types
-    data_graph = fetch_data_graph_for_subject(object_value)
+    data_graph = fetch_data_graph_for_subject(URIRef(object_value))
     o_types = {str(c[2]) for c in get_triples_from_graph(data_graph, (URIRef(object_value), RDF.type, None))}
 
     # If entity_types is provided and o_types is empty, use entity_types
@@ -562,7 +556,7 @@ def get_datatype_label(datatype_uri):
     # If not found anywhere, return the URI as is
     custom_filter = get_custom_filter()
     if custom_filter:
-        custom_label = custom_filter.human_readable_predicate(datatype_uri, (None, None))
+        custom_label = custom_filter.human_readable_predicate(datatype_uri, ("", ""))
         # If the custom filter returns just the last part of the URI, return the full URI instead
         if custom_label and custom_label != datatype_uri and datatype_uri.endswith(custom_label):
             return datatype_uri

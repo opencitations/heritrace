@@ -146,11 +146,11 @@ def test_validate_new_triple_journal_article_title(app: Flask, shacl_graph: Grap
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/article/1"
-                predicate = "http://purl.org/dc/terms/title"
+                subject = URIRef("https://example.org/article/1")
+                predicate = URIRef("http://purl.org/dc/terms/title")
                 new_value = "Test Article Title"
                 old_title = "Test Article"  # Il valore esistente nel grafo di test
-                
+
                 # Test validation
                 valid_value, old_value, error = validate_new_triple(
                     subject,
@@ -172,7 +172,7 @@ def test_validate_new_triple_journal_identifier(app: Flask, shacl_graph: Graph, 
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
                 # Create a new identifier with DOI scheme
-                identifier = "https://example.org/identifier/test-doi"
+                identifier = URIRef("https://example.org/identifier/test-doi")
                 article = "https://example.org/article/2"
                 
                 # Create test graphs
@@ -194,7 +194,7 @@ def test_validate_new_triple_journal_identifier(app: Flask, shacl_graph: Graph, 
                 # First, set the type to Identifier
                 valid_value, old_value, error = validate_new_triple(
                     identifier,
-                    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+                    URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
                     "http://purl.org/spar/datacite/Identifier",
                     "create",
                     entity_types=["http://purl.org/spar/datacite/Identifier"]
@@ -212,7 +212,7 @@ def test_validate_new_triple_journal_identifier(app: Flask, shacl_graph: Graph, 
                 # Then, set the identifier scheme to DOI
                 valid_value, old_value, error = validate_new_triple(
                     identifier,
-                    "http://purl.org/spar/datacite/usesIdentifierScheme",
+                    URIRef("http://purl.org/spar/datacite/usesIdentifierScheme"),
                     "http://purl.org/spar/datacite/doi",
                     "create",
                     entity_types=["http://purl.org/spar/datacite/Identifier"]
@@ -226,7 +226,7 @@ def test_validate_new_triple_journal_identifier(app: Flask, shacl_graph: Graph, 
                 valid_doi = "10.1000/test.123"
                 valid_value, old_value, error = validate_new_triple(
                     identifier,
-                    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue",
+                    URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"),
                     valid_doi,
                     "create",
                     entity_types=["http://purl.org/spar/datacite/Identifier"]
@@ -234,7 +234,7 @@ def test_validate_new_triple_journal_identifier(app: Flask, shacl_graph: Graph, 
                 assert error == "", f"Validation error: {error}"
                 assert isinstance(valid_value, Literal)
                 assert str(valid_value) == valid_doi
-                
+
                 # Add the valid DOI to the identifier graph
                 identifier_graph.add((URIRef(identifier), URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"), Literal(valid_doi)))
 
@@ -242,7 +242,7 @@ def test_validate_new_triple_journal_identifier(app: Flask, shacl_graph: Graph, 
                 invalid_doi = "invalid-doi"
                 valid_value, old_value, error = validate_new_triple(
                     identifier,
-                    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue",
+                    URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"),
                     invalid_doi,
                     "update",
                     old_value=valid_doi,
@@ -265,8 +265,9 @@ def test_get_valid_predicates_journal_article(app: Flask, shacl_graph: Graph):
             triples = list(test_graph.triples((subject, None, None)))
             s_types = [o for s, p, o in test_graph.triples((subject, RDF.type, None))]
             highest_priority_class = get_highest_priority_class(s_types)
+            assert highest_priority_class is not None
             can_add, can_delete, datatypes, mandatory_values, optional_values, all_predicates = get_valid_predicates(
-                triples, highest_priority_class
+                triples, URIRef(highest_priority_class)  # type: ignore[arg-type]
             )
             
             # Convert URIRefs to strings for comparison
@@ -289,8 +290,8 @@ def test_validate_new_triple_with_pattern_and_conditions(app: Flask, shacl_graph
                 # Test DOI pattern validation
                 valid_doi = "10.1000/test.123"
                 valid_value, old_value, error = validate_new_triple(
-                    "https://example.org/identifier/doi",
-                    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue",
+                    URIRef("https://example.org/identifier/doi"),
+                    URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"),
                     valid_doi,
                     "create",
                     entity_types=["http://purl.org/spar/datacite/Identifier"]
@@ -298,12 +299,12 @@ def test_validate_new_triple_with_pattern_and_conditions(app: Flask, shacl_graph
                 assert error == "", f"Validation error: {error}"
                 assert isinstance(valid_value, Literal)
                 assert str(valid_value) == valid_doi
-                
+
                 # Test ISBN pattern validation
                 valid_isbn = "978-0-123456-47-2"
                 valid_value, old_value, error = validate_new_triple(
-                    "https://example.org/identifier/isbn",
-                    "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue",
+                    URIRef("https://example.org/identifier/isbn"),
+                    URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"),
                     valid_isbn,
                     "create",
                     entity_types=["http://purl.org/spar/datacite/Identifier"]
@@ -318,15 +319,15 @@ def test_validate_new_triple_with_datatype_conversion(app: Flask, shacl_graph: G
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
                 # Usiamo un nuovo articolo senza date esistenti
-                subject = "https://example.org/article/2"
-                
+                subject = URIRef("https://example.org/article/2")
+
                 # Test date datatype with different formats
                 date_tests = [
-                    ("http://prismstandard.org/namespaces/basic/2.0/publicationDate", "2024-03-21", XSD.date),
-                    ("http://prismstandard.org/namespaces/basic/2.0/publicationDate", "2024-03", XSD.gYearMonth),
-                    ("http://prismstandard.org/namespaces/basic/2.0/publicationDate", "2024", XSD.gYear)
+                    (URIRef("http://prismstandard.org/namespaces/basic/2.0/publicationDate"), "2024-03-21", XSD.date),
+                    (URIRef("http://prismstandard.org/namespaces/basic/2.0/publicationDate"), "2024-03", XSD.gYearMonth),
+                    (URIRef("http://prismstandard.org/namespaces/basic/2.0/publicationDate"), "2024", XSD.gYear)
                 ]
-                
+
                 for predicate, value, expected_datatype in date_tests:
                     valid_value, old_value, error = validate_new_triple(
                         subject,
@@ -393,14 +394,14 @@ def test_validate_new_triple_with_delete_action(app: Flask, shacl_graph: Graph, 
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/article/1"
-                predicate = "http://purl.org/dc/terms/title"
+                subject = URIRef("https://example.org/article/1")
+                predicate = URIRef("http://purl.org/dc/terms/title")
                 old_value = "Test Article Title"
-                
+
                 # Prima aggiungiamo il valore che vogliamo eliminare
                 graph = mock_fetch_data_graph(subject)
-                graph.add((URIRef(subject), URIRef(predicate), Literal(old_value)))
-                
+                graph.add((subject, predicate, Literal(old_value)))
+
                 # Test delete action
                 valid_value, old_value, error = validate_new_triple(
                     subject,
@@ -422,10 +423,10 @@ def test_validate_new_triple_with_invalid_property(app: Flask, shacl_graph: Grap
                 with patch("heritrace.utils.filters.Filter.human_readable_class") as mock_human_readable_class:
                     mock_human_readable_class.return_value = "Journal Article"
                     
-                    subject = "https://example.org/article/1"
-                    predicate = "http://example.org/invalid/property"
+                    subject = URIRef("https://example.org/article/1")
+                    predicate = URIRef("http://example.org/invalid/property")
                     new_value = "Test Value"
-                    
+
                     # Test with invalid property - should be accepted as no SHACL rules exist
                     valid_value, old_value, error = validate_new_triple(
                         subject,
@@ -443,9 +444,9 @@ def test_validate_new_triple_with_optional_values(app: Flask, shacl_graph: Graph
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/identifier/new"  # Usiamo un nuovo identificatore senza scheme
-                predicate = "http://purl.org/spar/datacite/usesIdentifierScheme"
-                
+                subject = URIRef("https://example.org/identifier/new")  # Usiamo un nuovo identificatore senza scheme
+                predicate = URIRef("http://purl.org/spar/datacite/usesIdentifierScheme")
+
                 # Test with valid scheme
                 valid_value, old_value, error = validate_new_triple(
                     subject,
@@ -455,7 +456,7 @@ def test_validate_new_triple_with_optional_values(app: Flask, shacl_graph: Graph
                     entity_types=["http://purl.org/spar/datacite/Identifier"]
                 )
                 assert error == "", f"Validation error: {error}"
-                
+
                 # Test with invalid scheme
                 valid_value, old_value, error = validate_new_triple(
                     subject,
@@ -498,10 +499,10 @@ def test_validate_new_triple_with_nested_validation(app: Flask, shacl_graph: Gra
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/article/1"
-                predicate = "http://purl.org/spar/pro/isDocumentContextFor"
+                subject = URIRef("https://example.org/article/1")
+                predicate = URIRef("http://purl.org/spar/pro/isDocumentContextFor")
                 role_value = "https://example.org/role/1"
-                
+
                 # Test validation of a role triple
                 valid_value, old_value, error = validate_new_triple(
                     subject,
@@ -520,8 +521,8 @@ def test_validate_new_triple_with_or_constraints(app: Flask, shacl_graph: Graph,
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
                 # Usiamo un nuovo articolo senza data esistente
-                subject = "https://example.org/article/2"
-                predicate = "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
+                subject = URIRef("https://example.org/article/2")
+                predicate = URIRef("http://prismstandard.org/namespaces/basic/2.0/publicationDate")
                 
                 # Test with different valid date formats
                 date_values = [
@@ -539,7 +540,7 @@ def test_validate_new_triple_with_or_constraints(app: Flask, shacl_graph: Graph,
                 
                 # Test each format with a fresh subject
                 for i, date_value in enumerate(date_values):
-                    test_subject = f"https://example.org/article/{i+2}"  # Usiamo un soggetto diverso per ogni test
+                    test_subject = URIRef(f"https://example.org/article/{i+2}")  # Usiamo un soggetto diverso per ogni test
                     valid_value, old_value, error = validate_new_triple(
                         test_subject,
                         predicate,
@@ -559,10 +560,10 @@ def test_validate_new_triple_with_multiple_types(app: Flask, shacl_graph: Graph,
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
                 # Usiamo un nuovo articolo senza titolo esistente
-                subject = "https://example.org/article/2"
-                predicate = "http://purl.org/dc/terms/title"
+                subject = URIRef("https://example.org/article/2")
+                predicate = URIRef("http://purl.org/dc/terms/title")
                 new_value = "Test Title"
-                
+
                 # Test with multiple entity types
                 valid_value, old_value, error = validate_new_triple(
                     subject,
@@ -627,22 +628,22 @@ def test_validate_new_triple_with_datatype_conversion_edge_cases(app: Flask, sha
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/article/1"
-                
+                subject = URIRef("https://example.org/article/1")
+
                 # Test with invalid date format
                 valid_value, old_value, error = validate_new_triple(
                     subject,
-                    "http://prismstandard.org/namespaces/basic/2.0/publicationDate",
+                    URIRef("http://prismstandard.org/namespaces/basic/2.0/publicationDate"),
                     "invalid-date",
                     "create",
                     entity_types=["http://purl.org/spar/fabio/JournalArticle"]
                 )
                 assert error != "", "Should reject invalid date format"
-                
+
                 # Test with string value when no datatype is specified
                 valid_value, old_value, error = validate_new_triple(
                     subject,
-                    "http://purl.org/dc/terms/description",
+                    URIRef("http://purl.org/dc/terms/description"),
                     "Test description",
                     "create",
                     entity_types=["http://purl.org/spar/fabio/JournalArticle"]
@@ -660,13 +661,13 @@ def test_validate_new_triple_with_complex_conditions(app: Flask, shacl_graph: Gr
                     mock_human_readable_class.return_value = "Journal Article"
                     
                     # Use article/2 which has no title
-                    subject = "https://example.org/article/2"
-                    
+                    subject = URIRef("https://example.org/article/2")
+
                     # Test with no SHACL graph
                     with patch("heritrace.extensions.get_shacl_graph", return_value=Graph()):
                         valid_value, old_value, error = validate_new_triple(
                             subject,
-                            "http://purl.org/dc/terms/title",
+                            URIRef("http://purl.org/dc/terms/title"),
                             "Test Title",
                             "create",
                             entity_types=["http://purl.org/spar/fabio/JournalArticle"]
@@ -680,17 +681,17 @@ def test_validate_new_triple_with_complex_conditions(app: Flask, shacl_graph: Gr
                     # Test with empty entity types
                     valid_value, old_value, error = validate_new_triple(
                         subject,
-                        "http://purl.org/dc/terms/title",
+                        URIRef("http://purl.org/dc/terms/title"),
                         "Test Title",
                         "create",
                         entity_types=[]
                     )
                     assert error == "No entity type specified", f"Validation error: {error}"
-                    
+
                     # Test with invalid entity type
                     valid_value, old_value, error = validate_new_triple(
                         subject,
-                        "http://purl.org/dc/terms/title",
+                        URIRef("http://purl.org/dc/terms/title"),
                         "Test Title",
                         "create",
                         entity_types=["http://example.org/InvalidType"]
@@ -707,7 +708,8 @@ def test_get_datatype_label():
     assert get_datatype_label(str(XSD.date)) == "Date"
     
     # Test with unknown datatype
-    assert get_datatype_label("http://example.org/unknown") == "http://example.org/unknown"
+    with patch("heritrace.utils.shacl_validation.get_custom_filter", return_value=None):
+        assert get_datatype_label("http://example.org/unknown") == "http://example.org/unknown"
     
     # Test with None
     assert get_datatype_label(None) is None
@@ -961,10 +963,10 @@ def test_validate_new_triple_with_uri_validation(app: Flask, shacl_graph: Graph,
                     ]
                     
                     # Test with invalid URI
-                    subject = "https://example.org/article/1"
-                    predicate = "http://purl.org/spar/datacite/hasIdentifier"
+                    subject = URIRef("https://example.org/article/1")
+                    predicate = URIRef("http://purl.org/spar/datacite/hasIdentifier")
                     new_value = "not a uri"
-                    
+
                     # Mock validators.url to return False for invalid URL
                     with patch("validators.url", return_value=False):
                         valid_value, old_value, error = validate_new_triple(
@@ -984,22 +986,21 @@ def test_validate_new_triple_with_uri_validation(app: Flask, shacl_graph: Graph,
 def test_get_valid_predicates_edge_cases():
     """Test get_valid_predicates with edge cases."""
     # Test with empty triples and a default class
-    test_class = URIRef("http://example.org/TestClass")
-    result = get_valid_predicates([], test_class)
-    assert isinstance(result, tuple)
-    
+    with patch("heritrace.utils.shacl_validation.get_shacl_graph", return_value=Graph()):
+        test_class = URIRef("http://example.org/TestClass")
+        result = get_valid_predicates([], test_class)
+        assert isinstance(result, tuple)
+
     # Test with triples that have no valid predicates
     triples = [
         (URIRef("http://example.org/subject"), URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), URIRef("http://example.org/class")),
         (URIRef("http://example.org/subject"), RDF.type, URIRef("http://example.org/TestClass"))
     ]
-    
-    # Mock the get_custom_filter function to return None
-    with patch("heritrace.extensions.get_custom_filter", return_value=None):
-        with patch("heritrace.extensions.get_shacl_graph", return_value=Graph()):
-            test_class = URIRef("http://example.org/TestClass")
-            result = get_valid_predicates(triples, test_class)
-            assert result is not None
+
+    with patch("heritrace.utils.shacl_validation.get_shacl_graph", return_value=Graph()):
+        test_class = URIRef("http://example.org/TestClass")
+        result = get_valid_predicates(triples, test_class)
+        assert result is not None
 
 
 def test_validate_new_triple_with_pattern_validation(app: Flask, shacl_graph: Graph, mock_fetch_data_graph):
@@ -1011,8 +1012,8 @@ def test_validate_new_triple_with_pattern_validation(app: Flask, shacl_graph: Gr
             
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
                 
-                subject = "https://example.org/identifier/test"
-                predicate = "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
+                subject = URIRef("https://example.org/identifier/test")
+                predicate = URIRef("http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue")
                 
                 class MockRow:
                     def __init__(self, pattern, message=None, conditionPaths="", conditionValues=""):
@@ -1029,7 +1030,7 @@ def test_validate_new_triple_with_pattern_validation(app: Flask, shacl_graph: Gr
                         self.optionalValues = ""
                         self.shape = URIRef("http://example.org/TestShape")
                 
-                mock_results = [MockRow("10\.[0-9]{4,}/[a-zA-Z0-9.]+", "Invalid DOI format")]
+                mock_results = [MockRow(r"10\.[0-9]{4,}/[a-zA-Z0-9.]+", "Invalid DOI format")]
                 
                 with patch("rdflib.graph.Graph.query", return_value=mock_results):
                     
@@ -1065,7 +1066,7 @@ def test_validate_new_triple_with_pattern_validation(app: Flask, shacl_graph: Gr
                         assert error == ""
                         
                         # Test with no message in the pattern constraint
-                        mock_results = [MockRow("10\.[0-9]{4,}/[a-zA-Z0-9.]+", None)]
+                        mock_results = [MockRow(r"10\.[0-9]{4,}/[a-zA-Z0-9.]+", None)]
                         with patch("rdflib.graph.Graph.query", return_value=mock_results):
                             # For invalid pattern without custom message
                             mock_re_match.return_value = None
@@ -1091,8 +1092,8 @@ def test_validate_new_triple_with_invalid_uri(app: Flask, shacl_graph: Graph, mo
                 with patch("heritrace.utils.filters.Filter.human_readable_class") as mock_human_readable_class:
                     mock_human_readable_class.return_value = "Journal Article"
                     
-                    subject = "https://example.org/resource/test"
-                    predicate = "http://purl.org/dc/terms/creator"
+                    subject = URIRef("https://example.org/resource/test")
+                    predicate = URIRef("http://purl.org/dc/terms/creator")
 
                     # Test with invalid URI (not a URL) and class constraints
                     with patch("heritrace.utils.shacl_validation.get_valid_predicates") as mock_get_valid_predicates:
@@ -1128,8 +1129,8 @@ def test_validate_new_triple_with_invalid_class_match(app: Flask, shacl_graph: G
                 with patch("heritrace.utils.filters.Filter.human_readable_class") as mock_human_readable_class:
                     mock_human_readable_class.return_value = "Journal Article"
                     
-                    subject = "https://example.org/resource/test"
-                    predicate = "http://purl.org/dc/terms/creator"
+                    subject = URIRef("https://example.org/resource/test")
+                    predicate = URIRef("http://purl.org/dc/terms/creator")
 
                     # Test with valid URI but invalid class match
                     with patch("heritrace.utils.shacl_validation.get_valid_predicates") as mock_get_valid_predicates:
@@ -1164,9 +1165,9 @@ def test_validate_new_triple_with_literal_conversion(app: Flask, shacl_graph: Gr
     with app.test_request_context():
         with app.app_context():
             with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-                subject = "https://example.org/resource/test"
-                predicate = "http://purl.org/dc/terms/title"
-                
+                subject = URIRef("https://example.org/resource/test")
+                predicate = URIRef("http://purl.org/dc/terms/title")
+
                 # Create a mock data graph with the old value
                 data_graph = Graph()
                 old_literal = Literal("Old Title", datatype=XSD.string)
@@ -1326,30 +1327,18 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph):
                             assert "nestedShape" not in fields[entity_key1]["http://example.org/predicate1"][0]["or"][0]
 
 
-def test_convert_to_matching_class_with_entity_types(mock_fetch_data_graph):
-    """Test convert_to_matching_class with entity_types parameter."""        
-    app = Flask(__name__)
-    # Mock app.config to include the required key
-    app.config["DATASET_DB_TRIPLESTORE"] = "mock_value"
+def test_convert_to_matching_class_with_entity_types():
+    """Test convert_to_matching_class with entity_types parameter."""
+    object_value = "http://example.org/person/1"
+    classes = ["http://xmlns.com/foaf/0.1/Organization"]
+    entity_types = ["http://xmlns.com/foaf/0.1/Person"]
 
-    with app.test_request_context():
-        with app.app_context():
-            # Test with entity_types parameter and no matching class
-            object_value = "http://example.org/person/1"
-            classes = ["http://xmlns.com/foaf/0.1/Organization"]
-            entity_types = ["http://xmlns.com/foaf/0.1/Person"]
-            
-            # Create an empty data graph for the subject
-            data_graph = Graph()
-            mock_fetch_data_graph.return_value = data_graph
-            
-            # Test the special case for entity_types parameter (line 1240-1241)
-            result = convert_to_matching_class(object_value, classes, entity_types=entity_types)
-            
-            # Should return a URIRef despite no match (special case for entity_types)
-            assert result is not None
-            assert isinstance(result, URIRef)
-            assert str(result) == object_value
+    with patch("heritrace.utils.shacl_validation.fetch_data_graph_for_subject", return_value=Graph()):
+        result = convert_to_matching_class(object_value, classes, entity_types=entity_types)
+
+    assert result is not None
+    assert isinstance(result, URIRef)
+    assert str(result) == object_value
 
 
 def test_convert_to_matching_literal_with_unknown_datatype():
@@ -1369,163 +1358,114 @@ def test_convert_to_matching_literal_with_unknown_datatype():
         assert result.datatype == XSD.string
 
 
-def test_validate_new_triple_with_datatype_conversion_failure(mock_fetch_data_graph):
+def test_validate_new_triple_with_datatype_conversion_failure():
     """Test validation of a new triple with datatype conversion failure."""
-    # Create the app context
     app = Flask(__name__)
-    
+
     with app.test_request_context():
         with app.app_context():
-            app.config["DATASET_DB_TRIPLESTORE"] = "not_virtuoso"  # Mock config to avoid error
-            # Create an empty data graph for the subject
-            data_graph = Graph()
-            mock_fetch_data_graph.return_value = data_graph
-            
-            # Create a real Graph object instead of a Mock to avoid issues with magic methods
             mock_shacl_graph = Graph()
-            # Add a dummy triple to make the graph non-empty
             mock_shacl_graph.add((URIRef('http://example.org/s'), URIRef('http://example.org/p'), URIRef('http://example.org/o')))
-            
-            with patch("heritrace.extensions.get_shacl_graph", return_value=mock_shacl_graph):
-                # Mock the query results for datatype constraints
-                class MockRow:
-                    def __init__(self, shape, predicate, datatypes=None):
-                        self.shape = shape
-                        self.predicate = predicate
-                        self.path = predicate  # Add path attribute to match what validate_new_triple expects
-                        self.datatypes = datatypes
-                        self.datatype = datatypes[0] if datatypes else None # Add datatype attribute (singular)
-                        self.a_class = None
-                        self.classIn = None
-                        self.maxCount = None
-                        self.minCount = None
-                        self.pattern = None
-                        self.message = None
-                        self.optionalValues = ""
-                        self.conditionPaths = ""
-                        self.conditionValues = ""
-                
-                mock_results = [
-                    MockRow(
-                        "http://example.org/shapes/PersonShape",
-                        "http://xmlns.com/foaf/0.1/age",
-                        datatypes=["http://www.w3.org/2001/XMLSchema#integer"]
-                    )
-                ]
-                
-                with patch("rdflib.graph.Graph.query", return_value=mock_results):
-                    # Test with invalid datatype (non-integer)
-                    subject = "http://example.org/person/1"
-                    predicate = "http://xmlns.com/foaf/0.1/age"
-                    new_value = "not-an-integer"
-                    
-                    # Create a mock custom filter
-                    mock_custom_filter = Mock()
-                    mock_custom_filter.human_readable_predicate.return_value = "readable_value"
-                    
-                    # Set up all the necessary mocks in the correct order
-                    # First, mock the SHACL graph query to return our mock results
-                    with patch("rdflib.graph.Graph.query", return_value=mock_results):
-                        # Mock gettext to return a custom error message
-                        mock_error_message = "Invalid datatype error message"
-                        # Mock get_custom_filter to return our mock
-                        with patch("heritrace.extensions.get_custom_filter", return_value=mock_custom_filter):
-                            # Mock validators.url to return False for our test value
-                            with patch("validators.url", return_value=False):
-                                # Mock convert_to_matching_literal to return None (conversion failure)
-                                with patch("heritrace.utils.shacl_validation.convert_to_matching_literal", return_value=None):
-                                    with patch("heritrace.utils.shacl_validation.gettext", return_value=mock_error_message):
-                                        valid_value, old_value, error = validate_new_triple(
-                                            subject,
-                                            predicate,
-                                            new_value,
-                                            "create",
-                                            entity_types=["http://xmlns.com/foaf/0.1/Person"]
-                                        )
-                                        
-                                        # Since we're mocking convert_to_matching_literal to return None,
-                                        # the function should return None for valid_value and our mock error message
-                                        assert valid_value is None
-                                        assert error == mock_error_message
-                            # We're testing the error message generation (lines 1177-1192)
+
+            class MockRow:
+                def __init__(self, shape, predicate, datatypes=None):
+                    self.shape = shape
+                    self.predicate = predicate
+                    self.path = predicate
+                    self.datatypes = datatypes
+                    self.datatype = datatypes[0] if datatypes else None
+                    self.a_class = None
+                    self.classIn = None
+                    self.maxCount = None
+                    self.minCount = None
+                    self.pattern = None
+                    self.message = None
+                    self.optionalValues = ""
+                    self.conditionPaths = ""
+                    self.conditionValues = ""
+
+            mock_results = [
+                MockRow(
+                    "http://example.org/shapes/PersonShape",
+                    "http://xmlns.com/foaf/0.1/age",
+                    datatypes=["http://www.w3.org/2001/XMLSchema#integer"]
+                )
+            ]
+
+            mock_custom_filter = Mock()
+            mock_custom_filter.human_readable_predicate.return_value = "readable_value"
+            mock_error_message = "Invalid datatype error message"
+
+            with patch("heritrace.utils.shacl_validation.fetch_data_graph_for_subject", return_value=Graph()), \
+                 patch("heritrace.utils.shacl_validation.get_shacl_graph", return_value=mock_shacl_graph), \
+                 patch("heritrace.utils.shacl_validation.get_custom_filter", return_value=mock_custom_filter), \
+                 patch("rdflib.graph.Graph.query", return_value=mock_results), \
+                 patch("validators.url", return_value=False), \
+                 patch("heritrace.utils.shacl_validation.convert_to_matching_literal", return_value=None), \
+                 patch("heritrace.utils.shacl_validation.gettext", return_value=mock_error_message):
+                valid_value, old_value, error = validate_new_triple(
+                    URIRef("http://example.org/person/1"),
+                    URIRef("http://xmlns.com/foaf/0.1/age"),
+                    "not-an-integer",
+                    "create",
+                    entity_types=["http://xmlns.com/foaf/0.1/Person"]
+                )
+
+                assert valid_value is None
+                assert error == mock_error_message
 
 
-def test_validate_new_triple_with_invalid_url(mock_fetch_data_graph):
+def test_validate_new_triple_with_invalid_url():
     """Test validation of a new triple with an invalid URL."""
-    # Create the app context
     app = Flask(__name__)
-    
+
     with app.test_request_context():
         with app.app_context():
-            app.config["DATASET_DB_TRIPLESTORE"] = "not_virtuoso"  # Mock config to avoid error            # Create an empty data graph for the subject
-            data_graph = Graph()
-            mock_fetch_data_graph.return_value = data_graph
-            
-            # Create a real Graph object instead of a Mock to avoid issues with magic methods
             mock_shacl_graph = Graph()
-            # Add a dummy triple to make the graph non-empty
             mock_shacl_graph.add((URIRef('http://example.org/s'), URIRef('http://example.org/p'), URIRef('http://example.org/o')))
-            
-            with patch("heritrace.extensions.get_shacl_graph", return_value=mock_shacl_graph):
-                # Mock the query results for class constraints
-                class MockRow:
-                    def __init__(self, shape, predicate, classes=None):
-                        self.shape = shape
-                        self.predicate = predicate
-                        self.path = predicate  # Add path attribute to match what validate_new_triple expects
-                        self.classes = classes
-                        self.datatypes = None
-                        self.datatype = None  # Add datatype attribute (singular)
-                        self.a_class = None
-                        self.classIn = None
-                        self.maxCount = None
-                        self.minCount = None
-                        self.pattern = None
-                        self.message = None
-                        self.optionalValues = None
-                        self.conditionPaths = None
-                        self.conditionValues = None
-                
-                mock_results = [
-                    MockRow(
-                        "http://example.org/shapes/WebsiteShape",
-                        "http://xmlns.com/foaf/0.1/homepage",
-                        classes=["http://xmlns.com/foaf/0.1/Document"]
-                    )
-                ]
-                
-                with patch("rdflib.graph.Graph.query", return_value=mock_results):
-                    # Test with invalid URL
-                    subject = "http://example.org/person/1"
-                    predicate = "http://xmlns.com/foaf/0.1/homepage"
-                    new_value = "not-a-valid-url"
-                    
-                    # Create a mock custom filter
-                    mock_custom_filter = Mock()
-                    mock_custom_filter.human_readable_predicate.return_value = "readable_value"
-                    
-                    # Mock gettext to return a custom error message
-                    mock_error_message = "Invalid URL error message"
-                    
-                    # We need to mock the functions in the correct order
-                    # Mock get_custom_filter to return our mock first
-                    with patch("heritrace.extensions.get_custom_filter", return_value=mock_custom_filter):
-                        # Mock validators.url to return False (invalid URL) - this is the key part we're testing
-                        with patch("validators.url", return_value=False):
-                            # Mock gettext to return our error message
-                            with patch("flask_babel.gettext", return_value=mock_error_message):
-                                valid_value, old_value, error = validate_new_triple(
-                                    subject,
-                                    predicate,
-                                    new_value,
-                                    "create",
-                                    entity_types=["http://xmlns.com/foaf/0.1/Person"]
-                                )
-                                
-                                # Since we're mocking validators.url to return False, we should expect
-                                # the function to return our mock error message
-                                # However, with our current test setup, the function returns a Literal
-                                # Let's adjust our assertion to match the actual behavior
-                                assert isinstance(valid_value, Literal)
-                                assert str(valid_value) == new_value
-                                # We won't assert the error message since it depends on complex mocking
+
+            class MockRow:
+                def __init__(self, shape, predicate, classes=None):
+                    self.shape = shape
+                    self.predicate = predicate
+                    self.path = predicate
+                    self.classes = classes
+                    self.datatypes = None
+                    self.datatype = None
+                    self.a_class = None
+                    self.classIn = None
+                    self.maxCount = None
+                    self.minCount = None
+                    self.pattern = None
+                    self.message = None
+                    self.optionalValues = None
+                    self.conditionPaths = None
+                    self.conditionValues = None
+
+            mock_results = [
+                MockRow(
+                    "http://example.org/shapes/WebsiteShape",
+                    "http://xmlns.com/foaf/0.1/homepage",
+                    classes=["http://xmlns.com/foaf/0.1/Document"]
+                )
+            ]
+
+            mock_custom_filter = Mock()
+            mock_custom_filter.human_readable_predicate.return_value = "readable_value"
+
+            with patch("heritrace.utils.shacl_validation.fetch_data_graph_for_subject", return_value=Graph()), \
+                 patch("heritrace.utils.shacl_validation.get_shacl_graph", return_value=mock_shacl_graph), \
+                 patch("heritrace.utils.shacl_validation.get_custom_filter", return_value=mock_custom_filter), \
+                 patch("rdflib.graph.Graph.query", return_value=mock_results), \
+                 patch("validators.url", return_value=False), \
+                 patch("flask_babel.gettext", return_value="Invalid URL error message"):
+                valid_value, old_value, error = validate_new_triple(
+                    URIRef("http://example.org/person/1"),
+                    URIRef("http://xmlns.com/foaf/0.1/homepage"),
+                    "not-a-valid-url",
+                    "create",
+                    entity_types=["http://xmlns.com/foaf/0.1/Person"]
+                )
+
+                assert isinstance(valid_value, Literal)
+                assert str(valid_value) == "not-a-valid-url"

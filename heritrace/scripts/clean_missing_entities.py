@@ -8,11 +8,17 @@ import argparse
 import importlib.util
 import logging
 import sys
-from typing import Dict, List
+from typing import TypedDict
 
-from heritrace.extensions import SPARQLWrapperWithRetry
+from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
 from heritrace.utils.sparql_utils import VIRTUOSO_EXCLUDED_GRAPHS
 from SPARQLWrapper import JSON
+
+
+class MissingEntityResult(TypedDict):
+    uri: str
+    references: list[dict[str, str]]
+    success: bool
 
 
 class MissingEntityCleaner:
@@ -38,7 +44,7 @@ class MissingEntityCleaner:
         self.sparql.setReturnFormat(JSON)
         self.logger = logging.getLogger(__name__)
 
-    def _find_missing_entities_with_references(self) -> Dict[str, List[Dict[str, str]]]:
+    def _find_missing_entities_with_references(self) -> dict[str, list[dict[str, str]]]:
         """
         Find missing entity references in the dataset along with their references.
         
@@ -116,11 +122,11 @@ class MissingEntityCleaner:
             """
         
         self.sparql.setQuery(query)
-        results = self.sparql.queryAndConvert()
-        
-        missing_entities = {}
-        
-        for result in results["results"]["bindings"]:
+        bindings = get_sparql_bindings(self.sparql.queryAndConvert())
+
+        missing_entities: dict[str, list[dict[str, str]]] = {}
+
+        for result in bindings:
             entity_uri = result["entity"]["value"]
             subject = result["s"]["value"]
             predicate = result["p"]["value"]
@@ -135,7 +141,7 @@ class MissingEntityCleaner:
             
         return missing_entities
 
-    def _remove_references(self, entity_uri: str, references: List[Dict[str, str]]) -> bool:
+    def _remove_references(self, entity_uri: str, references: list[dict[str, str]]) -> bool:
         """
         Remove all references to a missing entity.
         
@@ -191,7 +197,7 @@ class MissingEntityCleaner:
                 
         return success
 
-    def process_missing_entities(self) -> List[Dict]:
+    def process_missing_entities(self) -> list[MissingEntityResult]:
         """
         Process all missing entity references in the dataset.
         
@@ -242,7 +248,7 @@ class MissingEntityCleaner:
         return results
 
 
-def clean_missing_entities(endpoint: str, is_virtuoso: bool = False) -> List[Dict]:
+def clean_missing_entities(endpoint: str, is_virtuoso: bool = False) -> list[MissingEntityResult]:
     """
     Clean up references to missing entities from the dataset.
     
@@ -269,16 +275,16 @@ def load_config(config_path):
     """
     try:
         spec = importlib.util.spec_from_file_location("config", config_path)
+        assert spec is not None and spec.loader is not None
         config = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(config)
+        spec.loader.exec_module(config)  # type: ignore[union-attr]
         return config
     except Exception as e:
         logging.error(f"Error loading configuration file: {e}")
         sys.exit(1)
 
 
-def main():
-    """Main entry point for the script when run from the command line."""
+def main() -> int:
     parser = argparse.ArgumentParser(description="Detect and clean up references to missing entities from the dataset")
     parser.add_argument("--config", "-c", required=True, help="Path to the configuration file")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")

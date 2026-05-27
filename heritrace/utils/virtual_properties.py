@@ -10,13 +10,13 @@ entities to display computed or derived relationships that don't exist directly
 in the knowledge graph.
 """
 
-from typing import Dict, List, Tuple, Any, Optional
+from __future__ import annotations
 
 from heritrace.extensions import get_display_rules
 from heritrace.utils.display_rules_utils import find_matching_rule
 
 
-def _validate_entity_data(data: Dict[str, Any]) -> Optional[str]:
+def _validate_entity_data(data: dict) -> str | None:
     """
     Validate entity data for virtual property processing.
 
@@ -33,7 +33,7 @@ def _validate_entity_data(data: Dict[str, Any]) -> Optional[str]:
     return entity_type
 
 
-def _get_virtual_property_configs(entity_type: str, entity_shape: str) -> Dict[str, Dict]:
+def _get_virtual_property_configs(entity_type: str, entity_shape: str | None) -> dict[str, dict]:
     """
     Get virtual property configurations for an entity type and shape.
 
@@ -58,7 +58,7 @@ def _get_virtual_property_configs(entity_type: str, entity_shape: str) -> Dict[s
     return virtual_property_configs
 
 
-def get_virtual_properties_for_entity(highest_priority_class: str, entity_shape: str) -> List[Tuple[str, Dict]]:
+def get_virtual_properties_for_entity(highest_priority_class: str, entity_shape: str | None) -> list[tuple[str, dict]]:
     """
     Extract virtual properties configured for a specific entity class and shape.
 
@@ -74,7 +74,7 @@ def get_virtual_properties_for_entity(highest_priority_class: str, entity_shape:
     return [(display_name, config) for display_name, config in virtual_property_configs.items()]
 
 
-def apply_field_overrides(form_field_data: Dict, field_overrides: Dict, current_entity_uri: str = None) -> Dict:
+def apply_field_overrides(form_field_data: dict, field_overrides: dict, current_entity_uri: str | None = None) -> dict:
     """
     Apply field overrides to form field data.
 
@@ -119,7 +119,7 @@ def apply_field_overrides(form_field_data: Dict, field_overrides: Dict, current_
 
     return modified_data
 
-def transform_changes_with_virtual_properties(changes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def transform_changes_with_virtual_properties(changes: list[dict]) -> list[dict]:
     """
     Transform a list of changes, expanding virtual properties into actual entity creations/deletions.
 
@@ -168,7 +168,7 @@ def transform_changes_with_virtual_properties(changes: List[Dict[str, Any]]) -> 
     return processed_changes
 
 
-def process_virtual_properties_in_create_data(data: Dict[str, Any], subject_uri: str = None) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+def process_virtual_properties_in_create_data(data: dict, subject_uri: str | None = None) -> tuple[dict, list[dict]]:
     """
     Process virtual properties in entity creation data.
 
@@ -214,7 +214,7 @@ def process_virtual_properties_in_create_data(data: Dict[str, Any], subject_uri:
     return modified_data, virtual_entities
 
 
-def transform_entity_creation_with_virtual_properties(structured_data: Dict[str, Any], created_entity_uri: str) -> List[Dict[str, Any]]:
+def transform_entity_creation_with_virtual_properties(structured_data: dict, created_entity_uri: str) -> list[dict]:
     """
     Transform virtual properties in entity creation data after the main entity has been created.
 
@@ -253,7 +253,7 @@ def transform_entity_creation_with_virtual_properties(structured_data: Dict[str,
     return virtual_entities
 
 
-def remove_virtual_properties_from_creation_data(structured_data: Dict[str, Any]) -> Dict[str, Any]:
+def remove_virtual_properties_from_creation_data(structured_data: dict) -> dict:
     """
     Remove virtual properties from entity creation data, leaving only regular properties.
 
@@ -285,7 +285,7 @@ def remove_virtual_properties_from_creation_data(structured_data: Dict[str, Any]
     return modified_data
 
 
-def transform_virtual_property_deletion(change: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def transform_virtual_property_deletion(change: dict) -> dict | None:
     """
     Transform a virtual property deletion into an entity deletion.
 
@@ -314,7 +314,7 @@ def transform_virtual_property_deletion(change: Dict[str, Any]) -> Optional[Dict
     }
 
 
-def process_virtual_property_values(values: List[Any], config: Dict[str, Any], subject_uri: str = None) -> List[Dict[str, Any]]:
+def process_virtual_property_values(values: list, config: dict, subject_uri: str | None = None) -> list[dict]:
     """
     Process values of a virtual property to create intermediate entities.
 

@@ -14,10 +14,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from flask import Flask, g
 from flask.testing import FlaskClient
-from heritrace.routes.api import (create_logic, delete_logic,
-                                  determine_datatype, generate_unique_uri,
-                                  order_logic, rebuild_entity_order,
-                                  update_logic)
+from heritrace.routes.api import (CreateEntityData, create_logic,
+                                  delete_logic, determine_datatype,
+                                  generate_unique_uri, order_logic,
+                                  rebuild_entity_order, update_logic)
 from heritrace.services.resource_lock_manager import (LockStatus,
                                                       ResourceLockManager)
 from heritrace.utils.strategies import (OrphanHandlingStrategy,
@@ -32,17 +32,15 @@ def api_client(
     logged_in_client: FlaskClient, app: Flask, redis_client: Redis
 ) -> Generator[FlaskClient, None, None]:
     """Extend the logged_in_client with a real resource lock manager."""
-    # Create a real ResourceLockManager with the Redis client
     lock_manager = ResourceLockManager(redis_client)
 
-    # Patch the g object to include our real lock manager
     def real_before_request():
         g.resource_lock_manager = lock_manager
 
-    app.before_request(real_before_request)
-
-    # Return the client with the patched session
+    fns = app.before_request_funcs.setdefault(None, [])
+    fns.insert(0, real_before_request)
     yield logged_in_client
+    fns.remove(real_before_request)
 
 
 def test_catalogue_api_unauthenticated(client: FlaskClient) -> None:
@@ -658,7 +656,9 @@ def test_renew_lock_success(
 
             # Get the initial lock timestamp
             lock_key = f"resource_lock:{resource_uri}"
-            initial_lock_data = json.loads(redis_client.get(lock_key))
+            raw = redis_client.get(lock_key)
+            assert isinstance(raw, bytes)
+            initial_lock_data = json.loads(raw)
             initial_timestamp = initial_lock_data["timestamp"]
 
             # Wait a moment to ensure timestamp would change
@@ -676,7 +676,9 @@ def test_renew_lock_success(
             assert data["status"] == "success"
 
             # Verify the lock was renewed with a new timestamp
-            renewed_lock_data = json.loads(redis_client.get(lock_key))
+            raw = redis_client.get(lock_key)
+            assert isinstance(raw, bytes)
+            renewed_lock_data = json.loads(raw)
             renewed_timestamp = renewed_lock_data["timestamp"]
             assert renewed_timestamp != initial_timestamp
 
@@ -838,9 +840,9 @@ def test_check_orphans_no_orphans(mock_find_orphaned, api_client: FlaskClient) -
 
     # Verify the find_orphaned_entities function was called with the correct arguments
     mock_find_orphaned.assert_called_once_with(
-        "http://example.org/entity/1",
+        URIRef("http://example.org/entity/1"),
         "http://example.org/Person",
-        "http://example.org/predicate/1",
+        URIRef("http://example.org/predicate/1"),
         "http://example.org/entity/2",
     )
 
@@ -1215,21 +1217,11 @@ def test_create_logic_with_temp_id(mock_generate_unique_uri, mock_validate_new_t
         # Create a mock editor
         mock_editor = MagicMock()
         
-        # Test data with temp_id
-        data = {
-            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [
-                {
-                    "value": "http://example.org/type/1",
-                    "datatype": "http://www.w3.org/2001/XMLSchema#anyURI"
-                }
-            ]
-        }
-        
         # Create a temp_id_to_uri mapping
         temp_id_to_uri = {}
-        
+
         # Create data with tempId
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {},
             "tempId": "temp-123"
@@ -1279,7 +1271,7 @@ def test_create_logic_with_nested_entity(mock_generate_unique_uri, mock_nested_c
         mock_editor = MagicMock()
         
         # Test data with a nested entity
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/property/1": [
@@ -1297,28 +1289,25 @@ def test_create_logic_with_nested_entity(mock_generate_unique_uri, mock_nested_c
         result = create_logic(
             mock_editor,
             data,
-            "http://example.org/entity/1",
+            URIRef("http://example.org/entity/1"),
             URIRef("http://example.org/graph/1"),
             None,
             None,
             {},
             "http://example.org/type/1"
         )
-        
-        # Verify the result
-        assert result == "http://example.org/entity/1"
-        
-        # Verify generate_unique_uri was called for the nested entity
+
+        assert result == URIRef("http://example.org/entity/1")
+
         mock_generate_unique_uri.assert_called_with("http://example.org/type/nested")
-        
-        # Verify nested create_logic was called
+
         mock_nested_create_logic.assert_called_once()
         call_args = mock_nested_create_logic.call_args[0]
         assert call_args[0] == mock_editor
         assert call_args[1] == data["properties"]["http://example.org/property/1"][0]
         assert call_args[3] == URIRef("http://example.org/graph/1")
-        assert call_args[4] == "http://example.org/entity/1"
-        assert call_args[5] == "http://example.org/property/1"
+        assert call_args[4] == URIRef("http://example.org/entity/1")
+        assert call_args[5] == URIRef("http://example.org/property/1")
 
 
 @patch("heritrace.routes.api.validate_new_triple")
@@ -1333,29 +1322,26 @@ def test_update_logic_implementation(mock_validate_new_triple, app: Flask) -> No
         # Create a mock editor
         mock_editor = MagicMock()
         
-        # Call update_logic
         update_logic(
             mock_editor,
-            "http://example.org/entity/1",
-            "http://example.org/property/1",
+            URIRef("http://example.org/entity/1"),
+            URIRef("http://example.org/property/1"),
             old_value,
             "New Value",
             URIRef("http://example.org/graph/1"),
             "http://example.org/type/1"
         )
-        
-        # Verify validate_new_triple was called
+
         mock_validate_new_triple.assert_called_with(
-            "http://example.org/entity/1",
-            "http://example.org/property/1",
+            URIRef("http://example.org/entity/1"),
+            URIRef("http://example.org/property/1"),
             "New Value",
             "update",
             old_value,
             entity_types="http://example.org/type/1",
             entity_shape=None
         )
-        
-        # Verify editor.update was called
+
         mock_editor.update.assert_called_with(
             URIRef("http://example.org/entity/1"),
             URIRef("http://example.org/property/1"),
@@ -1379,14 +1365,12 @@ def test_delete_logic_with_direct_graph_context(mock_validate_new_triple, app: F
         from heritrace.routes.api import delete_logic
         delete_logic(
             mock_editor,
-            "http://example.org/subject",
-            "http://example.org/predicate",
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate"),
             "http://example.org/object",
             URIRef("http://example.org/graph")
         )
-        
-        # Verify that editor.delete was called with the correct arguments
-        # Note: The second parameter in the return value from validate_new_triple is used as the object_value
+
         mock_editor.delete.assert_called_once_with(
             URIRef("http://example.org/subject"),
             URIRef("http://example.org/predicate"),
@@ -1410,8 +1394,8 @@ def test_delete_logic_with_validation_error(mock_validate_new_triple, app: Flask
         with pytest.raises(ValueError, match="Validation error"):
             delete_logic(
                 mock_editor,
-                "http://example.org/subject",
-                "http://example.org/predicate",
+                URIRef("http://example.org/subject"),
+                URIRef("http://example.org/predicate"),
                 "http://example.org/object",
                 URIRef("http://example.org/graph")
             )
@@ -1431,14 +1415,12 @@ def test_delete_logic_implementation(mock_validate_new_triple, app: Flask) -> No
         # Create a mock editor
         mock_editor = MagicMock()
         
-        # Create test values
-        subject = "http://example.org/entity/1"
-        predicate = "http://example.org/property/1"
+        subject = URIRef("http://example.org/entity/1")
+        predicate = URIRef("http://example.org/property/1")
         object_value = Literal("Value to delete")
         graph_uri = URIRef("http://example.org/graph/1")
         entity_type = "http://example.org/type/1"
-        
-        # Call delete_logic
+
         delete_logic(
             mock_editor,
             subject,
@@ -1447,8 +1429,7 @@ def test_delete_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             graph_uri,
             entity_type
         )
-        
-        # Verify validate_new_triple was called
+
         mock_validate_new_triple.assert_called_once_with(
             subject,
             predicate,
@@ -1458,13 +1439,11 @@ def test_delete_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             entity_types=entity_type,
             entity_shape=None
         )
-        
-        # Verify editor.delete was called with None for object_value
-        # This matches the actual behavior where validate_new_triple returns None
+
         mock_editor.delete.assert_called_with(
-            URIRef(subject),
-            URIRef(predicate),
-            None,  # object_value is None after validate_new_triple
+            subject,
+            predicate,
+            None,
             graph_uri
         )
 
@@ -1542,10 +1521,10 @@ def test_order_logic_with_entity_type_determination(mock_generate_unique_uri, ap
         # Call order_logic with a new order that includes an old entity
         result = order_logic(
             mock_editor,
-            "http://example.org/container/1",
-            "http://example.org/property/items",
+            URIRef("http://example.org/container/1"),
+            URIRef("http://example.org/property/items"),
             ["http://example.org/entity/old", "temp-123"],
-            "http://example.org/property/next",
+            URIRef("http://example.org/property/next"),
             URIRef("http://example.org/graph/1"),
             {"temp-123": "http://example.org/entity/new"}
         )
@@ -1554,7 +1533,7 @@ def test_order_logic_with_entity_type_determination(mock_generate_unique_uri, ap
         assert result == mock_editor
         
         # Verify generate_unique_uri was called with the correct entity type
-        mock_generate_unique_uri.assert_called_once_with(URIRef("http://example.org/type/1"))
+        mock_generate_unique_uri.assert_called_once_with("http://example.org/type/1")
         
         # No need to verify specific triples calls as we're using a side_effect function
         # The test passes if generate_unique_uri was called correctly
@@ -1582,7 +1561,7 @@ def test_create_logic_with_parent(mock_generate_unique_uri, mock_validate_new_tr
         mock_editor = MagicMock()
         
         # Test data with properties
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/property/name": {
@@ -1656,11 +1635,11 @@ def test_create_logic_entity_type_error(mock_generate_unique_uri, mock_validate_
         mock_editor = MagicMock()
         
         # Test data
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {}
         }
-        
+
         # Call create_logic with parent_subject to trigger entity type validation
         with pytest.raises(ValueError, match="Invalid entity type"):
             create_logic(
@@ -1692,11 +1671,11 @@ def test_create_logic_parent_relation_error(mock_generate_unique_uri, mock_valid
         mock_editor = MagicMock()
         
         # Test data
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {}
         }
-        
+
         # Call create_logic with parent_subject and parent_predicate
         with pytest.raises(ValueError, match="Invalid parent relation"):
             create_logic(
@@ -1733,7 +1712,7 @@ def test_create_logic_property_error(mock_generate_unique_uri, mock_validate_new
         mock_editor = MagicMock()
         
         # Test data with properties - using dictionary format for properties
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/property/name": [{"type": "literal", "value": "Test Value"}]
@@ -1784,8 +1763,8 @@ def test_update_logic_with_error_message(mock_validate_new_triple, app: Flask) -
         with pytest.raises(ValueError, match="Invalid update value"):
             update_logic(
                 mock_editor,
-                "http://example.org/subject/1",
-                "http://example.org/predicate/1",
+                URIRef("http://example.org/subject/1"),
+                URIRef("http://example.org/predicate/1"),
                 "Old Value",
                 "New Value",
                 URIRef("http://example.org/graph/1"),
@@ -1819,10 +1798,10 @@ def test_order_logic_entity_type_error(app: Flask) -> None:
             from heritrace.routes.api import order_logic
             order_logic(
                 mock_editor,
-                "http://example.org/subject/1",
-                "http://example.org/predicate/1",
+                URIRef("http://example.org/subject/1"),
+                URIRef("http://example.org/predicate/1"),
                 ["http://example.org/old/1"],
-                "http://example.org/ordered_by",
+                URIRef("http://example.org/ordered_by"),
                 URIRef("http://example.org/graph/1")
             )
 
@@ -1950,7 +1929,7 @@ def test_create_logic(mock_generate_unique_uri, mock_validate_new_triple, app: F
         mock_generate_unique_uri.return_value = URIRef("http://example.org/new_entity")
 
         # Create test data - using dictionary format for property values
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/EntityType",
             "properties": {
                 "http://example.org/predicate1": [{"type": "literal", "value": "value1"}],
@@ -1967,7 +1946,7 @@ def test_create_logic(mock_generate_unique_uri, mock_validate_new_triple, app: F
             mock_editor,
             data,
             subject=URIRef("http://example.org/subject"),
-            graph_uri="http://example.org/graph"
+            graph_uri=URIRef("http://example.org/graph")
         )
 
         # Verify that the function returned the correct subject
@@ -1993,32 +1972,32 @@ def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
         # Call the function
         update_logic(
             mock_editor,
-            "http://example.org/subject",
-            "http://example.org/predicate",
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate"),
             "http://example.org/old_value",
             "http://example.org/new_value",
-            "http://example.org/graph",
+            URIRef("http://example.org/graph"),
             "http://example.org/EntityType"
         )
-        
+
         # Verify validate_new_triple was called correctly
         mock_validate_new_triple.assert_called_once_with(
-            "http://example.org/subject",
-            "http://example.org/predicate",
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate"),
             "http://example.org/new_value",
             "update",
             "http://example.org/old_value",
             entity_types="http://example.org/EntityType",
             entity_shape=None
         )
-        
+
         # Verify the editor was called correctly
         mock_editor.update.assert_called_once_with(
             URIRef("http://example.org/subject"),
             URIRef("http://example.org/predicate"),
             old_value,
             new_value,
-            "http://example.org/graph"
+            URIRef("http://example.org/graph")
         )
 
 
@@ -2036,30 +2015,30 @@ def test_delete_logic(mock_validate_new_triple, app: Flask) -> None:
         # Call the function
         delete_logic(
             mock_editor,
-            "http://example.org/subject",
-            "http://example.org/predicate",
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate"),
             "http://example.org/object",
-            "http://example.org/graph",
+            URIRef("http://example.org/graph"),
             "http://example.org/EntityType"
         )
-        
+
         # Verify validate_new_triple was called correctly
         mock_validate_new_triple.assert_called_once_with(
-            "http://example.org/subject",
-            "http://example.org/predicate",
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate"),
             None,
             "delete",
             "http://example.org/object",
             entity_types="http://example.org/EntityType",
             entity_shape=None
         )
-        
+
         # Verify the editor was called correctly
         mock_editor.delete.assert_called_once_with(
             URIRef("http://example.org/subject"),
             URIRef("http://example.org/predicate"),
             object_value,
-            "http://example.org/graph"
+            URIRef("http://example.org/graph")
         )
 
 
@@ -2104,11 +2083,11 @@ def test_order_logic(mock_generate_unique_uri, app: Flask) -> None:
         # Call the function
         result = order_logic(
             mock_editor,
-            "http://example.org/subject",
-            "http://example.org/predicate",
+            URIRef("http://example.org/subject"),
+            URIRef("http://example.org/predicate"),
             [str(entity1), str(entity2)],
-            "http://example.org/ordered_by",
-            "http://example.org/graph",
+            URIRef("http://example.org/ordered_by"),
+            URIRef("http://example.org/graph"),
             temp_id_to_uri
         )
         
@@ -2126,7 +2105,7 @@ def test_create_logic_with_existing_entity(mock_generate_unique_uri, mock_valida
 
         mock_editor = MagicMock()
 
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/property/1": [
@@ -2164,7 +2143,7 @@ def test_create_logic_with_existing_entity_missing_uri(mock_generate_unique_uri,
 
         mock_editor = MagicMock()
 
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/property/1": [
@@ -2194,7 +2173,7 @@ def test_create_logic_with_custom_property_uri(mock_generate_unique_uri, mock_va
 
         mock_editor = MagicMock()
 
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/custom/property": [
@@ -2233,7 +2212,7 @@ def test_create_logic_with_custom_property_literal(mock_generate_unique_uri, moc
 
         mock_editor = MagicMock()
 
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/custom/property": [
@@ -2268,7 +2247,7 @@ def test_create_logic_with_custom_property_unknown_type(mock_generate_unique_uri
 
         mock_editor = MagicMock()
 
-        data = {
+        data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/custom/property": [
@@ -2834,7 +2813,7 @@ def test_apply_changes_set_primary_source_on_editor(
     )
 
     assert response.status_code == 200
-    mock_editor.set_primary_source.assert_called_once_with("http://example.org/source")
+    mock_editor.set_primary_source.assert_called_once_with(URIRef("http://example.org/source"))
 
 
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")

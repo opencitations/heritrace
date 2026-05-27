@@ -2,10 +2,11 @@
 #
 # SPDX-License-Identifier: ISC
 
-from typing import List, Optional, Tuple
+from collections.abc import Iterable
 
 from flask import Flask
 from heritrace.extensions import get_shacl_graph, get_sparql
+from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.display_rules_utils import get_class_priority
 from heritrace.utils.shacl_display import (apply_display_rules,
                                            extract_shacl_form_fields,
@@ -15,7 +16,7 @@ from rdflib import RDF, Graph
 from SPARQLWrapper import JSON
 
 
-def get_form_fields_from_shacl(shacl: Graph, display_rules: List[dict], app: Flask):
+def get_form_fields_from_shacl(shacl: Graph | None, display_rules: list[dict] | None, app: Flask):
     """
     Analyze SHACL shapes to extract form fields for each entity type.
     
@@ -148,7 +149,7 @@ def add_virtual_properties_to_form_fields_internal(form_fields: dict) -> dict:
     return enhanced_form_fields
 
 
-def determine_shape_for_classes(class_list: List[str]) -> Optional[str]:
+def determine_shape_for_classes(class_list: list[str]) -> str | None:
     """
     Determine the most appropriate SHACL shape for a list of class URIs.
     
@@ -172,15 +173,15 @@ def determine_shape_for_classes(class_list: List[str]) -> Optional[str]:
         """
         
         results = shacl_graph.query(query_string)
-        shapes = [str(row.shape) for row in results]
-        
+        shapes = [str(row.shape) for row in select_results(results)]
+
         for shape in shapes:
             all_shacl_shapes.append((class_uri, shape))
 
     return _find_highest_priority_shape(all_shacl_shapes)
 
 
-def determine_shape_for_entity_triples(entity_triples: list) -> Optional[str]:
+def determine_shape_for_entity_triples(entity_triples: Iterable) -> str | None:
     """
     Determine the most appropriate SHACL shape for an entity based on its triples.
     
@@ -220,8 +221,8 @@ def determine_shape_for_entity_triples(entity_triples: list) -> Optional[str]:
         """
         
         results = shacl_graph.query(query_string)
-        shapes = [str(row.shape) for row in results]
-        
+        shapes = [str(row.shape) for row in select_results(results)]
+
         for shape in shapes:
             candidate_shapes.append((class_uri, shape))
     
@@ -251,7 +252,7 @@ def determine_shape_for_entity_triples(entity_triples: list) -> Optional[str]:
     return best_shape
 
 
-def _find_highest_priority_shape(class_shape_pairs: List[Tuple[str, str]]) -> Optional[str]:
+def _find_highest_priority_shape(class_shape_pairs: list[tuple[str, str]]) -> str | None:
     """
     Helper function to find the shape with the highest priority from a list of (class_uri, shape) pairs.
     
@@ -296,13 +297,13 @@ def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:
     """
     
     results = shacl_graph.query(query_string)
-    for row in results:
+    for row in select_results(results):
         properties.add(str(row.property))
     
     return properties
 
 
-def _check_hasvalue_constraints(shacl_graph: Graph, shape_uri: str, entity_triples: list) -> int:
+def _check_hasvalue_constraints(shacl_graph: Graph, shape_uri: str, entity_triples: Iterable) -> int:
     """
     Check how many sh:hasValue constraints the entity satisfies for a given shape.
     
@@ -325,7 +326,7 @@ def _check_hasvalue_constraints(shacl_graph: Graph, shape_uri: str, entity_tripl
     """
     
     results = shacl_graph.query(query_string)
-    constraints = [(str(row.property), str(row.value)) for row in results]
+    constraints = [(str(row.property), str(row.value)) for row in select_results(results)]
     
     if not constraints:
         return 0
@@ -416,7 +417,7 @@ def find_matching_form_field(class_uri=None, shape_uri=None, form_fields=None):
     return None
 
 
-def _find_entity_position_in_order_map(entity_uri: str, order_map: dict) -> Optional[int]:
+def _find_entity_position_in_order_map(entity_uri: str, order_map: dict) -> int | None:
     """
     Helper function to find entity position in an order map.
     
@@ -469,8 +470,8 @@ def _find_entity_position_in_order_map(entity_uri: str, order_map: dict) -> Opti
     return None
 
 
-def get_entity_position_in_sequence(entity_uri: str, subject_uri: str, predicate_uri: str, 
-                                   order_property: str, snapshot: Optional[Graph] = None) -> Optional[int]:
+def get_entity_position_in_sequence(entity_uri: str, subject_uri: str, predicate_uri: str,
+                                   order_property: str, snapshot: Graph | None = None) -> int | None:
     """
     Get the position of an entity in an ordered sequence.
     
@@ -495,8 +496,8 @@ def get_entity_position_in_sequence(entity_uri: str, subject_uri: str, predicate
     """
     
     if snapshot:
-        order_results = list(snapshot.query(order_query))
-                
+        order_results = list(select_results(snapshot.query(order_query)))
+
         order_map = {}
         for res in order_results:
             ordered_entity = str(res[0])
@@ -509,7 +510,7 @@ def get_entity_position_in_sequence(entity_uri: str, subject_uri: str, predicate
         sparql = get_sparql()
         sparql.setQuery(order_query)
         sparql.setReturnFormat(JSON)
-        order_results = sparql.query().convert().get("results", {}).get("bindings", [])
+        order_results = get_sparql_bindings(sparql.query().convert())
         
         order_map = {}
         for res in order_results:

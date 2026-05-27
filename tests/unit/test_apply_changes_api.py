@@ -280,7 +280,7 @@ def test_apply_changes_with_affected_entities(
     # Note: include_referencing_entities is True because the changes list *contains* a full entity deletion
     mock_import_entity_graph.assert_called_once_with(
         mock.ANY, # editor instance
-        main_entity_uri,
+        URIRef(main_entity_uri),
         include_referencing_entities=True
     )
 
@@ -295,11 +295,11 @@ def test_apply_changes_with_affected_entities(
     # Check calls specifically for unique affected entities (should be called only once each in phase 1)
     orphan_delete_calls = [
         call for call in mock_delete_logic.call_args_list
-        if call[0][1] == orphan_uri # Check subject URI
+        if call[0][1] == URIRef(orphan_uri) # Check subject URI
     ]
     proxy_delete_calls = [
         call for call in mock_delete_logic.call_args_list
-        if call[0][1] == proxy_uri # Check subject URI
+        if call[0][1] == URIRef(proxy_uri) # Check subject URI
     ]
     assert len(orphan_delete_calls) == 1, f"Expected 1 delete call for orphan {orphan_uri}, got {len(orphan_delete_calls)}"
     assert len(proxy_delete_calls) == 1, f"Expected 1 delete call for proxy {proxy_uri}, got {len(proxy_delete_calls)}"
@@ -307,7 +307,7 @@ def test_apply_changes_with_affected_entities(
     # Check call specifically for the full entity deletion (L576)
     full_delete_call_args = mock.call(
         mock_editor,
-        full_delete_target_uri,
+        URIRef(full_delete_target_uri),
         graph_uri=None,
         entity_type="http://example.org/FullDeleteType",
         entity_shape=None
@@ -319,7 +319,7 @@ def test_apply_changes_with_affected_entities(
     # Full orphan entity deletion (skipped by L573)
     skipped_full_orphan_delete_call = mock.call(
         mock_editor,
-        orphan_uri,
+        URIRef(orphan_uri),
         None, # predicate
         None, # object_value
         graph_uri=None,
@@ -328,8 +328,8 @@ def test_apply_changes_with_affected_entities(
     # Triple with deleted proxy object (skipped by L581)
     skipped_proxy_object_delete_call_args = mock.call(
         mock_editor,
-        "http://example.org/another/subj",
-        "http://example.org/relates/to",
+        URIRef("http://example.org/another/subj"),
+        URIRef("http://example.org/relates/to"),
         proxy_uri, # Check the raw object value from the change
         None, # graph_uri
         "http://example.org/AnotherType"
@@ -542,7 +542,7 @@ def test_apply_changes_with_quadstore(
     call_args = mock_create_logic.call_args[0]
     assert call_args[0] == mock_editor
     assert call_args[1] == changes[0]["data"]
-    assert call_args[2] == changes[0]["subject"]
+    assert call_args[2] == URIRef(changes[0]["subject"])
 
     assert hasattr(call_args[3], 'identifier')
     assert call_args[3].identifier == mock_graph.identifier
@@ -633,6 +633,6 @@ def test_apply_changes_sets_editor_primary_source(
 
     assert response.status_code == 200
     MockEditor.assert_called_once()
-    mock_editor_instance.set_primary_source.assert_called_once_with(valid_source_url)
+    mock_editor_instance.set_primary_source.assert_called_once_with(URIRef(valid_source_url))
     mock_import_entity_graph.assert_called_once()
     mock_editor_instance.save.assert_called_once() 

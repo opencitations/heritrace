@@ -2,19 +2,19 @@
 #
 # SPDX-License-Identifier: ISC
 
+from __future__ import annotations
+
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote
 
 from heritrace.extensions import (get_custom_filter, get_display_rules,
-                                  get_form_fields, get_sparql)
+                                  get_form_fields, get_sparql,
+                                  get_sparql_bindings, select_results)
 from rdflib import Dataset, Graph, Literal, URIRef
+from rdflib.query import ResultRow
 from rdflib.plugins.sparql.algebra import translateQuery
 from rdflib.plugins.sparql.parser import parseQuery
 from SPARQLWrapper import JSON
-
-
-display_rules = get_display_rules()
 
 
 def find_matching_rule(class_uri=None, shape_uri=None, rules=None):
@@ -106,7 +106,7 @@ def is_entity_type_visible(entity_key):
     return rule.get("shouldBeDisplayed", True) if rule else True
 
 
-def get_sortable_properties(entity_key: Tuple[str, str]) -> List[Dict[str, str]]:
+def get_sortable_properties(entity_key: tuple[str, str | None]) -> list[dict[str, str]]:
     """
     Gets the sortable properties from display rules for an entity type and/or shape.
     Infers the sorting type from form_fields_cache.
@@ -216,13 +216,13 @@ def get_highest_priority_class(subject_classes):
 
 
 def get_grouped_triples(
-    subject: URIRef, 
-    triples: List[Tuple[URIRef, URIRef, URIRef|Literal]], 
-    valid_predicates_info: List[str], 
-    historical_snapshot: Optional[Graph] = None,
-    highest_priority_class: Optional[str] = None,
-    highest_priority_shape: Optional[str] = None
-) -> Tuple[OrderedDict, set, dict]:
+    subject: URIRef,
+    triples: list[tuple[URIRef, URIRef, URIRef | Literal]],
+    valid_predicates_info: list[str],
+    historical_snapshot: Graph | None = None,
+    highest_priority_class: str | None = None,
+    highest_priority_shape: str | None = None
+) -> tuple[OrderedDict, set]:
     """
     This function groups the triples based on the display rules. 
     It also fetches the values for the properties that are configured to be fetched from the query.
@@ -398,7 +398,6 @@ def get_grouped_triples(
                             display_name_simple,
                             fetched_values_map,
                             historical_snapshot,
-                            highest_priority_shape
                         )
                     if "intermediateRelation" in current_prop_config:
                         if display_name_simple not in grouped_triples:
@@ -493,9 +492,9 @@ def process_virtual_property_display(
     subject: URIRef,
     grouped_triples: OrderedDict,
     fetched_values_map: dict,
-    historical_snapshot: Optional[Graph] = None,
-    subject_shape: Optional[str] = None,
-    subject_class: Optional[str] = None
+    historical_snapshot: Graph | None = None,
+    subject_shape: str | None = None,
+    subject_class: str | None = None
 ):
     """Process virtual properties by querying for entities that reference the current entity."""
 
@@ -534,15 +533,14 @@ def process_virtual_property_display(
 
     if historical_snapshot:
         # Execute query on historical snapshot
-        results = list(historical_snapshot.query(query))
-        entity_uris = [str(row[0]) for row in results]
+        entity_uris = [str(row[0]) for row in select_results(historical_snapshot.query(query))]
     else:
         # Execute query on live triplestore
         sparql = get_sparql()
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
-        results = sparql.query().convert().get("results", {}).get("bindings", [])
-        entity_uris = [res["entity"]["value"] for res in results]
+        bindings = get_sparql_bindings(sparql.query().convert())
+        entity_uris = [res["entity"]["value"] for res in bindings]
 
     # Now fetch display values for these entities if fetchValueFromQuery is configured
 
@@ -601,7 +599,7 @@ def process_virtual_property_display(
             }
 
 
-def execute_sparql_query(query: str, subject: str, value: str) -> Tuple[str, str]:
+def execute_sparql_query(query: str, subject: str, value: str) -> tuple[str | None, str | None]:
     sparql = get_sparql()
 
     decoded_subject = unquote(subject)
@@ -610,12 +608,12 @@ def execute_sparql_query(query: str, subject: str, value: str) -> Tuple[str, str
     query = query.replace("[[value]]", f"<{decoded_value}>")
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
-    results = sparql.query().convert().get("results", {}).get("bindings", [])
-    if results:
+    bindings = get_sparql_bindings(sparql.query().convert())
+    if bindings:
         parsed_query = parseQuery(query)
         algebra_query = translateQuery(parsed_query).algebra
         variable_order = algebra_query["PV"]
-        result = results[0]
+        result = bindings[0]
         values = [
             result.get(str(var_name), {}).get("value", None)
             for var_name in variable_order
@@ -674,11 +672,11 @@ def process_ordering(
         }}
     """
     if historical_snapshot:
-        order_results = list(historical_snapshot.query(order_query))
+        order_results: list[dict[str, dict[str, str]]] | list[ResultRow] = list(select_results(historical_snapshot.query(order_query)))
     else:
         sparql.setQuery(order_query)
         sparql.setReturnFormat(JSON)
-        order_results = sparql.query().convert().get("results", {}).get("bindings", [])
+        order_results = get_sparql_bindings(sparql.query().convert())
 
     order_sequences = get_ordered_sequence(order_results)
     for sequence in order_sequences:
@@ -717,20 +715,19 @@ def process_default_property(prop_uri, triples, grouped_triples, subject_shape=N
 
 def execute_historical_query(
     query: str, subject: str, value: str, historical_snapshot: Graph
-) -> Tuple[str, str]:
+) -> tuple[str | None, str | None]:
     decoded_subject = unquote(subject)
     decoded_value = unquote(value)
     query = query.replace("[[subject]]", f"<{decoded_subject}>")
     query = query.replace("[[value]]", f"<{decoded_value}>")
     results = historical_snapshot.query(query)
-    if results:
-        for result in results:
-            if len(result) == 2:
-                return (str(result[0]), str(result[1]))
+    for row in select_results(results):
+        if len(row) == 2:
+            return (str(row[0]), str(row[1]))
     return None, None
 
 
-def get_property_order_from_rules(highest_priority_class: str, shape_uri: str = None):
+def get_property_order_from_rules(highest_priority_class: str | None, shape_uri: str | None = None):
     """
     Extract ordered list of properties from display rules for given entity class and optionally a shape.
 
@@ -760,7 +757,7 @@ def get_property_order_from_rules(highest_priority_class: str, shape_uri: str = 
     return ordered_properties
 
 
-def get_predicate_ordering_info(predicate_uri: str, highest_priority_class: str, entity_shape: str = None) -> Optional[str]:
+def get_predicate_ordering_info(predicate_uri: str, highest_priority_class: str, entity_shape: str | None = None) -> str | None:
     """
     Check if a predicate is ordered and return its ordering property.
     
@@ -826,7 +823,7 @@ def get_shape_order_from_display_rules(highest_priority_class: str, entity_shape
     return []
 
 
-def get_similarity_properties(entity_key: Tuple[str, str]) -> Optional[List[Union[str, Dict[str, List[str]]]]]:
+def get_similarity_properties(entity_key: tuple[str, str | None]) -> list[str | dict[str, list[str]]] | None:
     """Gets the similarity properties configuration for a given entity key.
 
     This configuration specifies which properties should be used for similarity matching

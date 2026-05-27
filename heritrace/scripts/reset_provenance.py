@@ -8,10 +8,10 @@ import argparse
 import importlib.util
 import logging
 import sys
-from typing import Union
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-from heritrace.extensions import SPARQLWrapperWithRetry
+from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
 from heritrace.utils.converters import convert_to_datetime
 from rdflib import URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
@@ -42,20 +42,7 @@ class ProvenanceResetter:
         self.counter_handler = counter_handler
         self.logger = logging.getLogger(__name__)
 
-    def reset_entity_provenance(self, entity_uri: Union[str, URIRef]) -> bool:
-        """
-        Reset the provenance of a specific entity by deleting all snapshots
-        after snapshot 1, removing the invalidatedAtTime property from the first snapshot,
-        and resetting the provenance counters.
-
-        Args:
-            entity_uri: The URI of the entity to reset
-
-        Returns:
-            bool: True if the operation was successful, False otherwise
-        """
-        if not isinstance(entity_uri, URIRef):
-            entity_uri = URIRef(entity_uri)
+    def reset_entity_provenance(self, entity_uri: URIRef) -> bool:
 
         # Step 1: Find all snapshots for the entity
         snapshots = self._get_entity_snapshots(entity_uri)
@@ -65,7 +52,7 @@ class ProvenanceResetter:
 
         # Sort snapshots by generation time, converting strings to datetime objects
         sorted_snapshots = sorted(
-            snapshots, key=lambda x: convert_to_datetime(x["generation_time"])
+            snapshots, key=lambda x: convert_to_datetime(x["generation_time"]) or datetime.min.replace(tzinfo=timezone.utc)
         )
 
         # Keep only the first snapshot
@@ -116,10 +103,10 @@ class ProvenanceResetter:
         """
         
         self.provenance_sparql.setQuery(query)
-        results = self.provenance_sparql.queryAndConvert()
-        
+        bindings = get_sparql_bindings(self.provenance_sparql.queryAndConvert())
+
         snapshots = []
-        for binding in results["results"]["bindings"]:
+        for binding in bindings:
             snapshots.append({
                 "uri": binding["snapshot"]["value"],
                 "generation_time": binding["generation_time"]["value"]
@@ -255,23 +242,10 @@ class ProvenanceResetter:
 
 
 def reset_entity_provenance(
-    entity_uri: str,
+    entity_uri: URIRef,
     provenance_endpoint: str,
     counter_handler: CounterHandler,
 ) -> bool:
-    """
-    Reset the provenance of a specific entity by deleting all snapshots
-    after snapshot 1, removing the invalidatedAtTime property from the first snapshot,
-    and resetting the provenance counters.
-
-    Args:
-        entity_uri: The URI of the entity to reset
-        provenance_endpoint: The SPARQL endpoint for the provenance database
-        counter_handler: An instance of a CounterHandler to manage provenance counters
-
-    Returns:
-        bool: True if the operation was successful, False otherwise
-    """
     resetter = ProvenanceResetter(
         provenance_endpoint=provenance_endpoint,
         counter_handler=counter_handler,
@@ -292,16 +266,16 @@ def load_config(config_path):
     """
     try:
         spec = importlib.util.spec_from_file_location("config", config_path)
+        assert spec is not None and spec.loader is not None
         config = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(config)
+        spec.loader.exec_module(config)  # type: ignore[union-attr]
         return config
     except Exception as e:
         logging.error(f"Error loading configuration file: {e}")
         sys.exit(1)
 
 
-def main():
-    """Main entry point for the script when run from the command line."""
+def main() -> int:
     parser = argparse.ArgumentParser(description="Reset the provenance of a specific entity")
     parser.add_argument("entity_uri", help="URI of the entity to reset")
     parser.add_argument("--config", "-c", required=True, help="Path to the configuration file")
@@ -339,7 +313,7 @@ def main():
     counter_handler = config.Config.COUNTER_HANDLER
     
     success = reset_entity_provenance(
-        entity_uri=args.entity_uri,
+        entity_uri=URIRef(args.entity_uri),
         provenance_endpoint=provenance_endpoint,
         counter_handler=counter_handler
     )

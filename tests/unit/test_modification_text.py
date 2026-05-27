@@ -91,13 +91,16 @@ def test_generate_modification_text_additions(
 ):
     """Test generate_modification_text with additions."""
     with patch('heritrace.routes.entity.get_display_rules', return_value=mock_display_rules), \
-         patch('heritrace.routes.entity.get_property_order_from_rules', 
+         patch('heritrace.routes.entity.get_property_order_from_rules',
                return_value=["http://example.org/name"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
-         patch('heritrace.routes.entity.format_triple_modification', 
+         patch('heritrace.routes.entity.format_triple_modification',
                side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_predicate_ordering_info', return_value=None), \
+         patch('heritrace.routes.entity.get_shape_order_from_display_rules', return_value=[]), \
+         patch('heritrace.routes.entity.determine_object_class_and_shape', return_value=(None, None)), \
          patch('heritrace.routes.entity.get_form_fields', return_value={}):
-        
+
         modifications = {
             "Additions": [
                 (
@@ -134,11 +137,14 @@ def test_generate_modification_text_deletions(
 ):
     """Test generate_modification_text with deletions."""
     with patch('heritrace.routes.entity.get_display_rules', return_value=mock_display_rules), \
-         patch('heritrace.routes.entity.get_property_order_from_rules', 
+         patch('heritrace.routes.entity.get_property_order_from_rules',
                return_value=["http://example.org/age"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
-         patch('heritrace.routes.entity.format_triple_modification', 
+         patch('heritrace.routes.entity.format_triple_modification',
                side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_predicate_ordering_info', return_value=None), \
+         patch('heritrace.routes.entity.get_shape_order_from_display_rules', return_value=[]), \
+         patch('heritrace.routes.entity.determine_object_class_and_shape', return_value=(None, None)), \
          patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {
@@ -182,11 +188,14 @@ def test_generate_modification_text_mixed_modifications(
 ):
     """Test generate_modification_text with both additions and deletions."""
     with patch('heritrace.routes.entity.get_display_rules', return_value=mock_display_rules), \
-         patch('heritrace.routes.entity.get_property_order_from_rules', 
+         patch('heritrace.routes.entity.get_property_order_from_rules',
                return_value=["http://example.org/name", "http://example.org/age"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
-         patch('heritrace.routes.entity.format_triple_modification', 
+         patch('heritrace.routes.entity.format_triple_modification',
                side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_predicate_ordering_info', return_value=None), \
+         patch('heritrace.routes.entity.get_shape_order_from_display_rules', return_value=[]), \
+         patch('heritrace.routes.entity.determine_object_class_and_shape', return_value=(None, None)), \
          patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {
@@ -239,11 +248,14 @@ def test_generate_modification_text_ordered_properties(
 ):
     """Test generate_modification_text respects property ordering."""
     with patch('heritrace.routes.entity.get_display_rules', return_value=mock_display_rules), \
-         patch('heritrace.routes.entity.get_property_order_from_rules', 
+         patch('heritrace.routes.entity.get_property_order_from_rules',
                return_value=["http://example.org/age", "http://example.org/name"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
-         patch('heritrace.routes.entity.format_triple_modification', 
+         patch('heritrace.routes.entity.format_triple_modification',
                side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_predicate_ordering_info', return_value=None), \
+         patch('heritrace.routes.entity.get_shape_order_from_display_rules', return_value=[]), \
+         patch('heritrace.routes.entity.determine_object_class_and_shape', return_value=(None, None)), \
          patch('heritrace.routes.entity.get_form_fields', return_value={}):
         
         modifications = {
@@ -288,13 +300,16 @@ def test_generate_modification_text_unordered_properties(
 ):
     """Test generate_modification_text handles properties not in ordered list."""
     with patch('heritrace.routes.entity.get_display_rules', return_value=mock_display_rules), \
-         patch('heritrace.routes.entity.get_property_order_from_rules', 
+         patch('heritrace.routes.entity.get_property_order_from_rules',
                return_value=["http://example.org/name"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
-         patch('heritrace.routes.entity.format_triple_modification', 
+         patch('heritrace.routes.entity.format_triple_modification',
                side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_predicate_ordering_info', return_value=None), \
+         patch('heritrace.routes.entity.get_shape_order_from_display_rules', return_value=[]), \
+         patch('heritrace.routes.entity.determine_object_class_and_shape', return_value=(None, None)), \
          patch('heritrace.routes.entity.get_form_fields', return_value={}):
-        
+
         modifications = {
             "Additions": [
                 (
@@ -426,13 +441,14 @@ def test_generate_modification_text_shape_priority_ordering(
     mock_snapshot = MagicMock(spec=Graph)
     
     with patch('heritrace.routes.entity.get_display_rules', return_value=mock_display_rules), \
-         patch('heritrace.routes.entity.get_property_order_from_rules', 
+         patch('heritrace.routes.entity.get_property_order_from_rules',
                return_value=["http://example.org/property"]), \
          patch('heritrace.routes.entity.get_shape_order_from_display_rules',
                return_value=["http://example.org/ShapeA", "http://example.org/ShapeB"]) as mock_shape_order, \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
-         patch('heritrace.routes.entity.format_triple_modification', 
+         patch('heritrace.routes.entity.format_triple_modification',
                side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_predicate_ordering_info', return_value=None), \
          patch('heritrace.routes.entity.determine_object_class_and_shape',
                side_effect=[("ClassA", "http://example.org/ShapeB"), ("ClassB", "http://example.org/ShapeA")]), \
          patch('heritrace.routes.entity.get_form_fields', return_value={}):
@@ -527,11 +543,13 @@ def test_generate_modification_text_deletions_with_history(
     mock_previous_snapshot = MagicMock(spec=Graph)
     
     with patch('heritrace.routes.entity.get_display_rules', return_value=mock_display_rules), \
-         patch('heritrace.routes.entity.get_property_order_from_rules', 
+         patch('heritrace.routes.entity.get_property_order_from_rules',
                return_value=["http://example.org/property"]), \
          patch('heritrace.routes.entity.gettext', side_effect=lambda x: x), \
-         patch('heritrace.routes.entity.format_triple_modification', 
+         patch('heritrace.routes.entity.format_triple_modification',
                side_effect=mock_format_triple), \
+         patch('heritrace.routes.entity.get_predicate_ordering_info', return_value=None), \
+         patch('heritrace.routes.entity.get_shape_order_from_display_rules', return_value=[]), \
          patch('heritrace.routes.entity.determine_object_class_and_shape',
                return_value=("SomeClass", "SomeShape")), \
          patch('heritrace.routes.entity.get_form_fields', return_value={}):

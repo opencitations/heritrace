@@ -541,8 +541,9 @@ class TestGetSortableProperties:
 
 
 class TestGetHighestPriorityClass:
+    @patch("heritrace.utils.shacl_utils.determine_shape_for_classes", return_value=None)
     @patch("heritrace.utils.display_rules_utils.get_class_priority")
-    def test_get_highest_priority_class(self, mock_get_class_priority):
+    def test_get_highest_priority_class(self, mock_get_class_priority, mock_determine_shape):
         mock_get_class_priority.side_effect = lambda entity_key: {
             ("http://example.org/Person", None): 1,
             ("http://example.org/Organization", None): 5,
@@ -571,8 +572,9 @@ class TestGetHighestPriorityClass:
         result = get_highest_priority_class(subject_classes)
         assert result is None
 
+    @patch("heritrace.utils.shacl_utils.determine_shape_for_classes", return_value=None)
     @patch("heritrace.utils.display_rules_utils.get_class_priority")
-    def test_get_highest_priority_class_same_priority(self, mock_get_class_priority):
+    def test_get_highest_priority_class_same_priority(self, mock_get_class_priority, mock_determine_shape):
         mock_get_class_priority.return_value = 5
 
         subject_classes = [
@@ -822,7 +824,7 @@ class TestGetGroupedTriples:
         self, mock_triples, mock_valid_predicates_info
     ):
         """Test getting grouped triples with no display rules."""
-        self.get_display_rules_patch.return_value = []
+        self.mock_get_display_rules.return_value = []
         
         def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             display_name = prop_uri.split("/")[-1]
@@ -840,7 +842,7 @@ class TestGetGroupedTriples:
             side_effect=mock_process_default_property,
         ):
             result = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
                 highest_priority_class=self.highest_priority_class
@@ -858,7 +860,7 @@ class TestGetGroupedTriples:
     ):
         """Test getting grouped triples when display rules exist but no rule matches the entity class/shape."""
         # Set up display rules for a different class that won't match
-        self.get_display_rules_patch.return_value = [
+        self.mock_get_display_rules.return_value = [
             {
                 "target": {
                     "class": "http://example.org/DifferentClass"
@@ -893,7 +895,7 @@ class TestGetGroupedTriples:
             side_effect=mock_process_default_property,
         ):
             result = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
                 highest_priority_class=self.highest_priority_class
@@ -911,12 +913,12 @@ class TestGetGroupedTriples:
     ):
         """Test that verifies type consistency between can_be_added/can_be_deleted and relevant_properties.
         
-        This test simulates the scenario in entity.py where can_be_added and can_be_deleted 
+        This test simulates the scenario in entity.py where can_be_added and can_be_deleted
         are filtered by relevant_properties. Both should contain the same data types (strings)
         to ensure the filtering works correctly.
         """
         # Simulate no display rules (the scenario where the bug occurred)
-        self.get_display_rules_patch.return_value = []
+        self.mock_get_display_rules.return_value = []
         
         def mock_process_default_property(prop_uri, triples, grouped_triples, subject_shape=None, subject_class=None):
             display_name = prop_uri.split("/")[-1]
@@ -934,13 +936,13 @@ class TestGetGroupedTriples:
             side_effect=mock_process_default_property,
         ):
             result = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
                 highest_priority_class=self.highest_priority_class
             )
             grouped_triples, relevant_properties = result
-            
+
             # Simulate the filtering that happens in entity.py
             # This would fail before the fix due to type mismatch
             mock_can_be_added = mock_valid_predicates_info.copy()  # These are strings
@@ -1006,14 +1008,14 @@ class TestGetGroupedTriples:
             side_effect=mock_process_default_property
         ) as mock_process_default_property:
             result = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
                 highest_priority_class=self.highest_priority_class
             )
-            
+
             grouped_triples, relevant_properties = result
-            
+
             assert isinstance(grouped_triples, dict)
             assert isinstance(relevant_properties, set)
             
@@ -1068,14 +1070,14 @@ class TestGetGroupedTriples:
             side_effect=mock_process_default_property
         ) as mock_process_default_property:
             grouped_triples, relevant_properties = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
                 highest_priority_class=URIRef("http://example.org/Person")
             )
 
             assert mock_process_default_property.called
-            
+
             assert "Knows" in grouped_triples
             assert grouped_triples["Knows"]["intermediateRelation"] == {"class": "http://example.org/Relationship"}
             assert grouped_triples["Knows"]["property"] == "http://example.org/knows"
@@ -1131,14 +1133,14 @@ class TestGetGroupedTriples:
             side_effect=mock_process_default_property
         ) as mock_process_default_property:
             grouped_triples, relevant_properties = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
                 highest_priority_class=self.highest_priority_class
             )
 
             assert mock_process_default_property.called
-            
+
             assert "Knows (with relationship)" in grouped_triples
             assert grouped_triples["Knows (with relationship)"]["intermediateRelation"] == {"class": "http://example.org/Relationship"}
 
@@ -1192,14 +1194,14 @@ class TestGetGroupedTriples:
             side_effect=mock_process_default_property
         ) as mock_process_default_property:
             grouped_triples, relevant_properties = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
                 highest_priority_class=self.highest_priority_class
             )
 
             assert mock_process_default_property.called
-            
+
             assert "Knows (with inherited relationship)" in grouped_triples
             assert grouped_triples["Knows (with inherited relationship)"]["intermediateRelation"] == {"class": "http://example.org/Relationship"}
             assert grouped_triples["Knows (with inherited relationship)"]["property"] == "http://example.org/knows"
@@ -1247,7 +1249,7 @@ class TestGetGroupedTriples:
                 ):
                     with patch("heritrace.utils.display_rules_utils.process_ordering"):
                         grouped_triples, relevant_properties = get_grouped_triples(
-                            "http://example.org/person1",
+                            URIRef("http://example.org/person1"),
                             mock_triples,
                             extended_predicates_info,
                             highest_priority_class=URIRef("http://example.org/Person")
@@ -1297,16 +1299,16 @@ class TestGetGroupedTriples:
             side_effect=mock_process_default_property
         ) as mock_process_default_property:
             result = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
                 highest_priority_class=self.highest_priority_class
             )
 
             assert mock_process_default_property.called
-            
+
             grouped_triples, relevant_properties = result
-            
+
             assert "Simple Property" in grouped_triples
             assert grouped_triples["Simple Property"]["property"] == "http://example.org/simple"
             assert grouped_triples["Simple Property"]["intermediateRelation"] == {"class": "http://example.org/SimpleRelationship"}
@@ -1459,9 +1461,9 @@ class TestGetGroupedTriples:
         
         with patch("heritrace.utils.display_rules_utils.process_display_rule"), \
              patch("heritrace.utils.display_rules_utils.process_ordering"):
-            
+
             grouped_triples, relevant_properties = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
                 highest_priority_class=self.highest_priority_class
@@ -1496,9 +1498,9 @@ class TestGetGroupedTriples:
         extended_predicates_info = mock_valid_predicates_info + ["http://example.org/related_prop"]
         
         with patch("heritrace.utils.display_rules_utils.process_display_rule"):
-            
+
             grouped_triples, relevant_properties = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
                 highest_priority_class=self.highest_priority_class
@@ -1530,9 +1532,9 @@ class TestGetGroupedTriples:
         extended_predicates_info = mock_valid_predicates_info + ["http://example.org/unknown_prop"]
         
         with patch("heritrace.utils.display_rules_utils.process_default_property") as mock_process_default:
-            
+
             grouped_triples, relevant_properties = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
                 highest_priority_class=self.highest_priority_class
@@ -1555,9 +1557,9 @@ class TestGetGroupedTriples:
         ), patch(
             "heritrace.utils.display_rules_utils.process_default_property"
         ) as mock_process_default:
-            
+
             grouped_triples, relevant_properties = get_grouped_triples(
-                "http://example.org/person1",
+                URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
                 highest_priority_class=self.highest_priority_class
@@ -1682,7 +1684,8 @@ class TestProcessOrdering:
                 == "http://example.org/person3"
             )
 
-    def test_process_ordering_with_historical_snapshot(self, mock_historical_snapshot):
+    @patch("heritrace.utils.display_rules_utils.get_sparql")
+    def test_process_ordering_with_historical_snapshot(self, mock_get_sparql, mock_historical_snapshot):
         """Test processing ordering with historical snapshot."""
         subject = "http://example.org/person1"
         prop = {

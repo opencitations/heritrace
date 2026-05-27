@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: ISC
 
+from typing import cast
+
 import pytest
 from SPARQLWrapper import JSON
 
@@ -121,8 +123,8 @@ class TestMissingEntityCleanerIntegration:
             
             sparql.setQuery(check_query)
             sparql.setReturnFormat(JSON)
-            result = sparql.queryAndConvert()
-            
+            result = cast(dict, sparql.queryAndConvert())
+
             # The reference should no longer exist
             assert result["boolean"] is False
 
@@ -193,7 +195,7 @@ class TestMissingEntityCleanerIntegration:
             
             sparql.setQuery(check_query)
             sparql.setReturnFormat(JSON)
-            result = sparql.queryAndConvert()
-            
+            result = cast(dict, sparql.queryAndConvert())
+
             # The references should no longer exist
             assert result["boolean"] is False 

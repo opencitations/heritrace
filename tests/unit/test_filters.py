@@ -2,9 +2,6 @@
 #
 # SPDX-License-Identifier: ISC
 
-"""
-Unit tests for the Filter class in heritrace/utils/filters.py.
-"""
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -14,7 +11,6 @@ from rdflib import Graph
 
 @pytest.fixture
 def mock_filter():
-    """Create a mock Filter instance."""
     context = {"example": "http://example.org/"}
     display_rules = [
         {
@@ -27,7 +23,10 @@ def mock_filter():
         }
     ]
     sparql_endpoint = "http://example.org/sparql"
-    return Filter(context, display_rules, sparql_endpoint)
+    with patch('heritrace.extensions.get_sparql') as mock_get_sparql:
+        mock_sparql = MagicMock()
+        mock_get_sparql.return_value = mock_sparql
+        yield Filter(context, display_rules, sparql_endpoint)
 
 
 def test_get_fetch_uri_display_with_graph_success(mock_filter):

@@ -5,7 +5,6 @@
 import os
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from typing import List
 
 from rdflib import RDF, Dataset, Graph, Literal, URIRef
 from rdflib.term import Node
@@ -21,6 +20,7 @@ from heritrace.extensions import (get_change_tracking_config,
                                   get_custom_filter, get_dataset_is_quadstore,
                                   get_display_rules, get_provenance_sparql,
                                   get_shacl_graph, get_sparql)
+from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (find_matching_rule,
                                                  get_highest_priority_class,
@@ -78,7 +78,7 @@ def get_triples_from_graph(graph_or_dataset, pattern):
     """
     if isinstance(graph_or_dataset, Dataset):
         # For Dataset, use quads() and extract only (s, p, o)
-        for s, p, o, g in graph_or_dataset.quads(pattern):
+        for s, p, o, _g in graph_or_dataset.quads(pattern):
             yield (s, p, o)
     else:
         # For Graph, use triples() directly
@@ -134,9 +134,9 @@ def _count_class_instances(class_uri: str, limit: int = COUNT_LIMIT) -> tuple:
 
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
-    result = sparql.query().convert()
+    bindings = get_sparql_bindings(sparql.query().convert())
 
-    count = int(result["results"]["bindings"][0]["count"]["value"])
+    count = int(bindings[0]["count"]["value"])
 
     if count > limit:
         return f"{limit}+", limit
@@ -164,9 +164,9 @@ def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_mul
 
     sparql.setQuery(subjects_query)
     sparql.setReturnFormat(JSON)
-    subjects_results = sparql.query().convert()
+    subjects_bindings = get_sparql_bindings(sparql.query().convert())
 
-    subjects = [r["subject"]["value"] for r in subjects_results["results"]["bindings"]]
+    subjects = [r["subject"]["value"] for r in subjects_bindings]
 
     if not subjects:
         return defaultdict(list)
@@ -184,10 +184,10 @@ def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_mul
 
     sparql.setQuery(triples_query)
     sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
+    triples_bindings = get_sparql_bindings(sparql.query().convert())
 
     entities_triples = defaultdict(list)
-    for binding in results["results"]["bindings"]:
+    for binding in triples_bindings:
         subject = binding["subject"]["value"]
         predicate = binding["p"]["value"]
         obj = binding["o"]["value"]
@@ -264,8 +264,8 @@ def get_available_classes():
 
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-        class_uris = [r["class"]["value"] for r in results["results"]["bindings"]]
+        class_bindings = get_sparql_bindings(sparql.query().convert())
+        class_uris = [r["class"]["value"] for r in class_bindings]
 
     # Count instances for each class
     classes_with_counts = []
@@ -318,7 +318,7 @@ def get_available_classes():
     return available_classes
 
 
-def build_sort_clause(sort_property: str, entity_type: str, shape_uri: str = None) -> str:
+def build_sort_clause(sort_property: str, entity_type: str, shape_uri: str | None = None) -> str:
     """
     Build a SPARQL sort clause based on the sortableBy configuration.
 
@@ -398,9 +398,9 @@ def get_entities_for_class(
 
         sparql.setQuery(subjects_query)
         sparql.setReturnFormat(JSON)
-        subjects_results = sparql.query().convert()
+        subjects_bindings = get_sparql_bindings(sparql.query().convert())
 
-        subjects = [r["subject"]["value"] for r in subjects_results["results"]["bindings"]]
+        subjects = [r["subject"]["value"] for r in subjects_bindings]
 
         if not subjects:
             return [], 0
@@ -417,10 +417,10 @@ def get_entities_for_class(
 
         sparql.setQuery(triples_query)
         sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
+        triples_bindings = get_sparql_bindings(sparql.query().convert())
 
         entities_triples = defaultdict(list)
-        for binding in results["results"]["bindings"]:
+        for binding in triples_bindings:
             subject = binding["subject"]["value"]
             predicate = binding["p"]["value"]
             obj = binding["o"]["value"]
@@ -475,12 +475,12 @@ def get_entities_for_class(
 
     sparql.setQuery(entities_query)
     sparql.setReturnFormat(JSON)
-    entities_results = sparql.query().convert()
+    entities_bindings = get_sparql_bindings(sparql.query().convert())
 
     entities = []
     shape = selected_shape if selected_shape else determine_shape_for_classes([selected_class])
 
-    for result in entities_results["results"]["bindings"]:
+    for result in entities_bindings:
         subject_uri = result["subject"]["value"]
         entity_label = custom_filter.human_readable_entity(
             subject_uri, (selected_class, shape), None
@@ -491,18 +491,18 @@ def get_entities_for_class(
 
 
 def get_catalog_data(
-    selected_class: str,
+    selected_class: str | None,
     page: int,
     per_page: int,
-    sort_property: str = None,
+    sort_property: str | None = None,
     sort_direction: str = "ASC",
-    selected_shape: str = None
+    selected_shape: str | None = None
 ) -> dict:
     """
     Get catalog data with pagination and sorting.
 
     Args:
-        selected_class (str): Selected class URI
+        selected_class (str | None): Selected class URI, or None if no class selected
         page (int): Current page number
         per_page (int): Items per page
         sort_property (str, optional): Property to sort by
@@ -545,17 +545,7 @@ def get_catalog_data(
     }
 
 
-def fetch_data_graph_for_subject(subject: str) -> Graph | Dataset:
-    """
-    Fetch all triples/quads associated with a subject from the dataset.
-    Handles both triplestore and quadstore cases appropriately.
-
-    Args:
-        subject (str): The URI of the subject to fetch data for
-
-    Returns:
-        Graph|Dataset: A graph containing all triples/quads for the subject
-    """
+def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
     g = Dataset() if get_dataset_is_quadstore() else Graph()
     sparql = get_sparql()
 
@@ -589,10 +579,9 @@ def fetch_data_graph_for_subject(subject: str) -> Graph | Dataset:
 
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
-    query_results = sparql.query().convert()
-    results = query_results.get("results", {}).get("bindings", [])
+    bindings = get_sparql_bindings(sparql.query().convert())
 
-    for result in results:
+    for result in bindings:
         # Create the appropriate value (Literal or URIRef)
         obj_data = result["object"]
         if obj_data["type"] in {"literal", "typed-literal"}:
@@ -610,15 +599,15 @@ def fetch_data_graph_for_subject(subject: str) -> Graph | Dataset:
         if get_dataset_is_quadstore():
             graph_uri = URIRef(result["g"]["value"])
             g.add(
-                (
-                    URIRef(subject),
+                (  # type: ignore[arg-type]
+                    subject,
                     URIRef(result["predicate"]["value"]),
                     value,
                     graph_uri,
                 )
             )
         else:
-            g.add((URIRef(subject), URIRef(result["predicate"]["value"]), value))
+            g.add((subject, URIRef(result["predicate"]["value"]), value))
 
     return g
 
@@ -630,7 +619,7 @@ def parse_sparql_update(query) -> dict:
 
     def extract_quads(quads):
         result = []
-        for graph, triples in quads.items():
+        for _graph, triples in quads.items():
             for triple in triples:
                 result.append((triple[0], triple[1], triple[2]))
         return result
@@ -670,14 +659,14 @@ def fetch_current_state_with_related_entities(
 
     # Fetch state for all entities mentioned in provenance
     for entity_uri in provenance.keys():
-        current_graph = fetch_data_graph_for_subject(entity_uri)
+        current_graph = fetch_data_graph_for_subject(URIRef(entity_uri))
 
         if get_dataset_is_quadstore():
-            for quad in current_graph.quads():
-                combined_graph.add(quad)
+            for quad in current_graph.quads():  # type: ignore[union-attr]
+                combined_graph.add(quad)  # type: ignore[call-overload]
         else:
             for triple in current_graph:
-                combined_graph.add(triple)
+                combined_graph.add(triple)  # type: ignore[call-overload]
 
     return combined_graph
 
@@ -719,9 +708,7 @@ def get_deleted_entities_with_filtering(
     """
     provenance_sparql.setQuery(prov_query)
     provenance_sparql.setReturnFormat(JSON)
-    prov_results = provenance_sparql.query().convert()
-
-    results_bindings = prov_results["results"]["bindings"]
+    results_bindings = get_sparql_bindings(provenance_sparql.query().convert())
     if not results_bindings:
         return [], [], None, None, [], 0
 
@@ -809,14 +796,17 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
     if entity_uri not in state:
         return None
 
-    last_valid_time = convert_to_datetime(last_valid_snapshot_time, stringify=True)
-    last_valid_state: Graph | Dataset = state[entity_uri][last_valid_time]
+    last_valid_dt = convert_to_datetime(last_valid_snapshot_time)
+    assert last_valid_dt is not None
+    last_valid_state: Graph | Dataset = state[entity_uri][last_valid_dt.isoformat()]
 
     entity_types = [
         str(o)
-        for s, p, o in get_triples_from_graph(last_valid_state, (URIRef(entity_uri), RDF.type, None))
+        for _, _, o in get_triples_from_graph(last_valid_state, (URIRef(entity_uri), RDF.type, None))
     ]
     highest_priority_type = get_highest_priority_class(entity_types)
+    if not highest_priority_type:
+        return None
     shape = determine_shape_for_classes([highest_priority_type])
     visible_types = [t for t in entity_types if is_entity_type_visible((t, determine_shape_for_classes([t])))]
     if not visible_types:
@@ -827,7 +817,7 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
         prop_uri = prop["property"]
         values = [
             str(o)
-            for s, p, o in get_triples_from_graph(
+            for _, _, o in get_triples_from_graph(
                 last_valid_state, (URIRef(entity_uri), URIRef(prop_uri), None)
             )
         ]
@@ -851,29 +841,7 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
     }
 
 
-def find_orphaned_entities(subject, entity_type, predicate=None, object_value=None):
-    """
-    Find entities that would become orphaned after deleting a triple or an entire entity,
-    including intermediate relation entities.
-
-    An entity is considered orphaned if:
-    1. It has no incoming references from other entities (except from the entity being deleted)
-    2. It does not reference any entities that are subjects of other triples
-
-    For intermediate relations, an entity is also considered orphaned if:
-    1. It connects to the entity being deleted
-    2. It has no other valid connections after the deletion
-    3. It is directly involved in the deletion operation (if predicate and object_value are specified)
-
-    Args:
-        subject (str): The URI of the subject being deleted
-        entity_type (str): The type of the entity being deleted
-        predicate (str, optional): The predicate being deleted
-        object_value (str, optional): The object value being deleted
-
-    Returns:
-        tuple: Lists of (orphaned_entities, intermediate_orphans)
-    """
+def find_orphaned_entities(subject: URIRef, entity_type: str, predicate: URIRef | None = None, object_value: str | None = None):
     sparql = get_sparql()
     display_rules = get_display_rules()
 
@@ -953,9 +921,9 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
     ]:
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
+        query_bindings = get_sparql_bindings(sparql.query().convert())
 
-        for result in results["results"]["bindings"]:
+        for result in query_bindings:
             result_list.append(
                 {"uri": result["entity"]["value"], "type": result["type"]["value"]}
             )
@@ -963,31 +931,13 @@ def find_orphaned_entities(subject, entity_type, predicate=None, object_value=No
     return orphaned, intermediate_orphans
 
 
-def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5, include_referencing_entities: bool = False):
-    """
-    Recursively import the main subject and its connected entity graph up to a specified depth.
+def import_entity_graph(editor: Editor, subject: URIRef, max_depth: int = 5, include_referencing_entities: bool = False):
+    imported_subjects: set[str] = set()
+    subject_str = str(subject)
 
-    This function imports the specified subject and all entities connected to it,
-    directly or indirectly, up to the maximum depth specified. It traverses the
-    graph of connected entities, importing each one into the editor.
-
-    Args:
-    editor (Editor): The Editor instance to use for importing.
-    subject (str): The URI of the subject to start the import from.
-    max_depth (int): The maximum depth of recursion (default is 5).
-    include_referencing_entities (bool): Whether to include entities that have the subject as their object (default False).
-                                         Useful when deleting an entity to ensure all references are properly removed.
-
-    Returns:
-    Editor: The updated Editor instance with all imported entities.
-    """
-    imported_subjects = set()
-
-    # First import referencing entities if needed
     if include_referencing_entities:
         sparql = get_sparql()
-        
-        # Build query based on database type
+
         if editor.dataset_is_quadstore:
             query = f"""
             SELECT DISTINCT ?s
@@ -1006,15 +956,14 @@ def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5, includ
                 FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
             }}
             """
-        
+
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-        
-        # Import each referencing entity
-        for result in results["results"]["bindings"]:
+        ref_bindings = get_sparql_bindings(sparql.query().convert())
+
+        for result in ref_bindings:
             referencing_subject = result["s"]["value"]
-            if referencing_subject != subject and referencing_subject not in imported_subjects:
+            if referencing_subject != subject_str and referencing_subject not in imported_subjects:
                 imported_subjects.add(referencing_subject)
                 editor.import_entity(URIRef(referencing_subject))
 
@@ -1037,26 +986,17 @@ def import_entity_graph(editor: Editor, subject: str, max_depth: int = 5, includ
         sparql = get_sparql()
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
+        inner_bindings = get_sparql_bindings(sparql.query().convert())
 
-        for result in results["results"]["bindings"]:
+        for result in inner_bindings:
             object_entity = result["o"]["value"]
             recursive_import(object_entity, current_depth + 1)
 
-    recursive_import(subject, 1)
+    recursive_import(subject_str, 1)
     return editor
 
 
-def get_entity_types(subject_uri: str) -> List[str]:
-    """
-    Get all RDF types for an entity.
-
-    Args:
-        subject_uri: URI of the entity
-
-    Returns:
-        List of type URIs
-    """
+def get_entity_types(subject_uri: str) -> list[str]:
     sparql = get_sparql()
 
     query = f"""
@@ -1067,9 +1007,9 @@ def get_entity_types(subject_uri: str) -> List[str]:
 
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
-    results = sparql.query().convert()
+    bindings = get_sparql_bindings(sparql.query().convert())
 
-    return [result["type"]["value"] for result in results["results"]["bindings"]]
+    return [result["type"]["value"] for result in bindings]
 
 
 def collect_referenced_entities(data, existing_entities=None):
@@ -1110,21 +1050,11 @@ def collect_referenced_entities(data, existing_entities=None):
     return existing_entities
 
 
-def import_referenced_entities(editor, structured_data):
-    """
-    Import all existing entities referenced in structured data into the editor.
-    
-    This function should be called before editor.preexisting_finished() to ensure
-    that all existing entities that will be linked have their snapshots created.
-    
-    Args:
-        editor: The Editor instance
-        structured_data: The structured data containing entity references
-    """
+def import_referenced_entities(editor: Editor, structured_data):
     referenced_entities = collect_referenced_entities(structured_data)
     for entity_uri in referenced_entities:
         try:
-            editor.import_entity(entity_uri)
+            editor.import_entity(URIRef(entity_uri))
         except Exception as e:
             print(f"Warning: Could not import entity {entity_uri}: {e}")
             continue

@@ -200,10 +200,11 @@ def test_endpoint_route_unauthenticated(client: FlaskClient) -> None:
     assert response.status_code == 302  # Redirect to login
 
 
-@patch("heritrace.extensions.dataset_endpoint", "http://example.com/sparql")
+@patch("heritrace.routes.main.get_dataset_endpoint", return_value="http://example.com/sparql")
 @patch("heritrace.routes.main.render_template")
 def test_endpoint_route_authenticated(
     mock_render_template: MagicMock,
+    mock_get_endpoint: MagicMock,
     logged_in_client: FlaskClient,
 ) -> None:
     """Test that the endpoint route works when authenticated."""

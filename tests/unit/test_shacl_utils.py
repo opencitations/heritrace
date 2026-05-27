@@ -9,6 +9,7 @@ Tests for the shacl_utils module.
 from collections import namedtuple
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask import Flask
 from heritrace.utils.shacl_display import (
     apply_display_rules_to_nested_shapes, get_shape_target_class,
@@ -131,13 +132,14 @@ class TestShaclUtils:
         # Mock per il file context.json
         with patch('os.path.join', return_value='mock_path'), \
              patch('builtins.open', create=True) as mock_open, \
-             patch('json.load') as mock_json_load:
+             patch('json.load') as mock_json_load, \
+             patch('heritrace.extensions.get_sparql'):
             mock_file = mock_open.return_value.__enter__.return_value
             mock_json_load.return_value = {"@context": {}}
-            
+
             # Chiama direttamente process_query_results
             result = process_query_results(shacl, results, display_rules, processed_shapes, app)
-        
+
         # Verifica che il risultato contenga la struttura orNodes attesa con chiave tuple
         entity_key = ('entity_type1', 'subjectShape1')
         assert entity_key in result
@@ -274,13 +276,14 @@ class TestShaclUtils:
         # Mock per il file context.json
         with patch('os.path.join', return_value='mock_path'), \
              patch('builtins.open', create=True) as mock_open, \
-             patch('json.load') as mock_json_load:
+             patch('json.load') as mock_json_load, \
+             patch('heritrace.extensions.get_sparql'):
             mock_file = mock_open.return_value.__enter__.return_value
             mock_json_load.return_value = {"@context": {}}
-            
+
             # Chiama direttamente process_query_results
             result = process_query_results(shacl, results, display_rules, processed_shapes, app)
-        
+
         # Verifica che il risultato contenga la struttura attesa con chiave tuple
         entity_key = ('entity_type1', 'subjectShape1')
         assert entity_key in result
@@ -318,9 +321,9 @@ class TestShaclUtils:
         
     def test_validate_new_triple_no_shacl(self):
         """Test che validate_new_triple funzioni correttamente quando non c'è SHACL."""
-        
-        subject = "http://example.org/subject1"
-        predicate = "http://example.org/predicate1"
+
+        subject = URIRef("http://example.org/subject1")
+        predicate = URIRef("http://example.org/predicate1")
         
         # Mock per fetch_data_graph_for_subject e get_shacl_graph
         mock_data_graph = MagicMock()
@@ -367,9 +370,9 @@ class TestShaclUtils:
     
     def test_validate_new_triple_entity_types_not_list(self):
         """Test che validate_new_triple gestisca correttamente entity_types quando non è una lista."""
-        
-        subject = "http://example.org/subject1"
-        predicate = "http://example.org/predicate1"
+
+        subject = URIRef("http://example.org/subject1")
+        predicate = URIRef("http://example.org/predicate1")
         new_value = "test"
         entity_types = "http://example.org/type1"  # entity_types come stringa, non lista
         
@@ -462,41 +465,41 @@ class TestShaclUtils:
     def test_validate_new_triple_inverse_types(self):
         """Test che validate_new_triple gestisca correttamente gli inverse types."""
         
-        subject = "http://example.org/subject1"
-        predicate = "http://example.org/predicate1"
+        subject = URIRef("http://example.org/subject1")
+        predicate = URIRef("http://example.org/predicate1")
         new_value = "test"
-        
+
         # Crea un grafo reale per i dati
         data_graph = Graph()
-        
+
         # Aggiungi i tipi diretti del soggetto
         direct_type = URIRef("http://example.org/DirectType")
-        data_graph.add((URIRef(subject), RDF.type, direct_type))
+        data_graph.add((subject, RDF.type, direct_type))
         
         # Aggiungi le entità che hanno il soggetto come oggetto
         entity1 = URIRef("http://example.org/entity1")
         entity2 = URIRef("http://example.org/entity2")
         relation1 = URIRef("http://example.org/relation1")
         relation2 = URIRef("http://example.org/relation2")
-        data_graph.add((entity1, relation1, URIRef(subject)))
-        data_graph.add((entity2, relation2, URIRef(subject)))
-        
+        data_graph.add((entity1, relation1, subject))
+        data_graph.add((entity2, relation2, subject))
+
         # Aggiungi i tipi delle entità che hanno il soggetto come oggetto (inverse types)
         inverse_type1 = URIRef("http://example.org/InverseType1")
         inverse_type2 = URIRef("http://example.org/InverseType2")
         data_graph.add((entity1, RDF.type, inverse_type1))
         data_graph.add((entity2, RDF.type, inverse_type2))
-        
+
         # Verifica che il grafo contenga le triple che ci aspettiamo
-        assert (URIRef(subject), RDF.type, direct_type) in data_graph
-        assert (entity1, relation1, URIRef(subject)) in data_graph
-        assert (entity2, relation2, URIRef(subject)) in data_graph
+        assert (subject, RDF.type, direct_type) in data_graph
+        assert (entity1, relation1, subject) in data_graph
+        assert (entity2, relation2, subject) in data_graph
         assert (entity1, RDF.type, inverse_type1) in data_graph
         assert (entity2, RDF.type, inverse_type2) in data_graph
-        
+
         # Raccogli manualmente gli inverse types per verificare che siano presenti
         inverse_types = []
-        for s, p, o in data_graph.triples((None, None, URIRef(subject))):
+        for s, p, o in data_graph.triples((None, None, subject)):
             o_types = [t[2] for t in data_graph.triples((s, RDF.type, None))]
             inverse_types.extend(o_types)
         
@@ -531,7 +534,8 @@ class TestShaclUtils:
         with patch('heritrace.utils.shacl_validation.fetch_data_graph_for_subject', return_value=data_graph), \
              patch('heritrace.utils.shacl_validation.get_shacl_graph', return_value=shacl_wrapper), \
              patch('heritrace.utils.shacl_validation.len', return_value=1), \
-             patch('heritrace.utils.shacl_validation.get_custom_filter') as mock_custom_filter:
+             patch('heritrace.utils.shacl_validation.get_custom_filter') as mock_custom_filter, \
+             patch('heritrace.utils.shacl_validation.get_highest_priority_class', return_value='http://example.org/DirectType'):
             
             # Configura il mock per custom_filter
             mock_filter = MagicMock()
@@ -1249,21 +1253,18 @@ class TestGetEntityPositionInSequence:
         """Test handling of malformed SPARQL results."""
         mock_sparql = MagicMock()
         mock_get_sparql.return_value = mock_sparql
-        
-        # Mock malformed results (missing expected structure)
+
         mock_results = {
-            "results": {
-                # Missing bindings key
-            }
+            "results": {}
         }
-        
+
         mock_sparql.query.return_value.convert.return_value = mock_results
-        
-        result = get_entity_position_in_sequence(
-            self.entity_uri, self.subject_uri, 
-            self.predicate_uri, self.order_property
-        )
-        assert result is None
+
+        with pytest.raises(KeyError):
+            get_entity_position_in_sequence(
+                self.entity_uri, self.subject_uri,
+                self.predicate_uri, self.order_property
+            )
 
     def test_with_snapshot_circular_reference(self):
         """Test with snapshot containing circular references."""

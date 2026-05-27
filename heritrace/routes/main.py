@@ -8,7 +8,7 @@ import time
 from flask import (Blueprint, current_app, redirect, render_template, request,
                    url_for)
 from flask_login import login_required
-from heritrace.extensions import get_sparql
+from heritrace.extensions import get_dataset_endpoint, get_sparql
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import (get_available_classes,
                                           get_catalog_data,
@@ -124,9 +124,8 @@ def time_vault():
 @main_bp.route("/dataset-endpoint", methods=["POST"])
 @login_required
 def sparql_proxy():
-    query = request.form.get("query")
-    
-    # Use SPARQLWrapper instead of direct requests
+    query = request.form.get("query", "")
+
     sparql_wrapper = get_sparql()
     sparql_wrapper.setQuery(query)
     sparql_wrapper.setReturnFormat(JSON) 
@@ -147,13 +146,13 @@ def sparql_proxy():
                 current_app.logger.error(f"All SPARQL query attempts failed for query: {query}")
                 return json.dumps({"error": str(e)}), 500, {"Content-Type": "application/json"}
 
+    return json.dumps({"error": "All SPARQL query attempts failed"}), 500, {"Content-Type": "application/json"}
+
 
 @main_bp.route("/endpoint")
 @login_required
 def endpoint():
-    from heritrace.extensions import dataset_endpoint
-
-    return render_template("endpoint.jinja", dataset_endpoint=dataset_endpoint)
+    return render_template("endpoint.jinja", dataset_endpoint=get_dataset_endpoint())
 
 
 @main_bp.route("/search")

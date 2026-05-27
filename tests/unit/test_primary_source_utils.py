@@ -16,10 +16,10 @@ def test_get_user_default_primary_source_success(mock_current_app, app):
     expected_source = "http://user.example.com"
     key = USER_DEFAULT_SOURCE_KEY.format(user_id=user_id)
     mock_redis = MagicMock()
-    mock_current_app.redis_client = mock_redis
+    mock_current_app.extensions = {"redis_client": mock_redis}
     
     with app.app_context():
-        mock_redis.get.return_value = expected_source.encode('utf-8')
+        mock_redis.get.return_value = expected_source
         result = get_user_default_primary_source(user_id)
         
         mock_redis.get.assert_called_once_with(key)
@@ -31,7 +31,7 @@ def test_get_user_default_primary_source_not_set(mock_current_app, app):
     user_id = "0000-0000-0000-0002"
     key = USER_DEFAULT_SOURCE_KEY.format(user_id=user_id)
     mock_redis = MagicMock()
-    mock_current_app.redis_client = mock_redis
+    mock_current_app.extensions = {"redis_client": mock_redis}
 
     with app.app_context():
         mock_redis.get.return_value = None
@@ -53,7 +53,7 @@ def test_get_user_default_primary_source_redis_error(mock_current_app, app):
     key = USER_DEFAULT_SOURCE_KEY.format(user_id=user_id)
     mock_redis = MagicMock()
     mock_logger = MagicMock()
-    mock_current_app.redis_client = mock_redis
+    mock_current_app.extensions = {"redis_client": mock_redis}
     mock_current_app.logger = mock_logger
     
     with app.app_context():
@@ -99,7 +99,7 @@ def test_save_user_default_primary_source_success(mock_current_app, mock_validat
     key = USER_DEFAULT_SOURCE_KEY.format(user_id=user_id)
     mock_redis = MagicMock()
     mock_logger = MagicMock()
-    mock_current_app.redis_client = mock_redis
+    mock_current_app.extensions = {"redis_client": mock_redis}
     mock_current_app.logger = mock_logger
 
     with app.app_context():
@@ -113,7 +113,7 @@ def test_save_user_default_primary_source_success(mock_current_app, mock_validat
 def test_save_user_default_primary_source_no_user_id(mock_current_app, mock_validators_url, app):
     """Test saving user default primary source with no user_id."""
     mock_redis = MagicMock()
-    mock_current_app.redis_client = mock_redis
+    mock_current_app.extensions = {"redis_client": mock_redis}
     with app.app_context():
         result = save_user_default_primary_source(None, "http://some.url")
         mock_redis.set.assert_not_called()
@@ -124,7 +124,7 @@ def test_save_user_default_primary_source_no_user_id(mock_current_app, mock_vali
 def test_save_user_default_primary_source_no_source(mock_current_app, mock_validators_url, app):
     """Test saving user default primary source with no primary_source."""
     mock_redis = MagicMock()
-    mock_current_app.redis_client = mock_redis
+    mock_current_app.extensions = {"redis_client": mock_redis}
     with app.app_context():
         result = save_user_default_primary_source("user1", None)
         mock_redis.set.assert_not_called()
@@ -135,7 +135,7 @@ def test_save_user_default_primary_source_no_source(mock_current_app, mock_valid
 def test_save_user_default_primary_source_invalid_url(mock_current_app, mock_validators_url, app):
     """Test saving user default primary source with an invalid URL."""
     mock_redis = MagicMock()
-    mock_current_app.redis_client = mock_redis
+    mock_current_app.extensions = {"redis_client": mock_redis}
     with app.app_context():
         result = save_user_default_primary_source("user1", "invalid-url")
         mock_redis.set.assert_not_called()
@@ -151,7 +151,7 @@ def test_save_user_default_primary_source_redis_error(mock_current_app, mock_val
     key = USER_DEFAULT_SOURCE_KEY.format(user_id=user_id)
     mock_redis = MagicMock()
     mock_logger = MagicMock()
-    mock_current_app.redis_client = mock_redis
+    mock_current_app.extensions = {"redis_client": mock_redis}
     mock_current_app.logger = mock_logger
     
     with app.app_context():

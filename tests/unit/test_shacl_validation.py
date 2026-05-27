@@ -16,16 +16,16 @@ class TestShaclValidation(unittest.TestCase):
 
     def test_validate_new_triple_matching_triples(self):
         """Test that validate_new_triple updates old_value when matching triples are found."""
-        subject = "http://example.org/subject"
-        predicate = "http://example.org/predicate"
+        subject = URIRef("http://example.org/subject")
+        predicate = URIRef("http://example.org/predicate")
         new_value = "New Value"
-        
+
         data_graph = Graph()
         existing_value = Literal("Existing Value", datatype=XSD.string)
-        data_graph.add((URIRef(subject), URIRef(predicate), existing_value))
-        
+        data_graph.add((subject, predicate, existing_value))
+
         old_value_str = str(existing_value)
-        
+
         with patch("heritrace.utils.shacl_validation.fetch_data_graph_for_subject", return_value=data_graph):
             mock_shacl = MagicMock()
             mock_shacl.__len__.return_value = 0
@@ -41,6 +41,7 @@ class TestShaclValidation(unittest.TestCase):
                     
                     self.assertEqual(returned_old_value, existing_value)
                     self.assertEqual(str(returned_old_value), "Existing Value")
+                    assert isinstance(returned_old_value, Literal)
                     self.assertEqual(returned_old_value.datatype, XSD.string)
                     
                     self.assertIsInstance(valid_value, Literal)

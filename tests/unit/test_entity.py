@@ -373,7 +373,7 @@ def test_validate_modification_max_count(mock_get_predicate_count, mock_get_high
         "datatype": "http://www.w3.org/2001/XMLSchema#string"
     }
     
-    is_valid, error = validate_modification(modification, "http://example.org/person/123")
+    is_valid, error = validate_modification(modification, URIRef("http://example.org/person/123"))
     assert not is_valid
     assert "Maximum count" in error
 
@@ -1267,51 +1267,52 @@ def test_get_deleted_entity_context_info():
         
         # Test case 1: Entity is deleted and has multiple timestamps
         is_deleted = True
+        subject_uri = URIRef(subject)
         context_snapshot, highest_priority_class, entity_shape = get_deleted_entity_context_info(
-            is_deleted, sorted_timestamps, history, subject
+            is_deleted, sorted_timestamps, history, subject_uri
         )
-        
+
         # Verify the function returns the expected values
         assert context_snapshot is not None
         assert context_snapshot == snapshot1  # Should be the second-to-last snapshot
         assert highest_priority_class == "http://example.org/Person"
         assert entity_shape == "http://example.org/PersonShape"
-        
+
         # Verify the mocked functions were called with correct arguments
         mock_get_highest_priority.assert_called_once()
         call_args = mock_get_highest_priority.call_args[0][0]
         assert len(call_args) == 1
         assert URIRef("http://example.org/Person") in call_args
-        
+
         mock_determine_shape.assert_called_once()
         determine_shape_args = mock_determine_shape.call_args[0][0]
         assert len(determine_shape_args) == 2  # Two triples from snapshot1
-        
+
         # Reset mocks for next test
         mock_get_highest_priority.reset_mock()
         mock_determine_shape.reset_mock()
-        
+
         # Test case 2: Entity is not deleted
         is_deleted = False
         context_snapshot, highest_priority_class, entity_shape = get_deleted_entity_context_info(
-            is_deleted, sorted_timestamps, history, subject
+            is_deleted, sorted_timestamps, history, subject_uri
         )
-        
+
         assert context_snapshot is None
         assert highest_priority_class is None
         assert entity_shape is None
         mock_get_highest_priority.assert_not_called()
         mock_determine_shape.assert_not_called()
-        
+
         # Reset mocks for next test
         mock_get_highest_priority.reset_mock()
         mock_determine_shape.reset_mock()
-        
+
         # Test case 3: Entity is deleted but has only one timestamp
         is_deleted = True
         single_timestamp = [timestamp1]
         context_snapshot, highest_priority_class, entity_shape = get_deleted_entity_context_info(
-            is_deleted, single_timestamp, history, subject
+            is_deleted, single_timestamp, history, subject_uri
         )
         
         assert context_snapshot is None
@@ -1330,28 +1331,28 @@ def test_process_entity_value_nested_entity(mock_determine_datatype, mock_valida
     # Setup mocks
     mock_generate_uri.return_value = URIRef("http://example.org/nested/123")
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/entity/456")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     value = {
         "entity_type": "http://example.org/Person",
         "properties": {"name": "John Doe"}
     }
     default_graph_uri = URIRef("http://example.org/graph")
     matching_field_def = {}
-    
+
     # Call function
     result = process_entity_value(
         mock_editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
     )
-    
+
     # Verify results
     assert result == URIRef("http://example.org/nested/123")
     mock_generate_uri.assert_called_once_with("http://example.org/Person")
     mock_editor.create.assert_called_once_with(
         entity_uri,
-        URIRef(predicate),
+        predicate,
         URIRef("http://example.org/nested/123"),
         default_graph_uri
     )
@@ -1367,27 +1368,27 @@ def test_process_entity_value_nested_entity(mock_determine_datatype, mock_valida
 def test_process_entity_value_existing_entity(mock_validators):
     """Test process_entity_value with existing entity reference."""
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/entity/456")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     value = {
         "is_existing_entity": True,
         "entity_uri": "http://example.org/person/789"
     }
     default_graph_uri = URIRef("http://example.org/graph")
     matching_field_def = {}
-    
+
     # Call function
     result = process_entity_value(
         mock_editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
     )
-    
+
     # Verify results
     assert result == URIRef("http://example.org/person/789")
     mock_editor.create.assert_called_once_with(
         entity_uri,
-        URIRef(predicate),
+        predicate,
         URIRef("http://example.org/person/789"),
         default_graph_uri
     )
@@ -1399,14 +1400,14 @@ def test_process_entity_value_existing_entity_missing_uri():
     
     # Test data
     entity_uri = URIRef("http://example.org/entity/456")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     value = {
         "is_existing_entity": True
         # Missing entity_uri
     }
     default_graph_uri = URIRef("http://example.org/graph")
     matching_field_def = {}
-    
+
     # Call function and expect exception
     with pytest.raises(ValueError, match="Missing entity_uri in existing entity reference"):
         process_entity_value(
@@ -1420,24 +1421,24 @@ def test_process_entity_value_uri_literal(mock_validators, mock_determine_dataty
     """Test process_entity_value with URI value."""
     mock_validators.url.return_value = True
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/entity/456")
-    predicate = "http://example.org/hasWebsite"
+    predicate = URIRef("http://example.org/hasWebsite")
     value = "http://example.org/website"
     default_graph_uri = URIRef("http://example.org/graph")
     matching_field_def = {}
-    
+
     # Call function
     result = process_entity_value(
         mock_editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
     )
-    
+
     # Verify results
     assert result == URIRef("http://example.org/website")
     mock_editor.create.assert_called_once_with(
         entity_uri,
-        URIRef(predicate),
+        predicate,
         URIRef("http://example.org/website"),
         default_graph_uri
     )
@@ -1451,24 +1452,24 @@ def test_process_entity_value_string_literal(mock_validators, mock_determine_dat
     mock_validators.url.return_value = False
     mock_determine_datatype.return_value = XSD.string
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/entity/456")
-    predicate = "http://example.org/title"
+    predicate = URIRef("http://example.org/title")
     value = "Test Title"
     default_graph_uri = URIRef("http://example.org/graph")
     matching_field_def = {"datatypes": [str(XSD.string)]}
-    
+
     # Call function
     result = process_entity_value(
         mock_editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
     )
-    
+
     # Verify results
     assert result == Literal("Test Title", datatype=XSD.string)
     mock_editor.create.assert_called_once_with(
         entity_uri,
-        URIRef(predicate),
+        predicate,
         Literal("Test Title", datatype=XSD.string),
         default_graph_uri
     )
@@ -1481,27 +1482,27 @@ def test_process_ordered_entity_value_nested_entity(mock_create_nested, mock_gen
     """Test process_ordered_entity_value with nested entity."""
     mock_generate_uri.return_value = URIRef("http://example.org/nested/123")
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/entity/456")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     value = {
         "entity_type": "http://example.org/Person",
         "properties": {"name": "John Doe"}
     }
     default_graph_uri = URIRef("http://example.org/graph")
-    
+
     # Call function
     result = process_ordered_entity_value(
         mock_editor, entity_uri, predicate, value, default_graph_uri
     )
-    
+
     # Verify results
     assert result == URIRef("http://example.org/nested/123")
     mock_generate_uri.assert_called_once_with("http://example.org/Person")
     mock_editor.create.assert_called_once_with(
         entity_uri,
-        URIRef(predicate),
+        predicate,
         URIRef("http://example.org/nested/123"),
         default_graph_uri
     )
@@ -1516,27 +1517,27 @@ def test_process_ordered_entity_value_nested_entity(mock_create_nested, mock_gen
 def test_process_ordered_entity_value_existing_entity():
     """Test process_ordered_entity_value with existing entity reference."""
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/entity/456")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     value = {
         "is_existing_entity": True,
         "entity_uri": "http://example.org/person/789"
     }
     default_graph_uri = URIRef("http://example.org/graph")
-    
+
     # Call function
     result = process_ordered_entity_value(
         mock_editor, entity_uri, predicate, value, default_graph_uri
     )
-    
+
     # Verify results
-    assert result == URIRef(value)
+    assert result == URIRef(value["entity_uri"])
     mock_editor.create.assert_called_once_with(
         entity_uri,
-        URIRef(predicate),
-        URIRef(value),
+        predicate,
+        URIRef(value["entity_uri"]),
         default_graph_uri
     )
 
@@ -1544,13 +1545,13 @@ def test_process_ordered_entity_value_existing_entity():
 def test_process_ordered_entity_value_invalid_type():
     """Test process_ordered_entity_value with invalid value type."""
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/entity/456")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     value = "invalid_value"  # Neither dict with entity_type nor is_existing_entity
     default_graph_uri = URIRef("http://example.org/graph")
-    
+
     # Call function and expect exception
     with pytest.raises(ValueError, match="Unexpected value type for ordered property"):
         process_ordered_entity_value(
@@ -1568,36 +1569,30 @@ def test_process_ordered_properties_single_shape(mock_process_ordered):
         URIRef("http://example.org/entity3")
     ]
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/parent")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     values = [
         {"entity_type": "Person", "entity_shape": "PersonShape"},
         {"entity_type": "Person", "entity_shape": "PersonShape"},
         {"entity_type": "Person", "entity_shape": "PersonShape"}
     ]
     default_graph_uri = URIRef("http://example.org/graph")
-    ordered_by = "http://example.org/next"
-    
+    ordered_by = URIRef("http://example.org/next")
+
     # Call function
     process_ordered_properties(
         mock_editor, entity_uri, predicate, values, default_graph_uri, ordered_by
     )
-    
+
     # Verify process_ordered_entity_value was called for each value
     assert mock_process_ordered.call_count == 3
-    
-    # Verify ordering relationships were created
-    expected_calls = [
-        ((URIRef("http://example.org/entity1"), URIRef(ordered_by), URIRef("http://example.org/entity2"), default_graph_uri),),
-        ((URIRef("http://example.org/entity2"), URIRef(ordered_by), URIRef("http://example.org/entity3"), default_graph_uri),)
-    ]
-    
+
     # Get actual calls to editor.create for ordering
-    ordering_calls = [call for call in mock_editor.create.call_args_list 
-                     if len(call[0]) == 4 and str(call[0][1]) == ordered_by]
-    
+    ordering_calls = [call for call in mock_editor.create.call_args_list
+                     if len(call[0]) == 4 and call[0][1] == ordered_by]
+
     assert len(ordering_calls) == 2
 
 
@@ -1612,10 +1607,10 @@ def test_process_ordered_properties_multiple_shapes(mock_process_ordered):
         URIRef("http://example.org/org2")
     ]
     mock_editor = MagicMock()
-    
+
     # Test data with different shapes
     entity_uri = URIRef("http://example.org/parent")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     values = [
         {"entity_type": "Person", "entity_shape": "PersonShape"},
         {"entity_type": "Person", "entity_shape": "PersonShape"},
@@ -1623,20 +1618,20 @@ def test_process_ordered_properties_multiple_shapes(mock_process_ordered):
         {"entity_type": "Organization", "entity_shape": "OrgShape"}
     ]
     default_graph_uri = URIRef("http://example.org/graph")
-    ordered_by = "http://example.org/next"
-    
+    ordered_by = URIRef("http://example.org/next")
+
     # Call function
     process_ordered_properties(
         mock_editor, entity_uri, predicate, values, default_graph_uri, ordered_by
     )
-    
+
     # Verify process_ordered_entity_value was called for each value
     assert mock_process_ordered.call_count == 4
-    
+
     # Verify ordering relationships were created within each shape group
-    ordering_calls = [call for call in mock_editor.create.call_args_list 
-                     if len(call[0]) == 4 and str(call[0][1]) == ordered_by]
-    
+    ordering_calls = [call for call in mock_editor.create.call_args_list
+                     if len(call[0]) == 4 and call[0][1] == ordered_by]
+
     # Should have 2 ordering calls: one within PersonShape group, one within OrgShape group
     assert len(ordering_calls) == 2
 
@@ -1653,26 +1648,26 @@ def test_process_ordered_properties_default_shape(mock_process_ordered):
     
     # Test data without entity_shape
     entity_uri = URIRef("http://example.org/parent")
-    predicate = "http://example.org/hasAuthor"
+    predicate = URIRef("http://example.org/hasAuthor")
     values = [
         {"entity_type": "Person"},  # No entity_shape
         {"entity_type": "Person"}   # No entity_shape
     ]
     default_graph_uri = URIRef("http://example.org/graph")
-    ordered_by = "http://example.org/next"
-    
+    ordered_by = URIRef("http://example.org/next")
+
     # Call function
     process_ordered_properties(
         mock_editor, entity_uri, predicate, values, default_graph_uri, ordered_by
     )
-    
+
     # Verify process_ordered_entity_value was called for each value
     assert mock_process_ordered.call_count == 2
-    
+
     # Verify ordering relationship was created (both values in default_shape group)
-    ordering_calls = [call for call in mock_editor.create.call_args_list 
-                     if len(call[0]) == 4 and str(call[0][1]) == ordered_by]
-    
+    ordering_calls = [call for call in mock_editor.create.call_args_list
+                     if len(call[0]) == 4 and call[0][1] == ordered_by]
+
     assert len(ordering_calls) == 1
 
 
@@ -1686,10 +1681,10 @@ def test_process_unordered_properties_multiple_values(mock_process_entity):
         Literal("literal_value")
     ]
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/parent")
-    predicate = "http://example.org/hasProperty"
+    predicate = URIRef("http://example.org/hasProperty")
     values = [
         {"entity_type": "Person", "properties": {"name": "John"}},
         {"is_existing_entity": True, "entity_uri": "http://example.org/existing"},
@@ -1697,15 +1692,15 @@ def test_process_unordered_properties_multiple_values(mock_process_entity):
     ]
     default_graph_uri = URIRef("http://example.org/graph")
     matching_field_def = {"datatypes": [str(XSD.string)]}
-    
+
     # Call function
     process_unordered_properties(
         mock_editor, entity_uri, predicate, values, default_graph_uri, matching_field_def
     )
-    
+
     # Verify process_entity_value was called for each value
     assert mock_process_entity.call_count == 3
-    
+
     # Verify each call had correct parameters
     for i, call in enumerate(mock_process_entity.call_args_list):
         args, kwargs = call
@@ -1721,18 +1716,18 @@ def test_process_unordered_properties_multiple_values(mock_process_entity):
 def test_process_unordered_properties_empty_values(mock_process_entity):
     """Test process_unordered_properties with empty values list."""
     mock_editor = MagicMock()
-    
+
     # Test data
     entity_uri = URIRef("http://example.org/parent")
-    predicate = "http://example.org/hasProperty"
+    predicate = URIRef("http://example.org/hasProperty")
     values = []  # Empty list
     default_graph_uri = URIRef("http://example.org/graph")
     matching_field_def = {}
-    
+
     # Call function
     process_unordered_properties(
         mock_editor, entity_uri, predicate, values, default_graph_uri, matching_field_def
     )
-    
+
     # Verify process_entity_value was not called
     mock_process_entity.assert_not_called()

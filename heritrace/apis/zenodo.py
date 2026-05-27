@@ -75,7 +75,7 @@ def extract_zenodo_id(url):
         return None
 
 
-def make_request_with_retry(url, headers, max_retries=3, initial_delay=1):
+def make_request_with_retry(url, headers, max_retries=3, initial_delay: float = 1):
     """
     Make HTTP request with exponential backoff retry strategy.
 

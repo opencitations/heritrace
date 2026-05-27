@@ -358,7 +358,7 @@ def test_reset_entity_provenance_function(mock_resetter_class):
     mock_counter_handler = MagicMock()
     
     # Call the function
-    entity_uri = "http://example.org/entity/1"
+    entity_uri = URIRef("http://example.org/entity/1")
     provenance_endpoint = "http://example.org/sparql"
     result = reset_entity_provenance(
         entity_uri=entity_uri,
@@ -448,7 +448,7 @@ def test_main_success(mock_logging, mock_reset_entity_provenance, mock_load_conf
     # Verify the results
     assert result == 0
     mock_reset_entity_provenance.assert_called_once_with(
-        entity_uri="http://example.org/entity/1",
+        entity_uri=URIRef("http://example.org/entity/1"),
         provenance_endpoint="http://example.org/sparql",
         counter_handler=mock_config_class.COUNTER_HANDLER
     )
@@ -490,7 +490,7 @@ def test_main_failure(mock_logging, mock_reset_entity_provenance, mock_load_conf
     # Verify the results
     assert result == 1
     mock_reset_entity_provenance.assert_called_once_with(
-        entity_uri="http://example.org/entity/1",
+        entity_uri=URIRef("http://example.org/entity/1"),
         provenance_endpoint="http://example.org/sparql",
         counter_handler=mock_config_class.COUNTER_HANDLER
     )

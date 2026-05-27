@@ -173,8 +173,9 @@ class TestShapeAwarePredicate:
         # Should fallback to first rule (Author)
         assert result == "Author"
 
+    @patch('heritrace.utils.shacl_utils.get_class_priority', return_value=0)
     @patch('heritrace.utils.shacl_utils.get_shacl_graph')
-    def test_determine_shape_for_author_role(self, mock_get_shacl_graph, mock_shacl_graph):
+    def test_determine_shape_for_author_role(self, mock_get_shacl_graph, mock_get_class_priority, mock_shacl_graph):
         """Test that determine_shape_for_entity_triples correctly identifies AuthorShape."""
         from heritrace.utils.shacl_utils import \
             determine_shape_for_entity_triples
@@ -191,8 +192,9 @@ class TestShapeAwarePredicate:
         result = determine_shape_for_entity_triples(author_triples)
         assert result == "http://schema.org/AuthorShape"
 
+    @patch('heritrace.utils.shacl_utils.get_class_priority', return_value=0)
     @patch('heritrace.utils.shacl_utils.get_shacl_graph')
-    def test_determine_shape_for_editor_role(self, mock_get_shacl_graph, mock_shacl_graph):
+    def test_determine_shape_for_editor_role(self, mock_get_shacl_graph, mock_get_class_priority, mock_shacl_graph):
         """Test that determine_shape_for_entity_triples correctly identifies EditorShape."""
         from heritrace.utils.shacl_utils import \
             determine_shape_for_entity_triples
@@ -209,8 +211,9 @@ class TestShapeAwarePredicate:
         result = determine_shape_for_entity_triples(editor_triples)
         assert result == "http://schema.org/EditorShape"
 
+    @patch('heritrace.utils.shacl_utils.get_class_priority', return_value=0)
     @patch('heritrace.utils.shacl_utils.get_shacl_graph')
-    def test_determine_shape_for_publisher_role(self, mock_get_shacl_graph, mock_shacl_graph):
+    def test_determine_shape_for_publisher_role(self, mock_get_shacl_graph, mock_get_class_priority, mock_shacl_graph):
         """Test that determine_shape_for_entity_triples correctly identifies PublisherShape."""
         from heritrace.utils.shacl_utils import \
             determine_shape_for_entity_triples
@@ -227,8 +230,9 @@ class TestShapeAwarePredicate:
         result = determine_shape_for_entity_triples(publisher_triples)
         assert result == "http://schema.org/PublisherShape"
 
+    @patch('heritrace.utils.shacl_utils.get_class_priority', return_value=0)
     @patch('heritrace.utils.shacl_utils.get_shacl_graph')
-    def test_hasvalue_constraints_prioritized_over_property_matches(self, mock_get_shacl_graph, mock_shacl_graph):
+    def test_hasvalue_constraints_prioritized_over_property_matches(self, mock_get_shacl_graph, mock_get_class_priority, mock_shacl_graph):
         """Test that hasValue constraints take priority over simple property matching."""
         from heritrace.utils.shacl_utils import \
             determine_shape_for_entity_triples

@@ -42,8 +42,8 @@ class TestReferencingEntitiesImport(unittest.TestCase):
         ]
         
         # Call the function
-        result = import_entity_graph(self.mock_editor, 'http://example.org/subject')
-        
+        result = import_entity_graph(self.mock_editor, URIRef('http://example.org/subject'))
+
         # Verify both subject and object were imported
         expected_calls = [
             call(URIRef('http://example.org/subject')),
@@ -99,10 +99,10 @@ class TestReferencingEntitiesImport(unittest.TestCase):
         # Call the function with include_referencing_entities=True
         result = import_entity_graph(
             self.mock_editor,
-            'http://example.org/subject',
+            URIRef('http://example.org/subject'),
             include_referencing_entities=True
         )
-        
+
         # Verify all entities were imported
         expected_calls = [
             call(URIRef('http://example.org/referencing1')),
@@ -161,10 +161,10 @@ class TestReferencingEntitiesImport(unittest.TestCase):
         # Call the function with include_referencing_entities=True
         result = import_entity_graph(
             self.mock_editor,
-            'http://example.org/subject',
+            URIRef('http://example.org/subject'),
             include_referencing_entities=True
         )
-        
+
         # Verify all entities were imported
         expected_calls = [
             call(URIRef('http://example.org/referencing1')),

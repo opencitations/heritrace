@@ -20,23 +20,23 @@ def test_apply_modifications_remove():
     """Test apply_modifications with remove operation."""
     # Setup
     editor = MagicMock()
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     predicate = "http://example.org/predicate"
-    graph_uri = "http://example.org/graph"
-    
+    graph_uri = URIRef("http://example.org/graph")
+
     modifications = [{
         "operation": "remove",
         "predicate": predicate
     }]
-    
+
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
-    
+
     # Verify
     editor.delete.assert_called_once_with(
-        URIRef(subject_uri),
+        subject_uri,
         URIRef(predicate),
-        graph_uri=graph_uri
+        graph=graph_uri
     )
 
 
@@ -44,23 +44,23 @@ def test_apply_modifications_add_uri():
     """Test apply_modifications with add operation for URI value."""
     # Setup
     editor = MagicMock()
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     predicate = "http://example.org/predicate"
     value = "http://example.org/value"
-    graph_uri = "http://example.org/graph"
-    
+    graph_uri = URIRef("http://example.org/graph")
+
     modifications = [{
         "operation": "add",
         "predicate": predicate,
         "value": value
     }]
-    
+
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
-    
+
     # Verify
     editor.create.assert_called_once_with(
-        URIRef(subject_uri),
+        subject_uri,
         URIRef(predicate),
         URIRef(value),
         graph_uri
@@ -71,25 +71,25 @@ def test_apply_modifications_add_literal():
     """Test apply_modifications with add operation for Literal value."""
     # Setup
     editor = MagicMock()
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     predicate = "http://example.org/predicate"
     value = "test value"
     datatype = str(XSD.integer)
-    graph_uri = "http://example.org/graph"
-    
+    graph_uri = URIRef("http://example.org/graph")
+
     modifications = [{
         "operation": "add",
         "predicate": predicate,
         "value": value,
         "datatype": datatype
     }]
-    
+
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
-    
+
     # Verify
     editor.create.assert_called_once_with(
-        URIRef(subject_uri),
+        subject_uri,
         URIRef(predicate),
         Literal(value, datatype=URIRef(datatype)),
         graph_uri
@@ -100,25 +100,25 @@ def test_apply_modifications_update_uri():
     """Test apply_modifications with update operation for URI values."""
     # Setup
     editor = MagicMock()
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     predicate = "http://example.org/predicate"
     old_value = "http://example.org/oldValue"
     new_value = "http://example.org/newValue"
-    graph_uri = "http://example.org/graph"
-    
+    graph_uri = URIRef("http://example.org/graph")
+
     modifications = [{
         "operation": "update",
         "predicate": predicate,
         "oldValue": old_value,
         "newValue": new_value
     }]
-    
+
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
-    
+
     # Verify
     editor.update.assert_called_once_with(
-        URIRef(subject_uri),
+        subject_uri,
         URIRef(predicate),
         URIRef(old_value),
         URIRef(new_value),
@@ -130,13 +130,13 @@ def test_apply_modifications_update_literal():
     """Test apply_modifications with update operation for Literal values."""
     # Setup
     editor = MagicMock()
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     predicate = "http://example.org/predicate"
     old_value = "old test value"
     new_value = "new test value"
     datatype = str(XSD.string)
-    graph_uri = "http://example.org/graph"
-    
+    graph_uri = URIRef("http://example.org/graph")
+
     modifications = [{
         "operation": "update",
         "predicate": predicate,
@@ -144,13 +144,13 @@ def test_apply_modifications_update_literal():
         "newValue": new_value,
         "datatype": datatype
     }]
-    
+
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
-    
+
     # Verify
     editor.update.assert_called_once_with(
-        URIRef(subject_uri),
+        subject_uri,
         URIRef(predicate),
         Literal(old_value, datatype=URIRef(datatype)),
         Literal(new_value, datatype=URIRef(datatype)),
@@ -162,12 +162,12 @@ def test_apply_modifications_multiple():
     """Test apply_modifications with multiple modifications."""
     # Setup
     editor = MagicMock()
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     predicate1 = "http://example.org/predicate1"
     predicate2 = "http://example.org/predicate2"
     value = "test value"
-    graph_uri = "http://example.org/graph"
-    
+    graph_uri = URIRef("http://example.org/graph")
+
     modifications = [
         {
             "operation": "remove",
@@ -179,18 +179,18 @@ def test_apply_modifications_multiple():
             "value": value
         }
     ]
-    
+
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
-    
+
     # Verify
     editor.delete.assert_called_once_with(
-        URIRef(subject_uri),
+        subject_uri,
         URIRef(predicate1),
-        graph_uri=graph_uri
+        graph=graph_uri
     )
     editor.create.assert_called_once_with(
-        URIRef(subject_uri),
+        subject_uri,
         URIRef(predicate2),
         Literal(value, datatype=URIRef(str(XSD.string))),
         graph_uri
@@ -204,9 +204,9 @@ def test_validate_modification_no_operation(mock_get_form_fields):
     modification = {
         "predicate": "http://example.org/predicate"
     }
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     mock_get_form_fields.return_value = {}
-    
+
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
     
@@ -222,9 +222,9 @@ def test_validate_modification_no_predicate(mock_get_form_fields):
     modification = {
         "operation": "add"
     }
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     mock_get_form_fields.return_value = {}
-    
+
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
     
@@ -241,9 +241,9 @@ def test_validate_modification_invalid_operation(mock_get_form_fields):
         "operation": "invalid",
         "predicate": "http://example.org/predicate"
     }
-    subject_uri = "http://example.org/entity"
+    subject_uri = URIRef("http://example.org/entity")
     mock_get_form_fields.return_value = {}
-    
+
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
     
@@ -278,11 +278,11 @@ def test_validate_modification_remove_required(mock_get_highest_priority, mock_g
         "operation": "remove",
         "predicate": "http://example.org/title"
     }
-    subject_uri = "http://example.org/entity"
-    
+    subject_uri = URIRef("http://example.org/entity")
+
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
-    
+
     # Verify
     assert not is_valid
     assert "Cannot remove required predicate: http://example.org/title" == error_message
@@ -298,7 +298,7 @@ def test_validate_modification_exceed_max_count(mock_get_highest_priority, mock_
     mock_get_highest_priority.return_value = "http://example.org/Document"
     mock_get_entity_types.return_value = ["http://example.org/Document"]
     mock_get_predicate_count.return_value = 2  # Current count
-    
+
     # Setup form_fields mock
     mock_get_form_fields.return_value = {
         ("http://example.org/Document", None): {
@@ -309,14 +309,14 @@ def test_validate_modification_exceed_max_count(mock_get_highest_priority, mock_
             ]
         }
     }
-    
+
     # Setup test data
     modification = {
         "operation": "add",
         "predicate": "http://example.org/title"
     }
-    subject_uri = "http://example.org/entity"
-    
+    subject_uri = URIRef("http://example.org/entity")
+
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
     
@@ -331,7 +331,7 @@ def test_get_predicate_count_single_value(mock_get_sparql):
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Mock query results
     mock_results = {
         "results": {
@@ -345,24 +345,24 @@ def test_get_predicate_count_single_value(mock_get_sparql):
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
-    
+
     # Test data
-    subject_uri = "http://example.org/entity"
-    predicate = "http://example.org/predicate"
-    
+    subject_uri = URIRef("http://example.org/entity")
+    predicate = URIRef("http://example.org/predicate")
+
     # Execute
     count = get_predicate_count(subject_uri, predicate)
-    
+
     # Verify
     assert count == 1
     mock_sparql.setQuery.assert_called_once()
     mock_sparql.setReturnFormat.assert_called_once()
     mock_sparql.query.assert_called_once()
-    
+
     # Verify query format
     query = mock_sparql.setQuery.call_args[0][0]
-    assert subject_uri in query
-    assert predicate in query
+    assert str(subject_uri) in query
+    assert str(predicate) in query
     assert "COUNT(?o)" in query
 
 
@@ -372,7 +372,7 @@ def test_get_predicate_count_multiple_values(mock_get_sparql):
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Mock query results
     mock_results = {
         "results": {
@@ -386,14 +386,14 @@ def test_get_predicate_count_multiple_values(mock_get_sparql):
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
-    
+
     # Test data
-    subject_uri = "http://example.org/entity"
-    predicate = "http://example.org/predicate"
-    
+    subject_uri = URIRef("http://example.org/entity")
+    predicate = URIRef("http://example.org/predicate")
+
     # Execute
     count = get_predicate_count(subject_uri, predicate)
-    
+
     # Verify
     assert count == 3
     mock_sparql.setQuery.assert_called_once()
@@ -407,7 +407,7 @@ def test_get_predicate_count_no_values(mock_get_sparql):
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Mock query results
     mock_results = {
         "results": {
@@ -421,14 +421,14 @@ def test_get_predicate_count_no_values(mock_get_sparql):
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
-    
+
     # Test data
-    subject_uri = "http://example.org/entity"
-    predicate = "http://example.org/predicate"
-    
+    subject_uri = URIRef("http://example.org/entity")
+    predicate = URIRef("http://example.org/predicate")
+
     # Execute
     count = get_predicate_count(subject_uri, predicate)
-    
+
     # Verify
     assert count == 0
     mock_sparql.setQuery.assert_called_once()
@@ -442,7 +442,7 @@ def test_get_entity_types_single_type(mock_get_sparql):
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Mock query results
     mock_results = {
         "results": {
@@ -456,22 +456,22 @@ def test_get_entity_types_single_type(mock_get_sparql):
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
-    
+
     # Test data
-    subject_uri = "http://example.org/entity"
-    
+    subject_uri = URIRef("http://example.org/entity")
+
     # Execute
     types = get_entity_types(subject_uri)
-    
+
     # Verify
     assert types == ["http://example.org/Person"]
     mock_sparql.setQuery.assert_called_once()
     mock_sparql.setReturnFormat.assert_called_once()
     mock_sparql.query.assert_called_once()
-    
+
     # Verify query format
     query = mock_sparql.setQuery.call_args[0][0]
-    assert subject_uri in query
+    assert str(subject_uri) in query
     assert "a ?type" in query
 
 
@@ -481,7 +481,7 @@ def test_get_entity_types_multiple_types(mock_get_sparql):
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Mock query results
     mock_results = {
         "results": {
@@ -501,13 +501,13 @@ def test_get_entity_types_multiple_types(mock_get_sparql):
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
-    
+
     # Test data
-    subject_uri = "http://example.org/entity"
-    
+    subject_uri = URIRef("http://example.org/entity")
+
     # Execute
     types = get_entity_types(subject_uri)
-    
+
     # Verify
     assert types == [
         "http://example.org/Person",
@@ -525,7 +525,7 @@ def test_get_entity_types_no_types(mock_get_sparql):
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Mock query results with no types
     mock_results = {
         "results": {
@@ -535,13 +535,13 @@ def test_get_entity_types_no_types(mock_get_sparql):
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
-    
+
     # Test data
-    subject_uri = "http://example.org/entity"
-    
+    subject_uri = URIRef("http://example.org/entity")
+
     # Execute
     types = get_entity_types(subject_uri)
-    
+
     # Verify
     assert types == []
     mock_sparql.setQuery.assert_called_once()

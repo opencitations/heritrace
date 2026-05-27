@@ -6,6 +6,7 @@
 Tests for the SPARQL utilities module.
 """
 
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -48,7 +49,7 @@ def mock_custom_filter():
 
         # Configure the mock to return readable labels
         mock_filter.human_readable_predicate.return_value = "Human Readable Class"
-        mock_filter.human_readable_entity.return_value = "Human Readable Entity" 
+        mock_filter.human_readable_entity.return_value = "Human Readable Entity"
         mock_filter.human_readable_class.return_value = "Human Readable Class"
         mock_filter.format_agent_reference.return_value = "Test Agent"
 
@@ -300,7 +301,10 @@ class TestGetEntitiesForClass:
             }
         ]
 
-        with patch("heritrace.utils.sparql_utils.get_available_classes", return_value=mock_available_classes):
+        with patch("heritrace.utils.sparql_utils.get_available_classes", return_value=mock_available_classes), \
+             patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=set()), \
+             patch("heritrace.utils.display_rules_utils.get_display_rules", return_value=[]), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value=None):
             entities, total_count = get_entities_for_class(
                 "http://example.org/Person", 1, 10
             )
@@ -319,7 +323,7 @@ class TestGetEntitiesForClass:
             assert "?subject" in entities_query
             assert "LIMIT 10" in entities_query
             assert "OFFSET 0" in entities_query
-        
+
     def test_get_entities_for_class_non_virtuoso(
         self, mock_sparql_wrapper, mock_custom_filter
     ):
@@ -351,7 +355,10 @@ class TestGetEntitiesForClass:
 
         # Configure is_virtuoso to return False
         with patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
-             patch("heritrace.utils.sparql_utils.get_available_classes", return_value=mock_available_classes):
+             patch("heritrace.utils.sparql_utils.get_available_classes", return_value=mock_available_classes), \
+             patch("heritrace.utils.sparql_utils.get_classes_with_multiple_shapes", return_value=set()), \
+             patch("heritrace.utils.display_rules_utils.get_display_rules", return_value=[]), \
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value=None):
             entities, total_count = get_entities_for_class(
                 "http://example.org/Person", 1, 10
             )
@@ -422,6 +429,12 @@ class TestGetCatalogData:
         ), patch(
             "heritrace.utils.sparql_utils.get_available_classes",
             return_value=mock_available_classes,
+        ), patch(
+            "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
+            return_value=set(),
+        ), patch(
+            "heritrace.utils.display_rules_utils.get_display_rules",
+            return_value=[],
         ):
             # Call get_catalog_data with the new parameter structure
             catalog_data = get_catalog_data(
@@ -466,7 +479,7 @@ class TestFetchDataGraphForSubject:
             }
         }
 
-        graph = fetch_data_graph_for_subject("http://example.org/person1")
+        graph = fetch_data_graph_for_subject(URIRef("http://example.org/person1"))
 
         # Verify the graph contains the expected triples
         assert len(graph) == 2
@@ -477,7 +490,7 @@ class TestFetchDataGraphForSubject:
         assert "GRAPH ?g" in query
         assert "FILTER(?g NOT IN" in query
         assert "<http://example.org/person1> ?predicate ?object" in query
-        
+
     def test_fetch_data_graph_non_virtuoso_triplestore(
         self, mock_sparql_wrapper
     ):
@@ -504,7 +517,7 @@ class TestFetchDataGraphForSubject:
         with patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False), \
              patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=False):
             
-            graph = fetch_data_graph_for_subject("http://example.org/person1")
+            graph = fetch_data_graph_for_subject(URIRef("http://example.org/person1"))
 
             # Verify the graph contains the expected triples
             assert len(graph) == 2
@@ -551,7 +564,7 @@ class TestFindOrphanedEntities:
             return_value=mock_display_rules,
         ):
             orphaned, intermediate_orphans = find_orphaned_entities(
-                "http://example.org/person1", "http://example.org/Person"
+                URIRef("http://example.org/person1"), "http://example.org/Person"
             )
 
             # Verify the results
@@ -585,7 +598,7 @@ class TestImportEntityGraph:
             }
 
             result = import_entity_graph(
-                mock_editor, "http://example.org/person1", max_depth=2
+                mock_editor, URIRef("http://example.org/person1"), max_depth=2
             )
             assert mock_editor.import_entity.call_count == 2
             mock_editor.import_entity.assert_any_call(
@@ -636,7 +649,7 @@ class TestFetchCurrentStateWithRelatedEntities:
             "heritrace.utils.sparql_utils.fetch_data_graph_for_subject"
         ) as mock_fetch:
             mock_fetch.side_effect = lambda uri: (
-                person1_graph if uri == "http://example.org/person1" else person2_graph
+                person1_graph if uri == URIRef("http://example.org/person1") else person2_graph
             )
 
             result = fetch_current_state_with_related_entities(provenance)
@@ -657,8 +670,8 @@ class TestFetchCurrentStateWithRelatedEntities:
             ) in result
 
             assert mock_fetch.call_count == 2
-            mock_fetch.assert_any_call("http://example.org/person1")
-            mock_fetch.assert_any_call("http://example.org/person2")
+            mock_fetch.assert_any_call(URIRef("http://example.org/person1"))
+            mock_fetch.assert_any_call(URIRef("http://example.org/person2"))
 
 
 class TestGetEntitiesWithEnhancedShapeDetection:
@@ -1044,7 +1057,7 @@ class TestGetEntitiesForClassShapeFiltering:
             second_query = mock_sparql.setQuery.call_args_list[1][0][0]
             assert "SELECT ?subject ?p ?o" in second_query
             assert "VALUES (?subject)" in second_query
-            
+
             assert total_count == 1
             assert len(entities) == 1
             assert entities[0]["uri"] == "http://example.org/person1"
@@ -1113,7 +1126,7 @@ class TestGetEntitiesForClassShapeFiltering:
             second_query = mock_sparql.setQuery.call_args_list[1][0][0]
             assert "SELECT ?subject ?p ?o" in second_query
             assert "VALUES (?subject)" in second_query
-            
+
             assert total_count == 1
             assert len(entities) == 1
             assert entities[0]["uri"] == "http://example.org/doc1"
@@ -1153,7 +1166,7 @@ class TestGetEntitiesForClassShapeFiltering:
             
             mock_filter = mock_get_filter.return_value
             mock_filter.human_readable_entity.side_effect = lambda uri, entity_key, graph: uri.split('/')[-1]
-            
+
             entities_asc, total_count_asc = get_entities_for_class(
                 selected_class, 1, 10, sort_property="http://example.org/name", 
                 sort_direction="ASC", selected_shape=selected_shape
@@ -1344,24 +1357,25 @@ class TestGetDeletedEntitiesWithFiltering:
         with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
              patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
              patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
-             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
-            
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
+             patch("heritrace.utils.sparql_utils.get_sortable_properties", return_value=[]):
+
             # Mock the executor and futures
             mock_future_1 = MagicMock()
             mock_future_1.result.return_value = mock_entity_info_1
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
-            
+
             mock_executor_instance = MagicMock()
             mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
-            
+
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
-            
+
             result = get_deleted_entities_with_filtering()
-            
+
             entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
-            
+
             assert len(entities) == 2
             assert total_count == 2
             assert len(available_classes) == 1
@@ -1390,17 +1404,18 @@ class TestGetDeletedEntitiesWithFiltering:
         with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
              patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
              patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
-             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
-            
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
+             patch("heritrace.utils.sparql_utils.get_sortable_properties", return_value=[]):
+
             mock_future = MagicMock()
             mock_future.result.return_value = mock_entity_info
-            
+
             mock_executor_instance = MagicMock()
             mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.return_value = mock_future
-            
+
             mock_as_completed.return_value = [mock_future, mock_future]
-            
+
             result = get_deleted_entities_with_filtering(page=1, per_page=1, selected_class="http://example.org/Person")
             
             entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
@@ -1439,19 +1454,20 @@ class TestGetDeletedEntitiesWithFiltering:
         with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
              patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
              patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
-             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"):
-            
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
+             patch("heritrace.utils.sparql_utils.get_sortable_properties", return_value=[]):
+
             mock_future_1 = MagicMock()
             mock_future_1.result.return_value = mock_entity_info_1
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
-            
+
             mock_executor_instance = MagicMock()
             mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
-            
+
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
-            
+
             result = get_deleted_entities_with_filtering(sort_direction="DESC")
             
             entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
@@ -1556,28 +1572,29 @@ class TestGetDeletedEntitiesWithFiltering:
         with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
              patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
              patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
-             patch("heritrace.utils.sparql_utils.determine_shape_for_classes") as mock_determine_shape:
-            
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes") as mock_determine_shape, \
+             patch("heritrace.utils.sparql_utils.get_sortable_properties", return_value=[]):
+
             mock_determine_shape.side_effect = lambda classes: {
                 "http://example.org/Person": "http://example.org/PersonShape",
                 "http://example.org/Document": "http://example.org/DocumentShape"
-            }.get(classes[0] if classes else None, "http://example.org/DefaultShape")
-            
+            }.get(classes[0] if classes else "", "http://example.org/DefaultShape")
+
             mock_future_1 = MagicMock()
             mock_future_1.result.return_value = mock_entity_info_1
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
-            
+
             mock_executor_instance = MagicMock()
             mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
-            
+
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
-            
+
             result = get_deleted_entities_with_filtering(selected_class="http://example.org/Person")
-            
+
             entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
-            
+
             # Only Person entities should be returned
             assert len(entities) == 1
             assert entities[0]["uri"] == "http://example.org/person1"
@@ -1620,28 +1637,29 @@ class TestGetDeletedEntitiesWithFiltering:
         with patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor, \
              patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed, \
              patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4), \
-             patch("heritrace.utils.sparql_utils.determine_shape_for_classes") as mock_determine_shape:
-            
+             patch("heritrace.utils.sparql_utils.determine_shape_for_classes") as mock_determine_shape, \
+             patch("heritrace.utils.sparql_utils.get_sortable_properties", return_value=[]):
+
             mock_determine_shape.side_effect = lambda classes: {
                 "http://example.org/Person": "http://example.org/PersonShape",
                 "http://example.org/Document": "http://example.org/DocumentShape"
-            }.get(classes[0] if classes else None, "http://example.org/DefaultShape")
-            
+            }.get(classes[0] if classes else "", "http://example.org/DefaultShape")
+
             mock_future_1 = MagicMock()
             mock_future_1.result.return_value = mock_entity_info_1
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
-            
+
             mock_executor_instance = MagicMock()
             mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
-            
+
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
-            
+
             result = get_deleted_entities_with_filtering(selected_class=None)
-            
+
             entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = result
-            
+
             # When no class is selected, it automatically selects the first class alphabetically ("Document")
             # So only Document entities should be returned
             assert len(entities) == 1
@@ -1702,7 +1720,7 @@ class TestProcessDeletedEntity:
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
              patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
              patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
-             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value=datetime(2023, 1, 14, 15, 20, 0, tzinfo=timezone.utc)), \
              patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
@@ -1761,7 +1779,7 @@ class TestProcessDeletedEntity:
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
              patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
              patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
-             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value=datetime(2023, 1, 14, 15, 20, 0, tzinfo=timezone.utc)), \
              patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):
@@ -1791,7 +1809,7 @@ class TestProcessDeletedEntity:
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
              patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
              patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
-             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"):
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value=datetime(2023, 1, 14, 15, 20, 0, tzinfo=timezone.utc)):
 
             mock_entity_instance = mock_agnostic_entity.return_value
             mock_entity_instance.get_state_at_time.return_value = (mock_state, None, None)
@@ -1823,7 +1841,7 @@ class TestProcessDeletedEntity:
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
              patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
              patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
-             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value=datetime(2023, 1, 14, 15, 20, 0, tzinfo=timezone.utc)), \
              patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/HiddenType"), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/HiddenShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=False):
@@ -1872,7 +1890,7 @@ class TestProcessDeletedEntity:
              patch("heritrace.utils.sparql_utils.AgnosticEntity") as mock_agnostic_entity, \
              patch("heritrace.utils.sparql_utils.convert_to_rdflib_graphs", side_effect=lambda s, q: s), \
              patch("heritrace.utils.sparql_utils.get_dataset_is_quadstore", return_value=True), \
-             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value="2023-01-14T15:20:00+00:00"), \
+             patch("heritrace.utils.sparql_utils.convert_to_datetime", return_value=datetime(2023, 1, 14, 15, 20, 0, tzinfo=timezone.utc)), \
              patch("heritrace.utils.sparql_utils.get_highest_priority_class", return_value="http://example.org/Person"), \
              patch("heritrace.utils.sparql_utils.determine_shape_for_classes", return_value="http://example.org/PersonShape"), \
              patch("heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True):

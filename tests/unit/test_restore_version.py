@@ -19,11 +19,11 @@ def test_restore_version_with_quadstore():
     
     # Add some quads to the current graph
     current_graph.add((
-        URIRef("http://example.org/entity/1"), 
-        URIRef("http://example.org/predicate"), 
+        URIRef("http://example.org/entity/1"),
+        URIRef("http://example.org/predicate"),
         Literal("Value"),
         URIRef("http://example.org/graph")
-    ))
+    ))  # type: ignore[arg-type]
     
     # Simulate the code path
     if mock_get_dataset_is_quadstore():
@@ -283,27 +283,27 @@ def test_compute_graph_differences_quadstore(mock_get_dataset_is_quadstore):
         URIRef("http://example.org/predicate1"),
         Literal("value1"),
         URIRef("http://example.org/graph1")
-    ))
+    ))  # type: ignore[arg-type]
     current_graph.add((
         URIRef("http://example.org/subject2"),
         URIRef("http://example.org/predicate2"),
         Literal("value2"),
         URIRef("http://example.org/graph2")
-    ))
-    
+    ))  # type: ignore[arg-type]
+
     # Add test quads to historical graph
     historical_graph.add((
         URIRef("http://example.org/subject1"),
         URIRef("http://example.org/predicate1"),
         Literal("value1"),
         URIRef("http://example.org/graph1")
-    ))
+    ))  # type: ignore[arg-type]
     historical_graph.add((
         URIRef("http://example.org/subject3"),
         URIRef("http://example.org/predicate3"),
         Literal("value3"),
         URIRef("http://example.org/graph3")
-    ))
+    ))  # type: ignore[arg-type]
     
     # Call the function
     quads_to_delete, quads_to_add = compute_graph_differences(current_graph, historical_graph)

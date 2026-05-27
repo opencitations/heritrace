@@ -2,8 +2,9 @@
 #
 # SPDX-License-Identifier: ISC
 
-from flask import current_app
 import validators
+from flask import current_app
+from redis import Redis
 
 USER_DEFAULT_SOURCE_KEY = "user:{user_id}:default_primary_source"
 
@@ -21,9 +22,8 @@ def get_user_default_primary_source(user_id):
     if user_id:
         key = USER_DEFAULT_SOURCE_KEY.format(user_id=user_id)
         try:
-            user_default_source = current_app.redis_client.get(key)
-            if user_default_source and isinstance(user_default_source, bytes):
-                user_default_source = user_default_source.decode('utf-8')
+            redis_client: Redis = current_app.extensions["redis_client"]  # type: ignore[type-arg]
+            user_default_source = redis_client.get(key)
         except Exception as e:
             current_app.logger.error(f"Failed to get user default primary source from Redis: {e}")
             user_default_source = None  # Ensure it's None on error
@@ -59,7 +59,8 @@ def save_user_default_primary_source(user_id, primary_source):
         
     key = USER_DEFAULT_SOURCE_KEY.format(user_id=user_id)
     try:
-        current_app.redis_client.set(key, primary_source)
+        redis_client: Redis = current_app.extensions["redis_client"]  # type: ignore[type-arg]
+        redis_client.set(key, primary_source)
         return True
     except Exception as e:
         current_app.logger.error(f"Failed to save user default primary source to Redis: {e}")

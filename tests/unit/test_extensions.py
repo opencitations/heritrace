@@ -2,266 +2,236 @@
 #
 # SPDX-License-Identifier: ISC
 
-"""
-Tests for the extensions module.
-"""
-
 import json
+import os
 import socket
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, call, patch
-import os
 
 import pytest
 from flask import Flask, g
 from flask_babel import Babel
 from flask_login import LoginManager
-from heritrace.extensions import (SPARQLWrapperWithRetry, adjust_endpoint_url,
+from heritrace.extensions import (AppState, adjust_endpoint_url,
                                   get_change_tracking_config,
+                                  get_classes_with_multiple_shapes,
                                   get_custom_filter, get_dataset_endpoint,
                                   get_dataset_is_quadstore, get_display_rules,
                                   get_form_fields, get_provenance_endpoint,
                                   get_provenance_sparql, get_shacl_graph,
                                   get_sparql, init_extensions,
                                   init_login_manager, init_request_handlers,
-                                  init_sparql_services,
                                   initialize_change_tracking_config,
                                   initialize_counter_handler,
                                   initialize_global_variables,
                                   need_initialization, running_in_docker,
                                   update_cache)
+from heritrace.sparql import SPARQLWrapperWithRetry
+from rdflib import Graph
 from redis import Redis
 from SPARQLWrapper import SPARQLWrapper
 
 
 @pytest.fixture
 def mock_redis():
-    """Create a mock Redis client."""
     return MagicMock(spec=Redis)
 
 
 @pytest.fixture
 def babel():
-    """Create a Babel instance."""
     return Babel()
 
 
 @pytest.fixture
 def login_manager():
-    """Create a LoginManager instance."""
     return LoginManager()
 
 
 @pytest.fixture
 def cleanup_nonexistent_config():
-    """Fixture to clean up nonexistent_config.json file after test."""
     yield
     if os.path.exists('nonexistent_config.json'):
         os.remove('nonexistent_config.json')
 
 
-def test_init_extensions(app, babel, login_manager, mock_redis):
-    """Test that extensions are initialized correctly."""
-    # Call the function to initialize extensions
-    with patch("heritrace.extensions.redis_client", None):
-        init_extensions(app, babel, login_manager, mock_redis)
-
-        # Import after initialization to get the updated values
-        from heritrace.extensions import redis_client
-
-        # Check that redis_client is set correctly
-        assert redis_client is mock_redis
-
-
-def test_babel_initialization(app, babel, login_manager, mock_redis):
-    """Test that Babel is initialized correctly."""
-    # Initialize extensions
-    with patch("heritrace.extensions.redis_client", None):
-        init_extensions(app, babel, login_manager, mock_redis)
-
-    # Check that Babel is initialized
-    # Since we can't directly access babel.app, we'll check if babel has been initialized
-    # by checking if it has the necessary attributes after initialization
-    # The specific attributes may vary, so we'll just check if babel has been initialized
-    # by checking if it has the domain attribute, which should be set during initialization
-    assert hasattr(babel, "domain")
-    # Alternatively, we can just check that the test passes without errors
-    assert True
+@pytest.fixture
+def lightweight_app():
+    app = Flask(__name__)
+    app.config.update(
+        TESTING=True,
+        SECRET_KEY='test',
+        DATASET_DB_URL='http://localhost:9999/sparql',
+        PROVENANCE_DB_URL='http://localhost:9999/sparql',
+        DATASET_DIRS=[],
+        PROVENANCE_DIRS=[],
+        DATASET_IS_QUADSTORE=False,
+        PROVENANCE_IS_QUADSTORE=False,
+        CACHE_VALIDITY_DAYS=7,
+        BABEL_TRANSLATION_DIRECTORIES='translations',
+    )
+    return app
 
 
-def test_login_manager_initialization(app, babel, login_manager, mock_redis):
-    """Test that LoginManager is initialized correctly."""
-    # Initialize extensions
-    with patch("heritrace.extensions.redis_client", None):
-        init_extensions(app, babel, login_manager, mock_redis)
+def test_init_extensions(lightweight_app, babel, login_manager, mock_redis):
+    with lightweight_app.app_context(), \
+         patch('heritrace.extensions.init_sparql_services') as mock_sparql, \
+         patch('heritrace.extensions.initialize_counter_handler'), \
+         patch('heritrace.extensions.initialize_global_variables', return_value=([], {}, False, Graph(), set())), \
+         patch('heritrace.extensions.init_filters', return_value=MagicMock()):
+        mock_sparql.return_value = ('http://ds', 'http://prov', MagicMock(), MagicMock(), {})
+        init_extensions(lightweight_app, babel, login_manager, mock_redis)
 
-    # Check that LoginManager is initialized
-    # Since we can't directly access login_manager.app, we'll check if login_manager has been initialized
-    # by checking if it has the necessary attributes after initialization
-    assert hasattr(login_manager, "login_view")
-    assert hasattr(login_manager, "login_message")
+        assert lightweight_app.extensions['redis_client'] is mock_redis
+        assert isinstance(lightweight_app.extensions['heritrace'], AppState)
 
 
-def test_close_redis_connection(app: Flask, babel: Babel, login_manager: LoginManager, mock_redis: Redis):
-    """Test that close_redis_connection properly cleans up the resource_lock_manager."""
-    
-    # Initialize request handlers
-    init_request_handlers(app)
-    
-    # Create a test request context
+def test_babel_initialization(lightweight_app, babel, login_manager, mock_redis):
+    with lightweight_app.app_context(), \
+         patch('heritrace.extensions.init_sparql_services') as mock_sparql, \
+         patch('heritrace.extensions.initialize_counter_handler'), \
+         patch('heritrace.extensions.initialize_global_variables', return_value=([], {}, False, Graph(), set())), \
+         patch('heritrace.extensions.init_filters', return_value=MagicMock()):
+        mock_sparql.return_value = ('http://ds', 'http://prov', MagicMock(), MagicMock(), {})
+        init_extensions(lightweight_app, babel, login_manager, mock_redis)
+
+        assert hasattr(babel, "domain")
+
+
+def test_login_manager_initialization(lightweight_app, babel, login_manager, mock_redis):
+    with lightweight_app.app_context(), \
+         patch('heritrace.extensions.init_sparql_services') as mock_sparql, \
+         patch('heritrace.extensions.initialize_counter_handler'), \
+         patch('heritrace.extensions.initialize_global_variables', return_value=([], {}, False, Graph(), set())), \
+         patch('heritrace.extensions.init_filters', return_value=MagicMock()):
+        mock_sparql.return_value = ('http://ds', 'http://prov', MagicMock(), MagicMock(), {})
+        init_extensions(lightweight_app, babel, login_manager, mock_redis)
+
+        assert hasattr(login_manager, "login_view")
+        assert hasattr(login_manager, "login_message")
+
+
+def test_close_redis_connection(app: Flask, mock_redis: Redis):
+    init_request_handlers(app, mock_redis)
+
     with app.test_request_context():
-        # Set resource_lock_manager
         g.resource_lock_manager = mock_redis
-        
-        # Verify it exists
+
         assert hasattr(g, 'resource_lock_manager')
-        
-        # Get the close_redis_connection function
+
         close_redis_connection = None
         for func in app.teardown_appcontext_funcs:
             if func.__name__ == 'close_redis_connection':
                 close_redis_connection = func
                 break
-        
-        # Call it directly
+
+        assert close_redis_connection is not None
         close_redis_connection(None)
-        
-        # Verify it's gone
+
         assert not hasattr(g, 'resource_lock_manager')
-        
-        # Set it back to avoid teardown errors
+
         g.resource_lock_manager = mock_redis
 
 
 def test_adjust_endpoint_url():
-    """Test that adjust_endpoint_url correctly adjusts URLs when running in Docker."""
-    
-    # Test case: not running in Docker
     with patch('heritrace.extensions.running_in_docker', return_value=False):
-        # Should return the original URL unchanged
         original_url = 'http://localhost:8080/sparql'
         assert adjust_endpoint_url(original_url) == original_url
-    
-    # Test cases: running in Docker
+
     with patch('heritrace.extensions.running_in_docker', return_value=True):
-        # Test with localhost
         assert adjust_endpoint_url('http://localhost:8080/sparql') == 'http://host.docker.internal:8080/sparql'
-        
-        # Test with 127.0.0.1
         assert adjust_endpoint_url('http://127.0.0.1:8080/sparql') == 'http://host.docker.internal:8080/sparql'
-        
-        # Test with 0.0.0.0
         assert adjust_endpoint_url('http://0.0.0.0:8080/sparql') == 'http://host.docker.internal:8080/sparql'
-        
-        # Test without port
         assert adjust_endpoint_url('http://localhost/sparql') == 'http://host.docker.internal/sparql'
-        
-        # Test with non-local URL (should remain unchanged)
+
         external_url = 'http://example.com/sparql'
         assert adjust_endpoint_url(external_url) == external_url
 
 
 def test_running_in_docker():
-    """Test that running_in_docker correctly detects Docker environment."""
-    
-    # Test when /.dockerenv exists
     with patch('os.path.exists', return_value=True):
         assert running_in_docker() is True
-    
-    # Test when /.dockerenv doesn't exist
+
     with patch('os.path.exists', return_value=False):
         assert running_in_docker() is False
 
 
-def test_getter_functions():
-    """Test that getter functions return the correct global variables."""
-    # Setup global variables
-    with patch('heritrace.extensions.dataset_endpoint', 'dataset_endpoint_value'), \
-         patch('heritrace.extensions.sparql', 'sparql_value'), \
-         patch('heritrace.extensions.provenance_endpoint', 'provenance_endpoint_value'), \
-         patch('heritrace.extensions.provenance_sparql', 'provenance_sparql_value'), \
-         patch('heritrace.extensions.custom_filter', 'custom_filter_value'), \
-         patch('heritrace.extensions.change_tracking_config', 'change_tracking_config_value'), \
-         patch('heritrace.extensions.display_rules', 'display_rules_value'), \
-         patch('heritrace.extensions.form_fields_cache', 'form_fields_value'), \
-         patch('heritrace.extensions.dataset_is_quadstore', 'dataset_is_quadstore_value'), \
-         patch('heritrace.extensions.shacl_graph', 'shacl_graph_value'):
-        
-        # Test each getter function
-        assert get_dataset_endpoint() == 'dataset_endpoint_value'
-        assert get_sparql() == 'sparql_value'
-        assert get_provenance_endpoint() == 'provenance_endpoint_value'
-        assert get_provenance_sparql() == 'provenance_sparql_value'
-        assert get_custom_filter() == 'custom_filter_value'
-        assert get_change_tracking_config() == 'change_tracking_config_value'
-        assert get_display_rules() == 'display_rules_value'
-        assert get_form_fields() == 'form_fields_value'
-        assert get_dataset_is_quadstore() == 'dataset_is_quadstore_value'
-        assert get_shacl_graph() == 'shacl_graph_value'
+def test_getter_functions(app):
+    mock_state = AppState(
+        dataset_endpoint='dataset_endpoint_value',
+        provenance_endpoint='provenance_endpoint_value',
+        sparql=MagicMock(spec=SPARQLWrapperWithRetry),
+        provenance_sparql=MagicMock(spec=SPARQLWrapperWithRetry),
+        change_tracking_config={'key': 'value'},
+        custom_filter=MagicMock(),
+        display_rules=[{'rule': 1}],
+        form_fields_cache={'field': 'data'},
+        dataset_is_quadstore=True,
+        shacl_graph=Graph(),
+        classes_with_multiple_shapes={'http://example.org/Class1'},
+    )
+    app.extensions['heritrace'] = mock_state
+
+    assert get_dataset_endpoint() == 'dataset_endpoint_value'
+    assert get_sparql() is mock_state.sparql
+    assert get_provenance_endpoint() == 'provenance_endpoint_value'
+    assert get_provenance_sparql() is mock_state.provenance_sparql
+    assert get_custom_filter() is mock_state.custom_filter
+    assert get_change_tracking_config() == {'key': 'value'}
+    assert get_display_rules() == [{'rule': 1}]
+    assert get_form_fields() == {'field': 'data'}
+    assert get_dataset_is_quadstore() is True
+    assert get_shacl_graph() is mock_state.shacl_graph
+    assert get_classes_with_multiple_shapes() == {'http://example.org/Class1'}
 
 
 def test_get_counter_handler_not_initialized(app):
-    """Test that get_counter_handler raises RuntimeError when not initialized."""
-    app.config.pop('URI_GENERATOR', None) 
-    
-    with app.app_context():
-        with patch('heritrace.extensions.current_app.logger.error') as mock_logger_error:
-            with pytest.raises(RuntimeError, match="CounterHandler is not available. Initialization might have failed."):
-                from heritrace.extensions import get_counter_handler
-                get_counter_handler()
-            
-            mock_logger_error.assert_called_once_with("CounterHandler not found in URIGenerator config.")
+    app.config.pop('URI_GENERATOR', None)
+
+    with patch('heritrace.extensions.current_app.logger.error') as mock_logger_error:
+        with pytest.raises(RuntimeError, match="CounterHandler is not available. Initialization might have failed."):
+            from heritrace.extensions import get_counter_handler
+            get_counter_handler()
+
+        mock_logger_error.assert_called_once_with("CounterHandler not found in URIGenerator config.")
 
     app.config['URI_GENERATOR'] = MagicMock(spec=[])
-    
-    with app.app_context():
-        with patch('heritrace.extensions.current_app.logger.error') as mock_logger_error:
-            with pytest.raises(RuntimeError, match="CounterHandler is not available. Initialization might have failed."):
-                from heritrace.extensions import get_counter_handler
-                get_counter_handler()
-            mock_logger_error.assert_called_once_with("CounterHandler not found in URIGenerator config.")
+
+    with patch('heritrace.extensions.current_app.logger.error') as mock_logger_error:
+        with pytest.raises(RuntimeError, match="CounterHandler is not available. Initialization might have failed."):
+            from heritrace.extensions import get_counter_handler
+            get_counter_handler()
+        mock_logger_error.assert_called_once_with("CounterHandler not found in URIGenerator config.")
 
 
 def test_get_counter_handler_success(app):
-    """Test that get_counter_handler returns the counter handler when properly initialized."""
     mock_counter_handler = MagicMock()
-    
+
     mock_uri_generator = MagicMock()
     mock_uri_generator.counter_handler = mock_counter_handler
-    
+    mock_uri_generator.initialize_counters = MagicMock()
+
     app.config['URI_GENERATOR'] = mock_uri_generator
-    
-    with app.app_context():
-        from heritrace.extensions import get_counter_handler
-        result = get_counter_handler()
-        
-        assert result is mock_counter_handler
+
+    from heritrace.extensions import get_counter_handler
+    result = get_counter_handler()
+
+    assert result is mock_counter_handler
 
 
 def test_init_login_manager_directly(app):
-    """Test that init_login_manager correctly configures the login manager."""
-
-    # Create a mock login manager
     login_manager = MagicMock(spec=LoginManager)
-    
-    # Call the function
+
     init_login_manager(app, login_manager)
-    
-    # Check that login_manager was initialized correctly
+
     login_manager.init_app.assert_called_once_with(app)
     assert login_manager.login_view == 'auth.login'
-    
-    # Test the user_loader function
-    # Get the user_loader callback that was registered
+
     user_loader_call = [call for call in login_manager.method_calls if call[0] == 'user_loader']
     assert len(user_loader_call) > 0
-    
-    # Get the user_loader function
-    user_loader = user_loader_call[0][1][0]  # First call, first argument
-    
-    # Test the user_loader function with a session
+
+    user_loader = user_loader_call[0][1][0]
+
     with app.test_request_context():
-        # Set up session
         with patch('heritrace.extensions.session', {'user_name': 'Test User'}):
             user = user_loader('test_id')
             assert user.id == 'test_id'
@@ -270,120 +240,83 @@ def test_init_login_manager_directly(app):
 
 
 def test_rotate_session_token(app):
-    """Test that the rotate_session_token function is properly connected to the user_loaded_from_cookie signal."""
-    
-    # Import the user_loaded_from_cookie signal
     from flask_login.signals import user_loaded_from_cookie
 
-    # Create a login manager
     login_manager = LoginManager()
-    
-    # Patch the signal connect method to capture the handler
+
     with patch.object(user_loaded_from_cookie, 'connect') as mock_connect:
-        # Initialize the login manager
         init_login_manager(app, login_manager)
-        
-        # Verify that the signal was connected
+
         mock_connect.assert_called_once()
-        
-        # Get the handler function that was connected
+
         handler = mock_connect.call_args[0][0]
-        
-        # Create a mock session
+
         mock_session = MagicMock()
-        
-        # Create a mock user and sender
         mock_user = MagicMock()
         mock_sender = MagicMock()
-        
-        # Test the handler function directly
+
         with patch('heritrace.extensions.session', mock_session):
             handler(mock_sender, mock_user)
-            
-            # Check that session.modified was set to True
             assert mock_session.modified is True
 
 
 def test_need_initialization(app):
-    """Test that need_initialization correctly determines if initialization is needed."""
-
-    # Mock the URI generator
     mock_uri_generator = MagicMock()
     mock_uri_generator.counter_handler = MagicMock()
+    mock_uri_generator.initialize_counters = MagicMock()
     app.config['URI_GENERATOR'] = mock_uri_generator
     app.config['CACHE_VALIDITY_DAYS'] = 7
-    
-    # Mock Redis client
+
     mock_redis = MagicMock()
-    
-    with patch('heritrace.extensions.redis_client', mock_redis):
-        # Test when Redis key doesn't exist
-        mock_redis.get.return_value = None
-        assert need_initialization(app) is True
-        
-        # Test when Redis returns invalid data
-        mock_redis.get.side_effect = Exception('Redis error')
-        assert need_initialization(app) is True
-        
-        # Test when cache exists but is expired
-        expired_time = (datetime.now() - timedelta(days=10)).isoformat()
-        mock_redis.get.return_value = expired_time.encode('utf-8')
-        mock_redis.get.side_effect = None
-        assert need_initialization(app) is True
-        
-        # Test when cache exists and is not expired
-        current_time = datetime.now().isoformat()
-        mock_redis.get.return_value = current_time.encode('utf-8')
-        assert need_initialization(app) is False
-    
-    # Test when URI generator doesn't have counter_handler
+
+    mock_redis.get.return_value = None
+    assert need_initialization(app, mock_redis) is True
+
+    mock_redis.get.side_effect = Exception('Redis error')
+    assert need_initialization(app, mock_redis) is True
+
+    expired_time = (datetime.now() - timedelta(days=10)).isoformat()
+    mock_redis.get.return_value = expired_time.encode('utf-8')
+    mock_redis.get.side_effect = None
+    assert need_initialization(app, mock_redis) is True
+
+    current_time = datetime.now().isoformat()
+    mock_redis.get.return_value = current_time.encode('utf-8')
+    assert need_initialization(app, mock_redis) is False
+
     app.config['URI_GENERATOR'] = MagicMock(spec=[])
-    assert need_initialization(app) is False
+    assert need_initialization(app, mock_redis) is False
 
 
 def test_update_cache(app):
-    """Test that update_cache correctly updates Redis with cache information."""
-    
-    # Mock Redis client
     mock_redis = MagicMock()
-    
-    with patch('heritrace.extensions.redis_client', mock_redis):
-        update_cache(app)
-    
-    # Check that Redis set was called for both keys
+
+    update_cache(app, mock_redis)
+
     assert mock_redis.set.call_count == 2
-    
-    # Check the calls made to Redis
+
     calls = mock_redis.set.call_args_list
-    
-    # First call should be for last_initialization
+
     first_call_args = calls[0][0]
     assert first_call_args[0] == 'heritrace:last_initialization'
-    # The timestamp should be a valid ISO format string
     assert isinstance(first_call_args[1], str)
-    
-    # Second call should be for cache_version
+
     second_call_args = calls[1][0]
     assert second_call_args[0] == 'heritrace:cache_version'
     assert second_call_args[1] == '1.0'
 
 
 def test_initialize_change_tracking_config(app, cleanup_nonexistent_config):
-    """Test that initialize_change_tracking_config correctly initializes the change tracking configuration."""
-
-    # Set up required config values
     app.config['DATASET_DB_URL'] = 'http://localhost:8080/dataset'
     app.config['PROVENANCE_DB_URL'] = 'http://localhost:8080/provenance'
     app.config['DATASET_DIRS'] = []
     app.config['DATASET_IS_QUADSTORE'] = False
     app.config['PROVENANCE_IS_QUADSTORE'] = False
     app.config['PROVENANCE_DIRS'] = []
-    # Mock the generate_config_file function
     mock_config = {
         'dataset': {'is_quadstore': False},
     }
 
-    # Test when config path is provided and file exists
     app.config['CHANGE_TRACKING_CONFIG'] = 'existing_config.json'
 
     with patch('os.path.exists', return_value=True), \
@@ -392,11 +325,9 @@ def test_initialize_change_tracking_config(app, cleanup_nonexistent_config):
 
         config = initialize_change_tracking_config(app)
 
-        # Check that the config was loaded
         assert config is not None
         assert 'dataset' in config
 
-    # Test when config path is provided but file doesn't exist
     app.config['CHANGE_TRACKING_CONFIG'] = 'nonexistent_config.json'
 
     with patch('os.path.exists', return_value=False), \
@@ -405,15 +336,12 @@ def test_initialize_change_tracking_config(app, cleanup_nonexistent_config):
 
         config = initialize_change_tracking_config(app)
 
-        # Check that the config was generated
         assert config is not None
         assert 'dataset' in config
 
-    # Test when CHANGE_TRACKING_CONFIG is not in app.config (else branch)
     if 'CHANGE_TRACKING_CONFIG' in app.config:
         del app.config['CHANGE_TRACKING_CONFIG']
 
-    # We need to mock the actual file operations in generate_config_file
     mock_open = MagicMock()
 
     with patch('os.path.join', return_value='instance/change_tracking_config.json'), \
@@ -423,219 +351,134 @@ def test_initialize_change_tracking_config(app, cleanup_nonexistent_config):
 
         config = initialize_change_tracking_config(app)
 
-        # Check that the directory was created
         mock_makedirs.assert_called_once_with(app.instance_path, exist_ok=True)
 
-        # Check that the config was generated
         assert config is not None
         assert 'dataset' in config
 
 
 def test_initialize_change_tracking_config_exceptions(app, cleanup_nonexistent_config):
-    """Test exception handling in initialize_change_tracking_config function."""
-    
-    # Set up required config values
     app.config['DATASET_DB_URL'] = 'http://localhost:8080/dataset'
     app.config['PROVENANCE_DB_URL'] = 'http://localhost:8080/provenance'
     app.config['DATASET_DIRS'] = []
     app.config['DATASET_IS_QUADSTORE'] = False
     app.config['PROVENANCE_IS_QUADSTORE'] = False
     app.config['PROVENANCE_DIRS'] = []
-    # Test exception when generating config file
     app.config['CHANGE_TRACKING_CONFIG'] = 'nonexistent_config.json'
-    
+
     with patch('os.path.exists', return_value=False), \
          patch('os.makedirs', MagicMock()), \
          patch('heritrace.extensions.generate_config_file', side_effect=Exception("Test generation error")), \
          pytest.raises(RuntimeError) as excinfo:
-        
+
         initialize_change_tracking_config(app)
-    
-    # Check the error message
+
     assert "Failed to generate change tracking configuration: Test generation error" in str(excinfo.value)
-    
-    # Test JSONDecodeError when loading config file
+
     app.config['CHANGE_TRACKING_CONFIG'] = 'invalid_json_config.json'
-    
+
     mock_open = MagicMock()
     mock_open.return_value.__enter__.return_value = MagicMock()
-    
+
     with patch('os.path.exists', return_value=True), \
          patch('builtins.open', mock_open), \
          patch('json.load', side_effect=json.JSONDecodeError("Test JSON error", "", 0)), \
          pytest.raises(RuntimeError) as excinfo:
-        
+
         initialize_change_tracking_config(app)
-    
-    # Check the error message
+
     assert "Invalid change tracking configuration JSON at invalid_json_config.json: Test JSON error" in str(excinfo.value)
-    
-    # Test general exception when reading config file
+
     app.config['CHANGE_TRACKING_CONFIG'] = 'error_config.json'
-    
+
     with patch('os.path.exists', return_value=True), \
          patch('builtins.open', side_effect=Exception("Test read error")), \
          pytest.raises(RuntimeError) as excinfo:
-        
+
         initialize_change_tracking_config(app)
-    
-    # Check the error message
+
     assert "Error reading change tracking configuration at error_config.json: Test read error" in str(excinfo.value)
 
 
 def test_initialize_counter_handler(app):
-    """Test that initialize_counter_handler correctly initializes the counter handler."""
+    mock_redis = MagicMock(spec=Redis)
+    mock_sparql = MagicMock(spec=SPARQLWrapperWithRetry)
+    mock_provenance_sparql = MagicMock(spec=SPARQLWrapperWithRetry)
 
-    # Mock the need_initialization function to return True
+    mock_prov_results = {
+        'results': {
+            'bindings': [
+                {
+                    'entity': {'value': 'http://example.org/Person'},
+                    'count': {'value': '10'}
+                },
+                {
+                    'entity': {'value': 'http://example.org/Event'},
+                    'count': {'value': '5'}
+                }
+            ]
+        }
+    }
+
+    mock_provenance_sparql.query.return_value.convert.return_value = mock_prov_results
+
+    mock_counter_handler = MagicMock()
+    mock_counter_handler.read_counter.return_value = 5
+
+    mock_uri_generator = MagicMock()
+    mock_uri_generator.counter_handler = mock_counter_handler
+
+    app.config['URI_GENERATOR'] = mock_uri_generator
+
     with patch('heritrace.extensions.need_initialization', return_value=True), \
-         patch('heritrace.extensions.update_cache') as mock_update_cache, \
-         patch('heritrace.extensions.sparql') as mock_sparql, \
-         patch('heritrace.extensions.provenance_sparql') as mock_provenance_sparql:
-        
-        # Mock the query results for sparql
-        mock_results = {
-            'results': {
-                'bindings': [
-                    {
-                        'type': {'value': 'http://example.org/Person'},
-                        'count': {'value': '10'}
-                    },
-                    {
-                        'type': {'value': 'http://example.org/Event'},
-                        'count': {'value': '5'}
-                    }
-                ]
-            }
-        }
-        
-        # Set up the mock SPARQL query
-        mock_sparql.query.return_value.convert.return_value = mock_results
-        
-        # Mock the query results for provenance_sparql
-        mock_prov_results = {
-            'results': {
-                'bindings': [
-                    {
-                        'entity': {'value': 'http://example.org/Person'},
-                        'count': {'value': '10'}
-                    },
-                    {
-                        'entity': {'value': 'http://example.org/Event'},
-                        'count': {'value': '5'}
-                    }
-                ]
-            }
-        }
-        
-        # Set up the mock provenance SPARQL query
-        mock_provenance_sparql.query.return_value.convert.return_value = mock_prov_results
-        
-        # Set up the URI generator with a counter handler
-        mock_counter_handler = MagicMock()
-        mock_counter_handler.read_counter.return_value = 5
-        
-        mock_uri_generator = MagicMock()
-        mock_uri_generator.counter_handler = mock_counter_handler
-        
-        app.config['URI_GENERATOR'] = mock_uri_generator
-        
-        # Call the function
-        initialize_counter_handler(app)
-        
-        # Check that the counter handler was updated correctly
+         patch('heritrace.extensions.update_cache') as mock_update_cache:
+
+        initialize_counter_handler(app, mock_redis, mock_sparql, mock_provenance_sparql)
+
         mock_counter_handler.set_counter.assert_any_call(10, 'http://example.org/Person')
         mock_counter_handler.set_counter.assert_any_call(5, 'http://example.org/Event')
-        
-        # Check that update_cache was called
-        mock_update_cache.assert_called_once_with(app)
+
+        mock_update_cache.assert_called_once_with(app, mock_redis)
 
 
 def test_initialize_lock_manager():
-    """Test that initialize_lock_manager correctly initializes the resource lock manager."""
-
-    # Create a test app
     app = Flask(__name__)
-    
-    # Initialize request handlers
-    init_request_handlers(app)
-    
-    # Get the initialize_lock_manager function
+    mock_redis = MagicMock(spec=Redis)
+
+    init_request_handlers(app, mock_redis)
+
     initialize_lock_manager = None
     for func in app.before_request_funcs.get(None, []):
         if func.__name__ == 'initialize_lock_manager':
             initialize_lock_manager = func
             break
-    
+
     assert initialize_lock_manager is not None
-    
-    # Create a test request context
+
     with app.test_request_context():
-        # Call the function
         initialize_lock_manager()
-        
-        # Check that the resource_lock_manager was set
         assert hasattr(g, 'resource_lock_manager')
 
 
-def test_init_sparql_services_already_initialized(app):
-    """Test that init_sparql_services does nothing when already initialized."""
-
-    # Mock the global variables
-    with patch('heritrace.extensions.initialization_done', True), \
-         patch('heritrace.extensions.SPARQLWrapper') as mock_sparql_wrapper, \
-         patch('heritrace.extensions.initialize_change_tracking_config') as mock_init_config, \
-         patch('heritrace.extensions.initialize_counter_handler') as mock_init_counter, \
-         patch('heritrace.extensions.initialize_global_variables') as mock_init_globals:
-        
-        # Call the function
-        init_sparql_services(app)
-        
-        # Check that nothing was called
-        mock_sparql_wrapper.assert_not_called()
-        mock_init_config.assert_not_called()
-        mock_init_counter.assert_not_called()
-        mock_init_globals.assert_not_called()
-
-
 def test_initialize_global_variables_dataset_is_quadstore(app):
-    """Test that initialize_global_variables correctly sets dataset_is_quadstore."""
-    # Setup
     app.config['DATASET_IS_QUADSTORE'] = True
-    
-    # Reset global variables
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', None), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', None):
-        
-        # Call the function
-        initialize_global_variables(app)
-        
-        # Check that dataset_is_quadstore is set correctly
-        from heritrace.extensions import dataset_is_quadstore
-        assert dataset_is_quadstore is True
+
+    display_rules, form_fields_cache, dataset_is_quadstore, shacl_graph, classes_with_multiple_shapes = initialize_global_variables(app)
+
+    assert dataset_is_quadstore is True
 
 
 def test_initialize_global_variables_display_rules_not_found(app):
-    """Test that initialize_global_variables handles missing display rules file."""
-    # Setup
     app.config['DISPLAY_RULES_PATH'] = '/path/does/not/exist'
-    app.config.pop('SHACL_PATH', None)  # Remove SHACL_PATH to avoid additional warnings
-    
-    # Reset global variables
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', None), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', None), \
-         patch('os.path.exists', return_value=False):
-        
-        # Call the function
-        initialize_global_variables(app)
+    app.config.pop('SHACL_PATH', None)
+
+    with patch('os.path.exists', return_value=False):
+        display_rules, form_fields_cache, dataset_is_quadstore, shacl_graph, classes_with_multiple_shapes = initialize_global_variables(app)
+
+    assert display_rules == []
 
 
 def test_initialize_global_variables_display_rules_loaded(app, tmp_path):
-    """Test that initialize_global_variables correctly loads display rules."""
-    # Create a temporary display rules file
     display_rules_path = tmp_path / "display_rules.yaml"
     display_rules_content = """
 rules:
@@ -647,212 +490,129 @@ rules:
         displayName: "Property 1"
 """
     display_rules_path.write_text(display_rules_content)
-    
-    # Setup app config
+
     app.config['DISPLAY_RULES_PATH'] = str(display_rules_path)
-    app.config.pop('SHACL_PATH', None)  # Remove SHACL_PATH to avoid additional warnings
-    
-    # Reset global variables
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', None), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', None), \
-         patch('os.path.exists', return_value=True):
-        
-        # Call the function
-        initialize_global_variables(app)
-        
-        # Check that display_rules is set correctly
-        from heritrace.extensions import display_rules
-        assert display_rules is not None
-        # Check that there's a rule for Class1
+    app.config.pop('SHACL_PATH', None)
+
+    with patch('os.path.exists', return_value=True):
+        display_rules, form_fields_cache, dataset_is_quadstore, shacl_graph, classes_with_multiple_shapes = initialize_global_variables(app)
+
         assert any(rule.get('target', {}).get('class') == 'Class1' for rule in display_rules)
         assert any(rule.get('displayName') == 'Class 1' for rule in display_rules if rule.get('target', {}).get('class') == 'Class1')
 
 
 def test_initialize_global_variables_display_rules_error(app, tmp_path):
-    """Test that initialize_global_variables handles errors when loading display rules."""
-    # Create a temporary display rules file
     display_rules_path = tmp_path / "invalid_display_rules.yaml"
     display_rules_path.write_text("invalid: yaml: content:")
-    
-    # Setup app config
+
     app.config['DISPLAY_RULES_PATH'] = str(display_rules_path)
-    app.config.pop('SHACL_PATH', None)  # Remove SHACL_PATH to avoid additional warnings
-    
-    # Reset global variables
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', None), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', None), \
-         patch('os.path.exists', return_value=True), \
+    app.config.pop('SHACL_PATH', None)
+
+    with patch('os.path.exists', return_value=True), \
          patch('yaml.safe_load', side_effect=Exception("YAML parsing error")):
-        
-        # Call the function and check for exception
+
         with pytest.raises(RuntimeError, match="Failed to load display rules: YAML parsing error"):
             initialize_global_variables(app)
 
 
 def test_initialize_global_variables_shacl_not_found(app):
-    """Test that initialize_global_variables handles missing SHACL file."""
-    # Setup
-    app.config.pop('DISPLAY_RULES_PATH', None)  # Remove DISPLAY_RULES_PATH to avoid additional warnings
+    app.config.pop('DISPLAY_RULES_PATH', None)
     app.config['SHACL_PATH'] = '/path/does/not/exist'
-    
-    # Reset global variables
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', None), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', None), \
-         patch('os.path.exists', return_value=False):
-        
-        # Call the function
-        initialize_global_variables(app)
 
+    with patch('os.path.exists', return_value=False):
+        display_rules, form_fields_cache, dataset_is_quadstore, shacl_graph, classes_with_multiple_shapes = initialize_global_variables(app)
 
-def test_initialize_global_variables_form_fields_cache_exists(app):
-    """Test that initialize_global_variables returns early if form_fields_cache is not None."""
-    # Setup
-    app.config.pop('DISPLAY_RULES_PATH', None)  # Remove DISPLAY_RULES_PATH to avoid additional warnings
-    app.config['SHACL_PATH'] = '/path/to/shacl.ttl'
-    
-    # Reset global variables but set form_fields_cache
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', None), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', {'existing': 'cache'}), \
-         patch('os.path.exists', return_value=False):  # Return False so it doesn't try to read the file
-        
-        # Call the function
-        initialize_global_variables(app)
+    assert form_fields_cache == {}
 
 
 def test_initialize_global_variables_shacl_loaded(app, tmp_path):
-    """Test that initialize_global_variables correctly loads SHACL graph and form fields."""
-    # Create a temporary SHACL file
     shacl_path = tmp_path / "shacl.ttl"
     shacl_path.write_text("@prefix sh: <http://www.w3.org/ns/shacl#> .")
-    
-    # Setup app config
-    app.config.pop('DISPLAY_RULES_PATH', None)  # Remove DISPLAY_RULES_PATH to avoid additional warnings
+
+    app.config.pop('DISPLAY_RULES_PATH', None)
     app.config['SHACL_PATH'] = str(shacl_path)
-    
-    # Mock get_form_fields_from_shacl
+
     mock_form_fields = {'Class1': {'properties': ['prop1']}}
-    
-    # Reset global variables
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', {'Class1': {'label': 'Class 1'}}), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', None), \
-         patch('os.path.exists', return_value=True), \
+
+    with patch('os.path.exists', return_value=True), \
          patch('heritrace.utils.shacl_utils.get_form_fields_from_shacl', return_value=mock_form_fields):
-        
-        # Call the function
-        initialize_global_variables(app)
-        
-        # Check that form_fields_cache is set correctly
-        from heritrace.extensions import form_fields_cache, shacl_graph
+
+        display_rules, form_fields_cache, dataset_is_quadstore, shacl_graph, classes_with_multiple_shapes = initialize_global_variables(app)
+
         assert form_fields_cache == mock_form_fields
         assert shacl_graph is not None
 
 
 def test_initialize_global_variables_shacl_error(app, tmp_path):
-    """Test that initialize_global_variables handles errors when loading SHACL graph."""
-    # Create a temporary SHACL file with invalid content
     shacl_path = tmp_path / "invalid_shacl.ttl"
     shacl_path.write_text("invalid turtle content")
-    
-    # Setup app config
-    app.config.pop('DISPLAY_RULES_PATH', None)  # Remove DISPLAY_RULES_PATH to avoid additional warnings
+
+    app.config.pop('DISPLAY_RULES_PATH', None)
     app.config['SHACL_PATH'] = str(shacl_path)
-    
-    # Reset global variables
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', None), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', None), \
-         patch('os.path.exists', return_value=True), \
+
+    with patch('os.path.exists', return_value=True), \
          patch('rdflib.Graph.parse', side_effect=Exception("Turtle parsing error")):
-        
-        # Call the function and check for exception
+
         with pytest.raises(RuntimeError, match="Failed to initialize form fields: Turtle parsing error"):
             initialize_global_variables(app)
 
 
 def test_initialize_global_variables_general_exception(app):
-    """Test that initialize_global_variables handles general exceptions."""
-    # Setup to raise a general exception
-    with patch('heritrace.extensions.dataset_is_quadstore', None), \
-         patch('heritrace.extensions.display_rules', None), \
-         patch('heritrace.extensions.shacl_graph', None), \
-         patch('heritrace.extensions.form_fields_cache', None), \
-         patch.object(app.config, 'get', side_effect=Exception("General error")):
-        
-        # Call the function and check for exception
+    with patch.object(app.config, 'get', side_effect=Exception("General error")):
         with pytest.raises(RuntimeError, match="Global variables initialization failed: General error"):
             initialize_global_variables(app)
 
 
 def test_initialize_counter_handler_no_initialization_needed(app):
-    """Test that initialize_counter_handler returns early when need_initialization returns False."""
-    with patch('heritrace.extensions.need_initialization', return_value=False) as mock_need_initialization, \
-         patch('heritrace.extensions.update_cache') as mock_update_cache, \
-         patch('heritrace.extensions.sparql') as mock_sparql, \
-         patch('heritrace.extensions.provenance_sparql') as mock_provenance_sparql:
-        
-        mock_counter_handler = MagicMock()
-        mock_uri_generator = MagicMock()
-        mock_uri_generator.counter_handler = mock_counter_handler
-        app.config['URI_GENERATOR'] = mock_uri_generator
-        
-        initialize_counter_handler(app)
-        
-        mock_need_initialization.assert_called_once_with(app)
-        
+    mock_redis = MagicMock(spec=Redis)
+    mock_sparql = MagicMock(spec=SPARQLWrapperWithRetry)
+    mock_provenance_sparql = MagicMock(spec=SPARQLWrapperWithRetry)
+
+    mock_counter_handler = MagicMock()
+    mock_uri_generator = MagicMock()
+    mock_uri_generator.counter_handler = mock_counter_handler
+    app.config['URI_GENERATOR'] = mock_uri_generator
+
+    with patch('heritrace.extensions.need_initialization', return_value=False) as mock_need_initialization:
+        initialize_counter_handler(app, mock_redis, mock_sparql, mock_provenance_sparql)
+
+        mock_need_initialization.assert_called_once_with(app, mock_redis)
+
         mock_counter_handler.set_counter.assert_not_called()
-        mock_update_cache.assert_not_called()
         mock_uri_generator.initialize_counters.assert_not_called()
-        mock_sparql.assert_not_called()
         mock_provenance_sparql.setQuery.assert_not_called()
 
 
 def test_need_initialization_without_counter_handler(app):
-    """Test that need_initialization returns False when URI generator doesn't have counter_handler."""
-    # Create a mock URI generator without counter_handler attribute
     mock_uri_generator = MagicMock(spec=[])
     app.config['URI_GENERATOR'] = mock_uri_generator
-    
-    # Test that need_initialization returns False
-    assert need_initialization(app) is False
-    
-    # Also test with a URI generator that has the counter_handler attribute set to None
+    mock_redis = MagicMock(spec=Redis)
+
+    assert need_initialization(app, mock_redis) is False
+
     mock_uri_generator = MagicMock()
     mock_uri_generator.counter_handler = None
+    mock_uri_generator.initialize_counters = MagicMock()
     app.config['URI_GENERATOR'] = mock_uri_generator
-    
-    # Test that need_initialization still proceeds to check the cache file
+
     app.config['CACHE_FILE'] = 'nonexistent_cache_file.json'
     app.config['CACHE_VALIDITY_DAYS'] = 7
-    
+
     with patch('os.path.exists', return_value=False):
-        assert need_initialization(app) is True
+        assert need_initialization(app, mock_redis) is True
 
 
 class TestSPARQLWrapperWithRetry:
-    """Tests for SPARQLWrapperWithRetry class."""
-    
+
     def test_init_default_values(self):
-        """Test that SPARQLWrapperWithRetry initializes with correct default values."""
         wrapper = SPARQLWrapperWithRetry("http://example.com/sparql")
-        
+
         assert wrapper.max_attempts == 3
         assert wrapper.initial_delay == 1.0
         assert wrapper.backoff_factor == 2.0
         assert wrapper.timeout == 5
-    
+
     def test_init_custom_values(self):
-        """Test that SPARQLWrapperWithRetry initializes with custom values."""
         wrapper = SPARQLWrapperWithRetry(
             "http://example.com/sparql",
             max_attempts=5,
@@ -860,140 +620,132 @@ class TestSPARQLWrapperWithRetry:
             backoff_factor=3.0,
             timeout=10.0
         )
-        
+
         assert wrapper.max_attempts == 5
         assert wrapper.initial_delay == 2.0
         assert wrapper.backoff_factor == 3.0
         assert wrapper.timeout == 10
-    
+
     def test_query_success_first_attempt(self):
-        """Test successful query on first attempt."""
         wrapper = SPARQLWrapperWithRetry("http://example.com/sparql")
         mock_result = MagicMock()
-        
+
         with patch.object(SPARQLWrapper, 'query', return_value=mock_result):
             result = wrapper.query()
             assert result == mock_result
-    
+
     def test_query_timeout_then_success(self):
-        """Test query that times out first, then succeeds on retry."""
         wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=2, initial_delay=0.1)
         mock_result = MagicMock()
-        
+
         timeout_error = socket.timeout("The read operation timed out")
         side_effects = [timeout_error, mock_result]
-        
+
         with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
              patch('time.sleep') as mock_sleep, \
              patch('logging.getLogger') as mock_get_logger:
-            
+
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
-            
+
             result = wrapper.query()
-            
+
             assert result == mock_result
             mock_logger.warning.assert_called_once()
             mock_logger.info.assert_called_once_with("Retrying in 0.10 seconds...")
             mock_sleep.assert_called_once_with(0.1)
-    
+
     def test_query_all_attempts_fail_with_timeout(self):
-        """Test query that times out on all attempts."""
         wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=2, initial_delay=0.1)
-        
+
         timeout_error = socket.timeout("The read operation timed out")
         side_effects = [timeout_error, timeout_error]
-        
+
         with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
              patch('time.sleep') as mock_sleep, \
              patch('logging.getLogger') as mock_get_logger:
-            
+
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
-            
+
             with pytest.raises(socket.timeout):
                 wrapper.query()
-            
+
             assert mock_logger.warning.call_count == 2
             mock_logger.info.assert_called_once_with("Retrying in 0.10 seconds...")
             mock_logger.error.assert_called_once_with("All 2 SPARQL query attempts failed")
             mock_sleep.assert_called_once_with(0.1)
-    
+
     def test_query_all_attempts_fail_with_exception(self):
-        """Test query that fails with regular exception on all attempts."""
         wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=3, initial_delay=0.1)
-        
+
         test_exception = Exception("Connection failed")
         side_effects = [test_exception, test_exception, test_exception]
-        
+
         with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
              patch('time.sleep') as mock_sleep, \
              patch('logging.getLogger') as mock_get_logger:
-            
+
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
-            
+
             with pytest.raises(Exception, match="Connection failed"):
                 wrapper.query()
-            
+
             assert mock_logger.warning.call_count == 3
-            assert mock_logger.info.call_count == 2 
+            assert mock_logger.info.call_count == 2
             mock_logger.error.assert_called_once_with("All 3 SPARQL query attempts failed")
-            
-            expected_calls = [call(0.1), call(0.2)]  # initial_delay * backoff_factor
+
+            expected_calls = [call(0.1), call(0.2)]
             mock_sleep.assert_has_calls(expected_calls)
-    
+
     def test_query_mixed_exceptions(self):
-        """Test query with different exceptions on different attempts."""
         wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=3, initial_delay=0.1)
         mock_result = MagicMock()
-        
+
         side_effects = [
             socket.timeout("The read operation timed out"),
             Exception("Connection error"),
             mock_result
         ]
-        
+
         with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
              patch('time.sleep') as mock_sleep, \
              patch('logging.getLogger') as mock_get_logger:
-            
+
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
-            
+
             result = wrapper.query()
-            
+
             assert result == mock_result
             assert mock_logger.warning.call_count == 2
             assert mock_logger.info.call_count == 2
-    
+
     def test_query_delay_backoff(self):
-        """Test that delay increases with backoff factor between retries."""
         wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", max_attempts=4, initial_delay=0.1, backoff_factor=2.5)
         mock_result = MagicMock()
-        
+
         side_effects = [Exception("Error"), Exception("Error"), Exception("Error"), mock_result]
-        
+
         with patch.object(SPARQLWrapper, 'query', side_effect=side_effects), \
              patch('time.sleep') as mock_sleep, \
              patch('logging.getLogger') as mock_get_logger:
-            
+
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
-            
+
             result = wrapper.query()
-            
+
             assert result == mock_result
-            # Check sleep calls with correct backoff progression
             expected_calls = [
-                call(0.1),    # initial_delay
-                call(0.25),   # 0.1 * 2.5
-                call(0.625)   # 0.25 * 2.5
+                call(0.1),
+                call(0.25),
+                call(0.625)
             ]
             mock_sleep.assert_has_calls(expected_calls)
-    
+
     def test_timeout_set_correctly(self):
-        """Test that timeout is set correctly using SPARQLWrapper's setTimeout method."""
         with patch.object(SPARQLWrapper, 'setTimeout') as mock_set_timeout:
             wrapper = SPARQLWrapperWithRetry("http://example.com/sparql", timeout=15.0)
             mock_set_timeout.assert_called_once_with(15)

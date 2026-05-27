@@ -8,7 +8,7 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_babel import gettext
 from flask_login import login_required
 from heritrace.extensions import (get_custom_filter, get_display_rules,
-                                  get_sparql)
+                                  get_sparql, get_sparql_bindings)
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import get_entity_types
@@ -124,8 +124,8 @@ def _resolve_proxy_entity(subject_uri: str, predicate: str, connecting_predicate
         sparql.setQuery(proxy_query)
         sparql.setReturnFormat(JSON)
         proxy_results = sparql.query().convert()
-        
-        proxy_bindings = proxy_results.get("results", {}).get("bindings", [])
+
+        proxy_bindings = get_sparql_bindings(proxy_results)
         if proxy_bindings:
             source_uri = proxy_bindings[0]["source"]["value"]
             
@@ -176,7 +176,7 @@ def get_paginated_inverse_references(subject_uri: str, limit: int, offset: int) 
         sparql.setReturnFormat(JSON)
         results = sparql.query().convert()
 
-        bindings = results.get("results", {}).get("bindings", [])
+        bindings = get_sparql_bindings(results)
 
         # Determine if there are more results
         has_more = len(bindings) > limit
