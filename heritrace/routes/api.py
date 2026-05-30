@@ -1,11 +1,9 @@
-# SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
-# heritrace/routes/api.py
-
 import traceback
-from typing import NotRequired, TypedDict, cast
+from typing import TypedDict, cast
 
 from flask import (
     Blueprint,
@@ -864,12 +862,12 @@ def determine_datatype(value: str, datatype_uris: list[str]) -> URIRef:
     return XSD.string
 
 
-class CreateEntityData(TypedDict):
-    entity_type: NotRequired[str]
+class CreateEntityData(TypedDict, total=False):
+    entity_type: str
     # TODO(arcangelo): tighten this type after normalizing  # noqa: FIX002, TD003
     # the frontend payload to a consistent shape
-    properties: NotRequired[dict[str, list | dict | str]]
-    tempId: NotRequired[str]
+    properties: dict[str, list | dict | str]
+    tempId: str
 
 
 def create_logic(  # noqa: C901, PLR0912, PLR0913

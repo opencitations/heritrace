@@ -69,7 +69,7 @@ jobs:
 
   deploy-pages:
     needs: CheckCoverage
-    if: always() && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
