@@ -5,19 +5,20 @@
 import os
 from datetime import timedelta
 
-from flask import (Blueprint, current_app, flash, redirect, request, session,
-                   url_for)
+from flask import Blueprint, current_app, flash, redirect, request, session, url_for
 from flask_babel import gettext
 from flask_login import current_user, login_user, logout_user
+from requests_oauthlib import OAuth2Session
+from werkzeug.wrappers import Response as WerkzeugResponse
+
 from heritrace.apis.orcid import extract_orcid_id, is_orcid_url
 from heritrace.models import User
-from requests_oauthlib import OAuth2Session
 
 auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/login")
-def login():
+def login() -> WerkzeugResponse:
     if current_user.is_authenticated:
         return redirect(url_for("main.catalogue"))
 
@@ -26,13 +27,15 @@ def login():
         demo_uri = f"http://example.org/demo/{user_id_from_env}"
         user_name = f"Demo User ({user_id_from_env})"
 
-        user = User(id=demo_uri, name=user_name, orcid=demo_uri)
+        user = User(user_id=demo_uri, name=user_name, orcid=demo_uri)
         session["user_name"] = user_name
         session.permanent = True
         current_app.permanent_session_lifetime = timedelta(days=30)
         login_user(user)
 
-        flash(gettext("Welcome! You've been automatically logged in to the demo"), "info")
+        flash(
+            gettext("Welcome! You've been automatically logged in to the demo"), "info"
+        )
         return redirect(url_for("main.catalogue"))
 
     callback_url = url_for("auth.callback", _external=True, _scheme="https")
@@ -51,7 +54,7 @@ def login():
 
 
 @auth_bp.route("/callback")
-def callback():
+def callback() -> WerkzeugResponse:
     if request.url.startswith("http://"):
         secure_url = request.url.replace("http://", "https://", 1)
     else:
@@ -66,13 +69,13 @@ def callback():
             client_secret=current_app.config["ORCID_CLIENT_SECRET"],
             authorization_response=secure_url,
         )
-    except Exception as e:
+    except Exception:  # noqa: BLE001
         flash(
             gettext("An error occurred during authentication. Please try again"),
             "danger",
         )
         return redirect(url_for("auth.login"))
-    orcid_id = token["orcid"]
+    orcid_id = str(token["orcid"])
 
     safelist = current_app.config["ORCID_SAFELIST"]
     if safelist:
@@ -87,7 +90,7 @@ def callback():
             return redirect(url_for("auth.login"))
 
     session["user_name"] = token["name"]
-    user = User(id=orcid_id, name=token["name"], orcid=orcid_id)
+    user = User(user_id=orcid_id, name=str(token["name"]), orcid=orcid_id)
     session.permanent = True
     current_app.permanent_session_lifetime = timedelta(days=30)
     login_user(user)
@@ -96,7 +99,7 @@ def callback():
 
 
 @auth_bp.route("/logout")
-def logout():
+def logout() -> tuple[str, int] | WerkzeugResponse:
     if not current_user.is_authenticated:
         return "", 401
     logout_user()

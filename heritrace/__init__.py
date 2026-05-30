@@ -14,7 +14,8 @@ from redis import Redis
 from heritrace.cli import register_cli_commands
 from heritrace.utils.sparql_utils import precompute_available_classes_cache
 
-def create_app(config_object=None):
+
+def create_app(config_object: object = None) -> Flask:
     app = Flask(__name__)
 
     if config_object:
@@ -28,18 +29,22 @@ def create_app(config_object=None):
 
     register_cli_commands(app)
 
-    is_translate_command = 'translate' in sys.argv
+    is_translate_command = "translate" in sys.argv
 
     if not is_translate_command:
         babel = Babel()
         login_manager = LoginManager()
-        
-        redis_url = app.config.get('REDIS_URL') or os.environ.get('REDIS_URL') or 'redis://localhost:6379/0'
-        app.logger.info(f"Connecting to Redis at: {redis_url}")
+
+        redis_url = (
+            app.config.get("REDIS_URL")
+            or os.environ.get("REDIS_URL")
+            or "redis://localhost:6379/0"
+        )
+        app.logger.info("Connecting to Redis at: %s", redis_url)
         redis_client = Redis.from_url(redis_url, decode_responses=True)
 
-        from heritrace.extensions import init_extensions
-        from heritrace.routes import register_blueprints
+        from heritrace.extensions import init_extensions  # noqa: PLC0415
+        from heritrace.routes import register_blueprints  # noqa: PLC0415
 
         with app.app_context():
             init_extensions(app, babel, login_manager, redis_client)

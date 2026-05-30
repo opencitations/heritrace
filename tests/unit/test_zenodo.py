@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 import requests
+
 from heritrace.apis.zenodo import (
     ZenodoRequestError,
     extract_zenodo_id,
@@ -21,7 +22,7 @@ from heritrace.apis.zenodo import (
 class TestZenodoUrlFunctions:
     """Test functions related to Zenodo URL handling."""
 
-    def test_is_zenodo_url(self):
+    def test_is_zenodo_url(self) -> None:
         """Test the is_zenodo_url function with various inputs."""
         # Valid Zenodo URLs
         assert is_zenodo_url("https://zenodo.org/record/12345") is True
@@ -37,7 +38,7 @@ class TestZenodoUrlFunctions:
         assert is_zenodo_url("") is False
         assert is_zenodo_url(None) is False
 
-    def test_extract_zenodo_id(self):
+    def test_extract_zenodo_id(self) -> None:
         """Test the extract_zenodo_id function with various inputs."""
         # Direct Zenodo URLs
         assert extract_zenodo_id("https://zenodo.org/record/7406075") == "7406075"
@@ -65,7 +66,7 @@ class TestZenodoUrlFunctions:
 class TestZenodoAPIFunctions:
     """Test functions that interact with the Zenodo API."""
 
-    def test_get_zenodo_data_real(self):
+    def test_get_zenodo_data_real(self) -> None:
         """Test fetching real data from Zenodo API."""
         # Using a known stable Zenodo record
         record_id = "7406075"  # This is a real Zenodo record ID
@@ -84,7 +85,7 @@ class TestZenodoAPIFunctions:
         assert len(data["authors"]) > 0
         assert data["record_id"] == record_id
 
-    def test_get_zenodo_data_invalid(self):
+    def test_get_zenodo_data_invalid(self) -> None:
         """Test fetching data for an invalid Zenodo record ID."""
         # Using a non-existent record ID
         record_id = "999999999999999"
@@ -97,7 +98,7 @@ class TestZenodoAPIFunctions:
 class TestZenodoFormattingFunctions:
     """Test functions related to formatting Zenodo data."""
 
-    def test_format_apa_date(self):
+    def test_format_apa_date(self) -> None:
         """Test the format_apa_date function with various inputs."""
         # Full date
         assert format_apa_date("2023-01-15") == "2023, January 15"
@@ -111,7 +112,7 @@ class TestZenodoFormattingFunctions:
         # Invalid date
         assert format_apa_date("invalid-date") == "invalid-date"
 
-    def test_format_authors_apa(self):
+    def test_format_authors_apa(self) -> None:
         """Test the format_authors_apa function with various inputs."""
         # Single author
         single_author = [{"name": "Doe, John"}]
@@ -142,7 +143,7 @@ class TestZenodoFormattingFunctions:
         # None
         assert format_authors_apa(None) == ""
 
-    def test_format_authors_apa_edge_cases(self):
+    def test_format_authors_apa_edge_cases(self) -> None:
         """Test the format_authors_apa function with edge cases."""
         # Empty string for author name
         empty_name_author = [{"name": ""}]
@@ -153,19 +154,19 @@ class TestZenodoFormattingFunctions:
         with pytest.raises(KeyError):
             format_authors_apa(missing_name_author)
 
-    def test_format_authors_apa_with_empty_string(self):
+    def test_format_authors_apa_with_empty_string(self) -> None:
         """Test format_authors_apa with empty string."""
         result = format_authors_apa("")
         assert result == ""
 
-    def test_format_authors_apa_with_empty_list(self):
+    def test_format_authors_apa_with_empty_list(self) -> None:
         """Test format_authors_apa with empty list."""
         # Test with empty list - should return empty string
         authors_empty = []
         result = format_authors_apa(authors_empty)
         assert result == ""
 
-    def test_format_authors_apa_with_one_or_two_authors(self):
+    def test_format_authors_apa_with_one_or_two_authors(self) -> None:
         """Test format_authors_apa with one or two authors."""
         # Test with one author
         authors_one = [{"name": "Smith, J."}]
@@ -177,7 +178,7 @@ class TestZenodoFormattingFunctions:
         result_two = format_authors_apa(authors_two)
         assert result_two == "Smith, J. & Doe, A."
 
-    def test_format_zenodo_source_real(self):
+    def test_format_zenodo_source_real(self) -> None:
         """Test the format_zenodo_source function with a real Zenodo URL."""
         # Using a known stable Zenodo record
         url = "https://doi.org/10.5281/zenodo.7406075"
@@ -193,7 +194,7 @@ class TestZenodoFormattingFunctions:
         # Verify the DOI is in the HTML
         assert "10.5281/zenodo.7406075" in html
 
-    def test_format_zenodo_source_invalid(self):
+    def test_format_zenodo_source_invalid(self) -> None:
         """Test the format_zenodo_source function with an invalid URL."""
         # Using a non-Zenodo URL
         url = "https://example.com"
@@ -203,8 +204,11 @@ class TestZenodoFormattingFunctions:
         # Should just return a simple link
         assert html == f'<a href="{url}" target="_blank">{url}</a>'
 
-    def test_format_zenodo_source_with_invalid_record_id(self):
-        """Test the format_zenodo_source function with a valid Zenodo URL but invalid record ID."""
+    def test_format_zenodo_source_with_invalid_record_id(self) -> None:
+        """
+        Test the format_zenodo_source function with a valid Zenodo URL but invalid
+        record ID.
+        """
         # Using a Zenodo URL with an invalid record ID
         url = "https://doi.org/10.5281/zenodo.999999999999"
 
@@ -213,10 +217,13 @@ class TestZenodoFormattingFunctions:
         # Should just return a simple link
         assert html == f'<a href="{url}" target="_blank">{url}</a>'
 
-    def test_format_zenodo_source_with_complete_metadata(self):
-        """Test the format_zenodo_source function with a record that has complete metadata."""
+    def test_format_zenodo_source_with_complete_metadata(self) -> None:
+        """
+        Test the format_zenodo_source function with a record that has complete metadata.
+        """
         # Using a record with rich metadata
-        url = "https://doi.org/10.5281/zenodo.3233486"  # A record with more complete metadata
+        # A record with more complete metadata
+        url = "https://doi.org/10.5281/zenodo.3233486"
 
         html = format_zenodo_source(url)
 
@@ -229,8 +236,10 @@ class TestZenodoFormattingFunctions:
         # Verify the DOI is in the HTML
         assert "10.5281/zenodo.3233486" in html
 
-    def test_format_zenodo_source_with_minimal_metadata(self):
-        """Test the format_zenodo_source function with a record that has minimal metadata."""
+    def test_format_zenodo_source_with_minimal_metadata(self) -> None:
+        """
+        Test the format_zenodo_source function with a record that has minimal metadata.
+        """
         # Mock a record with minimal metadata
         record_id = "7406075"
 
@@ -276,8 +285,10 @@ class TestZenodoFormattingFunctions:
             # Verify there's no extra metadata section (since all fields are empty)
             assert '<div class="text-muted small mt-1">' not in html
 
-    def test_format_zenodo_source_with_rich_metadata(self):
-        """Test the format_zenodo_source function with a record that has rich metadata."""
+    def test_format_zenodo_source_with_rich_metadata(self) -> None:
+        """
+        Test the format_zenodo_source function with a record that has rich metadata.
+        """
         # Mock a record with rich metadata
         record_id = "7406075"
 
@@ -335,7 +346,7 @@ class TestZenodoFormattingFunctions:
             assert "Language: en" in html
             assert "Access: open" in html
 
-    def test_format_zenodo_source_with_conference_data(self):
+    def test_format_zenodo_source_with_conference_data(self) -> None:
         """Test the format_zenodo_source function with conference data."""
         # Mock a record with conference data
         record_id = "7406075"
@@ -387,7 +398,7 @@ class TestZenodoFormattingFunctions:
             assert '<div class="text-muted small mt-1">' in html
             assert "Type: publication (conferencepaper)" in html
 
-    def test_format_zenodo_source_with_journal_data(self):
+    def test_format_zenodo_source_with_journal_data(self) -> None:
         """Test the format_zenodo_source function with journal data."""
         # Mock a record with journal data
         record_id = "7406075"
@@ -439,7 +450,7 @@ class TestZenodoFormattingFunctions:
             assert '<div class="text-muted small mt-1">' in html
             assert "Type: publication (article)" in html
 
-    def test_format_zenodo_source_with_software_data(self):
+    def test_format_zenodo_source_with_software_data(self) -> None:
         """Test the format_zenodo_source function with software data."""
         # Mock a record with software data
         record_id = "7406075"
@@ -491,7 +502,7 @@ class TestZenodoFormattingFunctions:
 class TestZenodoErrorHandling:
     """Test error handling in Zenodo API functions."""
 
-    def test_make_request_with_retry_invalid_url(self):
+    def test_make_request_with_retry_invalid_url(self) -> None:
         """Test make_request_with_retry with an invalid URL."""
         # This should raise a ZenodoRequestError
         with pytest.raises(ZenodoRequestError):
@@ -499,20 +510,19 @@ class TestZenodoErrorHandling:
                 "https://nonexistent-domain-12345.org", {}, max_retries=1
             )
 
-    def test_make_request_with_retry_rate_limit(self):
+    def test_make_request_with_retry_rate_limit(self) -> None:
         """Test make_request_with_retry with a rate limit response."""
 
         # This test uses a real URL but mocks the response to simulate a rate limit
         class MockResponse:
-            def __init__(self, status_code, headers=None):
+            def __init__(self, status_code, headers=None) -> None:
                 self.status_code = status_code
                 self.headers = headers or {}
 
-            def raise_for_status(self):
+            def raise_for_status(self) -> None:
                 if self.status_code >= 400:
-                    raise requests.exceptions.HTTPError(
-                        f"HTTP Error: {self.status_code}"
-                    )
+                    msg = f"HTTP Error: {self.status_code}"
+                    raise requests.exceptions.HTTPError(msg)
 
             def json(self):
                 return {"message": "Test response"}
@@ -533,19 +543,18 @@ class TestZenodoErrorHandling:
             )
             assert response is not None
 
-    def test_make_request_with_retry_server_error(self):
+    def test_make_request_with_retry_server_error(self) -> None:
         """Test make_request_with_retry with a server error response."""
 
         # This test uses a real URL but mocks the response to simulate a server error
         class MockResponse:
-            def __init__(self, status_code):
+            def __init__(self, status_code) -> None:
                 self.status_code = status_code
 
-            def raise_for_status(self):
+            def raise_for_status(self) -> None:
                 if self.status_code >= 400:
-                    raise requests.exceptions.HTTPError(
-                        f"HTTP Error: {self.status_code}"
-                    )
+                    msg = f"HTTP Error: {self.status_code}"
+                    raise requests.exceptions.HTTPError(msg)
 
             def json(self):
                 return {"message": "Test response"}
@@ -554,43 +563,44 @@ class TestZenodoErrorHandling:
         responses = [MockResponse(500), MockResponse(200)]  # Server error  # Success
 
         # Use patch to mock the requests.get function
-        with patch("requests.get", side_effect=responses):
-            # We expect this to raise a ZenodoRequestError for the 500 status code
-            with pytest.raises(ZenodoRequestError):
-                make_request_with_retry(
-                    "https://zenodo.org/api/records/7406075",
-                    {},
-                    max_retries=1,
-                    initial_delay=0.1,
-                )
+        with (
+            patch("requests.get", side_effect=responses),
+            pytest.raises(ZenodoRequestError),
+        ):
+            make_request_with_retry(
+                "https://zenodo.org/api/records/7406075",
+                {},
+                max_retries=1,
+                initial_delay=0.1,
+            )
 
-    def test_make_request_with_retry_connection_error(self):
+    def test_make_request_with_retry_connection_error(self) -> None:
         """Test make_request_with_retry with a connection error."""
-        # This test mocks a connection error
-        with patch(
-            "requests.get",
-            side_effect=requests.exceptions.ConnectionError("Connection error"),
+        with (
+            patch(
+                "requests.get",
+                side_effect=requests.exceptions.ConnectionError("Connection error"),
+            ),
+            pytest.raises(ZenodoRequestError),
         ):
-            # We expect this to raise a ZenodoRequestError
-            with pytest.raises(ZenodoRequestError):
-                make_request_with_retry(
-                    "https://zenodo.org/api/records/7406075",
-                    {},
-                    max_retries=1,
-                    initial_delay=0.1,
-                )
+            make_request_with_retry(
+                "https://zenodo.org/api/records/7406075",
+                {},
+                max_retries=1,
+                initial_delay=0.1,
+            )
 
-    def test_make_request_with_retry_timeout(self):
+    def test_make_request_with_retry_timeout(self) -> None:
         """Test make_request_with_retry with a timeout error."""
-        # This test mocks a timeout error
-        with patch(
-            "requests.get", side_effect=requests.exceptions.Timeout("Timeout error")
+        with (
+            patch(
+                "requests.get", side_effect=requests.exceptions.Timeout("Timeout error")
+            ),
+            pytest.raises(ZenodoRequestError),
         ):
-            # We expect this to raise a ZenodoRequestError
-            with pytest.raises(ZenodoRequestError):
-                make_request_with_retry(
-                    "https://zenodo.org/api/records/7406075",
-                    {},
-                    max_retries=1,
-                    initial_delay=0.1,
-                )
+            make_request_with_retry(
+                "https://zenodo.org/api/records/7406075",
+                {},
+                max_retries=1,
+                initial_delay=0.1,
+            )

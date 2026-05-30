@@ -4,7 +4,7 @@
 
 import datetime
 import ipaddress
-import os
+from pathlib import Path
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -12,18 +12,18 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
-cert_dir = "/app/ssl"
-cert_file = os.path.join(cert_dir, "cert.pem")
-key_file = os.path.join(cert_dir, "key.pem")
+cert_dir = Path("/app/ssl")
+cert_file = cert_dir / "cert.pem"
+key_file = cert_dir / "key.pem"
 
-if not (os.path.exists(cert_file) and os.path.exists(key_file)):
-    os.makedirs(cert_dir, exist_ok=True)
+if not (cert_file.exists() and key_file.exists()):
+    cert_dir.mkdir(parents=True, exist_ok=True)
 
     key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
 
-    with open(key_file, "wb") as f:
+    with key_file.open("wb") as f:
         f.write(
             key.private_bytes(
                 serialization.Encoding.PEM,
@@ -31,11 +31,9 @@ if not (os.path.exists(cert_file) and os.path.exists(key_file)):
                 serialization.NoEncryption(),
             )
         )
-    os.chmod(key_file, 0o600)
+    key_file.chmod(0o600)
 
-    subject = issuer = x509.Name(
-        [x509.NameAttribute(NameOID.COMMON_NAME, "localhost")]
-    )
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
 
     cert = (
         x509.CertificateBuilder()
@@ -45,8 +43,7 @@ if not (os.path.exists(cert_file) and os.path.exists(key_file)):
         .serial_number(x509.random_serial_number())
         .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
         .not_valid_after(
-            datetime.datetime.now(datetime.timezone.utc)
-            + datetime.timedelta(days=365)
+            datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365)
         )
         .add_extension(
             x509.SubjectAlternativeName(
@@ -61,5 +58,5 @@ if not (os.path.exists(cert_file) and os.path.exists(key_file)):
         .sign(key, hashes.SHA256(), default_backend())
     )
 
-    with open(cert_file, "wb") as f:
+    with cert_file.open("wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))

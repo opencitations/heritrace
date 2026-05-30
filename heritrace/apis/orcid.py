@@ -3,36 +3,34 @@
 # SPDX-License-Identifier: ISC
 
 from functools import lru_cache
+from http import HTTPStatus
 from urllib.parse import urlparse
 
 import requests
 from flask import current_app
 from rdflib import URIRef
 
+_ORCID_ID_LENGTH = 19
+_ORCID_HYPHEN_COUNT = 3
 
-def is_orcid_url(url):
+
+def is_orcid_url(url: str) -> bool:
     """Check if a URL is an ORCID URL."""
-    try:
-        parsed = urlparse(url)
-        return parsed.netloc == "orcid.org"
-    except:
+    if not isinstance(url, str):
         return False
+    return urlparse(url).netloc == "orcid.org"
 
 
-def extract_orcid_id(url):
+def extract_orcid_id(url: str) -> str | None:
     """Extract ORCID ID from URL."""
-    try:
-        parsed = urlparse(url)
-        path = parsed.path.strip("/")
-        if path.startswith("https://orcid.org/"):
-            path = path[len("https://orcid.org/") :]
-        return path
-    except:
+    if not isinstance(url, str):
         return None
+    path = urlparse(url).path.strip("/")
+    return path.removeprefix("https://orcid.org/")
 
 
 @lru_cache(maxsize=1000)
-def get_orcid_data(orcid_id):
+def get_orcid_data(orcid_id: str) -> dict | None:
     """
     Fetch researcher data from ORCID API with caching.
 
@@ -59,7 +57,7 @@ def get_orcid_data(orcid_id):
             f"https://pub.orcid.org/v3.0/{orcid_id}/person", headers=headers, timeout=5
         )
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             data = response.json()
 
             # Extract relevant information
@@ -86,7 +84,7 @@ def get_orcid_data(orcid_id):
                 ]
 
             # Get biography
-            if "biography" in data and data["biography"]:
+            if data.get("biography"):
                 result["biography"] = data["biography"].get("content", "")
 
             return result
@@ -98,16 +96,19 @@ def get_orcid_data(orcid_id):
 
 
 def get_responsible_agent_uri(user_identifier: str) -> URIRef:
-    if user_identifier.startswith(('http://', 'https://')):
+    if user_identifier.startswith(("http://", "https://")):
         return URIRef(user_identifier)
 
-    if len(user_identifier) == 19 and user_identifier.count('-') == 3:
+    if (
+        len(user_identifier) == _ORCID_ID_LENGTH
+        and user_identifier.count("-") == _ORCID_HYPHEN_COUNT
+    ):
         return URIRef(f"https://orcid.org/{user_identifier}")
 
     return URIRef(user_identifier)
 
 
-def format_orcid_attribution(url):
+def format_orcid_attribution(url: str) -> str:
     """
     Format ORCID attribution for display.
 
@@ -129,7 +130,11 @@ def format_orcid_attribution(url):
     name = researcher_data["name"] or url
 
     html = f'<a href="{url}" target="_blank" class="orcid-attribution">'
-    html += f'<img src="/static/images/orcid-logo.png" alt="ORCID iD" class="orcid-icon mx-1 mb-1" style="width: 16px; height: 16px;">'
+    html += (
+        '<img src="/static/images/orcid-logo.png"'
+        ' alt="ORCID iD" class="orcid-icon mx-1 mb-1"'
+        ' style="width: 16px; height: 16px;">'
+    )
     html += f"{name} [orcid:{orcid_id}]</a>"
 
     return html

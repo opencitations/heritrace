@@ -7,17 +7,19 @@ from wtforms.validators import DataRequired
 
 
 class UpdateTripleForm(Form):
-    subject = HiddenField('Subject')
-    predicate = HiddenField('Predicate')
-    old_value = HiddenField('Old Value')
-    new_value = StringField('New Value', [DataRequired()])
+    subject = HiddenField("Subject")
+    predicate = HiddenField("Predicate")
+    old_value = HiddenField("Old Value")
+    new_value = StringField("New Value", [DataRequired()])
+
 
 class CreateTripleFormWithInput(Form):
-    subject = HiddenField('Subject')
-    predicate = StringField('Property', [DataRequired()])
-    object = StringField('Value', [DataRequired()])
+    subject = HiddenField("Subject")
+    predicate = StringField("Property", [DataRequired()])
+    object = StringField("Value", [DataRequired()])
+
 
 class CreateTripleFormWithSelect(Form):
-    subject = HiddenField('Subject', validators=[DataRequired()])
-    predicate = SelectField('Property', choices=[], validators=[DataRequired()])
-    object = StringField('Value', [DataRequired()])
+    subject = HiddenField("Subject", validators=[DataRequired()])
+    predicate = SelectField("Property", choices=[], validators=[DataRequired()])
+    object = StringField("Value", [DataRequired()])

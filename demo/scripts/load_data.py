@@ -5,21 +5,20 @@
 # SPDX-License-Identifier: ISC
 
 import argparse
-import glob
-import os
-import sys
 import configparser
+import sys
+from http import HTTPStatus
+from pathlib import Path
 
 import requests
-
 from virtuoso_utils import (
     DEFAULT_VIRTUOSO_HOST,
+    DEFAULT_VIRTUOSO_PASSWORD,
     DEFAULT_VIRTUOSO_PORT,
     DEFAULT_VIRTUOSO_USER,
-    DEFAULT_VIRTUOSO_PASSWORD,
-    wait_for_virtuoso,
     run_isql_command,
-    set_permissions
+    set_permissions,
+    wait_for_virtuoso,
 )
 
 DATA_DIR = "/data"
@@ -27,16 +26,15 @@ DEFAULT_GRAPH = "https://w3id.org/oc/meta/br/"
 NQ_GZ_PATTERN = "*.nq.gz"
 
 
-def find_nquads_files(directory):
-    pattern = os.path.join(directory, NQ_GZ_PATTERN)
-    return glob.glob(pattern)
+def find_nquads_files(directory: str) -> list[Path]:
+    return list(Path(directory).glob(NQ_GZ_PATTERN))
 
 
-def check_dirs_allowed(args):
+def check_dirs_allowed(args: argparse.Namespace) -> bool:
     try:
-        virtuoso_ini_path = '/database/virtuoso.ini'
+        virtuoso_ini_path = "/database/virtuoso.ini"
 
-        if not os.path.exists(virtuoso_ini_path):
+        if not Path(virtuoso_ini_path).exists():
             print(f"Warning: virtuoso.ini not found at {virtuoso_ini_path}")
             return True
 
@@ -45,71 +43,98 @@ def check_dirs_allowed(args):
 
         dirs_allowed = None
         for section in config.sections():
-            if 'DirsAllowed' in config[section]:
-                dirs_allowed = config[section]['DirsAllowed']
+            if "DirsAllowed" in config[section]:
+                dirs_allowed = config[section]["DirsAllowed"]
                 break
 
         if dirs_allowed:
             print(f"DirsAllowed setting from virtuoso.ini: {dirs_allowed}")
 
-            allowed_dirs = [d.strip() for d in dirs_allowed.split(',')]
+            allowed_dirs = [d.strip() for d in dirs_allowed.split(",")]
 
             for allowed_dir in allowed_dirs:
                 if args.data_dir.startswith(allowed_dir):
-                    print(f"Data directory {args.data_dir} is allowed (under {allowed_dir})")
+                    print(
+                        f"Data directory {args.data_dir}"
+                        f" is allowed (under {allowed_dir})"
+                    )
                     return True
 
             print(f"Data directory {args.data_dir} is NOT in DirsAllowed setting")
             return False
-        else:
-            print("DirsAllowed setting not found in virtuoso.ini")
-    except Exception as e:
+        print("DirsAllowed setting not found in virtuoso.ini")
+    except (configparser.Error, OSError) as e:
         print(f"Error checking DirsAllowed: {e}")
 
     return True
 
 
-def check_data_loaded(host, graph_uri):
+def check_data_loaded(host: str, graph_uri: str) -> bool:
     try:
-        query = f"""SELECT COUNT(*) AS ?count WHERE {{ GRAPH <{graph_uri}> {{ ?s ?p ?o }} }} LIMIT 1"""
+        query = (
+            "SELECT COUNT(*) AS ?count WHERE {"
+            f" GRAPH <{graph_uri}> {{ ?s ?p ?o }} }} LIMIT 1"
+        )
 
-        params = {
-            'query': query,
-            'format': 'application/sparql-results+json'
-        }
+        params = {"query": query, "format": "application/sparql-results+json"}
 
-        response = requests.get(f"http://{host}:8890/sparql", params=params)
+        response = requests.get(f"http://{host}:8890/sparql", params=params, timeout=10)
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             data = response.json()
 
-            bindings = data.get('results', {}).get('bindings', [])
-            if bindings and 'count' in bindings[0]:
-                count = int(bindings[0]['count']['value'])
+            bindings = data.get("results", {}).get("bindings", [])
+            if bindings and "count" in bindings[0]:
+                count = int(bindings[0]["count"]["value"])
                 return count > 0
-    except Exception as e:
+    except (requests.RequestException, ValueError, KeyError) as e:
         print(f"Error checking if data is loaded: {e}")
 
     return False
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Load N-Quads Gzipped files into Virtuoso."
     )
 
-    parser.add_argument("-d", "--data-dir", default=DATA_DIR,
-                        help=f"Directory containing .nq.gz files (Default: {DATA_DIR}).")
-    parser.add_argument("-H", "--host", default=DEFAULT_VIRTUOSO_HOST,
-                        help=f"Virtuoso server host (Default: {DEFAULT_VIRTUOSO_HOST}).")
-    parser.add_argument("-P", "--port", type=int, default=DEFAULT_VIRTUOSO_PORT,
-                        help=f"Virtuoso server ISQL port (Default: {DEFAULT_VIRTUOSO_PORT}).")
-    parser.add_argument("-u", "--user", default=DEFAULT_VIRTUOSO_USER,
-                        help=f"Virtuoso username (Default: {DEFAULT_VIRTUOSO_USER}).")
-    parser.add_argument("-k", "--password", default=DEFAULT_VIRTUOSO_PASSWORD,
-                        help=f"Virtuoso password (Default: {DEFAULT_VIRTUOSO_PASSWORD}).")
-    parser.add_argument("-g", "--graph", default=DEFAULT_GRAPH,
-                        help=f"Default graph to load data into (Default: {DEFAULT_GRAPH}).")
+    parser.add_argument(
+        "-d",
+        "--data-dir",
+        default=DATA_DIR,
+        help=f"Directory containing .nq.gz files (Default: {DATA_DIR}).",
+    )
+    parser.add_argument(
+        "-H",
+        "--host",
+        default=DEFAULT_VIRTUOSO_HOST,
+        help=f"Virtuoso server host (Default: {DEFAULT_VIRTUOSO_HOST}).",
+    )
+    parser.add_argument(
+        "-P",
+        "--port",
+        type=int,
+        default=DEFAULT_VIRTUOSO_PORT,
+        help=f"Virtuoso server ISQL port (Default: {DEFAULT_VIRTUOSO_PORT}).",
+    )
+    parser.add_argument(
+        "-u",
+        "--user",
+        default=DEFAULT_VIRTUOSO_USER,
+        help=f"Virtuoso username (Default: {DEFAULT_VIRTUOSO_USER}).",
+    )
+    parser.add_argument(
+        "-k",
+        "--password",
+        default=DEFAULT_VIRTUOSO_PASSWORD,
+        help=f"Virtuoso password (Default: {DEFAULT_VIRTUOSO_PASSWORD}).",
+    )
+    parser.add_argument(
+        "-g",
+        "--graph",
+        default=DEFAULT_GRAPH,
+        help=f"Default graph to load data into (Default: {DEFAULT_GRAPH}).",
+    )
 
     args = parser.parse_args()
 
@@ -119,7 +144,10 @@ def main():
 
     print("Checking Virtuoso DirsAllowed configuration...")
     if not check_dirs_allowed(args):
-        print("Warning: Data directory may not be in DirsAllowed. Will attempt to continue anyway.")
+        print(
+            "Warning: Data directory may not be in"
+            " DirsAllowed. Will attempt to continue anyway."
+        )
 
     print(f"Checking if data is already loaded in graph <{args.graph}>...")
     if check_data_loaded(args.host, args.graph):
@@ -138,18 +166,25 @@ def main():
     data_dir_sql_escaped = args.data_dir.replace("'", "''")
     file_pattern_sql_escaped = NQ_GZ_PATTERN.replace("'", "''")
 
-    sql_command = f"""ld_dir('{data_dir_sql_escaped}', '{file_pattern_sql_escaped}', '{args.graph}');"""
-    success, stdout, stderr = run_isql_command(args, sql_command)
+    sql_command = (
+        f"ld_dir('{data_dir_sql_escaped}',"
+        f" '{file_pattern_sql_escaped}',"
+        f" '{args.graph}');"
+    )
+    success, _stdout, _stderr = run_isql_command(args, sql_command)
 
     if not success:
         print("Failed to register files using ld_dir:")
         print("This may be due to DirsAllowed not including the data directory.")
-        print("Please ensure the data directory is included in DirsAllowed in virtuoso.ini.")
+        print(
+            "Please ensure the data directory is included"
+            " in DirsAllowed in virtuoso.ini."
+        )
         sys.exit(1)
 
     print("Starting RDF loader...")
     sql_command = "rdf_loader_run();"
-    success, stdout, stderr = run_isql_command(args, sql_command)
+    success, _stdout, _stderr = run_isql_command(args, sql_command)
 
     if not success:
         print("Failed to run RDF loader.")

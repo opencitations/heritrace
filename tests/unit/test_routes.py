@@ -90,7 +90,9 @@ def test_home_page(client: FlaskClient) -> None:
 
 
 def test_login_page(client: FlaskClient) -> None:
-    """Test that the login page returns a redirect status code when not authenticated."""
+    """
+    Test that the login page returns a redirect status code when not authenticated.
+    """
     response = client.get("/auth/login")  # Assuming the login route is at /auth/login
     assert (
         response.status_code == 302

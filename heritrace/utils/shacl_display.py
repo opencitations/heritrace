@@ -5,58 +5,69 @@
 import json
 import os
 from collections import OrderedDict, defaultdict
+from collections.abc import Iterable
+from typing import cast
+
 from flask import Flask
-from heritrace.sparql import select_results
-from heritrace.utils.filters import Filter
 from rdflib import Graph, URIRef
 from rdflib.plugins.sparql import prepareQuery
+from rdflib.plugins.sparql.sparql import Query
+from rdflib.query import Result, ResultRow
+
+from heritrace.sparql import select_results
+from heritrace.utils.filters import Filter
 
 COMMON_SPARQL_QUERY = prepareQuery(
     """
-    SELECT ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue ?objectClass 
-           ?conditionPath ?conditionValue ?pattern ?message
-           (GROUP_CONCAT(?optionalValue; separator=",") AS ?optionalValues)
-           (GROUP_CONCAT(?orNode; separator=",") AS ?orNodes)
+    SELECT ?shape ?type ?predicate ?node_shape ?datatype
+           ?max_count ?min_count ?has_value ?object_class
+           ?condition_path ?condition_value ?pattern ?message
+           (GROUP_CONCAT(?optional_value; separator=",")
+            AS ?optional_values)
+           (GROUP_CONCAT(?or_node; separator=",") AS ?or_nodes)
     WHERE {
         ?shape sh:targetClass ?type ;
                sh:property ?property .
         ?property sh:path ?predicate .
         OPTIONAL {
-            ?property sh:node ?nodeShape .
-            OPTIONAL {?nodeShape sh:targetClass ?objectClass .}
+            ?property sh:node ?node_shape .
+            OPTIONAL {
+                ?node_shape sh:targetClass ?object_class .
+            }
         }
         OPTIONAL {
             ?property sh:or ?orList .
             {
-                ?orList rdf:rest*/rdf:first ?orConstraint .
-                ?orConstraint sh:datatype ?datatype .
+                ?orList rdf:rest*/rdf:first ?or_constraint .
+                ?or_constraint sh:datatype ?datatype .
             } UNION {
-                ?orList rdf:rest*/rdf:first ?orNodeShape .
-                ?orNodeShape sh:node ?orNode .
+                ?orList rdf:rest*/rdf:first ?or_node_shape .
+                ?or_node_shape sh:node ?or_node .
             } UNION {
-                ?orList rdf:rest*/rdf:first ?orConstraint .
-                ?orConstraint sh:hasValue ?optionalValue .
+                ?orList rdf:rest*/rdf:first ?or_constraint .
+                ?or_constraint sh:hasValue ?optional_value .
             }
         }
         OPTIONAL { ?property sh:datatype ?datatype . }
-        OPTIONAL { ?property sh:maxCount ?maxCount . }
-        OPTIONAL { ?property sh:minCount ?minCount . }
-        OPTIONAL { ?property sh:hasValue ?hasValue . }
+        OPTIONAL { ?property sh:maxCount ?max_count . }
+        OPTIONAL { ?property sh:minCount ?min_count . }
+        OPTIONAL { ?property sh:hasValue ?has_value . }
         OPTIONAL {
             ?property sh:in ?list .
-            ?list rdf:rest*/rdf:first ?optionalValue .
+            ?list rdf:rest*/rdf:first ?optional_value .
         }
         OPTIONAL {
-            ?property sh:condition ?conditionNode .
-            ?conditionNode sh:path ?conditionPath ;
-                           sh:hasValue ?conditionValue .
+            ?property sh:condition ?condition_node .
+            ?condition_node sh:path ?condition_path ;
+                            sh:hasValue ?condition_value .
         }
         OPTIONAL { ?property sh:pattern ?pattern . }
         OPTIONAL { ?property sh:message ?message . }
         FILTER (isURI(?predicate))
     }
-    GROUP BY ?shape ?type ?predicate ?nodeShape ?datatype ?maxCount ?minCount ?hasValue 
-            ?objectClass ?conditionPath ?conditionValue ?pattern ?message
+    GROUP BY ?shape ?type ?predicate ?node_shape ?datatype
+             ?max_count ?min_count ?has_value ?object_class
+             ?condition_path ?condition_value ?pattern ?message
 """,
     initNs={
         "sh": "http://www.w3.org/ns/shacl#",
@@ -65,34 +76,41 @@ COMMON_SPARQL_QUERY = prepareQuery(
 )
 
 
-def process_query_results(shacl, results, display_rules, processed_shapes, app: Flask, depth=0):
+def process_query_results(  # noqa: C901, PLR0912, PLR0913, PLR0915
+    shacl: Graph,
+    results: Iterable[ResultRow],
+    display_rules: list[dict[str, object]] | None,
+    processed_shapes: set[str],
+    app: Flask,
+    depth: int = 0,
+) -> defaultdict[tuple[str, str], dict[str, list[dict[str, object]]]]:
     form_fields = defaultdict(dict)
 
-    with open(os.path.join(os.path.dirname(__file__), "context.json"), "r") as config_file:
+    with open(os.path.join(os.path.dirname(__file__), "context.json")) as config_file:
         context = json.load(config_file)["@context"]
 
-    custom_filter = Filter(context, display_rules, app.config['DATASET_DB_URL'])
+    custom_filter = Filter(context, display_rules, app.config["DATASET_DB_URL"])
 
     for row in results:
         subject_shape = str(row.shape)
         entity_type = str(row.type)
         predicate = str(row.predicate)
-        nodeShape = str(row.nodeShape) if row.nodeShape else None
-        hasValue = str(row.hasValue) if row.hasValue else None
-        objectClass = str(row.objectClass) if row.objectClass else None
-        minCount = 0 if row.minCount is None else int(row.minCount)
-        maxCount = None if row.maxCount is None else int(row.maxCount)
+        node_shape = str(row.node_shape) if row.node_shape else None
+        has_value = str(row.has_value) if row.has_value else None
+        object_class = str(row.object_class) if row.object_class else None
+        min_count = 0 if row.min_count is None else int(row.min_count)
+        max_count = None if row.max_count is None else int(row.max_count)
         datatype = str(row.datatype) if row.datatype else None
-        optionalValues = [v for v in (row.optionalValues or "").split(",") if v]
-        orNodes = [v for v in (row.orNodes or "").split(",") if v]
+        optional_values = [v for v in (row.optional_values or "").split(",") if v]
+        or_nodes = [v for v in (row.or_nodes or "").split(",") if v]
 
         entity_key = (entity_type, subject_shape)
 
         condition_entry = {}
-        if row.conditionPath and row.conditionValue:
+        if row.condition_path and row.condition_value:
             condition_entry["condition"] = {
-                "path": str(row.conditionPath),
-                "value": str(row.conditionValue),
+                "path": str(row.condition_path),
+                "value": str(row.condition_value),
             }
         if row.pattern:
             condition_entry["pattern"] = str(row.pattern)
@@ -102,28 +120,27 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
         if predicate not in form_fields[entity_key]:
             form_fields[entity_key][predicate] = []
 
-        nodeShapes = []
-        if nodeShape:
-            nodeShapes.append(nodeShape)
-        nodeShapes.extend(orNodes)
+        node_shapes = []
+        if node_shape:
+            node_shapes.append(node_shape)
+        node_shapes.extend(or_nodes)
 
         existing_field = None
         for field in form_fields[entity_key][predicate]:
             if (
-                field.get("nodeShape") == nodeShape
-                and field.get("nodeShapes") == nodeShapes
+                field.get("nodeShape") == node_shape
+                and field.get("nodeShapes") == node_shapes
                 and field.get("subjectShape") == subject_shape
-                and field.get("hasValue") == hasValue
-                and field.get("objectClass") == objectClass
-                and field.get("min") == minCount
-                and field.get("max") == maxCount
-                and field.get("optionalValues") == optionalValues
+                and field.get("hasValue") == has_value
+                and field.get("objectClass") == object_class
+                and field.get("min") == min_count
+                and field.get("max") == max_count
+                and field.get("optionalValues") == optional_values
             ):
                 existing_field = field
                 break
 
         if existing_field:
-            # Aggiorniamo il campo esistente con nuovi datatype o condizioni
             if datatype and str(datatype) not in existing_field.get("datatypes", []):
                 existing_field.setdefault("datatypes", []).append(str(datatype))
             if condition_entry:
@@ -132,35 +149,34 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
             field_info = {
                 "entityType": entity_type,
                 "uri": predicate,
-                "nodeShape": nodeShape,
-                "nodeShapes": nodeShapes,
+                "nodeShape": node_shape,
+                "nodeShapes": node_shapes,
                 "subjectShape": subject_shape,
                 "entityKey": entity_key,
                 "datatypes": [datatype] if datatype else [],
-                "min": minCount,
-                "max": maxCount,
-                "hasValue": hasValue,
-                "objectClass": objectClass,
-                "optionalValues": optionalValues,
+                "min": min_count,
+                "max": max_count,
+                "hasValue": has_value,
+                "objectClass": object_class,
+                "optionalValues": optional_values,
                 "conditions": [condition_entry] if condition_entry else [],
                 "inputType": determine_input_type(datatype),
-                "shouldBeDisplayed": True,  # Default value
+                "shouldBeDisplayed": True,
             }
 
-            if nodeShape and nodeShape not in processed_shapes:
+            if node_shape and node_shape not in processed_shapes:
                 field_info["nestedShape"] = process_nested_shapes(
                     shacl,
                     display_rules,
-                    nodeShape,
+                    node_shape,
                     app,
                     depth=depth + 1,
                     processed_shapes=processed_shapes,
                 )
 
-            if orNodes:
+            if or_nodes:
                 field_info["or"] = []
-                for node in orNodes:
-                    # Process orNode as a field_info
+                for node in or_nodes:
                     entity_type_or_node = get_shape_target_class(shacl, node)
                     object_class = get_object_class(shacl, node, predicate)
                     shape_display_name = custom_filter.human_readable_class(
@@ -172,13 +188,13 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
                         "displayName": shape_display_name,
                         "subjectShape": subject_shape,
                         "nodeShape": node,
-                        "min": minCount,
-                        "max": maxCount,
-                        "hasValue": hasValue,
-                        "objectClass": objectClass,
-                        "optionalValues": optionalValues,
+                        "min": min_count,
+                        "max": max_count,
+                        "hasValue": has_value,
+                        "objectClass": object_class,
+                        "optionalValues": optional_values,
                         "conditions": [condition_entry] if condition_entry else [],
-                        "shouldBeDisplayed": True,  # Default value
+                        "shouldBeDisplayed": True,
                     }
                     if node not in processed_shapes:
                         or_field_info["nestedShape"] = process_nested_shapes(
@@ -196,9 +212,14 @@ def process_query_results(shacl, results, display_rules, processed_shapes, app: 
     return form_fields
 
 
-def process_nested_shapes(
-    shacl: Graph, display_rules: list[dict] | None, shape_uri: str, app: Flask, depth=0, processed_shapes=None
-):
+def process_nested_shapes(  # noqa: PLR0913
+    shacl: Graph,
+    display_rules: list[dict[str, object]] | None,
+    shape_uri: str,
+    app: Flask,
+    depth: int = 0,
+    processed_shapes: set[str] | None = None,
+) -> list[dict[str, object]]:
     """
     Processa ricorsivamente le shape annidate.
 
@@ -222,7 +243,12 @@ def process_nested_shapes(
     nested_fields = []
 
     temp_form_fields = process_query_results(
-        shacl, nested_results, display_rules, processed_shapes, app=app, depth=depth
+        shacl,
+        select_results(nested_results),
+        display_rules,
+        processed_shapes,
+        app=app,
+        depth=depth,
     )
 
     # Applica le regole di visualizzazione ai campi annidati
@@ -239,9 +265,13 @@ def process_nested_shapes(
     return nested_fields
 
 
-def get_property_order(entity_type, display_rules):
+def get_property_order(
+    entity_type: str,
+    display_rules: list[dict[str, object]] | None,
+) -> list[str | None]:
     """
-    Recupera l'ordine delle proprietà per un tipo di entità dalle regole di visualizzazione.
+    Recupera l'ordine delle proprietà per un tipo di entità dalle regole di
+    visualizzazione.
 
     Argomenti:
         entity_type (str): L'URI del tipo di entità.
@@ -251,20 +281,26 @@ def get_property_order(entity_type, display_rules):
     """
     if not display_rules:
         return []
-        
+
     for rule in display_rules:
         if rule.get("class") == entity_type and "propertyOrder" in rule:
-            return rule["propertyOrder"]
-        elif rule.get("class") == entity_type:
+            return cast("list[str | None]", rule["propertyOrder"])
+        if rule.get("class") == entity_type:
+            display_props = cast(
+                "list[dict[str, object]]", rule.get("displayProperties", [])
+            )
             return [
-                prop.get("property") or prop.get("virtual_property")
-                for prop in rule.get("displayProperties", [])
+                cast("str | None", prop.get("property") or prop.get("virtual_property"))
+                for prop in display_props
                 if prop.get("property") or prop.get("virtual_property")
             ]
     return []
 
 
-def order_fields(fields, property_order):
+def order_fields(
+    fields: list[dict[str, object]],
+    property_order: list[str],
+) -> list[dict[str, object]]:
     """
     Ordina i campi secondo l'ordine specificato delle proprietà.
 
@@ -287,88 +323,120 @@ def order_fields(fields, property_order):
     # Fields not in property_order will be placed at the end
     return sorted(
         fields,
-        key=lambda f: order_dict.get(f.get("predicate", f.get("uri", "")), float("inf")),
+        key=lambda f: order_dict.get(
+            str(f.get("predicate", f.get("uri", ""))), float("inf")
+        ),
     )
 
 
-def order_form_fields(form_fields, display_rules):
+def _find_matching_entity_keys(
+    form_fields: dict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ],
+    entity_class: str | None,
+    entity_shape: str | None,
+) -> list[tuple[str, str]]:
+    if entity_class and entity_shape:
+        entity_key = (entity_class, entity_shape)
+        return [entity_key] if entity_key in form_fields else []
+    if entity_class:
+        return [key for key in form_fields if key[0] == entity_class]
+    if entity_shape:
+        return [key for key in form_fields if key[1] == entity_shape]
+    return []
+
+
+def _get_ordered_properties_from_rule(
+    rule: dict[str, object],
+) -> list[str | None]:
+    display_props = cast(
+        "list[dict[str, object]]", rule.get("displayProperties", [])
+    )
+    return [
+        cast("str | None", prop_rule.get("property") or prop_rule.get("virtual_property"))
+        for prop_rule in display_props
+        if prop_rule.get("property") or prop_rule.get("virtual_property")
+    ]
+
+
+def _order_entity_fields(
+    form_fields: dict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ],
+    entity_key: tuple[str, str],
+    ordered_properties: list[str | None],
+    ordered_form_fields: OrderedDict[
+        tuple[str, str],
+        OrderedDict[str, list[dict[str, object]]],
+    ],
+) -> None:
+    ordered_form_fields[entity_key] = OrderedDict()
+    for prop in ordered_properties:
+        if prop in form_fields[entity_key]:
+            ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
+    # Aggiungi le proprietà rimanenti non specificate nell'ordine
+    for prop in form_fields[entity_key]:
+        if prop not in ordered_properties:
+            ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
+
+
+def order_form_fields(
+    form_fields: dict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ],
+    display_rules: list[dict[str, object]] | None,
+) -> (
+    OrderedDict[
+        tuple[str, str],
+        OrderedDict[str, list[dict[str, object]]],
+    ]
+    | dict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ]
+):
     """
     Ordina i campi del form secondo le regole di visualizzazione.
 
     Argomenti:
-        form_fields (dict): I campi del form con possibili modifiche dalle regole di visualizzazione.
+        form_fields (dict): I campi del form con possibili modifiche dalle regole di
+        visualizzazione.
 
     Restituisce:
         OrderedDict: I campi del form ordinati.
     """
     ordered_form_fields = OrderedDict()
-    if display_rules:
-        for rule in display_rules:
-            target = rule.get("target", {})
-            entity_class = target.get("class")
-            entity_shape = target.get("shape")
-            
-            # Case 1: Both class and shape are specified (exact match)
-            if entity_class and entity_shape:
-                entity_key = (entity_class, entity_shape)
-                if entity_key in form_fields:
-                    ordered_properties = [
-                        prop_rule.get("property") or prop_rule.get("virtual_property")
-                        for prop_rule in rule.get("displayProperties", [])
-                        if prop_rule.get("property") or prop_rule.get("virtual_property")
-                    ]
-                    ordered_form_fields[entity_key] = OrderedDict()
-                    for prop in ordered_properties:
-                        if prop in form_fields[entity_key]:
-                            ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
-                    # Aggiungi le proprietà rimanenti non specificate nell'ordine
-                    for prop in form_fields[entity_key]:
-                        if prop not in ordered_properties:
-                            ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
-            
-            # Case 2: Only class is specified (apply to all matching classes)
-            elif entity_class:
-                for key in form_fields:
-                    if key[0] == entity_class:  # Check if class part of tuple matches
-                        entity_key = key
-                        ordered_properties = [
-                            prop_rule.get("property") or prop_rule.get("virtual_property")
-                            for prop_rule in rule.get("displayProperties", [])
-                            if prop_rule.get("property") or prop_rule.get("virtual_property")
-                        ]
-                        ordered_form_fields[entity_key] = OrderedDict()
-                        for prop in ordered_properties:
-                            if prop in form_fields[entity_key]:
-                                ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
-                        # Aggiungi le proprietà rimanenti non specificate nell'ordine
-                        for prop in form_fields[entity_key]:
-                            if prop not in ordered_properties:
-                                ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
-            
-            # Case 3: Only shape is specified (apply to all matching shapes)
-            elif entity_shape:
-                for key in form_fields:
-                    if key[1] == entity_shape:  # Check if shape part of tuple matches
-                        entity_key = key
-                        ordered_properties = [
-                            prop_rule.get("property") or prop_rule.get("virtual_property")
-                            for prop_rule in rule.get("displayProperties", [])
-                            if prop_rule.get("property") or prop_rule.get("virtual_property")
-                        ]
-                        ordered_form_fields[entity_key] = OrderedDict()
-                        for prop in ordered_properties:
-                            if prop in form_fields[entity_key]:
-                                ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
-                        # Aggiungi le proprietà rimanenti non specificate nell'ordine
-                        for prop in form_fields[entity_key]:
-                            if prop not in ordered_properties:
-                                ordered_form_fields[entity_key][prop] = form_fields[entity_key][prop]
-    else:
-        ordered_form_fields = form_fields
+    if not display_rules:
+        return form_fields
+    for rule in display_rules:
+        target = cast("dict[str, str]", rule.get("target", {}))
+        entity_class = target.get("class")
+        entity_shape = target.get("shape")
+        ordered_properties = _get_ordered_properties_from_rule(rule)
+        matching_keys = _find_matching_entity_keys(
+            form_fields, entity_class, entity_shape
+        )
+        for key in matching_keys:
+            _order_entity_fields(
+                form_fields, key, ordered_properties, ordered_form_fields
+            )
     return ordered_form_fields
 
 
-def apply_display_rules(shacl, form_fields, display_rules):
+def apply_display_rules(
+    shacl: Graph,
+    form_fields: dict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ],
+    display_rules: list[dict[str, object]],
+) -> dict[
+    tuple[str, str],
+    dict[str, list[dict[str, object]]],
+]:
     """
     Applica le regole di visualizzazione ai campi del form.
 
@@ -379,10 +447,10 @@ def apply_display_rules(shacl, form_fields, display_rules):
         dict: I campi del form dopo aver applicato le regole di visualizzazione.
     """
     for rule in display_rules:
-        target = rule.get("target", {})
+        target = cast("dict[str, str]", rule.get("target", {}))
         entity_class = target.get("class")
         entity_shape = target.get("shape")
-        
+
         # Handle different cases based on available target information
         # Case 1: Both class and shape are specified (exact match)
         if entity_class and entity_shape:
@@ -402,30 +470,46 @@ def apply_display_rules(shacl, form_fields, display_rules):
     return form_fields
 
 
-def apply_rule_to_entity(shacl, form_fields, entity_key, rule):
+def apply_rule_to_entity(
+    shacl: Graph,
+    form_fields: dict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ],
+    entity_key: tuple[str, str],
+    rule: dict[str, object],
+) -> None:
     """
     Apply a display rule to a specific entity key.
-    
+
     Args:
         shacl: The SHACL graph
         form_fields: The form fields dictionary
         entity_key: The entity key tuple (class, shape)
         rule: The display rule to apply
     """
-    for prop in rule.get("displayProperties", []):
+    display_props = cast(
+        "list[dict[str, object]]", rule.get("displayProperties", [])
+    )
+    for prop in display_props:
         prop_uri = prop.get("property") or prop.get("virtual_property")
         if prop_uri and prop_uri in form_fields[entity_key]:
-            for field_info in form_fields[entity_key][prop_uri]:
+            for field_info in form_fields[entity_key][str(prop_uri)]:
                 add_display_information(field_info, prop)
-                # Chiamata ricorsiva per le nestedShape
                 if "nestedShape" in field_info:
+                    target = cast("dict[str, str]", rule.get("target", {}))
                     apply_display_rules_to_nested_shapes(
-                        field_info["nestedShape"], prop, rule.get("target", {}).get("shape")
+                        cast("list[dict[str, object]]", field_info["nestedShape"]),
+                        prop,
+                        target.get("shape"),
                     )
                 if "or" in field_info:
-                    for or_field in field_info["or"]:
+                    target = cast("dict[str, str]", rule.get("target", {}))
+                    for or_field in cast(
+                        "list[dict[str, object]]", field_info["or"]
+                    ):
                         apply_display_rules_to_nested_shapes(
-                            [or_field], field_info, rule.get("target", {}).get("shape")
+                            [or_field], field_info, target.get("shape")
                         )
                 if "intermediateRelation" in prop:
                     handle_intermediate_relation(shacl, field_info, prop)
@@ -434,16 +518,20 @@ def apply_rule_to_entity(shacl, form_fields, entity_key, rule):
                     shacl,
                     form_fields,
                     entity_key,
-                    form_fields[entity_key][prop_uri],
+                    form_fields[entity_key][str(prop_uri)],
                     prop,
                 )
 
 
-def apply_display_rules_to_nested_shapes(nested_fields, parent_prop, shape_uri):
+def apply_display_rules_to_nested_shapes(  # noqa: C901
+    nested_fields: list[dict[str, object]],
+    parent_prop: dict[str, object],
+    shape_uri: str | None,
+) -> list[dict[str, object]]:
     """Apply display rules to nested shapes."""
     if not nested_fields:
         return []
-        
+
     # Handle case where parent_prop is not a dictionary
     if not isinstance(parent_prop, dict):
         return nested_fields
@@ -455,15 +543,16 @@ def apply_display_rules_to_nested_shapes(nested_fields, parent_prop, shape_uri):
         new_field = field.copy()
         result_fields.append(new_field)
 
-    # Find the matching shape in the parent property's display rules
-    found_matching_shape = False
-    for rule in parent_prop.get("displayRules", []):
+    display_rules = cast(
+        "list[dict[str, object]]", parent_prop.get("displayRules", [])
+    )
+    for rule in display_rules:
         if rule.get("shape") == shape_uri and "nestedDisplayRules" in rule:
-            found_matching_shape = True
-            # Apply nested display rules to each field
+            nested_display_rules = cast(
+                "list[dict[str, object]]", rule["nestedDisplayRules"]
+            )
             for field in result_fields:
-                for nested_rule in rule["nestedDisplayRules"]:
-                    # Check both predicate and uri keys to be more flexible
+                for nested_rule in nested_display_rules:
                     field_key = field.get("predicate", field.get("uri"))
                     if field_key == nested_rule["property"]:
                         # Apply display properties from the rule to the field
@@ -475,7 +564,7 @@ def apply_display_rules_to_nested_shapes(nested_fields, parent_prop, shape_uri):
     return result_fields
 
 
-def determine_input_type(datatype):
+def determine_input_type(datatype: str | None) -> str:
     """
     Determina il tipo di input appropriato basato sul datatype XSD.
     """
@@ -499,7 +588,10 @@ def determine_input_type(datatype):
     return datatype_to_input.get(datatype, "text")
 
 
-def add_display_information(field_info, prop):
+def add_display_information(
+    field_info: dict[str, object],
+    prop: dict[str, object],
+) -> None:
     """
     Aggiunge informazioni di visualizzazione dal display_rules ad un campo.
 
@@ -523,7 +615,11 @@ def add_display_information(field_info, prop):
         field_info["searchTarget"] = prop["searchTarget"]
 
 
-def handle_intermediate_relation(shacl, field_info, prop):
+def handle_intermediate_relation(
+    shacl: Graph,
+    field_info: dict[str, object],
+    prop: dict[str, object],
+) -> None:
     """
     Processa 'intermediateRelation' nelle display_rules e aggiorna il campo.
 
@@ -531,9 +627,9 @@ def handle_intermediate_relation(shacl, field_info, prop):
         field_info (dict): Le informazioni del campo da aggiornare.
         prop (dict): Le informazioni della proprietà dalle display_rules.
     """
-    intermediate_relation = prop["intermediateRelation"]
-    target_entity_type = intermediate_relation.get("targetEntityType")
-    intermediate_class = intermediate_relation.get("class")
+    intermediate_relation = cast("dict[str, str]", prop["intermediateRelation"])
+    target_entity_type = intermediate_relation["targetEntityType"]
+    intermediate_class = intermediate_relation["class"]
 
     connecting_property_query = prepareQuery(
         """
@@ -558,23 +654,29 @@ def handle_intermediate_relation(shacl, field_info, prop):
     )
 
     connecting_property = next(
-        (str(row.property) for row in connecting_property_results), None
+        (str(row.property) for row in select_results(connecting_property_results)), None
     )
 
     intermediate_properties = {}
     target_shape = None
     if "nestedShape" in field_info:
-        for nested_field in field_info["nestedShape"]:
-            if nested_field.get("uri") == connecting_property and "nestedShape" in nested_field:
-                if "nestedShape" in nested_field:
-                    for target_field in nested_field["nestedShape"]:
-                        uri = target_field.get("uri")
-                        if uri:
-                            if uri not in intermediate_properties:
-                                intermediate_properties[uri] = []
-                            intermediate_properties[uri].append(target_field)
-                        if target_field.get("subjectShape"):
-                            target_shape = target_field["subjectShape"]
+        for nested_field in cast(
+            "list[dict[str, object]]", field_info["nestedShape"]
+        ):
+            if (
+                nested_field.get("uri") == connecting_property
+                and "nestedShape" in nested_field
+            ) and "nestedShape" in nested_field:
+                for target_field in cast(
+                    "list[dict[str, object]]", nested_field["nestedShape"]
+                ):
+                    uri = target_field.get("uri")
+                    if uri:
+                        if uri not in intermediate_properties:
+                            intermediate_properties[uri] = []
+                        intermediate_properties[uri].append(target_field)
+                    if target_field.get("subjectShape"):
+                        target_shape = target_field["subjectShape"]
 
     field_info["intermediateRelation"] = {
         "class": intermediate_class,
@@ -585,9 +687,19 @@ def handle_intermediate_relation(shacl, field_info, prop):
     }
 
 
-def handle_sub_display_rules(shacl, form_fields, entity_key, field_info_list, prop):
+def handle_sub_display_rules(
+    shacl: Graph,
+    form_fields: dict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ],
+    entity_key: tuple[str, str],
+    field_info_list: list[dict[str, object]],
+    prop: dict[str, object],
+) -> None:
     """
-    Gestisce 'displayRules' nelle display_rules, applicando la regola corretta in base allo shape.
+    Gestisce 'displayRules' nelle display_rules, applicando la regola corretta in base
+    allo shape.
 
     Argomenti:
         form_fields (dict): I campi del form da aggiornare.
@@ -600,10 +712,13 @@ def handle_sub_display_rules(shacl, form_fields, entity_key, field_info_list, pr
 
     for original_field in field_info_list:
         # Trova la display rule corrispondente allo shape del campo
+        sub_display_rules = cast(
+            "list[dict[str, object]]", prop["displayRules"]
+        )
         matching_rule = next(
             (
                 rule
-                for rule in prop["displayRules"]
+                for rule in sub_display_rules
                 if rule["shape"] == original_field["nodeShape"]
             ),
             None,
@@ -636,7 +751,7 @@ def handle_sub_display_rules(shacl, form_fields, entity_key, field_info_list, pr
 
             # Aggiungi proprietà aggiuntive dalla shape SHACL
             if "shape" in matching_rule:
-                shape_uri = matching_rule["shape"]
+                shape_uri = str(matching_rule["shape"])
                 additional_properties = extract_additional_properties(shacl, shape_uri)
                 if additional_properties:
                     new_field["additionalProperties"] = additional_properties
@@ -646,10 +761,10 @@ def handle_sub_display_rules(shacl, form_fields, entity_key, field_info_list, pr
             # Se non c'è una regola corrispondente, mantieni il campo originale
             new_field_info_list.append(original_field)
 
-    form_fields[entity_key][prop["property"]] = new_field_info_list
+    form_fields[entity_key][str(prop["property"])] = new_field_info_list
 
 
-def get_shape_target_class(shacl, shape_uri):
+def get_shape_target_class(shacl: Graph, shape_uri: str) -> str | None:
     query = prepareQuery(
         """
         SELECT ?targetClass
@@ -665,7 +780,7 @@ def get_shape_target_class(shacl, shape_uri):
     return None
 
 
-def get_object_class(shacl, shape_uri, predicate_uri):
+def get_object_class(shacl: Graph, shape_uri: str, predicate_uri: str) -> str | None:
     query = prepareQuery(
         """
         SELECT DISTINCT ?targetClass
@@ -709,7 +824,20 @@ def get_object_class(shacl, shape_uri, predicate_uri):
     return None
 
 
-def extract_shacl_form_fields(shacl, display_rules, app: Flask):
+def extract_shacl_form_fields(
+    shacl: Graph | None,
+    display_rules: list[dict[str, object]] | None,
+    app: Flask,
+) -> (
+    dict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ]
+    | defaultdict[
+        tuple[str, str],
+        dict[str, list[dict[str, object]]],
+    ]
+):
     """
     Estrae i campi del form dalle shape SHACL.
 
@@ -719,24 +847,30 @@ def extract_shacl_form_fields(shacl, display_rules, app: Flask):
         app: Flask application instance
 
     Returns:
-        defaultdict: A dictionary where the keys are tuples (class, shape) and the values are dictionaries
+        defaultdict: A dictionary where the keys are tuples (class, shape) and the
+        values are dictionaries
                      of form fields with their properties.
     """
     if not shacl:
-        return dict()
+        return {}
 
     processed_shapes = set()
     results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY)
-    results_list = list(results)
-
-    form_fields = process_query_results(
-        shacl, results_list, display_rules, processed_shapes, app=app, depth=0
+    return process_query_results(
+        shacl,
+        select_results(results),
+        display_rules,
+        processed_shapes,
+        app=app,
+        depth=0,
     )
 
-    return form_fields
 
-
-def execute_shacl_query(shacl: Graph, query, init_bindings=None):
+def execute_shacl_query(
+    shacl: Graph,
+    query: Query,
+    init_bindings: dict[str, URIRef] | None = None,
+) -> Result:
     """
     Esegue una query SPARQL sul grafo SHACL con eventuali binding iniziali.
 
@@ -750,11 +884,10 @@ def execute_shacl_query(shacl: Graph, query, init_bindings=None):
     """
     if init_bindings:
         return shacl.query(query, initBindings=init_bindings)
-    else:
-        return shacl.query(query)
+    return shacl.query(query)
 
 
-def extract_additional_properties(shacl, shape_uri):
+def extract_additional_properties(shacl: Graph, shape_uri: str) -> dict[str, str]:
     """
     Estrae proprietà aggiuntive da una shape SHACL.
 
@@ -766,25 +899,26 @@ def extract_additional_properties(shacl, shape_uri):
     """
     additional_properties_query = prepareQuery(
         """
-        SELECT ?predicate ?hasValue
+        SELECT ?predicate ?has_value
         WHERE {
             ?shape a sh:NodeShape ;
                    sh:property ?property .
             ?property sh:path ?predicate ;
-                     sh:hasValue ?hasValue .
+                     sh:hasValue ?has_value .
         }
     """,
         initNs={"sh": "http://www.w3.org/ns/shacl#"},
     )
 
     additional_properties_results = shacl.query(
-        additional_properties_query, initBindings={"shape": URIRef(shape_uri)}
+        additional_properties_query,
+        initBindings={"shape": URIRef(shape_uri)},
     )
 
     additional_properties = {}
-    for row in additional_properties_results:
+    for row in select_results(additional_properties_results):
         predicate = str(row.predicate)
-        has_value = str(row.hasValue)
+        has_value = str(row.has_value)
         additional_properties[predicate] = has_value
 
     return additional_properties

@@ -5,30 +5,35 @@
 import json
 import time
 
-from flask import (Blueprint, current_app, redirect, render_template, request,
-                   url_for)
+from flask import Blueprint, current_app, redirect, render_template, request, url_for
 from flask_login import login_required
+from SPARQLWrapper import JSON
+from werkzeug.wrappers import Response as WerkzeugResponse
+
 from heritrace.extensions import get_dataset_endpoint, get_sparql
 from heritrace.utils.shacl_utils import determine_shape_for_classes
-from heritrace.utils.sparql_utils import (get_available_classes,
-                                          get_catalog_data,
-                                          get_deleted_entities_with_filtering,
-                                          get_sortable_properties)
-from SPARQLWrapper import JSON
+from heritrace.utils.sparql_utils import (
+    get_available_classes,
+    get_catalog_data,
+    get_deleted_entities_with_filtering,
+    get_sortable_properties,
+)
 
 main_bp = Blueprint("main", __name__)
 
 
 @main_bp.route("/")
-def index():
+def index() -> str:
     return render_template("index.jinja")
 
 
 @main_bp.route("/catalogue")
 @login_required
-def catalogue():
+def catalogue() -> str:
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]))
+    per_page = int(
+        request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"])
+    )
     selected_class = request.args.get("class")
     sort_property = request.args.get("sort_property")
     sort_direction = request.args.get("sort_direction", "ASC")
@@ -37,18 +42,13 @@ def catalogue():
     available_classes = get_available_classes()
 
     if not selected_class and available_classes:
-        selected_class = available_classes[0]["uri"]
+        selected_class = str(available_classes[0]["uri"])
 
     if not selected_shape and selected_class:
         selected_shape = determine_shape_for_classes([selected_class])
 
     catalog_data = get_catalog_data(
-        selected_class,
-        page,
-        per_page,
-        sort_property,
-        sort_direction,
-        selected_shape
+        selected_class, page, per_page, sort_property, sort_direction, selected_shape
     )
 
     return render_template(
@@ -69,12 +69,14 @@ def catalogue():
 
 @main_bp.route("/time-vault")
 @login_required
-def time_vault():
+def time_vault() -> str:
     """
     Render the Time Vault page, which displays a list of deleted entities.
     """
     initial_page = request.args.get("page", 1, type=int)
-    initial_per_page = request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"], type=int)
+    initial_per_page = request.args.get(
+        "per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"], type=int
+    )
     sort_property = request.args.get("sort_property", "deletionTime")
     sort_direction = request.args.get("sort_direction", "DESC")
     selected_class = request.args.get("class")
@@ -82,27 +84,30 @@ def time_vault():
 
     allowed_per_page = current_app.config["CATALOGUE_ALLOWED_PER_PAGE"]
 
-    initial_entities, available_classes, selected_class, selected_shape, sortable_properties, total_count = (
-        get_deleted_entities_with_filtering(
-            initial_page,
-            initial_per_page,
-            sort_property,
-            sort_direction,
-            selected_class,
-            selected_shape
-        )
+    (
+        initial_entities,
+        available_classes,
+        selected_class,
+        selected_shape,
+        sortable_properties,
+        total_count,
+    ) = get_deleted_entities_with_filtering(
+        initial_page,
+        initial_per_page,
+        sort_property,
+        sort_direction,
+        selected_class,
+        selected_shape,
     )
 
     sortable_properties = [
         {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
     ]
-    
+
     if selected_class is not None:
         entity_key = (selected_class, selected_shape)
-        sortable_properties.extend(
-            get_sortable_properties(entity_key)
-        )
-    
+        sortable_properties.extend(get_sortable_properties(entity_key))
+
     sortable_properties = json.dumps(sortable_properties)
 
     return render_template(
@@ -111,7 +116,9 @@ def time_vault():
         selected_class=selected_class,
         selected_shape=selected_shape,
         page=initial_page,
-        total_entity_pages=(total_count + initial_per_page - 1) // initial_per_page if total_count > 0 else 0,
+        total_entity_pages=(total_count + initial_per_page - 1) // initial_per_page
+        if total_count > 0
+        else 0,
         per_page=initial_per_page,
         allowed_per_page=allowed_per_page,
         sortable_properties=sortable_properties,
@@ -123,40 +130,54 @@ def time_vault():
 
 @main_bp.route("/dataset-endpoint", methods=["POST"])
 @login_required
-def sparql_proxy():
+def sparql_proxy() -> tuple[str, int, dict[str, str]]:
     query = request.form.get("query", "")
 
     sparql_wrapper = get_sparql()
     sparql_wrapper.setQuery(query)
-    sparql_wrapper.setReturnFormat(JSON) 
-    
+    sparql_wrapper.setReturnFormat(JSON)
+
     # Implement retry mechanism
     max_retries = 3
     retry_delay = 1  # seconds
-    
+
     for attempt in range(max_retries):
         try:
             results = sparql_wrapper.query().convert()
-            return json.dumps(results), 200, {"Content-Type": "application/sparql-results+json"}
-        except Exception as e:
+            return (
+                json.dumps(results),
+                200,
+                {"Content-Type": "application/sparql-results+json"},
+            )
+        except Exception as e:  # noqa: PERF203
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 retry_delay *= 2  # Exponential backoff
             else:
-                current_app.logger.error(f"All SPARQL query attempts failed for query: {query}")
-                return json.dumps({"error": str(e)}), 500, {"Content-Type": "application/json"}
+                current_app.logger.exception(
+                    "All SPARQL query attempts failed for query: %s", query
+                )
+                return (
+                    json.dumps({"error": str(e)}),
+                    500,
+                    {"Content-Type": "application/json"},
+                )
 
-    return json.dumps({"error": "All SPARQL query attempts failed"}), 500, {"Content-Type": "application/json"}
+    return (
+        json.dumps({"error": "All SPARQL query attempts failed"}),
+        500,
+        {"Content-Type": "application/json"},
+    )
 
 
 @main_bp.route("/endpoint")
 @login_required
-def endpoint():
+def endpoint() -> str:
     return render_template("endpoint.jinja", dataset_endpoint=get_dataset_endpoint())
 
 
 @main_bp.route("/search")
 @login_required
-def search():
+def search() -> WerkzeugResponse:
     subject = request.args.get("q")
     return redirect(url_for("entity.about", subject=subject))

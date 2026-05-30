@@ -2,13 +2,17 @@
 #
 # SPDX-License-Identifier: ISC
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, call
 
 import pytest
-from default_components.meta_uri_generator import MetaURIGenerator, InvalidURIFormatError
-from default_components.meta_counter_handler import MetaCounterHandler
 from rdflib import URIRef
 from SPARQLWrapper import SPARQLWrapper
+
+from default_components.meta_counter_handler import MetaCounterHandler
+from default_components.meta_uri_generator import (
+    InvalidURIFormatError,
+    MetaURIGenerator,
+)
 
 
 @pytest.fixture
@@ -21,63 +25,65 @@ def uri_generator_setup():
     supplier_prefix_regex = supplier_prefix
     uri_generator = MetaURIGenerator(counter_handler)
     sparql = MagicMock(spec=SPARQLWrapper)
-    
+
     return {
         "base_iri": base_iri,
         "supplier_prefix": supplier_prefix,
         "supplier_prefix_regex": supplier_prefix_regex,
         "counter_handler": counter_handler,
         "uri_generator": uri_generator,
-        "sparql": sparql
+        "sparql": sparql,
     }
 
 
-def test_generate_uri(uri_generator_setup):
+def test_generate_uri(uri_generator_setup) -> None:
     """Test the generate_uri method."""
     # Get the setup objects
     counter_handler = uri_generator_setup["counter_handler"]
     uri_generator = uri_generator_setup["uri_generator"]
     base_iri = uri_generator_setup["base_iri"]
-    supplier_prefix = uri_generator_setup["supplier_prefix"]
-    
+    uri_generator_setup["supplier_prefix"]
+
     # Set up the mock counter handler
     counter_handler.read_counter.return_value = 42
-    
+
     # Test generating a URI for an Expression entity
     entity_type = "http://purl.org/spar/fabio/Expression"
     uri = uri_generator.generate_uri(entity_type)
-    
+
     # Verify the counter handler was called correctly
     counter_handler.read_counter.assert_called_once_with(entity_type)
     counter_handler.set_counter.assert_called_once_with(43, entity_type)
-    
+
     # Verify the generated URI is correct
     expected_uri = URIRef(f"{base_iri}/br/0911043")
     assert uri == expected_uri
-    
+
     # Test with a different entity type
     counter_handler.reset_mock()
     counter_handler.read_counter.return_value = 99
-    
+
     entity_type = "http://xmlns.com/foaf/0.1/Agent"
     uri = uri_generator.generate_uri(entity_type)
-    
+
     counter_handler.read_counter.assert_called_once_with(entity_type)
     counter_handler.set_counter.assert_called_once_with(100, entity_type)
-    
+
     expected_uri = URIRef(f"{base_iri}/ra/09110100")
     assert uri == expected_uri
 
 
-def test_initialize_counters_with_valid_data(uri_generator_setup):
-    """Test initialize_counters with valid data from both data and provenance queries."""
+def test_initialize_counters_with_valid_data(uri_generator_setup) -> None:
+    """
+    Test initialize_counters with valid data from both data and provenance queries.
+    """
     # Get the setup objects
     counter_handler = uri_generator_setup["counter_handler"]
     uri_generator = uri_generator_setup["uri_generator"]
     sparql = uri_generator_setup["sparql"]
     base_iri = uri_generator_setup["base_iri"]
-    supplier_prefix = uri_generator_setup["supplier_prefix"]
-    
+    uri_generator_setup["supplier_prefix"]
+
     # Mock the data query results
     data_results = {
         "results": {
@@ -140,7 +146,7 @@ def test_initialize_counters_with_valid_data(uri_generator_setup):
     # Verify counter values were set correctly
     # The counters should be set for the 06110 prefix based on the max values found:
     # br (Expression): max(10, 15) = 15
-    # ra (Agent): max(20, 25) = 25  
+    # ra (Agent): max(20, 25) = 25
     # re (Manifestation): max(30, 35) = 35
     # ar (RoleInTime): max(50, 0) = 50
     # id (Identifier): max(40, 0) = 40
@@ -168,22 +174,27 @@ def test_initialize_counters_with_valid_data(uri_generator_setup):
     counter_handler.set_counter.assert_has_calls(expected_calls, any_order=True)
 
 
-def test_initialize_counters_with_invalid_uri_format_in_data(uri_generator_setup):
+def test_initialize_counters_with_invalid_uri_format_in_data(
+    uri_generator_setup,
+) -> None:
     """Test initialize_counters with invalid URI format in data query results."""
     # Get the setup objects
-    counter_handler = uri_generator_setup["counter_handler"]
+    uri_generator_setup["counter_handler"]
     uri_generator = uri_generator_setup["uri_generator"]
     sparql = uri_generator_setup["sparql"]
     base_iri = uri_generator_setup["base_iri"]
-    supplier_prefix = uri_generator_setup["supplier_prefix"]
-    
-    # Mock the data query results with an invalid URI format that will trigger the exception
+    uri_generator_setup["supplier_prefix"]
+
+    # Mock the data query results with an invalid URI format that will trigger the
+    # exception
     data_results = {
         "results": {
             "bindings": [
                 {
                     "type": {"value": "http://purl.org/spar/fabio/Expression"},
-                    "s": {"value": f"{base_iri}/br/06110abc"},  # Invalid format - matches regex but has non-integer suffix
+                    "s": {
+                        "value": f"{base_iri}/br/06110abc"
+                    },  # Invalid format - matches regex but has non-integer suffix
                 },
                 {
                     "type": {"value": "http://xmlns.com/foaf/0.1/Agent"},
@@ -194,11 +205,7 @@ def test_initialize_counters_with_invalid_uri_format_in_data(uri_generator_setup
     }
 
     # Mock the provenance query results
-    prov_results = {
-        "results": {
-            "bindings": []
-        }
-    }
+    prov_results = {"results": {"bindings": []}}
 
     # Configure the mock SPARQL wrapper
     sparql.query.side_effect = [
@@ -209,32 +216,33 @@ def test_initialize_counters_with_invalid_uri_format_in_data(uri_generator_setup
     # Test that the InvalidURIFormatError is raised
     with pytest.raises(InvalidURIFormatError) as exc_info:
         uri_generator.initialize_counters(sparql)
-    
+
     assert "Invalid URI format found for entity:" in str(exc_info.value)
 
 
-def test_initialize_counters_with_invalid_uri_format_in_provenance(uri_generator_setup):
+def test_initialize_counters_with_invalid_uri_format_in_provenance(
+    uri_generator_setup,
+) -> None:
     """Test initialize_counters with invalid URI format in provenance query results."""
     # Get the setup objects
-    counter_handler = uri_generator_setup["counter_handler"]
+    uri_generator_setup["counter_handler"]
     uri_generator = uri_generator_setup["uri_generator"]
     sparql = uri_generator_setup["sparql"]
     base_iri = uri_generator_setup["base_iri"]
-    supplier_prefix = uri_generator_setup["supplier_prefix"]
-    
-    # Mock the data query results
-    data_results = {
-        "results": {
-            "bindings": []
-        }
-    }
+    uri_generator_setup["supplier_prefix"]
 
-    # Mock the provenance query results with an invalid URI format that will trigger the exception
+    # Mock the data query results
+    data_results = {"results": {"bindings": []}}
+
+    # Mock the provenance query results with an invalid URI format that will trigger the
+    # exception
     prov_results = {
         "results": {
             "bindings": [
                 {
-                    "entity": {"value": f"{base_iri}/br/06110xyz"},  # Invalid format - matches regex but has non-integer suffix
+                    "entity": {
+                        "value": f"{base_iri}/br/06110xyz"
+                    },  # Invalid format - matches regex but has non-integer suffix
                 },
                 {
                     "entity": {"value": f"{base_iri}/ra/0611025"},
@@ -252,11 +260,11 @@ def test_initialize_counters_with_invalid_uri_format_in_provenance(uri_generator
     # Test that the InvalidURIFormatError is raised
     with pytest.raises(InvalidURIFormatError) as exc_info:
         uri_generator.initialize_counters(sparql)
-    
+
     assert "Invalid URI format found in provenance for entity:" in str(exc_info.value)
 
 
-def test_initialize_counters_with_non_matching_entity_type(uri_generator_setup):
+def test_initialize_counters_with_non_matching_entity_type(uri_generator_setup) -> None:
     """Test initialize_counters with entity types not in entity_type_abbr."""
     # Get the setup objects
     counter_handler = uri_generator_setup["counter_handler"]
@@ -264,7 +272,7 @@ def test_initialize_counters_with_non_matching_entity_type(uri_generator_setup):
     sparql = uri_generator_setup["sparql"]
     base_iri = uri_generator_setup["base_iri"]
     supplier_prefix = uri_generator_setup["supplier_prefix"]
-    
+
     # Mock the data query results with an unknown entity type
     data_results = {
         "results": {
@@ -282,11 +290,7 @@ def test_initialize_counters_with_non_matching_entity_type(uri_generator_setup):
     }
 
     # Mock the provenance query results
-    prov_results = {
-        "results": {
-            "bindings": []
-        }
-    }
+    prov_results = {"results": {"bindings": []}}
 
     # Configure the mock SPARQL wrapper
     sparql.query.side_effect = [
@@ -298,26 +302,24 @@ def test_initialize_counters_with_non_matching_entity_type(uri_generator_setup):
     uri_generator.initialize_counters(sparql)
 
     # Verify only the known entity type counter was set
-    counter_handler.set_counter.assert_any_call(
-        20, "http://xmlns.com/foaf/0.1/Agent"
-    )
+    counter_handler.set_counter.assert_any_call(20, "http://xmlns.com/foaf/0.1/Agent")
 
 
-def test_initialize_counters_with_non_matching_abbreviation_in_provenance(uri_generator_setup):
-    """Test initialize_counters with URIs not containing known abbreviations in provenance."""
+def test_initialize_counters_with_non_matching_abbreviation_in_provenance(
+    uri_generator_setup,
+) -> None:
+    """
+    Test initialize_counters with URIs not containing known abbreviations in provenance.
+    """
     # Get the setup objects
     counter_handler = uri_generator_setup["counter_handler"]
     uri_generator = uri_generator_setup["uri_generator"]
     sparql = uri_generator_setup["sparql"]
     base_iri = uri_generator_setup["base_iri"]
-    supplier_prefix = uri_generator_setup["supplier_prefix"]
-    
+    uri_generator_setup["supplier_prefix"]
+
     # Mock the data query results
-    data_results = {
-        "results": {
-            "bindings": []
-        }
-    }
+    data_results = {"results": {"bindings": []}}
 
     # Mock the provenance query results with an unknown abbreviation
     prov_results = {
@@ -343,24 +345,18 @@ def test_initialize_counters_with_non_matching_abbreviation_in_provenance(uri_ge
     uri_generator.initialize_counters(sparql)
 
     # Verify only the known abbreviation counter was set
-    counter_handler.set_counter.assert_any_call(
-        25, "http://xmlns.com/foaf/0.1/Agent"
-    )
+    counter_handler.set_counter.assert_any_call(25, "http://xmlns.com/foaf/0.1/Agent")
 
 
-def test_initialize_counters_with_empty_results(uri_generator_setup):
+def test_initialize_counters_with_empty_results(uri_generator_setup) -> None:
     """Test initialize_counters with empty results from both queries."""
     # Get the setup objects
     counter_handler = uri_generator_setup["counter_handler"]
     uri_generator = uri_generator_setup["uri_generator"]
     sparql = uri_generator_setup["sparql"]
-    
+
     # Mock empty results for both queries
-    empty_results = {
-        "results": {
-            "bindings": []
-        }
-    }
+    empty_results = {"results": {"bindings": []}}
 
     # Configure the mock SPARQL wrapper
     sparql.query.side_effect = [
@@ -376,15 +372,15 @@ def test_initialize_counters_with_empty_results(uri_generator_setup):
     counter_handler.set_counter.assert_not_called()
 
 
-def test_initialize_counters_with_value_error_in_data(uri_generator_setup):
+def test_initialize_counters_with_value_error_in_data(uri_generator_setup) -> None:
     """Test initialize_counters with a ValueError when parsing data query results."""
     # Get the setup objects
-    counter_handler = uri_generator_setup["counter_handler"]
+    uri_generator_setup["counter_handler"]
     uri_generator = uri_generator_setup["uri_generator"]
     sparql = uri_generator_setup["sparql"]
     base_iri = uri_generator_setup["base_iri"]
-    supplier_prefix = uri_generator_setup["supplier_prefix"]
-    
+    uri_generator_setup["supplier_prefix"]
+
     # Mock the data query results with a non-integer value
     data_results = {
         "results": {
@@ -398,11 +394,7 @@ def test_initialize_counters_with_value_error_in_data(uri_generator_setup):
     }
 
     # Mock the provenance query results
-    prov_results = {
-        "results": {
-            "bindings": []
-        }
-    }
+    prov_results = {"results": {"bindings": []}}
 
     # Configure the mock SPARQL wrapper
     sparql.query.side_effect = [
@@ -413,32 +405,34 @@ def test_initialize_counters_with_value_error_in_data(uri_generator_setup):
     # Test that the InvalidURIFormatError is raised
     with pytest.raises(InvalidURIFormatError) as exc_info:
         uri_generator.initialize_counters(sparql)
-    
+
     assert "Invalid URI format found for entity:" in str(exc_info.value)
 
 
-def test_initialize_counters_with_value_error_in_provenance(uri_generator_setup):
-    """Test initialize_counters with a ValueError when parsing provenance query results."""
+def test_initialize_counters_with_value_error_in_provenance(
+    uri_generator_setup,
+) -> None:
+    """
+    Test initialize_counters with a ValueError when parsing provenance query results.
+    """
     # Get the setup objects
-    counter_handler = uri_generator_setup["counter_handler"]
+    uri_generator_setup["counter_handler"]
     uri_generator = uri_generator_setup["uri_generator"]
     sparql = uri_generator_setup["sparql"]
     base_iri = uri_generator_setup["base_iri"]
-    supplier_prefix = uri_generator_setup["supplier_prefix"]
-    
+    uri_generator_setup["supplier_prefix"]
+
     # Mock the data query results
-    data_results = {
-        "results": {
-            "bindings": []
-        }
-    }
+    data_results = {"results": {"bindings": []}}
 
     # Mock the provenance query results with a non-integer value
     prov_results = {
         "results": {
             "bindings": [
                 {
-                    "entity": {"value": f"{base_iri}/br/06110xyz"},  # Non-integer suffix
+                    "entity": {
+                        "value": f"{base_iri}/br/06110xyz"
+                    },  # Non-integer suffix
                 },
             ]
         }
@@ -453,21 +447,20 @@ def test_initialize_counters_with_value_error_in_provenance(uri_generator_setup)
     # Test that the InvalidURIFormatError is raised
     with pytest.raises(InvalidURIFormatError) as exc_info:
         uri_generator.initialize_counters(sparql)
-    
+
     assert "Invalid URI format found in provenance for entity:" in str(exc_info.value)
 
 
-def test_initialize_counters_with_multiple_prefixes():
+def test_initialize_counters_with_multiple_prefixes() -> None:
     """Test initialize_counters properly separates counters by supplier prefix."""
     base_iri = "https://w3id.org/oc/meta"
-    supplier_prefix_regex = r"0[6|9][1-9]+0"  # Match the actual regex pattern
     new_supplier_prefix = "09110"
     counter_handler = MagicMock(spec=MetaCounterHandler)
     counter_handler.supplier_prefix = new_supplier_prefix
-    
+
     uri_generator = MetaURIGenerator(counter_handler)
     sparql = MagicMock(spec=SPARQLWrapper)
-    
+
     # Mock the data query results with multiple prefixes
     data_results = {
         "results": {
@@ -518,29 +511,28 @@ def test_initialize_counters_with_multiple_prefixes():
     # Verify that the supplier_prefix was temporarily changed during initialization
     # We expect set_counter to be called with different prefix contexts
     assert counter_handler.set_counter.call_count > 0
-    
+
     # The counter handler should have been set to the original prefix at the end
     assert counter_handler.supplier_prefix == uri_generator.new_supplier_prefix
 
 
-def test_generate_uri_uses_correct_prefix():
+def test_generate_uri_uses_correct_prefix() -> None:
     """Test that generate_uri uses the correct supplier prefix in the generated URI."""
     base_iri = "https://w3id.org/oc/meta"
-    supplier_prefix_regex = r"0[6|9][1-9]+0"
     new_supplier_prefix = "09110"
     counter_handler = MagicMock(spec=MetaCounterHandler)
     counter_handler.supplier_prefix = new_supplier_prefix
     counter_handler.read_counter.return_value = 42
-    
+
     uri_generator = MetaURIGenerator(counter_handler)
-    
+
     entity_type = "http://purl.org/spar/fabio/Expression"
     uri = uri_generator.generate_uri(entity_type)
-    
+
     # Verify the counter handler was called correctly
     counter_handler.read_counter.assert_called_once_with(entity_type)
     counter_handler.set_counter.assert_called_once_with(43, entity_type)
-    
+
     # Verify the generated URI contains the correct prefix
     expected_uri = URIRef(f"{base_iri}/br/{new_supplier_prefix}43")
-    assert uri == expected_uri 
+    assert uri == expected_uri

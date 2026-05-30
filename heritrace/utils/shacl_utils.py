@@ -5,32 +5,38 @@
 from collections.abc import Iterable
 
 from flask import Flask
-from heritrace.extensions import get_shacl_graph, get_sparql
-from heritrace.sparql import get_sparql_bindings, select_results
-from heritrace.utils.display_rules_utils import get_class_priority
-from heritrace.utils.shacl_display import (apply_display_rules,
-                                           extract_shacl_form_fields,
-                                           order_form_fields,
-                                           process_nested_shapes)
 from rdflib import RDF, Graph
 from SPARQLWrapper import JSON
 
+from heritrace.extensions import get_shacl_graph, get_sparql
+from heritrace.sparql import get_sparql_bindings, select_results
+from heritrace.utils.display_rules_utils import get_class_priority
+from heritrace.utils.shacl_display import (
+    apply_display_rules,
+    extract_shacl_form_fields,
+    order_form_fields,
+    process_nested_shapes,
+)
 
-def get_form_fields_from_shacl(shacl: Graph | None, display_rules: list[dict] | None, app: Flask):
+
+def get_form_fields_from_shacl(
+    shacl: Graph | None, display_rules: list[dict] | None, app: Flask
+) -> dict:
     """
     Analyze SHACL shapes to extract form fields for each entity type.
-    
+
     Args:
         shacl: The SHACL graph
         display_rules: The display rules configuration
         app: Flask application instance
 
     Returns:
-        OrderedDict: A dictionary where the keys are tuples (class, shape) and the values are dictionaries
+        OrderedDict: A dictionary where the keys are tuples (class, shape) and the
+        values are dictionaries
                      of form fields with their properties.
     """
     if not shacl:
-        return dict()
+        return {}
 
     # Step 1: Get the initial form fields from SHACL shapes
     form_fields = extract_shacl_form_fields(shacl, display_rules, app=app)
@@ -44,7 +50,7 @@ def get_form_fields_from_shacl(shacl: Graph | None, display_rules: list[dict] | 
                     field_info["nestedShape"] = process_nested_shapes(
                         shacl,
                         display_rules,
-                        field_info["nodeShape"],
+                        str(field_info["nodeShape"]),
                         app=app,
                         processed_shapes=processed_shapes,
                     )
@@ -52,99 +58,113 @@ def get_form_fields_from_shacl(shacl: Graph | None, display_rules: list[dict] | 
     # Step 3: Apply display rules to the form fields
     if display_rules:
         form_fields = apply_display_rules(shacl, form_fields, display_rules)
-    
-    # Step 3.5: Ensure all form fields have displayName, using fallback for those without display rules
+
+    # Step 3.5: Ensure all form fields have displayName, using fallback for those
+    # without display rules
     ensure_display_names(form_fields)
-    
+
     # Step 4: Add virtual properties to form_fields
     enhanced_form_fields = add_virtual_properties_to_form_fields_internal(form_fields)
 
     # Step 5: Order form fields (including virtual properties)
-    ordered_form_fields = order_form_fields(enhanced_form_fields, display_rules)
+    return order_form_fields(enhanced_form_fields, display_rules)
 
-    return ordered_form_fields
+
+def _apply_field_overrides(shape_data: dict, override: dict) -> dict:
+    nested_field = shape_data.copy()
+    if "shouldBeDisplayed" in override:
+        nested_field["shouldBeDisplayed"] = override["shouldBeDisplayed"]
+    if "displayName" in override:
+        nested_field["displayName"] = override["displayName"]
+    if "value" in override:
+        nested_field["hasValue"] = override["value"]
+        nested_field["nestedShape"] = []
+    return nested_field
+
+
+def _build_nested_shape_entry(
+    vp: dict, enhanced_form_fields: dict
+) -> list[dict]:
+    implementation = vp.get("implementedVia", {})
+    target = implementation.get("target", {})
+    intermediate_class = target.get("class")
+    specific_shape = target.get("shape")
+
+    if not specific_shape and intermediate_class:
+        specific_shape = determine_shape_for_classes([intermediate_class])
+
+    intermediate_entity_key = find_matching_form_field(
+        class_uri=intermediate_class,
+        shape_uri=specific_shape,
+        form_fields=enhanced_form_fields,
+    )
+
+    nested_shape_list: list[dict] = []
+    if not intermediate_entity_key:
+        return nested_shape_list
+
+    nested_shape_data = enhanced_form_fields.get(intermediate_entity_key, {})
+    field_overrides = implementation.get("fieldOverrides", {})
+
+    for nested_prop_uri, nested_details_list in nested_shape_data.items():
+        for nested_details in nested_details_list:
+            if nested_prop_uri in field_overrides:
+                nested_field = _apply_field_overrides(
+                    nested_details, field_overrides[nested_prop_uri]
+                )
+            else:
+                nested_field = nested_details.copy()
+
+            if nested_field.get("shouldBeDisplayed", True):
+                nested_shape_list.append(nested_field)
+
+    return nested_shape_list
 
 
 def add_virtual_properties_to_form_fields_internal(form_fields: dict) -> dict:
-    """
-    Add virtual properties to form_fields during initial processing.
-
-    Args:
-        form_fields: The original form_fields dictionary
-
-    Returns:
-        Enhanced form_fields dictionary with virtual properties included
-    """
-    from heritrace.utils.virtual_properties import get_virtual_properties_for_entity
+    from heritrace.utils.virtual_properties import (  # noqa: PLC0415
+        get_virtual_properties_for_entity,
+    )
 
     enhanced_form_fields = form_fields.copy() if form_fields else {}
 
-    for entity_key in enhanced_form_fields.keys():
+    for entity_key in enhanced_form_fields:
         entity_class, entity_shape = entity_key
 
-        virtual_properties = get_virtual_properties_for_entity(entity_class, entity_shape)
+        virtual_properties = get_virtual_properties_for_entity(
+            entity_class, entity_shape
+        )
 
-        if virtual_properties:
-            for display_name, prop_config in virtual_properties:
-                should_be_displayed = prop_config.get("shouldBeDisplayed", True)
-                if not should_be_displayed:
-                    continue
+        if not virtual_properties:
+            continue
 
-                implementation = prop_config.get("implementedVia", {})
-                target = implementation.get("target", {})
-                intermediate_class = target.get("class")
-                specific_shape = target.get("shape")
+        for display_name, prop_config in virtual_properties:
+            if not prop_config.get("shouldBeDisplayed", True):
+                continue
 
-                if not specific_shape and intermediate_class:
-                    specific_shape = determine_shape_for_classes([intermediate_class])
+            nested_shape_list = _build_nested_shape_entry(
+                prop_config, enhanced_form_fields
+            )
 
-                intermediate_entity_key = find_matching_form_field(
-                    class_uri=intermediate_class,
-                    shape_uri=specific_shape,
-                    form_fields=enhanced_form_fields
-                )
+            virtual_form_field = {
+                "displayName": prop_config.get("displayName", display_name),
+                "uri": display_name,
+                "is_virtual": True,
+                "min": 0,
+                "max": None,
+                "datatypes": [],
+                "optionalValues": [],
+                "orderedBy": None,
+                "nodeShape": None,
+                "subjectClass": None,
+                "subjectShape": None,
+                "objectClass": None,
+                "entityType": None,
+                "nestedShape": nested_shape_list,
+                "or": None,
+            }
 
-                nested_shape_list = []
-                if intermediate_entity_key:
-                    nested_shape_data = enhanced_form_fields.get(intermediate_entity_key, {})
-                    field_overrides = implementation.get("fieldOverrides", {})
-
-                    for nested_prop_uri, nested_details_list in nested_shape_data.items():
-                        for nested_details in nested_details_list:
-                            nested_field = nested_details.copy()
-
-                            if nested_prop_uri in field_overrides:
-                                override = field_overrides[nested_prop_uri]
-                                if "shouldBeDisplayed" in override:
-                                    nested_field["shouldBeDisplayed"] = override["shouldBeDisplayed"]
-                                if "displayName" in override:
-                                    nested_field["displayName"] = override["displayName"]
-                                if "value" in override:
-                                    nested_field["hasValue"] = override["value"]
-                                    nested_field["nestedShape"] = []
-
-                            if nested_field.get('shouldBeDisplayed', True):
-                                nested_shape_list.append(nested_field)
-
-                virtual_form_field = {
-                    "displayName": prop_config.get("displayName", display_name),
-                    "uri": display_name,
-                    "is_virtual": True,
-                    "min": 0,
-                    "max": None,
-                    "datatypes": [],
-                    "optionalValues": [],
-                    "orderedBy": None,
-                    "nodeShape": None,
-                    "subjectClass": None,
-                    "subjectShape": None,
-                    "objectClass": None,
-                    "entityType": None,
-                    "nestedShape": nested_shape_list,
-                    "or": None
-                }
-
-                enhanced_form_fields[entity_key][display_name] = [virtual_form_field]
+            enhanced_form_fields[entity_key][display_name] = [virtual_form_field]
 
     return enhanced_form_fields
 
@@ -152,31 +172,30 @@ def add_virtual_properties_to_form_fields_internal(form_fields: dict) -> dict:
 def determine_shape_for_classes(class_list: list[str]) -> str | None:
     """
     Determine the most appropriate SHACL shape for a list of class URIs.
-    
+
     Args:
         class_list: List of class URIs to find shapes for
-        
+
     Returns:
         The most appropriate shape URI based on priority, or None if no shapes are found
     """
     shacl_graph = get_shacl_graph()
     if not shacl_graph:
         return None
-    
+
     all_shacl_shapes = []
-    
+
     for class_uri in class_list:
         query_string = f"""
             SELECT DISTINCT ?shape WHERE {{
                 ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
             }}
         """
-        
+
         results = shacl_graph.query(query_string)
         shapes = [str(row.shape) for row in select_results(results)]
 
-        for shape in shapes:
-            all_shacl_shapes.append((class_uri, shape))
+        all_shacl_shapes.extend((class_uri, shape) for shape in shapes)
 
     return _find_highest_priority_shape(all_shacl_shapes)
 
@@ -184,110 +203,113 @@ def determine_shape_for_classes(class_list: list[str]) -> str | None:
 def determine_shape_for_entity_triples(entity_triples: Iterable) -> str | None:
     """
     Determine the most appropriate SHACL shape for an entity based on its triples.
-    
+
     Uses a multi-criteria scoring system to distinguish between shapes:
     1. sh:hasValue constraint matches (highest priority)
     2. Property matching - number of shape properties present in entity
     3. Class priority - predefined priority ordering
-    
+
     Args:
         entity_triples: List of triples (subject, predicate, object) for the entity
-        
+
     Returns:
         The most appropriate shape URI, or None if no shapes are found
     """
     shacl_graph = get_shacl_graph()
     if not shacl_graph:
         return None
-    
+
     entity_classes = []
     entity_properties = set()
-    
-    for subject, predicate, obj in entity_triples:
+
+    for _subject, predicate, obj in entity_triples:
         if str(predicate) == str(RDF.type):
             entity_classes.append(str(obj))
         entity_properties.add(str(predicate))
-    
+
     if not entity_classes:
         return None
-    
+
     candidate_shapes = []
-    
+
     for class_uri in entity_classes:
         query_string = f"""
             SELECT DISTINCT ?shape WHERE {{
                 ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
             }}
         """
-        
+
         results = shacl_graph.query(query_string)
         shapes = [str(row.shape) for row in select_results(results)]
 
-        for shape in shapes:
-            candidate_shapes.append((class_uri, shape))
-    
+        candidate_shapes.extend((class_uri, shape) for shape in shapes)
+
     if not candidate_shapes:
         return None
-    
+
     if len(candidate_shapes) == 1:
         return candidate_shapes[0][1]
-    
+
     shape_scores = {}
-    
+
     for class_uri, shape_uri in candidate_shapes:
         shape_properties = _get_shape_properties(shacl_graph, shape_uri)
         property_matches = len(entity_properties.intersection(shape_properties))
-        
-        hasvalue_matches = _check_hasvalue_constraints(shacl_graph, shape_uri, entity_triples)
-        
+
+        hasvalue_matches = _check_hasvalue_constraints(
+            shacl_graph, shape_uri, entity_triples
+        )
+
         entity_key = (class_uri, shape_uri)
         priority = get_class_priority(entity_key)
-        
+
         # Combined score: (hasvalue_matches, property_matches, -priority)
         # hasValue matches are most important, then property matches, then priority
         combined_score = (hasvalue_matches, property_matches, -priority)
         shape_scores[shape_uri] = combined_score
-    
-    best_shape = max(shape_scores.keys(), key=lambda s: shape_scores[s])
-    return best_shape
+
+    return max(shape_scores.keys(), key=lambda s: shape_scores[s])
 
 
-def _find_highest_priority_shape(class_shape_pairs: list[tuple[str, str]]) -> str | None:
+def _find_highest_priority_shape(
+    class_shape_pairs: list[tuple[str, str]],
+) -> str | None:
     """
-    Helper function to find the shape with the highest priority from a list of (class_uri, shape) pairs.
-    
+    Helper function to find the shape with the highest priority from a list of
+    (class_uri, shape) pairs.
+
     Args:
         class_shape_pairs: List of tuples (class_uri, shape)
-        
+
     Returns:
         The shape with the highest priority, or None if the list is empty
     """
-    highest_priority = float('inf')
+    highest_priority = float("inf")
     highest_priority_shape = None
-    
+
     for class_uri, shape in class_shape_pairs:
         entity_key = (class_uri, shape)
         priority = get_class_priority(entity_key)
         if priority < highest_priority:
             highest_priority = priority
             highest_priority_shape = shape
-    
+
     return highest_priority_shape
 
 
 def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:
     """
     Extract all properties defined in a SHACL shape.
-    
+
     Args:
         shacl_graph: The SHACL graph
         shape_uri: URI of the shape to analyze
-        
+
     Returns:
         Set of property URIs defined in the shape
     """
     properties = set()
-    
+
     query_string = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
         SELECT DISTINCT ?property WHERE {{
@@ -295,23 +317,25 @@ def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:
             ?propertyShape sh:path ?property .
         }}
     """
-    
+
     results = shacl_graph.query(query_string)
     for row in select_results(results):
         properties.add(str(row.property))
-    
+
     return properties
 
 
-def _check_hasvalue_constraints(shacl_graph: Graph, shape_uri: str, entity_triples: Iterable) -> int:
+def _check_hasvalue_constraints(
+    shacl_graph: Graph, shape_uri: str, entity_triples: Iterable
+) -> int:
     """
     Check how many sh:hasValue constraints the entity satisfies for a given shape.
-    
+
     Args:
         shacl_graph: The SHACL graph
         shape_uri: URI of the shape to check
         entity_triples: List of triples (subject, predicate, object) for the entity
-        
+
     Returns:
         Number of hasValue constraints satisfied by the entity
     """
@@ -324,37 +348,39 @@ def _check_hasvalue_constraints(shacl_graph: Graph, shape_uri: str, entity_tripl
             ?propertyShape sh:hasValue ?value .
         }}
     """
-    
+
     results = shacl_graph.query(query_string)
-    constraints = [(str(row.property), str(row.value)) for row in select_results(results)]
-    
+    constraints = [
+        (str(row.property), str(row.value)) for row in select_results(results)
+    ]
+
     if not constraints:
         return 0
-    
+
     # Create a set of (predicate, object) pairs from entity triples
     entity_property_values = set()
     for _, predicate, obj in entity_triples:
         entity_property_values.add((str(predicate), str(obj)))
-    
+
     # Count how many constraints are satisfied
     satisfied_constraints = 0
     for property_uri, required_value in constraints:
         if (property_uri, required_value) in entity_property_values:
             satisfied_constraints += 1
-    
+
     return satisfied_constraints
 
 
-def ensure_display_names(form_fields):
+def ensure_display_names(form_fields: dict) -> None:
     """
     Ensures all form fields have a displayName, using URI formatting as fallback.
-    
+
     Args:
         form_fields: Dictionary of form fields to process
     """
-    from heritrace.utils.filters import format_uri_as_readable
-    
-    for entity_key, predicates in form_fields.items():
+    from heritrace.utils.filters import format_uri_as_readable  # noqa: PLC0415
+
+    for predicates in form_fields.values():
         for predicate_uri, details_list in predicates.items():
             for field_info in details_list:
                 # Only add displayName if not already present
@@ -362,126 +388,152 @@ def ensure_display_names(form_fields):
                     field_info["displayName"] = format_uri_as_readable(predicate_uri)
 
 
-def find_matching_form_field(class_uri=None, shape_uri=None, form_fields=None):
+def find_matching_form_field(
+    class_uri: str | None = None,
+    shape_uri: str | None = None,
+    form_fields: dict | None = None,
+) -> tuple[str, str] | None:
     """
     Find the most appropriate form field configuration for a given class and/or shape.
     At least one of class_uri or shape_uri must be provided.
-        
+
     Args:
         class_uri: Optional URI of the class
         shape_uri: Optional URI of the shape
-        form_fields: Optional dictionary of form fields to search in, defaults to global form_fields
-        
+        form_fields: Optional dictionary of form fields to search in, defaults to global
+        form_fields
+
     Returns:
         The matching form field key (class_uri, shape_uri) or None if no match is found
     """
     if not form_fields:
-        from heritrace.extensions import get_form_fields
+        from heritrace.extensions import get_form_fields  # noqa: PLC0415
+
         form_fields = get_form_fields()
-    
+
     if not form_fields:
         return None
-    
+
     class_match = None
     shape_match = None
-    
-    for field_key in form_fields.keys():
+
+    for field_key in form_fields:
         field_class_uri = field_key[0]
         field_shape_uri = field_key[1]
-        
+
         # Case 1: Both class and shape match (exact match)
-        if class_uri and shape_uri and \
-           field_class_uri == str(class_uri) and \
-           field_shape_uri == str(shape_uri):
+        if (
+            class_uri
+            and shape_uri
+            and field_class_uri == str(class_uri)
+            and field_shape_uri == str(shape_uri)
+        ):
             return field_key
-        
+
         # Case 2: Only class matches (and form field has no shape constraint)
-        elif class_uri and field_class_uri == str(class_uri) and field_shape_uri is None:
+        if class_uri and field_class_uri == str(class_uri) and field_shape_uri is None:
             class_match = field_key
-        
+
         # Case 3: Only shape matches (and form field has no class constraint)
-        elif shape_uri and field_shape_uri == str(shape_uri) and field_class_uri is None:
+        elif (
+            shape_uri and field_shape_uri == str(shape_uri) and field_class_uri is None
+        ):
             shape_match = field_key
 
         # Case 4: Only class matches (even if form field has a shape)
         elif class_uri and field_class_uri == str(class_uri) and not class_match:
             class_match = field_key
-    
+
     # Return the best match based on specificity
     # Shape rules typically have higher specificity, so prefer them
     if shape_match:
         return shape_match
-    elif class_match:
+    if class_match:
         return class_match
-    
+
     return None
 
 
 def _find_entity_position_in_order_map(entity_uri: str, order_map: dict) -> int | None:
     """
     Helper function to find entity position in an order map.
-    
-    This function handles the case where there might be multiple independent ordered chains
+
+    This function handles the case where there might be multiple independent ordered
+    chains
     within the same predicate relationship. Each chain has its own starting element and
     follows a linked-list structure where each entity points to the next one.
-    
+
     Args:
         entity_uri: URI of the entity to find position for
         order_map: Dictionary mapping entities to their next entity in sequence.
-                   Key = current entity URI, Value = next entity URI (or None for last element)
-                   Example: {'entity1': 'entity2', 'entity2': 'entity3', 'entity3': None,
+                   Key = current entity URI, Value = next entity URI (or None for last
+                   element)
+                   Example: {'entity1': 'entity2', 'entity2': 'entity3', 'entity3':
+                   None,
                             'entity4': 'entity5', 'entity5': None}
-                   This represents two chains: [entity1 -> entity2 -> entity3] and [entity4 -> entity5]
-        
+                   This represents two chains: [entity1 -> entity2 -> entity3] and
+                   [entity4 -> entity5]
+
     Returns:
         1-based position in the sequence, or None if not found
     """
     # Find all starting elements of ordered chains.
-    # A start element is one that appears as a key in the order_map but never as a value,
+    # A start element is one that appears as a key in the order_map but never as a
+    # value,
     # meaning no other entity points to it (it's the head of a chain).
-    start_elements = set(order_map.keys()) - set(v for v in order_map.values() if v is not None)
-    
+    start_elements = set(order_map.keys()) - {
+        v for v in order_map.values() if v is not None
+    }
+
     if not start_elements:
         # No valid starting points found - this shouldn't happen in well-formed data
         return None
-    
+
     # Since there can be multiple independent ordered chains, we need to check each one
     # to find which chain contains our target entity
     for start_element in start_elements:
-        # Build the complete sequence for this chain by following the linked-list structure
+        # Build the complete sequence for this chain by following the linked-list
+        # structure
         sequence = []
         current_element = start_element
-        
+
         # Follow the chain from start to end
         while current_element in order_map:
             sequence.append(current_element)
             # Move to the next element in the chain (or None if we've reached the end)
             current_element = order_map[current_element]
-        
+
         # Check if our target entity is in this particular chain
         try:
             # If found, return its 1-based position within this chain
-            return sequence.index(entity_uri) + 1  # Convert from 0-based to 1-based indexing
+            return (
+                sequence.index(entity_uri) + 1
+            )  # Convert from 0-based to 1-based indexing
         except ValueError:
             # Entity not found in this chain, try the next one
             continue
-    
+
     # Entity was not found in any of the ordered chains
     return None
 
 
-def get_entity_position_in_sequence(entity_uri: str, subject_uri: str, predicate_uri: str,
-                                   order_property: str, snapshot: Graph | None = None) -> int | None:
+def get_entity_position_in_sequence(
+    entity_uri: str,
+    subject_uri: str,
+    predicate_uri: str,
+    order_property: str,
+    snapshot: Graph | None = None,
+) -> int | None:
     """
     Get the position of an entity in an ordered sequence.
-    
+
     Args:
         entity_uri: URI of the entity to find position for
         subject_uri: URI of the subject that has the ordered property
         predicate_uri: URI of the ordered predicate
         order_property: URI of the property that defines the ordering
         snapshot: Optional graph snapshot for historical queries
-    
+
     Returns:
         1-based position in the sequence, or None if not found
     """
@@ -494,7 +546,7 @@ def get_entity_position_in_sequence(entity_uri: str, subject_uri: str, predicate
             }}
         }}
     """
-    
+
     if snapshot:
         order_results = list(select_results(snapshot.query(order_query)))
 
@@ -503,19 +555,17 @@ def get_entity_position_in_sequence(entity_uri: str, subject_uri: str, predicate
             ordered_entity = str(res[0])
             next_value = str(res[1])
             order_map[ordered_entity] = None if next_value == "NONE" else next_value
-                
-        position = _find_entity_position_in_order_map(entity_uri, order_map)
-        return position
-    else:
-        sparql = get_sparql()
-        sparql.setQuery(order_query)
-        sparql.setReturnFormat(JSON)
-        order_results = get_sparql_bindings(sparql.query().convert())
-        
-        order_map = {}
-        for res in order_results:
-            ordered_entity = res["orderedEntity"]["value"]
-            next_value = res["nextValue"]["value"]
-            order_map[ordered_entity] = None if next_value == "NONE" else next_value
-        
+
         return _find_entity_position_in_order_map(entity_uri, order_map)
+    sparql = get_sparql()
+    sparql.setQuery(order_query)
+    sparql.setReturnFormat(JSON)
+    order_results = get_sparql_bindings(sparql.query().convert())
+
+    order_map = {}
+    for res in order_results:
+        ordered_entity = res["orderedEntity"]["value"]
+        next_value = res["nextValue"]["value"]
+        order_map[ordered_entity] = None if next_value == "NONE" else next_value
+
+    return _find_entity_position_in_order_map(entity_uri, order_map)

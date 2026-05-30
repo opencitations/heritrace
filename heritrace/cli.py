@@ -8,35 +8,39 @@ import click
 from flask import Flask
 
 
-def register_cli_commands(app: Flask):
+def register_cli_commands(app: Flask) -> None:
     @app.cli.group()
-    def translate():
+    def translate() -> None:
         """Translation and localization commands."""
-        pass
 
     @translate.command()
-    def update():
+    def update() -> None:
         """Update all languages."""
         if os.system(
             "pybabel extract -F babel/babel.cfg -k lazy_gettext -o babel/messages.pot ."
         ):
-            raise RuntimeError("extract command failed")
+            msg = "extract command failed"
+            raise RuntimeError(msg)
         if os.system("pybabel update -i babel/messages.pot -d babel/translations"):
-            raise RuntimeError("update command failed")
+            msg = "update command failed"
+            raise RuntimeError(msg)
         os.remove("babel/messages.pot")
 
     @translate.command()
-    def compile():
+    def compile() -> None:
         """Compile all languages."""
         if os.system("pybabel compile -d babel/translations"):
-            raise RuntimeError("compile command failed")
+            msg = "compile command failed"
+            raise RuntimeError(msg)
 
     @translate.command()
     @click.argument("lang")
-    def init(lang):
+    def init(lang: str) -> None:
         """Initialize a new language."""
         if os.system("pybabel extract -F babel/babel.cfg -k _l -o messages.pot ."):
-            raise RuntimeError("extract command failed")
+            msg = "extract command failed"
+            raise RuntimeError(msg)
         if os.system("pybabel init -i messages.pot -d babel/translations -l " + lang):
-            raise RuntimeError("init command failed")
+            msg = "init command failed"
+            raise RuntimeError(msg)
         os.remove("messages.pot")

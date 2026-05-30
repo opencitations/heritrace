@@ -28,7 +28,14 @@ For a complete understanding of SHACL and its advanced features, refer to the of
 
 ## File location
 
-Set the path to your SHACL schema via the `SHACL_PATH` environment variable. Example configurations are available in `example_configurations/`.
+The application reads the SHACL schema from `/app/shacl.ttl` inside the container. To use your own schema, mount it as a Docker volume:
+
+```yaml
+volumes:
+  - ./my_shacl.ttl:/app/shacl.ttl
+```
+
+Example configurations are available in `example_configurations/`.
 
 ## Core concepts
 

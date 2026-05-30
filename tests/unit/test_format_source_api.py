@@ -22,9 +22,7 @@ def test_format_source_api_success(
     mock_get_custom_filter.return_value = mock_filter_instance
     test_url = "http://example.com"
 
-    response = logged_in_client.post(
-        "/api/format-source", json={"url": test_url}
-    )
+    response = logged_in_client.post("/api/format-source", json={"url": test_url})
 
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -34,9 +32,7 @@ def test_format_source_api_success(
         == '<a href="http://example.com" target="_blank">Formatted Example</a>'
     )
     mock_get_custom_filter.assert_called_once()
-    mock_filter_instance.format_source_reference.assert_called_once_with(
-        test_url
-    )
+    mock_filter_instance.format_source_reference.assert_called_once_with(test_url)
 
 
 def test_format_source_api_missing_url(
@@ -53,7 +49,7 @@ def test_format_source_api_missing_url(
     assert data["error"] == "Invalid or missing URL"
 
 
-@patch("heritrace.routes.api.validators.url")
+@patch("heritrace.routes.api.is_valid_url")
 def test_format_source_api_invalid_url(
     mock_validators_url: MagicMock, logged_in_client: FlaskClient
 ) -> None:
@@ -63,9 +59,7 @@ def test_format_source_api_invalid_url(
     mock_validators_url.return_value = False
     invalid_url = "not-a-valid-url"
 
-    response = logged_in_client.post(
-        "/api/format-source", json={"url": invalid_url}
-    )
+    response = logged_in_client.post("/api/format-source", json={"url": invalid_url})
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -86,7 +80,7 @@ def test_format_source_api_exception(
     """
     # Explicitly set logger to be a regular MagicMock to avoid AsyncMock issues
     mock_current_app.logger = MagicMock()
-    mock_current_app.logger.error = MagicMock()
+    mock_current_app.logger.exception = MagicMock()
 
     mock_filter_instance = MagicMock()
     exception_message = "Formatting failed"
@@ -96,9 +90,7 @@ def test_format_source_api_exception(
     mock_get_custom_filter.return_value = mock_filter_instance
     test_url = "http://example.com/problem"
 
-    response = logged_in_client.post(
-        "/api/format-source", json={"url": test_url}
-    )
+    response = logged_in_client.post("/api/format-source", json={"url": test_url})
 
     assert response.status_code == 200  # Fallback HTML is returned with 200
     data = json.loads(response.data)
@@ -107,10 +99,12 @@ def test_format_source_api_exception(
         f'<a href="{test_url}" target="_blank">{test_url}</a>'
     )
     mock_get_custom_filter.assert_called_once()
-    mock_filter_instance.format_source_reference.assert_called_once_with(
-        test_url
+    mock_filter_instance.format_source_reference.assert_called_once_with(test_url)
+    mock_current_app.logger.exception.assert_called_once()
+    log_call_args = mock_current_app.logger.exception.call_args[0]
+    log_msg = (
+        log_call_args[0] % log_call_args[1:]
+        if len(log_call_args) > 1
+        else log_call_args[0]
     )
-    mock_current_app.logger.error.assert_called_once()
-    log_call_args = mock_current_app.logger.error.call_args[0]
-    assert f"Error formatting source URL '{test_url}'" in log_call_args[0]
-    assert exception_message in log_call_args[0] 
+    assert f"Error formatting source URL '{test_url}'" in log_msg

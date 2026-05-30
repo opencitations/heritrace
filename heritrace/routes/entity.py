@@ -4,54 +4,106 @@
 
 import json
 import re
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, timezone
 
-import validators
-from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
-                   render_template, request, url_for)
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_babel import gettext
 from flask_login import current_user, login_required
 from rdflib import RDF, XSD, Dataset, Graph, Literal, URIRef
+from rdflib.term import Node
 from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
+from werkzeug.wrappers import Response
 
 from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor
-from heritrace.extensions import (get_change_tracking_config,
-                                  get_custom_filter, get_dataset_endpoint,
-                                  get_dataset_is_quadstore, get_display_rules,
-                                  get_form_fields, get_provenance_endpoint,
-                                  get_provenance_sparql, get_shacl_graph,
-                                  get_sparql)
+from heritrace.extensions import (
+    get_change_tracking_config,
+    get_custom_filter,
+    get_dataset_endpoint,
+    get_dataset_is_quadstore,
+    get_display_rules,
+    get_form_fields,
+    get_provenance_endpoint,
+    get_provenance_sparql,
+    get_shacl_graph,
+    get_sparql,
+)
+from heritrace.forms import UpdateTripleForm
 from heritrace.sparql import get_sparql_bindings
-from heritrace.forms import *
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
 from heritrace.utils.display_rules_utils import (
-    get_class_priority, get_grouped_triples, get_highest_priority_class,
-    get_predicate_ordering_info, get_property_order_from_rules,
-    get_shape_order_from_display_rules, is_entity_type_visible)
+    get_class_priority,
+    get_grouped_triples,
+    get_highest_priority_class,
+    get_predicate_ordering_info,
+    get_property_order_from_rules,
+    get_shape_order_from_display_rules,
+    is_entity_type_visible,
+)
 from heritrace.utils.filters import Filter
 from heritrace.utils.primary_source_utils import (
-    get_default_primary_source, save_user_default_primary_source)
-from heritrace.utils.shacl_utils import (determine_shape_for_entity_triples,
-                                         find_matching_form_field,
-                                         get_entity_position_in_sequence)
+    get_default_primary_source,
+    save_user_default_primary_source,
+)
+from heritrace.utils.shacl_utils import (
+    determine_shape_for_entity_triples,
+    find_matching_form_field,
+    get_entity_position_in_sequence,
+)
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
-    convert_to_rdflib_graphs, determine_shape_for_classes,
-    fetch_current_state_with_related_entities, fetch_data_graph_for_subject,
-    get_entity_types, get_triples_from_graph, import_referenced_entities,
-    parse_sparql_update)
-from heritrace.utils.uri_utils import generate_unique_uri
+    convert_to_rdflib_graphs,
+    determine_shape_for_classes,
+    fetch_current_state_with_related_entities,
+    fetch_data_graph_for_subject,
+    get_entity_types,
+    get_triples_from_graph,
+    import_referenced_entities,
+    parse_sparql_update,
+)
+from heritrace.utils.uri_utils import generate_unique_uri, is_valid_url
 from heritrace.utils.virtual_properties import (
     get_virtual_properties_for_entity,
     remove_virtual_properties_from_creation_data,
-    transform_entity_creation_with_virtual_properties)
+    transform_entity_creation_with_virtual_properties,
+)
+
+_QUAD_LENGTH = 4
+_DATETIME_MIN_UTC = datetime.min.replace(tzinfo=timezone.utc)
 
 
-def _prepare_entity_creation_data(structured_data: dict) -> tuple[dict, str, dict, URIRef]:
-    cleaned_structured_data = remove_virtual_properties_from_creation_data(structured_data)
+@dataclass(frozen=True, slots=True)
+class EntityRenderContext:
+    entity_uri: str
+    entity_shape: str | None
+    highest_priority_class: str | None
+    relevant_snapshot: Graph | None
+    predicate_ordering_cache: dict[str, str | None]
+    entity_position_cache: dict[tuple[str, str], int | None]
+    object_shapes_cache: dict[str, str | None]
+    object_classes_cache: dict[str, str | None]
+    custom_filter: Filter
+
+
+def _prepare_entity_creation_data(
+    structured_data: dict,
+) -> tuple[dict, str, dict, URIRef]:
+    cleaned_structured_data = remove_virtual_properties_from_creation_data(
+        structured_data
+    )
     entity_type: str = cleaned_structured_data["entity_type"]
     properties = cleaned_structured_data.get("properties", {})
     entity_uri = generate_unique_uri(entity_type)
@@ -64,13 +116,22 @@ def _setup_editor_for_creation(editor: Editor, cleaned_structured_data: dict) ->
     editor.preexisting_finished()
 
 
-def _process_virtual_properties_after_creation(editor: Editor, structured_data: dict, entity_uri: URIRef, default_graph_uri: URIRef | None) -> None:
-    virtual_entities = transform_entity_creation_with_virtual_properties(structured_data, str(entity_uri))
+def _process_virtual_properties_after_creation(
+    editor: Editor,
+    structured_data: dict,
+    entity_uri: URIRef,
+    default_graph_uri: URIRef | None,
+) -> None:
+    virtual_entities = transform_entity_creation_with_virtual_properties(
+        structured_data, str(entity_uri)
+    )
 
     if virtual_entities:
         for virtual_entity in virtual_entities:
             virtual_entity_uri = generate_unique_uri(virtual_entity["entity_type"])
-            create_nested_entity(editor, virtual_entity_uri, virtual_entity, default_graph_uri)
+            create_nested_entity(
+                editor, virtual_entity_uri, virtual_entity, default_graph_uri
+            )
 
         # Save the virtual entities
         editor.save()
@@ -79,13 +140,18 @@ def _process_virtual_properties_after_creation(editor: Editor, structured_data: 
 entity_bp = Blueprint("entity", __name__)
 
 
-def get_deleted_entity_context_info(is_deleted: bool, sorted_timestamps: list[str],
-                                   history: dict, subject: URIRef) -> tuple[Graph | None, str | None, str | None]:
+def get_deleted_entity_context_info(
+    *,
+    is_deleted: bool,
+    sorted_timestamps: list[str],
+    history: dict,
+    subject: URIRef,
+) -> tuple[Graph | None, str | None, str | None]:
     if is_deleted and len(sorted_timestamps) > 1:
         context_snapshot = history[str(subject)][sorted_timestamps[-2]]
 
         subject_classes = [
-            o
+            str(o)
             for _, _, o in get_triples_from_graph(
                 context_snapshot, (subject, RDF.type, None)
             )
@@ -97,13 +163,12 @@ def get_deleted_entity_context_info(is_deleted: bool, sorted_timestamps: list[st
         )
 
         return context_snapshot, highest_priority_class, entity_shape
-    else:
-        return None, None, None
+    return None, None, None
 
 
 @entity_bp.route("/about/<path:subject>")
 @login_required
-def about(subject):
+def about(subject: str) -> str:  # noqa: PLR0915
     """
     Display detailed information about an entity.
 
@@ -112,14 +177,18 @@ def about(subject):
     """
     subject_uri = URIRef(subject)
     change_tracking_config = get_change_tracking_config()
-    
+
     default_primary_source = get_default_primary_source(current_user.orcid)
 
     agnostic_entity = AgnosticEntity(
-        res=subject, config=change_tracking_config, include_related_objects=False, include_merged_entities=False, include_reverse_relations=False
+        res=subject,
+        config=change_tracking_config,
+        include_related_objects=False,
+        include_merged_entities=False,
+        include_reverse_relations=False,
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-    history = convert_to_rdflib_graphs(history, get_dataset_is_quadstore())
+    history = convert_to_rdflib_graphs(history, is_quadstore=get_dataset_is_quadstore())
 
     is_deleted = False
     context_snapshot = None
@@ -144,8 +213,13 @@ def about(subject):
             and latest_metadata["invalidatedAtTime"]
         )
 
-        context_snapshot, highest_priority_class, entity_shape = get_deleted_entity_context_info(
-            is_deleted, sorted_timestamps, history, subject_uri
+        context_snapshot, highest_priority_class, entity_shape = (
+            get_deleted_entity_context_info(
+                is_deleted=is_deleted,
+                sorted_timestamps=sorted_timestamps,
+                history=history,
+                subject=subject_uri,
+            )
         )
 
     grouped_triples = {}
@@ -156,7 +230,7 @@ def about(subject):
     optional_values = {}
     valid_predicates = []
     data_graph = None
-    
+
     if not is_deleted:
         data_graph = fetch_data_graph_for_subject(subject_uri)
 
@@ -167,11 +241,22 @@ def about(subject):
         if data_graph:
             # Use helper function to handle both Graph and Dataset correctly
             triples: list[tuple[URIRef, URIRef, URIRef | Literal]] = [
-                (URIRef(str(s)), URIRef(str(p)), URIRef(str(o)) if isinstance(o, URIRef) else o)  # type: ignore[misc]
+                (
+                    URIRef(str(s)),
+                    URIRef(str(p)),
+                    URIRef(str(o)) if isinstance(o, URIRef) else o,
+                )  # type: ignore[misc]
                 for s, p, o in get_triples_from_graph(data_graph, (None, None, None))
             ]
-            subject_classes = [o for s, p, o in get_triples_from_graph(data_graph, (subject_uri, RDF.type, None))]
-            subject_triples = list(get_triples_from_graph(data_graph, (subject_uri, None, None)))
+            subject_classes = [
+                str(o)
+                for _, _, o in get_triples_from_graph(
+                    data_graph, (subject_uri, RDF.type, None)
+                )
+            ]
+            subject_triples = list(
+                get_triples_from_graph(data_graph, (subject_uri, None, None))
+            )
 
             highest_priority_class = get_highest_priority_class(subject_classes)
             entity_shape = determine_shape_for_entity_triples(subject_triples)
@@ -184,19 +269,29 @@ def about(subject):
                     mandatory_values,
                     optional_values,
                     valid_predicates_set,
-                ) = get_valid_predicates(triples, highest_priority_class=URIRef(highest_priority_class))
+                ) = get_valid_predicates(
+                    triples, highest_priority_class=URIRef(highest_priority_class)
+                )
                 valid_predicates = list(valid_predicates_set)
 
                 grouped_triples, relevant_properties = get_grouped_triples(
-                    subject, triples, valid_predicates, highest_priority_class=highest_priority_class, highest_priority_shape=entity_shape
+                    subject_uri,
+                    triples,
+                    valid_predicates,
+                    highest_priority_class=highest_priority_class,
+                    highest_priority_shape=entity_shape,
                 )
 
                 if entity_shape:
-                    virtual_properties = get_virtual_properties_for_entity(highest_priority_class, entity_shape)
+                    virtual_properties = get_virtual_properties_for_entity(
+                        highest_priority_class, entity_shape
+                    )
                 else:
                     virtual_properties = []
 
-                can_be_added = [uri for uri in can_be_added if uri in relevant_properties] + [vp[0] for vp in virtual_properties]
+                can_be_added = [
+                    uri for uri in can_be_added if uri in relevant_properties
+                ] + [vp[0] for vp in virtual_properties]
                 can_be_deleted = [
                     uri for uri in can_be_deleted if uri in relevant_properties
                 ] + [vp[0] for vp in virtual_properties]
@@ -243,23 +338,222 @@ def about(subject):
     )
 
 
+def _create_entity_with_form_fields(
+    editor: Editor,
+    structured_data: dict,
+    entity_uri: URIRef,
+    default_graph_uri: URIRef | None,
+    form_fields: dict,
+) -> None:
+    cleaned_structured_data = remove_virtual_properties_from_creation_data(
+        structured_data
+    )
+    entity_type = cleaned_structured_data["entity_type"]
+    properties = cleaned_structured_data.get("properties", {})
+
+    _setup_editor_for_creation(editor, cleaned_structured_data)
+
+    for predicate, raw_values in properties.items():
+        predicate_uri = URIRef(predicate)
+        values = raw_values if isinstance(raw_values, list) else [raw_values]
+
+        entity_shape = cleaned_structured_data.get("entity_shape")
+        matching_key = find_matching_form_field(entity_type, entity_shape, form_fields)
+
+        field_definitions = (
+            form_fields.get(matching_key, {}).get(predicate, []) if matching_key else []
+        )
+
+        # Get the shape from the property value if available
+        property_shape = None
+        if values and isinstance(values[0], dict):
+            property_shape = values[0].get("shape")
+
+        # Filter field definitions to find the matching one based on shape
+        matching_field_def = None
+        for field_def in field_definitions:
+            if property_shape:
+                # If property has a shape, match it
+                # with the field definition's subjectShape
+                if field_def.get("subjectShape") == property_shape:
+                    matching_field_def = field_def
+                    break
+            # If no shape specified, use the first
+            # field definition without a shape requirement
+            elif not field_def.get("subjectShape"):
+                matching_field_def = field_def
+                break
+
+        # If no matching field definition found,
+        # use the first one (default behavior)
+        if not matching_field_def and field_definitions:
+            matching_field_def = field_definitions[0]
+
+        ordered_by = matching_field_def.get("orderedBy") if matching_field_def else None
+
+        if ordered_by:
+            process_ordered_properties(
+                editor,
+                entity_uri,
+                predicate_uri,
+                values,
+                default_graph_uri,
+                URIRef(ordered_by),
+            )
+        else:
+            process_unordered_properties(
+                editor,
+                entity_uri,
+                predicate_uri,
+                values,
+                default_graph_uri,
+                matching_field_def,
+            )
+
+
+def _create_entity_without_form_fields(
+    editor: Editor,
+    structured_data: dict,
+    entity_uri: URIRef,
+    default_graph_uri: URIRef | None,
+) -> None:
+    cleaned_structured_data = remove_virtual_properties_from_creation_data(
+        structured_data
+    )
+    entity_type = cleaned_structured_data["entity_type"]
+    properties = cleaned_structured_data.get("properties", {})
+
+    editor.import_entity(entity_uri)
+    _setup_editor_for_creation(editor, cleaned_structured_data)
+
+    editor.create(
+        entity_uri,
+        RDF.type,
+        URIRef(entity_type),
+        default_graph_uri,
+    )
+
+    for predicate, values in properties.items():
+        predicate_uri = URIRef(predicate)
+        for value_dict in values:
+            if value_dict["type"] == "uri":
+                editor.create(
+                    entity_uri,
+                    predicate_uri,
+                    URIRef(value_dict["value"]),
+                    default_graph_uri,
+                )
+            elif value_dict["type"] == "literal":
+                datatype = (
+                    URIRef(value_dict["datatype"])
+                    if "datatype" in value_dict
+                    else XSD.string
+                )
+                editor.create(
+                    entity_uri,
+                    predicate_uri,
+                    Literal(value_dict["value"], datatype=datatype),
+                    default_graph_uri,
+                )
+
+
+def _handle_create_entity_post(
+    form_fields: dict,
+    structured_data: dict,
+    primary_source: str | None,
+    *,
+    save_default_source: bool,
+) -> tuple[Response, int]:
+    if primary_source and not is_valid_url(primary_source):        return jsonify(
+            {
+                "status": "error",
+                "errors": [gettext("Invalid primary source URL provided")],
+            }
+        ), 400
+
+    if save_default_source and primary_source and is_valid_url(primary_source):        save_user_default_primary_source(current_user.orcid, primary_source)
+
+    resp_agent = get_responsible_agent_uri(current_user.orcid)
+    editor = Editor(
+        get_dataset_endpoint(),
+        get_provenance_endpoint(),
+        current_app.config["COUNTER_HANDLER"],
+        resp_agent,
+        URIRef(primary_source) if primary_source else None,
+        current_app.config["DATASET_GENERATION_TIME"],
+        dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
+    )
+
+    if not structured_data.get("entity_type"):
+        return jsonify(
+            {"status": "error", "errors": [gettext("Entity type is required")]}
+        ), 400
+
+    cleaned_structured_data, _entity_type, _properties, entity_uri = (
+        _prepare_entity_creation_data(structured_data)
+    )
+
+    default_graph_uri = (
+        URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
+    )
+
+    if form_fields:
+        validation_errors = validate_entity_data(cleaned_structured_data)
+        if validation_errors:
+            return jsonify({"status": "error", "errors": validation_errors}), 400
+        _create_entity_with_form_fields(
+            editor,
+            structured_data,
+            entity_uri,
+            default_graph_uri,
+            form_fields,
+        )
+    else:
+        _create_entity_without_form_fields(
+            editor,
+            structured_data,
+            entity_uri,
+            default_graph_uri,
+        )
+
+    try:
+        editor.save()
+        _process_virtual_properties_after_creation(
+            editor, structured_data, entity_uri, default_graph_uri
+        )
+    except Exception as e:  # noqa: BLE001
+        error_message = gettext(
+            "An error occurred while creating the entity: %(error)s", error=str(e)
+        )
+        return jsonify({"status": "error", "errors": [error_message]}), 500
+    else:
+        response = jsonify(
+            {
+                "status": "success",
+                "redirect_url": url_for("entity.about", subject=str(entity_uri)),
+            }
+        )
+        flash(gettext("Entity created successfully"), "success")
+        return response, 200
+
+
 @entity_bp.route("/create-entity", methods=["GET", "POST"])
 @login_required
-def create_entity():
+def create_entity() -> str | tuple[Response, int]:
     """
     Create a new entity in the dataset.
     """
     form_fields = get_form_fields()
-    
+
     default_primary_source = get_default_primary_source(current_user.orcid)
 
     entity_class_shape_pairs = sorted(
         [
             entity_key
-            for entity_key in form_fields.keys()
+            for entity_key in form_fields
             if is_entity_type_visible(entity_key)
         ],
-        key=lambda et: get_class_priority(et),
+        key=get_class_priority,
         reverse=True,
     )
 
@@ -268,142 +562,13 @@ def create_entity():
     if request.method == "POST":
         structured_data = json.loads(request.form.get("structured_data", "{}"))
         primary_source = request.form.get("primary_source") or None
-        save_default_source = request.form.get("save_default_source") == 'true'
-
-        if primary_source and not validators.url(primary_source):  # type: ignore[arg-type]
-            return jsonify({"status": "error", "errors": [gettext("Invalid primary source URL provided")]}), 400
-
-        if save_default_source and primary_source and validators.url(primary_source):  # type: ignore[arg-type]
-            save_user_default_primary_source(current_user.orcid, primary_source)
-
-        resp_agent = get_responsible_agent_uri(current_user.orcid)
-        editor = Editor(
-            get_dataset_endpoint(),
-            get_provenance_endpoint(),
-            current_app.config["COUNTER_HANDLER"],
-            resp_agent,
-            URIRef(primary_source) if primary_source else None,
-            current_app.config["DATASET_GENERATION_TIME"],
-            dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
+        save_default_source = request.form.get("save_default_source") == "true"
+        return _handle_create_entity_post(
+            form_fields,
+            structured_data,
+            primary_source,
+            save_default_source=save_default_source,
         )
-
-        if not structured_data.get("entity_type"):
-            return jsonify({"status": "error", "errors": [gettext("Entity type is required")]}), 400
-
-        # Prepare common data for entity creation
-        cleaned_structured_data, entity_type, properties, entity_uri = _prepare_entity_creation_data(structured_data)
-
-        default_graph_uri = (
-            URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
-        )
-
-        if form_fields:
-            validation_errors = validate_entity_data(cleaned_structured_data)
-            if validation_errors:
-                return jsonify({"status": "error", "errors": validation_errors}), 400
-
-            _setup_editor_for_creation(editor, cleaned_structured_data)
-
-            for predicate, values in properties.items():
-                predicate_uri = URIRef(predicate)
-                if not isinstance(values, list):
-                    values = [values]
-
-                entity_shape = cleaned_structured_data.get("entity_shape")
-                matching_key = find_matching_form_field(entity_type, entity_shape, form_fields)
-
-                field_definitions = form_fields.get(matching_key, {}).get(predicate, []) if matching_key else []
-
-                # Get the shape from the property value if available
-                property_shape = None
-                if values and isinstance(values[0], dict):
-                    property_shape = values[0].get("shape")
-
-                # Filter field definitions to find the matching one based on shape
-                matching_field_def = None
-                for field_def in field_definitions:
-                    if property_shape:
-                        # If property has a shape, match it with the field definition's subjectShape
-                        if field_def.get("subjectShape") == property_shape:
-                            matching_field_def = field_def
-                            break
-                    else:
-                        # If no shape specified, use the first field definition without a shape requirement
-                        if not field_def.get("subjectShape"):
-                            matching_field_def = field_def
-                            break
-
-                # If no matching field definition found, use the first one (default behavior)
-                if not matching_field_def and field_definitions:
-                    matching_field_def = field_definitions[0]
-
-                ordered_by = (
-                    matching_field_def.get("orderedBy") if matching_field_def else None
-                )
-
-                if ordered_by:
-                    process_ordered_properties(
-                        editor, entity_uri, predicate_uri, values, default_graph_uri, URIRef(ordered_by)
-                    )
-                else:
-                    # Handle unordered properties
-                    process_unordered_properties(
-                        editor, entity_uri, predicate_uri, values, default_graph_uri, matching_field_def
-                    )
-        else:
-            editor.import_entity(entity_uri)
-            _setup_editor_for_creation(editor, cleaned_structured_data)
-
-            editor.create(
-                entity_uri,
-                RDF.type,
-                URIRef(entity_type),
-                default_graph_uri,
-            )
-
-            for predicate, values in properties.items():
-                predicate_uri = URIRef(predicate)
-                for value_dict in values:
-                    if value_dict["type"] == "uri":
-                        editor.create(
-                            entity_uri,
-                            predicate_uri,
-                            URIRef(value_dict["value"]),
-                            default_graph_uri,
-                        )
-                    elif value_dict["type"] == "literal":
-                        datatype = (
-                            URIRef(value_dict["datatype"])
-                            if "datatype" in value_dict
-                            else XSD.string
-                        )
-                        editor.create(
-                            entity_uri,
-                            predicate_uri,
-                            Literal(value_dict["value"], datatype=datatype),
-                            default_graph_uri,
-                        )
-
-        try:
-            # Save the main entity first
-            editor.save()
-
-            # Process virtual properties after creation
-            _process_virtual_properties_after_creation(editor, structured_data, entity_uri, default_graph_uri)
-
-            response = jsonify(
-                {
-                    "status": "success",
-                    "redirect_url": url_for("entity.about", subject=str(entity_uri)),
-                }
-            )
-            flash(gettext("Entity created successfully"), "success")
-            return response, 200
-        except Exception as e:
-            error_message = gettext(
-                "An error occurred while creating the entity: %(error)s", error=str(e)
-            )
-            return jsonify({"status": "error", "errors": [error_message]}), 500
 
     return render_template(
         "create_entity.jinja",
@@ -414,13 +579,16 @@ def create_entity():
         ],
         default_primary_source=default_primary_source,
         shacl=bool(form_fields),
-        entity_class_shape_pairs=entity_class_shape_pairs
+        entity_class_shape_pairs=entity_class_shape_pairs,
     )
 
 
 def create_nested_entity(
-    editor: Editor, entity_uri: URIRef, entity_data, graph_uri=None
-):
+    editor: Editor,
+    entity_uri: URIRef,
+    entity_data: dict,
+    graph_uri: URIRef | None = None,
+) -> None:
     form_fields = get_form_fields()
 
     editor.create(
@@ -440,10 +608,9 @@ def create_nested_entity(
         return
 
     # Add other properties
-    for predicate, values in properties.items():
+    for predicate, raw_values in properties.items():
         predicate_uri = URIRef(predicate)
-        if not isinstance(values, list):
-            values = [values]
+        values = raw_values if isinstance(raw_values, list) else [raw_values]
         field_definitions = form_fields[matching_key].get(predicate, [])
 
         for value in values:
@@ -462,25 +629,25 @@ def create_nested_entity(
                         target_uri,
                         graph_uri,
                     )
-                    create_nested_entity(
-                        editor, target_uri, value, graph_uri
-                    )
+                    create_nested_entity(editor, target_uri, value, graph_uri)
                 else:
                     # Handle nested entities
                     nested_uri = generate_unique_uri(value["entity_type"])
                     editor.create(entity_uri, predicate_uri, nested_uri, graph_uri)
-                    create_nested_entity(
-                        editor, nested_uri, value, graph_uri
-                    )
+                    create_nested_entity(editor, nested_uri, value, graph_uri)
             elif isinstance(value, dict) and value.get("is_existing_entity", False):
                 existing_entity_uri = value.get("entity_uri")
                 if existing_entity_uri:
-                    editor.create(entity_uri, predicate_uri, URIRef(existing_entity_uri), graph_uri)
+                    editor.create(
+                        entity_uri,
+                        predicate_uri,
+                        URIRef(existing_entity_uri),
+                        graph_uri,
+                    )
             else:
                 # Handle simple properties - check if it's a URI or literal
                 str_value = str(value)
-                if validators.url(str_value):  # type: ignore[arg-type]
-                    object_value: URIRef | Literal = URIRef(str_value)
+                if is_valid_url(str_value):                    object_value: URIRef | Literal = URIRef(str_value)
                 else:
                     datatype = XSD.string  # Default to string if not specified
                     datatype_uris = []
@@ -491,7 +658,14 @@ def create_nested_entity(
                 editor.create(entity_uri, predicate_uri, object_value, graph_uri)
 
 
-def process_entity_value(editor: Editor, entity_uri, predicate: URIRef, value, default_graph_uri, matching_field_def):
+def process_entity_value(  # noqa: PLR0913
+    editor: Editor,
+    entity_uri: URIRef,
+    predicate: URIRef,
+    value: dict | str,
+    default_graph_uri: URIRef | None,
+    matching_field_def: dict | None,
+) -> URIRef | Literal:
     if isinstance(value, dict) and "entity_type" in value:
         nested_uri = generate_unique_uri(value["entity_type"])
         editor.create(
@@ -500,14 +674,9 @@ def process_entity_value(editor: Editor, entity_uri, predicate: URIRef, value, d
             nested_uri,
             default_graph_uri,
         )
-        create_nested_entity(
-            editor,
-            nested_uri,
-            value,
-            default_graph_uri
-        )
+        create_nested_entity(editor, nested_uri, value, default_graph_uri)
         return nested_uri
-    elif isinstance(value, dict) and value.get("is_existing_entity", False):
+    if isinstance(value, dict) and value.get("is_existing_entity", False):
         entity_ref_uri = value.get("entity_uri")
         if entity_ref_uri:
             object_value = URIRef(entity_ref_uri)
@@ -518,29 +687,33 @@ def process_entity_value(editor: Editor, entity_uri, predicate: URIRef, value, d
                 default_graph_uri,
             )
             return object_value
-        else:
-            raise ValueError("Missing entity_uri in existing entity reference")
+        msg = "Missing entity_uri in existing entity reference"
+        raise ValueError(msg)
+    # Handle simple properties - check if it's a URI or literal
+    str_value = str(value)
+    if is_valid_url(str_value):        object_value: URIRef | Literal = URIRef(str_value)
     else:
-        # Handle simple properties - check if it's a URI or literal
-        str_value = str(value)
-        if validators.url(str_value):  # type: ignore[arg-type]
-            object_value: URIRef | Literal = URIRef(str_value)
-        else:
-            datatype_uris = []
-            if matching_field_def:
-                datatype_uris = matching_field_def.get("datatypes", [])
-            datatype = determine_datatype(str_value, datatype_uris)
-            object_value = Literal(str_value, datatype=datatype)
-        editor.create(
-            entity_uri,
-            predicate,
-            object_value,
-            default_graph_uri,
-        )
-        return object_value
+        datatype_uris = []
+        if matching_field_def:
+            datatype_uris = matching_field_def.get("datatypes", [])
+        datatype = determine_datatype(str_value, datatype_uris)
+        object_value = Literal(str_value, datatype=datatype)
+    editor.create(
+        entity_uri,
+        predicate,
+        object_value,
+        default_graph_uri,
+    )
+    return object_value
 
 
-def process_ordered_entity_value(editor: Editor, entity_uri, predicate: URIRef, value, default_graph_uri):
+def process_ordered_entity_value(
+    editor: Editor,
+    entity_uri: URIRef,
+    predicate: URIRef,
+    value: dict,
+    default_graph_uri: URIRef | None,
+) -> URIRef:
     if isinstance(value, dict) and "entity_type" in value:
         nested_uri = generate_unique_uri(value["entity_type"])
         editor.create(
@@ -549,14 +722,9 @@ def process_ordered_entity_value(editor: Editor, entity_uri, predicate: URIRef, 
             nested_uri,
             default_graph_uri,
         )
-        create_nested_entity(
-            editor,
-            nested_uri,
-            value,
-            default_graph_uri
-        )
+        create_nested_entity(editor, nested_uri, value, default_graph_uri)
         return nested_uri
-    elif isinstance(value, dict) and value.get("is_existing_entity", False):
+    if isinstance(value, dict) and value.get("is_existing_entity", False):
         # If it's a direct URI value (reference to existing entity)
         nested_uri = URIRef(value["entity_uri"])
         editor.create(
@@ -566,11 +734,18 @@ def process_ordered_entity_value(editor: Editor, entity_uri, predicate: URIRef, 
             default_graph_uri,
         )
         return nested_uri
-    else:
-        raise ValueError("Unexpected value type for ordered property")
+    msg = "Unexpected value type for ordered property"
+    raise ValueError(msg)
 
 
-def process_ordered_properties(editor: Editor, entity_uri, predicate: URIRef, values, default_graph_uri, ordered_by: URIRef):
+def process_ordered_properties(  # noqa: PLR0913
+    editor: Editor,
+    entity_uri: URIRef,
+    predicate: URIRef,
+    values: list[dict],
+    default_graph_uri: URIRef | None,
+    ordered_by: URIRef,
+) -> None:
     values_by_shape = {}
     for value in values:
         shape = value.get("entity_shape")
@@ -580,7 +755,7 @@ def process_ordered_properties(editor: Editor, entity_uri, predicate: URIRef, va
             values_by_shape[shape] = []
         values_by_shape[shape].append(value)
 
-    for shape, shape_values in values_by_shape.items():
+    for shape_values in values_by_shape.values():
         previous_entity = None
         for value in shape_values:
             nested_uri = process_ordered_entity_value(
@@ -597,10 +772,17 @@ def process_ordered_properties(editor: Editor, entity_uri, predicate: URIRef, va
             previous_entity = nested_uri
 
 
-def process_unordered_properties(editor: Editor, entity_uri, predicate, values, default_graph_uri, matching_field_def):
+def process_unordered_properties(  # noqa: PLR0913
+    editor: Editor,
+    entity_uri: URIRef,
+    predicate: URIRef,
+    values: list[dict | str],
+    default_graph_uri: URIRef | None,
+    matching_field_def: dict | None,
+) -> None:
     """
     Process unordered properties.
-    
+
     Args:
         editor: Editor instance for RDF operations
         entity_uri: URI of the parent entity
@@ -615,7 +797,7 @@ def process_unordered_properties(editor: Editor, entity_uri, predicate, values, 
         )
 
 
-def determine_datatype(value, datatype_uris):
+def determine_datatype(value: str, datatype_uris: list[str]) -> URIRef:
     for datatype_uri in datatype_uris:
         validation_func = next(
             (d[1] for d in DATATYPE_MAPPING if str(d[0]) == str(datatype_uri)), None
@@ -626,7 +808,178 @@ def determine_datatype(value, datatype_uris):
     return XSD.string
 
 
-def validate_entity_data(structured_data):
+def _validate_property_cardinality(  # noqa: PLR0913
+    errors: list[str],
+    matching_field_def: dict,
+    normalized_prop_values: list,
+    prop_uri: str,
+    entity_key: tuple,
+    custom_filter: Filter,
+) -> None:
+    min_count = matching_field_def.get("min", 0)
+    max_count = matching_field_def.get("max")
+    value_count = len(normalized_prop_values)
+
+    if value_count < min_count:
+        value = gettext("values") if min_count > 1 else gettext("value")
+        errors.append(
+            gettext(
+                "Property %(prop_uri)s requires at least %(min_count)d %(value)s",
+                prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
+                min_count=min_count,
+                value=value,
+            )
+        )
+    if max_count is not None and value_count > max_count:
+        value = gettext("values") if max_count > 1 else gettext("value")
+        errors.append(
+            gettext(
+                "Property %(prop_uri)s allows at most %(max_count)d %(value)s",
+                prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
+                max_count=max_count,
+                value=value,
+            )
+        )
+
+    mandatory_values = matching_field_def.get("mandatory_values", [])
+    errors.extend(
+        gettext(
+            "Property %(prop_uri)s requires the value %(mandatory_value)s",
+            prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
+            mandatory_value=mandatory_value,
+        )
+        for mandatory_value in mandatory_values
+        if mandatory_value not in normalized_prop_values
+    )
+
+
+def _validate_property_values(  # noqa: PLR0913
+    errors: list[str],
+    matching_field_def: dict,
+    normalized_prop_values: list,
+    prop_uri: str,
+    entity_key: tuple,
+    custom_filter: Filter,
+) -> None:
+    for value in normalized_prop_values:
+        if isinstance(value, dict) and "entity_type" in value:
+            nested_errors = validate_entity_data(value)
+            errors.extend(nested_errors)
+        else:
+            datatypes = matching_field_def.get("datatypes", [])
+            if datatypes:
+                is_valid_datatype = False
+                for dtype in datatypes:
+                    validation_func = next(
+                        (d[1] for d in DATATYPE_MAPPING if d[0] == URIRef(dtype)),
+                        None,
+                    )
+                    if validation_func and validation_func(value):
+                        is_valid_datatype = True
+                        break
+                if not is_valid_datatype:
+                    expected_types = ", ".join(
+                        [
+                            custom_filter.human_readable_predicate(dtype, entity_key)
+                            for dtype in datatypes
+                        ]
+                    )
+                    errors.append(
+                        gettext(
+                            'Value "%(value)s" for property'
+                            " %(prop_uri)s is not of expected"
+                            " type %(expected_types)s",
+                            value=value,
+                            prop_uri=custom_filter.human_readable_predicate(
+                                prop_uri, entity_key
+                            ),
+                            expected_types=expected_types,
+                        )
+                    )
+
+            optional_values = matching_field_def.get("optionalValues", [])
+            if optional_values and value not in optional_values:
+                acceptable_values = ", ".join(
+                    [
+                        custom_filter.human_readable_predicate(val, entity_key)
+                        for val in optional_values
+                    ]
+                )
+                errors.append(
+                    gettext(
+                        'Value "%(value)s" is not permitted for'
+                        " property %(prop_uri)s. Acceptable values"
+                        " are: %(acceptable_values)s",
+                        value=value,
+                        prop_uri=custom_filter.human_readable_predicate(
+                            prop_uri, entity_key
+                        ),
+                        acceptable_values=acceptable_values,
+                    )
+                )
+
+
+def _check_missing_required_properties(
+    errors: list[str],
+    entity_fields: dict,
+    properties: dict,
+    entity_key: tuple,
+    custom_filter: Filter,
+) -> None:
+    # In the RDF model, a property with zero values is
+    # equivalent to the property being absent, as a triple
+    # requires a subject, predicate, and object. Therefore,
+    # this section checks for properties defined in the schema
+    # that are completely absent from the input data but are
+    # required (min_count > 0). This complements the cardinality check above, which only
+    # validates properties that are present in the data.
+    # Check for missing required properties
+    for prop_uri, field_definitions in entity_fields.items():
+        if prop_uri not in properties:
+            for field_def in field_definitions:
+                min_count = field_def.get("min", 0)
+                if min_count > 0:
+                    value = gettext("values") if min_count > 1 else gettext("value")
+                    errors.append(
+                        gettext(
+                            "Missing required property:"
+                            " %(prop_uri)s requires at least"
+                            " %(min_count)d %(value)s",
+                            prop_uri=custom_filter.human_readable_predicate(
+                                prop_uri, entity_key
+                            ),
+                            min_count=min_count,
+                            value=value,
+                        )
+                    )
+                    break  # Only need to report once per property
+
+
+def _find_matching_field_definition(
+    field_definitions: list[dict],
+    normalized_prop_values: list,
+) -> dict | None:
+    property_shape = None
+    if normalized_prop_values and isinstance(normalized_prop_values[0], dict):
+        property_shape = normalized_prop_values[0].get("shape")
+
+    matching_field_def = None
+    for field_def in field_definitions:
+        if property_shape:
+            if field_def.get("subjectShape") == property_shape:
+                matching_field_def = field_def
+                break
+        elif not field_def.get("subjectShape"):
+            matching_field_def = field_def
+            break
+
+    if not matching_field_def and field_definitions:
+        matching_field_def = field_definitions[0]
+
+    return matching_field_def
+
+
+def validate_entity_data(structured_data: dict) -> list[str]:
     """
     Validates entity data against form field definitions, considering shape matching.
 
@@ -642,16 +995,18 @@ def validate_entity_data(structured_data):
     errors = []
     entity_type = structured_data.get("entity_type")
     entity_shape = structured_data.get("entity_shape")
-    
+
     if not entity_type:
         errors.append(gettext("Entity type is required"))
         return errors
-    
+
     entity_key = find_matching_form_field(entity_type, entity_shape, form_fields)
-    
+
     if not entity_key:
-        errors.append(f"No form fields found for entity type: {entity_type}" + 
-                      (f" and shape: {entity_shape}" if entity_shape else ""))
+        errors.append(
+            f"No form fields found for entity type: {entity_type}"
+            + (f" and shape: {entity_shape}" if entity_shape else "")
+        )
         return errors
 
     entity_fields = form_fields[entity_key]
@@ -666,151 +1021,55 @@ def validate_entity_data(structured_data):
             errors.append(
                 gettext(
                     "Unknown property %(prop_uri)s for entity type %(entity_type)s",
-                    prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
+                    prop_uri=custom_filter.human_readable_predicate(
+                        prop_uri, entity_key
+                    ),
                     entity_type=custom_filter.human_readable_class(entity_key),
                 )
             )
             continue
 
-        if not isinstance(prop_values, list):
-            prop_values = [prop_values]
+        normalized_prop_values = (
+            prop_values if isinstance(prop_values, list) else [prop_values]
+        )
 
-        property_shape = None
-        if prop_values and isinstance(prop_values[0], dict):
-            property_shape = prop_values[0].get("shape")
-
-        matching_field_def = None
-        for field_def in field_definitions:
-            if property_shape:
-                if field_def.get("subjectShape") == property_shape:
-                    matching_field_def = field_def
-                    break
-            else:
-                if not field_def.get("subjectShape"):
-                    matching_field_def = field_def
-                    break
-
-        if not matching_field_def and field_definitions:
-            matching_field_def = field_definitions[0]
+        matching_field_def = _find_matching_field_definition(
+            field_definitions,
+            normalized_prop_values,
+        )
 
         if matching_field_def:
-            min_count = matching_field_def.get("min", 0)
-            max_count = matching_field_def.get("max", None)
-            value_count = len(prop_values)
+            _validate_property_cardinality(
+                errors,
+                matching_field_def,
+                normalized_prop_values,
+                prop_uri,
+                entity_key,
+                custom_filter,
+            )
+            _validate_property_values(
+                errors,
+                matching_field_def,
+                normalized_prop_values,
+                prop_uri,
+                entity_key,
+                custom_filter,
+            )
 
-            if value_count < min_count:
-                value = gettext("values") if min_count > 1 else gettext("value")
-                errors.append(
-                    gettext(
-                        "Property %(prop_uri)s requires at least %(min_count)d %(value)s",
-                        prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
-                        min_count=min_count,
-                        value=value,
-                    )
-                )
-            if max_count is not None and value_count > max_count:
-                value = gettext("values") if max_count > 1 else gettext("value")
-                errors.append(
-                    gettext(
-                        "Property %(prop_uri)s allows at most %(max_count)d %(value)s",
-                        prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
-                        max_count=max_count,
-                        value=value,
-                    )
-                )
-
-            mandatory_values = matching_field_def.get("mandatory_values", [])
-            for mandatory_value in mandatory_values:
-                if mandatory_value not in prop_values:
-                    errors.append(
-                        gettext(
-                            "Property %(prop_uri)s requires the value %(mandatory_value)s",
-                            prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
-                            mandatory_value=mandatory_value,
-                        )
-                    )
-
-            for value in prop_values:
-                if isinstance(value, dict) and "entity_type" in value:
-                    nested_errors = validate_entity_data(value)
-                    errors.extend(nested_errors)
-                else:
-                    datatypes = matching_field_def.get("datatypes", [])
-                    if datatypes:
-                        is_valid_datatype = False
-                        for dtype in datatypes:
-                            validation_func = next(
-                                (
-                                    d[1]
-                                    for d in DATATYPE_MAPPING
-                                    if d[0] == URIRef(dtype)
-                                ),
-                                None,
-                            )
-                            if validation_func and validation_func(value):
-                                is_valid_datatype = True
-                                break
-                        if not is_valid_datatype:
-                            expected_types = ", ".join(
-                                [
-                                    custom_filter.human_readable_predicate(dtype, entity_key)
-                                    for dtype in datatypes
-                                ]
-                            )
-                            errors.append(
-                                gettext(
-                                    'Value "%(value)s" for property %(prop_uri)s is not of expected type %(expected_types)s',
-                                    value=value,
-                                    prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
-                                    expected_types=expected_types
-                                )
-                            )
-
-                    optional_values = matching_field_def.get("optionalValues", [])
-                    if optional_values and value not in optional_values:
-                        acceptable_values = ", ".join(
-                            [
-                                custom_filter.human_readable_predicate(val, entity_key)
-                                for val in optional_values
-                            ]
-                        )
-                        errors.append(
-                            gettext(
-                                'Value "%(value)s" is not permitted for property %(prop_uri)s. Acceptable values are: %(acceptable_values)s',
-                                value=value,
-                                prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
-                                acceptable_values=acceptable_values
-                            )
-                        )
-
-    # In the RDF model, a property with zero values is equivalent to the property being absent,
-    # as a triple requires a subject, predicate, and object. Therefore, this section checks for
-    # properties defined in the schema that are completely absent from the input data but are
-    # required (min_count > 0). This complements the cardinality check above, which only
-    # validates properties that are present in the data.
-    # Check for missing required properties
-    for prop_uri, field_definitions in entity_fields.items():
-        if prop_uri not in properties:
-            for field_def in field_definitions:
-                min_count = field_def.get("min", 0)
-                if min_count > 0:
-                    value = gettext("values") if min_count > 1 else gettext("value")
-                    errors.append(
-                        gettext(
-                            "Missing required property: %(prop_uri)s requires at least %(min_count)d %(value)s",
-                            prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
-                            min_count=min_count,
-                            value=value,
-                        )
-                    )
-                    break  # Only need to report once per property
+    _check_missing_required_properties(
+        errors,
+        entity_fields,
+        properties,
+        entity_key,
+        custom_filter,
+    )
 
     return errors
 
 
 @entity_bp.route("/entity-history/<path:entity_uri>")
 @login_required
-def entity_history(entity_uri):
+def entity_history(entity_uri: str) -> str:
     """
     Display the history of changes for an entity.
 
@@ -822,14 +1081,18 @@ def entity_history(entity_uri):
     change_tracking_config = get_change_tracking_config()
 
     agnostic_entity = AgnosticEntity(
-        res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
+        res=entity_uri,
+        config=change_tracking_config,
+        include_related_objects=True,
+        include_merged_entities=True,
+        include_reverse_relations=True,
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-    history = convert_to_rdflib_graphs(history, get_dataset_is_quadstore())
+    history = convert_to_rdflib_graphs(history, is_quadstore=get_dataset_is_quadstore())
 
     sorted_metadata = sorted(
         provenance[entity_uri].items(),
-        key=lambda x: convert_to_datetime(x[1]["generatedAtTime"]) or datetime.min,
+        key=lambda x: convert_to_datetime(x[1]["generatedAtTime"]) or _DATETIME_MIN_UTC,
     )
     sorted_timestamps: list[str] = [
         dt.isoformat()
@@ -849,7 +1112,12 @@ def entity_history(entity_uri):
     else:
         context_snapshot = history[entity_uri][sorted_timestamps[-1]]
 
-    entity_classes = [str(triple[2]) for triple in get_triples_from_graph(context_snapshot, (entity_uri_ref, RDF.type, None))]
+    entity_classes = [
+        str(triple[2])
+        for triple in get_triples_from_graph(
+            context_snapshot, (entity_uri_ref, RDF.type, None)
+        )
+    ]
     highest_priority_class = get_highest_priority_class(entity_classes)
 
     snapshot_entity_shape = determine_shape_for_entity_triples(
@@ -858,9 +1126,11 @@ def entity_history(entity_uri):
 
     # Generate timeline events
     events = []
-    for i, (snapshot_uri, metadata) in enumerate(sorted_metadata):
+    for i, (_snapshot_uri, metadata) in enumerate(sorted_metadata):
         date = convert_to_datetime(metadata["generatedAtTime"])
-        assert date is not None
+        if date is None:
+            msg = "date must not be None"
+            raise AssertionError(msg)
         snapshot_graph = history[entity_uri][date.isoformat()]
 
         responsible_agent = custom_filter.format_agent_reference(
@@ -895,14 +1165,24 @@ def entity_history(entity_uri):
                 custom_filter=custom_filter,
             )
 
-        # Check if this version can be restored (not the latest version and there are multiple versions)
+        # Check if this version can be restored
+        # (not the latest version and there are multiple versions)
         can_restore = len(sorted_metadata) > 1 and i + 1 < len(sorted_metadata)
         restore_button = ""
         if can_restore:
+            restore_label = gettext("Restore")
+            restore_action = (
+                f"/restore-version/{entity_uri}/{metadata['generatedAtTime']}"
+            )
             restore_button = f"""
-                <form action='/restore-version/{entity_uri}/{metadata["generatedAtTime"]}' method='post' class='d-inline restore-form'>
-                    <button type='submit' class='btn btn-success restore-btn'>
-                        <i class='bi bi-arrow-counterclockwise me-1'></i>{gettext('Restore')}
+                <form action='{restore_action}'
+                method='post'
+                class='d-inline restore-form'>
+                    <button type='submit'
+                    class='btn btn-success restore-btn'>
+                        <i class='bi
+                        bi-arrow-counterclockwise
+                        me-1'></i>{restore_label}
                     </button>
                 </form>
             """
@@ -918,18 +1198,33 @@ def entity_history(entity_uri):
             },
             "text": {
                 "headline": gettext("Snapshot") + " " + str(i + 1),
-                "text": f"""
-                    <p><strong>{gettext('Responsible agent')}:</strong> {responsible_agent}</p>
-                    <p><strong>{gettext('Primary source')}:</strong> {primary_source}</p>
-                    <p><strong>{gettext('Description')}:</strong> {description}</p>
-                    <div class="modifications mb-3">
-                        {modification_text}
-                    </div>
-                    <div class="d-flex gap-2 mt-2">
-                        <a href='/entity-version/{entity_uri}/{metadata["generatedAtTime"]}' class='btn btn-outline-primary view-version' target='_self'>{gettext('View version')}</a>
-                        {restore_button}
-                    </div>
-                """,
+                "text": (
+                    f"<p><strong>"
+                    f"{gettext('Responsible agent')}"
+                    f":</strong>"
+                    f" {responsible_agent}</p>"
+                    f"<p><strong>"
+                    f"{gettext('Primary source')}"
+                    f":</strong>"
+                    f" {primary_source}</p>"
+                    f"<p><strong>"
+                    f"{gettext('Description')}"
+                    f":</strong>"
+                    f" {description}</p>"
+                    f'<div class="modifications mb-3">'
+                    f"{modification_text}"
+                    f"</div>"
+                    f'<div class="d-flex gap-2 mt-2">'
+                    f"<a href='/entity-version/"
+                    f"{entity_uri}/"
+                    f"{metadata['generatedAtTime']}'"
+                    f" class='btn btn-outline-primary"
+                    f" view-version'"
+                    f" target='_self'>"
+                    f"{gettext('View version')}</a>"
+                    f"{restore_button}"
+                    f"</div>"
+                ),
             },
             "autolink": False,
         }
@@ -938,7 +1233,9 @@ def entity_history(entity_uri):
             next_date = convert_to_datetime(
                 sorted_metadata[i + 1][1]["generatedAtTime"]
             )
-            assert next_date is not None
+            if next_date is None:
+                msg = "next_date must not be None"
+                raise AssertionError(msg)
             event["end_date"] = {
                 "year": next_date.year,
                 "month": next_date.month,
@@ -965,7 +1262,7 @@ def entity_history(entity_uri):
     return render_template("entity/history.jinja", timeline_data=timeline_data)
 
 
-def _format_snapshot_description(
+def _format_snapshot_description(  # noqa: PLR0913
     metadata: dict,
     entity_uri: str,
     highest_priority_class: str | None,
@@ -977,31 +1274,37 @@ def _format_snapshot_description(
 ) -> str:
     description = metadata.get("description", "")
     is_merge_snapshot = False
-    was_derived_from = metadata.get('wasDerivedFrom')
+    was_derived_from = metadata.get("wasDerivedFrom")
     if isinstance(was_derived_from, list) and len(was_derived_from) > 1:
         is_merge_snapshot = True
 
     if is_merge_snapshot:
-        # Regex to find URI after "merged with", potentially enclosed in single quotes or none
-        match = re.search(r"merged with ['‘]?([^'’<>\s]+)['’]?", description)
+        # Regex to find URI after "merged with",
+        # potentially enclosed in single quotes or none
+        match = re.search(r"merged with [‘’]?([^‘’<>\s]+)[‘’]?", description)  # noqa: RUF001
         if match:
             potential_merged_uri = match.group(1)
-            if validators.url(potential_merged_uri):  # type: ignore[arg-type]
+            if is_valid_url(potential_merged_uri):
                 merged_entity_uri_from_desc = potential_merged_uri
                 merged_entity_label = None
                 if current_index > 0:
                     previous_snapshot_timestamp = sorted_timestamps[current_index - 1]
-                    previous_snapshot_graph = history.get(entity_uri, {}).get(previous_snapshot_timestamp)
+                    previous_snapshot_graph = history.get(entity_uri, {}).get(
+                        previous_snapshot_timestamp
+                    )
                     if previous_snapshot_graph:
                         raw_merged_entity_classes = [
                             str(o)
                             for s, p, o in get_triples_from_graph(
-                                previous_snapshot_graph, (URIRef(merged_entity_uri_from_desc), RDF.type, None)
+                                previous_snapshot_graph,
+                                (URIRef(merged_entity_uri_from_desc), RDF.type, None),
                             )
                         ]
-                        highest_priority_merged_class = get_highest_priority_class(
-                            raw_merged_entity_classes
-                        ) if raw_merged_entity_classes else None
+                        highest_priority_merged_class = (
+                            get_highest_priority_class(raw_merged_entity_classes)
+                            if raw_merged_entity_classes
+                            else None
+                        )
 
                         shape = determine_shape_for_classes(raw_merged_entity_classes)
                         merged_entity_label = custom_filter.human_readable_entity(
@@ -1017,19 +1320,25 @@ def _format_snapshot_description(
                                 match.group(0), f"merged with '{merged_entity_label}'"
                             )
 
-    shape = determine_shape_for_classes([highest_priority_class]) if highest_priority_class else None
+    shape = (
+        determine_shape_for_classes([highest_priority_class])
+        if highest_priority_class
+        else None
+    )
     entity_label_for_desc = custom_filter.human_readable_entity(
         entity_uri, (highest_priority_class, shape), context_snapshot
     )
     if entity_label_for_desc and entity_label_for_desc != entity_uri:
-        description = description.replace(f"'{entity_uri}'", f"'{entity_label_for_desc}'")
+        description = description.replace(
+            f"'{entity_uri}'", f"'{entity_label_for_desc}'"
+        )
 
     return description
 
 
 @entity_bp.route("/entity-version/<path:entity_uri>/<timestamp>")
 @login_required
-def entity_version(entity_uri, timestamp):
+def entity_version(entity_uri: str, timestamp: str) -> str:  # noqa: C901, PLR0912, PLR0915
     """
     Display a specific version of an entity.
 
@@ -1048,7 +1357,9 @@ def entity_version(entity_uri, timestamp):
         query_timestamp = f"""
             SELECT ?generation_time
             WHERE {{
-                <{entity_uri}/prov/se/{timestamp}> <http://www.w3.org/ns/prov#generatedAtTime> ?generation_time.
+                <{entity_uri}/prov/se/{timestamp}>
+                <http://www.w3.org/ns/prov#generatedAtTime>
+                ?generation_time.
             }}
         """
         provenance_sparql.setQuery(query_timestamp)
@@ -1062,13 +1373,18 @@ def entity_version(entity_uri, timestamp):
         timestamp_dt = datetime.fromisoformat(generation_time)
 
     agnostic_entity = AgnosticEntity(
-        res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
+        res=entity_uri,
+        config=change_tracking_config,
+        include_related_objects=True,
+        include_merged_entities=True,
+        include_reverse_relations=True,
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-    history = convert_to_rdflib_graphs(history, get_dataset_is_quadstore())
+    history = convert_to_rdflib_graphs(history, is_quadstore=get_dataset_is_quadstore())
     main_entity_history = history.get(entity_uri, {})
     sorted_timestamps = sorted(
-        main_entity_history.keys(), key=lambda t: convert_to_datetime(t) or datetime.min
+        main_entity_history.keys(),
+        key=lambda t: convert_to_datetime(t) or _DATETIME_MIN_UTC,
     )
 
     if not sorted_timestamps:
@@ -1077,7 +1393,8 @@ def entity_version(entity_uri, timestamp):
     closest_timestamp = min(
         sorted_timestamps,
         key=lambda t: abs(
-            (convert_to_datetime(t) or datetime.min).astimezone() - timestamp_dt.astimezone()
+            (convert_to_datetime(t) or _DATETIME_MIN_UTC).astimezone()
+            - timestamp_dt.astimezone()
         ),
     )
 
@@ -1094,12 +1411,18 @@ def entity_version(entity_uri, timestamp):
     latest_timestamp = max(sorted_timestamps)
     latest_metadata = None
 
-    for se_uri, meta in entity_metadata.items():
+    for meta in entity_metadata.values():
         meta_time = convert_to_datetime(meta["generatedAtTime"])
-        assert meta_time is not None
+        if meta_time is None:
+            msg = "meta_time must not be None"
+            raise AssertionError(msg)
         time_diff = abs((meta_time - timestamp_dt).total_seconds())
 
-        if closest_metadata is None or min_time_diff is None or time_diff < min_time_diff:
+        if (
+            closest_metadata is None
+            or min_time_diff is None
+            or time_diff < min_time_diff
+        ):
             closest_metadata = meta
             min_time_diff = time_diff
 
@@ -1123,12 +1446,17 @@ def entity_version(entity_uri, timestamp):
 
     if is_deletion_snapshot and len(sorted_timestamps) > 1:
         subject_classes = [
-            o
-            for _, _, o in get_triples_from_graph(context_version, (entity_uri_ref, RDF.type, None))
+            str(o)
+            for _, _, o in get_triples_from_graph(
+                context_version, (entity_uri_ref, RDF.type, None)
+            )
         ]
     else:
         subject_classes = [
-            o for _, _, o in get_triples_from_graph(version, (entity_uri_ref, RDF.type, None))
+            str(o)
+            for _, _, o in get_triples_from_graph(
+                version, (entity_uri_ref, RDF.type, None)
+            )
         ]
 
     highest_priority_class = get_highest_priority_class(subject_classes)
@@ -1137,15 +1465,17 @@ def entity_version(entity_uri, timestamp):
         list(get_triples_from_graph(context_version, (entity_uri_ref, None, None)))
     )
 
-    _, _, _, _, _, valid_predicates_set = get_valid_predicates(triples, highest_priority_class=URIRef(highest_priority_class or ""))
+    _, _, _, _, _, valid_predicates_set = get_valid_predicates(
+        triples, highest_priority_class=URIRef(highest_priority_class or "")
+    )
 
-    grouped_triples, relevant_properties = get_grouped_triples(
-        entity_uri,
+    grouped_triples, _relevant_properties = get_grouped_triples(
+        entity_uri_ref,
         triples,
         list(valid_predicates_set),
         historical_snapshot=context_version,
         highest_priority_class=highest_priority_class,
-        highest_priority_shape=entity_shape
+        highest_priority_shape=entity_shape,
     )
 
     snapshot_times: list[datetime] = [
@@ -1187,7 +1517,7 @@ def entity_version(entity_uri, timestamp):
     try:
         current_index = sorted_timestamps.index(closest_timestamp)
     except ValueError:
-        current_index = -1 
+        current_index = -1
 
     if closest_metadata.get("description"):
         formatted_description = _format_snapshot_description(
@@ -1222,7 +1552,7 @@ def entity_version(entity_uri, timestamp):
 
 @entity_bp.route("/restore-version/<path:entity_uri>/<timestamp>", methods=["POST"])
 @login_required
-def restore_version(entity_uri, timestamp):
+def restore_version(entity_uri: str, timestamp: str) -> Response:  # noqa: C901, PLR0912, PLR0915
     """
     Restore an entity to a previous version.
 
@@ -1239,10 +1569,14 @@ def restore_version(entity_uri, timestamp):
 
     # Get entity history
     agnostic_entity = AgnosticEntity(
-        res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
+        res=entity_uri,
+        config=change_tracking_config,
+        include_related_objects=True,
+        include_merged_entities=True,
+        include_reverse_relations=True,
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-    history = convert_to_rdflib_graphs(history, get_dataset_is_quadstore())
+    history = convert_to_rdflib_graphs(history, is_quadstore=get_dataset_is_quadstore())
 
     historical_graph = history.get(entity_uri, {}).get(timestamp)
     if historical_graph is None:
@@ -1250,7 +1584,10 @@ def restore_version(entity_uri, timestamp):
 
     current_graph = fetch_current_state_with_related_entities(provenance)
 
-    is_deleted = len(list(get_triples_from_graph(current_graph, (entity_uri_ref, None, None)))) == 0
+    is_deleted = (
+        len(list(get_triples_from_graph(current_graph, (entity_uri_ref, None, None))))
+        == 0
+    )
 
     triples_or_quads_to_delete, triples_or_quads_to_add = compute_graph_differences(
         current_graph, historical_graph
@@ -1281,20 +1618,21 @@ def restore_version(entity_uri, timestamp):
 
     # Import current state into editor
     if get_dataset_is_quadstore():
-        assert isinstance(current_graph, Dataset)
+        if not isinstance(current_graph, Dataset):
+            msg = "Expected Dataset instance"
+            raise TypeError(msg)
         for quad in current_graph.quads():
             editor.g_set.add(quad)  # type: ignore[arg-type]
     else:
         for triple in current_graph:
             editor.g_set.add(triple)  # type: ignore[arg-type]
-
     editor.preexisting_finished()
 
     # Apply deletions
     for item in triples_or_quads_to_delete:
         s, p, o = URIRef(str(item[0])), URIRef(str(item[1])), item[2]
-        obj: URIRef | Literal = URIRef(str(o)) if isinstance(o, URIRef) else Literal(o)  # type: ignore[arg-type]
-        if len(item) == 4:
+        obj: URIRef | Literal = URIRef(str(o)) if isinstance(o, URIRef) else Literal(o)
+        if len(item) == _QUAD_LENGTH:
             editor.delete(s, p, obj, URIRef(str(item[3])))
         else:
             editor.delete(s, p, obj)
@@ -1311,8 +1649,8 @@ def restore_version(entity_uri, timestamp):
     # Apply additions
     for item in triples_or_quads_to_add:
         s, p, o = URIRef(str(item[0])), URIRef(str(item[1])), item[2]
-        obj = URIRef(str(o)) if isinstance(o, URIRef) else Literal(o)  # type: ignore[arg-type]
-        if len(item) == 4:
+        obj = URIRef(str(o)) if isinstance(o, URIRef) else Literal(o)
+        if len(item) == _QUAD_LENGTH:
             editor.create(s, p, obj, URIRef(str(item[3])))
         else:
             editor.create(s, p, obj)
@@ -1335,7 +1673,7 @@ def restore_version(entity_uri, timestamp):
     try:
         editor.save()
         flash(gettext("Version restored successfully"), "success")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         flash(
             gettext(
                 "An error occurred while restoring the version: %(error)s", error=str(e)
@@ -1350,13 +1688,19 @@ def compute_graph_differences(
     current_graph: Graph | Dataset, historical_graph: Graph | Dataset
 ) -> tuple[set, set]:
     if get_dataset_is_quadstore():
-        assert isinstance(current_graph, Dataset)
-        assert isinstance(historical_graph, Dataset)
+        if not isinstance(current_graph, Dataset):
+            msg = "Expected Dataset instance for current_graph"
+            raise TypeError(msg)
+        if not isinstance(historical_graph, Dataset):
+            msg = "Expected Dataset instance for historical_graph"
+            raise TypeError(msg)
         current_quads = set(current_graph.quads())
         historical_quads = set(historical_graph.quads())
         return current_quads - historical_quads, historical_quads - current_quads
     current_triples = set(get_triples_from_graph(current_graph, (None, None, None)))
-    historical_triples = set(get_triples_from_graph(historical_graph, (None, None, None)))
+    historical_triples = set(
+        get_triples_from_graph(historical_graph, (None, None, None))
+    )
     return current_triples - historical_triples, historical_triples - current_triples
 
 
@@ -1384,8 +1728,7 @@ def get_entities_to_restore(
         subject = str(item[0])
         obj = str(item[2])
         for uri in [subject, obj]:
-            if uri != main_entity_uri and validators.url(uri):  # type: ignore[arg-type]
-                entities_to_restore.add(uri)
+            if uri != main_entity_uri and is_valid_url(uri):                entities_to_restore.add(uri)
 
     return entities_to_restore
 
@@ -1418,7 +1761,9 @@ def prepare_entity_snapshots(
         # Check if entity is currently deleted by examining its latest snapshot
         sorted_snapshots = sorted(
             provenance[entity_uri].items(),
-            key=lambda x: convert_to_datetime(x[1]["generatedAtTime"]) or datetime.min,
+            key=lambda x: (
+                convert_to_datetime(x[1]["generatedAtTime"]) or _DATETIME_MIN_UTC
+            ),
         )
         latest_snapshot = sorted_snapshots[-1][1]
         is_deleted = (
@@ -1444,10 +1789,13 @@ def find_appropriate_snapshot(provenance_data: dict, target_time: str) -> str | 
         target_time: The target restoration time as ISO format string
 
     Returns:
-        The URI of the most appropriate snapshot, or None if no suitable snapshot is found
+        The URI of the most appropriate snapshot,
+        or None if no suitable snapshot is found
     """
     target_datetime = convert_to_datetime(target_time)
-    assert target_datetime is not None
+    if target_datetime is None:
+        msg = f"Failed to parse target_time: {target_time}"
+        raise ValueError(msg)
 
     # Convert all generation times to datetime for comparison
     valid_snapshots: list[tuple[datetime, str]] = []
@@ -1473,21 +1821,24 @@ def find_appropriate_snapshot(provenance_data: dict, target_time: str) -> str | 
     return valid_snapshots[-1][1]
 
 
-def determine_object_class_and_shape(object_value: str, relevant_snapshot: Graph | None) -> tuple[str | None, str | None]:
+def determine_object_class_and_shape(
+    object_value: str, relevant_snapshot: Graph | None
+) -> tuple[str | None, str | None]:
     """
     Determine the class and shape for an object value from a graph snapshot.
-    
+
     Args:
         object_value: The object value (URI or literal)
         relevant_snapshot: Graph snapshot to query for object information
-        
+
     Returns:
         Tuple of (object_class, object_shape_uri) or (None, None) if not determinable
     """
-    if not validators.url(str(object_value)) or not relevant_snapshot:  # type: ignore[arg-type]
-        return None, None
+    if not is_valid_url(str(object_value)) or not relevant_snapshot:        return None, None
 
-    object_triples = list(get_triples_from_graph(relevant_snapshot, (URIRef(object_value), None, None)))
+    object_triples = list(
+        get_triples_from_graph(relevant_snapshot, (URIRef(object_value), None, None))
+    )
     if not object_triples:
         return None, None
 
@@ -1498,40 +1849,169 @@ def determine_object_class_and_shape(object_value: str, relevant_snapshot: Graph
             relevant_snapshot, (URIRef(object_value), RDF.type, None)
         )
     ]
-    object_class = get_highest_priority_class(object_classes) if object_classes else None
-    
+    object_class = (
+        get_highest_priority_class(object_classes) if object_classes else None
+    )
+
     return object_class, object_shape_uri
 
 
-def generate_modification_text(
-    modifications,
-    highest_priority_class,
-    entity_shape,
-    history,
-    entity_uri,
-    current_snapshot,
-    current_snapshot_timestamp,
+def _build_modification_caches(
+    triples: list[tuple[Node, Node, Node]],
+    relevant_snapshot: Graph | None,
+) -> tuple[dict[str, str | None], dict[str, str | None]]:
+    object_shapes_cache: dict[str, str | None] = {}
+    object_classes_cache: dict[str, str | None] = {}
+
+    if relevant_snapshot:
+        for triple in triples:
+            object_value = str(triple[2])
+            object_class, object_shape = determine_object_class_and_shape(
+                object_value, relevant_snapshot
+            )
+            object_classes_cache[object_value] = object_class
+            object_shapes_cache[object_value] = object_shape
+
+    return object_shapes_cache, object_classes_cache
+
+
+def _build_predicate_shape_groups(  # noqa: PLR0913
+    triples: list[tuple[Node, Node, Node]],
+    object_shapes_cache: dict[str, str | None],
+    highest_priority_class: str | None,
+    entity_shape: str | None,
+    entity_uri: str,
+    relevant_snapshot: Graph | None,
+) -> tuple[dict, dict, dict]:
+    predicate_shape_groups: dict[tuple[str, str | None], list] = {}
+    predicate_ordering_cache: dict[str, str | None] = {}
+    entity_position_cache: dict[tuple[str, str], int | None] = {}
+
+    for triple in triples:
+        predicate = str(triple[1])
+        object_value = str(triple[2])
+        object_shape_uri = object_shapes_cache.get(object_value)
+
+        if predicate not in predicate_ordering_cache:
+            predicate_ordering_cache[predicate] = get_predicate_ordering_info(
+                predicate, highest_priority_class, entity_shape
+            )
+
+        order_property = predicate_ordering_cache[predicate]
+        if order_property and is_valid_url(object_value) and relevant_snapshot:
+            position_key = (object_value, predicate)
+            if position_key not in entity_position_cache:
+                entity_position_cache[position_key] = get_entity_position_in_sequence(
+                    object_value,
+                    entity_uri,
+                    predicate,
+                    order_property,
+                    relevant_snapshot,
+                )
+
+        group_key = (predicate, object_shape_uri)
+        if group_key not in predicate_shape_groups:
+            predicate_shape_groups[group_key] = []
+        predicate_shape_groups[group_key].append(triple)
+
+    return predicate_shape_groups, predicate_ordering_cache, entity_position_cache
+
+
+def _get_cached_position(
+    triple: tuple[URIRef, URIRef, URIRef | Literal],
+    predicate_uri: str,
+    cache: dict,
+) -> int | float:
+    object_value = str(triple[2])
+    position_key = (object_value, predicate_uri)
+    if position_key in cache:
+        return cache[position_key]
+    return float("inf")
+
+
+def _sort_and_format_group(
+    group_triples: list[tuple[URIRef, URIRef, URIRef | Literal]],
+    predicate_uri: str,
+    ctx: EntityRenderContext,
+) -> str:
+    order_property = ctx.predicate_ordering_cache.get(predicate_uri)
+    sorted_triples = (
+        sorted(
+            group_triples,
+            key=lambda t: _get_cached_position(
+                t, predicate_uri, ctx.entity_position_cache
+            ),
+        )
+        if order_property and ctx.relevant_snapshot
+        else group_triples
+    )
+
+    text = ""
+    for triple in sorted_triples:
+        text += format_triple_modification(triple, ctx)
+    return text
+
+
+def _render_ordered_groups(
+    predicate_shape_groups: dict,
+    ordered_properties: list,
+    ctx: EntityRenderContext,
+) -> tuple[str, set]:
+    text = ""
+    processed_predicates: set[tuple[str, str | None]] = set()
+
+    for predicate in ordered_properties:
+        shape_order = get_shape_order_from_display_rules(
+            ctx.highest_priority_class, ctx.entity_shape, predicate
+        )
+        predicate_groups = []
+        for group_key, group_triples in predicate_shape_groups.items():
+            predicate_uri, object_shape_uri = group_key
+            if predicate_uri == predicate:
+                if object_shape_uri and object_shape_uri in shape_order:
+                    shape_priority = shape_order.index(object_shape_uri)
+                else:
+                    shape_priority = len(shape_order)
+
+                predicate_groups.append((shape_priority, group_key, group_triples))
+
+        predicate_groups.sort(key=lambda x: x[0])
+        for _, group_key, group_triples in predicate_groups:
+            processed_predicates.add(group_key)
+            predicate_uri, _ = group_key
+            text += _sort_and_format_group(group_triples, predicate_uri, ctx)
+
+    return text, processed_predicates
+
+
+def _render_remaining_groups(
+    predicate_shape_groups: dict,
+    processed_predicates: set,
+    ctx: EntityRenderContext,
+) -> str:
+    text = ""
+    for group_key, group_triples in predicate_shape_groups.items():
+        if group_key not in processed_predicates:
+            predicate_uri, _ = group_key
+            text += _sort_and_format_group(group_triples, predicate_uri, ctx)
+    return text
+
+
+def generate_modification_text(  # noqa: PLR0913
+    modifications: dict[str, list[tuple[Node, Node, Node]]],
+    highest_priority_class: str | None,
+    entity_shape: str | None,
+    history: dict[str, dict[str, Graph]],
+    entity_uri: str,
+    current_snapshot: Graph,
+    current_snapshot_timestamp: str,
     custom_filter: Filter,
 ) -> str:
-    """
-    Generate HTML text describing modifications to an entity, using display rules for property ordering.
-
-    Args:
-        modifications (dict): Dictionary of modifications from parse_sparql_update
-        highest_priority_class (str): The highest priority class for the subject entity
-        entity_shape (str): The shape for the subject entity
-        history (dict): Historical snapshots dictionary
-        entity_uri (str): URI of the entity being modified
-        current_snapshot (Graph): Current entity snapshot
-        current_snapshot_timestamp (str): Timestamp of current snapshot
-        custom_filter (Filter): Filter instance for formatting
-
-    Returns:
-        str: HTML text describing the modifications
-    """
     modification_text = "<p><strong>" + gettext("Modifications") + "</strong></p>"
 
-    ordered_properties = get_property_order_from_rules(highest_priority_class, entity_shape)
+    ordered_properties = get_property_order_from_rules(
+        highest_priority_class, entity_shape
+    )
 
     for mod_type, triples in modifications.items():
         modification_text += "<ul class='list-group mb-3'><p>"
@@ -1541,9 +2021,6 @@ def generate_modification_text(
             modification_text += '<i class="bi bi-dash-circle-fill text-danger"></i>'
         modification_text += " <em>" + gettext(mod_type) + "</em></p>"
 
-        object_shapes_cache = {}
-        object_classes_cache = {}
-        
         relevant_snapshot = None
         if (
             mod_type == gettext("Deletions")
@@ -1559,109 +2036,42 @@ def generate_modification_text(
                 ]
         else:
             relevant_snapshot = current_snapshot
-        
-        if relevant_snapshot:
-            for triple in triples:
-                object_value = triple[2]
-                object_class, object_shape = determine_object_class_and_shape(object_value, relevant_snapshot)
-                object_classes_cache[str(object_value)] = object_class
-                object_shapes_cache[str(object_value)] = object_shape
 
-        predicate_shape_groups = {}
-        predicate_ordering_cache = {}
-        entity_position_cache = {}
-        
-        for triple in triples:
-            predicate = str(triple[1])
-            object_value = str(triple[2])
-            object_shape_uri = object_shapes_cache.get(object_value)
-            
-            if predicate not in predicate_ordering_cache:
-                predicate_ordering_cache[predicate] = get_predicate_ordering_info(predicate, highest_priority_class, entity_shape)
-            
-            order_property = predicate_ordering_cache[predicate]
-            if order_property and validators.url(object_value) and relevant_snapshot:  # type: ignore[arg-type]
-                position_key = (object_value, predicate)
-                if position_key not in entity_position_cache:
-                    entity_position_cache[position_key] = get_entity_position_in_sequence(
-                        object_value, entity_uri, predicate, order_property, relevant_snapshot
-                    )
-            
-            group_key = (predicate, object_shape_uri)
-            if group_key not in predicate_shape_groups:
-                predicate_shape_groups[group_key] = []
-            predicate_shape_groups[group_key].append(triple)
+        object_shapes_cache, object_classes_cache = _build_modification_caches(
+            triples, relevant_snapshot
+        )
 
-        processed_predicates = set()
+        predicate_shape_groups, predicate_ordering_cache, entity_position_cache = (
+            _build_predicate_shape_groups(
+                triples,
+                object_shapes_cache,
+                highest_priority_class,
+                entity_shape,
+                entity_uri,
+                relevant_snapshot,
+            )
+        )
 
-        def get_cached_position(triple, predicate_uri):
-            object_value = str(triple[2])
-            position_key = (object_value, predicate_uri)
-            if position_key in entity_position_cache:
-                return entity_position_cache[position_key]
-            return float('inf')
+        ctx = EntityRenderContext(
+            entity_uri=entity_uri,
+            entity_shape=entity_shape,
+            highest_priority_class=highest_priority_class,
+            relevant_snapshot=relevant_snapshot,
+            predicate_ordering_cache=predicate_ordering_cache,
+            entity_position_cache=entity_position_cache,
+            object_shapes_cache=object_shapes_cache,
+            object_classes_cache=object_classes_cache,
+            custom_filter=custom_filter,
+        )
 
-        for predicate in ordered_properties:
-            shape_order = get_shape_order_from_display_rules(highest_priority_class, entity_shape, predicate)
-            predicate_groups = []
-            for group_key, group_triples in predicate_shape_groups.items():
-                predicate_uri, object_shape_uri = group_key
-                if predicate_uri == predicate:
-                    if object_shape_uri and object_shape_uri in shape_order:
-                        shape_priority = shape_order.index(object_shape_uri)
-                    else:
-                        # Objects without shapes or shapes not in display rules go at the end
-                        shape_priority = len(shape_order)
-                    
-                    predicate_groups.append((shape_priority, group_key, group_triples))
-            
-            predicate_groups.sort(key=lambda x: x[0])
-            for _, group_key, group_triples in predicate_groups:
-                processed_predicates.add(group_key)
-                
-                predicate_uri, _ = group_key
-                order_property = predicate_ordering_cache.get(predicate_uri)
-                
-                if order_property and relevant_snapshot:
-                    group_triples = sorted(group_triples, key=lambda t: get_cached_position(t, predicate_uri))
-                
-                for triple in group_triples:
-                    modification_text += format_triple_modification(
-                        triple,
-                        highest_priority_class,
-                        entity_shape,
-                        object_shapes_cache,
-                        object_classes_cache,
-                        relevant_snapshot,
-                        custom_filter,
-                        subject_uri=entity_uri,
-                        predicate_ordering_cache=predicate_ordering_cache,
-                        entity_position_cache=entity_position_cache,
-                    )
+        ordered_text, processed_predicates = _render_ordered_groups(
+            predicate_shape_groups, ordered_properties, ctx
+        )
+        modification_text += ordered_text
 
-        # Then handle any remaining predicate+shape groups not in the ordered list
-        for group_key, group_triples in predicate_shape_groups.items():
-            if group_key not in processed_predicates:
-                # Sort remaining triples by their cached positions too
-                predicate_uri, _ = group_key
-                order_property = predicate_ordering_cache.get(predicate_uri)
-                
-                if order_property and relevant_snapshot:
-                    group_triples = sorted(group_triples, key=lambda t: get_cached_position(t, predicate_uri))
-                
-                for triple in group_triples:
-                    modification_text += format_triple_modification(
-                        triple,
-                        highest_priority_class,
-                        entity_shape,
-                        object_shapes_cache,
-                        object_classes_cache,
-                        relevant_snapshot,
-                        custom_filter,
-                        subject_uri=entity_uri,
-                        predicate_ordering_cache=predicate_ordering_cache,
-                        entity_position_cache=entity_position_cache,
-                    )
+        modification_text += _render_remaining_groups(
+            predicate_shape_groups, processed_predicates, ctx
+        )
 
         modification_text += "</ul>"
 
@@ -1670,72 +2080,50 @@ def generate_modification_text(
 
 def format_triple_modification(
     triple: tuple[URIRef, URIRef, URIRef | Literal],
-    highest_priority_class: str,
-    entity_shape: str,
-    object_shapes_cache: dict,
-    object_classes_cache: dict,
-    relevant_snapshot: Graph | None,
-    custom_filter: Filter,
-    subject_uri: str | None = None,
-    predicate_ordering_cache: dict | None = None,
-    entity_position_cache: dict | None = None,
+    ctx: EntityRenderContext,
 ) -> str:
-    """
-    Format a single triple modification as HTML.
-
-    Args:
-        triple: The RDF triple being modified
-        highest_priority_class: The highest priority class for the subject entity
-        entity_shape: The shape for the subject entity
-        object_shapes_cache: Pre-computed cache of object shapes
-        object_classes_cache: Pre-computed cache of object classes
-        relevant_snapshot: Graph snapshot for context
-        custom_filter (Filter): Filter instance for formatting
-        subject_uri: URI of the subject entity (for ordering queries)
-
-    Returns:
-        str: HTML text describing the modification
-    """
     predicate = triple[1]
     object_value = triple[2]
-    
-    object_shape_uri = object_shapes_cache.get(str(object_value))
-    
-    predicate_label = custom_filter.human_readable_predicate(
-        predicate, (highest_priority_class, entity_shape), object_shape_uri=object_shape_uri
+
+    object_shape_uri = ctx.object_shapes_cache.get(str(object_value))
+
+    predicate_label = ctx.custom_filter.human_readable_predicate(
+        predicate,
+        (ctx.highest_priority_class, ctx.entity_shape),
+        object_shape_uri=object_shape_uri,
     )
 
-    object_class = object_classes_cache.get(str(object_value))  # Get from classes cache
+    object_class = ctx.object_classes_cache.get(str(object_value))
     object_label = get_object_label(
         object_value,
         predicate,
         object_shape_uri,
         object_class,
-        relevant_snapshot,
-        custom_filter,
-        subject_entity_key=(highest_priority_class, entity_shape),
+        ctx.relevant_snapshot,
+        ctx.custom_filter,
+        subject_entity_key=(ctx.highest_priority_class or "", ctx.entity_shape),
     )
-    
+
     order_info = ""
-    if subject_uri and validators.url(str(object_value)):  # type: ignore[arg-type]
-        if predicate_ordering_cache and entity_position_cache:
-            order_property = predicate_ordering_cache.get(str(predicate))
-            if order_property:
-                position_key = (str(object_value), str(predicate))
-                position = entity_position_cache.get(position_key)
-                if position is not None:
-                    order_info = f' <span class="order-position-badge">#{position}</span>'
+    if is_valid_url(str(object_value)):
+        order_property = ctx.predicate_ordering_cache.get(str(predicate))
+        if order_property:
+            position_key = (str(object_value), str(predicate))
+            position = ctx.entity_position_cache.get(position_key)
+            if position is not None:
+                order_info = f' <span class="order-position-badge">#{position}</span>'
 
     return f"""
         <li class='d-flex align-items-center'>
-            <span class='flex-grow-1 d-flex flex-column justify-content-center ms-3 mb-2 w-100'>
+            <span class='flex-grow-1 d-flex flex-column
+            justify-content-center ms-3 mb-2 w-100'>
                 <strong>{predicate_label}{order_info}</strong>
                 <span class="object-value word-wrap">{object_label}</span>
             </span>
         </li>"""
 
 
-def get_object_label(
+def get_object_label(  # noqa: PLR0913
     object_value: str,
     predicate: str,
     object_shape_uri: str | None,
@@ -1760,18 +2148,17 @@ def get_object_label(
         str: A human-readable label for the object value
     """
     predicate = str(predicate)
-    
+
     if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
         return custom_filter.human_readable_class(subject_entity_key)
-    
-    if validators.url(object_value):  # type: ignore[arg-type]
+
+    if is_valid_url(object_value):
         if object_shape_uri or object_class:
             return custom_filter.human_readable_entity(
                 object_value, (object_class, object_shape_uri), snapshot
             )
-        else:
-            return str(object_value)
-    
+        return str(object_value)
+
     return str(object_value)
 
 
@@ -1787,18 +2174,53 @@ def process_modification_data(data: dict) -> tuple[str, list[dict]]:
     """
     subject_uri = data.get("subject")
     if not subject_uri:
-        raise ValueError("No subject URI provided in modification data")
+        msg = "No subject URI provided in modification data"
+        raise ValueError(msg)
 
     modifications = data.get("modifications", [])
     if not modifications:
-        raise ValueError("No modifications provided in data")
+        msg = "No modifications provided in data"
+        raise ValueError(msg)
 
     return subject_uri, modifications
 
 
-def validate_modification(
-    modification: dict, subject_uri: URIRef
+def _validate_removal(
+    predicate_fields: list[dict], predicate: str,
 ) -> tuple[bool, str]:
+    for field in predicate_fields:
+        if field.get("minCount", 0) > 0:
+            return False, f"Cannot remove required predicate: {predicate}"
+    return True, ""
+
+
+def _validate_addition(
+    predicate_fields: list[dict], predicate: str, subject_uri: URIRef,
+) -> tuple[bool, str]:
+    for field in predicate_fields:
+        max_count = field.get("maxCount")
+        if max_count:
+            current_count = get_predicate_count(subject_uri, URIRef(predicate))
+            if current_count >= max_count:
+                return (
+                    False,
+                    f"Maximum count exceeded for predicate: {predicate}",
+                )
+    return True, ""
+
+
+def _resolve_entity_type(
+    modification: dict, subject_uri: URIRef,
+) -> str | None:
+    entity_type = modification.get("entity_type")
+    if not entity_type:
+        entity_types = get_entity_types(subject_uri)
+        if entity_types:
+            entity_type = get_highest_priority_class(entity_types)
+    return entity_type
+
+
+def validate_modification(modification: dict, subject_uri: URIRef) -> tuple[bool, str]:
     form_fields = get_form_fields()
     operation = modification.get("operation")
     if not operation:
@@ -1812,33 +2234,16 @@ def validate_modification(
         return False, f"Invalid operation: {operation}"
 
     if form_fields:
-        entity_type = modification.get("entity_type")
+        entity_type = _resolve_entity_type(modification, subject_uri)
         entity_shape = modification.get("entity_shape")
-
-        # If entity_type is not provided in modification, get it from the database
-        if not entity_type:
-            entity_types = get_entity_types(subject_uri)
-            if entity_types:
-                entity_type = get_highest_priority_class(entity_types)
-
         matching_key = find_matching_form_field(entity_type, entity_shape, form_fields)
 
         if matching_key:
             predicate_fields = form_fields[matching_key].get(predicate, [])
-
-            for field in predicate_fields:
-                if operation == "remove" and field.get("minCount", 0) > 0:
-                    return False, f"Cannot remove required predicate: {predicate}"
-
-                if operation == "add":
-                    current_count = get_predicate_count(subject_uri, URIRef(predicate))
-                    max_count = field.get("maxCount")
-
-                    if max_count and current_count >= max_count:
-                        return (
-                            False,
-                            f"Maximum count exceeded for predicate: {predicate}",
-                        )
+            if operation == "remove":
+                return _validate_removal(predicate_fields, predicate)
+            if operation == "add":
+                return _validate_addition(predicate_fields, predicate, subject_uri)
 
     return True, ""
 
@@ -1876,26 +2281,24 @@ def apply_modifications(
             value = mod["value"]
             datatype = mod.get("datatype", XSD.string)
 
-            if validators.url(value):
+            if is_valid_url(value):
                 object_value = URIRef(value)
             else:
                 object_value = Literal(value, datatype=URIRef(datatype))
 
-            editor.create(
-                subject_uri, predicate, object_value, graph_uri
-            )
+            editor.create(subject_uri, predicate, object_value, graph_uri)
 
         elif operation == "update":
             old_value = mod["oldValue"]
             new_value = mod["newValue"]
             datatype = mod.get("datatype", XSD.string)
 
-            if validators.url(old_value):
+            if is_valid_url(old_value):
                 old_object = URIRef(old_value)
             else:
                 old_object = Literal(old_value, datatype=URIRef(datatype))
 
-            if validators.url(new_value):
+            if is_valid_url(new_value):
                 new_object = URIRef(new_value)
             else:
                 new_object = Literal(new_value, datatype=URIRef(datatype))

@@ -22,7 +22,7 @@ COPY pyproject.toml uv.lock README.md ./
 COPY heritrace ./heritrace
 COPY default_components ./default_components
 
-COPY config.example.py ./config.py
+COPY config.py ./config.py
 COPY example_configurations/opencitations_meta/shacl.ttl ./shacl.ttl
 COPY example_configurations/opencitations_meta/display_rules.yaml ./display_rules.yaml
 COPY babel ./babel

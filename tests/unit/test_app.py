@@ -35,9 +35,6 @@ def test_app_config(app: Flask) -> None:
     # Check ORCID configurations
     assert "ORCID_CLIENT_ID" in app.config
     assert "ORCID_CLIENT_SECRET" in app.config
-    # Check languages configuration
-    assert "LANGUAGES" in app.config
-    assert isinstance(app.config["LANGUAGES"], list)
 
 
 def test_app_routes(app: Flask) -> None:

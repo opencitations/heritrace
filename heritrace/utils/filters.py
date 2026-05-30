@@ -4,22 +4,30 @@
 
 from __future__ import annotations
 
+import logging
 import threading
+from typing import TYPE_CHECKING
 from urllib.parse import quote, urlparse
 
 from dateutil import parser as dateutil_parser
-import validators
 from flask import url_for
 from flask_babel import format_datetime, gettext, lazy_gettext
+from SPARQLWrapper import JSON
+
 from heritrace.apis.orcid import format_orcid_attribution, is_orcid_url
 from heritrace.apis.zenodo import format_zenodo_source, is_zenodo_url
-from rdflib import Dataset, Graph
-from SPARQLWrapper import JSON
+from heritrace.sparql import get_sparql_bindings, select_results
+from heritrace.utils.uri_utils import is_valid_url
+
+if TYPE_CHECKING:
+    from rdflib import Dataset, Graph
 
 
 class Filter:
-    def __init__(self, context: dict, display_rules: list[dict] | None, sparql_endpoint: str):
-        from heritrace.extensions import get_sparql
+    def __init__(
+        self, context: dict, display_rules: list[dict] | None, _sparql_endpoint: str
+    ) -> None:
+        from heritrace.extensions import get_sparql  # noqa: PLC0415
 
         self.context = context
         self.display_rules = display_rules
@@ -27,46 +35,63 @@ class Filter:
         self.sparql.setReturnFormat(JSON)
         self._query_lock = threading.Lock()
 
-    def human_readable_predicate(self, predicate_uri: str, entity_key: tuple[str | None, str | None], is_link: bool = False, object_shape_uri: str | None = None):
+    def human_readable_predicate(  # noqa: C901
+        self,
+        predicate_uri: str,
+        entity_key: tuple[str | None, str | None],
+        *,
+        is_link: bool = False,
+        object_shape_uri: str | None = None,
+    ) -> str:
         """Get human readable label for a predicate in the context of an entity.
-        
+
         Args:
             predicate_uri: URI of the predicate to get label for
             entity_key: Tuple of (class_uri, shape_uri) for the entity context
             is_link: Whether to format as a link
-            object_shape_uri: Shape URI of the object entity (for shape-specific display rules)
-            
+            object_shape_uri: Shape URI of the object entity (for shape-specific display
+            rules)
+
         Returns:
             str: Human readable label for the predicate
         """
-        from heritrace.utils.display_rules_utils import find_matching_rule
-        
+        from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
+            find_matching_rule,
+        )
+
         class_uri, shape_uri = entity_key
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
-        
-        if rule:
-            if "displayProperties" in rule:
-                for display_property in rule["displayProperties"]:
-                    prop_uri = display_property.get("property") or display_property.get("virtual_property")
-                    if prop_uri == str(predicate_uri):
-                        if "displayRules" in display_property:
-                            if object_shape_uri:
-                                for display_rule in display_property["displayRules"]:
-                                    if display_rule.get("shape") == object_shape_uri:
-                                        return display_rule["displayName"]
-                            return display_property["displayRules"][0]["displayName"]
-                        elif "displayName" in display_property:
-                            return display_property["displayName"]
 
-        first_part, _ = split_namespace(predicate_uri) 
+        if rule and "displayProperties" in rule:
+            for display_property in rule["displayProperties"]:
+                prop_uri = display_property.get("property") or display_property.get(
+                    "virtual_property"
+                )
+                if prop_uri == str(predicate_uri):
+                    if "displayRules" in display_property:
+                        if object_shape_uri:
+                            for display_rule in display_property["displayRules"]:
+                                if display_rule.get("shape") == object_shape_uri:
+                                    return display_rule["displayName"]
+                        return display_property["displayRules"][0]["displayName"]
+                    if "displayName" in display_property:
+                        return display_property["displayName"]
+
+        first_part, _ = split_namespace(predicate_uri)
         if first_part in self.context:
             return format_uri_as_readable(predicate_uri)
-        elif validators.url(predicate_uri) and is_link:  # type: ignore[arg-type]
-            return f"<a href='{url_for('entity.about', subject=quote(predicate_uri))}' alt='{gettext('Link to the entity %(entity)s', entity=predicate_uri)}'>{predicate_uri}</a>"
-        else:
-            return str(predicate_uri)
+        if is_valid_url(predicate_uri) and is_link:
+            href = url_for("entity.about", subject=quote(predicate_uri))
+            alt = gettext(
+                "Link to the entity %(entity)s",
+                entity=predicate_uri,
+            )
+            return f"<a href='{href}' alt='{alt}'>{predicate_uri}</a>"
+        return str(predicate_uri)
 
-    def human_readable_class(self, entity_key: tuple[str | None, str | None] | None):
+    def human_readable_class(
+        self, entity_key: tuple[str | None, str | None] | None
+    ) -> str:
         """
         Converts a class URI to human-readable format.
 
@@ -76,8 +101,12 @@ class Filter:
         Returns:
             str: Human-readable representation of the class
         """
-        from heritrace.utils.display_rules_utils import find_matching_rule
-        from heritrace.utils.shacl_utils import determine_shape_for_classes
+        from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
+            find_matching_rule,
+        )
+        from heritrace.utils.shacl_utils import (  # noqa: PLC0415
+            determine_shape_for_classes,
+        )
 
         if entity_key is None:
             return "Unknown"
@@ -99,32 +128,37 @@ class Filter:
         return format_uri_as_readable(class_uri)
 
     def human_readable_entity(
-        self, uri: str, entity_key: tuple[str | None, str | None], graph: Graph | Dataset | None = None
+        self,
+        uri: str,
+        entity_key: tuple[str | None, str | None],
+        graph: Graph | Dataset | None = None,
     ) -> str:
         """Convert an entity URI to human-readable format using display rules.
-        
+
         Args:
             uri: The URI of the entity to format
             entity_key: A tuple containing (class_uri, shape_uri)
             graph: Optional graph to use for fetching URI display values
-            
+
         Returns:
             str: Human-readable representation of the entity
         """
-        from heritrace.utils.display_rules_utils import find_matching_rule
-        
+        from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
+            find_matching_rule,
+        )
+
         class_uri = entity_key[0]
         shape_uri = entity_key[1]
 
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
         if not rule:
             return uri
-            
+
         if "fetchUriDisplay" in rule:
             uri_display = self.get_fetch_uri_display(uri, rule, graph)
             if uri_display:
                 return uri_display
-                
+
         if "displayName" in rule:
             return rule["displayName"]
 
@@ -133,8 +167,7 @@ class Filter:
     def get_fetch_uri_display(
         self, uri: str, rule: dict, graph: Graph | Dataset | None = None
     ) -> str | None:
-        from heritrace.sparql import get_sparql_bindings, select_results
-
+        logger = logging.getLogger(__name__)
         if "fetchUriDisplay" in rule:
             query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri}>")
             if graph is not None:
@@ -143,9 +176,10 @@ class Filter:
                         results = graph.query(query)
                     for row in select_results(results):
                         return str(row[0])
-                except Exception as e:
-                    print(
-                        f"Error executing fetchUriDisplay query: {e}. {query}"
+                except Exception:  # noqa: BLE001
+                    logger.debug(
+                        "Failed to execute fetchUriDisplay query on graph for URI %s",
+                        uri,
                     )
             else:
                 self.sparql.setQuery(query)
@@ -153,16 +187,17 @@ class Filter:
                     bindings = get_sparql_bindings(self.sparql.query().convert())
                     if bindings:
                         first_binding = bindings[0]
-                        first_key = list(first_binding.keys())[0]
+                        first_key = next(iter(first_binding.keys()))
                         return first_binding[first_key]["value"]
-                except Exception as e:
-                    print(f"Error executing fetchUriDisplay query: {e}")
+                except Exception:  # noqa: BLE001
+                    logger.debug(
+                        "Failed to execute fetchUriDisplay SPARQL query for URI %s", uri
+                    )
         return None
 
-    def human_readable_datetime(self, dt_str):
+    def human_readable_datetime(self, dt_str: str) -> str:
         dt = dateutil_parser.parse(dt_str)
         return format_datetime(dt, format="long")
-
 
     def human_readable_primary_source(self, primary_source: str | None) -> str:
         if primary_source is None:
@@ -170,25 +205,32 @@ class Filter:
         if "/prov/se" in primary_source:
             version_url = f"/entity-version/{primary_source.replace('/prov/se', '')}"
             return (
-                f"<a href='{version_url}' alt='{lazy_gettext('Link to the primary source description')}'>"
+                f"<a href='{version_url}'"
+                f" alt='{lazy_gettext('Link to the primary source description')}'>"
                 + lazy_gettext("Version")
                 + " "
                 + primary_source.split("/prov/se/")[-1]
                 + "</a>"
             )
-        else:
-            if validators.url(primary_source):  # type: ignore[arg-type]
-                return f"<a href='{primary_source}' alt='{lazy_gettext('Link to the primary source description')} target='_blank'>{primary_source}</a>"
-            else:
-                return primary_source
+        if is_valid_url(primary_source):
+            alt = lazy_gettext("Link to the primary source description")
+            return (
+                f"<a href='{primary_source}'"
+                f" alt='{alt}"
+                f" target='_blank'>"
+                f"{primary_source}</a>"
+            )
+        return primary_source
 
     def format_source_reference(self, url: str) -> str:
         """
-        Format a source reference for display, handling various URL types including Zenodo DOIs and generic URLs.
+        Format a source reference for display, handling various URL types including
+        Zenodo DOIs and generic URLs.
 
         Args:
             url (str): The source URL or identifier to format
-            human_readable_primary_source (callable): Function to handle generic/unknown source types
+            human_readable_primary_source (callable): Function to handle generic/unknown
+            source types
 
         Returns:
             str: Formatted HTML string representing the source
@@ -196,7 +238,8 @@ class Filter:
         if not url:
             return "Unknown"
 
-        # First check if it's a Zenodo DOI since this is more specific than a generic URL
+        # First check if it's a Zenodo DOI since this is more specific than a generic
+        # URL
         if is_zenodo_url(url):
             return format_zenodo_source(url)
 
@@ -205,7 +248,8 @@ class Filter:
 
     def format_agent_reference(self, url: str) -> str:
         """
-        Format an agent reference for display, handling various URL types including ORCID and others.
+        Format an agent reference for display, handling various URL types including
+        ORCID and others.
 
         Args:
             url (str): The agent URL or identifier to format
@@ -220,7 +264,7 @@ class Filter:
             return format_orcid_attribution(url)
 
         # For now, just return a simple linked version for other URLs
-        if validators.url(url):  # type: ignore[arg-type]
+        if is_valid_url(url):
             return f'<a href="{url}" target="_blank">{url}</a>'
 
         # If it's not a URL at all, just return the raw value
@@ -256,26 +300,25 @@ def split_namespace(uri: str) -> tuple[str, str]:
 def format_uri_as_readable(uri: str) -> str:
     """
     Format a URI as human-readable text by extracting and formatting the local part.
-    
+
     Args:
         uri: The URI to format
-        
+
     Returns:
         Human-readable string
     """
     _, last_part = split_namespace(uri)
-    
+
     if last_part.islower():
         return last_part
-    else:
-        # Convert CamelCase to space-separated words
-        words = []
-        word = ""
-        for char in last_part:
-            if char.isupper() and word:
-                words.append(word)
-                word = char
-            else:
-                word += char
-        words.append(word)
-        return " ".join(words).lower()
+    # Convert CamelCase to space-separated words
+    words = []
+    word = ""
+    for char in last_part:
+        if char.isupper() and word:
+            words.append(word)
+            word = char
+        else:
+            word += char
+    words.append(word)
+    return " ".join(words).lower()

@@ -16,7 +16,14 @@ Display Rules work in conjunction with SHACL schemas. While Display Rules contro
 
 ## File location
 
-Set the path to your display rules file via the `DISPLAY_RULES_PATH` environment variable. Example configurations are available in `example_configurations/`.
+The application reads display rules from `/app/display_rules.yaml` inside the container. To use your own rules, mount the file as a Docker volume:
+
+```yaml
+volumes:
+  - ./my_display_rules.yaml:/app/display_rules.yaml
+```
+
+Example configurations are available in `example_configurations/`.
 
 ## Core concepts
 

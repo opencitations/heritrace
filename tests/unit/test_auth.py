@@ -8,7 +8,7 @@ from flask import Flask, url_for
 from flask.testing import FlaskClient
 
 
-def test_login_authenticated_user(logged_in_client: FlaskClient, app: Flask):
+def test_login_authenticated_user(logged_in_client: FlaskClient, app: Flask) -> None:
     """Test that authenticated users are redirected to catalogue."""
     with app.test_request_context():
         response = logged_in_client.get("/auth/login")
@@ -16,7 +16,7 @@ def test_login_authenticated_user(logged_in_client: FlaskClient, app: Flask):
         assert response.location == url_for("main.catalogue")
 
 
-def test_login_unauthenticated_user(client: FlaskClient, app: Flask):
+def test_login_unauthenticated_user(client: FlaskClient, app: Flask) -> None:
     """Test login route for unauthenticated users."""
     with patch("heritrace.routes.auth.OAuth2Session") as mock_oauth:
         mock_session = MagicMock()
@@ -35,7 +35,7 @@ def test_login_unauthenticated_user(client: FlaskClient, app: Flask):
         mock_session.authorization_url.assert_called_once()
 
 
-def test_callback_success(client: FlaskClient, app: Flask):
+def test_callback_success(client: FlaskClient, app: Flask) -> None:
     """Test successful OAuth callback."""
     test_token = {
         "access_token": "test-token",
@@ -64,7 +64,7 @@ def test_callback_success(client: FlaskClient, app: Flask):
             assert sess.get("_user_id") == "0000-0000-0000-0001"
 
 
-def test_callback_unauthorized_orcid(client: FlaskClient, app: Flask):
+def test_callback_unauthorized_orcid(client: FlaskClient, app: Flask) -> None:
     """Test callback with unauthorized ORCID."""
     test_token = {
         "access_token": "test-token",
@@ -89,7 +89,7 @@ def test_callback_unauthorized_orcid(client: FlaskClient, app: Flask):
         assert response.location == expected_url
 
 
-def test_callback_error(client: FlaskClient, app: Flask):
+def test_callback_error(client: FlaskClient, app: Flask) -> None:
     """Test callback with OAuth error."""
     with client.session_transaction() as sess:
         sess["oauth_state"] = "test-state"
@@ -107,7 +107,7 @@ def test_callback_error(client: FlaskClient, app: Flask):
         assert response.location == expected_url
 
 
-def test_callback_http_to_https(client: FlaskClient, app: Flask):
+def test_callback_http_to_https(client: FlaskClient, app: Flask) -> None:
     """Test callback URL scheme conversion from http to https."""
     with client.session_transaction() as sess:
         sess["oauth_state"] = "test-state"
@@ -125,7 +125,7 @@ def test_callback_http_to_https(client: FlaskClient, app: Flask):
         assert response.location == expected_url
 
 
-def test_callback_already_https(client: FlaskClient, app: Flask):
+def test_callback_already_https(client: FlaskClient, app: Flask) -> None:
     """Test callback with URL already using HTTPS scheme."""
     with client.session_transaction() as sess:
         sess["oauth_state"] = "test-state"
@@ -143,7 +143,7 @@ def test_callback_already_https(client: FlaskClient, app: Flask):
         assert response.location == expected_url
 
 
-def test_logout(logged_in_client: FlaskClient, app: Flask):
+def test_logout(logged_in_client: FlaskClient, app: Flask) -> None:
     """Test logout route."""
     with app.test_request_context():
         expected_url = url_for("main.index")
@@ -155,7 +155,7 @@ def test_logout(logged_in_client: FlaskClient, app: Flask):
         assert "_user_id" not in sess
 
 
-def test_logout_unauthenticated(client: FlaskClient, app: Flask):
+def test_logout_unauthenticated(client: FlaskClient, app: Flask) -> None:
     """Test logout route when user is not authenticated."""
     response = client.get("/auth/logout")
     assert (
@@ -163,22 +163,22 @@ def test_logout_unauthenticated(client: FlaskClient, app: Flask):
     )  # Should return unauthorized for unauthenticated users
 
 
-def test_login_demo_mode(client: FlaskClient, app: Flask):
+def test_login_demo_mode(client: FlaskClient, app: Flask) -> None:
     """Test login in demo mode."""
     with patch.dict("os.environ", {"FLASK_ENV": "demo", "USER_ID": "test_demo"}):
         with app.test_request_context():
             expected_url = url_for("main.catalogue")
         response = client.get("/auth/login")
-        
+
         assert response.status_code == 302
         assert response.location == expected_url
-        
+
         with client.session_transaction() as sess:
             assert sess.get("user_name") == "Demo User (test_demo)"
             assert sess.get("_user_id") == "http://example.org/demo/test_demo"
 
 
-def test_callback_no_safelist(client: FlaskClient, app: Flask):
+def test_callback_no_safelist(client: FlaskClient, app: Flask) -> None:
     """Test callback when safelist is empty."""
     test_token = {
         "access_token": "test-token",

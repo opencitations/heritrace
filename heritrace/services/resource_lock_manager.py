@@ -7,9 +7,12 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
+from typing import cast
 
 from flask_login import current_user
 from redis import Redis
+
+from heritrace.models import User
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -33,31 +36,34 @@ class LockInfo:
     resource_uri: str
     linked_resources: list[str] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.linked_resources is None:
             self.linked_resources = []
 
 
 class ResourceLockManager:
     """Manages resource locking using Redis.
-    
+
     This class uses Redis to manage locks on resources and their linked resources.
     It uses the following Redis key patterns:
     - resource_lock:{resource_uri} - Stores lock info for a resource
-    - reverse_links:{resource_uri} - Stores a set of resources that link to this resource
+    - reverse_links:{resource_uri} - Stores a set of resources that link to this
+    resource
     """
 
-    def __init__(self, redis_client: Redis):  # type: ignore[type-arg]
+    def __init__(self, redis_client: Redis) -> None:  # type: ignore[type-arg]
         self.redis: Redis[str] = redis_client  # type: ignore[assignment]
         self.lock_duration = 300  # 5 minutes in seconds
         self.lock_prefix = "resource_lock:"
-        self.reverse_links_prefix = "reverse_links:"    # Reverse links: resources that link to this resource
+        self.reverse_links_prefix = (
+            "reverse_links:"  # Reverse links: resources that link to this resource
+        )
 
-    def _generate_lock_key(self, resource_uri: str) -> str:
+    def generate_lock_key(self, resource_uri: str) -> str:
         """Generate a Redis key for a resource lock."""
         return f"{self.lock_prefix}{resource_uri}"
-    
-    def _generate_reverse_links_key(self, resource_uri: str) -> str:
+
+    def generate_reverse_links_key(self, resource_uri: str) -> str:
         """Generate a Redis key for storing resources that link to this resource."""
         return f"{self.reverse_links_prefix}{resource_uri}"
 
@@ -71,7 +77,7 @@ class ResourceLockManager:
         Returns:
             LockInfo if resource is locked, None otherwise
         """
-        lock_key = self._generate_lock_key(resource_uri)
+        lock_key = self.generate_lock_key(resource_uri)
         lock_data = self.redis.get(lock_key)
 
         if not lock_data:
@@ -84,7 +90,7 @@ class ResourceLockManager:
             user_name=data["user_name"],
             timestamp=data["timestamp"],
             resource_uri=data["resource_uri"],
-            linked_resources=linked_resources
+            linked_resources=linked_resources,
         )
 
     def check_lock_status(
@@ -102,7 +108,7 @@ class ResourceLockManager:
 
         Returns:
             Tuple of (LockStatus, LockInfo | None)
-        """            
+        """
         try:
             # 1. Check direct lock on the resource
             lock_info = self.get_lock_info(resource_uri)
@@ -111,44 +117,44 @@ class ResourceLockManager:
                 if lock_info.user_id == str(current_user.orcid):
                     return LockStatus.AVAILABLE, lock_info
                 return LockStatus.LOCKED, lock_info
-            
-            # 3. Check if any resource that links to this resource is locked by another user
+
+            # 3. Check if any resource that links to this resource is locked by another
+            # user
             # Get the resources that link to this resource (reverse links)
-            reverse_links_key = self._generate_reverse_links_key(resource_uri)
+            reverse_links_key = self.generate_reverse_links_key(resource_uri)
             reverse_links: set[str] = self.redis.smembers(reverse_links_key)  # type: ignore[assignment]
 
             # Check if any of these resources is locked
             for linking_uri_item in reverse_links:
                 # Use helper method to standardize format
-                linking_uri = self._decode_redis_item(linking_uri_item)
+                linking_uri = self.decode_redis_item(linking_uri_item)
                 linking_lock_info = self.get_lock_info(linking_uri)
-                if linking_lock_info and linking_lock_info.user_id != str(current_user.orcid):
+                if linking_lock_info and linking_lock_info.user_id != str(
+                    current_user.orcid
+                ):
                     # Resource that links to this resource is locked by another user
                     return LockStatus.LOCKED, linking_lock_info
-            
-            # If we get here, the resource is available
-            return LockStatus.AVAILABLE, None
 
         except Exception as e:
-            logger.error(f"Error checking lock status for {resource_uri}: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
+            logger.error(f"Error checking lock status for {resource_uri}: {e}")
             return LockStatus.ERROR, None
+        else:
+            return LockStatus.AVAILABLE, None
 
-    def _decode_redis_item(self, item):
+    def decode_redis_item(self, item: bytes | str) -> str:
         """
         Helper method to decode Redis items that might be bytes or strings.
-        
+
         Args:
             item: The item to decode (bytes or string)
-            
+
         Returns:
             String representation of the item
         """
         if isinstance(item, bytes):
-            return item.decode('utf-8')
+            return item.decode("utf-8")
         return str(item)
-    
+
     def acquire_lock(self, resource_uri: str, linked_resources: list[str]) -> bool:
         """
         Try to acquire a lock on a resource.
@@ -163,62 +169,70 @@ class ResourceLockManager:
             bool: True if lock was acquired, False otherwise
         """
         try:
-            # First check if the resource or any related resource is locked by another user
-            status, lock_info = self.check_lock_status(resource_uri)
+            # First check if the resource or any related resource is locked by another
+            # user
+            status, _lock_info = self.check_lock_status(resource_uri)
             if status == LockStatus.LOCKED:
                 return False
-                
+
             # Update reverse links in Redis
             if linked_resources:
                 # Use a pipeline for better performance
                 pipe = self.redis.pipeline()
-                
+
                 # Store reverse links (resources that are linked to by this resource)
                 for linked_uri in linked_resources:
                     # Add to reverse links (this resource links to the linked resource)
-                    reverse_links_key = self._generate_reverse_links_key(linked_uri)
+                    reverse_links_key = self.generate_reverse_links_key(linked_uri)
                     pipe.sadd(reverse_links_key, str(resource_uri))
                     pipe.expire(reverse_links_key, self.lock_duration)
-                
+
                 pipe.execute()
-                
+
             # After checking all linked resources, proceed with lock creation
-            return self._create_resource_lock(resource_uri, current_user, linked_resources)
+            result = self.create_resource_lock(
+                resource_uri, cast("User", current_user), linked_resources
+            )
 
         except Exception as e:
-            logger.error(f"Error acquiring lock for {resource_uri}: {str(e)}")
+            logger.error(f"Error acquiring lock for {resource_uri}: {e}")
             return False
+        else:
+            return result
 
-    def _create_resource_lock(self, resource_uri: str, current_user, linked_resources: list[str]) -> bool:
+    def create_resource_lock(
+        self, resource_uri: str, current_user: User, linked_resources: list[str]
+    ) -> bool:
         """
         Helper method to create a lock for a resource.
-        
+
         Args:
             resource_uri: URI of the resource to lock
             current_user: The current user object
             linked_resources: List of linked resource URIs
-            
+
         Returns:
             bool: True if lock was created successfully
         """
         try:
             # Create or update lock for the main resource
-            lock_key = self._generate_lock_key(resource_uri)
+            lock_key = self.generate_lock_key(resource_uri)
             lock_data = {
                 "user_id": str(current_user.orcid),
                 "user_name": current_user.name,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "resource_uri": resource_uri,
-                "linked_resources": linked_resources
+                "linked_resources": linked_resources,
             }
 
             # Set the lock with expiration
             self.redis.setex(lock_key, self.lock_duration, json.dumps(lock_data))
-            return True
         except Exception as e:
-            logger.error(f"Error creating lock for {resource_uri}: {str(e)}")
+            logger.error(f"Error creating lock for {resource_uri}: {e}")
             return False
-            
+        else:
+            return True
+
     def release_lock(self, resource_uri: str) -> bool:
         """
         Release a lock on a resource if owned by the current user.
@@ -238,20 +252,22 @@ class ResourceLockManager:
                 return False
 
             # Get the linked resources from the lock info
-            linked_resources = lock_info.linked_resources if lock_info.linked_resources else []
+            linked_resources = lock_info.linked_resources or []
 
             # Delete the lock directly (this will raise an exception in the test)
-            self.redis.delete(self._generate_lock_key(resource_uri))
-            
+            self.redis.delete(self.generate_lock_key(resource_uri))
+
             # Clean up reverse links
             for linked_uri in linked_resources:
                 # Ensure we're working with string URIs
                 linked_uri_str = str(linked_uri)
-                reverse_links_key = self._generate_reverse_links_key(linked_uri_str)
+                reverse_links_key = self.generate_reverse_links_key(linked_uri_str)
                 self.redis.srem(reverse_links_key, str(resource_uri))
-            
-            return True
+
+            result = True
 
         except Exception as e:
-            logger.error(f"Error releasing lock for {resource_uri}: {str(e)}")
+            logger.error(f"Error releasing lock for {resource_uri}: {e}")
             return False
+        else:
+            return result

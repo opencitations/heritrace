@@ -2,7 +2,14 @@
 #
 # SPDX-License-Identifier: ISC
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from flask import current_app
+
+if TYPE_CHECKING:
+    from flask import Flask
 
 
 VIRTUOSO_EXCLUDED_GRAPHS = [
@@ -15,7 +22,7 @@ VIRTUOSO_EXCLUDED_GRAPHS = [
 ]
 
 
-def is_virtuoso(app=None):
+def is_virtuoso(app: Flask | None = None) -> bool:
     """
     Check if the triplestore is Virtuoso.
 
@@ -26,7 +33,5 @@ def is_virtuoso(app=None):
         bool: True if triplestore is Virtuoso, False otherwise
     """
     if app is None:
-        from flask import current_app
-
         app = current_app
     return app.config["DATASET_DB_TRIPLESTORE"].lower() == "virtuoso"

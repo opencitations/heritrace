@@ -7,7 +7,7 @@ from datetime import timezone
 from heritrace.utils.converters import convert_to_datetime
 
 
-def test_convert_to_datetime():
+def test_convert_to_datetime() -> None:
     """Test the convert_to_datetime function."""
     # Test with a datetime string that has timezone info
     dt_with_tz = convert_to_datetime("2023-01-01T12:00:00+00:00")

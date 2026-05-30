@@ -4,41 +4,46 @@
 
 """
 Tests for the entity module.
-These tests focus on the entity routes and functionality using real data on test databases.
+These tests focus on the entity routes and functionality using real data on test
+databases.
 """
 
 import json
-import os
 import time
 import uuid
-from datetime import datetime
-from typing import Generator
+from collections.abc import Generator
+from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 import yaml
 from bs4 import BeautifulSoup
-from rdflib import Dataset
-from default_components.meta_counter_handler import MetaCounterHandler
-from default_components.meta_uri_generator import MetaURIGenerator
 from flask import Flask
 from flask.testing import FlaskClient
-from heritrace.editor import Editor
-from heritrace.extensions import (get_change_tracking_config,
-                                  get_dataset_endpoint,
-                                  get_provenance_endpoint)
-from heritrace.routes.entity import (compute_graph_differences,
-                                     determine_datatype,
-                                     format_triple_modification,
-                                     generate_unique_uri,
-                                     get_entities_to_restore,
-                                     validate_entity_data)
-from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
-from heritrace.utils.filters import Filter
-from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
 from rdflib import RDF, XSD, Dataset, Literal, URIRef
-
 from time_agnostic_library.agnostic_entity import AgnosticEntity
+
+from default_components.meta_counter_handler import MetaCounterHandler
+from default_components.meta_uri_generator import MetaURIGenerator
+from heritrace.editor import Editor
+from heritrace.extensions import (
+    get_change_tracking_config,
+    get_dataset_endpoint,
+    get_provenance_endpoint,
+)
+from heritrace.routes.entity import (
+    EntityRenderContext,
+    compute_graph_differences,
+    determine_datatype,
+    format_triple_modification,
+    generate_unique_uri,
+    get_entities_to_restore,
+    validate_entity_data,
+)
+from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
+from heritrace.utils.filters import Filter, split_namespace
+from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
 
 
 @pytest.fixture
@@ -58,9 +63,7 @@ def test_entity(app: Flask) -> Generator[URIRef, None, None]:
 
         # Generate a unique URI for the test entity using UUID to ensure uniqueness
         test_id = str(uuid.uuid4())
-        entity_uri = URIRef(
-            f"https://w3id.org/oc/meta/br/test_{test_id}"
-        )
+        entity_uri = URIRef(f"https://w3id.org/oc/meta/br/test_{test_id}")
 
         # Create the entity with some basic properties
         graph_uri = (
@@ -187,35 +190,42 @@ def test_create_entity_get(logged_in_client: FlaskClient) -> None:
     assert "entityForm" in response.data.decode()
 
 
-@patch('heritrace.routes.entity.get_form_fields')
-def test_create_entity_post(mock_get_form_fields, logged_in_client: FlaskClient, app: Flask) -> None:
+@patch("heritrace.routes.entity.get_form_fields")
+def test_create_entity_post(
+    mock_get_form_fields, logged_in_client: FlaskClient, app: Flask
+) -> None:
     """Test the POST method for the create entity route."""
     mock_form_fields = {
         ("http://purl.org/spar/fabio/JournalArticle", None): {
-            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [{
-                "fixed_value": "http://purl.org/spar/fabio/JournalArticle"
-            }],
-            "http://purl.org/dc/terms/title": [{
-                "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
-                "minCount": 1,
-                "maxCount": 1
-            }],
-            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [{
-                "datatypes": ["http://www.w3.org/2001/XMLSchema#date"],
-                "minCount": 1,
-                "maxCount": 1
-            }]
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": [
+                {"fixed_value": "http://purl.org/spar/fabio/JournalArticle"}
+            ],
+            "http://purl.org/dc/terms/title": [
+                {
+                    "datatypes": ["http://www.w3.org/2001/XMLSchema#string"],
+                    "minCount": 1,
+                    "maxCount": 1,
+                }
+            ],
+            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                {
+                    "datatypes": ["http://www.w3.org/2001/XMLSchema#date"],
+                    "minCount": 1,
+                    "maxCount": 1,
+                }
+            ],
         }
     }
     mock_get_form_fields.return_value = mock_form_fields
-    
+
+    pub_date_pred = "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
     entity_data = {
         "entity_type": "http://purl.org/spar/fabio/JournalArticle",
         "entity_shape": None,
         "properties": {
             "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": "http://purl.org/spar/fabio/JournalArticle",
             "http://purl.org/dc/terms/title": "New Test Article",
-            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": "2023-02-01",
+            pub_date_pred: "2023-02-01",
         },
     }
 
@@ -225,14 +235,18 @@ def test_create_entity_post(mock_get_form_fields, logged_in_client: FlaskClient,
         content_type="application/x-www-form-urlencoded",
     )
 
-    assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
+    assert response.status_code == 200, (
+        f"Expected status code 200, got {response.status_code}"
+    )
 
     response_data = json.loads(response.data)
     assert "redirect_url" in response_data
     assert response_data["status"] == "success"
 
 
-def test_create_entity_post_validation_error(logged_in_client: FlaskClient, app: Flask) -> None:
+def test_create_entity_post_validation_error(
+    logged_in_client: FlaskClient, app: Flask
+) -> None:
     """Test the POST method for the create entity route with invalid data."""
     # Create invalid entity data (missing entity_type)
     entity_data = {
@@ -270,7 +284,7 @@ def test_restore_version(
             include_merged_entities=True,
             include_reverse_relations=False,
         )
-        history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+        _history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
         # Get the original timestamp
         original_timestamp = next(iter(provenance[str(test_entity)].values()))[
@@ -283,7 +297,7 @@ def test_restore_version(
 
         # Store the initial state (empty or with properties)
         initial_properties = {}
-        for s, p, o, g in initial_graph.quads():
+        for _s, p, o, _g in initial_graph.quads():
             if p not in initial_properties:
                 initial_properties[p] = []
             initial_properties[p].append(o)
@@ -330,17 +344,19 @@ def test_restore_version(
         assert isinstance(modified_graph, Dataset)
 
         modified_properties = {}
-        for s, p, o, g in modified_graph.quads():
+        for _s, p, o, _g in modified_graph.quads():
             if p not in modified_properties:
                 modified_properties[p] = []
             modified_properties[p].append(str(o))
 
         assert len(modified_graph) > 0, "Modified graph should not be empty"
         assert URIRef("http://purl.org/dc/terms/title") in [
-            p for s, p, o, g in modified_graph.quads()  # type: ignore[misc]
+            p
+            for s, p, o, g in modified_graph.quads()  # type: ignore[misc]
         ], "Title should be present in modified graph"
         assert URIRef("http://purl.org/dc/terms/description") in [
-            p for s, p, o, g in modified_graph.quads()  # type: ignore[misc]
+            p
+            for s, p, o, g in modified_graph.quads()  # type: ignore[misc]
         ], "Description should be present in modified graph"
 
     restore_response = logged_in_client.post(
@@ -353,7 +369,7 @@ def test_restore_version(
         restored_graph = fetch_data_graph_for_subject(test_entity)
         assert isinstance(restored_graph, Dataset)
         restored_properties = {}
-        for s, p, o, g in restored_graph.quads():
+        for _s, p, o, _g in restored_graph.quads():
             if p not in restored_properties:
                 restored_properties[p] = []
             restored_properties[p].append(str(o))
@@ -361,25 +377,39 @@ def test_restore_version(
         title_found = False
         description_found = False
 
-        for s, p, o, g in restored_graph.quads():  # type: ignore[misc]
-            if p == URIRef("http://purl.org/dc/terms/title") and "Modified Test Article" in str(o):
+        for _s, p, o, _g in restored_graph.quads():  # type: ignore[misc]
+            if p == URIRef(
+                "http://purl.org/dc/terms/title"
+            ) and "Modified Test Article" in str(o):
                 title_found = True
-            if p == URIRef("http://purl.org/dc/terms/description") and "This is a test description" in str(o):
+            if p == URIRef(
+                "http://purl.org/dc/terms/description"
+            ) and "This is a test description" in str(o):
                 description_found = True
 
-        assert not title_found, "Title 'Modified Test Article' should not be present after restoration"
-        assert not description_found, "Description should not be present after restoration"
+        assert not title_found, (
+            "Title 'Modified Test Article' should not be present after restoration"
+        )
+        assert not description_found, (
+            "Description should not be present after restoration"
+        )
 
-        for predicate, values in initial_properties.items():
+        for predicate in initial_properties:
             if predicate in restored_properties:
-                assert len(restored_properties[predicate]) >= 1, f"Predicate {predicate} should have at least one value"
+                assert len(restored_properties[predicate]) >= 1, (
+                    f"Predicate {predicate} should have at least one value"
+                )
             else:
-                # If the predicate is a system predicate (not one we specifically check), we can skip it
+                # If the predicate is a system predicate (not one we specifically
+                # check), we can skip it
                 pass
 
 
 def test_validate_entity_data(app: Flask) -> None:
-    """Test the validate_entity_data function using real data and the actual validation function."""
+    """
+    Test the validate_entity_data function using real data and the actual validation
+    function.
+    """
     form_fields = {
         ("http://www.w3.org/ns/dcat#Dataset", None): {
             "http://www.w3.org/ns/dcat#title": [
@@ -392,7 +422,7 @@ def test_validate_entity_data(app: Flask) -> None:
             "http://www.w3.org/ns/dcat#keyword": [
                 {
                     "min": 0,
-                    "max": None, 
+                    "max": None,
                     "datatypes": [str(XSD.string)],
                 }
             ],
@@ -433,32 +463,34 @@ def test_validate_entity_data(app: Flask) -> None:
         },
     }
 
-    with app.app_context():
-        with app.test_request_context():
-            with patch('heritrace.routes.entity.get_form_fields', return_value=form_fields):
-                errors = validate_entity_data(valid_data)
-                assert len(errors) == 0, f"Expected no errors, got: {errors}"
-                
-                errors = validate_entity_data(invalid_data)
-                assert len(errors) > 0, "Expected validation errors but got none"
-                assert any(
-                    "title" in error.lower() or "required" in error.lower() for error in errors
-                ), f"Expected error about missing title, got: {errors}"
-                
-                errors = validate_entity_data(invalid_datatype_data)
-                
-                # Because we're using string validation against integers in XSD.string,
-                # this might not actually fail in a real integration test depending on
-                # the implementation details of the validation function
-                # But we can at least verify that validation ran
-                assert isinstance(errors, list), "Expected errors to be a list"
-                
-                # Test validation with too many values
-                errors = validate_entity_data(too_many_values_data)
-                assert len(errors) > 0, "Expected validation errors but got none"
-                assert any(
-                    "title" in error.lower() and "at most" in error.lower() for error in errors
-                ), f"Expected error about too many titles, got: {errors}"
+    with (
+        app.app_context(),
+        app.test_request_context(),
+        patch("heritrace.routes.entity.get_form_fields", return_value=form_fields),
+    ):
+        errors = validate_entity_data(valid_data)
+        assert len(errors) == 0, f"Expected no errors, got: {errors}"
+
+        errors = validate_entity_data(invalid_data)
+        assert len(errors) > 0, "Expected validation errors but got none"
+        assert any(
+            "title" in error.lower() or "required" in error.lower() for error in errors
+        ), f"Expected error about missing title, got: {errors}"
+
+        errors = validate_entity_data(invalid_datatype_data)
+
+        # Because we're using string validation against integers in XSD.string,
+        # this might not actually fail in a real integration test depending on
+        # the implementation details of the validation function
+        # But we can at least verify that validation ran
+        assert isinstance(errors, list), "Expected errors to be a list"
+
+        # Test validation with too many values
+        errors = validate_entity_data(too_many_values_data)
+        assert len(errors) > 0, "Expected validation errors but got none"
+        assert any(
+            "title" in error.lower() and "at most" in error.lower() for error in errors
+        ), f"Expected error about too many titles, got: {errors}"
 
 
 def test_determine_datatype() -> None:
@@ -504,7 +536,7 @@ def test_generate_unique_uri(app: Flask) -> None:
             assert isinstance(uri2, URIRef)
             assert str(uri2).startswith("http://example.org/")
             assert uri1 != uri2  # URIs should be different
-            
+
             counter_handler = MetaCounterHandler()
             counter_handler.port = 41804
 
@@ -533,9 +565,9 @@ def test_generate_unique_uri(app: Flask) -> None:
         finally:
             # Restore the original URI generator
             app.config["URI_GENERATOR"] = original_uri_generator
-            
+
             # Close the Redis connection
-            if 'counter_handler' in locals():
+            if "counter_handler" in locals():
                 counter_handler.close()
 
 
@@ -594,8 +626,7 @@ def test_entity_modification_workflow(app: Flask) -> None:
         time.sleep(2)
 
         # 3. Modifica l'entità
-        print("\n=== MODIFICA DELL'ENTITÀ ===")
-        
+
         # Make sure we create a completely new editor instance
         editor = None
         # Create a fresh editor instance to ensure a new version
@@ -605,16 +636,18 @@ def test_entity_modification_workflow(app: Flask) -> None:
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
-            datetime.now(),  # Use current time to ensure a different timestamp
+            datetime.now(
+                tz=timezone.utc
+            ),  # Use current time to ensure a different timestamp
             dataset_is_quadstore=app.config["DATASET_IS_QUADSTORE"],
         )
-        
+
         # Load the current state of the entity
         current_graph = fetch_data_graph_for_subject(entity_uri)
         assert isinstance(current_graph, Dataset)
         for quad in current_graph.quads():
             editor.g_set.add(quad)  # type: ignore[arg-type]
-            
+
         # Mark these triples as preexisting to track changes properly
         editor.preexisting_finished()
 
@@ -650,7 +683,7 @@ def test_entity_modification_workflow(app: Flask) -> None:
 
         # Verifica che il titolo sia stato aggiunto
         title_found = False
-        for s, p, o, g in updated_graph.quads():
+        for _s, p, o, _g in updated_graph.quads():
             if p == title_predicate and str(o) == new_title:
                 title_found = True
                 break
@@ -658,13 +691,13 @@ def test_entity_modification_workflow(app: Flask) -> None:
 
         # Verifica che la descrizione sia stata aggiunta
         description_found = False
-        for s, p, o, g in updated_graph.quads():  # type: ignore[misc]
+        for _s, p, o, _g in updated_graph.quads():  # type: ignore[misc]
             if p == description_predicate and str(o) == description_value:
                 description_found = True
                 break
-        assert (
-            description_found
-        ), f"La descrizione '{description_value}' non è stata aggiunta"
+        assert description_found, (
+            f"La descrizione '{description_value}' non è stata aggiunta"
+        )
 
         # 5. Verifica la cronologia dell'entità
         change_tracking_config = get_change_tracking_config()
@@ -675,13 +708,13 @@ def test_entity_modification_workflow(app: Flask) -> None:
             include_merged_entities=True,
             include_reverse_relations=False,
         )
-        history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
+        _history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
 
         # Verifica che ci siano almeno due versioni (originale e modificata)
         entity_versions = provenance.get(str(entity_uri), {})
-        assert (
-            len(entity_versions) >= 2
-        ), "Non sono state trovate almeno due versioni dell'entità"
+        assert len(entity_versions) >= 2, (
+            "Non sono state trovate almeno due versioni dell'entità"
+        )
 
         # Ottieni i timestamp ordinati cronologicamente
         timestamps = sorted(
@@ -694,21 +727,23 @@ def test_entity_modification_workflow(app: Flask) -> None:
 
         # Verifica che i timestamp siano in ordine crescente
         for i in range(1, len(timestamps)):
-            assert (
-                timestamps[i][0] > timestamps[i - 1][0]
-            ), f"I timestamp non sono in ordine crescente: {timestamps[i-1][0]} >= {timestamps[i][0]}"
+            assert timestamps[i][0] > timestamps[i - 1][0], (
+                f"I timestamp non sono in ordine crescente:"
+                f" {timestamps[i - 1][0]} >= {timestamps[i][0]}"
+            )
 
 
 def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None:
     """Test creating an entity with nested entities."""
-    
+
+    pub_date_pred = "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
     entity_data = {
         "entity_type": "http://purl.org/spar/fabio/JournalArticle",
         "entity_shape": None,
         "properties": {
             "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": "http://purl.org/spar/fabio/JournalArticle",
             "http://purl.org/dc/terms/title": "Article with Authors",
-            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": "2023-03-01",
+            pub_date_pred: "2023-03-01",
             "http://purl.org/spar/pro/isDocumentContextFor": [
                 {
                     "entity_type": "http://purl.org/spar/pro/RoleInTime",
@@ -723,7 +758,7 @@ def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None
                                 "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": "http://xmlns.com/foaf/0.1/Agent",
                                 "http://xmlns.com/foaf/0.1/givenName": "Test",
                                 "http://xmlns.com/foaf/0.1/familyName": "Author",
-                                "http://xmlns.com/foaf/0.1/name": "Test Author"
+                                "http://xmlns.com/foaf/0.1/name": "Test Author",
                             },
                         },
                     },
@@ -739,14 +774,18 @@ def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None
         content_type="application/x-www-form-urlencoded",
     )
 
-    assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
+    assert response.status_code == 200, (
+        f"Expected status code 200, got {response.status_code}"
+    )
 
     response_data = json.loads(response.data)
     assert "redirect_url" in response_data
     assert response_data["status"] == "success"
     redirect_url = response_data["redirect_url"]
     response = logged_in_client.get(redirect_url)
-    assert response.status_code == 200, f"Failed to load entity page: {response.status_code}"
+    assert response.status_code == 200, (
+        f"Failed to load entity page: {response.status_code}"
+    )
 
     content = response.data.decode()
     assert "Article with Authors" in content
@@ -759,14 +798,13 @@ def test_format_triple_modification(app: Flask) -> None:
 
     # Create a custom filter class that doesn't rely on url_for
     class TestFilter(Filter):
-        def human_readable_predicate(self, predicate_uri, entity_key, is_link=False, object_shape_uri=None):
+        def human_readable_predicate(
+            self, predicate_uri, _entity_key, *, is_link=False, object_shape_uri=None
+        ):
             # Override to avoid using url_for
             # Special handling for the title predicate in the test
             if str(predicate_uri) == "http://purl.org/dc/terms/title":
                 return "title"
-                
-            # Import the standalone function from the module
-            from heritrace.utils.filters import split_namespace
 
             # entity_key is now a tuple (class_uri, shape_uri)
             url = predicate_uri  # Use the predicate_uri directly
@@ -774,22 +812,20 @@ def test_format_triple_modification(app: Flask) -> None:
             if first_part in self.context:
                 if last_part.islower():
                     return last_part
-                else:
-                    words = []
-                    word = ""
-                    for char in last_part:
-                        if char.isupper() and word:
-                            words.append(word)
-                            word = char
-                        else:
-                            word += char
-                    words.append(word)
-                    return " ".join(words).lower()
-            elif is_link:
+                words = []
+                word = ""
+                for char in last_part:
+                    if char.isupper() and word:
+                        words.append(word)
+                        word = char
+                    else:
+                        word += char
+                words.append(word)
+                return " ".join(words).lower()
+            if is_link:
                 return f"<a href='/about/{url}'>{url}</a>"
-            else:
-                return url
-                
+            return url
+
         def human_readable_entity(self, uri, entity_key, graph=None):
             # For testing purposes, return the original URI
             # This ensures the original URI is visible in the test output
@@ -798,170 +834,155 @@ def test_format_triple_modification(app: Flask) -> None:
             return super().human_readable_entity(uri, entity_key, graph)
 
     # Run the test within an application context
-    with app.app_context():
-        with app.test_request_context():
-            # Load context from configuration
-            with open(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "heritrace", "utils", "context.json"), "r") as config_file:
-                context = json.load(config_file)["@context"]
+    with app.app_context(), app.test_request_context():
+        # Load context from configuration
+        context_path = (
+            Path(__file__).parent.parent.parent / "heritrace" / "utils" / "context.json"
+        )
+        with context_path.open() as config_file:
+            context = json.load(config_file)["@context"]
 
-            # Load display rules from configuration
-            display_rules = None
-            display_rules_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "tests", "display_rules.yaml")
-            if os.path.exists(display_rules_path):
-                with open(display_rules_path, "r") as f:
-                    yaml_content = yaml.safe_load(f)
-                    display_rules = yaml_content.get("rules", [])
+        # Load display rules from configuration
+        display_rules = None
+        display_rules_path = (
+            Path(__file__).parent.parent.parent / "tests" / "display_rules.yaml"
+        )
+        if display_rules_path.exists():
+            with display_rules_path.open() as f:
+                yaml_content = yaml.safe_load(f)
+                display_rules = yaml_content.get("rules", [])
 
-            # Create a real filter instance with our custom class
-            real_filter = TestFilter(
-                context, display_rules, "http://example.org/sparql"
+        # Create a real filter instance with our custom class
+        real_filter = TestFilter(context, display_rules, "http://example.org/sparql")
+
+        # Test case 1: Simple string literal
+        subject = URIRef("http://example.org/entity/1")
+        predicate = URIRef("http://purl.org/dc/terms/title")
+        object_value = Literal("Test Title", datatype=XSD.string)
+        triple = (subject, predicate, object_value)
+
+        def _make_ctx(
+            snapshot=None,
+            shapes_cache=None,
+            classes_cache=None,
+        ):
+            return EntityRenderContext(
+                entity_uri=str(subject),
+                entity_shape="http://purl.org/spar/fabio/JournalArticleShape",
+                highest_priority_class="http://purl.org/spar/fabio/JournalArticle",
+                relevant_snapshot=snapshot,
+                predicate_ordering_cache={},
+                entity_position_cache={},
+                object_shapes_cache=shapes_cache or {},
+                object_classes_cache=classes_cache or {},
+                custom_filter=real_filter,
             )
 
-            # Test case 1: Simple string literal
-            subject = URIRef("http://example.org/entity/1")
-            predicate = URIRef("http://purl.org/dc/terms/title")
-            object_value = Literal("Test Title", datatype=XSD.string)
-            triple = (subject, predicate, object_value)
+        result = format_triple_modification(triple, _make_ctx())
 
-            result = format_triple_modification(
-                triple,
-                "http://purl.org/spar/fabio/JournalArticle",
-                "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
-                {},  # object_shapes_cache
-                {},  # object_classes_cache
-                None,  # relevant_snapshot
-                real_filter
-            )
+        # Parse the HTML result - use 'html.parser' and wrap in a root element
+        soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
 
-            # Parse the HTML result - use 'html.parser' and wrap in a root element
-            soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
+        # Find the li element
+        li_element = soup.find("li")
+        assert li_element is not None
+        assert "d-flex" in li_element["class"]
+        assert "align-items-center" in li_element["class"]
 
-            # Find the li element
-            li_element = soup.find("li")
-            assert li_element is not None
-            assert (
-                "d-flex" in li_element["class"]
-                and "align-items-center" in li_element["class"]
-            )
+        # Check the span structure
+        main_span = li_element.find("span")
+        assert main_span is not None
+        assert "flex-grow-1" in main_span["class"]
+        assert "d-flex" in main_span["class"]
+        assert "flex-column" in main_span["class"]
+        assert "justify-content-center" in main_span["class"]
+        assert "ms-3" in main_span["class"]
+        assert "mb-2" in main_span["class"]
+        assert "w-100" in main_span["class"]
 
-            # Check the span structure
-            main_span = li_element.find("span")
-            assert main_span is not None
-            assert "flex-grow-1" in main_span["class"]
-            assert "d-flex" in main_span["class"]
-            assert "flex-column" in main_span["class"]
-            assert "justify-content-center" in main_span["class"]
-            assert "ms-3" in main_span["class"]
-            assert "mb-2" in main_span["class"]
-            assert "w-100" in main_span["class"]
+        # Check the predicate label
+        strong = main_span.find("strong")
+        assert strong is not None
+        assert strong.text.lower() == "title"
 
-            # Check the predicate label
-            strong = main_span.find("strong")
-            assert strong is not None
-            assert strong.text.lower() == "title"
+        # Check the object value
+        object_span = main_span.find("span", class_="object-value")
+        assert object_span is not None
+        assert "word-wrap" in object_span["class"]
+        assert object_span.text == "Test Title"
 
-            # Check the object value
-            object_span = main_span.find("span", class_="object-value")
-            assert object_span is not None
-            assert "word-wrap" in object_span["class"]
-            assert object_span.text == "Test Title"
+        # Test case 2: Date literal
+        predicate = URIRef(
+            "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
+        )
+        object_value = Literal("2023-01-01", datatype=XSD.date)
+        triple = (subject, predicate, object_value)
 
-            # Test case 2: Date literal
-            predicate = URIRef(
-                "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
-            )
-            object_value = Literal("2023-01-01", datatype=XSD.date)
-            triple = (subject, predicate, object_value)
+        result = format_triple_modification(triple, _make_ctx())
 
-            result = format_triple_modification(
-                triple,
-                "http://purl.org/spar/fabio/JournalArticle",
-                "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
-                {},  # object_shapes_cache
-                {},  # object_classes_cache
-                None,  # relevant_snapshot
-                real_filter
-            )
+        # Parse the HTML result
+        soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
+        li_element = soup.find("li")
+        assert li_element is not None
 
-            # Parse the HTML result
-            soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
-            li_element = soup.find("li")
-            assert li_element is not None
+        # Check the predicate label (should be publication date or similar)
+        strong = li_element.find("strong")
+        assert strong is not None
+        assert "publication" in strong.text.lower()
+        assert "date" in strong.text.lower()
 
-            # Check the predicate label (should be publication date or similar)
-            strong = li_element.find("strong")
-            assert strong is not None
-            assert (
-                "publication" in strong.text.lower() and "date" in strong.text.lower()
-            )
+        # Check the object value
+        object_span = li_element.find("span", class_="object-value")
+        assert object_span is not None
+        assert object_span.text == "2023-01-01"
 
-            # Check the object value
-            object_span = li_element.find("span", class_="object-value")
-            assert object_span is not None
-            assert object_span.text == "2023-01-01"
+        # Test case 3: URI object
+        predicate = URIRef("http://purl.org/spar/pro/isDocumentContextFor")
+        object_value = URIRef("http://example.org/role/1")
+        triple = (subject, predicate, object_value)
 
-            # Test case 3: URI object
-            predicate = URIRef("http://purl.org/spar/pro/isDocumentContextFor")
-            object_value = URIRef("http://example.org/role/1")
-            triple = (subject, predicate, object_value)
+        result = format_triple_modification(triple, _make_ctx())
 
-            result = format_triple_modification(
-                triple,
-                "http://purl.org/spar/fabio/JournalArticle",
-                "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
-                {},  # object_shapes_cache
-                {},  # object_classes_cache
-                None,  # relevant_snapshot
-                real_filter
-            )
+        # Parse the HTML result
+        soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
+        li_element = soup.find("li")
+        assert li_element is not None
 
-            # Parse the HTML result
-            soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
-            li_element = soup.find("li")
-            assert li_element is not None
+        # Check the predicate label
+        strong = li_element.find("strong")
+        assert strong is not None
+        predicate_text = strong.text.lower()
+        assert predicate_text == "is document context for"
 
-            # Check the predicate label
-            strong = li_element.find("strong")
-            assert strong is not None
-            predicate_text = strong.text.lower()
-            assert predicate_text == "is document context for"
+        # Check the object value (should be a link)
+        object_span = li_element.find("span", class_="object-value")
+        assert object_span is not None
 
-            # Check the object value (should be a link)
-            object_span = li_element.find("span", class_="object-value")
-            assert object_span is not None
+        assert str(object_value) in object_span.text
 
-            assert str(object_value) in object_span.text
+        # Test case 4: RDF type predicate
+        predicate = RDF.type
+        object_value = URIRef("http://purl.org/spar/fabio/JournalArticle")
+        triple = (subject, predicate, object_value)
 
-            # Test case 4: RDF type predicate
-            predicate = RDF.type
-            object_value = URIRef("http://purl.org/spar/fabio/JournalArticle")
-            triple = (subject, predicate, object_value)
+        result = format_triple_modification(triple, _make_ctx())
 
-            result = format_triple_modification(
-                triple,
-                "http://purl.org/spar/fabio/JournalArticle",
-                "http://purl.org/spar/fabio/JournalArticleShape",  # entity_shape parameter
-                {},  # object_shapes_cache
-                {},  # object_classes_cache
-                None,  # relevant_snapshot
-                real_filter
-            )
+        # Parse the HTML result
+        soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
+        li_element = soup.find("li")
+        assert li_element is not None
 
-            # Parse the HTML result
-            soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
-            li_element = soup.find("li")
-            assert li_element is not None
+        # Check the predicate label
+        strong = li_element.find("strong")
+        assert strong is not None
+        assert "type" in strong.text.lower()
 
-            # Check the predicate label
-            strong = li_element.find("strong")
-            assert strong is not None
-            assert "type" in strong.text.lower()
-
-            # Check the object value
-            object_span = li_element.find("span", class_="object-value")
-            assert object_span is not None
-            object_text = object_span.text.lower()
-            assert "journal" in object_text and "article" in object_text
+        # Check the object value
+        object_span = li_element.find("span", class_="object-value")
+        assert object_span is not None
+        object_text = object_span.text.lower()
+        assert "journal" in object_text
+        assert "article" in object_text
 
 
 def test_entity_version_invalid_timestamp(
@@ -988,38 +1009,46 @@ def test_restore_version_invalid_timestamp(
     assert response.status_code == 404
 
 
-def test_compute_graph_differences():
+def test_compute_graph_differences() -> None:
     """
     Test the compute_graph_differences function.
     """
     # Create two graphs with some differences
     graph1 = Dataset()
-    graph1.add((  # type: ignore[arg-type]
+    graph1.add(
+        (  # type: ignore[arg-type]
             URIRef("http://example.org/s1"),
             URIRef("http://example.org/p1"),
             Literal("o1"),
             URIRef("http://example.org/graph1"),
-        ))
-    graph1.add((  # type: ignore[arg-type]
+        )
+    )
+    graph1.add(
+        (  # type: ignore[arg-type]
             URIRef("http://example.org/s1"),
             URIRef("http://example.org/p2"),
             Literal("o2"),
             URIRef("http://example.org/graph1"),
-        ))
+        )
+    )
 
     graph2 = Dataset()
-    graph2.add((  # type: ignore[arg-type]
+    graph2.add(
+        (  # type: ignore[arg-type]
             URIRef("http://example.org/s1"),
             URIRef("http://example.org/p1"),
             Literal("o1"),
             URIRef("http://example.org/graph1"),
-        ))
-    graph2.add((  # type: ignore[arg-type]
+        )
+    )
+    graph2.add(
+        (  # type: ignore[arg-type]
             URIRef("http://example.org/s1"),
             URIRef("http://example.org/p3"),
             Literal("o3"),
             URIRef("http://example.org/graph1"),
-        ))
+        )
+    )
 
     # Compute differences
     with patch("heritrace.routes.entity.get_dataset_is_quadstore", return_value=True):
@@ -1043,7 +1072,7 @@ def test_compute_graph_differences():
     # regardless of the graph object type
     found_delete = False
     for quad in to_delete:
-        s, p, o, g = quad
+        s, p, o, _g = quad
         if s == expected_s and p == expected_p and o == expected_o:
             found_delete = True
             break
@@ -1051,7 +1080,7 @@ def test_compute_graph_differences():
 
     found_add = False
     for quad in to_add:
-        s, p, o, g = quad
+        s, p, o, _g = quad
         if s == expected_add_s and p == expected_add_p and o == expected_add_o:
             found_add = True
             break

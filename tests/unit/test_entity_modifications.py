@@ -6,17 +6,22 @@
 Unit tests for entity modification functions in entity.py.
 These tests focus on the apply_modifications and validate_modification functionality.
 """
+
 from unittest.mock import MagicMock, patch
 
 import pytest
-from heritrace.routes.entity import (apply_modifications, get_predicate_count,
-                                     process_modification_data,
-                                     validate_modification)
-from heritrace.utils.sparql_utils import get_entity_types
 from rdflib import XSD, Literal, URIRef
 
+from heritrace.routes.entity import (
+    apply_modifications,
+    get_predicate_count,
+    process_modification_data,
+    validate_modification,
+)
+from heritrace.utils.sparql_utils import get_entity_types
 
-def test_apply_modifications_remove():
+
+def test_apply_modifications_remove() -> None:
     """Test apply_modifications with remove operation."""
     # Setup
     editor = MagicMock()
@@ -24,23 +29,18 @@ def test_apply_modifications_remove():
     predicate = "http://example.org/predicate"
     graph_uri = URIRef("http://example.org/graph")
 
-    modifications = [{
-        "operation": "remove",
-        "predicate": predicate
-    }]
+    modifications = [{"operation": "remove", "predicate": predicate}]
 
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
 
     # Verify
     editor.delete.assert_called_once_with(
-        subject_uri,
-        URIRef(predicate),
-        graph=graph_uri
+        subject_uri, URIRef(predicate), graph=graph_uri
     )
 
 
-def test_apply_modifications_add_uri():
+def test_apply_modifications_add_uri() -> None:
     """Test apply_modifications with add operation for URI value."""
     # Setup
     editor = MagicMock()
@@ -49,25 +49,18 @@ def test_apply_modifications_add_uri():
     value = "http://example.org/value"
     graph_uri = URIRef("http://example.org/graph")
 
-    modifications = [{
-        "operation": "add",
-        "predicate": predicate,
-        "value": value
-    }]
+    modifications = [{"operation": "add", "predicate": predicate, "value": value}]
 
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
 
     # Verify
     editor.create.assert_called_once_with(
-        subject_uri,
-        URIRef(predicate),
-        URIRef(value),
-        graph_uri
+        subject_uri, URIRef(predicate), URIRef(value), graph_uri
     )
 
 
-def test_apply_modifications_add_literal():
+def test_apply_modifications_add_literal() -> None:
     """Test apply_modifications with add operation for Literal value."""
     # Setup
     editor = MagicMock()
@@ -77,12 +70,14 @@ def test_apply_modifications_add_literal():
     datatype = str(XSD.integer)
     graph_uri = URIRef("http://example.org/graph")
 
-    modifications = [{
-        "operation": "add",
-        "predicate": predicate,
-        "value": value,
-        "datatype": datatype
-    }]
+    modifications = [
+        {
+            "operation": "add",
+            "predicate": predicate,
+            "value": value,
+            "datatype": datatype,
+        }
+    ]
 
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
@@ -92,11 +87,11 @@ def test_apply_modifications_add_literal():
         subject_uri,
         URIRef(predicate),
         Literal(value, datatype=URIRef(datatype)),
-        graph_uri
+        graph_uri,
     )
 
 
-def test_apply_modifications_update_uri():
+def test_apply_modifications_update_uri() -> None:
     """Test apply_modifications with update operation for URI values."""
     # Setup
     editor = MagicMock()
@@ -106,27 +101,25 @@ def test_apply_modifications_update_uri():
     new_value = "http://example.org/newValue"
     graph_uri = URIRef("http://example.org/graph")
 
-    modifications = [{
-        "operation": "update",
-        "predicate": predicate,
-        "oldValue": old_value,
-        "newValue": new_value
-    }]
+    modifications = [
+        {
+            "operation": "update",
+            "predicate": predicate,
+            "oldValue": old_value,
+            "newValue": new_value,
+        }
+    ]
 
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
 
     # Verify
     editor.update.assert_called_once_with(
-        subject_uri,
-        URIRef(predicate),
-        URIRef(old_value),
-        URIRef(new_value),
-        graph_uri
+        subject_uri, URIRef(predicate), URIRef(old_value), URIRef(new_value), graph_uri
     )
 
 
-def test_apply_modifications_update_literal():
+def test_apply_modifications_update_literal() -> None:
     """Test apply_modifications with update operation for Literal values."""
     # Setup
     editor = MagicMock()
@@ -137,13 +130,15 @@ def test_apply_modifications_update_literal():
     datatype = str(XSD.string)
     graph_uri = URIRef("http://example.org/graph")
 
-    modifications = [{
-        "operation": "update",
-        "predicate": predicate,
-        "oldValue": old_value,
-        "newValue": new_value,
-        "datatype": datatype
-    }]
+    modifications = [
+        {
+            "operation": "update",
+            "predicate": predicate,
+            "oldValue": old_value,
+            "newValue": new_value,
+            "datatype": datatype,
+        }
+    ]
 
     # Execute
     apply_modifications(editor, modifications, subject_uri, graph_uri)
@@ -154,11 +149,11 @@ def test_apply_modifications_update_literal():
         URIRef(predicate),
         Literal(old_value, datatype=URIRef(datatype)),
         Literal(new_value, datatype=URIRef(datatype)),
-        graph_uri
+        graph_uri,
     )
 
 
-def test_apply_modifications_multiple():
+def test_apply_modifications_multiple() -> None:
     """Test apply_modifications with multiple modifications."""
     # Setup
     editor = MagicMock()
@@ -169,15 +164,8 @@ def test_apply_modifications_multiple():
     graph_uri = URIRef("http://example.org/graph")
 
     modifications = [
-        {
-            "operation": "remove",
-            "predicate": predicate1
-        },
-        {
-            "operation": "add",
-            "predicate": predicate2,
-            "value": value
-        }
+        {"operation": "remove", "predicate": predicate1},
+        {"operation": "add", "predicate": predicate2, "value": value},
     ]
 
     # Execute
@@ -185,83 +173,79 @@ def test_apply_modifications_multiple():
 
     # Verify
     editor.delete.assert_called_once_with(
-        subject_uri,
-        URIRef(predicate1),
-        graph=graph_uri
+        subject_uri, URIRef(predicate1), graph=graph_uri
     )
     editor.create.assert_called_once_with(
         subject_uri,
         URIRef(predicate2),
         Literal(value, datatype=URIRef(str(XSD.string))),
-        graph_uri
+        graph_uri,
     )
 
 
-@patch('heritrace.routes.entity.get_form_fields')
-def test_validate_modification_no_operation(mock_get_form_fields):
+@patch("heritrace.routes.entity.get_form_fields")
+def test_validate_modification_no_operation(mock_get_form_fields) -> None:
     """Test validate_modification when no operation is specified."""
     # Setup
-    modification = {
-        "predicate": "http://example.org/predicate"
-    }
+    modification = {"predicate": "http://example.org/predicate"}
     subject_uri = URIRef("http://example.org/entity")
     mock_get_form_fields.return_value = {}
 
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
-    
+
     # Verify
     assert not is_valid
-    assert "No operation specified in modification" == error_message
+    assert error_message == "No operation specified in modification"
 
 
-@patch('heritrace.routes.entity.get_form_fields')
-def test_validate_modification_no_predicate(mock_get_form_fields):
+@patch("heritrace.routes.entity.get_form_fields")
+def test_validate_modification_no_predicate(mock_get_form_fields) -> None:
     """Test validate_modification when no predicate is specified."""
     # Setup
-    modification = {
-        "operation": "add"
-    }
+    modification = {"operation": "add"}
     subject_uri = URIRef("http://example.org/entity")
     mock_get_form_fields.return_value = {}
 
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
-    
+
     # Verify
     assert not is_valid
-    assert "No predicate specified in modification" == error_message
+    assert error_message == "No predicate specified in modification"
 
 
-@patch('heritrace.routes.entity.get_form_fields')
-def test_validate_modification_invalid_operation(mock_get_form_fields):
+@patch("heritrace.routes.entity.get_form_fields")
+def test_validate_modification_invalid_operation(mock_get_form_fields) -> None:
     """Test validate_modification with an invalid operation."""
     # Setup
-    modification = {
-        "operation": "invalid",
-        "predicate": "http://example.org/predicate"
-    }
+    modification = {"operation": "invalid", "predicate": "http://example.org/predicate"}
     subject_uri = URIRef("http://example.org/entity")
     mock_get_form_fields.return_value = {}
 
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
-    
+
     # Verify
     assert not is_valid
-    assert "Invalid operation: invalid" == error_message
+    assert error_message == "Invalid operation: invalid"
 
 
-@patch('heritrace.routes.entity.get_form_fields')
-@patch('heritrace.routes.entity.get_predicate_count')
-@patch('heritrace.routes.entity.get_entity_types')
-@patch('heritrace.routes.entity.get_highest_priority_class')
-def test_validate_modification_remove_required(mock_get_highest_priority, mock_get_entity_types, mock_get_predicate_count, mock_get_form_fields):
+@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity.get_predicate_count")
+@patch("heritrace.routes.entity.get_entity_types")
+@patch("heritrace.routes.entity.get_highest_priority_class")
+def test_validate_modification_remove_required(
+    mock_get_highest_priority,
+    mock_get_entity_types,
+    _mock_get_predicate_count,
+    mock_get_form_fields,
+) -> None:
     """Test validate_modification when trying to remove a required predicate."""
     # Setup mocks
     mock_get_highest_priority.return_value = "http://example.org/Document"
     mock_get_entity_types.return_value = ["http://example.org/Document"]
-    
+
     # Setup form_fields mock
     mock_get_form_fields.return_value = {
         ("http://example.org/Document", None): {
@@ -272,12 +256,9 @@ def test_validate_modification_remove_required(mock_get_highest_priority, mock_g
             ]
         }
     }
-    
+
     # Setup test data
-    modification = {
-        "operation": "remove",
-        "predicate": "http://example.org/title"
-    }
+    modification = {"operation": "remove", "predicate": "http://example.org/title"}
     subject_uri = URIRef("http://example.org/entity")
 
     # Execute
@@ -285,14 +266,19 @@ def test_validate_modification_remove_required(mock_get_highest_priority, mock_g
 
     # Verify
     assert not is_valid
-    assert "Cannot remove required predicate: http://example.org/title" == error_message
+    assert error_message == "Cannot remove required predicate: http://example.org/title"
 
 
-@patch('heritrace.routes.entity.get_form_fields')
-@patch('heritrace.routes.entity.get_predicate_count')
-@patch('heritrace.routes.entity.get_entity_types')
-@patch('heritrace.routes.entity.get_highest_priority_class')
-def test_validate_modification_exceed_max_count(mock_get_highest_priority, mock_get_entity_types, mock_get_predicate_count, mock_get_form_fields):
+@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity.get_predicate_count")
+@patch("heritrace.routes.entity.get_entity_types")
+@patch("heritrace.routes.entity.get_highest_priority_class")
+def test_validate_modification_exceed_max_count(
+    mock_get_highest_priority,
+    mock_get_entity_types,
+    mock_get_predicate_count,
+    mock_get_form_fields,
+) -> None:
     """Test validate_modification when exceeding maxCount for a predicate."""
     # Setup mocks
     mock_get_highest_priority.return_value = "http://example.org/Document"
@@ -311,37 +297,29 @@ def test_validate_modification_exceed_max_count(mock_get_highest_priority, mock_
     }
 
     # Setup test data
-    modification = {
-        "operation": "add",
-        "predicate": "http://example.org/title"
-    }
+    modification = {"operation": "add", "predicate": "http://example.org/title"}
     subject_uri = URIRef("http://example.org/entity")
 
     # Execute
     is_valid, error_message = validate_modification(modification, subject_uri)
-    
+
     # Verify
     assert not is_valid
-    assert "Maximum count exceeded for predicate: http://example.org/title" == error_message
+    assert (
+        error_message
+        == "Maximum count exceeded for predicate: http://example.org/title"
+    )
 
 
-@patch('heritrace.routes.entity.get_sparql')
-def test_get_predicate_count_single_value(mock_get_sparql):
+@patch("heritrace.routes.entity.get_sparql")
+def test_get_predicate_count_single_value(mock_get_sparql) -> None:
     """Test get_predicate_count when there is a single value for the predicate."""
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
 
     # Mock query results
-    mock_results = {
-        "results": {
-            "bindings": [
-                {
-                    "count": {"value": "1"}
-                }
-            ]
-        }
-    }
+    mock_results = {"results": {"bindings": [{"count": {"value": "1"}}]}}
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
@@ -366,23 +344,15 @@ def test_get_predicate_count_single_value(mock_get_sparql):
     assert "COUNT(?o)" in query
 
 
-@patch('heritrace.routes.entity.get_sparql')
-def test_get_predicate_count_multiple_values(mock_get_sparql):
+@patch("heritrace.routes.entity.get_sparql")
+def test_get_predicate_count_multiple_values(mock_get_sparql) -> None:
     """Test get_predicate_count when there are multiple values for the predicate."""
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
 
     # Mock query results
-    mock_results = {
-        "results": {
-            "bindings": [
-                {
-                    "count": {"value": "3"}
-                }
-            ]
-        }
-    }
+    mock_results = {"results": {"bindings": [{"count": {"value": "3"}}]}}
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
@@ -401,23 +371,15 @@ def test_get_predicate_count_multiple_values(mock_get_sparql):
     mock_sparql.query.assert_called_once()
 
 
-@patch('heritrace.routes.entity.get_sparql')
-def test_get_predicate_count_no_values(mock_get_sparql):
+@patch("heritrace.routes.entity.get_sparql")
+def test_get_predicate_count_no_values(mock_get_sparql) -> None:
     """Test get_predicate_count when there are no values for the predicate."""
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
 
     # Mock query results
-    mock_results = {
-        "results": {
-            "bindings": [
-                {
-                    "count": {"value": "0"}
-                }
-            ]
-        }
-    }
+    mock_results = {"results": {"bindings": [{"count": {"value": "0"}}]}}
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
@@ -436,8 +398,8 @@ def test_get_predicate_count_no_values(mock_get_sparql):
     mock_sparql.query.assert_called_once()
 
 
-@patch('heritrace.utils.sparql_utils.get_sparql')
-def test_get_entity_types_single_type(mock_get_sparql):
+@patch("heritrace.utils.sparql_utils.get_sparql")
+def test_get_entity_types_single_type(mock_get_sparql) -> None:
     """Test get_entity_types when the entity has a single type."""
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
@@ -445,13 +407,7 @@ def test_get_entity_types_single_type(mock_get_sparql):
 
     # Mock query results
     mock_results = {
-        "results": {
-            "bindings": [
-                {
-                    "type": {"value": "http://example.org/Person"}
-                }
-            ]
-        }
+        "results": {"bindings": [{"type": {"value": "http://example.org/Person"}}]}
     }
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
@@ -475,8 +431,8 @@ def test_get_entity_types_single_type(mock_get_sparql):
     assert "a ?type" in query
 
 
-@patch('heritrace.utils.sparql_utils.get_sparql')
-def test_get_entity_types_multiple_types(mock_get_sparql):
+@patch("heritrace.utils.sparql_utils.get_sparql")
+def test_get_entity_types_multiple_types(mock_get_sparql) -> None:
     """Test get_entity_types when the entity has multiple types."""
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
@@ -486,15 +442,9 @@ def test_get_entity_types_multiple_types(mock_get_sparql):
     mock_results = {
         "results": {
             "bindings": [
-                {
-                    "type": {"value": "http://example.org/Person"}
-                },
-                {
-                    "type": {"value": "http://example.org/Author"}
-                },
-                {
-                    "type": {"value": "http://example.org/Researcher"}
-                }
+                {"type": {"value": "http://example.org/Person"}},
+                {"type": {"value": "http://example.org/Author"}},
+                {"type": {"value": "http://example.org/Researcher"}},
             ]
         }
     }
@@ -512,26 +462,22 @@ def test_get_entity_types_multiple_types(mock_get_sparql):
     assert types == [
         "http://example.org/Person",
         "http://example.org/Author",
-        "http://example.org/Researcher"
+        "http://example.org/Researcher",
     ]
     mock_sparql.setQuery.assert_called_once()
     mock_sparql.setReturnFormat.assert_called_once()
     mock_sparql.query.assert_called_once()
 
 
-@patch('heritrace.utils.sparql_utils.get_sparql')
-def test_get_entity_types_no_types(mock_get_sparql):
+@patch("heritrace.utils.sparql_utils.get_sparql")
+def test_get_entity_types_no_types(mock_get_sparql) -> None:
     """Test get_entity_types when the entity has no types."""
     # Setup mock SPARQL endpoint
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
 
     # Mock query results with no types
-    mock_results = {
-        "results": {
-            "bindings": []
-        }
-    }
+    mock_results = {"results": {"bindings": []}}
     mock_query = MagicMock()
     mock_query.convert.return_value = mock_results
     mock_sparql.query.return_value = mock_query
@@ -549,7 +495,7 @@ def test_get_entity_types_no_types(mock_get_sparql):
     mock_sparql.query.assert_called_once()
 
 
-def test_process_modification_data_no_subject():
+def test_process_modification_data_no_subject() -> None:
     """Test process_modification_data when no subject URI is provided."""
     # Setup
     data = {
@@ -557,13 +503,13 @@ def test_process_modification_data_no_subject():
             {
                 "operation": "add",
                 "predicate": "http://example.org/predicate",
-                "value": "test value"
+                "value": "test value",
             }
         ]
     }
-    
+
     # Execute and verify
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(
+        ValueError, match="No subject URI provided in modification data"
+    ):
         process_modification_data(data)
-    
-    assert str(exc_info.value) == "No subject URI provided in modification data"

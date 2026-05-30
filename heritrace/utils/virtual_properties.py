@@ -23,17 +23,19 @@ def _validate_entity_data(data: dict) -> str | None:
     Returns:
         entity_type if valid, None if invalid
     """
-    if not data.get('properties'):
+    if not data.get("properties"):
         return None
 
-    entity_type = data.get('entity_type')
+    entity_type = data.get("entity_type")
     if not entity_type:
         return None
 
     return entity_type
 
 
-def _get_virtual_property_configs(entity_type: str, entity_shape: str | None) -> dict[str, dict]:
+def _get_virtual_property_configs(
+    entity_type: str, entity_shape: str | None
+) -> dict[str, dict]:
     """
     Get virtual property configurations for an entity type and shape.
 
@@ -49,16 +51,18 @@ def _get_virtual_property_configs(entity_type: str, entity_shape: str | None) ->
         return {}
 
     virtual_property_configs = {}
-    for prop_config in matching_rule.get('displayProperties', []):
-        if prop_config.get('isVirtual'):
-            display_name = prop_config.get('displayName')
+    for prop_config in matching_rule.get("displayProperties", []):
+        if prop_config.get("isVirtual"):
+            display_name = prop_config.get("displayName")
             if display_name:
                 virtual_property_configs[display_name] = prop_config
 
     return virtual_property_configs
 
 
-def get_virtual_properties_for_entity(highest_priority_class: str, entity_shape: str | None) -> list[tuple[str, dict]]:
+def get_virtual_properties_for_entity(
+    highest_priority_class: str, entity_shape: str | None
+) -> list[tuple[str, dict]]:
     """
     Extract virtual properties configured for a specific entity class and shape.
 
@@ -69,17 +73,25 @@ def get_virtual_properties_for_entity(highest_priority_class: str, entity_shape:
     Returns:
         List of tuples (displayName, property_config)
     """
-    virtual_property_configs = _get_virtual_property_configs(highest_priority_class, entity_shape)
+    virtual_property_configs = _get_virtual_property_configs(
+        highest_priority_class, entity_shape
+    )
 
-    return [(display_name, config) for display_name, config in virtual_property_configs.items()]
+    return [
+        (display_name, config)
+        for display_name, config in virtual_property_configs.items()
+    ]
 
 
-def apply_field_overrides(form_field_data: dict, field_overrides: dict, current_entity_uri: str | None = None) -> dict:
+def apply_field_overrides(
+    form_field_data: dict, field_overrides: dict, current_entity_uri: str | None = None
+) -> dict:
     """
     Apply field overrides to form field data.
 
     Args:
-        form_field_data: Dictionary from form_fields with structure {property_uri: [details]}
+        form_field_data: Dictionary from form_fields with structure {property_uri:
+        [details]}
         field_overrides: Dictionary with field override rules
 
     Returns:
@@ -96,7 +108,9 @@ def apply_field_overrides(form_field_data: dict, field_overrides: dict, current_
                 modified_details = details.copy()
 
                 if "shouldBeDisplayed" in override:
-                    modified_details["shouldBeDisplayed"] = override["shouldBeDisplayed"]
+                    modified_details["shouldBeDisplayed"] = override[
+                        "shouldBeDisplayed"
+                    ]
 
                 if "displayName" in override:
                     modified_details["displayName"] = override["displayName"]
@@ -111,7 +125,11 @@ def apply_field_overrides(form_field_data: dict, field_overrides: dict, current_
 
                 modified_details_list.append(modified_details)
 
-            visible_details = [details for details in modified_details_list if details.get('shouldBeDisplayed', True)]
+            visible_details = [
+                details
+                for details in modified_details_list
+                if details.get("shouldBeDisplayed", True)
+            ]
             if visible_details:
                 modified_data[property_uri] = visible_details
         else:
@@ -119,9 +137,11 @@ def apply_field_overrides(form_field_data: dict, field_overrides: dict, current_
 
     return modified_data
 
+
 def transform_changes_with_virtual_properties(changes: list[dict]) -> list[dict]:
     """
-    Transform a list of changes, expanding virtual properties into actual entity creations/deletions.
+    Transform a list of changes, expanding virtual properties into actual entity
+    creations/deletions.
 
     This is the main function to call from the API to handle virtual properties.
     It processes all changes and returns an expanded list where virtual properties
@@ -139,12 +159,11 @@ def transform_changes_with_virtual_properties(changes: list[dict]) -> list[dict]
         if change["action"] == "create" and change.get("data"):
             data = change["data"]
             modified_data, virtual_entities = process_virtual_properties_in_create_data(
-                data,
-                change.get("subject")
+                data, change.get("subject")
             )
 
             # Only add the main change if there are non-virtual properties remaining
-            if modified_data.get('properties'):
+            if modified_data.get("properties"):
                 main_change = change.copy()
                 main_change["data"] = modified_data
                 processed_changes.append(main_change)
@@ -153,7 +172,7 @@ def transform_changes_with_virtual_properties(changes: list[dict]) -> list[dict]
                 virtual_change = {
                     "action": "create",
                     "subject": None,  # Will be generated
-                    "data": virtual_entity
+                    "data": virtual_entity,
                 }
                 processed_changes.append(virtual_change)
         elif change["action"] == "delete" and change.get("is_virtual", False):
@@ -168,11 +187,14 @@ def transform_changes_with_virtual_properties(changes: list[dict]) -> list[dict]
     return processed_changes
 
 
-def process_virtual_properties_in_create_data(data: dict, subject_uri: str | None = None) -> tuple[dict, list[dict]]:
+def process_virtual_properties_in_create_data(
+    data: dict, subject_uri: str | None = None
+) -> tuple[dict, list[dict]]:
     """
     Process virtual properties in entity creation data.
 
-    Virtual properties need to be transformed into actual entity creations with proper relationships.
+    Virtual properties need to be transformed into actual entity creations with proper
+    relationships.
 
     Args:
         data: The entity creation data containing properties
@@ -187,7 +209,7 @@ def process_virtual_properties_in_create_data(data: dict, subject_uri: str | Non
     if not entity_type:
         return data, []
 
-    entity_shape = data.get('entity_shape')
+    entity_shape = data.get("entity_shape")
     virtual_property_configs = _get_virtual_property_configs(entity_type, entity_shape)
 
     if not virtual_property_configs:
@@ -196,29 +218,31 @@ def process_virtual_properties_in_create_data(data: dict, subject_uri: str | Non
     regular_properties = {}
     virtual_entities = []
 
-    for property_name, property_values in data['properties'].items():
+    for property_name, property_values in data["properties"].items():
         if property_name in virtual_property_configs:
             config = virtual_property_configs[property_name]
             entities = process_virtual_property_values(
-                property_values,
-                config,
-                subject_uri
+                property_values, config, subject_uri
             )
             virtual_entities.extend(entities)
         else:
             regular_properties[property_name] = property_values
 
     modified_data = data.copy()
-    modified_data['properties'] = regular_properties
+    modified_data["properties"] = regular_properties
 
     return modified_data, virtual_entities
 
 
-def transform_entity_creation_with_virtual_properties(structured_data: dict, created_entity_uri: str) -> list[dict]:
+def transform_entity_creation_with_virtual_properties(
+    structured_data: dict, created_entity_uri: str
+) -> list[dict]:
     """
-    Transform virtual properties in entity creation data after the main entity has been created.
+    Transform virtual properties in entity creation data after the main entity has been
+    created.
 
-    This function is specifically for entity creation where we need to process virtual properties
+    This function is specifically for entity creation where we need to process virtual
+    properties
     after the main entity URI is available.
 
     Args:
@@ -232,7 +256,7 @@ def transform_entity_creation_with_virtual_properties(structured_data: dict, cre
     if not entity_type:
         return []
 
-    entity_shape = structured_data.get('entity_shape')
+    entity_shape = structured_data.get("entity_shape")
     virtual_property_configs = _get_virtual_property_configs(entity_type, entity_shape)
 
     if not virtual_property_configs:
@@ -240,13 +264,11 @@ def transform_entity_creation_with_virtual_properties(structured_data: dict, cre
 
     virtual_entities = []
 
-    for property_name, property_values in structured_data['properties'].items():
+    for property_name, property_values in structured_data["properties"].items():
         if property_name in virtual_property_configs:
             config = virtual_property_configs[property_name]
             entities = process_virtual_property_values(
-                property_values,
-                config,
-                created_entity_uri
+                property_values, config, created_entity_uri
             )
             virtual_entities.extend(entities)
 
@@ -255,7 +277,8 @@ def transform_entity_creation_with_virtual_properties(structured_data: dict, cre
 
 def remove_virtual_properties_from_creation_data(structured_data: dict) -> dict:
     """
-    Remove virtual properties from entity creation data, leaving only regular properties.
+    Remove virtual properties from entity creation data,
+    leaving only regular properties.
 
     Args:
         structured_data: The original entity creation data
@@ -267,7 +290,7 @@ def remove_virtual_properties_from_creation_data(structured_data: dict) -> dict:
     if not entity_type:
         return structured_data
 
-    entity_shape = structured_data.get('entity_shape')
+    entity_shape = structured_data.get("entity_shape")
     virtual_property_configs = _get_virtual_property_configs(entity_type, entity_shape)
 
     if not virtual_property_configs:
@@ -275,13 +298,11 @@ def remove_virtual_properties_from_creation_data(structured_data: dict) -> dict:
 
     # Create modified structured data without virtual properties
     modified_data = structured_data.copy()
-    modified_properties = {}
-
-    for property_name, property_values in structured_data['properties'].items():
-        if property_name not in virtual_property_configs:
-            modified_properties[property_name] = property_values
-
-    modified_data['properties'] = modified_properties
+    modified_data["properties"] = {
+        property_name: property_values
+        for property_name, property_values in structured_data["properties"].items()
+        if property_name not in virtual_property_configs
+    }
     return modified_data
 
 
@@ -289,32 +310,34 @@ def transform_virtual_property_deletion(change: dict) -> dict | None:
     """
     Transform a virtual property deletion into an entity deletion.
 
-    When deleting a virtual property value, we need to delete the entire intermediate entity
+    When deleting a virtual property value, we need to
+    delete the entire intermediate entity
     that was created to implement that virtual property.
 
     Args:
         change: The original delete change containing the virtual property.
-                Must have 'is_virtual' flag set to True and 'object' containing the entity URI.
+                Must have 'is_virtual' flag set to True and 'object' containing the
+                entity URI.
 
     Returns:
-        A new delete change for the intermediate entity, or None if not a virtual property
+        A new delete change for the intermediate entity, or None if not a virtual
+        property
     """
-    if not change.get('is_virtual', False):
+    if not change.get("is_virtual", False):
         return None
 
-    object_value = change.get('object')
+    object_value = change.get("object")
     if not object_value:
         return None
 
     # The object value is the URI of the intermediate entity to delete
     # We delete the entire entity (no predicate specified)
-    return {
-        'action': 'delete',
-        'subject': object_value
-    }
+    return {"action": "delete", "subject": object_value}
 
 
-def process_virtual_property_values(values: list, config: dict, subject_uri: str | None = None) -> list[dict]:
+def process_virtual_property_values(
+    values: list, config: dict, subject_uri: str | None = None
+) -> list[dict]:
     """
     Process values of a virtual property to create intermediate entities.
 
@@ -327,38 +350,36 @@ def process_virtual_property_values(values: list, config: dict, subject_uri: str
         List of intermediate entities to create
     """
     entities = []
-    implementation = config.get('implementedVia', {})
-    target = implementation.get('target', {})
-    field_overrides = implementation.get('fieldOverrides', {})
+    implementation = config.get("implementedVia", {})
+    target = implementation.get("target", {})
+    field_overrides = implementation.get("fieldOverrides", {})
 
-    if not target.get('class') and not target.get('shape'):
+    if not target.get("class") and not target.get("shape"):
         return entities
 
     for value in values:
         if isinstance(value, dict):
             entity = {
-                'entity_type': target.get('class'),
-                'entity_shape': target.get('shape'),
-                'properties': {}
+                "entity_type": target.get("class"),
+                "entity_shape": target.get("shape"),
+                "properties": {},
             }
 
-            if 'properties' in value:
-                entity['properties'] = value['properties'].copy()
+            if "properties" in value:
+                entity["properties"] = value["properties"].copy()
 
             for field_uri, override in field_overrides.items():
-                if not override.get('shouldBeDisplayed', True):
-                    if 'value' in override:
-                        override_value = override['value']
-                        if override_value == '${currentEntity}' and subject_uri:
-                            entity['properties'][field_uri] = [{
-                                'is_existing_entity': True,
-                                'entity_uri': subject_uri
-                            }]
-                        else:
-                            entity['properties'][field_uri] = [override_value]
+                if not override.get("shouldBeDisplayed", True) and "value" in override:
+                    override_value = override["value"]
+                    if override_value == "${currentEntity}" and subject_uri:
+                        entity["properties"][field_uri] = [
+                            {"is_existing_entity": True, "entity_uri": subject_uri}
+                        ]
+                    else:
+                        entity["properties"][field_uri] = [override_value]
 
-            if 'entity_shape' in value:
-                entity['entity_shape'] = value['entity_shape']
+            if "entity_shape" in value:
+                entity["entity_shape"] = value["entity_shape"]
 
             entities.append(entity)
 

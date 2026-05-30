@@ -2,50 +2,71 @@
 #
 # SPDX-License-Identifier: ISC
 
+import logging
 import os
 from collections import defaultdict
+from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from rdflib import RDF, Dataset, Graph, Literal, URIRef
-from rdflib.term import Node
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
+from rdflib.term import Node
 from rdflib.util import from_n3
 from SPARQLWrapper import JSON
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 from heritrace.editor import Editor
-from heritrace.extensions import (get_change_tracking_config,
-                                  get_classes_with_multiple_shapes,
-                                  get_custom_filter, get_dataset_is_quadstore,
-                                  get_display_rules, get_provenance_sparql,
-                                  get_shacl_graph, get_sparql)
+from heritrace.extensions import (
+    get_change_tracking_config,
+    get_classes_with_multiple_shapes,
+    get_custom_filter,
+    get_dataset_is_quadstore,
+    get_display_rules,
+    get_provenance_sparql,
+    get_shacl_graph,
+    get_sparql,
+)
 from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.converters import convert_to_datetime
-from heritrace.utils.display_rules_utils import (find_matching_rule,
-                                                 get_highest_priority_class,
-                                                 get_sortable_properties,
-                                                 is_entity_type_visible)
-from heritrace.utils.shacl_utils import (determine_shape_for_classes,
-                                         determine_shape_for_entity_triples)
-from heritrace.utils.virtuoso_utils import (VIRTUOSO_EXCLUDED_GRAPHS,
-                                            is_virtuoso)
+from heritrace.utils.display_rules_utils import (
+    find_matching_rule,
+    get_highest_priority_class,
+    get_sortable_properties,
+    is_entity_type_visible,
+)
+from heritrace.utils.shacl_utils import (
+    determine_shape_for_classes,
+    determine_shape_for_entity_triples,
+)
+from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
 
-_AVAILABLE_CLASSES_CACHE = None
+_cache: dict[str, list | None] = {"available_classes": None}
 
 
 def _parse_n3(value: str) -> Node:
     result = from_n3(value)
     if not isinstance(result, Node):
-        raise ValueError(f"Cannot parse N3 value: {value}")
+        msg = f"Cannot parse N3 value: {value}"
+        raise TypeError(msg)
     return result
 
 
-def n3_set_to_graph(n3_set: set[tuple[str, ...]], is_quadstore: bool) -> Graph | Dataset:
+def n3_set_to_graph(
+    n3_set: set[tuple[str, ...]],
+    *,
+    is_quadstore: bool,
+) -> Graph | Dataset:
     if is_quadstore:
         g = Dataset(default_union=True)
         for tup in n3_set:
-            g.add((_parse_n3(tup[0]), _parse_n3(tup[1]), _parse_n3(tup[2]), _parse_n3(tup[3])))  # type: ignore[arg-type]
+            quad = (
+                _parse_n3(tup[0]),
+                _parse_n3(tup[1]),
+                _parse_n3(tup[2]),
+                _parse_n3(tup[3]),
+            )
+            g.add(quad)  # type: ignore[arg-type]
     else:
         g = Graph()
         for tup in n3_set:
@@ -53,16 +74,21 @@ def n3_set_to_graph(n3_set: set[tuple[str, ...]], is_quadstore: bool) -> Graph |
     return g
 
 
-def convert_to_rdflib_graphs(snapshots: dict, is_quadstore: bool) -> dict:
+def convert_to_rdflib_graphs(snapshots: dict, *, is_quadstore: bool) -> dict:
     converted = {}
     for entity_uri, timestamps in snapshots.items():
         converted[entity_uri] = {}
         for ts, n3_set in timestamps.items():
-            converted[entity_uri][ts] = n3_set_to_graph(n3_set, is_quadstore)
+            converted[entity_uri][ts] = n3_set_to_graph(
+                n3_set, is_quadstore=is_quadstore
+            )
     return converted
 
 
-def get_triples_from_graph(graph_or_dataset, pattern):
+def get_triples_from_graph(
+    graph_or_dataset: Graph | Dataset,
+    pattern: tuple[URIRef | None, URIRef | None, Node | None],
+) -> Generator[tuple[Node, Node, Node]]:
     """
     Get triples from a Graph or Dataset, handling both cases correctly.
 
@@ -83,14 +109,15 @@ def get_triples_from_graph(graph_or_dataset, pattern):
     else:
         # For Graph, use triples() directly
         yield from graph_or_dataset.triples(pattern)
+
+
 COUNT_LIMIT = int(os.getenv("COUNT_LIMIT", "10000"))
 
 
-def precompute_available_classes_cache():
+def precompute_available_classes_cache() -> list[dict[str, str | int]]:
     """Pre-compute available classes cache at application startup."""
-    global _AVAILABLE_CLASSES_CACHE
-    _AVAILABLE_CLASSES_CACHE = get_available_classes()
-    return _AVAILABLE_CLASSES_CACHE
+    _cache["available_classes"] = get_available_classes()
+    return _cache["available_classes"]
 
 
 def _wrap_virtuoso_graph_pattern(pattern: str) -> str:
@@ -100,7 +127,7 @@ def _wrap_virtuoso_graph_pattern(pattern: str) -> str:
             GRAPH ?g {{
                 {pattern}
             }}
-            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            FILTER(?g NOT IN (<{">, <".join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
         """
     return pattern
 
@@ -143,13 +170,19 @@ def _count_class_instances(class_uri: str, limit: int = COUNT_LIMIT) -> tuple:
     return str(count), count
 
 
-def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_multiple_shapes: set, limit: int = COUNT_LIMIT):
+def _get_entities_with_enhanced_shape_detection(
+    class_uri: str, classes_with_multiple_shapes: set[str], limit: int = COUNT_LIMIT
+) -> defaultdict[str, list[dict[str, str]]]:
     """
-    Get entities for a class using enhanced shape detection for classes with multiple shapes.
+    Get entities for a class using enhanced shape detection
+    for classes with multiple shapes.
     Uses LIMIT to avoid loading all entities.
     """
     # Early exit if no classes have multiple shapes
-    if not classes_with_multiple_shapes or class_uri not in classes_with_multiple_shapes:
+    if (
+        not classes_with_multiple_shapes
+        or class_uri not in classes_with_multiple_shapes
+    ):
         return defaultdict(list)
 
     sparql = get_sparql()
@@ -173,7 +206,10 @@ def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_mul
 
     # Fetch triples only for these specific subjects
     subjects_filter = " ".join([f"(<{s}>)" for s in subjects])
-    pattern_with_filter = f"?subject a <{class_uri}> . ?subject ?p ?o . VALUES (?subject) {{ {subjects_filter} }}"
+    pattern_with_filter = (
+        f"?subject a <{class_uri}> . ?subject ?p ?o"
+        f" . VALUES (?subject) {{ {subjects_filter} }}"
+    )
 
     triples_query = f"""
         SELECT ?subject ?p ?o
@@ -199,24 +235,24 @@ def _get_entities_with_enhanced_shape_detection(class_uri: str, classes_with_mul
         if shape_uri:
             entity_key = (class_uri, shape_uri)
             if is_entity_type_visible(entity_key):
-                shape_to_entities[shape_uri].append({
-                    "uri": subject_uri,
-                    "class": class_uri,
-                    "shape": shape_uri
-                })
+                shape_to_entities[shape_uri].append(
+                    {"uri": subject_uri, "class": class_uri, "shape": shape_uri}
+                )
 
     return shape_to_entities
 
 
-def get_classes_from_shacl_or_display_rules():
+def get_classes_from_shacl_or_display_rules() -> list[str]:
     """Extract classes from SHACL shapes or display_rules configuration."""
-    SH_TARGET_CLASS = URIRef("http://www.w3.org/ns/shacl#targetClass")
+    sh_target_class = URIRef("http://www.w3.org/ns/shacl#targetClass")
     classes = set()
 
     shacl_graph = get_shacl_graph()
     if shacl_graph:
-        for shape in shacl_graph.subjects(SH_TARGET_CLASS, None, unique=True):
-            for target_class in shacl_graph.objects(shape, SH_TARGET_CLASS, unique=True):
+        for shape in shacl_graph.subjects(sh_target_class, None, unique=True):
+            for target_class in shacl_graph.objects(
+                shape, sh_target_class, unique=True
+            ):
                 classes.add(str(target_class))
 
     if not classes:
@@ -229,55 +265,57 @@ def get_classes_from_shacl_or_display_rules():
     return list(classes)
 
 
-def get_available_classes():
-    """
-    Fetch and format all available entity classes.
-    Returns cached result if available (computed at startup).
-    For small datasets (< COUNT_LIMIT), cache is invalidated to keep counts accurate.
-    """
-    global _AVAILABLE_CLASSES_CACHE
+def _get_classes_from_config() -> list[str]:
+    classes_from_config = get_classes_from_shacl_or_display_rules()
+    if classes_from_config:
+        return classes_from_config
 
-    if _AVAILABLE_CLASSES_CACHE is not None:
-        total_count = sum(cls.get('count_numeric', 0) for cls in _AVAILABLE_CLASSES_CACHE)
+    return _get_classes_from_sparql()
+
+
+def _get_classes_from_sparql() -> list[str]:
+    sparql = get_sparql()
+    pattern = "?subject a ?class ."
+    wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern)
+
+    query = f"""
+        SELECT DISTINCT ?class
+        WHERE {{
+            {wrapped_pattern}
+        }}
+    """
+
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    class_bindings = get_sparql_bindings(sparql.query().convert())
+    return [r["class"]["value"] for r in class_bindings]
+
+
+def get_available_classes() -> list[dict[str, str | int]]:
+    if _cache["available_classes"] is not None:
+        total_count = sum(
+            cls.get("count_numeric", 0) for cls in _cache["available_classes"]
+        )
         if total_count < COUNT_LIMIT:
-            _AVAILABLE_CLASSES_CACHE = None
+            _cache["available_classes"] = None
 
-    if _AVAILABLE_CLASSES_CACHE is not None:
-        return _AVAILABLE_CLASSES_CACHE
+    if _cache["available_classes"] is not None:
+        return _cache["available_classes"]
 
     custom_filter = get_custom_filter()
-    classes_from_config = get_classes_from_shacl_or_display_rules()
+    class_uris = _get_classes_from_config()
 
-    if classes_from_config:
-        class_uris = classes_from_config
-    else:
-        sparql = get_sparql()
-        pattern = "?subject a ?class ."
-        wrapped_pattern = _wrap_virtuoso_graph_pattern(pattern)
-
-        query = f"""
-            SELECT DISTINCT ?class
-            WHERE {{
-                {wrapped_pattern}
-            }}
-        """
-
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
-        class_bindings = get_sparql_bindings(sparql.query().convert())
-        class_uris = [r["class"]["value"] for r in class_bindings]
-
-    # Count instances for each class
     classes_with_counts = []
     for class_uri in class_uris:
         display_count, numeric_count = _count_class_instances(class_uri)
-        classes_with_counts.append({
-            "uri": class_uri,
-            "display_count": display_count,
-            "numeric_count": numeric_count
-        })
+        classes_with_counts.append(
+            {
+                "uri": class_uri,
+                "display_count": display_count,
+                "numeric_count": numeric_count,
+            }
+        )
 
-    # Sort by count descending
     classes_with_counts.sort(key=lambda x: x["numeric_count"], reverse=True)
 
     available_classes = []
@@ -294,31 +332,39 @@ def get_available_classes():
             for shape_uri, entities in shape_to_entities.items():
                 if entities:
                     entity_key = (class_uri, shape_uri)
-                    available_classes.append({
-                        "uri": class_uri,
-                        "label": custom_filter.human_readable_class(entity_key),
-                        "count": f"{len(entities)}+" if len(entities) >= COUNT_LIMIT else str(len(entities)),
-                        "count_numeric": len(entities),
-                        "shape": shape_uri
-                    })
+                    available_classes.append(
+                        {
+                            "uri": class_uri,
+                            "label": custom_filter.human_readable_class(entity_key),
+                            "count": f"{len(entities)}+"
+                            if len(entities) >= COUNT_LIMIT
+                            else str(len(entities)),
+                            "count_numeric": len(entities),
+                            "shape": shape_uri,
+                        }
+                    )
         else:
             shape_uri = determine_shape_for_classes([class_uri])
             entity_key = (class_uri, shape_uri)
 
             if is_entity_type_visible(entity_key):
-                available_classes.append({
-                    "uri": class_uri,
-                    "label": custom_filter.human_readable_class(entity_key),
-                    "count": class_data["display_count"],
-                    "count_numeric": class_data["numeric_count"],
-                    "shape": shape_uri
-                })
+                available_classes.append(
+                    {
+                        "uri": class_uri,
+                        "label": custom_filter.human_readable_class(entity_key),
+                        "count": class_data["display_count"],
+                        "count_numeric": class_data["numeric_count"],
+                        "shape": shape_uri,
+                    }
+                )
 
     available_classes.sort(key=lambda x: x["label"].lower())
     return available_classes
 
 
-def build_sort_clause(sort_property: str, entity_type: str, shape_uri: str | None = None) -> str:
+def build_sort_clause(
+    sort_property: str, entity_type: str, shape_uri: str | None = None
+) -> str:
     """
     Build a SPARQL sort clause based on the sortableBy configuration.
 
@@ -329,29 +375,33 @@ def build_sort_clause(sort_property: str, entity_type: str, shape_uri: str | Non
 
     Returns:
         SPARQL sort clause or empty string
-    """    
+    """
     if not sort_property or not entity_type:
         return ""
-    
+
     rule = find_matching_rule(entity_type, shape_uri)
-    
+
     if not rule or "sortableBy" not in rule:
         return ""
-        
+
     sort_config = next(
-        (s for s in rule["sortableBy"] if s.get("property") == sort_property),
-        None
+        (s for s in rule["sortableBy"] if s.get("property") == sort_property), None
     )
-    
+
     if not sort_config:
         return ""
-        
+
     return f"OPTIONAL {{ ?subject <{sort_property}> ?sortValue }}"
 
 
-def get_entities_for_class(
-    selected_class, page, per_page, sort_property=None, sort_direction="ASC", selected_shape=None
-):
+def get_entities_for_class(  # noqa: PLR0913, PLR0915
+    selected_class: str,
+    page: int,
+    per_page: int,
+    sort_property: str | None = None,
+    sort_direction: str = "ASC",
+    selected_shape: str | None = None,
+) -> tuple[list[dict[str, str]], int]:
     """
     Retrieve entities for a specific class with pagination and sorting.
 
@@ -360,26 +410,34 @@ def get_entities_for_class(
         page (int): Page number (1-indexed)
         per_page (int): Number of entities per page
         sort_property (str, optional): Property URI to sort by. Defaults to None.
-        sort_direction (str, optional): Sort direction ("ASC" or "DESC"). Defaults to "ASC".
-        selected_shape (str, optional): Shape URI for filtering entities. Defaults to None.
+        sort_direction (str, optional): Sort direction ("ASC" or "DESC"). Defaults to
+        "ASC".
+        selected_shape (str, optional): Shape URI for filtering entities. Defaults to
+        None.
 
     Returns:
         tuple: (list of entities, total count)
 
     Performance Notes:
         - If sort_property is None, NO ORDER BY clause is applied to the SPARQL query.
-          This significantly improves performance for large datasets by avoiding expensive
+          This significantly improves performance for large datasets by avoiding
+          expensive
           sorting operations on URIs.
-        - Without explicit ordering, the triplestore returns results in its natural order,
+        - Without explicit ordering, the triplestore returns results in its natural
+        order,
           which is deterministic within a session but may vary after database reloads.
-        - For optimal performance with large datasets, configure display_rules.yaml without
-          sortableBy properties to prevent users from triggering expensive sort operations.
+        - For optimal performance with large datasets, configure display_rules.yaml
+        without
+          sortableBy properties to prevent users from triggering expensive sort
+          operations.
     """
     sparql = get_sparql()
     custom_filter = get_custom_filter()
     classes_with_multiple_shapes = get_classes_with_multiple_shapes()
 
-    use_shape_filtering = (selected_shape and selected_class in classes_with_multiple_shapes)
+    use_shape_filtering = (
+        selected_shape and selected_class in classes_with_multiple_shapes
+    )
 
     if use_shape_filtering:
         # For shape filtering, we need to fetch entities and check their shape
@@ -411,7 +469,8 @@ def get_entities_for_class(
         triples_query = f"""
             SELECT ?subject ?p ?o
             WHERE {{
-                ?subject a <{selected_class}> . ?subject ?p ?o . VALUES (?subject) {{ {subjects_filter} }}
+                ?subject a <{selected_class}> . ?subject ?p ?o . VALUES (?subject) {{
+                {subjects_filter} }}
             }}
         """
 
@@ -437,9 +496,12 @@ def get_entities_for_class(
 
         if sort_property and sort_direction:
             reverse_sort = sort_direction.upper() == "DESC"
-            filtered_entities.sort(key=lambda x: x["label"].lower(), reverse=reverse_sort)
+            filtered_entities.sort(
+                key=lambda x: x["label"].lower(), reverse=reverse_sort
+            )
 
-        # For shape-filtered results, we can't accurately determine total_count without scanning all entities
+        # For shape-filtered results, we can't accurately determine total_count without
+        # scanning all entities
         # Return the number of filtered entities as an approximation
         total_count = len(filtered_entities)
         return filtered_entities[:per_page], total_count
@@ -455,7 +517,7 @@ def get_entities_for_class(
             order_clause = f"ORDER BY {sort_direction}(?sortValue)"
 
     entities_query = f"""
-        SELECT ?subject {f"?sortValue" if sort_property else ""}
+        SELECT ?subject {"?sortValue" if sort_property else ""}
         WHERE {{
             ?subject a <{selected_class}> . {sort_clause}
         }}
@@ -467,18 +529,21 @@ def get_entities_for_class(
     available_classes = get_available_classes()
 
     class_info = next(
-        (c for c in available_classes
-         if c["uri"] == selected_class and c.get("shape") == selected_shape),
-        None
+        (
+            c
+            for c in available_classes
+            if c["uri"] == selected_class and c.get("shape") == selected_shape
+        ),
+        None,
     )
-    total_count = class_info.get("count_numeric", 0) if class_info else 0
+    total_count = int(class_info["count_numeric"]) if class_info else 0
 
     sparql.setQuery(entities_query)
     sparql.setReturnFormat(JSON)
     entities_bindings = get_sparql_bindings(sparql.query().convert())
 
     entities = []
-    shape = selected_shape if selected_shape else determine_shape_for_classes([selected_class])
+    shape = selected_shape or determine_shape_for_classes([selected_class])
 
     for result in entities_bindings:
         subject_uri = result["subject"]["value"]
@@ -490,13 +555,13 @@ def get_entities_for_class(
     return entities, total_count
 
 
-def get_catalog_data(
+def get_catalog_data(  # noqa: PLR0913
     selected_class: str | None,
     page: int,
     per_page: int,
     sort_property: str | None = None,
     sort_direction: str = "ASC",
-    selected_shape: str | None = None
+    selected_shape: str | None = None,
 ) -> dict:
     """
     Get catalog data with pagination and sorting.
@@ -518,15 +583,18 @@ def get_catalog_data(
     sortable_properties = []
 
     if selected_class:
-        sortable_properties = get_sortable_properties(
-            (selected_class, selected_shape)
-        )
-        
+        sortable_properties = get_sortable_properties((selected_class, selected_shape))
+
         if not sort_property and sortable_properties:
             sort_property = sortable_properties[0]["property"]
-            
+
         entities, total_count = get_entities_for_class(
-            selected_class, page, per_page, sort_property, sort_direction, selected_shape
+            selected_class,
+            page,
+            per_page,
+            sort_property,
+            sort_direction,
+            selected_shape,
         )
 
     return {
@@ -556,22 +624,21 @@ def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
             GRAPH ?g {{
                 <{subject}> ?predicate ?object.
             }}
-            FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
+            FILTER(?g NOT IN (<{">, <".join(VIRTUOSO_EXCLUDED_GRAPHS)}>))
         }}
         """
-    else:
-        if get_dataset_is_quadstore():
-            # For non-virtuoso quadstore, we need to query all graphs
-            query = f"""
+    elif get_dataset_is_quadstore():
+        # For non-virtuoso quadstore, we need to query all graphs
+        query = f"""
             SELECT ?predicate ?object ?g WHERE {{
                 GRAPH ?g {{
                     <{subject}> ?predicate ?object.
                 }}
             }}
             """
-        else:
-            # For regular triplestore
-            query = f"""
+    else:
+        # For regular triplestore
+        query = f"""
             SELECT ?predicate ?object WHERE {{
                 <{subject}> ?predicate ?object.
             }}
@@ -590,7 +657,7 @@ def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
                     obj_data["value"], datatype=URIRef(obj_data["datatype"])
                 )
             else:
-                # Create literal without explicit datatype to match Reader.import_entities_from_triplestore
+                # Omit explicit datatype to match Reader's import behavior
                 value = Literal(obj_data["value"])
         else:
             value = URIRef(obj_data["value"])
@@ -612,17 +679,19 @@ def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
     return g
 
 
-def parse_sparql_update(query) -> dict:
+def parse_sparql_update(query: str) -> dict[str, list[tuple[Node, Node, Node]]]:
     parsed = parseUpdate(query)
     translated = translateUpdate(parsed).algebra
     modifications = {}
 
-    def extract_quads(quads):
-        result = []
-        for _graph, triples in quads.items():
-            for triple in triples:
-                result.append((triple[0], triple[1], triple[2]))
-        return result
+    def extract_quads(
+        quads: defaultdict[Node, list[tuple[Node, Node, Node]]],
+    ) -> list[tuple[Node, Node, Node]]:
+        return [
+            (triple[0], triple[1], triple[2])
+            for triples in quads.values()
+            for triple in triples
+        ]
 
     for operation in translated:
         if operation.name == "DeleteData":
@@ -631,14 +700,14 @@ def parse_sparql_update(query) -> dict:
             else:
                 deletions = operation.triples
             if deletions:
-                modifications.setdefault("Deletions", list()).extend(deletions)
+                modifications.setdefault("Deletions", []).extend(deletions)
         elif operation.name == "InsertData":
             if hasattr(operation, "quads") and operation.quads:
                 additions = extract_quads(operation.quads)
             else:
                 additions = operation.triples
             if additions:
-                modifications.setdefault("Additions", list()).extend(additions)
+                modifications.setdefault("Additions", []).extend(additions)
 
     return modifications
 
@@ -647,10 +716,12 @@ def fetch_current_state_with_related_entities(
     provenance: dict,
 ) -> Graph | Dataset:
     """
-    Fetch the current state of an entity and all its related entities known from provenance.
+    Fetch the current state of an entity and all its related entities known from
+    provenance.
 
     Args:
-        provenance (dict): Dictionary containing provenance metadata for main entity and related entities
+        provenance (dict): Dictionary containing provenance metadata for main entity and
+        related entities
 
     Returns:
         Dataset: A graph containing the current state of all entities
@@ -658,7 +729,7 @@ def fetch_current_state_with_related_entities(
     combined_graph = Dataset() if get_dataset_is_quadstore() else Graph()
 
     # Fetch state for all entities mentioned in provenance
-    for entity_uri in provenance.keys():
+    for entity_uri in provenance:
         current_graph = fetch_data_graph_for_subject(URIRef(entity_uri))
 
         if get_dataset_is_quadstore():
@@ -671,16 +742,24 @@ def fetch_current_state_with_related_entities(
     return combined_graph
 
 
-def get_deleted_entities_with_filtering(
-    page=1,
-    per_page=50,
-    sort_property="deletionTime",
-    sort_direction="DESC",
-    selected_class=None,
-    selected_shape=None,
-):
+def get_deleted_entities_with_filtering(  # noqa: C901, PLR0913
+    page: int = 1,
+    per_page: int = 50,
+    sort_property: str = "deletionTime",
+    sort_direction: str = "DESC",
+    selected_class: str | None = None,
+    selected_shape: str | None = None,
+) -> tuple[
+    list[dict[str, str | list[str] | dict[str, str]]],
+    list[dict[str, str | int]],
+    str | None,
+    str | None,
+    list[dict[str, str]],
+    int,
+]:
     """
-    Fetch and process deleted entities from the provenance graph, with filtering and sorting.
+    Fetch and process deleted entities from the provenance graph, with filtering and
+    sorting.
     """
     sortable_properties = [
         {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
@@ -697,7 +776,8 @@ def get_deleted_entities_with_filtering(
                      <http://www.w3.org/ns/prov#invalidatedAtTime> ?invalidationTime ;
                      <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastValidSnapshot.
 
-        ?lastValidSnapshot <http://www.w3.org/ns/prov#generatedAtTime> ?lastValidSnapshotTime .
+        ?lastValidSnapshot <http://www.w3.org/ns/prov#generatedAtTime>
+        ?lastValidSnapshotTime .
 
         OPTIONAL { ?lastSnapshot <http://www.w3.org/ns/prov#wasAttributedTo> ?agent . }
 
@@ -732,7 +812,9 @@ def get_deleted_entities_with_filtering(
     available_classes = [
         {
             "uri": class_uri,
-            "label": custom_filter.human_readable_class((class_uri, determine_shape_for_classes([class_uri]))),
+            "label": custom_filter.human_readable_class(
+                (class_uri, determine_shape_for_classes([class_uri]))
+            ),
             "count": count,
         }
         for class_uri, count in class_counts.items()
@@ -755,9 +837,7 @@ def get_deleted_entities_with_filtering(
         if selected_shape is None:
             selected_shape = determine_shape_for_classes([selected_class])
         entity_key = (selected_class, selected_shape)
-        sortable_properties.extend(
-            get_sortable_properties(entity_key)
-        )
+        sortable_properties.extend(get_sortable_properties(entity_key))
 
     if selected_class:
         filtered_entities = [
@@ -772,7 +852,14 @@ def get_deleted_entities_with_filtering(
     offset = (page - 1) * per_page
     paginated_entities = filtered_entities[offset : offset + per_page]
 
-    return paginated_entities, available_classes, selected_class, selected_shape, sortable_properties, total_count
+    return (
+        paginated_entities,
+        available_classes,
+        selected_class,
+        selected_shape,
+        sortable_properties,
+        total_count,
+    )
 
 
 def process_deleted_entity(result: dict, sortable_properties: list) -> dict | None:
@@ -786,29 +873,41 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
     last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
 
     agnostic_entity = AgnosticEntity(
-        res=entity_uri, config=change_tracking_config, include_related_objects=True, include_merged_entities=True, include_reverse_relations=True
+        res=entity_uri,
+        config=change_tracking_config,
+        include_related_objects=True,
+        include_merged_entities=True,
+        include_reverse_relations=True,
     )
     state, _, _ = agnostic_entity.get_state_at_time(
         (last_valid_snapshot_time, last_valid_snapshot_time)
     )
-    state = convert_to_rdflib_graphs(state, get_dataset_is_quadstore())
+    state = convert_to_rdflib_graphs(state, is_quadstore=get_dataset_is_quadstore())
 
     if entity_uri not in state:
         return None
 
     last_valid_dt = convert_to_datetime(last_valid_snapshot_time)
-    assert last_valid_dt is not None
+    if last_valid_dt is None:
+        msg = "last_valid_dt must not be None"
+        raise AssertionError(msg)
     last_valid_state: Graph | Dataset = state[entity_uri][last_valid_dt.isoformat()]
 
     entity_types = [
         str(o)
-        for _, _, o in get_triples_from_graph(last_valid_state, (URIRef(entity_uri), RDF.type, None))
+        for _, _, o in get_triples_from_graph(
+            last_valid_state, (URIRef(entity_uri), RDF.type, None)
+        )
     ]
     highest_priority_type = get_highest_priority_class(entity_types)
     if not highest_priority_type:
         return None
     shape = determine_shape_for_classes([highest_priority_type])
-    visible_types = [t for t in entity_types if is_entity_type_visible((t, determine_shape_for_classes([t])))]
+    visible_types = [
+        t
+        for t in entity_types
+        if is_entity_type_visible((t, determine_shape_for_classes([t])))
+    ]
     if not visible_types:
         return None
 
@@ -841,14 +940,23 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
     }
 
 
-def find_orphaned_entities(subject: URIRef, entity_type: str, predicate: URIRef | None = None, object_value: str | None = None):
+def find_orphaned_entities(
+    subject: URIRef,
+    entity_type: str,
+    predicate: URIRef | None = None,
+    object_value: str | None = None,
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     sparql = get_sparql()
     display_rules = get_display_rules()
 
     intermediate_classes = set()
 
     for rule in display_rules:
-        if "target" in rule and "class" in rule["target"] and rule["target"]["class"] == entity_type:
+        if (
+            "target" in rule
+            and "class" in rule["target"]
+            and rule["target"]["class"] == entity_type
+        ):
             for prop in rule.get("displayProperties", []):
                 if "intermediateRelation" in prop:
                     intermediate_classes.add(prop["intermediateRelation"]["class"])
@@ -858,28 +966,28 @@ def find_orphaned_entities(subject: URIRef, entity_type: str, predicate: URIRef 
     WHERE {{
         {f"<{subject}> <{predicate}> ?entity ." if predicate and object_value else ""}
         {f"FILTER(?entity = <{object_value}>)" if predicate and object_value else ""}
-        
+
         # If no specific predicate, get all connected entities
         {f"<{subject}> ?p ?entity ." if not predicate else ""}
-        
+
         FILTER(isIRI(?entity))
         ?entity a ?type .
-        
+
         # No incoming references from other entities
         FILTER NOT EXISTS {{
             ?other ?anyPredicate ?entity .
             FILTER(?other != <{subject}>)
         }}
-        
+
         # No outgoing references to active entities
         FILTER NOT EXISTS {{
             ?entity ?outgoingPredicate ?connectedEntity .
             ?connectedEntity ?furtherPredicate ?furtherObject .
             {f"FILTER(?connectedEntity != <{subject}>)" if not predicate else ""}
         }}
-        
+
         # Exclude intermediate relation entities
-        FILTER(?type NOT IN (<{f">, <".join(intermediate_classes)}>))
+        FILTER(?type NOT IN (<{">, <".join(intermediate_classes)}>))
     }}
     """
 
@@ -889,12 +997,13 @@ def find_orphaned_entities(subject: URIRef, entity_type: str, predicate: URIRef 
         SELECT DISTINCT ?entity ?type
         WHERE {{
             <{object_value}> a ?type .
-            FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))            
+            FILTER(?type IN (<{">, <".join(intermediate_classes)}>))
             BIND(<{object_value}> AS ?entity)
         }}
         """
     else:
-        # Se stiamo cancellando l'intera entità, trova tutte le entità intermedie collegate
+        # Se stiamo cancellando l'intera entità, trova tutte le entità intermedie
+        # collegate
         intermediate_query = f"""
         SELECT DISTINCT ?entity ?type
         WHERE {{
@@ -902,12 +1011,12 @@ def find_orphaned_entities(subject: URIRef, entity_type: str, predicate: URIRef 
             {{
                 <{subject}> ?p ?entity .
                 ?entity a ?type .
-                FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
+                FILTER(?type IN (<{">, <".join(intermediate_classes)}>))
             }} UNION {{
                 ?entity ?p <{subject}> .
                 ?entity a ?type .
-                FILTER(?type IN (<{f">, <".join(intermediate_classes)}>))
-            }}        
+                FILTER(?type IN (<{">, <".join(intermediate_classes)}>))
+            }}
         }}
         """
 
@@ -931,7 +1040,13 @@ def find_orphaned_entities(subject: URIRef, entity_type: str, predicate: URIRef 
     return orphaned, intermediate_orphans
 
 
-def import_entity_graph(editor: Editor, subject: URIRef, max_depth: int = 5, include_referencing_entities: bool = False):
+def import_entity_graph(
+    editor: Editor,
+    subject: URIRef,
+    max_depth: int = 5,
+    *,
+    include_referencing_entities: bool = False,
+) -> Editor:
     imported_subjects: set[str] = set()
     subject_str = str(subject)
 
@@ -963,11 +1078,14 @@ def import_entity_graph(editor: Editor, subject: URIRef, max_depth: int = 5, inc
 
         for result in ref_bindings:
             referencing_subject = result["s"]["value"]
-            if referencing_subject != subject_str and referencing_subject not in imported_subjects:
+            if (
+                referencing_subject != subject_str
+                and referencing_subject not in imported_subjects
+            ):
                 imported_subjects.add(referencing_subject)
                 editor.import_entity(URIRef(referencing_subject))
 
-    def recursive_import(current_subject: str, current_depth: int):
+    def recursive_import(current_subject: str, current_depth: int) -> None:
         if current_depth > max_depth or current_subject in imported_subjects:
             return
 
@@ -1012,49 +1130,59 @@ def get_entity_types(subject_uri: str) -> list[str]:
     return [result["type"]["value"] for result in bindings]
 
 
-def collect_referenced_entities(data, existing_entities=None):
+def collect_referenced_entities(
+    data: dict[str, str | dict | list] | list | str,
+    existing_entities: set[str] | None = None,
+) -> set[str]:
     """
     Recursively collect all URIs of existing entities referenced in the structured data.
-    
-    This function traverses the structured data to find explicit references to existing entities
+
+    This function traverses the structured data to find explicit references to existing
+    entities
     that need to be imported into the editor before calling preexisting_finished().
-    
+
     Args:
         data: The structured data (can be dict, list, or string)
         existing_entities: Set to collect URIs (created if None)
-        
+
     Returns:
         Set of URIs (strings) of existing entities that should be imported
     """
-    
+
     if existing_entities is None:
         existing_entities = set()
 
     if isinstance(data, dict):
         if data.get("is_existing_entity") is True and "entity_uri" in data:
-            existing_entities.add(data["entity_uri"])
-        
+            existing_entities.add(str(data["entity_uri"]))
+
         # If it's an entity with entity_type, it's a new entity being created
         elif "entity_type" in data:
             properties = data.get("properties", {})
-            for prop_values in properties.values():
-                collect_referenced_entities(prop_values, existing_entities)
+            if isinstance(properties, dict):
+                for prop_values in properties.values():
+                    collect_referenced_entities(prop_values, existing_entities)
         else:
             for value in data.values():
                 collect_referenced_entities(value, existing_entities)
-                
+
     elif isinstance(data, list):
         for item in data:
             collect_referenced_entities(item, existing_entities)
-                
+
     return existing_entities
 
 
-def import_referenced_entities(editor: Editor, structured_data):
+def import_referenced_entities(
+    editor: Editor,
+    structured_data: dict[str, str | dict | list] | list | str,
+) -> None:
     referenced_entities = collect_referenced_entities(structured_data)
     for entity_uri in referenced_entities:
         try:
             editor.import_entity(URIRef(entity_uri))
-        except Exception as e:
-            print(f"Warning: Could not import entity {entity_uri}: {e}")
+        except Exception:  # noqa: BLE001, PERF203
+            logging.getLogger(__name__).debug(
+                "Failed to import referenced entity %s", entity_uri
+            )
             continue

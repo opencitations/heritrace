@@ -21,7 +21,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY pyproject.toml uv.lock README.md ./
 COPY heritrace ./heritrace
 
-COPY config.example.py ./config.py
+COPY config.py ./config.py
 COPY dev/generate_ssl_cert.py ./generate_ssl_cert.py
 
 RUN uv sync --locked

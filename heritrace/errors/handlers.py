@@ -8,5 +8,5 @@ errors_bp = Blueprint("errors", __name__)
 
 
 @errors_bp.app_errorhandler(404)
-def page_not_found(e):
+def page_not_found(_e: Exception) -> tuple[str, int]:
     return render_template("errors/404.jinja"), 404

@@ -14,6 +14,7 @@ services:
     volumes:
       - ../heritrace:/app/heritrace
       - ../app.py:/app/app.py
+      - ../config.py:/app/config.py
       - ../default_components:/app/default_components
       - ../pyproject.toml:/app/pyproject.toml
       - ../uv.lock:/app/uv.lock

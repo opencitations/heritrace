@@ -6,8 +6,7 @@
 Tests for the main.py routes.
 """
 
-from unittest.mock import MagicMock, patch
-from unittest.mock import call
+from unittest.mock import MagicMock, call, patch
 
 from flask.testing import FlaskClient
 from SPARQLWrapper import JSON
@@ -43,7 +42,7 @@ def test_catalogue_route_authenticated(
         "total_pages": 1,
         "sortable_properties": [],
         "sort_property": None,
-        "sort_direction": "ASC"
+        "sort_direction": "ASC",
     }
 
     response = logged_in_client.get("/catalogue")
@@ -96,7 +95,9 @@ def test_time_vault_route_authenticated(
         "/time-vault?page=2&per_page=100&class=test_class&sort_property=name&sort_direction=DESC"
     )
     assert response.status_code == 200
-    mock_get_deleted_entities.assert_called_with(2, 100, "name", "DESC", "test_class", None)
+    mock_get_deleted_entities.assert_called_with(
+        2, 100, "name", "DESC", "test_class", None
+    )
 
 
 def test_dataset_endpoint_route_unauthenticated(client: FlaskClient) -> None:
@@ -116,7 +117,7 @@ def test_dataset_endpoint_route_authenticated(
     # Mock the SPARQLWrapper
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Mock the query result
     mock_query_result = MagicMock()
     mock_query_result.convert.return_value = {"results": {"bindings": []}}
@@ -126,7 +127,7 @@ def test_dataset_endpoint_route_authenticated(
         "/dataset-endpoint", data={"query": "SELECT * WHERE {?s ?p ?o}"}
     )
     assert response.status_code == 200
-    
+
     # Verify the query was set correctly
     mock_sparql.setQuery.assert_called_with("SELECT * WHERE {?s ?p ?o}")
     mock_sparql.setReturnFormat.assert_called_with(JSON)
@@ -144,19 +145,16 @@ def test_dataset_endpoint_retry_success(
     # Mock the SPARQLWrapper
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Set up query to fail once then succeed
     mock_query_result = MagicMock()
     mock_query_result.convert.return_value = {"results": {"bindings": []}}
-    mock_sparql.query.side_effect = [
-        Exception("Temporary failure"),
-        mock_query_result
-    ]
+    mock_sparql.query.side_effect = [Exception("Temporary failure"), mock_query_result]
 
     response = logged_in_client.post(
         "/dataset-endpoint", data={"query": "SELECT * WHERE {?s ?p ?o}"}
     )
-    
+
     assert response.status_code == 200
     assert mock_sparql.query.call_count == 2
     assert mock_sleep.call_count == 1
@@ -174,7 +172,7 @@ def test_dataset_endpoint_all_retries_fail(
     # Mock the SPARQLWrapper
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    
+
     # Set up query to always fail
     error_msg = "SPARQL endpoint is down"
     mock_sparql.query.side_effect = Exception(error_msg)
@@ -182,16 +180,18 @@ def test_dataset_endpoint_all_retries_fail(
     response = logged_in_client.post(
         "/dataset-endpoint", data={"query": "SELECT * WHERE {?s ?p ?o}"}
     )
-    
+
     assert response.status_code == 500
     response_data = response.get_json()
     assert response_data["error"] == error_msg
     assert mock_sparql.query.call_count == 3  # Initial try + 2 retries
     assert mock_sleep.call_count == 2  # Called for each retry
-    mock_sleep.assert_has_calls([
-        call(1),  # First retry delay
-        call(2)   # Second retry delay (exponential backoff)
-    ])
+    mock_sleep.assert_has_calls(
+        [
+            call(1),  # First retry delay
+            call(2),  # Second retry delay (exponential backoff)
+        ]
+    )
 
 
 def test_endpoint_route_unauthenticated(client: FlaskClient) -> None:
@@ -200,11 +200,14 @@ def test_endpoint_route_unauthenticated(client: FlaskClient) -> None:
     assert response.status_code == 302  # Redirect to login
 
 
-@patch("heritrace.routes.main.get_dataset_endpoint", return_value="http://example.com/sparql")
+@patch(
+    "heritrace.routes.main.get_dataset_endpoint",
+    return_value="http://example.com/sparql",
+)
 @patch("heritrace.routes.main.render_template")
 def test_endpoint_route_authenticated(
     mock_render_template: MagicMock,
-    mock_get_endpoint: MagicMock,
+    _mock_get_endpoint: MagicMock,
     logged_in_client: FlaskClient,
 ) -> None:
     """Test that the endpoint route works when authenticated."""

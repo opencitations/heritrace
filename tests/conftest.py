@@ -3,21 +3,22 @@
 # SPDX-License-Identifier: ISC
 
 import subprocess
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient, FlaskCliRunner
 from redis import Redis
+
 from tests.test_config import TestConfig
 
 COMPOSE_FILE = str(Path(__file__).parent / "docker-compose.yml")
 
 VIRTUOSO_GRANTS = (
-    "GRANT SPARQL_UPDATE TO \"SPARQL\"; "
-    "GRANT execute ON \"DB.DBA.SPARQL_INSERT_DICT_CONTENT\" TO \"SPARQL\"; "
-    "GRANT execute ON \"DB.DBA.SPARQL_DELETE_DICT_CONTENT\" TO \"SPARQL\"; "
+    'GRANT SPARQL_UPDATE TO "SPARQL"; '
+    'GRANT execute ON "DB.DBA.SPARQL_INSERT_DICT_CONTENT" TO "SPARQL"; '
+    'GRANT execute ON "DB.DBA.SPARQL_DELETE_DICT_CONTENT" TO "SPARQL"; '
     "DB.DBA.RDF_DEFAULT_USER_PERMS_SET ('nobody', 7);"
 )
 
@@ -25,8 +26,14 @@ VIRTUOSO_GRANTS = (
 def _grant_virtuoso_permissions(container: str) -> None:
     subprocess.run(
         [
-            "docker", "exec", container,
-            "/opt/virtuoso-opensource/bin/isql", "-U", "dba", "-P", "dba",
+            "docker",
+            "exec",
+            container,
+            "/opt/virtuoso-opensource/bin/isql",
+            "-U",
+            "dba",
+            "-P",
+            "dba",
             f"exec={VIRTUOSO_GRANTS}",
         ],
         check=True,
@@ -68,7 +75,7 @@ def redis_client() -> Generator[Redis, None, None]:
 
 
 @pytest.fixture
-def logged_in_client(client: FlaskClient) -> Generator[FlaskClient, None, None]:
+def logged_in_client(client: FlaskClient) -> FlaskClient:
     with client.session_transaction() as sess:
         sess["user_id"] = "0000-0000-0000-0000"
         sess["user_name"] = "Test User"
@@ -87,4 +94,4 @@ def logged_in_client(client: FlaskClient) -> Generator[FlaskClient, None, None]:
             "name": "Test User",
             "orcid": "0000-0000-0000-0000",
         }
-    yield client
+    return client

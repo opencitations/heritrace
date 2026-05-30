@@ -2,11 +2,12 @@
 #
 # SPDX-License-Identifier: ISC
 
-import pytest
 from collections.abc import Generator
 
+import pytest
 from flask import Flask
 from flask.testing import FlaskClient
+
 from heritrace import create_app
 from tests.test_config import TestConfig
 
@@ -20,7 +21,7 @@ def _shared_app() -> Flask:
 def app(_shared_app: Flask) -> Generator[Flask, None, None]:
     config = dict(_shared_app.config)
     exts = dict(_shared_app.extensions)
-    login_mgr = getattr(_shared_app, 'login_manager', None)
+    login_mgr = getattr(_shared_app, "login_manager", None)
     before_fns = {k: list(v) for k, v in _shared_app.before_request_funcs.items()}
     teardown_fns = list(_shared_app.teardown_appcontext_funcs)
 
@@ -32,11 +33,11 @@ def app(_shared_app: Flask) -> Generator[Flask, None, None]:
     _shared_app.extensions.clear()
     _shared_app.extensions.update(exts)
     if login_mgr is not None:
-        setattr(_shared_app, 'login_manager', login_mgr)
+        _shared_app.login_manager = login_mgr
     _shared_app.before_request_funcs.clear()
     _shared_app.before_request_funcs.update(before_fns)
     _shared_app.teardown_appcontext_funcs[:] = teardown_fns
-    _shared_app._got_first_request = False
+    _shared_app._got_first_request = False  # noqa: SLF001
 
 
 @pytest.fixture
@@ -64,4 +65,4 @@ def logged_in_client(client: FlaskClient):
             "name": "Test User",
             "orcid": "0000-0000-0000-0000",
         }
-    yield client
+    return client

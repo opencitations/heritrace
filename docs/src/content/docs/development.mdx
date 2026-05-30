@@ -80,7 +80,6 @@ The following directories are mounted for live editing:
 - `./heritrace` → Application source code
 - `./default_components` → Default URI generator and counter handler
 - SHACL schema and display rules from `example_configurations/`
-
 ## Development commands
 
 ### Application management
@@ -111,21 +110,3 @@ docker compose -f dev/docker-compose.dev.yaml restart web
 ./dev/stop-databases.sh  # Linux/macOS
 .\dev\Stop-Databases.ps1  # Windows
 ```
-
-## Architecture for development
-
-### Frontend development
-- React components are located in `heritrace/static/js/`
-- Webpack configuration in `webpack.config.js`
-- Babel configuration in `babel/` directory
-
-### Backend development
-- Flask application entry point: `app.py`
-- Main application code: `heritrace/` directory
-- Configuration: `config.py`
-
-### Database development
-- Main data: Virtuoso triplestore on port 8890
-- Provenance data: Virtuoso triplestore on port 8891
-- SPARQL endpoints available at `/sparql`
-- Internal Redis cache within the container for performance optimization

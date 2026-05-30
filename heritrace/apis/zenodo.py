@@ -4,42 +4,61 @@
 
 from datetime import datetime
 from functools import lru_cache
+from http import HTTPStatus
 from time import sleep
+from typing import TypedDict
 from urllib.parse import urlparse
 
 import requests
-from requests.exceptions import ConnectionError, RequestException, Timeout
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import RequestException, Timeout
+
+
+class ZenodoRecord(TypedDict):
+    title: str
+    authors: list[dict[str, str]]
+    doi: str | None
+    publication_date: str | None
+    version: str
+    type: str
+    subtype: str
+    journal: str
+    journal_volume: str
+    journal_issue: str
+    journal_pages: str
+    conference: str
+    conference_acronym: str
+    conference_place: str
+    conference_date: str
+    publisher: str
+    keywords: list[str]
+    description: str
+    access_right: str
+    language: str
+    record_id: str
+    notes: str
+
+_MIN_AUTHORS_FOR_ET_AL = 2
 
 
 class ZenodoRequestError(Exception):
     """Custom exception for Zenodo API errors"""
 
-    pass
 
-
-def is_zenodo_url(url):
+def is_zenodo_url(url: str) -> bool:
     """Check if a URL is a Zenodo URL or DOI."""
-    try:
-        parsed = urlparse(url)
-        # Check for direct Zenodo URLs
-        if parsed.netloc in ["zenodo.org", "www.zenodo.org"]:
-            return True
-
-        # Check for DOI URLs
-        if parsed.netloc in ["doi.org", "www.doi.org"]:
-            doi_path = parsed.path.lstrip("/")
-            return doi_path.startswith("10.5281/zenodo.")
-
-        # Check for raw DOI strings
-        if url.startswith("10.5281/zenodo."):
-            return True
-
+    if not isinstance(url, str):
         return False
-    except:
-        return False
+    parsed = urlparse(url)
+    if parsed.netloc in ["zenodo.org", "www.zenodo.org"]:
+        return True
+    if parsed.netloc in ["doi.org", "www.doi.org"]:
+        doi_path = parsed.path.lstrip("/")
+        return doi_path.startswith("10.5281/zenodo.")
+    return bool(url.startswith("10.5281/zenodo."))
 
 
-def extract_zenodo_id(url):
+def extract_zenodo_id(url: str) -> str | None:
     """
     Extract Zenodo record ID from URL or DOI.
 
@@ -49,33 +68,30 @@ def extract_zenodo_id(url):
     Returns:
         str: The Zenodo record ID or None if not found
     """
-    try:
-        parsed = urlparse(url)
-
-        # Handle DOI URLs
-        if parsed.netloc in ["doi.org", "www.doi.org"]:
-            doi_path = parsed.path.lstrip("/")
-            if doi_path.startswith("10.5281/zenodo."):
-                return doi_path.split("10.5281/zenodo.")[1]
-
-        # Handle direct Zenodo URLs
-        elif parsed.netloc in ["zenodo.org", "www.zenodo.org"]:
-            path_parts = parsed.path.strip("/").split("/")
-            if "record" in path_parts:
-                return path_parts[path_parts.index("record") + 1]
-            elif "records" in path_parts:
-                return path_parts[path_parts.index("records") + 1]
-
-        # Handle raw DOI strings
-        elif url.startswith("10.5281/zenodo."):
-            return url.split("10.5281/zenodo.")[1]
-
+    if not isinstance(url, str):
         return None
-    except:
-        return None
+    parsed = urlparse(url)
+    if parsed.netloc in ["doi.org", "www.doi.org"]:
+        doi_path = parsed.path.lstrip("/")
+        if doi_path.startswith("10.5281/zenodo."):
+            return doi_path.split("10.5281/zenodo.")[1]
+    elif parsed.netloc in ["zenodo.org", "www.zenodo.org"]:
+        path_parts = parsed.path.strip("/").split("/")
+        if "record" in path_parts:
+            return path_parts[path_parts.index("record") + 1]
+        if "records" in path_parts:
+            return path_parts[path_parts.index("records") + 1]
+    elif url.startswith("10.5281/zenodo."):
+        return url.split("10.5281/zenodo.")[1]
+    return None
 
 
-def make_request_with_retry(url, headers, max_retries=3, initial_delay: float = 1):
+def make_request_with_retry(
+    url: str,
+    headers: dict[str, str],
+    max_retries: int = 3,
+    initial_delay: float = 1,
+) -> requests.Response:
     """
     Make HTTP request with exponential backoff retry strategy.
 
@@ -99,33 +115,36 @@ def make_request_with_retry(url, headers, max_retries=3, initial_delay: float = 
             response = requests.get(url, headers=headers, timeout=5)
 
             # Check if we got rate limited
-            if response.status_code == 429:
+            if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
                 retry_after = int(response.headers.get("Retry-After", delay))
                 sleep(retry_after)
                 continue
 
             # If we get a 5xx error, retry
-            if 500 <= response.status_code < 600:
-                raise ZenodoRequestError(f"Server error: {response.status_code}")
+            if HTTPStatus.INTERNAL_SERVER_ERROR <= response.status_code < 600:  # noqa: PLR2004
+                msg = f"Server error: {response.status_code}"
+                raise ZenodoRequestError(msg)
 
             response.raise_for_status()
-            return response
 
-        except (RequestException, ConnectionError, Timeout) as e:
+        except (RequestException, RequestsConnectionError, Timeout) as e:
             last_exception = e
 
             # Don't sleep after the last attempt
             if attempt < max_retries - 1:
                 sleep(delay)
                 delay *= 2  # Exponential backoff
+        else:
+            return response
 
-    raise ZenodoRequestError(
-        f"Failed after {max_retries} attempts. Last error: {str(last_exception)}"
-    )
+    msg = f"Failed after {max_retries} attempts. Last error: {last_exception!s}"
+    raise ZenodoRequestError(msg)
 
 
 @lru_cache(maxsize=1000)
-def get_zenodo_data(record_id):
+def get_zenodo_data(
+    record_id: str,
+) -> ZenodoRecord | None:
     """Fetch record data from Zenodo API with caching and retry logic."""
     headers = {
         "Accept": "application/json",
@@ -136,12 +155,14 @@ def get_zenodo_data(record_id):
         response = make_request_with_retry(
             f"https://zenodo.org/api/records/{record_id}", headers=headers
         )
-
+    except ZenodoRequestError:
+        return None
+    else:
         data = response.json()
         metadata = data.get("metadata", {})
 
         # Extract all possible metadata for APA citation
-        result = {
+        return {
             "title": metadata.get("title"),
             "authors": [
                 {
@@ -173,13 +194,8 @@ def get_zenodo_data(record_id):
             "notes": metadata.get("notes", ""),
         }
 
-        return result
 
-    except ZenodoRequestError:
-        return None
-
-
-def format_apa_date(date_str):
+def format_apa_date(date_str: str) -> str:
     """Format a date in APA style (YYYY, Month DD)."""
     try:
         date_obj = datetime.strptime(date_str, "%Y-%m-%d")
@@ -196,7 +212,7 @@ def format_apa_date(date_str):
                 return date_str
 
 
-def format_authors_apa(authors):
+def format_authors_apa(authors: list[dict[str, str]]) -> str | None:
     """Format author list in APA style."""
     if not authors:
         return ""
@@ -209,36 +225,20 @@ def format_authors_apa(authors):
             return f"{parts[0].strip()}, {parts[1].strip()}"
         return author
 
-    if len(authors) == 2:
+    if len(authors) == _MIN_AUTHORS_FOR_ET_AL:
         return f"{authors[0]['name']} & {authors[1]['name']}"
 
-    if len(authors) > 2:
+    if len(authors) > _MIN_AUTHORS_FOR_ET_AL:
         author_list = ", ".join(a["name"] for a in authors[:-1])
         return f"{author_list}, & {authors[-1]['name']}"
+    return None
 
 
-def format_zenodo_source(url):
-    """Format Zenodo source for display with full APA citation."""
+def _build_citation_parts(
+    record_data: ZenodoRecord,
+) -> list[str]:
+    citation_parts: list[str] = []
 
-    record_id = extract_zenodo_id(url)
-    if not record_id:
-        return f'<a href="{url}" target="_blank">{url}</a>'
-
-    record_data = get_zenodo_data(record_id)
-    if not record_data:
-        return f'<a href="{url}" target="_blank">{url}</a>'
-
-    # Create proper link URL for DOI
-    link_url = (
-        f"https://doi.org/{record_data['doi']}"
-        if record_data["doi"]
-        else f"https://zenodo.org/record/{record_id}"
-    )
-
-    # Build APA citation
-    citation_parts = []
-
-    # Authors and Date
     authors = format_authors_apa(record_data["authors"])
     pub_date = (
         format_apa_date(record_data["publication_date"])
@@ -247,7 +247,6 @@ def format_zenodo_source(url):
     )
     citation_parts.append(f"{authors} ({pub_date})")
 
-    # Title
     title = record_data["title"]
     if record_data["type"] == "dataset":
         title = f"{title} [Data set]"
@@ -255,7 +254,22 @@ def format_zenodo_source(url):
         title = f"{title} [Computer software]"
     citation_parts.append(title)
 
-    # Container info (journal/conference)
+    _append_container_info(citation_parts, record_data)
+
+    if record_data["publisher"]:
+        citation_parts.append(record_data["publisher"])
+    if record_data["version"]:
+        citation_parts.append(f"Version {record_data['version']}")
+    if record_data["doi"]:
+        citation_parts.append(f"https://doi.org/{record_data['doi']}")
+
+    return citation_parts
+
+
+def _append_container_info(
+    citation_parts: list[str],
+    record_data: ZenodoRecord,
+) -> None:
     if record_data["journal"]:
         journal_info = [record_data["journal"]]
         if record_data["journal_volume"]:
@@ -271,25 +285,11 @@ def format_zenodo_source(url):
             conf_info.append(f" ({record_data['conference_place']})")
         citation_parts.append("".join(conf_info))
 
-    # Publisher info
-    if record_data["publisher"]:
-        citation_parts.append(record_data["publisher"])
 
-    # Version info
-    if record_data["version"]:
-        citation_parts.append(f"Version {record_data['version']}")
-
-    # DOI
-    if record_data["doi"]:
-        citation_parts.append(f"https://doi.org/{record_data['doi']}")
-
-    html = f'<a href="{url}" target="_blank" class="zenodo-attribution">'
-    html += f'<img src="/static/images/zenodo-logo.png" alt="Zenodo" class="zenodo-icon mb-1 mx-1" style="width: 50px; height: 25px; margin-bottom: .3rem !important">'
-    html += ". ".join(citation_parts)
-    html += "</a>"
-
-    # Add additional metadata if available
-    extra_info = []
+def _build_extra_info(
+    record_data: ZenodoRecord,
+) -> list[str]:
+    extra_info: list[str] = []
     if record_data["type"]:
         extra_info.append(f"Type: {record_data['type']}")
         if record_data["subtype"]:
@@ -300,7 +300,33 @@ def format_zenodo_source(url):
         extra_info.append(f"Language: {record_data['language']}")
     if record_data["access_right"]:
         extra_info.append(f"Access: {record_data['access_right']}")
+    return extra_info
 
+
+def format_zenodo_source(url: str) -> str:
+    """Format Zenodo source for display with full APA citation."""
+
+    record_id = extract_zenodo_id(url)
+    if not record_id:
+        return f'<a href="{url}" target="_blank">{url}</a>'
+
+    record_data = get_zenodo_data(record_id)
+    if not record_data:
+        return f'<a href="{url}" target="_blank">{url}</a>'
+
+    citation_parts = _build_citation_parts(record_data)
+
+    html = f'<a href="{url}" target="_blank" class="zenodo-attribution">'
+    html += (
+        '<img src="/static/images/zenodo-logo.png"'
+        ' alt="Zenodo" class="zenodo-icon mb-1 mx-1"'
+        ' style="width: 50px; height: 25px;'
+        ' margin-bottom: .3rem !important">'
+    )
+    html += ". ".join(citation_parts)
+    html += "</a>"
+
+    extra_info = _build_extra_info(record_data)
     if extra_info:
         html += f'<div class="text-muted small mt-1">{" | ".join(extra_info)}</div>'
 

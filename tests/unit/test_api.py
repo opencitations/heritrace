@@ -7,23 +7,30 @@ Tests for the API routes in heritrace/routes/api.py.
 """
 
 import json
-from typing import Generator
-from unittest import mock
+import time
+from collections import OrderedDict
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask, g
 from flask.testing import FlaskClient
-from heritrace.routes.api import (CreateEntityData, create_logic,
-                                  delete_logic, determine_datatype,
-                                  generate_unique_uri, order_logic,
-                                  rebuild_entity_order, update_logic)
-from heritrace.services.resource_lock_manager import (LockStatus,
-                                                      ResourceLockManager)
-from heritrace.utils.strategies import (OrphanHandlingStrategy,
-                                        ProxyHandlingStrategy)
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 from redis import Redis
+
+from heritrace.routes.api import (
+    CreateEntityData,
+    create_logic,
+    delete_logic,
+    determine_datatype,
+    generate_unique_uri,
+    get_graph_uri_from_context,
+    order_logic,
+    rebuild_entity_order,
+    update_logic,
+)
+from heritrace.services.resource_lock_manager import LockStatus, ResourceLockManager
+from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
 
 
 # Use a real ResourceLockManager with Redis instead of mocks
@@ -34,7 +41,7 @@ def api_client(
     """Extend the logged_in_client with a real resource lock manager."""
     lock_manager = ResourceLockManager(redis_client)
 
-    def real_before_request():
+    def real_before_request() -> None:
         g.resource_lock_manager = lock_manager
 
     fns = app.before_request_funcs.setdefault(None, [])
@@ -99,7 +106,9 @@ def test_catalogue_api_with_null_sort_property(api_client: FlaskClient) -> None:
 
 
 @patch("heritrace.routes.api.get_deleted_entities_with_filtering")
-def test_time_vault_api(mock_get_deleted_entities, api_client: FlaskClient, app: Flask) -> None:
+def test_time_vault_api(
+    mock_get_deleted_entities, api_client: FlaskClient, app: Flask
+) -> None:
     """Test the time vault API endpoint."""
     # Mock the return value of get_deleted_entities_with_filtering
     mock_deleted_entities = [
@@ -108,20 +117,16 @@ def test_time_vault_api(mock_get_deleted_entities, api_client: FlaskClient, app:
             "deletionTime": "2023-01-01T00:00:00Z",
             "deletedBy": "User 1",
             "type": "TestClass",
-            "label": "Test Entity 1"
+            "label": "Test Entity 1",
         }
     ]
     mock_available_classes = [
-        {
-            "uri": "http://example.org/TestClass",
-            "label": "Test Class",
-            "count": 1
-        }
+        {"uri": "http://example.org/TestClass", "label": "Test Class", "count": 1}
     ]
     mock_sortable_properties = [
         {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
     ]
-    
+
     mock_get_deleted_entities.return_value = (
         mock_deleted_entities,
         mock_available_classes,
@@ -130,7 +135,7 @@ def test_time_vault_api(mock_get_deleted_entities, api_client: FlaskClient, app:
         mock_sortable_properties,
         1,
     )
-    
+
     response = api_client.get("/api/time-vault")
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -142,7 +147,9 @@ def test_time_vault_api(mock_get_deleted_entities, api_client: FlaskClient, app:
 
 
 @patch("heritrace.routes.api.get_deleted_entities_with_filtering")
-def test_time_vault_api_with_params(mock_get_deleted_entities, api_client: FlaskClient) -> None:
+def test_time_vault_api_with_params(
+    mock_get_deleted_entities, api_client: FlaskClient
+) -> None:
     """Test the time vault API endpoint with query parameters."""
     # Mock the return value of get_deleted_entities_with_filtering
     mock_deleted_entities = [
@@ -151,20 +158,16 @@ def test_time_vault_api_with_params(mock_get_deleted_entities, api_client: Flask
             "deletionTime": "2023-01-01T00:00:00Z",
             "deletedBy": "User 1",
             "type": "TestClass",
-            "label": "Test Entity 1"
+            "label": "Test Entity 1",
         }
     ]
     mock_available_classes = [
-        {
-            "uri": "http://example.org/TestClass",
-            "label": "Test Class",
-            "count": 1
-        }
+        {"uri": "http://example.org/TestClass", "label": "Test Class", "count": 1}
     ]
     mock_sortable_properties = [
         {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
     ]
-    
+
     mock_get_deleted_entities.return_value = (
         mock_deleted_entities,
         mock_available_classes,
@@ -173,7 +176,7 @@ def test_time_vault_api_with_params(mock_get_deleted_entities, api_client: Flask
         mock_sortable_properties,
         1,
     )
-    
+
     response = api_client.get(
         "/api/time-vault?class=http://example.org/TestClass&page=1&per_page=50"
     )
@@ -187,7 +190,9 @@ def test_time_vault_api_with_params(mock_get_deleted_entities, api_client: Flask
 
 
 @patch("heritrace.routes.api.get_deleted_entities_with_filtering")
-def test_time_vault_api_with_invalid_per_page(mock_get_deleted_entities, api_client: FlaskClient) -> None:
+def test_time_vault_api_with_invalid_per_page(
+    mock_get_deleted_entities, api_client: FlaskClient
+) -> None:
     """Test the time vault API endpoint with an invalid per_page value."""
     # Mock the return value of get_deleted_entities_with_filtering
     mock_deleted_entities = [
@@ -196,20 +201,16 @@ def test_time_vault_api_with_invalid_per_page(mock_get_deleted_entities, api_cli
             "deletionTime": "2023-01-01T00:00:00Z",
             "deletedBy": "User 1",
             "type": "TestClass",
-            "label": "Test Entity 1"
+            "label": "Test Entity 1",
         }
     ]
     mock_available_classes = [
-        {
-            "uri": "http://example.org/TestClass",
-            "label": "Test Class",
-            "count": 1
-        }
+        {"uri": "http://example.org/TestClass", "label": "Test Class", "count": 1}
     ]
     mock_sortable_properties = [
         {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
     ]
-    
+
     mock_get_deleted_entities.return_value = (
         mock_deleted_entities,
         mock_available_classes,
@@ -218,7 +219,7 @@ def test_time_vault_api_with_invalid_per_page(mock_get_deleted_entities, api_cli
         mock_sortable_properties,
         1,
     )
-    
+
     response = api_client.get(
         "/api/time-vault?class=http://example.org/TestClass&page=1&per_page=999"
     )
@@ -241,25 +242,24 @@ def test_check_lock_no_uri(api_client: FlaskClient) -> None:
 
 def test_check_lock_unlocked(api_client: FlaskClient, app: Flask) -> None:
     """Test the check_lock endpoint with an unlocked resource."""
-    with app.test_request_context():
-        with app.test_client() as client:
-            with client.session_transaction() as session:
-                session["user_id"] = "0000-0000-0000-0000"
-                session["user_name"] = "Test User"
-                session["is_authenticated"] = True
-                session["lang"] = "en"
-                session["orcid"] = "0000-0000-0000-0000"
-                session["_fresh"] = True
-                session["_id"] = "test-session-id"
-                session["_user_id"] = "0000-0000-0000-0000"
+    with app.test_request_context(), app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = "0000-0000-0000-0000"
+            session["user_name"] = "Test User"
+            session["is_authenticated"] = True
+            session["lang"] = "en"
+            session["orcid"] = "0000-0000-0000-0000"
+            session["_fresh"] = True
+            session["_id"] = "test-session-id"
+            session["_user_id"] = "0000-0000-0000-0000"
 
-            response = client.post(
-                "/api/check-lock",
-                json={"resource_uri": "http://example.org/resource"},
-            )
-            assert response.status_code == 200
-            data = json.loads(response.data)
-            assert data["status"] == "available"
+        response = client.post(
+            "/api/check-lock",
+            json={"resource_uri": "http://example.org/resource"},
+        )
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["status"] == "available"
 
 
 def test_check_lock_locked(
@@ -278,8 +278,38 @@ def test_check_lock_locked(
     }
     redis_client.setex(lock_key, 300, json.dumps(lock_data))
 
-    with app.test_request_context():
-        with app.test_client() as client:
+    with app.test_request_context(), app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = "0000-0000-0000-0000"
+            session["user_name"] = "Test User"
+            session["is_authenticated"] = True
+            session["lang"] = "en"
+            session["orcid"] = "0000-0000-0000-0000"
+            session["_fresh"] = True
+            session["_id"] = "test-session-id"
+            session["_user_id"] = "0000-0000-0000-0000"
+
+        response = client.post(
+            "/api/check-lock",
+            json={"resource_uri": resource_uri},
+        )
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["status"] == "locked"
+        assert "Another User" in data["message"]
+
+
+def test_check_lock_error_status(api_client: FlaskClient, app: Flask) -> None:
+    """Test the check_lock endpoint when LockStatus.ERROR is returned."""
+    resource_uri = "http://example.org/error-resource"
+
+    # Mock the resource_lock_manager to return ERROR status
+    with patch(
+        "heritrace.services.resource_lock_manager.ResourceLockManager.check_lock_status"
+    ) as mock_check:
+        mock_check.return_value = (LockStatus.ERROR, None)
+
+        with app.test_request_context(), app.test_client() as client:
             with client.session_transaction() as session:
                 session["user_id"] = "0000-0000-0000-0000"
                 session["user_name"] = "Test User"
@@ -294,74 +324,41 @@ def test_check_lock_locked(
                 "/api/check-lock",
                 json={"resource_uri": resource_uri},
             )
-            assert response.status_code == 200
+            assert response.status_code == 500
             data = json.loads(response.data)
-            assert data["status"] == "locked"
-            assert "Another User" in data["message"]
+            assert data["status"] == "error"
+            assert data["message"] == "An error occurred while checking the lock"
 
 
-def test_check_lock_error_status(
-    api_client: FlaskClient, app: Flask
-) -> None:
-    """Test the check_lock endpoint when LockStatus.ERROR is returned."""
-    resource_uri = "http://example.org/error-resource"
-
-    # Mock the resource_lock_manager to return ERROR status
-    with patch("heritrace.services.resource_lock_manager.ResourceLockManager.check_lock_status") as mock_check:
-        mock_check.return_value = (LockStatus.ERROR, None)
-
-        with app.test_request_context():
-            with app.test_client() as client:
-                with client.session_transaction() as session:
-                    session["user_id"] = "0000-0000-0000-0000"
-                    session["user_name"] = "Test User"
-                    session["is_authenticated"] = True
-                    session["lang"] = "en"
-                    session["orcid"] = "0000-0000-0000-0000"
-                    session["_fresh"] = True
-                    session["_id"] = "test-session-id"
-                    session["_user_id"] = "0000-0000-0000-0000"
-
-                response = client.post(
-                    "/api/check-lock",
-                    json={"resource_uri": resource_uri},
-                )
-                assert response.status_code == 500
-                data = json.loads(response.data)
-                assert data["status"] == "error"
-                assert data["message"] == "An error occurred while checking the lock"
-
-
-def test_check_lock_exception(
-    api_client: FlaskClient, app: Flask
-) -> None:
+def test_check_lock_exception(api_client: FlaskClient, app: Flask) -> None:
     """Test the check_lock endpoint when an exception occurs."""
     resource_uri = "http://example.org/exception-resource"
 
     # Mock the resource_lock_manager to raise an exception
-    with patch("heritrace.services.resource_lock_manager.ResourceLockManager.check_lock_status") as mock_check:
+    with patch(
+        "heritrace.services.resource_lock_manager.ResourceLockManager.check_lock_status"
+    ) as mock_check:
         mock_check.side_effect = Exception("Test exception")
 
-        with app.test_request_context():
-            with app.test_client() as client:
-                with client.session_transaction() as session:
-                    session["user_id"] = "0000-0000-0000-0000"
-                    session["user_name"] = "Test User"
-                    session["is_authenticated"] = True
-                    session["lang"] = "en"
-                    session["orcid"] = "0000-0000-0000-0000"
-                    session["_fresh"] = True
-                    session["_id"] = "test-session-id"
-                    session["_user_id"] = "0000-0000-0000-0000"
+        with app.test_request_context(), app.test_client() as client:
+            with client.session_transaction() as session:
+                session["user_id"] = "0000-0000-0000-0000"
+                session["user_name"] = "Test User"
+                session["is_authenticated"] = True
+                session["lang"] = "en"
+                session["orcid"] = "0000-0000-0000-0000"
+                session["_fresh"] = True
+                session["_id"] = "test-session-id"
+                session["_user_id"] = "0000-0000-0000-0000"
 
-                response = client.post(
-                    "/api/check-lock",
-                    json={"resource_uri": resource_uri},
-                )
-                assert response.status_code == 500
-                data = json.loads(response.data)
-                assert data["status"] == "error"
-                assert data["message"] == "An unexpected error occurred"
+            response = client.post(
+                "/api/check-lock",
+                json={"resource_uri": resource_uri},
+            )
+            assert response.status_code == 500
+            data = json.loads(response.data)
+            assert data["status"] == "error"
+            assert data["message"] == "An unexpected error occurred"
 
 
 def test_acquire_lock_no_uri(api_client: FlaskClient) -> None:
@@ -378,29 +375,28 @@ def test_acquire_lock_success(
     """Test the acquire_lock endpoint with a valid resource URI."""
     resource_uri = "http://example.org/resource-to-acquire"
 
-    with app.test_request_context():
-        with app.test_client() as client:
-            with client.session_transaction() as session:
-                session["user_id"] = "0000-0000-0000-0000"
-                session["user_name"] = "Test User"
-                session["is_authenticated"] = True
-                session["lang"] = "en"
-                session["orcid"] = "0000-0000-0000-0000"
-                session["_fresh"] = True
-                session["_id"] = "test-session-id"
-                session["_user_id"] = "0000-0000-0000-0000"
+    with app.test_request_context(), app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = "0000-0000-0000-0000"
+            session["user_name"] = "Test User"
+            session["is_authenticated"] = True
+            session["lang"] = "en"
+            session["orcid"] = "0000-0000-0000-0000"
+            session["_fresh"] = True
+            session["_id"] = "test-session-id"
+            session["_user_id"] = "0000-0000-0000-0000"
 
-            response = client.post(
-                "/api/acquire-lock",
-                json={"resource_uri": resource_uri},
-            )
-            assert response.status_code == 200
-            data = json.loads(response.data)
-            assert data["status"] == "success"
+        response = client.post(
+            "/api/acquire-lock",
+            json={"resource_uri": resource_uri},
+        )
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["status"] == "success"
 
-            # Verify the lock was actually created in Redis
-            lock_key = f"resource_lock:{resource_uri}"
-            assert redis_client.exists(lock_key)
+        # Verify the lock was actually created in Redis
+        lock_key = f"resource_lock:{resource_uri}"
+        assert redis_client.exists(lock_key)
 
 
 def test_acquire_lock_failure(
@@ -419,77 +415,47 @@ def test_acquire_lock_failure(
     }
     redis_client.setex(lock_key, 300, json.dumps(lock_data))
 
-    with app.test_request_context():
-        with app.test_client() as client:
-            with client.session_transaction() as session:
-                session["user_id"] = "0000-0000-0000-0000"
-                session["user_name"] = "Test User"
-                session["is_authenticated"] = True
-                session["lang"] = "en"
-                session["orcid"] = "0000-0000-0000-0000"
-                session["_fresh"] = True
-                session["_id"] = "test-session-id"
-                session["_user_id"] = "0000-0000-0000-0000"
+    with app.test_request_context(), app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = "0000-0000-0000-0000"
+            session["user_name"] = "Test User"
+            session["is_authenticated"] = True
+            session["lang"] = "en"
+            session["orcid"] = "0000-0000-0000-0000"
+            session["_fresh"] = True
+            session["_id"] = "test-session-id"
+            session["_user_id"] = "0000-0000-0000-0000"
 
-            response = client.post(
-                "/api/acquire-lock",
-                json={"resource_uri": resource_uri},
-            )
-            assert response.status_code == 200
-            data = json.loads(response.data)
-            assert data["status"] == "locked"
+        response = client.post(
+            "/api/acquire-lock",
+            json={"resource_uri": resource_uri},
+        )
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["status"] == "locked"
 
 
-def test_acquire_lock_race_condition(
-    api_client: FlaskClient, app: Flask
-) -> None:
-    """Test the acquire_lock endpoint when the resource becomes locked between check and acquire."""
+def test_acquire_lock_race_condition(api_client: FlaskClient, app: Flask) -> None:
+    """
+    Test the acquire_lock endpoint when the resource becomes locked between check and
+    acquire.
+    """
     resource_uri = "http://example.org/race-condition-resource"
 
     # Mock check_lock_status to return UNLOCKED but acquire_lock to return False
-    # This simulates a race condition where another user acquires the lock between our check and acquire
-    with patch("heritrace.services.resource_lock_manager.ResourceLockManager.check_lock_status") as mock_check:
+    # This simulates a race condition where another user acquires the lock between our
+    # check and acquire
+    with patch(
+        "heritrace.services.resource_lock_manager.ResourceLockManager.check_lock_status"
+    ) as mock_check:
         mock_check.return_value = (LockStatus.AVAILABLE, None)
-        
-        with patch("heritrace.services.resource_lock_manager.ResourceLockManager.acquire_lock") as mock_acquire:
+
+        with patch(
+            "heritrace.services.resource_lock_manager.ResourceLockManager.acquire_lock"
+        ) as mock_acquire:
             mock_acquire.return_value = False
-            
-            with app.test_request_context():
-                with app.test_client() as client:
-                    with client.session_transaction() as session:
-                        session["user_id"] = "0000-0000-0000-0000"
-                        session["user_name"] = "Test User"
-                        session["is_authenticated"] = True
-                        session["lang"] = "en"
-                        session["orcid"] = "0000-0000-0000-0000"
-                        session["_fresh"] = True
-                        session["_id"] = "test-session-id"
-                        session["_user_id"] = "0000-0000-0000-0000"
 
-                    response = client.post(
-                        "/api/acquire-lock",
-                        json={"resource_uri": resource_uri},
-                    )
-                    
-                    # This should trigger the 423 error response
-                    assert response.status_code == 423
-                    data = json.loads(response.data)
-                    assert data["status"] == "error"
-                    assert "Resource is locked by another user" in data["message"]
-
-
-def test_acquire_lock_exception(
-    api_client: FlaskClient, app: Flask
-) -> None:
-    """Test the acquire_lock endpoint when an exception occurs."""
-    resource_uri = "http://example.org/exception-resource"
-
-    # Mock the resource_lock_manager to raise an exception
-    with patch("heritrace.services.resource_lock_manager.ResourceLockManager.acquire_lock") as mock_acquire:
-        mock_acquire.side_effect = Exception("Test exception")
-
-        with app.test_request_context():
-            with app.test_client() as client:
+            with app.test_request_context(), app.test_client() as client:
                 with client.session_transaction() as session:
                     session["user_id"] = "0000-0000-0000-0000"
                     session["user_name"] = "Test User"
@@ -504,10 +470,43 @@ def test_acquire_lock_exception(
                     "/api/acquire-lock",
                     json={"resource_uri": resource_uri},
                 )
-                assert response.status_code == 500
+
+                # This should trigger the 423 error response
+                assert response.status_code == 423
                 data = json.loads(response.data)
                 assert data["status"] == "error"
-                assert data["message"] == "An unexpected error occurred"
+                assert "Resource is locked by another user" in data["message"]
+
+
+def test_acquire_lock_exception(api_client: FlaskClient, app: Flask) -> None:
+    """Test the acquire_lock endpoint when an exception occurs."""
+    resource_uri = "http://example.org/exception-resource"
+
+    # Mock the resource_lock_manager to raise an exception
+    with patch(
+        "heritrace.services.resource_lock_manager.ResourceLockManager.acquire_lock"
+    ) as mock_acquire:
+        mock_acquire.side_effect = Exception("Test exception")
+
+        with app.test_request_context(), app.test_client() as client:
+            with client.session_transaction() as session:
+                session["user_id"] = "0000-0000-0000-0000"
+                session["user_name"] = "Test User"
+                session["is_authenticated"] = True
+                session["lang"] = "en"
+                session["orcid"] = "0000-0000-0000-0000"
+                session["_fresh"] = True
+                session["_id"] = "test-session-id"
+                session["_user_id"] = "0000-0000-0000-0000"
+
+            response = client.post(
+                "/api/acquire-lock",
+                json={"resource_uri": resource_uri},
+            )
+            assert response.status_code == 500
+            data = json.loads(response.data)
+            assert data["status"] == "error"
+            assert data["message"] == "An unexpected error occurred"
 
 
 def test_release_lock_no_uri(api_client: FlaskClient) -> None:
@@ -525,32 +524,31 @@ def test_release_lock_success(
     resource_uri = "http://example.org/resource-to-release"
 
     # First acquire a lock
-    with app.test_request_context():
-        with app.test_client() as client:
-            with client.session_transaction() as session:
-                session["user_id"] = "0000-0000-0000-0000"
-                session["user_name"] = "Test User"
-                session["is_authenticated"] = True
-                session["lang"] = "en"
-                session["orcid"] = "0000-0000-0000-0000"
-                session["_fresh"] = True
-                session["_id"] = "test-session-id"
-                session["_user_id"] = "0000-0000-0000-0000"
+    with app.test_request_context(), app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = "0000-0000-0000-0000"
+            session["user_name"] = "Test User"
+            session["is_authenticated"] = True
+            session["lang"] = "en"
+            session["orcid"] = "0000-0000-0000-0000"
+            session["_fresh"] = True
+            session["_id"] = "test-session-id"
+            session["_user_id"] = "0000-0000-0000-0000"
 
-            # First acquire the lock
-            client.post(
-                "/api/acquire-lock",
-                json={"resource_uri": resource_uri},
-            )
+        # First acquire the lock
+        client.post(
+            "/api/acquire-lock",
+            json={"resource_uri": resource_uri},
+        )
 
-            # Then release it
-            response = client.post(
-                "/api/release-lock",
-                json={"resource_uri": resource_uri},
-            )
-            assert response.status_code == 200
-            data = json.loads(response.data)
-            assert data["status"] == "success"
+        # Then release it
+        response = client.post(
+            "/api/release-lock",
+            json={"resource_uri": resource_uri},
+        )
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["status"] == "success"
 
 
 def test_release_lock_failure(
@@ -569,8 +567,37 @@ def test_release_lock_failure(
     }
     redis_client.setex(lock_key, 300, json.dumps(lock_data))
 
-    with app.test_request_context():
-        with app.test_client() as client:
+    with app.test_request_context(), app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = "0000-0000-0000-0000"
+            session["user_name"] = "Test User"
+            session["is_authenticated"] = True
+            session["lang"] = "en"
+            session["orcid"] = "0000-0000-0000-0000"
+            session["_fresh"] = True
+            session["_id"] = "test-session-id"
+            session["_user_id"] = "0000-0000-0000-0000"
+
+        response = client.post(
+            "/api/release-lock",
+            json={"resource_uri": resource_uri},
+        )
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert data["status"] == "error"
+
+
+def test_release_lock_exception(api_client: FlaskClient, app: Flask) -> None:
+    """Test the release_lock endpoint when an exception occurs."""
+    resource_uri = "http://example.org/exception-resource-release"
+
+    # Mock the resource_lock_manager to raise an exception
+    with patch(
+        "heritrace.services.resource_lock_manager.ResourceLockManager.release_lock"
+    ) as mock_release:
+        mock_release.side_effect = Exception("Test exception")
+
+        with app.test_request_context(), app.test_client() as client:
             with client.session_transaction() as session:
                 session["user_id"] = "0000-0000-0000-0000"
                 session["user_name"] = "Test User"
@@ -585,41 +612,10 @@ def test_release_lock_failure(
                 "/api/release-lock",
                 json={"resource_uri": resource_uri},
             )
-            assert response.status_code == 400
+            assert response.status_code == 500
             data = json.loads(response.data)
             assert data["status"] == "error"
-
-
-def test_release_lock_exception(
-    api_client: FlaskClient, app: Flask
-) -> None:
-    """Test the release_lock endpoint when an exception occurs."""
-    resource_uri = "http://example.org/exception-resource-release"
-
-    # Mock the resource_lock_manager to raise an exception
-    with patch("heritrace.services.resource_lock_manager.ResourceLockManager.release_lock") as mock_release:
-        mock_release.side_effect = Exception("Test exception")
-
-        with app.test_request_context():
-            with app.test_client() as client:
-                with client.session_transaction() as session:
-                    session["user_id"] = "0000-0000-0000-0000"
-                    session["user_name"] = "Test User"
-                    session["is_authenticated"] = True
-                    session["lang"] = "en"
-                    session["orcid"] = "0000-0000-0000-0000"
-                    session["_fresh"] = True
-                    session["_id"] = "test-session-id"
-                    session["_user_id"] = "0000-0000-0000-0000"
-
-                response = client.post(
-                    "/api/release-lock",
-                    json={"resource_uri": resource_uri},
-                )
-                assert response.status_code == 500
-                data = json.loads(response.data)
-                assert data["status"] == "error"
-                assert data["message"] == "An unexpected error occurred"
+            assert data["message"] == "An unexpected error occurred"
 
 
 def test_renew_lock_no_uri(api_client: FlaskClient) -> None:
@@ -636,51 +632,48 @@ def test_renew_lock_success(
     """Test the renew_lock endpoint with a valid resource URI."""
     resource_uri = "http://example.org/resource-to-renew"
 
-    with app.test_request_context():
-        with app.test_client() as client:
-            with client.session_transaction() as session:
-                session["user_id"] = "0000-0000-0000-0000"
-                session["user_name"] = "Test User"
-                session["is_authenticated"] = True
-                session["lang"] = "en"
-                session["orcid"] = "0000-0000-0000-0000"
-                session["_fresh"] = True
-                session["_id"] = "test-session-id"
-                session["_user_id"] = "0000-0000-0000-0000"
+    with app.test_request_context(), app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = "0000-0000-0000-0000"
+            session["user_name"] = "Test User"
+            session["is_authenticated"] = True
+            session["lang"] = "en"
+            session["orcid"] = "0000-0000-0000-0000"
+            session["_fresh"] = True
+            session["_id"] = "test-session-id"
+            session["_user_id"] = "0000-0000-0000-0000"
 
-            # First acquire a lock
-            client.post(
-                "/api/acquire-lock",
-                json={"resource_uri": resource_uri},
-            )
+        # First acquire a lock
+        client.post(
+            "/api/acquire-lock",
+            json={"resource_uri": resource_uri},
+        )
 
-            # Get the initial lock timestamp
-            lock_key = f"resource_lock:{resource_uri}"
-            raw = redis_client.get(lock_key)
-            assert isinstance(raw, bytes)
-            initial_lock_data = json.loads(raw)
-            initial_timestamp = initial_lock_data["timestamp"]
+        # Get the initial lock timestamp
+        lock_key = f"resource_lock:{resource_uri}"
+        raw = redis_client.get(lock_key)
+        assert isinstance(raw, bytes)
+        initial_lock_data = json.loads(raw)
+        initial_timestamp = initial_lock_data["timestamp"]
 
-            # Wait a moment to ensure timestamp would change
-            import time
+        # Wait a moment to ensure timestamp would change
+        time.sleep(0.1)
 
-            time.sleep(0.1)
+        # Then renew it
+        response = client.post(
+            "/api/renew-lock",
+            json={"resource_uri": resource_uri},
+        )
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data["status"] == "success"
 
-            # Then renew it
-            response = client.post(
-                "/api/renew-lock",
-                json={"resource_uri": resource_uri},
-            )
-            assert response.status_code == 200
-            data = json.loads(response.data)
-            assert data["status"] == "success"
-
-            # Verify the lock was renewed with a new timestamp
-            raw = redis_client.get(lock_key)
-            assert isinstance(raw, bytes)
-            renewed_lock_data = json.loads(raw)
-            renewed_timestamp = renewed_lock_data["timestamp"]
-            assert renewed_timestamp != initial_timestamp
+        # Verify the lock was renewed with a new timestamp
+        raw = redis_client.get(lock_key)
+        assert isinstance(raw, bytes)
+        renewed_lock_data = json.loads(raw)
+        renewed_timestamp = renewed_lock_data["timestamp"]
+        assert renewed_timestamp != initial_timestamp
 
 
 def test_renew_lock_failure(
@@ -699,8 +692,37 @@ def test_renew_lock_failure(
     }
     redis_client.setex(lock_key, 300, json.dumps(lock_data))
 
-    with app.test_request_context():
-        with app.test_client() as client:
+    with app.test_request_context(), app.test_client() as client:
+        with client.session_transaction() as session:
+            session["user_id"] = "0000-0000-0000-0000"
+            session["user_name"] = "Test User"
+            session["is_authenticated"] = True
+            session["lang"] = "en"
+            session["orcid"] = "0000-0000-0000-0000"
+            session["_fresh"] = True
+            session["_id"] = "test-session-id"
+            session["_user_id"] = "0000-0000-0000-0000"
+
+        response = client.post(
+            "/api/renew-lock",
+            json={"resource_uri": resource_uri},
+        )
+        assert response.status_code == 423
+        data = json.loads(response.data)
+        assert data["status"] == "error"
+
+
+def test_renew_lock_exception(api_client: FlaskClient, app: Flask) -> None:
+    """Test the renew_lock endpoint when an exception occurs."""
+    resource_uri = "http://example.org/exception-resource-renew"
+
+    # Mock the resource_lock_manager to raise an exception
+    with patch(
+        "heritrace.services.resource_lock_manager.ResourceLockManager.acquire_lock"
+    ) as mock_renew:
+        mock_renew.side_effect = Exception("Test exception")
+
+        with app.test_request_context(), app.test_client() as client:
             with client.session_transaction() as session:
                 session["user_id"] = "0000-0000-0000-0000"
                 session["user_name"] = "Test User"
@@ -715,41 +737,10 @@ def test_renew_lock_failure(
                 "/api/renew-lock",
                 json={"resource_uri": resource_uri},
             )
-            assert response.status_code == 423
+            assert response.status_code == 500
             data = json.loads(response.data)
             assert data["status"] == "error"
-
-
-def test_renew_lock_exception(
-    api_client: FlaskClient, app: Flask
-) -> None:
-    """Test the renew_lock endpoint when an exception occurs."""
-    resource_uri = "http://example.org/exception-resource-renew"
-
-    # Mock the resource_lock_manager to raise an exception
-    with patch("heritrace.services.resource_lock_manager.ResourceLockManager.acquire_lock") as mock_renew:
-        mock_renew.side_effect = Exception("Test exception")
-
-        with app.test_request_context():
-            with app.test_client() as client:
-                with client.session_transaction() as session:
-                    session["user_id"] = "0000-0000-0000-0000"
-                    session["user_name"] = "Test User"
-                    session["is_authenticated"] = True
-                    session["lang"] = "en"
-                    session["orcid"] = "0000-0000-0000-0000"
-                    session["_fresh"] = True
-                    session["_id"] = "test-session-id"
-                    session["_user_id"] = "0000-0000-0000-0000"
-
-                response = client.post(
-                    "/api/renew-lock",
-                    json={"resource_uri": resource_uri},
-                )
-                assert response.status_code == 500
-                data = json.loads(response.data)
-                assert data["status"] == "error"
-                assert data["message"] == "An unexpected error occurred"
+            assert data["message"] == "An unexpected error occurred"
 
 
 def test_validate_literal_no_value(api_client: FlaskClient) -> None:
@@ -788,7 +779,9 @@ def test_validate_literal_integer(api_client: FlaskClient) -> None:
 
 
 def test_validate_literal_no_matching_datatypes(api_client: FlaskClient) -> None:
-    """Test the validate_literal endpoint with a value that has no matching datatypes."""
+    """
+    Test the validate_literal endpoint with a value that has no matching datatypes.
+    """
     # Mock the DATATYPE_MAPPING to ensure no datatypes match
     with patch("heritrace.routes.api.DATATYPE_MAPPING", []):
         response = api_client.post(
@@ -853,15 +846,22 @@ def test_check_orphans_with_orphans_delete_strategy(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with orphans and DELETE strategy."""
-    # Set up the mock custom filter to return static values to avoid serialization issues
+    # Set up the mock custom filter to return static values to avoid serialization
+    # issues
     custom_filter = MagicMock()
     custom_filter.human_readable_entity.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
-    
+
     # Mock the find_orphaned_entities function to return orphans
     mock_find_orphaned.return_value = (
-        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type", "shape": "http://example.org/Shape"}],
+        [
+            {
+                "uri": "http://example.org/orphan/1",
+                "type": "http://example.org/Type",
+                "shape": "http://example.org/Shape",
+            }
+        ],
         [],
     )
 
@@ -902,16 +902,23 @@ def test_check_orphans_with_proxies_delete_strategy(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with proxies and DELETE strategy."""
-    # Set up the mock custom filter to return static values to avoid serialization issues
+    # Set up the mock custom filter to return static values to avoid serialization
+    # issues
     custom_filter = MagicMock()
     custom_filter.human_readable_entity.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
-    
+
     # Mock the find_orphaned_entities function to return proxies
     mock_find_orphaned.return_value = (
         [],
-        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType", "shape": "http://example.org/ProxyShape"}],
+        [
+            {
+                "uri": "http://example.org/proxy/1",
+                "type": "http://example.org/ProxyType",
+                "shape": "http://example.org/ProxyShape",
+            }
+        ],
     )
 
     # Set the proxy handling strategy to DELETE
@@ -951,15 +958,22 @@ def test_check_orphans_with_orphans_ask_strategy(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with orphans and ASK strategy."""
-    # Set up the mock custom filter to return static values to avoid serialization issues
+    # Set up the mock custom filter to return static values to avoid serialization
+    # issues
     custom_filter = MagicMock()
     custom_filter.human_readable_entity.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
-    
+
     # Mock the find_orphaned_entities function to return orphans
     mock_find_orphaned.return_value = (
-        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type", "shape": "http://example.org/Shape"}],
+        [
+            {
+                "uri": "http://example.org/orphan/1",
+                "type": "http://example.org/Type",
+                "shape": "http://example.org/Shape",
+            }
+        ],
         [],
     )
 
@@ -1000,16 +1014,23 @@ def test_check_orphans_with_proxies_ask_strategy(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with proxies and ASK strategy."""
-    # Set up the mock custom filter to return static values to avoid serialization issues
+    # Set up the mock custom filter to return static values to avoid serialization
+    # issues
     custom_filter = MagicMock()
     custom_filter.human_readable_entity.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
-    
+
     # Mock the find_orphaned_entities function to return proxies
     mock_find_orphaned.return_value = (
         [],
-        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType", "shape": "http://example.org/ProxyShape"}],
+        [
+            {
+                "uri": "http://example.org/proxy/1",
+                "type": "http://example.org/ProxyType",
+                "shape": "http://example.org/ProxyShape",
+            }
+        ],
     )
 
     # Set the proxy handling strategy to ASK
@@ -1049,16 +1070,29 @@ def test_check_orphans_with_both_orphans_and_proxies(
     mock_get_custom_filter, mock_find_orphaned, api_client: FlaskClient, app: Flask
 ) -> None:
     """Test the check_orphans endpoint with both orphans and proxies."""
-    # Set up the mock custom filter to return static values to avoid serialization issues
+    # Set up the mock custom filter to return static values to avoid serialization
+    # issues
     custom_filter = MagicMock()
     custom_filter.human_readable_entity.return_value = "Human Readable Entity"
     custom_filter.human_readable_class.return_value = "Human Readable Type"
     mock_get_custom_filter.return_value = custom_filter
-    
+
     # Mock the find_orphaned_entities function to return both orphans and proxies
     mock_find_orphaned.return_value = (
-        [{"uri": "http://example.org/orphan/1", "type": "http://example.org/Type", "shape": "http://example.org/Shape"}],
-        [{"uri": "http://example.org/proxy/1", "type": "http://example.org/ProxyType", "shape": "http://example.org/ProxyShape"}],
+        [
+            {
+                "uri": "http://example.org/orphan/1",
+                "type": "http://example.org/Type",
+                "shape": "http://example.org/Shape",
+            }
+        ],
+        [
+            {
+                "uri": "http://example.org/proxy/1",
+                "type": "http://example.org/ProxyType",
+                "shape": "http://example.org/ProxyShape",
+            }
+        ],
     )
 
     # Set the strategies to ASK
@@ -1160,33 +1194,35 @@ def test_check_orphans_validation_error(
     assert data["error_type"] == "validation"
     assert "An error occurred while checking for orphaned entities" in data["message"]
 
+
 @patch("heritrace.routes.api.get_custom_filter")
-def test_get_human_readable_entity(mock_get_custom_filter, api_client: FlaskClient) -> None:
+def test_get_human_readable_entity(
+    mock_get_custom_filter, api_client: FlaskClient
+) -> None:
     """Test the get_human_readable_entity endpoint."""
     # Create a mock filter
     mock_filter = MagicMock()
     mock_get_custom_filter.return_value = mock_filter
-    
+
     # Configure the mock to return a human-readable entity
     mock_filter.human_readable_entity.return_value = "Human Readable Entity Title"
-    
+
     # Make the request
     response = api_client.post(
         "/api/human-readable-entity",
         data={
             "uri": "http://example.org/entity/1",
-            "entity_class": "http://example.org/EntityClass"
-        }
+            "entity_class": "http://example.org/EntityClass",
+        },
     )
-    
+
     # Check the response
     assert response.status_code == 200
     assert response.data.decode("utf-8") == "Human Readable Entity Title"
-    
+
     # Verify the mock was called correctly
     mock_filter.human_readable_entity.assert_called_once_with(
-        "http://example.org/entity/1", 
-        ("http://example.org/EntityClass", None)
+        "http://example.org/entity/1", ("http://example.org/EntityClass", None)
     )
 
 
@@ -1203,20 +1239,24 @@ def test_get_human_readable_entity_missing_params(api_client: FlaskClient) -> No
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_with_temp_id(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic_with_temp_id(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
     """Test the create_logic function with temp_id handling."""
     with app.test_request_context():
         # Mock the generate_unique_uri function
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
-        
-        # Mock validate_new_triple to return None for all values since parent_subject is None
-        # This matches the behavior in create_logic where the validate_new_triple call is skipped
+
+        # Mock validate_new_triple to return None for all values since parent_subject is
+        # None
+        # This matches the behavior in create_logic where the validate_new_triple call
+        # is skipped
         # when parent_subject is None
         mock_validate_new_triple.return_value = (None, None, None)
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Create a temp_id_to_uri mapping
         temp_id_to_uri = {}
 
@@ -1224,9 +1264,9 @@ def test_create_logic_with_temp_id(mock_generate_unique_uri, mock_validate_new_t
         data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {},
-            "tempId": "temp-123"
+            "tempId": "temp-123",
         }
-        
+
         # Call create_logic with temp_id
         result = create_logic(
             mock_editor,
@@ -1236,15 +1276,15 @@ def test_create_logic_with_temp_id(mock_generate_unique_uri, mock_validate_new_t
             parent_subject=None,
             parent_predicate=None,
             temp_id_to_uri=temp_id_to_uri,
-            parent_entity_type="http://example.org/type/1"
+            parent_entity_type="http://example.org/type/1",
         )
-        
+
         # Verify the result
         assert result == URIRef("http://example.org/entity/new")
-        
+
         # Verify temp_id was added to the mapping
         assert temp_id_to_uri["temp-123"] == "http://example.org/entity/new"
-        
+
         # When parent_subject is None, the editor.create call for RDF.type is skipped
         # Verify that editor.create was not called
         assert not mock_editor.create.called
@@ -1253,23 +1293,30 @@ def test_create_logic_with_temp_id(mock_generate_unique_uri, mock_validate_new_t
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.create_logic")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_with_nested_entity(mock_generate_unique_uri, mock_nested_create_logic, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic_with_nested_entity(
+    mock_generate_unique_uri,
+    mock_nested_create_logic,
+    mock_validate_new_triple,
+    app: Flask,
+) -> None:
     """Test the create_logic function with nested entity creation."""
     with app.test_request_context():
         # Mock the generate_unique_uri function
         mock_generate_unique_uri.return_value = URIRef("http://example.org/nested/1")
-        
-        # Mock validate_new_triple to return None for all values since parent_subject is None
-        # This matches the behavior in create_logic where the validate_new_triple call is skipped
+
+        # Mock validate_new_triple to return None for all values since parent_subject is
+        # None
+        # This matches the behavior in create_logic where the validate_new_triple call
+        # is skipped
         # when parent_subject is None
         mock_validate_new_triple.return_value = (None, None, None)
-        
+
         # Mock the nested create_logic call
         mock_nested_create_logic.return_value = "http://example.org/nested/1"
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Test data with a nested entity
         data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
@@ -1279,12 +1326,12 @@ def test_create_logic_with_nested_entity(mock_generate_unique_uri, mock_nested_c
                         "entity_type": "http://example.org/type/nested",
                         "properties": {
                             "http://example.org/nested/property": ["Nested Value"]
-                        }
+                        },
                     }
                 ]
-            }
+            },
         }
-        
+
         # Call create_logic
         result = create_logic(
             mock_editor,
@@ -1294,7 +1341,7 @@ def test_create_logic_with_nested_entity(mock_generate_unique_uri, mock_nested_c
             None,
             None,
             {},
-            "http://example.org/type/1"
+            "http://example.org/type/1",
         )
 
         assert result == URIRef("http://example.org/entity/1")
@@ -1318,10 +1365,10 @@ def test_update_logic_implementation(mock_validate_new_triple, app: Flask) -> No
         new_value = Literal("New Value")
         old_value = Literal("Old Value")
         mock_validate_new_triple.return_value = (new_value, old_value, None)
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         update_logic(
             mock_editor,
             URIRef("http://example.org/entity/1"),
@@ -1329,7 +1376,7 @@ def test_update_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             old_value,
             "New Value",
             URIRef("http://example.org/graph/1"),
-            "http://example.org/type/1"
+            "http://example.org/type/1",
         )
 
         mock_validate_new_triple.assert_called_with(
@@ -1339,7 +1386,7 @@ def test_update_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             "update",
             old_value,
             entity_types="http://example.org/type/1",
-            entity_shape=None
+            entity_shape=None,
         )
 
         mock_editor.update.assert_called_with(
@@ -1347,59 +1394,61 @@ def test_update_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             URIRef("http://example.org/property/1"),
             old_value,
             new_value,
-            URIRef("http://example.org/graph/1")
+            URIRef("http://example.org/graph/1"),
         )
 
 
 @patch("heritrace.routes.api.validate_new_triple")
-def test_delete_logic_with_direct_graph_context(mock_validate_new_triple, app: Flask) -> None:
+def test_delete_logic_with_direct_graph_context(
+    mock_validate_new_triple, app: Flask
+) -> None:
     """Test delete_logic with a direct graph context instead of a Graph object."""
     with app.test_request_context():
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Mock validate_new_triple to return valid values for the object
         mock_validate_new_triple.return_value = (None, None, None)
-        
+
         # Call delete_logic with test data
-        from heritrace.routes.api import delete_logic
         delete_logic(
             mock_editor,
             URIRef("http://example.org/subject"),
             URIRef("http://example.org/predicate"),
             "http://example.org/object",
-            URIRef("http://example.org/graph")
+            URIRef("http://example.org/graph"),
         )
 
         mock_editor.delete.assert_called_once_with(
             URIRef("http://example.org/subject"),
             URIRef("http://example.org/predicate"),
             None,
-            URIRef("http://example.org/graph")
+            URIRef("http://example.org/graph"),
         )
 
 
 @patch("heritrace.routes.api.validate_new_triple")
-def test_delete_logic_with_validation_error(mock_validate_new_triple, app: Flask) -> None:
+def test_delete_logic_with_validation_error(
+    mock_validate_new_triple, app: Flask
+) -> None:
     """Test delete_logic when validate_new_triple returns an error message."""
     with app.test_request_context():
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Mock validate_new_triple to return an error message
         mock_validate_new_triple.return_value = (None, None, "Validation error")
-        
+
         # Call delete_logic with test data and expect a ValueError
-        from heritrace.routes.api import delete_logic
         with pytest.raises(ValueError, match="Validation error"):
             delete_logic(
                 mock_editor,
                 URIRef("http://example.org/subject"),
                 URIRef("http://example.org/predicate"),
                 "http://example.org/object",
-                URIRef("http://example.org/graph")
+                URIRef("http://example.org/graph"),
             )
-        
+
         # Verify that editor.delete was not called
         mock_editor.delete.assert_not_called()
 
@@ -1409,12 +1458,13 @@ def test_delete_logic_implementation(mock_validate_new_triple, app: Flask) -> No
     """Test the delete_logic function implementation."""
     with app.test_request_context():
         # Mock validate_new_triple to return None for object_value and error_message
-        # This simulates the validate_new_triple function returning None for the object_value
+        # This simulates the validate_new_triple function returning None for the
+        # object_value
         mock_validate_new_triple.return_value = (None, None, None)
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         subject = URIRef("http://example.org/entity/1")
         predicate = URIRef("http://example.org/property/1")
         object_value = Literal("Value to delete")
@@ -1422,12 +1472,7 @@ def test_delete_logic_implementation(mock_validate_new_triple, app: Flask) -> No
         entity_type = "http://example.org/type/1"
 
         delete_logic(
-            mock_editor,
-            subject,
-            predicate,
-            object_value,
-            graph_uri,
-            entity_type
+            mock_editor, subject, predicate, object_value, graph_uri, entity_type
         )
 
         mock_validate_new_triple.assert_called_once_with(
@@ -1437,15 +1482,10 @@ def test_delete_logic_implementation(mock_validate_new_triple, app: Flask) -> No
             "delete",
             object_value,
             entity_types=entity_type,
-            entity_shape=None
+            entity_shape=None,
         )
 
-        mock_editor.delete.assert_called_with(
-            subject,
-            predicate,
-            None,
-            graph_uri
-        )
+        mock_editor.delete.assert_called_with(subject, predicate, None, graph_uri)
 
 
 def test_rebuild_entity_order(app: Flask) -> None:
@@ -1453,14 +1493,14 @@ def test_rebuild_entity_order(app: Flask) -> None:
     with app.test_request_context():
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Create mock entities and ordered_by_uri
         entity1 = URIRef("http://example.org/entity/1")
         entity2 = URIRef("http://example.org/entity/2")
         entity3 = URIRef("http://example.org/entity/3")
         ordered_by_uri = URIRef("http://example.org/property/next")
         graph_uri = URIRef("http://example.org/graph/1")
-        
+
         # Mock the triples method to return existing ordering triples
         def triples_side_effect(*args):
             if args[0][0] == entity1 and args[0][1] == ordered_by_uri:
@@ -1470,23 +1510,20 @@ def test_rebuild_entity_order(app: Flask) -> None:
             elif args[0][0] == entity3 and args[0][1] == ordered_by_uri:
                 return
                 yield  # This will never be reached but prevents StopIteration
-        
+
         mock_editor.g_set.triples = MagicMock(side_effect=triples_side_effect)
-        
+
         # Call rebuild_entity_order
         result = rebuild_entity_order(
-            mock_editor,
-            ordered_by_uri,
-            [entity1, entity2, entity3],
-            graph_uri
+            mock_editor, ordered_by_uri, [entity1, entity2, entity3], graph_uri
         )
-        
+
         # Verify the result is the editor
         assert result == mock_editor
-        
+
         # Verify delete was called for existing triples
         assert mock_editor.delete.call_count == 2
-        
+
         # Verify create was called to establish new ordering
         assert mock_editor.create.call_count == 2
         mock_editor.create.assert_any_call(entity1, ordered_by_uri, entity2, graph_uri)
@@ -1494,30 +1531,48 @@ def test_rebuild_entity_order(app: Flask) -> None:
 
 
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_order_logic_with_entity_type_determination(mock_generate_unique_uri, app: Flask) -> None:
+def test_order_logic_with_entity_type_determination(
+    mock_generate_unique_uri, app: Flask
+) -> None:
     """Test the order_logic function with entity type determination."""
     with app.test_request_context():
         # Mock generate_unique_uri
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Mock the triples method to return entity type and current entities
         def triples_side_effect(*args):
             # For getting current entities
-            if args[0] == (URIRef("http://example.org/container/1"), URIRef("http://example.org/property/items"), None):
-                yield (URIRef("http://example.org/container/1"), URIRef("http://example.org/property/items"), URIRef("http://example.org/entity/old"))
+            if args[0] == (
+                URIRef("http://example.org/container/1"),
+                URIRef("http://example.org/property/items"),
+                None,
+            ):
+                yield (
+                    URIRef("http://example.org/container/1"),
+                    URIRef("http://example.org/property/items"),
+                    URIRef("http://example.org/entity/old"),
+                )
             # For getting entity properties
             elif args[0] == (URIRef("http://example.org/entity/old"), None, None):
-                yield (URIRef("http://example.org/entity/old"), RDF.type, URIRef("http://example.org/type/1"))
-                yield (URIRef("http://example.org/entity/old"), URIRef("http://example.org/property/name"), Literal("Old Entity"))
+                yield (
+                    URIRef("http://example.org/entity/old"),
+                    RDF.type,
+                    URIRef("http://example.org/type/1"),
+                )
+                yield (
+                    URIRef("http://example.org/entity/old"),
+                    URIRef("http://example.org/property/name"),
+                    Literal("Old Entity"),
+                )
             else:
                 return
                 yield  # This will never be reached but prevents StopIteration
-        
+
         mock_editor.g_set.triples = MagicMock(side_effect=triples_side_effect)
-        
+
         # Call order_logic with a new order that includes an old entity
         result = order_logic(
             mock_editor,
@@ -1526,27 +1581,29 @@ def test_order_logic_with_entity_type_determination(mock_generate_unique_uri, ap
             ["http://example.org/entity/old", "temp-123"],
             URIRef("http://example.org/property/next"),
             URIRef("http://example.org/graph/1"),
-            {"temp-123": "http://example.org/entity/new"}
+            {"temp-123": "http://example.org/entity/new"},
         )
-        
+
         # Verify the result is the editor
         assert result == mock_editor
-        
+
         # Verify generate_unique_uri was called with the correct entity type
         mock_generate_unique_uri.assert_called_once_with("http://example.org/type/1")
-        
+
         # No need to verify specific triples calls as we're using a side_effect function
         # The test passes if generate_unique_uri was called correctly
 
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_with_parent(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic_with_parent(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
     """Test the create_logic function with parent_subject and parent_predicate."""
     with app.test_request_context():
         # Mock the generate_unique_uri function
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
-        
+
         # Mock validate_new_triple to return valid values
         mock_validate_new_triple.side_effect = [
             # First call for entity type
@@ -1554,23 +1611,23 @@ def test_create_logic_with_parent(mock_generate_unique_uri, mock_validate_new_tr
             # Second call for parent relationship
             (URIRef("http://example.org/entity/new"), None, None),
             # Third call for property
-            (Literal("Test Value"), None, None)
+            (Literal("Test Value"), None, None),
         ]
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Test data with properties
         data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
                 "http://example.org/property/name": {
                     "value": "Test Value",
-                    "datatype": "http://www.w3.org/2001/XMLSchema#string"
+                    "datatype": "http://www.w3.org/2001/XMLSchema#string",
                 }
-            }
+            },
         }
-        
+
         # Call create_logic with parent_subject and parent_predicate
         result = create_logic(
             mock_editor,
@@ -1579,65 +1636,70 @@ def test_create_logic_with_parent(mock_generate_unique_uri, mock_validate_new_tr
             graph_uri=URIRef("http://example.org/graph/1"),
             parent_subject=URIRef("http://example.org/parent/1"),
             parent_predicate=URIRef("http://example.org/property/hasChild"),
-            parent_entity_type="http://example.org/type/parent"
+            parent_entity_type="http://example.org/type/parent",
         )
-        
+
         # Verify the result
         assert result == URIRef("http://example.org/entity/new")
-        
+
         # Verify validate_new_triple was called for entity type
         mock_validate_new_triple.assert_any_call(
             URIRef("http://example.org/entity/new"),
             RDF.type,
             "http://example.org/type/1",
             "create",
-            entity_types="http://example.org/type/1"
+            entity_types="http://example.org/type/1",
         )
-        
+
         # Verify validate_new_triple was called for parent relationship
         mock_validate_new_triple.assert_any_call(
             URIRef("http://example.org/parent/1"),
             URIRef("http://example.org/property/hasChild"),
             URIRef("http://example.org/entity/new"),
             "create",
-            entity_types="http://example.org/type/parent"
+            entity_types="http://example.org/type/parent",
         )
-        
+
         # Verify editor.create was called for entity type
         mock_editor.create.assert_any_call(
             URIRef("http://example.org/entity/new"),
             RDF.type,
             URIRef("http://example.org/type/1"),
-            URIRef("http://example.org/graph/1")
+            URIRef("http://example.org/graph/1"),
         )
-        
+
         # Verify editor.create was called for parent relationship
         mock_editor.create.assert_any_call(
             URIRef("http://example.org/parent/1"),
             URIRef("http://example.org/property/hasChild"),
             URIRef("http://example.org/entity/new"),
-            URIRef("http://example.org/graph/1")
+            URIRef("http://example.org/graph/1"),
         )
 
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_entity_type_error(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
-    """Test the create_logic function when validate_new_triple returns an error for entity type."""
+def test_create_logic_entity_type_error(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
+    """
+    Test the create_logic function when validate_new_triple returns an error for entity
+    type.
+    """
     with app.test_request_context():
         # Mock the generate_unique_uri function
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
-        
+
         # Mock validate_new_triple to return an error for entity type
         mock_validate_new_triple.return_value = (None, None, "Invalid entity type")
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Test data
         data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
-            "properties": {}
+            "properties": {},
         }
 
         # Call create_logic with parent_subject to trigger entity type validation
@@ -1647,33 +1709,39 @@ def test_create_logic_entity_type_error(mock_generate_unique_uri, mock_validate_
                 data,
                 subject=URIRef("http://example.org/entity/new"),
                 graph_uri=URIRef("http://example.org/graph/1"),
-                parent_subject=URIRef("http://example.org/parent/1")
+                parent_subject=URIRef("http://example.org/parent/1"),
             )
 
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_parent_relation_error(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
-    """Test the create_logic function when validate_new_triple returns an error for parent relation."""
+def test_create_logic_parent_relation_error(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
+    """
+    Test the create_logic function when validate_new_triple returns an error for parent
+    relation.
+    """
     with app.test_request_context():
         # Mock the generate_unique_uri function
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
-        
-        # Mock validate_new_triple to return valid value for entity type but error for parent relation
+
+        # Mock validate_new_triple to return valid value for entity type but error for
+        # parent relation
         mock_validate_new_triple.side_effect = [
             # First call for entity type
             (URIRef("http://example.org/type/1"), None, None),
             # Second call for parent relationship
-            (None, None, "Invalid parent relation")
+            (None, None, "Invalid parent relation"),
         ]
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Test data
         data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
-            "properties": {}
+            "properties": {},
         }
 
         # Call create_logic with parent_subject and parent_predicate
@@ -1685,19 +1753,25 @@ def test_create_logic_parent_relation_error(mock_generate_unique_uri, mock_valid
                 graph_uri=URIRef("http://example.org/graph/1"),
                 parent_subject=URIRef("http://example.org/parent/1"),
                 parent_predicate=URIRef("http://example.org/property/hasChild"),
-                parent_entity_type="http://example.org/type/parent"
+                parent_entity_type="http://example.org/type/parent",
             )
 
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_property_error(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
-    """Test the create_logic function when validate_new_triple returns an error for a property."""
+def test_create_logic_property_error(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
+    """
+    Test the create_logic function when validate_new_triple returns an error for a
+    property.
+    """
     with app.test_request_context():
         # Mock the generate_unique_uri function
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
-        
-        # Mock validate_new_triple to return valid values for entity type and parent relation
+
+        # Mock validate_new_triple to return valid values for entity type and parent
+        # relation
         # but error for property
         mock_validate_new_triple.side_effect = [
             # First call for entity type
@@ -1705,20 +1779,22 @@ def test_create_logic_property_error(mock_generate_unique_uri, mock_validate_new
             # Second call for parent relationship
             (URIRef("http://example.org/entity/new"), None, None),
             # Third call for property
-            (None, None, "Invalid property value")
+            (None, None, "Invalid property value"),
         ]
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Test data with properties - using dictionary format for properties
         data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
-                "http://example.org/property/name": [{"type": "literal", "value": "Test Value"}]
-            }
+                "http://example.org/property/name": [
+                    {"type": "literal", "value": "Test Value"}
+                ]
+            },
         }
-        
+
         # Call create_logic with parent_subject and parent_predicate
         with pytest.raises(ValueError, match="Invalid property value"):
             create_logic(
@@ -1728,20 +1804,18 @@ def test_create_logic_property_error(mock_generate_unique_uri, mock_validate_new
                 graph_uri=URIRef("http://example.org/graph/1"),
                 parent_subject=URIRef("http://example.org/parent/1"),
                 parent_predicate=URIRef("http://example.org/property/hasChild"),
-                parent_entity_type="http://example.org/type/parent"
+                parent_entity_type="http://example.org/type/parent",
             )
 
 
 def test_get_graph_uri_from_context() -> None:
     """Test the get_graph_uri_from_context function in api.py."""
-    from heritrace.routes.api import get_graph_uri_from_context
-
     # Test with a direct URIRef (non-Graph context)
     direct_uri = URIRef("http://example.org/graph/2")
     graph_uri = get_graph_uri_from_context(direct_uri)
     assert graph_uri == direct_uri
     assert graph_uri is direct_uri  # They should be the same object
-    
+
     # Test with a Graph object
     mock_graph = MagicMock(spec=Graph)
     mock_graph.identifier = URIRef("http://example.org/graph/1")
@@ -1755,10 +1829,10 @@ def test_update_logic_with_error_message(mock_validate_new_triple, app: Flask) -
     with app.test_request_context():
         # Mock the validate_new_triple function to return an error
         mock_validate_new_triple.return_value = (None, None, "Invalid update value")
-        
+
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Call update_logic with test data
         with pytest.raises(ValueError, match="Invalid update value"):
             update_logic(
@@ -1768,9 +1842,9 @@ def test_update_logic_with_error_message(mock_validate_new_triple, app: Flask) -
                 "Old Value",
                 "New Value",
                 URIRef("http://example.org/graph/1"),
-                "http://example.org/type/1"
+                "http://example.org/type/1",
             )
-        
+
         # Verify that editor.update was not called
         mock_editor.update.assert_not_called()
 
@@ -1780,7 +1854,7 @@ def test_order_logic_entity_type_error(app: Flask) -> None:
     with app.test_request_context():
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Set up the mock editor to return triples for the subject and predicate
         old_entity = URIRef("http://example.org/old/1")
         mock_editor.g_set.triples.side_effect = [
@@ -1789,20 +1863,21 @@ def test_order_logic_entity_type_error(app: Flask) -> None:
             # Second call for entity properties
             [(old_entity, RDF.type, None)],
         ]
-        
+
         # Mock the get_entity_type method to return None for the entity type
         mock_editor.get_entity_type.return_value = None
-        
+
         # Call order_logic with test data
-        with pytest.raises(ValueError, match="Impossibile determinare il tipo dell'entità"):
-            from heritrace.routes.api import order_logic
+        with pytest.raises(
+            ValueError, match="Impossibile determinare il tipo dell'entità"
+        ):
             order_logic(
                 mock_editor,
                 URIRef("http://example.org/subject/1"),
                 URIRef("http://example.org/predicate/1"),
                 ["http://example.org/old/1"],
                 URIRef("http://example.org/ordered_by"),
-                URIRef("http://example.org/graph/1")
+                URIRef("http://example.org/graph/1"),
             )
 
 
@@ -1839,16 +1914,16 @@ def test_determine_datatype() -> None:
     """Test the determine_datatype function."""
     # Test with string value
     assert determine_datatype("test", [str(XSD.string)]) == XSD.string
-    
+
     # Test with integer value
     assert determine_datatype("123", [str(XSD.integer)]) == XSD.integer
-    
+
     # Test with date value
     assert determine_datatype("2023-01-01", [str(XSD.date)]) == XSD.date
-    
+
     # Test with multiple possible datatypes
     assert determine_datatype("123", [str(XSD.integer), str(XSD.string)]) == XSD.integer
-    
+
     # Test with no matching datatype
     assert determine_datatype("not a date", [str(XSD.date)]) == XSD.string
 
@@ -1860,25 +1935,25 @@ def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
         # Create a mock filter
         mock_filter = MagicMock()
         mock_get_custom_filter.return_value = mock_filter
-        
+
         # Configure the mock to return readable values
         mock_filter.human_readable_entity.return_value = "Entity Label"
         mock_filter.human_readable_predicate.return_value = "Entity Type"
-        
+
         # Create test entities
         entities = [
             {
                 "uri": "http://example.org/entity/1",
-                "type": "http://example.org/EntityType"
+                "type": "http://example.org/EntityType",
             },
             {
                 "uri": "http://example.org/entity/2",
-                "type": "http://example.org/EntityType"
-            }
+                "type": "http://example.org/EntityType",
+            },
         ]
-        
+
         # Define a format_entities function that mimics the one in check_orphans
-        def format_entities(entities, is_intermediate=False):
+        def format_entities(entities, *, is_intermediate=False):
             return [
                 {
                     "uri": entity["uri"],
@@ -1892,22 +1967,22 @@ def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
                 }
                 for entity in entities
             ]
-        
+
         # Call the function
         result = format_entities(entities)
-        
+
         # Verify the result
         assert len(result) == 2
         assert result[0]["uri"] == "http://example.org/entity/1"
         assert result[0]["label"] == "Entity Label"
         assert result[0]["type"] == "Entity Type"
         assert result[0]["is_intermediate"] is False
-        
+
         assert result[1]["uri"] == "http://example.org/entity/2"
         assert result[1]["label"] == "Entity Label"
         assert result[1]["type"] == "Entity Type"
         assert result[1]["is_intermediate"] is False
-        
+
         # Test with is_intermediate=True
         result = format_entities(entities, is_intermediate=True)
         assert result[0]["is_intermediate"] is True
@@ -1916,14 +1991,20 @@ def test_format_entities(mock_get_custom_filter, app: Flask) -> None:
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
     """Test the create_logic function."""
     with app.app_context():
         # Create a mock editor
         mock_editor = MagicMock()
 
         # Configure the mock validate_new_triple to return valid values
-        mock_validate_new_triple.return_value = (URIRef("http://example.org/EntityType"), None, None)
+        mock_validate_new_triple.return_value = (
+            URIRef("http://example.org/EntityType"),
+            None,
+            None,
+        )
 
         # Configure the mock generate_unique_uri to return a new URI for nested entities
         mock_generate_unique_uri.return_value = URIRef("http://example.org/new_entity")
@@ -1932,28 +2013,30 @@ def test_create_logic(mock_generate_unique_uri, mock_validate_new_triple, app: F
         data: CreateEntityData = {
             "entity_type": "http://example.org/EntityType",
             "properties": {
-                "http://example.org/predicate1": [{"type": "literal", "value": "value1"}],
+                "http://example.org/predicate1": [
+                    {"type": "literal", "value": "value1"}
+                ],
                 "http://example.org/predicate2": [
-                    {"type": "literal", "value": "value2"}, 
-                    {"type": "literal", "value": "value3"}
-                ]
-            }
+                    {"type": "literal", "value": "value2"},
+                    {"type": "literal", "value": "value3"},
+                ],
+            },
         }
 
         # Call the function
-        from heritrace.routes.api import create_logic
         subject = create_logic(
             mock_editor,
             data,
             subject=URIRef("http://example.org/subject"),
-            graph_uri=URIRef("http://example.org/graph")
+            graph_uri=URIRef("http://example.org/graph"),
         )
 
         # Verify that the function returned the correct subject
         assert subject == URIRef("http://example.org/subject")
 
         # Verify validate_new_triple was called the right number of times
-        # Should be called for each property value (2 calls for predicate1, 2 calls for predicate2)
+        # Should be called for each property value (2 calls for predicate1, 2 calls for
+        # predicate2)
         assert mock_validate_new_triple.call_count == 3
 
 
@@ -1963,12 +2046,12 @@ def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
     with app.app_context():
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Configure the mock validate_new_triple to return valid values
         new_value = URIRef("http://example.org/new_value")
         old_value = URIRef("http://example.org/old_value")
         mock_validate_new_triple.return_value = (new_value, old_value, None)
-        
+
         # Call the function
         update_logic(
             mock_editor,
@@ -1977,7 +2060,7 @@ def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
             "http://example.org/old_value",
             "http://example.org/new_value",
             URIRef("http://example.org/graph"),
-            "http://example.org/EntityType"
+            "http://example.org/EntityType",
         )
 
         # Verify validate_new_triple was called correctly
@@ -1986,9 +2069,9 @@ def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
             URIRef("http://example.org/predicate"),
             "http://example.org/new_value",
             "update",
-            "http://example.org/old_value",
+            URIRef("http://example.org/old_value"),
             entity_types="http://example.org/EntityType",
-            entity_shape=None
+            entity_shape=None,
         )
 
         # Verify the editor was called correctly
@@ -1997,7 +2080,7 @@ def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
             URIRef("http://example.org/predicate"),
             old_value,
             new_value,
-            URIRef("http://example.org/graph")
+            URIRef("http://example.org/graph"),
         )
 
 
@@ -2007,11 +2090,11 @@ def test_delete_logic(mock_validate_new_triple, app: Flask) -> None:
     with app.app_context():
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Configure the mock validate_new_triple to return valid values
         object_value = URIRef("http://example.org/object")
         mock_validate_new_triple.return_value = (None, object_value, None)
-        
+
         # Call the function
         delete_logic(
             mock_editor,
@@ -2019,7 +2102,7 @@ def test_delete_logic(mock_validate_new_triple, app: Flask) -> None:
             URIRef("http://example.org/predicate"),
             "http://example.org/object",
             URIRef("http://example.org/graph"),
-            "http://example.org/EntityType"
+            "http://example.org/EntityType",
         )
 
         # Verify validate_new_triple was called correctly
@@ -2028,9 +2111,9 @@ def test_delete_logic(mock_validate_new_triple, app: Flask) -> None:
             URIRef("http://example.org/predicate"),
             None,
             "delete",
-            "http://example.org/object",
+            URIRef("http://example.org/object"),
             entity_types="http://example.org/EntityType",
-            entity_shape=None
+            entity_shape=None,
         )
 
         # Verify the editor was called correctly
@@ -2038,7 +2121,7 @@ def test_delete_logic(mock_validate_new_triple, app: Flask) -> None:
             URIRef("http://example.org/subject"),
             URIRef("http://example.org/predicate"),
             object_value,
-            URIRef("http://example.org/graph")
+            URIRef("http://example.org/graph"),
         )
 
 
@@ -2048,38 +2131,56 @@ def test_order_logic(mock_generate_unique_uri, app: Flask) -> None:
     with app.app_context():
         # Create a mock editor
         mock_editor = MagicMock()
-        
+
         # Configure the mock editor's g_set to return triples
         entity1 = URIRef("http://example.org/entity1")
         entity2 = URIRef("http://example.org/entity2")
-        
+
         # Create a mock g_set with a triples method
         mock_g_set = MagicMock()
         mock_editor.g_set = mock_g_set
-        
+
         # Configure the triples method to return different results based on the input
         def side_effect(triple_pattern):
-            subject, predicate, obj = triple_pattern
-            if subject == URIRef("http://example.org/subject") and predicate == URIRef("http://example.org/predicate"):
+            subject, predicate, _obj = triple_pattern
+            if subject == URIRef("http://example.org/subject") and predicate == URIRef(
+                "http://example.org/predicate"
+            ):
                 return iter([(None, None, entity1), (None, None, entity2)])
-            elif subject == entity1:
-                return iter([(entity1, RDF.type, URIRef("http://example.org/EntityType")), 
-                        (entity1, URIRef("http://example.org/prop"), URIRef("http://example.org/value"))])
-            elif subject == entity2:
-                return iter([(entity2, RDF.type, URIRef("http://example.org/EntityType")), 
-                        (entity2, URIRef("http://example.org/prop"), URIRef("http://example.org/value"))])
+            if subject == entity1:
+                return iter(
+                    [
+                        (entity1, RDF.type, URIRef("http://example.org/EntityType")),
+                        (
+                            entity1,
+                            URIRef("http://example.org/prop"),
+                            URIRef("http://example.org/value"),
+                        ),
+                    ]
+                )
+            if subject == entity2:
+                return iter(
+                    [
+                        (entity2, RDF.type, URIRef("http://example.org/EntityType")),
+                        (
+                            entity2,
+                            URIRef("http://example.org/prop"),
+                            URIRef("http://example.org/value"),
+                        ),
+                    ]
+                )
             return iter([])
-        
+
         mock_g_set.triples.side_effect = side_effect
-        
+
         # Configure the mock generate_unique_uri to return new URIs
         new_entity1 = URIRef("http://example.org/new_entity1")
         new_entity2 = URIRef("http://example.org/new_entity2")
         mock_generate_unique_uri.side_effect = [new_entity1, new_entity2]
-        
+
         # Create a temp_id_to_uri dictionary
         temp_id_to_uri = {}
-        
+
         # Call the function
         result = order_logic(
             mock_editor,
@@ -2088,16 +2189,18 @@ def test_order_logic(mock_generate_unique_uri, app: Flask) -> None:
             [str(entity1), str(entity2)],
             URIRef("http://example.org/ordered_by"),
             URIRef("http://example.org/graph"),
-            temp_id_to_uri
+            temp_id_to_uri,
         )
-        
+
         # Verify the result
         assert result == mock_editor
 
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_with_existing_entity(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic_with_existing_entity(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
     """Test create_logic with existing entity reference."""
     with app.test_request_context():
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
@@ -2111,17 +2214,17 @@ def test_create_logic_with_existing_entity(mock_generate_unique_uri, mock_valida
                 "http://example.org/property/1": [
                     {
                         "is_existing_entity": True,
-                        "entity_uri": "http://example.org/existing/1"
+                        "entity_uri": "http://example.org/existing/1",
                     }
                 ]
-            }
+            },
         }
 
         result = create_logic(
             mock_editor,
             data,
             subject=None,
-            graph_uri=URIRef("http://example.org/graph/1")
+            graph_uri=URIRef("http://example.org/graph/1"),
         )
 
         assert result == URIRef("http://example.org/entity/new")
@@ -2129,13 +2232,15 @@ def test_create_logic_with_existing_entity(mock_generate_unique_uri, mock_valida
             URIRef(result),
             URIRef("http://example.org/property/1"),
             URIRef("http://example.org/existing/1"),
-            URIRef("http://example.org/graph/1")
+            URIRef("http://example.org/graph/1"),
         )
 
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_with_existing_entity_missing_uri(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic_with_existing_entity_missing_uri(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
     """Test create_logic with existing entity reference but missing entity_uri."""
     with app.test_request_context():
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
@@ -2146,26 +2251,26 @@ def test_create_logic_with_existing_entity_missing_uri(mock_generate_unique_uri,
         data: CreateEntityData = {
             "entity_type": "http://example.org/type/1",
             "properties": {
-                "http://example.org/property/1": [
-                    {
-                        "is_existing_entity": True
-                    }
-                ]
-            }
+                "http://example.org/property/1": [{"is_existing_entity": True}]
+            },
         }
 
-        with pytest.raises(ValueError, match="Missing entity_uri in existing entity reference"):
+        with pytest.raises(
+            ValueError, match="Missing entity_uri in existing entity reference"
+        ):
             create_logic(
                 mock_editor,
                 data,
                 subject=None,
-                graph_uri=URIRef("http://example.org/graph/1")
+                graph_uri=URIRef("http://example.org/graph/1"),
             )
 
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_with_custom_property_uri(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic_with_custom_property_uri(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
     """Test create_logic with custom property of type URI."""
     with app.test_request_context():
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
@@ -2180,17 +2285,17 @@ def test_create_logic_with_custom_property_uri(mock_generate_unique_uri, mock_va
                     {
                         "is_custom_property": True,
                         "type": "uri",
-                        "value": "http://example.org/custom/value"
+                        "value": "http://example.org/custom/value",
                     }
                 ]
-            }
+            },
         }
 
         result = create_logic(
             mock_editor,
             data,
             subject=None,
-            graph_uri=URIRef("http://example.org/graph/1")
+            graph_uri=URIRef("http://example.org/graph/1"),
         )
 
         assert result == URIRef("http://example.org/entity/new")
@@ -2198,13 +2303,15 @@ def test_create_logic_with_custom_property_uri(mock_generate_unique_uri, mock_va
             URIRef(result),
             URIRef("http://example.org/custom/property"),
             URIRef("http://example.org/custom/value"),
-            URIRef("http://example.org/graph/1")
+            URIRef("http://example.org/graph/1"),
         )
 
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_with_custom_property_literal(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic_with_custom_property_literal(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
     """Test create_logic with custom property of type literal."""
     with app.test_request_context():
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
@@ -2220,17 +2327,17 @@ def test_create_logic_with_custom_property_literal(mock_generate_unique_uri, moc
                         "is_custom_property": True,
                         "type": "literal",
                         "value": "Custom Value",
-                        "datatype": str(XSD.string)
+                        "datatype": str(XSD.string),
                     }
                 ]
-            }
+            },
         }
 
         result = create_logic(
             mock_editor,
             data,
             subject=None,
-            graph_uri=URIRef("http://example.org/graph/1")
+            graph_uri=URIRef("http://example.org/graph/1"),
         )
 
         assert result == URIRef("http://example.org/entity/new")
@@ -2239,7 +2346,9 @@ def test_create_logic_with_custom_property_literal(mock_generate_unique_uri, moc
 
 @patch("heritrace.routes.api.validate_new_triple")
 @patch("heritrace.routes.api.generate_unique_uri")
-def test_create_logic_with_custom_property_unknown_type(mock_generate_unique_uri, mock_validate_new_triple, app: Flask) -> None:
+def test_create_logic_with_custom_property_unknown_type(
+    mock_generate_unique_uri, mock_validate_new_triple, app: Flask
+) -> None:
     """Test create_logic with custom property of unknown type."""
     with app.test_request_context():
         mock_generate_unique_uri.return_value = URIRef("http://example.org/entity/new")
@@ -2254,10 +2363,10 @@ def test_create_logic_with_custom_property_unknown_type(mock_generate_unique_uri
                     {
                         "is_custom_property": True,
                         "type": "unknown",
-                        "value": "Custom Value"
+                        "value": "Custom Value",
                     }
                 ]
-            }
+            },
         }
 
         with pytest.raises(ValueError, match="Unknown custom property type: unknown"):
@@ -2265,21 +2374,25 @@ def test_create_logic_with_custom_property_unknown_type(mock_generate_unique_uri
                 mock_editor,
                 data,
                 subject=None,
-                graph_uri=URIRef("http://example.org/graph/1")
+                graph_uri=URIRef("http://example.org/graph/1"),
             )
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_get_form_fields_for_entity_success(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_get_form_fields_for_entity_success(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test get_form_fields_for_entity endpoint success path."""
-    from collections import OrderedDict
-
-    mock_form_fields = OrderedDict({
-        ("http://example.org/class", "http://example.org/shape"): OrderedDict({
-            "http://example.org/property1": [{"type": "literal"}],
-            "http://example.org/property2": [{"type": "uri"}]
-        })
-    })
+    mock_form_fields = OrderedDict(
+        {
+            ("http://example.org/class", "http://example.org/shape"): OrderedDict(
+                {
+                    "http://example.org/property1": [{"type": "literal"}],
+                    "http://example.org/property2": [{"type": "uri"}],
+                }
+            )
+        }
+    )
     mock_get_form_fields.return_value = mock_form_fields
 
     response = api_client.get(
@@ -2294,7 +2407,9 @@ def test_get_form_fields_for_entity_success(mock_get_form_fields, api_client: Fl
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_get_form_fields_for_entity_missing_params(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_get_form_fields_for_entity_missing_params(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test get_form_fields_for_entity endpoint with missing parameters."""
     response = api_client.get("/api/form-fields?entity_class=http://example.org/class")
 
@@ -2305,7 +2420,9 @@ def test_get_form_fields_for_entity_missing_params(mock_get_form_fields, api_cli
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_get_form_fields_for_entity_not_initialized(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_get_form_fields_for_entity_not_initialized(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test get_form_fields_for_entity when form fields are not initialized."""
     mock_get_form_fields.return_value = None
 
@@ -2320,13 +2437,13 @@ def test_get_form_fields_for_entity_not_initialized(mock_get_form_fields, api_cl
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_get_form_fields_for_entity_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_get_form_fields_for_entity_not_found(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test get_form_fields_for_entity when entity key is not found."""
-    from collections import OrderedDict
-
-    mock_form_fields = OrderedDict({
-        ("http://example.org/other", "http://example.org/shape"): OrderedDict()
-    })
+    mock_form_fields = OrderedDict(
+        {("http://example.org/other", "http://example.org/shape"): OrderedDict()}
+    )
     mock_get_form_fields.return_value = mock_form_fields
 
     response = api_client.get(
@@ -2340,7 +2457,9 @@ def test_get_form_fields_for_entity_not_found(mock_get_form_fields, api_client: 
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_get_form_fields_for_entity_exception(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_get_form_fields_for_entity_exception(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test get_form_fields_for_entity when an exception occurs."""
     mock_get_form_fields.side_effect = Exception("Test error")
 
@@ -2356,21 +2475,23 @@ def test_get_form_fields_for_entity_exception(mock_get_form_fields, api_client: 
 
 @patch("heritrace.routes.api.get_form_fields")
 @patch("heritrace.routes.api.render_template_string")
-def test_render_form_fields_html_success(mock_render, mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_form_fields_html_success(
+    mock_render, mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_form_fields_html endpoint success path."""
-    from collections import OrderedDict
-
-    mock_form_fields = OrderedDict({
-        ("http://example.org/class", "http://example.org/shape"): OrderedDict({
-            "http://example.org/property1": [{"type": "literal"}]
-        })
-    })
+    mock_form_fields = OrderedDict(
+        {
+            ("http://example.org/class", "http://example.org/shape"): OrderedDict(
+                {"http://example.org/property1": [{"type": "literal"}]}
+            )
+        }
+    )
     mock_get_form_fields.return_value = mock_form_fields
     mock_render.return_value = "<div>Form HTML</div>"
 
     response = api_client.post(
         "/api/render-form-fields",
-        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]}
+        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]},
     )
 
     assert response.status_code == 200
@@ -2378,7 +2499,9 @@ def test_render_form_fields_html_success(mock_render, mock_get_form_fields, api_
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_form_fields_html_missing_data(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_form_fields_html_missing_data(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_form_fields_html with missing data."""
     response = api_client.post("/api/render-form-fields", json={})
 
@@ -2389,13 +2512,15 @@ def test_render_form_fields_html_missing_data(mock_get_form_fields, api_client: 
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_form_fields_html_not_initialized(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_form_fields_html_not_initialized(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_form_fields_html when form fields not initialized."""
     mock_get_form_fields.return_value = None
 
     response = api_client.post(
         "/api/render-form-fields",
-        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]}
+        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]},
     )
 
     assert response.status_code == 500
@@ -2404,18 +2529,18 @@ def test_render_form_fields_html_not_initialized(mock_get_form_fields, api_clien
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_form_fields_html_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_form_fields_html_not_found(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_form_fields_html when entity not found."""
-    from collections import OrderedDict
-
-    mock_form_fields = OrderedDict({
-        ("http://example.org/other", "http://example.org/shape"): OrderedDict()
-    })
+    mock_form_fields = OrderedDict(
+        {("http://example.org/other", "http://example.org/shape"): OrderedDict()}
+    )
     mock_get_form_fields.return_value = mock_form_fields
 
     response = api_client.post(
         "/api/render-form-fields",
-        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]}
+        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]},
     )
 
     assert response.status_code == 404
@@ -2424,13 +2549,15 @@ def test_render_form_fields_html_not_found(mock_get_form_fields, api_client: Fla
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_form_fields_html_exception(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_form_fields_html_exception(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_form_fields_html when an exception occurs."""
     mock_get_form_fields.side_effect = Exception("Test error")
 
     response = api_client.post(
         "/api/render-form-fields",
-        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]}
+        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]},
     )
 
     assert response.status_code == 500
@@ -2440,20 +2567,31 @@ def test_render_form_fields_html_exception(mock_get_form_fields, api_client: Fla
 
 @patch("heritrace.routes.api.get_form_fields")
 @patch("heritrace.routes.api.render_template_string")
-def test_render_nested_form_html_success(mock_render, mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_nested_form_html_success(
+    mock_render, mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_nested_form_html endpoint success path."""
-    from collections import OrderedDict
-
-    mock_form_fields = OrderedDict({
-        ("http://example.org/parent", "http://example.org/parent_shape"): OrderedDict({
-            "http://example.org/predicate": [{
-                "or": [{
-                    "entityType": "http://example.org/child",
-                    "nodeShape": "http://example.org/child_shape"
-                }]
-            }]
-        })
-    })
+    mock_form_fields = OrderedDict(
+        {
+            (
+                "http://example.org/parent",
+                "http://example.org/parent_shape",
+            ): OrderedDict(
+                {
+                    "http://example.org/predicate": [
+                        {
+                            "or": [
+                                {
+                                    "entityType": "http://example.org/child",
+                                    "nodeShape": "http://example.org/child_shape",
+                                }
+                            ]
+                        }
+                    ]
+                }
+            )
+        }
+    )
     mock_get_form_fields.return_value = mock_form_fields
     mock_render.return_value = "<div>Nested Form HTML</div>"
 
@@ -2465,8 +2603,8 @@ def test_render_nested_form_html_success(mock_render, mock_get_form_fields, api_
             "entity_class": "http://example.org/child",
             "entity_shape": "http://example.org/child_shape",
             "predicate_uri": "http://example.org/predicate",
-            "depth": 2
-        }
+            "depth": 2,
+        },
     )
 
     assert response.status_code == 200
@@ -2474,11 +2612,13 @@ def test_render_nested_form_html_success(mock_render, mock_get_form_fields, api_
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_missing_fields(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_nested_form_html_missing_fields(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_nested_form_html with missing required fields."""
     response = api_client.post(
         "/api/render-nested-form",
-        json={"parent_entity_class": "http://example.org/parent"}
+        json={"parent_entity_class": "http://example.org/parent"},
     )
 
     assert response.status_code == 400
@@ -2488,7 +2628,9 @@ def test_render_nested_form_html_missing_fields(mock_get_form_fields, api_client
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_not_initialized(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_nested_form_html_not_initialized(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_nested_form_html when form fields not initialized."""
     mock_get_form_fields.return_value = None
 
@@ -2500,8 +2642,8 @@ def test_render_nested_form_html_not_initialized(mock_get_form_fields, api_clien
             "entity_class": "http://example.org/child",
             "entity_shape": "http://example.org/child_shape",
             "predicate_uri": "http://example.org/predicate",
-            "depth": 2
-        }
+            "depth": 2,
+        },
     )
 
     assert response.status_code == 500
@@ -2510,13 +2652,13 @@ def test_render_nested_form_html_not_initialized(mock_get_form_fields, api_clien
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_parent_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_nested_form_html_parent_not_found(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_nested_form_html when parent entity not found."""
-    from collections import OrderedDict
-
-    mock_form_fields = OrderedDict({
-        ("http://example.org/other", "http://example.org/shape"): OrderedDict()
-    })
+    mock_form_fields = OrderedDict(
+        {("http://example.org/other", "http://example.org/shape"): OrderedDict()}
+    )
     mock_get_form_fields.return_value = mock_form_fields
 
     response = api_client.post(
@@ -2527,8 +2669,8 @@ def test_render_nested_form_html_parent_not_found(mock_get_form_fields, api_clie
             "entity_class": "http://example.org/child",
             "entity_shape": "http://example.org/child_shape",
             "predicate_uri": "http://example.org/predicate",
-            "depth": 2
-        }
+            "depth": 2,
+        },
     )
 
     assert response.status_code == 404
@@ -2537,15 +2679,18 @@ def test_render_nested_form_html_parent_not_found(mock_get_form_fields, api_clie
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_predicate_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_nested_form_html_predicate_not_found(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_nested_form_html when predicate not found."""
-    from collections import OrderedDict
-
-    mock_form_fields = OrderedDict({
-        ("http://example.org/parent", "http://example.org/parent_shape"): OrderedDict({
-            "http://example.org/other_predicate": [{}]
-        })
-    })
+    mock_form_fields = OrderedDict(
+        {
+            (
+                "http://example.org/parent",
+                "http://example.org/parent_shape",
+            ): OrderedDict({"http://example.org/other_predicate": [{}]})
+        }
+    )
     mock_get_form_fields.return_value = mock_form_fields
 
     response = api_client.post(
@@ -2556,8 +2701,8 @@ def test_render_nested_form_html_predicate_not_found(mock_get_form_fields, api_c
             "entity_class": "http://example.org/child",
             "entity_shape": "http://example.org/child_shape",
             "predicate_uri": "http://example.org/predicate",
-            "depth": 2
-        }
+            "depth": 2,
+        },
     )
 
     assert response.status_code == 404
@@ -2566,20 +2711,31 @@ def test_render_nested_form_html_predicate_not_found(mock_get_form_fields, api_c
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_shape_info_not_found(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_nested_form_html_shape_info_not_found(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_nested_form_html when shape info not found."""
-    from collections import OrderedDict
-
-    mock_form_fields = OrderedDict({
-        ("http://example.org/parent", "http://example.org/parent_shape"): OrderedDict({
-            "http://example.org/predicate": [{
-                "or": [{
-                    "entityType": "http://example.org/other_child",
-                    "nodeShape": "http://example.org/other_shape"
-                }]
-            }]
-        })
-    })
+    mock_form_fields = OrderedDict(
+        {
+            (
+                "http://example.org/parent",
+                "http://example.org/parent_shape",
+            ): OrderedDict(
+                {
+                    "http://example.org/predicate": [
+                        {
+                            "or": [
+                                {
+                                    "entityType": "http://example.org/other_child",
+                                    "nodeShape": "http://example.org/other_shape",
+                                }
+                            ]
+                        }
+                    ]
+                }
+            )
+        }
+    )
     mock_get_form_fields.return_value = mock_form_fields
 
     response = api_client.post(
@@ -2590,8 +2746,8 @@ def test_render_nested_form_html_shape_info_not_found(mock_get_form_fields, api_
             "entity_class": "http://example.org/child",
             "entity_shape": "http://example.org/child_shape",
             "predicate_uri": "http://example.org/predicate",
-            "depth": 2
-        }
+            "depth": 2,
+        },
     )
 
     assert response.status_code == 404
@@ -2600,7 +2756,9 @@ def test_render_nested_form_html_shape_info_not_found(mock_get_form_fields, api_
 
 
 @patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_exception(mock_get_form_fields, api_client: FlaskClient) -> None:
+def test_render_nested_form_html_exception(
+    mock_get_form_fields, api_client: FlaskClient
+) -> None:
     """Test render_nested_form_html when an exception occurs."""
     mock_get_form_fields.side_effect = Exception("Test error")
 
@@ -2612,8 +2770,8 @@ def test_render_nested_form_html_exception(mock_get_form_fields, api_client: Fla
             "entity_class": "http://example.org/child",
             "entity_shape": "http://example.org/child_shape",
             "predicate_uri": "http://example.org/predicate",
-            "depth": 2
-        }
+            "depth": 2,
+        },
     )
 
     assert response.status_code == 500
@@ -2623,10 +2781,7 @@ def test_render_nested_form_html_exception(mock_get_form_fields, api_client: Fla
 
 def test_format_source_api_invalid_url(api_client: FlaskClient) -> None:
     """Test format_source_api with invalid URL."""
-    response = api_client.post(
-        "/api/format-source",
-        json={"url": "not-a-valid-url"}
-    )
+    response = api_client.post("/api/format-source", json={"url": "not-a-valid-url"})
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -2635,15 +2790,16 @@ def test_format_source_api_invalid_url(api_client: FlaskClient) -> None:
 
 
 @patch("heritrace.routes.api.get_custom_filter")
-def test_format_source_api_exception(mock_get_custom_filter, api_client: FlaskClient) -> None:
+def test_format_source_api_exception(
+    mock_get_custom_filter, api_client: FlaskClient
+) -> None:
     """Test format_source_api when an exception occurs."""
     mock_filter = MagicMock()
     mock_filter.format_source_reference.side_effect = Exception("Test error")
     mock_get_custom_filter.return_value = mock_filter
 
     response = api_client.post(
-        "/api/format-source",
-        json={"url": "http://example.org/source"}
+        "/api/format-source", json={"url": "http://example.org/source"}
     )
 
     assert response.status_code == 200
@@ -2653,15 +2809,18 @@ def test_format_source_api_exception(mock_get_custom_filter, api_client: FlaskCl
 
 
 @patch("heritrace.routes.api.get_custom_filter")
-def test_format_source_api_success(mock_get_custom_filter, api_client: FlaskClient) -> None:
+def test_format_source_api_success(
+    mock_get_custom_filter, api_client: FlaskClient
+) -> None:
     """Test format_source_api success path."""
     mock_filter = MagicMock()
-    mock_filter.format_source_reference.return_value = "<a href='http://example.org'>Example</a>"
+    mock_filter.format_source_reference.return_value = (
+        "<a href='http://example.org'>Example</a>"
+    )
     mock_get_custom_filter.return_value = mock_filter
 
     response = api_client.post(
-        "/api/format-source",
-        json={"url": "http://example.org/source"}
+        "/api/format-source", json={"url": "http://example.org/source"}
     )
 
     assert response.status_code == 200
@@ -2675,10 +2834,7 @@ def test_format_source_api_success(mock_get_custom_filter, api_client: FlaskClie
 
 def test_apply_changes_no_data(api_client: FlaskClient) -> None:
     """Test apply_changes with no request data."""
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[]
-    )
+    response = api_client.post("/api/apply_changes", json=[])
 
     assert response.status_code == 400
     data = json.loads(response.data)
@@ -2690,14 +2846,16 @@ def test_apply_changes_invalid_primary_source(api_client: FlaskClient) -> None:
     """Test apply_changes with invalid primary source URL."""
     response = api_client.post(
         "/api/apply_changes",
-        json=[{
-            "subject": "http://example.org/entity1",
-            "action": "update",
-            "predicate": "http://example.org/prop",
-            "object": "old_value",
-            "newObject": "new_value",
-            "primary_source": "not_a_valid_url"
-        }]
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+                "primary_source": "not_a_valid_url",
+            }
+        ],
     )
 
     assert response.status_code == 400
@@ -2724,7 +2882,7 @@ def test_apply_changes_save_default_source(
     mock_save_default,
     mock_update_logic,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes with save_default_source flag."""
     mock_get_dataset.return_value = "http://dataset"
@@ -2736,27 +2894,31 @@ def test_apply_changes_save_default_source(
     mock_editor.dataset_is_quadstore = False
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "update",
-        "predicate": "http://example.org/prop",
-        "object": "old_value",
-        "newObject": "new_value",
-        "primary_source": "http://example.org/source",
-        "save_default_source": True
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "update",
             "predicate": "http://example.org/prop",
             "object": "old_value",
             "newObject": "new_value",
             "primary_source": "http://example.org/source",
-            "save_default_source": True
-        }]
+            "save_default_source": True,
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+                "primary_source": "http://example.org/source",
+                "save_default_source": True,
+            }
+        ],
     )
 
     assert response.status_code == 200
@@ -2779,7 +2941,7 @@ def test_apply_changes_set_primary_source_on_editor(
     mock_transform,
     mock_update_logic,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes sets primary source on editor."""
     mock_get_dataset.return_value = "http://dataset"
@@ -2791,29 +2953,35 @@ def test_apply_changes_set_primary_source_on_editor(
     mock_editor.dataset_is_quadstore = False
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "update",
-        "predicate": "http://example.org/prop",
-        "object": "old_value",
-        "newObject": "new_value",
-        "primary_source": "http://example.org/source"
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "update",
             "predicate": "http://example.org/prop",
             "object": "old_value",
             "newObject": "new_value",
-            "primary_source": "http://example.org/source"
-        }]
+            "primary_source": "http://example.org/source",
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+                "primary_source": "http://example.org/source",
+            }
+        ],
     )
 
     assert response.status_code == 200
-    mock_editor.set_primary_source.assert_called_once_with(URIRef("http://example.org/source"))
+    mock_editor.set_primary_source.assert_called_once_with(
+        URIRef("http://example.org/source")
+    )
 
 
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
@@ -2834,7 +3002,7 @@ def test_apply_changes_with_create_action(
     mock_import_entity,
     mock_transform,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes with create action."""
     mock_get_dataset.return_value = "http://dataset"
@@ -2848,25 +3016,23 @@ def test_apply_changes_with_create_action(
     mock_import_entity.return_value = mock_editor
     mock_create_logic.return_value = "http://example.org/new_entity"
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "create",
-        "data": {
-            "entity_type": "http://example.org/Type",
-            "properties": {}
+    mock_transform.return_value = [
+        {
+            "subject": "http://example.org/entity1",
+            "action": "create",
+            "data": {"entity_type": "http://example.org/Type", "properties": {}},
         }
-    }]
+    ]
 
     response = api_client.post(
         "/api/apply_changes",
-        json=[{
-            "subject": "http://example.org/entity1",
-            "action": "create",
-            "data": {
-                "entity_type": "http://example.org/Type",
-                "properties": {}
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "create",
+                "data": {"entity_type": "http://example.org/Type", "properties": {}},
             }
-        }]
+        ],
     )
 
     assert response.status_code == 200
@@ -2890,7 +3056,7 @@ def test_apply_changes_with_quadstore(
     mock_transform,
     mock_update_logic,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes with quadstore to extract graph URI."""
     mock_get_dataset.return_value = "http://dataset"
@@ -2904,7 +3070,7 @@ def test_apply_changes_with_quadstore(
         URIRef("http://example.org/entity1"),
         URIRef("http://example.org/prop"),
         Literal("value"),
-        Graph(identifier=URIRef("http://example.org/graph"))
+        Graph(identifier=URIRef("http://example.org/graph")),
     )
     mock_graph.quads.return_value = iter([mock_quad])
     mock_editor.g_set = mock_graph
@@ -2912,23 +3078,27 @@ def test_apply_changes_with_quadstore(
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "update",
-        "predicate": "http://example.org/prop",
-        "object": "old_value",
-        "newObject": "new_value"
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "update",
             "predicate": "http://example.org/prop",
             "object": "old_value",
-            "newObject": "new_value"
-        }]
+            "newObject": "new_value",
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+            }
+        ],
     )
 
     assert response.status_code == 200
@@ -2950,7 +3120,7 @@ def test_apply_changes_with_orphan_deletion(
     mock_import_entity,
     mock_transform,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes with orphan entity deletion."""
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.DELETE
@@ -2966,20 +3136,8 @@ def test_apply_changes_with_orphan_deletion(
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "delete",
-        "predicate": "http://example.org/prop",
-        "object": "http://example.org/entity2",
-        "affected_entities": [
-            {"uri": "http://example.org/orphan1", "is_intermediate": False}
-        ],
-        "delete_affected": True
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "delete",
             "predicate": "http://example.org/prop",
@@ -2987,8 +3145,24 @@ def test_apply_changes_with_orphan_deletion(
             "affected_entities": [
                 {"uri": "http://example.org/orphan1", "is_intermediate": False}
             ],
-            "delete_affected": True
-        }]
+            "delete_affected": True,
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "delete",
+                "predicate": "http://example.org/prop",
+                "object": "http://example.org/entity2",
+                "affected_entities": [
+                    {"uri": "http://example.org/orphan1", "is_intermediate": False}
+                ],
+                "delete_affected": True,
+            }
+        ],
     )
 
     assert response.status_code == 200
@@ -3011,7 +3185,7 @@ def test_apply_changes_with_proxy_deletion(
     mock_import_entity,
     mock_transform,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes with proxy entity deletion."""
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.KEEP
@@ -3027,20 +3201,8 @@ def test_apply_changes_with_proxy_deletion(
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "delete",
-        "predicate": "http://example.org/prop",
-        "object": "http://example.org/entity2",
-        "affected_entities": [
-            {"uri": "http://example.org/proxy1", "is_intermediate": True}
-        ],
-        "delete_affected": True
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "delete",
             "predicate": "http://example.org/prop",
@@ -3048,8 +3210,24 @@ def test_apply_changes_with_proxy_deletion(
             "affected_entities": [
                 {"uri": "http://example.org/proxy1", "is_intermediate": True}
             ],
-            "delete_affected": True
-        }]
+            "delete_affected": True,
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "delete",
+                "predicate": "http://example.org/prop",
+                "object": "http://example.org/entity2",
+                "affected_entities": [
+                    {"uri": "http://example.org/proxy1", "is_intermediate": True}
+                ],
+                "delete_affected": True,
+            }
+        ],
     )
 
     assert response.status_code == 200
@@ -3072,7 +3250,7 @@ def test_apply_changes_delete_entity(
     mock_import_entity,
     mock_transform,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes with entity deletion (no predicate)."""
     mock_get_dataset.return_value = "http://dataset"
@@ -3085,17 +3263,13 @@ def test_apply_changes_delete_entity(
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "delete"
-    }]
+    mock_transform.return_value = [
+        {"subject": "http://example.org/entity1", "action": "delete"}
+    ]
 
     response = api_client.post(
         "/api/apply_changes",
-        json=[{
-            "subject": "http://example.org/entity1",
-            "action": "delete"
-        }]
+        json=[{"subject": "http://example.org/entity1", "action": "delete"}],
     )
 
     assert response.status_code == 200
@@ -3118,7 +3292,7 @@ def test_apply_changes_update_action(
     mock_import_entity,
     mock_transform,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes with update action."""
     mock_get_dataset.return_value = "http://dataset"
@@ -3131,23 +3305,27 @@ def test_apply_changes_update_action(
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "update",
-        "predicate": "http://example.org/prop",
-        "object": "old_value",
-        "newObject": "new_value"
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "update",
             "predicate": "http://example.org/prop",
             "object": "old_value",
-            "newObject": "new_value"
-        }]
+            "newObject": "new_value",
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+            }
+        ],
     )
 
     assert response.status_code == 200
@@ -3170,7 +3348,7 @@ def test_apply_changes_order_action(
     mock_import_entity,
     mock_transform,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes with order action."""
     mock_get_dataset.return_value = "http://dataset"
@@ -3183,23 +3361,27 @@ def test_apply_changes_order_action(
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "order",
-        "predicate": "http://example.org/prop",
-        "object": ["http://example.org/e1", "http://example.org/e2"],
-        "newObject": "http://example.org/orderedBy"
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "order",
             "predicate": "http://example.org/prop",
             "object": ["http://example.org/e1", "http://example.org/e2"],
-            "newObject": "http://example.org/orderedBy"
-        }]
+            "newObject": "http://example.org/orderedBy",
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "order",
+                "predicate": "http://example.org/prop",
+                "object": ["http://example.org/e1", "http://example.org/e2"],
+                "newObject": "http://example.org/orderedBy",
+            }
+        ],
     )
 
     assert response.status_code == 200
@@ -3220,7 +3402,7 @@ def test_apply_changes_save_valueerror(
     mock_import_entity,
     mock_transform,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes when editor.save() raises ValueError."""
     mock_get_dataset.return_value = "http://dataset"
@@ -3234,23 +3416,27 @@ def test_apply_changes_save_valueerror(
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "update",
-        "predicate": "http://example.org/prop",
-        "object": "old_value",
-        "newObject": "new_value"
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "update",
             "predicate": "http://example.org/prop",
             "object": "old_value",
-            "newObject": "new_value"
-        }]
+            "newObject": "new_value",
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+            }
+        ],
     )
 
     assert response.status_code == 400
@@ -3275,7 +3461,7 @@ def test_apply_changes_save_exception(
     mock_transform,
     mock_update_logic,
     api_client: FlaskClient,
-    app: Flask
+    app: Flask,
 ) -> None:
     """Test apply_changes when editor.save() raises generic Exception."""
     mock_get_dataset.return_value = "http://dataset"
@@ -3289,23 +3475,27 @@ def test_apply_changes_save_exception(
     mock_editor_class.return_value = mock_editor
     mock_import_entity.return_value = mock_editor
 
-    mock_transform.return_value = [{
-        "subject": "http://example.org/entity1",
-        "action": "update",
-        "predicate": "http://example.org/prop",
-        "object": "old_value",
-        "newObject": "new_value"
-    }]
-
-    response = api_client.post(
-        "/api/apply_changes",
-        json=[{
+    mock_transform.return_value = [
+        {
             "subject": "http://example.org/entity1",
             "action": "update",
             "predicate": "http://example.org/prop",
             "object": "old_value",
-            "newObject": "new_value"
-        }]
+            "newObject": "new_value",
+        }
+    ]
+
+    response = api_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+            }
+        ],
     )
 
     assert response.status_code == 500
@@ -3317,22 +3507,22 @@ def test_apply_changes_save_exception(
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
 def test_apply_changes_outer_valueerror(
-    mock_import_entity,
-    mock_transform,
-    api_client: FlaskClient
+    mock_import_entity, mock_transform, api_client: FlaskClient
 ) -> None:
     """Test apply_changes when a ValueError is raised in outer try block."""
     mock_transform.side_effect = ValueError("Invalid data format")
 
     response = api_client.post(
         "/api/apply_changes",
-        json=[{
-            "subject": "http://example.org/entity1",
-            "action": "update",
-            "predicate": "http://example.org/prop",
-            "object": "old_value",
-            "newObject": "new_value"
-        }]
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+            }
+        ],
     )
 
     assert response.status_code == 400
@@ -3342,22 +3532,21 @@ def test_apply_changes_outer_valueerror(
 
 
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
-def test_apply_changes_outer_exception(
-    mock_transform,
-    api_client: FlaskClient
-) -> None:
+def test_apply_changes_outer_exception(mock_transform, api_client: FlaskClient) -> None:
     """Test apply_changes when a generic Exception is raised in outer try block."""
     mock_transform.side_effect = Exception("Unexpected error")
 
     response = api_client.post(
         "/api/apply_changes",
-        json=[{
-            "subject": "http://example.org/entity1",
-            "action": "update",
-            "predicate": "http://example.org/prop",
-            "object": "old_value",
-            "newObject": "new_value"
-        }]
+        json=[
+            {
+                "subject": "http://example.org/entity1",
+                "action": "update",
+                "predicate": "http://example.org/prop",
+                "object": "old_value",
+                "newObject": "new_value",
+            }
+        ],
     )
 
     assert response.status_code == 500

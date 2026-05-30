@@ -3,13 +3,15 @@
 # SPDX-License-Identifier: ISC
 
 import os
+from pathlib import Path
+from typing import ClassVar
 
 from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
 
-BASE_HERITRACE_DIR = os.path.abspath(os.path.dirname(__file__))
+_BASE_DIR = Path(__file__).resolve().parent
 
 
-def _load_class(class_path):
+def _load_class(class_path: str) -> type:
     module_path, class_name = class_path.rsplit(".", 1)
     module = __import__(module_path, fromlist=[class_name])
     return getattr(module, class_name)
@@ -34,12 +36,14 @@ class Config:
     # 1. Maximum entity count to display (shows "10000+" if exceeded)
     # 2. Threshold for automatic cache refresh after entity modifications
     #    - Datasets below this limit: auto-refresh enabled (always accurate counts)
-    #    - Datasets above this limit: cache remains static (manual refresh via admin endpoint)
+    #    - Datasets above this limit: cache remains static
+    #      (manual refresh via admin endpoint)
     COUNT_LIMIT = int(os.environ["COUNT_LIMIT"])
 
-    # Options: 'virtuoso' or 'blazegraph'
     DATASET_DB_TRIPLESTORE = os.environ["DATASET_DB_TRIPLESTORE"]
-    DATASET_DB_TEXT_INDEX_ENABLED = os.environ["DATASET_DB_TEXT_INDEX_ENABLED"].lower() == "true"
+    DATASET_DB_TEXT_INDEX_ENABLED = (
+        os.environ["DATASET_DB_TEXT_INDEX_ENABLED"].lower() == "true"
+    )
     PROVENANCE_DB_TRIPLESTORE = os.environ["PROVENANCE_DB_TRIPLESTORE"]
 
     DATASET_DB_URL = os.environ["DATASET_DB_URL"]
@@ -52,20 +56,25 @@ class Config:
     URI_GENERATOR = uri_generator
     COUNTER_HANDLER = counter_handler
 
-    LANGUAGES = ["en", "it"]
-    BABEL_TRANSLATION_DIRECTORIES = os.path.join(BASE_HERITRACE_DIR, "babel", "translations")
-    CHANGE_TRACKING_CONFIG = os.path.join(BASE_HERITRACE_DIR, "change_tracking.json")
     PRIMARY_SOURCE = os.environ["PRIMARY_SOURCE"]
-    SHACL_PATH = os.path.join(BASE_HERITRACE_DIR, "shacl.ttl")
-    DISPLAY_RULES_PATH = os.path.join(BASE_HERITRACE_DIR, "display_rules.yaml")
+    SHACL_PATH = _BASE_DIR / "shacl.ttl"
+    DISPLAY_RULES_PATH = _BASE_DIR / "display_rules.yaml"
 
     ORCID_CLIENT_ID = os.environ["ORCID_CLIENT_ID"]
     ORCID_CLIENT_SECRET = os.environ["ORCID_CLIENT_SECRET"]
-    ORCID_SAFELIST = [s.strip() for s in os.environ["ORCID_SAFELIST"].split(",")]
+    ORCID_SAFELIST: ClassVar[list[str]] = [
+        s.strip() for s in os.environ["ORCID_SAFELIST"].split(",")
+    ]
 
     # Available options: ASK, DELETE, KEEP
-    ORPHAN_HANDLING_STRATEGY = getattr(OrphanHandlingStrategy, os.environ["ORPHAN_HANDLING_STRATEGY"].upper())
-    PROXY_HANDLING_STRATEGY = getattr(ProxyHandlingStrategy, os.environ["PROXY_HANDLING_STRATEGY"].upper())
+    ORPHAN_HANDLING_STRATEGY = getattr(
+        OrphanHandlingStrategy, os.environ["ORPHAN_HANDLING_STRATEGY"].upper()
+    )
+    PROXY_HANDLING_STRATEGY = getattr(
+        ProxyHandlingStrategy, os.environ["PROXY_HANDLING_STRATEGY"].upper()
+    )
 
     CATALOGUE_DEFAULT_PER_PAGE = int(os.environ["CATALOGUE_DEFAULT_PER_PAGE"])
-    CATALOGUE_ALLOWED_PER_PAGE = [int(x) for x in os.environ["CATALOGUE_ALLOWED_PER_PAGE"].split(",")]
+    CATALOGUE_ALLOWED_PER_PAGE: ClassVar[list[int]] = [
+        int(x) for x in os.environ["CATALOGUE_ALLOWED_PER_PAGE"].split(",")
+    ]

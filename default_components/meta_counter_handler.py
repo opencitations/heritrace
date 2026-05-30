@@ -3,27 +3,26 @@
 # SPDX-License-Identifier: ISC
 
 import urllib.parse
+
 import redis
-import os
-
-from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
+from rdflib_ocdm.counter_handler.counter_handler import SupplierAwareCounterHandler
 
 
-class MetaCounterHandler(CounterHandler):
+class MetaCounterHandler(SupplierAwareCounterHandler):
     def __init__(self) -> None:
         """
         Constructor of the ``MetaCounterHandler`` class.
         Configure these values directly in this script.
         """
-        host = 'redis'
+        host = "redis"
         port = 6379
         db = 0
         password = None
-        supplier_prefix = '09110'
-        
-        if host is None or host == 'redis':
-            host = 'localhost'
-            
+        supplier_prefix = "09110"
+
+        if host is None or host == "redis":
+            host = "localhost"
+
         # Store connection parameters for lazy initialization
         self.host = host
         self.port = port
@@ -57,14 +56,11 @@ class MetaCounterHandler(CounterHandler):
         }
 
     @property
-    def redis_client(self):
+    def redis_client(self) -> redis.Redis:
         """Lazy initialization of Redis client."""
         if self._redis_client is None:
             self._redis_client = redis.Redis(
-                host=self.host, 
-                port=self.port, 
-                db=self.db, 
-                password=self.password
+                host=self.host, port=self.port, db=self.db, password=self.password
             )
         return self._redis_client
 
@@ -80,8 +76,7 @@ class MetaCounterHandler(CounterHandler):
         entity_name_str = str(entity_name)
         if entity_name_str in self.entity_type_abbr:
             return ("data", self.entity_type_abbr[entity_name_str])
-        else:
-            return ("prov", urllib.parse.quote(entity_name_str))
+        return ("prov", urllib.parse.quote(entity_name_str))
 
     def set_counter(self, new_value: int, entity_name: str) -> None:
         """
@@ -95,7 +90,8 @@ class MetaCounterHandler(CounterHandler):
         :return: None
         """
         if new_value < 0:
-            raise ValueError("new_value must be a non negative integer!")
+            msg = "new_value must be a non negative integer!"
+            raise ValueError(msg)
 
         namespace, processed_entity_name = self._process_entity_name(entity_name)
         key = f"{namespace}:{self.supplier_prefix}:{processed_entity_name}"
@@ -114,13 +110,13 @@ class MetaCounterHandler(CounterHandler):
         result = self.redis_client.get(key)
 
         if result:
-            return int(result)
-        else:
-            return 0
+            return int(result)  # type: ignore[arg-type]
+        return 0
 
     def increment_counter(self, entity_name: str) -> int:
         """
-        It allows to increment the counter value of graph and provenance entities by one unit.
+        It allows to increment the counter value of graph
+        and provenance entities by one unit.
 
         :param entity_name: The entity name
         :type entity_name: str
@@ -128,10 +124,9 @@ class MetaCounterHandler(CounterHandler):
         """
         namespace, processed_entity_name = self._process_entity_name(entity_name)
         key = f"{namespace}:{self.supplier_prefix}:{processed_entity_name}"
-        new_count = self.redis_client.incr(key)
-        return new_count
+        return self.redis_client.incr(key)  # type: ignore[return-value]
 
-    def close(self):
+    def close(self) -> None:
         """
         Closes the Redis connection.
         """

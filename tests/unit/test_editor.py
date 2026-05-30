@@ -2,12 +2,14 @@
 #
 # SPDX-License-Identifier: ISC
 
-import pytest
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
-from rdflib import URIRef, Literal
-from datetime import datetime
+
+import pytest
+from rdflib import URIRef
 
 from heritrace.editor import Editor
+
 
 @pytest.fixture
 def mock_editor_deps():
@@ -16,15 +18,15 @@ def mock_editor_deps():
         "provenance_endpoint": "http://localhost:9998/blazegraph/sparql",
         "counter_handler": MagicMock(),
         "resp_agent": URIRef("http://example.com/agent"),
-        "source": URIRef("http://initial.source"), # Initial source
-        "c_time": datetime.now()
+        "source": URIRef("http://initial.source"),  # Initial source
+        "c_time": datetime.now(tz=timezone.utc),
     }
 
-def test_set_primary_source(mock_editor_deps):
+
+def test_set_primary_source(mock_editor_deps) -> None:
     editor = Editor(**mock_editor_deps)
     new_source = URIRef("http://new.source")
 
     editor.set_primary_source(new_source)
 
     assert editor.source == new_source
-

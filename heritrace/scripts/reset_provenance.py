@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
@@ -8,14 +6,18 @@ import argparse
 import importlib.util
 import logging
 import sys
+import types
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
-from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
-from heritrace.utils.converters import convert_to_datetime
 from rdflib import URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from SPARQLWrapper import JSON
+
+from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
+from heritrace.utils.converters import convert_to_datetime
+
+logger = logging.getLogger(__name__)
 
 
 class ProvenanceResetter:
@@ -28,13 +30,14 @@ class ProvenanceResetter:
         self,
         provenance_endpoint: str,
         counter_handler: CounterHandler,
-    ):
+    ) -> None:
         """
         Initialize the ProvenanceResetter.
 
         Args:
             provenance_endpoint: The SPARQL endpoint for the provenance database
-            counter_handler: An instance of a CounterHandler to manage provenance counters
+            counter_handler: An instance of a CounterHandler to manage provenance
+            counters
         """
         self.provenance_endpoint = provenance_endpoint
         self.provenance_sparql = SPARQLWrapperWithRetry(provenance_endpoint)
@@ -45,14 +48,18 @@ class ProvenanceResetter:
     def reset_entity_provenance(self, entity_uri: URIRef) -> bool:
 
         # Step 1: Find all snapshots for the entity
-        snapshots = self._get_entity_snapshots(entity_uri)
+        snapshots = self.get_entity_snapshots(entity_uri)
         if not snapshots:
             self.logger.warning(f"No snapshots found for entity {entity_uri}")
             return False
 
         # Sort snapshots by generation time, converting strings to datetime objects
         sorted_snapshots = sorted(
-            snapshots, key=lambda x: convert_to_datetime(x["generation_time"]) or datetime.min.replace(tzinfo=timezone.utc)
+            snapshots,
+            key=lambda x: (
+                convert_to_datetime(x["generation_time"])
+                or datetime.min.replace(tzinfo=timezone.utc)
+            ),
         )
 
         # Keep only the first snapshot
@@ -60,26 +67,28 @@ class ProvenanceResetter:
         snapshots_to_delete = sorted_snapshots[1:]
 
         if not snapshots_to_delete:
-            self.logger.info(f"Entity {entity_uri} has only one snapshot, nothing to reset")
+            self.logger.info(
+                f"Entity {entity_uri} has only one snapshot, nothing to reset"
+            )
             # Still remove invalidatedAtTime from the first snapshot
-            self._remove_invalidated_time(first_snapshot)
+            self.remove_invalidated_time(first_snapshot)
             return True
 
         # Step 2: Delete all snapshots after the first one
-        success = self._delete_snapshots(snapshots_to_delete)
+        success = self.delete_snapshots(snapshots_to_delete)
         if not success:
             return False
 
         # Step 3: Reset the provenance counter for this entity
-        self._reset_provenance_counter(entity_uri)
+        self.reset_provenance_counter(entity_uri)
 
         # Step 4: Remove invalidatedAtTime from the first snapshot
-        self._remove_invalidated_time(first_snapshot)
+        self.remove_invalidated_time(first_snapshot)
 
         self.logger.info(f"Successfully reset provenance for entity {entity_uri}")
         return True
 
-    def _get_entity_snapshots(self, entity_uri: URIRef) -> list:
+    def get_entity_snapshots(self, entity_uri: URIRef) -> list:
         """
         Get all snapshots for a specific entity.
 
@@ -91,7 +100,7 @@ class ProvenanceResetter:
         """
         query = f"""
         PREFIX prov: <http://www.w3.org/ns/prov#>
-        
+
         SELECT ?snapshot ?generation_time
         WHERE {{
             GRAPH ?g {{
@@ -101,20 +110,19 @@ class ProvenanceResetter:
         }}
         ORDER BY ?generation_time
         """
-        
+
         self.provenance_sparql.setQuery(query)
         bindings = get_sparql_bindings(self.provenance_sparql.queryAndConvert())
 
-        snapshots = []
-        for binding in bindings:
-            snapshots.append({
+        return [
+            {
                 "uri": binding["snapshot"]["value"],
-                "generation_time": binding["generation_time"]["value"]
-            })
-            
-        return snapshots
+                "generation_time": binding["generation_time"]["value"],
+            }
+            for binding in bindings
+        ]
 
-    def _delete_snapshots(self, snapshots: list) -> bool:
+    def delete_snapshots(self, snapshots: list) -> bool:
         """
         Delete a list of snapshots from the provenance database.
 
@@ -126,21 +134,21 @@ class ProvenanceResetter:
         """
         if not snapshots:
             return True
-            
+
         # Virtuoso has limitations with DELETE WHERE queries
         # We need to delete each snapshot individually
         success = True
         for snapshot in snapshots:
-            snapshot_uri = snapshot['uri']
-            
+            snapshot_uri = snapshot["uri"]
+
             # Construct the graph name based on the snapshot URI
             # The graph name follows the pattern: snapshot_uri/prov/
             graph_uri = f"{snapshot_uri.split('/prov/se/')[0]}/prov/"
-            
+
             # Delete all triples where the snapshot is the subject
             query = f"""
             PREFIX prov: <http://www.w3.org/ns/prov#>
-            
+
             DELETE {{
                 GRAPH <{graph_uri}> {{
                     <{snapshot_uri}> ?p ?o .
@@ -152,16 +160,16 @@ class ProvenanceResetter:
                 }}
             }}
             """
-            
+
             try:
                 self.provenance_sparql.setQuery(query)
                 self.provenance_sparql.method = "POST"
                 self.provenance_sparql.query()
-                
+
                 # Also delete triples where the snapshot is the object
                 query = f"""
                 PREFIX prov: <http://www.w3.org/ns/prov#>
-                
+
                 DELETE {{
                     GRAPH <{graph_uri}> {{
                         ?s ?p <{snapshot_uri}> .
@@ -173,18 +181,20 @@ class ProvenanceResetter:
                     }}
                 }}
                 """
-                
+
                 self.provenance_sparql.setQuery(query)
                 self.provenance_sparql.query()
-                
-                self.logger.debug(f"Successfully deleted snapshot: {snapshot_uri} from graph: {graph_uri}")
+
+                self.logger.debug(
+                    f"Successfully deleted snapshot: {snapshot_uri} from graph: {graph_uri}"
+                )
             except Exception as e:
                 self.logger.error(f"Error deleting snapshot {snapshot_uri}: {e}")
                 success = False
-                
+
         return success
 
-    def _reset_provenance_counter(self, entity_uri: URIRef) -> None:
+    def reset_provenance_counter(self, entity_uri: URIRef) -> None:
         """
         Reset the provenance counter for a specific entity to 1.
 
@@ -193,13 +203,13 @@ class ProvenanceResetter:
         """
         # Extract the entity name from the URI
         parsed_uri = urlparse(str(entity_uri))
-        entity_name = parsed_uri.path.split('/')[-1]
-        
+        entity_name = parsed_uri.path.split("/")[-1]
+
         # Set the counter to 1 (for the first snapshot)
         self.counter_handler.set_counter(1, entity_name)
         self.logger.info(f"Reset provenance counter for entity {entity_uri} to 1")
 
-    def _remove_invalidated_time(self, snapshot: dict) -> bool:
+    def remove_invalidated_time(self, snapshot: dict) -> bool:
         """
         Remove the invalidatedAtTime property from a snapshot.
 
@@ -209,15 +219,15 @@ class ProvenanceResetter:
         Returns:
             bool: True if the operation was successful, False otherwise
         """
-        snapshot_uri = snapshot['uri']
-        
+        snapshot_uri = snapshot["uri"]
+
         # Construct the graph name based on the snapshot URI
         graph_uri = f"{snapshot_uri.split('/prov/se/')[0]}/prov/"
-        
+
         # Delete the invalidatedAtTime property
         query = f"""
         PREFIX prov: <http://www.w3.org/ns/prov#>
-        
+
         DELETE {{
             GRAPH <{graph_uri}> {{
                 <{snapshot_uri}> prov:invalidatedAtTime ?time .
@@ -229,16 +239,21 @@ class ProvenanceResetter:
             }}
         }}
         """
-        
+
         try:
             self.provenance_sparql.setQuery(query)
             self.provenance_sparql.method = "POST"
             self.provenance_sparql.query()
-            self.logger.info(f"Successfully removed invalidatedAtTime from snapshot: {snapshot_uri}")
-            return True
+            self.logger.info(
+                f"Successfully removed invalidatedAtTime from snapshot: {snapshot_uri}"
+            )
         except Exception as e:
-            self.logger.error(f"Error removing invalidatedAtTime from snapshot {snapshot_uri}: {e}")
+            self.logger.error(
+                f"Error removing invalidatedAtTime from snapshot {snapshot_uri}: {e}"
+            )
             return False
+        else:
+            return True
 
 
 def reset_entity_provenance(
@@ -250,81 +265,90 @@ def reset_entity_provenance(
         provenance_endpoint=provenance_endpoint,
         counter_handler=counter_handler,
     )
-    
+
     return resetter.reset_entity_provenance(entity_uri)
 
 
-def load_config(config_path):
+def load_config(config_path: str) -> types.ModuleType:
     """
     Load configuration from a Python file.
-    
+
     Args:
         config_path: Path to the configuration file
-        
+
     Returns:
         module: The loaded configuration module
     """
     try:
         spec = importlib.util.spec_from_file_location("config", config_path)
-        assert spec is not None and spec.loader is not None
+        if spec is None or spec.loader is None:
+            logging.error("Failed to create module spec from %s", config_path)
+            sys.exit(1)
         config = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(config)  # type: ignore[union-attr]
-        return config
-    except Exception as e:
-        logging.error(f"Error loading configuration file: {e}")
+        spec.loader.exec_module(config)
+    except SystemExit:
+        raise
+    except Exception:
+        logging.error(f"Error loading configuration file: {config_path}")
         sys.exit(1)
+    else:
+        return config
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Reset the provenance of a specific entity")
+    parser = argparse.ArgumentParser(
+        description="Reset the provenance of a specific entity"
+    )
     parser.add_argument("entity_uri", help="URI of the entity to reset")
-    parser.add_argument("--config", "-c", required=True, help="Path to the configuration file")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
-    
+    parser.add_argument(
+        "--config", "-c", required=True, help="Path to the configuration file"
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
+    )
+
     args = parser.parse_args()
-    
+
     # Setup logging
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
-        level=log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
-    
+
     # Load configuration
     config = load_config(args.config)
-    
+
     # Check if Config class exists
     if not hasattr(config, "Config"):
         logging.error("Configuration file must define a Config class")
         return 1
-    
+
     # Get required configuration from Config class
     if not hasattr(config.Config, "PROVENANCE_DB_URL"):
         logging.error("Config class must define PROVENANCE_DB_URL")
         return 1
-    
+
     provenance_endpoint = config.Config.PROVENANCE_DB_URL
-    
+
     # Get counter handler from Config class
     if not hasattr(config.Config, "COUNTER_HANDLER"):
         logging.error("Config class must define COUNTER_HANDLER")
         return 1
-    
+
     counter_handler = config.Config.COUNTER_HANDLER
-    
+
     success = reset_entity_provenance(
         entity_uri=URIRef(args.entity_uri),
         provenance_endpoint=provenance_endpoint,
-        counter_handler=counter_handler
+        counter_handler=counter_handler,
     )
-    
+
     if success:
         logging.info(f"Successfully reset provenance for entity {args.entity_uri}")
         return 0
-    else:
-        logging.error(f"Failed to reset provenance for entity {args.entity_uri}")
-        return 1
+    logging.error(f"Failed to reset provenance for entity {args.entity_uri}")
+    return 1
 
 
-if __name__ == "__main__": # pragma: no cover
+if __name__ == "__main__":  # pragma: no cover
     sys.exit(main())
