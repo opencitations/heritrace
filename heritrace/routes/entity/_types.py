@@ -24,3 +24,21 @@ class EntityRenderContext:
     object_shapes_cache: dict[str, str | None]
     object_classes_cache: dict[str, str | None]
     custom_filter: Filter
+
+
+@dataclass(frozen=True, slots=True)
+class EntityIdentity:
+    entity_uri: str
+    highest_priority_class: str | None
+    entity_shape: str | None
+    relevant_snapshot: Graph | None
+
+
+@dataclass(frozen=True, slots=True)
+class HistoryContext:
+    entity_uri: str
+    highest_priority_class: str | None
+    entity_shape: str | None
+    history: dict[str, dict[str, Graph]]
+    sorted_timestamps: list[str]
+    custom_filter: Filter

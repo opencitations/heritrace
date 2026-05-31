@@ -7,6 +7,7 @@ import os
 from collections import defaultdict
 from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import dataclass
 
 from rdflib import RDF, Dataset, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
@@ -394,13 +395,18 @@ def build_sort_clause(
     return f"OPTIONAL {{ ?subject <{sort_property}> ?sortValue }}"
 
 
-def get_entities_for_class(  # noqa: PLR0913, PLR0915
-    selected_class: str,
-    page: int,
-    per_page: int,
-    sort_property: str | None = None,
-    sort_direction: str = "ASC",
-    selected_shape: str | None = None,
+@dataclass(frozen=True, slots=True)
+class CatalogQuery:
+    selected_class: str | None
+    page: int
+    per_page: int
+    sort_property: str | None = None
+    sort_direction: str = "ASC"
+    selected_shape: str | None = None
+
+
+def get_entities_for_class(  # noqa: PLR0915
+    query: CatalogQuery,
 ) -> tuple[list[dict[str, str]], int]:
     """
     Retrieve entities for a specific class with pagination and sorting.
@@ -431,19 +437,25 @@ def get_entities_for_class(  # noqa: PLR0913, PLR0915
           sortableBy properties to prevent users from triggering expensive sort
           operations.
     """
+    assert query.selected_class is not None
     sparql = get_sparql()
     custom_filter = get_custom_filter()
     classes_with_multiple_shapes = get_classes_with_multiple_shapes()
+
+    selected_class: str = query.selected_class
+    selected_shape = query.selected_shape
+    page = query.page
+    per_page = query.per_page
+    sort_property = query.sort_property
+    sort_direction = query.sort_direction
 
     use_shape_filtering = (
         selected_shape and selected_class in classes_with_multiple_shapes
     )
 
     if use_shape_filtering:
-        # For shape filtering, we need to fetch entities and check their shape
-        # Use a larger LIMIT to ensure we get enough entities after filtering
         offset = (page - 1) * per_page
-        fetch_limit = per_page * 5  # Safety margin for filtering
+        fetch_limit = per_page * 5
 
         subjects_query = f"""
             SELECT DISTINCT ?subject
@@ -463,7 +475,6 @@ def get_entities_for_class(  # noqa: PLR0913, PLR0915
         if not subjects:
             return [], 0
 
-        # Now fetch triples for these specific subjects
         subjects_filter = " ".join([f"(<{s}>)" for s in subjects])
 
         triples_query = f"""
@@ -500,13 +511,9 @@ def get_entities_for_class(  # noqa: PLR0913, PLR0915
                 key=lambda x: x["label"].lower(), reverse=reverse_sort
             )
 
-        # For shape-filtered results, we can't accurately determine total_count without
-        # scanning all entities
-        # Return the number of filtered entities as an approximation
         total_count = len(filtered_entities)
         return filtered_entities[:per_page], total_count
 
-    # Standard pagination path
     offset = (page - 1) * per_page
     sort_clause = ""
     order_clause = ""
@@ -555,61 +562,45 @@ def get_entities_for_class(  # noqa: PLR0913, PLR0915
     return entities, total_count
 
 
-def get_catalog_data(  # noqa: PLR0913
-    selected_class: str | None,
-    page: int,
-    per_page: int,
-    sort_property: str | None = None,
-    sort_direction: str = "ASC",
-    selected_shape: str | None = None,
-) -> dict:
-    """
-    Get catalog data with pagination and sorting.
-
-    Args:
-        selected_class (str | None): Selected class URI, or None if no class selected
-        page (int): Current page number
-        per_page (int): Items per page
-        sort_property (str, optional): Property to sort by
-        sort_direction (str, optional): Sort direction ('ASC' or 'DESC')
-        selected_shape (str, optional): URI of the shape to use for sorting rules
-
-    Returns:
-        dict: Catalog data including entities, pagination info, and sort settings
-    """
-
+def get_catalog_data(query: CatalogQuery) -> dict:
     entities = []
     total_count = 0
     sortable_properties = []
+    sort_property = query.sort_property
 
-    if selected_class:
-        sortable_properties = get_sortable_properties((selected_class, selected_shape))
+    if query.selected_class:
+        sortable_properties = get_sortable_properties(
+            (query.selected_class, query.selected_shape)
+        )
 
         if not sort_property and sortable_properties:
             sort_property = sortable_properties[0]["property"]
 
-        entities, total_count = get_entities_for_class(
-            selected_class,
-            page,
-            per_page,
-            sort_property,
-            sort_direction,
-            selected_shape,
+        inner_query = CatalogQuery(
+            selected_class=query.selected_class,
+            page=query.page,
+            per_page=query.per_page,
+            sort_property=sort_property,
+            sort_direction=query.sort_direction,
+            selected_shape=query.selected_shape,
         )
+        entities, total_count = get_entities_for_class(inner_query)
 
     return {
         "entities": entities,
         "total_pages": (
-            (total_count + per_page - 1) // per_page if total_count > 0 else 0
+            (total_count + query.per_page - 1) // query.per_page
+            if total_count > 0
+            else 0
         ),
-        "current_page": page,
-        "per_page": per_page,
+        "current_page": query.page,
+        "per_page": query.per_page,
         "total_count": total_count,
         "sort_property": sort_property,
-        "sort_direction": sort_direction,
+        "sort_direction": query.sort_direction,
         "sortable_properties": sortable_properties,
-        "selected_class": selected_class,
-        "selected_shape": selected_shape,
+        "selected_class": query.selected_class,
+        "selected_shape": query.selected_shape,
     }
 
 

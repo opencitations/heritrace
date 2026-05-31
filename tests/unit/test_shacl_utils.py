@@ -14,6 +14,7 @@ from flask import Flask
 from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
 
 from heritrace.utils.shacl_display import (
+    ShaclProcessingContext,
     apply_display_rules_to_nested_shapes,
     get_shape_target_class,
     process_query_results,
@@ -190,14 +191,15 @@ class TestShaclUtils:
         mock_get_shape_target_class.assert_called_with(shacl, "orNode1")
         mock_get_object_class.assert_called_with(shacl, "orNode1", "predicate1")
         mock_human_readable_class.assert_called_with(("entity_type_or_node", "orNode1"))
-        mock_process_nested_shapes.assert_called_with(
-            shacl,
-            display_rules,
-            "orNode1",
-            app,
-            depth=1,
-            processed_shapes=processed_shapes,
-        )
+        call_args = mock_process_nested_shapes.call_args
+        ctx_arg = call_args[0][0]
+        assert isinstance(ctx_arg, ShaclProcessingContext)
+        assert ctx_arg.shacl is shacl
+        assert ctx_arg.display_rules is display_rules
+        assert ctx_arg.app is app
+        assert ctx_arg.processed_shapes is processed_shapes
+        assert call_args[0][1] == "orNode1"
+        assert call_args[1]["depth"] == 1
 
     def test_get_shape_target_class_returns_none(self) -> None:
         """

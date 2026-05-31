@@ -13,6 +13,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from heritrace.extensions import get_dataset_endpoint, get_sparql
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import (
+    CatalogQuery,
     get_available_classes,
     get_catalog_data,
     get_deleted_entities_with_filtering,
@@ -48,7 +49,14 @@ def catalogue() -> str:
         selected_shape = determine_shape_for_classes([selected_class])
 
     catalog_data = get_catalog_data(
-        selected_class, page, per_page, sort_property, sort_direction, selected_shape
+        CatalogQuery(
+            selected_class=selected_class,
+            page=page,
+            per_page=per_page,
+            sort_property=sort_property,
+            sort_direction=sort_direction,
+            selected_shape=selected_shape,
+        )
     )
 
     return render_template(

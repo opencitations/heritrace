@@ -12,7 +12,7 @@ from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from SPARQLWrapper import JSON
 
-from heritrace.editor import Editor
+from heritrace.editor import Editor, EndpointConfig
 
 DATASET_ENDPOINT = "http://localhost:9999/blazegraph/sparql"
 PROVENANCE_ENDPOINT = "http://localhost:9998/blazegraph/sparql"
@@ -87,11 +87,13 @@ def mock_storer():
 def editor_instance(mock_counter_handler, mock_reader, mock_storer):
     """Fixture for an Editor instance using real OCDMGraph/ConjunctiveGraph."""
     return Editor(
-        dataset_endpoint=DATASET_ENDPOINT,
-        provenance_endpoint=PROVENANCE_ENDPOINT,
-        counter_handler=mock_counter_handler,
-        resp_agent=RESP_AGENT,
-        dataset_is_quadstore=True,  # Use OCDMDataset
+        EndpointConfig(
+            dataset=DATASET_ENDPOINT,
+            provenance=PROVENANCE_ENDPOINT,
+            is_quadstore=True,
+        ),
+        mock_counter_handler,
+        RESP_AGENT,
     )
 
 
@@ -99,11 +101,13 @@ def editor_instance(mock_counter_handler, mock_reader, mock_storer):
 def editor_instance_non_quadstore(mock_counter_handler, mock_reader, mock_storer):
     """Fixture for an Editor instance configured for non-quadstore."""
     return Editor(
-        dataset_endpoint=DATASET_ENDPOINT,
-        provenance_endpoint=PROVENANCE_ENDPOINT,
-        counter_handler=mock_counter_handler,
-        resp_agent=RESP_AGENT,
-        dataset_is_quadstore=False,  # Use OCDMGraph
+        EndpointConfig(
+            dataset=DATASET_ENDPOINT,
+            provenance=PROVENANCE_ENDPOINT,
+            is_quadstore=False,
+        ),
+        mock_counter_handler,
+        RESP_AGENT,
     )
 
 

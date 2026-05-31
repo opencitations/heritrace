@@ -6,14 +6,17 @@ from flask_babel import gettext
 from rdflib import RDF, Graph, Literal, URIRef
 from rdflib.term import Node
 
-from heritrace.routes.entity._types import EntityRenderContext
+from heritrace.routes.entity._types import (
+    EntityIdentity,
+    EntityRenderContext,
+    HistoryContext,
+)
 from heritrace.utils.display_rules_utils import (
     get_highest_priority_class,
     get_predicate_ordering_info,
     get_property_order_from_rules,
     get_shape_order_from_display_rules,
 )
-from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_utils import (
     determine_shape_for_entity_triples,
     get_entity_position_in_sequence,
@@ -67,13 +70,10 @@ def _build_modification_caches(
     return object_shapes_cache, object_classes_cache
 
 
-def _build_predicate_shape_groups(  # noqa: PLR0913
+def _build_predicate_shape_groups(
     triples: list[tuple[Node, Node, Node]],
     object_shapes_cache: dict[str, str | None],
-    highest_priority_class: str | None,
-    entity_shape: str | None,
-    entity_uri: str,
-    relevant_snapshot: Graph | None,
+    identity: EntityIdentity,
 ) -> tuple[dict, dict, dict]:
     predicate_shape_groups: dict[tuple[str, str | None], list] = {}
     predicate_ordering_cache: dict[str, str | None] = {}
@@ -86,19 +86,19 @@ def _build_predicate_shape_groups(  # noqa: PLR0913
 
         if predicate not in predicate_ordering_cache:
             predicate_ordering_cache[predicate] = get_predicate_ordering_info(
-                predicate, highest_priority_class, entity_shape
+                predicate, identity.highest_priority_class, identity.entity_shape
             )
 
         order_property = predicate_ordering_cache[predicate]
-        if order_property and is_valid_url(object_value) and relevant_snapshot:
+        if order_property and is_valid_url(object_value) and identity.relevant_snapshot:
             position_key = (object_value, predicate)
             if position_key not in entity_position_cache:
                 entity_position_cache[position_key] = get_entity_position_in_sequence(
                     object_value,
-                    entity_uri,
+                    identity.entity_uri,
                     predicate,
                     order_property,
-                    relevant_snapshot,
+                    identity.relevant_snapshot,
                 )
 
         group_key = (predicate, object_shape_uri)
@@ -189,20 +189,16 @@ def _render_remaining_groups(
     return text
 
 
-def generate_modification_text(  # noqa: PLR0913
+def generate_modification_text(
     modifications: dict[str, list[tuple[Node, Node, Node]]],
-    highest_priority_class: str | None,
-    entity_shape: str | None,
-    history: dict[str, dict[str, Graph]],
-    entity_uri: str,
+    ctx: HistoryContext,
     current_snapshot: Graph,
     current_snapshot_timestamp: str,
-    custom_filter: Filter,
 ) -> str:
     modification_text = "<p><strong>" + gettext("Modifications") + "</strong></p>"
 
     ordered_properties = get_property_order_from_rules(
-        highest_priority_class, entity_shape
+        ctx.highest_priority_class, ctx.entity_shape
     )
 
     for mod_type, triples in modifications.items():
@@ -216,15 +212,14 @@ def generate_modification_text(  # noqa: PLR0913
         relevant_snapshot = None
         if (
             mod_type == gettext("Deletions")
-            and history
-            and entity_uri
+            and ctx.history
+            and ctx.entity_uri
             and current_snapshot_timestamp
         ):
-            sorted_timestamps = sorted(history[entity_uri].keys())
-            current_index = sorted_timestamps.index(current_snapshot_timestamp)
+            current_index = ctx.sorted_timestamps.index(current_snapshot_timestamp)
             if current_index > 0:
-                relevant_snapshot = history[entity_uri][
-                    sorted_timestamps[current_index - 1]
+                relevant_snapshot = ctx.history[ctx.entity_uri][
+                    ctx.sorted_timestamps[current_index - 1]
                 ]
         else:
             relevant_snapshot = current_snapshot
@@ -233,36 +228,40 @@ def generate_modification_text(  # noqa: PLR0913
             triples, relevant_snapshot
         )
 
+        identity = EntityIdentity(
+            entity_uri=ctx.entity_uri,
+            highest_priority_class=ctx.highest_priority_class,
+            entity_shape=ctx.entity_shape,
+            relevant_snapshot=relevant_snapshot,
+        )
+
         predicate_shape_groups, predicate_ordering_cache, entity_position_cache = (
             _build_predicate_shape_groups(
                 triples,
                 object_shapes_cache,
-                highest_priority_class,
-                entity_shape,
-                entity_uri,
-                relevant_snapshot,
+                identity,
             )
         )
 
-        ctx = EntityRenderContext(
-            entity_uri=entity_uri,
-            entity_shape=entity_shape,
-            highest_priority_class=highest_priority_class,
+        render_ctx = EntityRenderContext(
+            entity_uri=ctx.entity_uri,
+            entity_shape=ctx.entity_shape,
+            highest_priority_class=ctx.highest_priority_class,
             relevant_snapshot=relevant_snapshot,
             predicate_ordering_cache=predicate_ordering_cache,
             entity_position_cache=entity_position_cache,
             object_shapes_cache=object_shapes_cache,
             object_classes_cache=object_classes_cache,
-            custom_filter=custom_filter,
+            custom_filter=ctx.custom_filter,
         )
 
         ordered_text, processed_predicates = _render_ordered_groups(
-            predicate_shape_groups, ordered_properties, ctx
+            predicate_shape_groups, ordered_properties, render_ctx
         )
         modification_text += ordered_text
 
         modification_text += _render_remaining_groups(
-            predicate_shape_groups, processed_predicates, ctx
+            predicate_shape_groups, processed_predicates, render_ctx
         )
 
         modification_text += "</ul>"
@@ -291,9 +290,7 @@ def format_triple_modification(
         predicate,
         object_shape_uri,
         object_class,
-        ctx.relevant_snapshot,
-        ctx.custom_filter,
-        subject_entity_key=(ctx.highest_priority_class or "", ctx.entity_shape),
+        ctx,
     )
 
     order_info = ""
@@ -315,24 +312,23 @@ def format_triple_modification(
         </li>"""
 
 
-def get_object_label(  # noqa: PLR0913
+def get_object_label(
     object_value: str,
     predicate: str,
     object_shape_uri: str | None,
     object_class: str | None,
-    snapshot: Graph | None,
-    custom_filter: Filter,
-    subject_entity_key: tuple[str, str | None] | None = None,
+    ctx: EntityRenderContext,
 ) -> str:
     predicate = str(predicate)
 
     if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-        return custom_filter.human_readable_class(subject_entity_key)
+        subject_entity_key = (ctx.highest_priority_class or "", ctx.entity_shape)
+        return ctx.custom_filter.human_readable_class(subject_entity_key)
 
     if is_valid_url(object_value):
         if object_shape_uri or object_class:
-            return custom_filter.human_readable_entity(
-                object_value, (object_class, object_shape_uri), snapshot
+            return ctx.custom_filter.human_readable_entity(
+                object_value, (object_class, object_shape_uri), ctx.relevant_snapshot
             )
         return str(object_value)
 

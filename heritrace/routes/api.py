@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import traceback
+from dataclasses import dataclass
 from typing import TypedDict, cast
 
 from flask import (
@@ -19,7 +20,7 @@ from flask_login import current_user, login_required
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor
+from heritrace.editor import Editor, EndpointConfig
 from heritrace.extensions import (
     get_custom_filter,
     get_dataset_endpoint,
@@ -32,6 +33,7 @@ from heritrace.utils.primary_source_utils import save_user_default_primary_sourc
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.shacl_validation import validate_new_triple
 from heritrace.utils.sparql_utils import (
+    CatalogQuery,
     find_orphaned_entities,
     get_available_classes,
     get_catalog_data,
@@ -43,6 +45,16 @@ from heritrace.utils.sparql_utils import (
 from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
 from heritrace.utils.uri_utils import generate_unique_uri, is_valid_url
 from heritrace.utils.virtual_properties import transform_changes_with_virtual_properties
+
+
+@dataclass(frozen=True, slots=True)
+class ChangeOperation:
+    editor: Editor
+    subject: URIRef
+    graph_uri: URIRef | None = None
+    entity_type: str | None = None
+    entity_shape: str | None = None
+
 
 api_bp = Blueprint("api", __name__)
 
@@ -69,12 +81,14 @@ def catalogue_api() -> Response:
     available_classes = get_available_classes()
 
     catalog_data = get_catalog_data(
-        selected_class=selected_class,
-        page=page,
-        per_page=per_page,
-        sort_property=sort_property,
-        sort_direction=sort_direction,
-        selected_shape=selected_shape,
+        CatalogQuery(
+            selected_class=selected_class,
+            page=page,
+            per_page=per_page,
+            sort_property=sort_property,
+            sort_direction=sort_direction,
+            selected_shape=selected_shape,
+        )
     )
 
     catalog_data["available_classes"] = available_classes
@@ -538,13 +552,15 @@ def _setup_editor(
 ) -> tuple[Editor, URIRef | None]:
     resp_agent = get_responsible_agent_uri(current_user.orcid)
     editor = Editor(
-        get_dataset_endpoint(),
-        get_provenance_endpoint(),
+        EndpointConfig(
+            dataset=get_dataset_endpoint(),
+            provenance=get_provenance_endpoint(),
+            is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
+        ),
         current_app.config["COUNTER_HANDLER"],
         resp_agent,
         current_app.config["PRIMARY_SOURCE"],
         current_app.config["DATASET_GENERATION_TIME"],
-        dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
     )
 
     if primary_source and is_valid_url(primary_source):
@@ -643,7 +659,11 @@ def _handle_affected_entities(
             if orphan_uri in deleted_entities:
                 continue
 
-            delete_logic(editor, orphan_uri, graph_uri=graph_uri)
+            delete_logic(
+                ChangeOperation(
+                    editor=editor, subject=orphan_uri, graph_uri=graph_uri
+                )
+            )
             deleted_entities.add(orphan_uri)
 
     # Gestione delle entità proxy secondo la strategia per i proxy
@@ -657,7 +677,11 @@ def _handle_affected_entities(
             if proxy_uri in deleted_entities:
                 continue
 
-            delete_logic(editor, proxy_uri, graph_uri=graph_uri)
+            delete_logic(
+                ChangeOperation(
+                    editor=editor, subject=proxy_uri, graph_uri=graph_uri
+                )
+            )
             deleted_entities.add(proxy_uri)
 
 
@@ -668,29 +692,34 @@ def _process_remaining_changes(
     deleted_entities: set[URIRef],
     temp_id_to_uri: dict[str, str],
 ) -> None:
-    # Fase 2: Processa tutte le altre modifiche
     for change in changes:
         if change["action"] == "delete":
             _process_delete_change(editor, change, graph_uri, deleted_entities)
         elif change["action"] == "update":
+            op = ChangeOperation(
+                editor=editor,
+                subject=URIRef(change["subject"]),
+                graph_uri=graph_uri,
+                entity_type=change.get("entity_type"),
+                entity_shape=change.get("entity_shape"),
+            )
             update_logic(
-                editor,
-                URIRef(change["subject"]),
+                op,
                 URIRef(change["predicate"]),
                 change["object"],
                 change["newObject"],
-                graph_uri,
-                change.get("entity_type"),
-                change.get("entity_shape"),
             )
         elif change["action"] == "order":
+            op = ChangeOperation(
+                editor=editor,
+                subject=URIRef(change["subject"]),
+                graph_uri=graph_uri,
+            )
             order_logic(
-                editor,
-                URIRef(change["subject"]),
+                op,
                 URIRef(change["predicate"]),
                 change["object"],
                 URIRef(change["newObject"]),
-                graph_uri,
                 temp_id_to_uri,
             )
 
@@ -705,31 +734,25 @@ def _process_delete_change(
     change_predicate = URIRef(change["predicate"]) if change.get("predicate") else None
     object_value = change.get("object")
 
+    op = ChangeOperation(
+        editor=editor,
+        subject=change_subject,
+        graph_uri=graph_uri,
+        entity_type=change.get("entity_type"),
+        entity_shape=change.get("entity_shape"),
+    )
+
     if not change_predicate:
         if change_subject in deleted_entities:
             return
 
-        delete_logic(
-            editor,
-            change_subject,
-            graph_uri=graph_uri,
-            entity_type=change.get("entity_type"),
-            entity_shape=change.get("entity_shape"),
-        )
+        delete_logic(op)
         deleted_entities.add(change_subject)
     elif object_value:
         if URIRef(object_value) in deleted_entities:
             return
 
-        delete_logic(
-            editor,
-            change_subject,
-            change_predicate,
-            object_value,
-            graph_uri,
-            change.get("entity_type"),
-            change.get("entity_shape"),
-        )
+        delete_logic(op, change_predicate, object_value)
 
 
 def _save_and_respond(editor: Editor) -> tuple[Response, int]:
@@ -967,37 +990,33 @@ def create_logic(  # noqa: C901, PLR0912, PLR0913
     return subject
 
 
-def update_logic(  # noqa: PLR0913
-    editor: Editor,
-    subject: URIRef,
+def update_logic(
+    op: ChangeOperation,
     predicate: URIRef,
     old_value: str,
     new_value: str,
-    graph_uri: URIRef | None = None,
-    entity_type: str | None = None,
-    entity_shape: str | None = None,
 ) -> None:
     old_value_rdf: URIRef | Literal = (
         URIRef(old_value) if is_valid_url(old_value) else Literal(old_value)
     )
     validated_new, validated_old, error_message = validate_new_triple(
-        subject,
+        op.subject,
         predicate,
         new_value,
         "update",
         old_value_rdf,
-        entity_types=entity_type,
-        entity_shape=entity_shape,
+        entity_types=op.entity_type,
+        entity_shape=op.entity_shape,
     )
     if error_message:
         raise ValueError(error_message)
 
-    editor.update(
-        subject,
+    op.editor.update(
+        op.subject,
         predicate,
         cast("Literal | URIRef", validated_old),
         cast("Literal | URIRef", validated_new),
-        graph_uri,
+        op.graph_uri,
     )
 
 
@@ -1024,14 +1043,10 @@ def rebuild_entity_order(
     return editor
 
 
-def delete_logic(  # noqa: PLR0913
-    editor: Editor,
-    subject: URIRef,
+def delete_logic(
+    op: ChangeOperation,
     predicate: URIRef | None = None,
     object_value: str | None = None,
-    graph_uri: URIRef | None = None,
-    entity_type: str | None = None,
-    entity_shape: str | None = None,
 ) -> None:
     resolved_value: URIRef | Literal | None = None
     if predicate and object_value:
@@ -1041,34 +1056,37 @@ def delete_logic(  # noqa: PLR0913
             else Literal(object_value)
         )
         _, resolved_value, error_message = validate_new_triple(
-            subject,
+            op.subject,
             predicate,
             None,
             "delete",
             old_val_rdf,
-            entity_types=entity_type,
-            entity_shape=entity_shape,
+            entity_types=op.entity_type,
+            entity_shape=op.entity_shape,
         )
         if error_message:
             raise ValueError(error_message)
 
-    editor.delete(
-        subject, predicate, cast("Literal | URIRef | None", resolved_value), graph_uri
+    op.editor.delete(
+        op.subject,
+        predicate,
+        cast("Literal | URIRef | None", resolved_value),
+        op.graph_uri,
     )
 
 
-def order_logic(  # noqa: PLR0913
-    editor: Editor,
-    subject: URIRef,
+def order_logic(
+    op: ChangeOperation,
     predicate: URIRef,
     new_order: list[str],
     ordered_by: URIRef,
-    graph_uri: URIRef | None = None,
     temp_id_to_uri: dict[str, str] | None = None,
 ) -> Editor:
     current_entities = [
         o
-        for _, _, o in get_triples_from_graph(editor.g_set, (subject, predicate, None))
+        for _, _, o in get_triples_from_graph(
+            op.editor.g_set, (op.subject, predicate, None)
+        )
     ]
 
     old_to_new_mapping = {}
@@ -1077,7 +1095,7 @@ def order_logic(  # noqa: PLR0913
         if str(old_entity) in new_order:
             entity_properties = list(
                 get_triples_from_graph(
-                    editor.g_set,
+                    op.editor.g_set,
                     (cast("URIRef", old_entity), None, None),
                 )
             )
@@ -1093,20 +1111,23 @@ def order_logic(  # noqa: PLR0913
             new_entity_uri = generate_unique_uri(str(entity_type))
             old_to_new_mapping[old_entity] = new_entity_uri
 
-            editor.delete(
-                subject, predicate, cast("Literal | URIRef", old_entity), graph_uri
+            op.editor.delete(
+                op.subject,
+                predicate,
+                cast("Literal | URIRef", old_entity),
+                op.graph_uri,
             )
-            editor.delete(cast("URIRef", old_entity), graph=graph_uri)
+            op.editor.delete(cast("URIRef", old_entity), graph=op.graph_uri)
 
-            editor.create(subject, predicate, new_entity_uri, graph_uri)
+            op.editor.create(op.subject, predicate, new_entity_uri, op.graph_uri)
 
             for _, p, o in entity_properties:
                 if p not in (predicate, ordered_by):
-                    editor.create(
+                    op.editor.create(
                         new_entity_uri,
                         cast("URIRef", p),
                         cast("Literal | URIRef", o),
-                        graph_uri,
+                        op.graph_uri,
                     )
 
     ordered_entities = []
@@ -1119,9 +1140,9 @@ def order_logic(  # noqa: PLR0913
         ordered_entities.append(new_entity_uri)
 
     if ordered_entities:
-        rebuild_entity_order(editor, ordered_by, ordered_entities, graph_uri)
+        rebuild_entity_order(op.editor, ordered_by, ordered_entities, op.graph_uri)
 
-    return editor
+    return op.editor
 
 
 @api_bp.route("/human-readable-entity", methods=["POST"])

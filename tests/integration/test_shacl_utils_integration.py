@@ -11,6 +11,7 @@ from rdflib.plugins.sparql import prepareQuery
 
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_display import (
+    ShaclProcessingContext,
     apply_display_rules_to_nested_shapes,
     execute_shacl_query,
     get_object_class,
@@ -1197,26 +1198,30 @@ def test_execute_shacl_query(app: Flask, shacl_graph: Graph) -> None:
 def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> None:
     """Test process_nested_shapes with edge cases."""
     with app.app_context():
-        # Test with None processed_shapes
+        ctx = ShaclProcessingContext(
+            shacl=shacl_graph,
+            display_rules=None,
+            app=app,
+            processed_shapes=set(),
+        )
         result = process_nested_shapes(
-            shacl_graph,
-            None,
+            ctx,
             "http://www.w3.org/ns/shacl#NodeShape",
-            app,
             depth=0,
-            processed_shapes=None,
         )
         assert isinstance(result, list)
 
         # Test with already processed shape
-        processed_shapes = {"http://www.w3.org/ns/shacl#NodeShape"}
+        ctx2 = ShaclProcessingContext(
+            shacl=shacl_graph,
+            display_rules=None,
+            app=app,
+            processed_shapes={"http://www.w3.org/ns/shacl#NodeShape"},
+        )
         result = process_nested_shapes(
-            shacl_graph,
-            None,
+            ctx2,
             "http://www.w3.org/ns/shacl#NodeShape",
-            app,
             depth=0,
-            processed_shapes=processed_shapes,
         )
         assert result == []
 

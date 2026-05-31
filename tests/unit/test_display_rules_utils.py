@@ -951,7 +951,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
             grouped_triples, relevant_properties = result
             assert isinstance(grouped_triples, dict)
@@ -1023,7 +1023,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
             grouped_triples, relevant_properties = result
             assert isinstance(grouped_triples, dict)
@@ -1085,7 +1085,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
             _grouped_triples, relevant_properties = result
 
@@ -1190,7 +1190,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
 
             grouped_triples, relevant_properties = result
@@ -1277,7 +1277,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
-                highest_priority_class=URIRef("http://example.org/Person"),
+                entity_key=(URIRef("http://example.org/Person"), None),
             )
 
             assert mock_process_default_property.called
@@ -1362,7 +1362,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
 
             assert mock_process_default_property.called
@@ -1447,7 +1447,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
 
             assert mock_process_default_property.called
@@ -1510,7 +1510,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
-                highest_priority_class=URIRef("http://example.org/Person"),
+                entity_key=(URIRef("http://example.org/Person"), None),
             )
 
             assert "http://example.org/simple" in grouped_triples
@@ -1580,7 +1580,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
 
             assert mock_process_default_property.called
@@ -1781,7 +1781,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
 
             assert "Ordered Property" in grouped_triples
@@ -1822,7 +1822,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
 
             assert "Related Property" in grouped_triples
@@ -1864,7 +1864,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 extended_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
 
             mock_process_default.assert_called()
@@ -1898,7 +1898,7 @@ class TestGetGroupedTriples:
                 URIRef("http://example.org/person1"),
                 mock_triples,
                 mock_valid_predicates_info,
-                highest_priority_class=self.highest_priority_class,
+                entity_key=(self.highest_priority_class, None),
             )
 
             mock_process_default.assert_called()

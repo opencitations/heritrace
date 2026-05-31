@@ -13,6 +13,7 @@ from rdflib import Graph, URIRef
 
 from heritrace.routes.entity import (
     EntityRenderContext,
+    HistoryContext,
     format_triple_modification,
     generate_modification_text,
 )
@@ -62,20 +63,24 @@ def test_generate_modification_text_empty_modifications(
         patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
     ):
         modifications = {}
-        history = {}
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
 
+        ctx = HistoryContext(
+            entity_uri=entity_uri,
+            highest_priority_class="http://example.org/Person",
+            entity_shape="http://example.org/PersonShape",
+            history={},
+            sorted_timestamps=[],
+            custom_filter=mock_custom_filter,
+        )
+
         result = generate_modification_text(
             modifications,
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-            history,
-            entity_uri,
+            ctx,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
         )
 
         assert "<p><strong>Modifications</strong></p>" in result
@@ -118,20 +123,24 @@ def test_generate_modification_text_additions(
                 )
             ]
         }
-        history = {}
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
 
+        ctx = HistoryContext(
+            entity_uri=entity_uri,
+            highest_priority_class="http://example.org/Person",
+            entity_shape="http://example.org/PersonShape",
+            history={},
+            sorted_timestamps=[],
+            custom_filter=mock_custom_filter,
+        )
+
         result = generate_modification_text(
             modifications,
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-            history,
-            entity_uri,
+            ctx,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
         )
 
         assert "<p><strong>Modifications</strong></p>" in result
@@ -185,15 +194,20 @@ def test_generate_modification_text_deletions(
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
 
+        ctx = HistoryContext(
+            entity_uri=entity_uri,
+            highest_priority_class="http://example.org/Person",
+            entity_shape="http://example.org/PersonShape",
+            history=history,
+            sorted_timestamps=sorted(history[entity_uri].keys()),
+            custom_filter=mock_custom_filter,
+        )
+
         result = generate_modification_text(
             modifications,
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-            history,
-            entity_uri,
+            ctx,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
         )
 
         assert "<p><strong>Modifications</strong></p>" in result
@@ -254,15 +268,20 @@ def test_generate_modification_text_mixed_modifications(
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
 
+        ctx = HistoryContext(
+            entity_uri=entity_uri,
+            highest_priority_class="http://example.org/Person",
+            entity_shape="http://example.org/PersonShape",
+            history=history,
+            sorted_timestamps=sorted(history[entity_uri].keys()),
+            custom_filter=mock_custom_filter,
+        )
+
         result = generate_modification_text(
             modifications,
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-            history,
-            entity_uri,
+            ctx,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
         )
 
         assert "<p><strong>Modifications</strong></p>" in result
@@ -313,20 +332,24 @@ def test_generate_modification_text_ordered_properties(
                 ),
             ]
         }
-        history = {}
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
 
+        ctx = HistoryContext(
+            entity_uri=entity_uri,
+            highest_priority_class="http://example.org/Person",
+            entity_shape="http://example.org/PersonShape",
+            history={},
+            sorted_timestamps=[],
+            custom_filter=mock_custom_filter,
+        )
+
         result = generate_modification_text(
             modifications,
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-            history,
-            entity_uri,
+            ctx,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
         )
 
         # Verify that age appears before name in the result
@@ -376,20 +399,24 @@ def test_generate_modification_text_unordered_properties(
                 ),
             ]
         }
-        history = {}
         entity_uri = "http://example.org/person/1"
         current_snapshot = Graph()
         current_snapshot_timestamp = "2024-01-01T00:00:00"
 
+        ctx = HistoryContext(
+            entity_uri=entity_uri,
+            highest_priority_class="http://example.org/Person",
+            entity_shape="http://example.org/PersonShape",
+            history={},
+            sorted_timestamps=[],
+            custom_filter=mock_custom_filter,
+        )
+
         result = generate_modification_text(
             modifications,
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-            history,
-            entity_uri,
+            ctx,
             current_snapshot,
             current_snapshot_timestamp,
-            mock_custom_filter,
         )
 
         assert "http://example.org/unordered: Unordered Value" in result
@@ -443,15 +470,20 @@ def test_generate_modification_text_shape_priority_ordering(
             ]
         }
 
+        ctx = HistoryContext(
+            entity_uri="http://example.org/person/1",
+            highest_priority_class="http://example.org/Person",
+            entity_shape="http://example.org/PersonShape",
+            history={},
+            sorted_timestamps=[],
+            custom_filter=mock_custom_filter,
+        )
+
         result = generate_modification_text(
             modifications,
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-            {},
-            "http://example.org/person/1",
+            ctx,
             mock_snapshot,
             "2024-01-01T00:00:00",
-            mock_custom_filter,
         )
 
         # Verify shape ordering was called
@@ -511,15 +543,20 @@ def test_generate_modification_text_deletions_with_history(
             }
         }
 
+        ctx = HistoryContext(
+            entity_uri="http://example.org/person/1",
+            highest_priority_class="http://example.org/Person",
+            entity_shape="http://example.org/PersonShape",
+            history=history,
+            sorted_timestamps=sorted(history["http://example.org/person/1"].keys()),
+            custom_filter=mock_custom_filter,
+        )
+
         result = generate_modification_text(
             modifications,
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-            history,
-            "http://example.org/person/1",
+            ctx,
             mock_current_snapshot,
             "2024-01-01T00:00:00",
-            mock_custom_filter,
         )
 
         # Verify that for deletions, the previous snapshot was used

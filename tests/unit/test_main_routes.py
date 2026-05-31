@@ -11,6 +11,8 @@ from unittest.mock import MagicMock, call, patch
 from flask.testing import FlaskClient
 from SPARQLWrapper import JSON
 
+from heritrace.utils.sparql_utils import CatalogQuery
+
 
 def test_index_route(client: FlaskClient) -> None:
     """Test that the index route returns a 200 status code."""
@@ -24,11 +26,13 @@ def test_catalogue_route_unauthenticated(client: FlaskClient) -> None:
     assert response.status_code == 302  # Redirect to login
 
 
+@patch("heritrace.routes.main.determine_shape_for_classes")
 @patch("heritrace.routes.main.get_available_classes")
 @patch("heritrace.routes.main.get_catalog_data")
 def test_catalogue_route_authenticated(
     mock_get_catalog_data: MagicMock,
     mock_get_available_classes: MagicMock,
+    mock_determine_shape: MagicMock,
     logged_in_client: FlaskClient,
 ) -> None:
     """Test that the catalogue route works when authenticated."""
@@ -37,6 +41,7 @@ def test_catalogue_route_authenticated(
         {"uri": "test_class", "label": "Test Class", "shape": None, "count": 10}
     ]
     mock_get_available_classes.return_value = available_classes
+    mock_determine_shape.return_value = None
     mock_get_catalog_data.return_value = {
         "entities": [],
         "total_pages": 1,
@@ -53,7 +58,16 @@ def test_catalogue_route_authenticated(
         "/catalogue?page=2&per_page=100&class=test_class&sort_property=name&sort_direction=DESC"
     )
     assert response.status_code == 200
-    mock_get_catalog_data.assert_called_with("test_class", 2, 100, "name", "DESC", None)
+    mock_get_catalog_data.assert_called_with(
+        CatalogQuery(
+            selected_class="test_class",
+            page=2,
+            per_page=100,
+            sort_property="name",
+            sort_direction="DESC",
+            selected_shape=None,
+        )
+    )
 
 
 def test_time_vault_route_unauthenticated(client: FlaskClient) -> None:

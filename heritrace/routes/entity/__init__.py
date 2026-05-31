@@ -8,11 +8,11 @@ from heritrace.routes.entity._about import (
 )
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._creation import (
+    CreationContext,
     create_entity,
     create_nested_entity,
     determine_datatype,
     process_entity_value,
-    process_ordered_entity_value,
     process_ordered_properties,
     process_unordered_properties,
 )
@@ -40,12 +40,19 @@ from heritrace.routes.entity._restoration import (
     prepare_entity_snapshots,
     restore_version,
 )
-from heritrace.routes.entity._types import EntityRenderContext
+from heritrace.routes.entity._types import (
+    EntityIdentity,
+    EntityRenderContext,
+    HistoryContext,
+)
 from heritrace.routes.entity._validation import validate_entity_data
 from heritrace.utils.uri_utils import generate_unique_uri
 
 __all__ = [
+    "CreationContext",
+    "EntityIdentity",
     "EntityRenderContext",
+    "HistoryContext",
     "_format_snapshot_description",
     "about",
     "apply_modifications",
@@ -68,7 +75,6 @@ __all__ = [
     "prepare_entity_snapshots",
     "process_entity_value",
     "process_modification_data",
-    "process_ordered_entity_value",
     "process_ordered_properties",
     "process_unordered_properties",
     "restore_version",

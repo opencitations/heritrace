@@ -12,6 +12,7 @@ from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
 
 from heritrace.utils.sparql_utils import (
+    CatalogQuery,
     fetch_current_state_with_related_entities,
     fetch_data_graph_for_subject,
     find_orphaned_entities,
@@ -86,7 +87,9 @@ class TestGetEntitiesForClassIntegration:
 
             # Get entities for the Person class
             entities, total_count = get_entities_for_class(
-                "http://example.org/Person", 1, 10
+                CatalogQuery(
+                    selected_class="http://example.org/Person", page=1, per_page=10
+                )
             )
 
             # Verify the results
@@ -118,11 +121,13 @@ class TestGetEntitiesForClassIntegration:
 
             # Get entities for the Person class, sorted by name
             entities, total_count = get_entities_for_class(
-                "http://example.org/Person",
-                1,
-                10,
-                sort_property="http://example.org/name",
-                sort_direction="ASC",
+                CatalogQuery(
+                    selected_class="http://example.org/Person",
+                    page=1,
+                    per_page=10,
+                    sort_property="http://example.org/name",
+                    sort_direction="ASC",
+                )
             )
 
             # Verify the results without assuming specific order
@@ -175,12 +180,14 @@ class TestGetCatalogDataIntegration:
 
             # Get catalog data for the Person class
             catalog_data = get_catalog_data(
-                "http://example.org/Person",
-                1,
-                10,
-                sort_property="http://example.org/name",
-                sort_direction="ASC",
-                selected_shape="http://example.org/PersonShape",
+                CatalogQuery(
+                    selected_class="http://example.org/Person",
+                    page=1,
+                    per_page=10,
+                    sort_property="http://example.org/name",
+                    sort_direction="ASC",
+                    selected_shape="http://example.org/PersonShape",
+                )
             )
 
             # Verify the catalog data
@@ -212,7 +219,7 @@ class TestGetCatalogDataIntegration:
     def test_get_catalog_data_no_class(self, app) -> None:
         """Test getting catalog data with no class selected."""
         with app.app_context():
-            catalog_data = get_catalog_data(None, 1, 10)
+            catalog_data = get_catalog_data(CatalogQuery(selected_class=None, page=1, per_page=10))
 
             # Verify the catalog data
             assert catalog_data["total_count"] == 0

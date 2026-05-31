@@ -111,8 +111,7 @@ def _build_live_entity_context(
         subject_uri,
         triples,
         valid_predicates,
-        highest_priority_class=highest_priority_class,
-        highest_priority_shape=entity_shape,
+        entity_key=(highest_priority_class, entity_shape),
     )
 
     if entity_shape:

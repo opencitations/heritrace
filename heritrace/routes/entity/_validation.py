@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: ISC
 
+from dataclasses import dataclass
+
 from flask_babel import gettext
 from rdflib import RDF, URIRef
 
@@ -11,24 +13,31 @@ from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_utils import find_matching_form_field
 
 
-def _validate_property_cardinality(  # noqa: PLR0913
+@dataclass(frozen=True, slots=True)
+class PropertyValidationInput:
+    matching_field_def: dict
+    normalized_prop_values: list
+    prop_uri: str
+    entity_key: tuple
+    custom_filter: Filter
+
+
+def _validate_property_cardinality(
     errors: list[str],
-    matching_field_def: dict,
-    normalized_prop_values: list,
-    prop_uri: str,
-    entity_key: tuple,
-    custom_filter: Filter,
+    prop_input: PropertyValidationInput,
 ) -> None:
-    min_count = matching_field_def.get("min", 0)
-    max_count = matching_field_def.get("max")
-    value_count = len(normalized_prop_values)
+    min_count = prop_input.matching_field_def.get("min", 0)
+    max_count = prop_input.matching_field_def.get("max")
+    value_count = len(prop_input.normalized_prop_values)
 
     if value_count < min_count:
         value = gettext("values") if min_count > 1 else gettext("value")
         errors.append(
             gettext(
                 "Property %(prop_uri)s requires at least %(min_count)d %(value)s",
-                prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
+                prop_uri=prop_input.custom_filter.human_readable_predicate(
+                    prop_input.prop_uri, prop_input.entity_key
+                ),
                 min_count=min_count,
                 value=value,
             )
@@ -38,38 +47,38 @@ def _validate_property_cardinality(  # noqa: PLR0913
         errors.append(
             gettext(
                 "Property %(prop_uri)s allows at most %(max_count)d %(value)s",
-                prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
+                prop_uri=prop_input.custom_filter.human_readable_predicate(
+                    prop_input.prop_uri, prop_input.entity_key
+                ),
                 max_count=max_count,
                 value=value,
             )
         )
 
-    mandatory_values = matching_field_def.get("mandatory_values", [])
+    mandatory_values = prop_input.matching_field_def.get("mandatory_values", [])
     errors.extend(
         gettext(
             "Property %(prop_uri)s requires the value %(mandatory_value)s",
-            prop_uri=custom_filter.human_readable_predicate(prop_uri, entity_key),
+            prop_uri=prop_input.custom_filter.human_readable_predicate(
+                prop_input.prop_uri, prop_input.entity_key
+            ),
             mandatory_value=mandatory_value,
         )
         for mandatory_value in mandatory_values
-        if mandatory_value not in normalized_prop_values
+        if mandatory_value not in prop_input.normalized_prop_values
     )
 
 
-def _validate_property_values(  # noqa: PLR0913
+def _validate_property_values(
     errors: list[str],
-    matching_field_def: dict,
-    normalized_prop_values: list,
-    prop_uri: str,
-    entity_key: tuple,
-    custom_filter: Filter,
+    prop_input: PropertyValidationInput,
 ) -> None:
-    for value in normalized_prop_values:
+    for value in prop_input.normalized_prop_values:
         if isinstance(value, dict) and "entity_type" in value:
             nested_errors = validate_entity_data(value)
             errors.extend(nested_errors)
         else:
-            datatypes = matching_field_def.get("datatypes", [])
+            datatypes = prop_input.matching_field_def.get("datatypes", [])
             if datatypes:
                 is_valid_datatype = False
                 for dtype in datatypes:
@@ -83,7 +92,9 @@ def _validate_property_values(  # noqa: PLR0913
                 if not is_valid_datatype:
                     expected_types = ", ".join(
                         [
-                            custom_filter.human_readable_predicate(dtype, entity_key)
+                            prop_input.custom_filter.human_readable_predicate(
+                                dtype, prop_input.entity_key
+                            )
                             for dtype in datatypes
                         ]
                     )
@@ -93,18 +104,20 @@ def _validate_property_values(  # noqa: PLR0913
                             " %(prop_uri)s is not of expected"
                             " type %(expected_types)s",
                             value=value,
-                            prop_uri=custom_filter.human_readable_predicate(
-                                prop_uri, entity_key
+                            prop_uri=prop_input.custom_filter.human_readable_predicate(
+                                prop_input.prop_uri, prop_input.entity_key
                             ),
                             expected_types=expected_types,
                         )
                     )
 
-            optional_values = matching_field_def.get("optionalValues", [])
+            optional_values = prop_input.matching_field_def.get("optionalValues", [])
             if optional_values and value not in optional_values:
                 acceptable_values = ", ".join(
                     [
-                        custom_filter.human_readable_predicate(val, entity_key)
+                        prop_input.custom_filter.human_readable_predicate(
+                            val, prop_input.entity_key
+                        )
                         for val in optional_values
                     ]
                 )
@@ -114,8 +127,8 @@ def _validate_property_values(  # noqa: PLR0913
                         " property %(prop_uri)s. Acceptable values"
                         " are: %(acceptable_values)s",
                         value=value,
-                        prop_uri=custom_filter.human_readable_predicate(
-                            prop_uri, entity_key
+                        prop_uri=prop_input.custom_filter.human_readable_predicate(
+                            prop_input.prop_uri, prop_input.entity_key
                         ),
                         acceptable_values=acceptable_values,
                     )
@@ -232,22 +245,15 @@ def validate_entity_data(structured_data: dict) -> list[str]:
         )
 
         if matching_field_def:
-            _validate_property_cardinality(
-                errors,
-                matching_field_def,
-                normalized_prop_values,
-                prop_uri,
-                entity_key,
-                custom_filter,
+            prop_input = PropertyValidationInput(
+                matching_field_def=matching_field_def,
+                normalized_prop_values=normalized_prop_values,
+                prop_uri=prop_uri,
+                entity_key=entity_key,
+                custom_filter=custom_filter,
             )
-            _validate_property_values(
-                errors,
-                matching_field_def,
-                normalized_prop_values,
-                prop_uri,
-                entity_key,
-                custom_filter,
-            )
+            _validate_property_cardinality(errors, prop_input)
+            _validate_property_values(errors, prop_input)
 
     _check_missing_required_properties(
         errors,

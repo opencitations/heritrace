@@ -15,7 +15,7 @@ from rdflib import RDF, XSD, Literal, URIRef
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from SPARQLWrapper import JSON, SPARQLWrapper
 
-from heritrace.editor import Editor
+from heritrace.editor import Editor, EndpointConfig
 from heritrace.sparql import get_sparql_bindings
 from tests.test_config import TestConfig
 
@@ -34,27 +34,29 @@ def editor(mock_counter_handler) -> Editor:
     resp_agent = URIRef("http://example.org/agent")
 
     return Editor(
-        dataset_endpoint=dataset_endpoint,
-        provenance_endpoint=provenance_endpoint,
-        counter_handler=mock_counter_handler,
-        resp_agent=resp_agent,
-        dataset_is_quadstore=True,
+        EndpointConfig(
+            dataset=dataset_endpoint,
+            provenance=provenance_endpoint,
+            is_quadstore=True,
+        ),
+        mock_counter_handler,
+        resp_agent,
     )
 
 
 @pytest.fixture
 def real_editor():
     """Create an Editor instance with real test database connections."""
-    dataset_endpoint = TestConfig.DATASET_DB_URL  # http://localhost:9999/sparql
-    provenance_endpoint = TestConfig.PROVENANCE_DB_URL  # http://localhost:9998/sparql
     resp_agent = URIRef("http://example.org/test-agent")
 
     return Editor(
-        dataset_endpoint=dataset_endpoint,
-        provenance_endpoint=provenance_endpoint,
-        counter_handler=TestConfig.COUNTER_HANDLER,
-        resp_agent=resp_agent,
-        dataset_is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
+        EndpointConfig(
+            dataset=TestConfig.DATASET_DB_URL,
+            provenance=TestConfig.PROVENANCE_DB_URL,
+            is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
+        ),
+        TestConfig.COUNTER_HANDLER,
+        resp_agent,
     )
 
 

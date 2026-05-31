@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import json
+from dataclasses import dataclass
 
 from flask import current_app, flash, jsonify, render_template, request, url_for
 from flask_babel import gettext
@@ -11,7 +12,7 @@ from rdflib import RDF, XSD, Literal, URIRef
 from werkzeug.wrappers import Response
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor
+from heritrace.editor import Editor, EndpointConfig
 from heritrace.extensions import (
     get_dataset_endpoint,
     get_form_fields,
@@ -120,24 +121,17 @@ def _create_entity_with_form_fields(
 
         ordered_by = matching_field_def.get("orderedBy") if matching_field_def else None
 
+        ctx = CreationContext(
+            editor=editor,
+            entity_uri=entity_uri,
+            predicate=predicate_uri,
+            default_graph_uri=default_graph_uri,
+        )
+
         if ordered_by:
-            process_ordered_properties(
-                editor,
-                entity_uri,
-                predicate_uri,
-                values,
-                default_graph_uri,
-                URIRef(ordered_by),
-            )
+            process_ordered_properties(ctx, values, URIRef(ordered_by))
         else:
-            process_unordered_properties(
-                editor,
-                entity_uri,
-                predicate_uri,
-                values,
-                default_graph_uri,
-                matching_field_def,
-            )
+            process_unordered_properties(ctx, values, matching_field_def)
 
 
 def _create_entity_without_form_fields(
@@ -206,13 +200,15 @@ def _handle_create_entity_post(
 
     resp_agent = get_responsible_agent_uri(current_user.orcid)
     editor = Editor(
-        get_dataset_endpoint(),
-        get_provenance_endpoint(),
+        EndpointConfig(
+            dataset=get_dataset_endpoint(),
+            provenance=get_provenance_endpoint(),
+            is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
+        ),
         current_app.config["COUNTER_HANDLER"],
         resp_agent,
         URIRef(primary_source) if primary_source else None,
         current_app.config["DATASET_GENERATION_TIME"],
-        dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
     )
 
     if not structured_data.get("entity_type"):
@@ -384,33 +380,38 @@ def create_nested_entity(
                 editor.create(entity_uri, predicate_uri, object_value, graph_uri)
 
 
-def process_entity_value(  # noqa: PLR0913
-    editor: Editor,
-    entity_uri: URIRef,
-    predicate: URIRef,
+@dataclass(frozen=True, slots=True)
+class CreationContext:
+    editor: Editor
+    entity_uri: URIRef
+    predicate: URIRef
+    default_graph_uri: URIRef | None
+
+
+def process_entity_value(
+    ctx: CreationContext,
     value: dict | str,
-    default_graph_uri: URIRef | None,
     matching_field_def: dict | None,
 ) -> URIRef | Literal:
     if isinstance(value, dict) and "entity_type" in value:
         nested_uri = generate_unique_uri(value["entity_type"])
-        editor.create(
-            entity_uri,
-            predicate,
+        ctx.editor.create(
+            ctx.entity_uri,
+            ctx.predicate,
             nested_uri,
-            default_graph_uri,
+            ctx.default_graph_uri,
         )
-        create_nested_entity(editor, nested_uri, value, default_graph_uri)
+        create_nested_entity(ctx.editor, nested_uri, value, ctx.default_graph_uri)
         return nested_uri
     if isinstance(value, dict) and value.get("is_existing_entity", False):
         entity_ref_uri = value.get("entity_uri")
         if entity_ref_uri:
             object_value = URIRef(entity_ref_uri)
-            editor.create(
-                entity_uri,
-                predicate,
+            ctx.editor.create(
+                ctx.entity_uri,
+                ctx.predicate,
                 object_value,
-                default_graph_uri,
+                ctx.default_graph_uri,
             )
             return object_value
         msg = "Missing entity_uri in existing entity reference"
@@ -424,51 +425,45 @@ def process_entity_value(  # noqa: PLR0913
             datatype_uris = matching_field_def.get("datatypes", [])
         datatype = determine_datatype(str_value, datatype_uris)
         object_value = Literal(str_value, datatype=datatype)
-    editor.create(
-        entity_uri,
-        predicate,
+    ctx.editor.create(
+        ctx.entity_uri,
+        ctx.predicate,
         object_value,
-        default_graph_uri,
+        ctx.default_graph_uri,
     )
     return object_value
 
 
-def process_ordered_entity_value(
-    editor: Editor,
-    entity_uri: URIRef,
-    predicate: URIRef,
+def _process_ordered_entity_value(
+    ctx: CreationContext,
     value: dict,
-    default_graph_uri: URIRef | None,
 ) -> URIRef:
     if isinstance(value, dict) and "entity_type" in value:
         nested_uri = generate_unique_uri(value["entity_type"])
-        editor.create(
-            entity_uri,
-            predicate,
+        ctx.editor.create(
+            ctx.entity_uri,
+            ctx.predicate,
             nested_uri,
-            default_graph_uri,
+            ctx.default_graph_uri,
         )
-        create_nested_entity(editor, nested_uri, value, default_graph_uri)
+        create_nested_entity(ctx.editor, nested_uri, value, ctx.default_graph_uri)
         return nested_uri
     if isinstance(value, dict) and value.get("is_existing_entity", False):
         nested_uri = URIRef(value["entity_uri"])
-        editor.create(
-            entity_uri,
-            predicate,
+        ctx.editor.create(
+            ctx.entity_uri,
+            ctx.predicate,
             nested_uri,
-            default_graph_uri,
+            ctx.default_graph_uri,
         )
         return nested_uri
     msg = "Unexpected value type for ordered property"
     raise ValueError(msg)
 
 
-def process_ordered_properties(  # noqa: PLR0913
-    editor: Editor,
-    entity_uri: URIRef,
-    predicate: URIRef,
+def process_ordered_properties(
+    ctx: CreationContext,
     values: list[dict],
-    default_graph_uri: URIRef | None,
     ordered_by: URIRef,
 ) -> None:
     values_by_shape = {}
@@ -483,32 +478,25 @@ def process_ordered_properties(  # noqa: PLR0913
     for shape_values in values_by_shape.values():
         previous_entity = None
         for value in shape_values:
-            nested_uri = process_ordered_entity_value(
-                editor, entity_uri, predicate, value, default_graph_uri
-            )
+            nested_uri = _process_ordered_entity_value(ctx, value)
 
             if previous_entity:
-                editor.create(
+                ctx.editor.create(
                     previous_entity,
                     ordered_by,
                     nested_uri,
-                    default_graph_uri,
+                    ctx.default_graph_uri,
                 )
             previous_entity = nested_uri
 
 
-def process_unordered_properties(  # noqa: PLR0913
-    editor: Editor,
-    entity_uri: URIRef,
-    predicate: URIRef,
+def process_unordered_properties(
+    ctx: CreationContext,
     values: list[dict | str],
-    default_graph_uri: URIRef | None,
     matching_field_def: dict | None,
 ) -> None:
     for value in values:
-        process_entity_value(
-            editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
-        )
+        process_entity_value(ctx, value, matching_field_def)
 
 
 def determine_datatype(value: str, datatype_uris: list[str]) -> URIRef:

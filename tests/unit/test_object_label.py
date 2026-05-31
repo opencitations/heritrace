@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 from rdflib import URIRef
 
-from heritrace.routes.entity import get_object_label
+from heritrace.routes.entity import EntityRenderContext, get_object_label
 from heritrace.utils.filters import Filter
 
 
@@ -26,14 +26,24 @@ def test_get_object_label_rdf_type() -> None:
     mock_custom_filter = MagicMock(spec=Filter)
     mock_custom_filter.human_readable_class.return_value = "Person"
 
+    ctx = EntityRenderContext(
+        entity_uri="http://example.org/entity/1",
+        entity_shape="http://example.org/EntityShape",
+        highest_priority_class=entity_type,
+        relevant_snapshot=None,
+        predicate_ordering_cache={},
+        entity_position_cache={},
+        object_shapes_cache={},
+        object_classes_cache={},
+        custom_filter=mock_custom_filter,
+    )
+
     label = get_object_label(
         object_value,
         predicate,
         None,
         None,
-        None,
-        mock_custom_filter,
-        (entity_type, "http://example.org/EntityShape"),
+        ctx,
     )
 
     assert label == "Person"
@@ -49,13 +59,24 @@ def test_get_object_label_uri(mock_custom_filter) -> None:
     snapshot = MagicMock()
     snapshot.triples.return_value = [(None, None, URIRef("http://example.org/Person"))]
 
+    ctx = EntityRenderContext(
+        entity_uri="http://example.org/entity/1",
+        entity_shape=None,
+        highest_priority_class=None,
+        relevant_snapshot=snapshot,
+        predicate_ordering_cache={},
+        entity_position_cache={},
+        object_shapes_cache={},
+        object_classes_cache={},
+        custom_filter=mock_custom_filter,
+    )
+
     label = get_object_label(
         object_value,
         predicate,
         None,
         "http://example.org/Person",
-        snapshot,
-        mock_custom_filter,
+        ctx,
     )
 
     assert label == "Human Readable Entity"
@@ -68,8 +89,20 @@ def test_get_object_label_uri_no_snapshot(mock_custom_filter) -> None:
     object_value = "http://example.org/some-entity"
     predicate = "http://example.org/predicate"
 
+    ctx = EntityRenderContext(
+        entity_uri="http://example.org/entity/1",
+        entity_shape=None,
+        highest_priority_class=None,
+        relevant_snapshot=None,
+        predicate_ordering_cache={},
+        entity_position_cache={},
+        object_shapes_cache={},
+        object_classes_cache={},
+        custom_filter=mock_custom_filter,
+    )
+
     label = get_object_label(
-        object_value, predicate, None, None, None, mock_custom_filter
+        object_value, predicate, None, None, ctx
     )
 
     assert label == "http://example.org/some-entity"
@@ -78,15 +111,25 @@ def test_get_object_label_uri_no_snapshot(mock_custom_filter) -> None:
 def test_get_object_label_literal_value(mock_custom_filter) -> None:
     object_value = "Simple text value"
     predicate = "http://example.org/predicate"
-    entity_type = "http://example.org/Entity"
+
+    ctx = EntityRenderContext(
+        entity_uri="http://example.org/entity/1",
+        entity_shape="http://example.org/EntityShape",
+        highest_priority_class="http://example.org/Entity",
+        relevant_snapshot=None,
+        predicate_ordering_cache={},
+        entity_position_cache={},
+        object_shapes_cache={},
+        object_classes_cache={},
+        custom_filter=mock_custom_filter,
+    )
 
     label = get_object_label(
         object_value,
         predicate,
-        entity_type,
+        "http://example.org/Entity",
         "http://example.org/EntityShape",
-        None,
-        mock_custom_filter,
+        ctx,
     )
 
     assert label == "Simple text value"

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from werkzeug.wrappers import Response
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor
+from heritrace.editor import Editor, EndpointConfig
 from heritrace.extensions import (
     get_change_tracking_config,
     get_dataset_endpoint,
@@ -82,13 +82,15 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:  # noqa: C901,
     source_uri = None if is_deleted else entity_snapshots[entity_uri]["source"]
     resp_agent = get_responsible_agent_uri(current_user.orcid)
     editor = Editor(
-        get_dataset_endpoint(),
-        get_provenance_endpoint(),
+        EndpointConfig(
+            dataset=get_dataset_endpoint(),
+            provenance=get_provenance_endpoint(),
+            is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
+        ),
         current_app.config["COUNTER_HANDLER"],
         resp_agent,
         URIRef(source_uri) if source_uri else None,
         current_app.config["DATASET_GENERATION_TIME"],
-        dataset_is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
     )
 
     if get_dataset_is_quadstore():

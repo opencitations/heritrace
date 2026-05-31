@@ -459,14 +459,14 @@ def _process_property_with_display_rules(
         )
 
 
-def get_grouped_triples(  # noqa: PLR0913
+def get_grouped_triples(
     subject: URIRef,
     triples: list[tuple[URIRef, URIRef, URIRef | Literal]],
     valid_predicates_info: list[str],
     historical_snapshot: Graph | None = None,
-    highest_priority_class: str | None = None,
-    highest_priority_shape: str | None = None,
+    entity_key: tuple[str | None, str | None] = (None, None),
 ) -> tuple[OrderedDict, set]:
+    highest_priority_class, highest_priority_shape = entity_key
     display_rules = get_display_rules()
     form_fields = get_form_fields()
 

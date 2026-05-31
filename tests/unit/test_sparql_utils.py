@@ -13,6 +13,7 @@ import pytest
 from rdflib import Dataset, Graph, Literal, URIRef
 
 from heritrace.utils.sparql_utils import (
+    CatalogQuery,
     _get_entities_with_enhanced_shape_detection,
     build_sort_clause,
     fetch_current_state_with_related_entities,
@@ -336,7 +337,9 @@ class TestGetEntitiesForClass:
             ),
         ):
             entities, total_count = get_entities_for_class(
-                "http://example.org/Person", 1, 10
+                CatalogQuery(
+                    selected_class="http://example.org/Person", page=1, per_page=10
+                )
             )
 
             # Verify the results
@@ -403,7 +406,9 @@ class TestGetEntitiesForClass:
             ),
         ):
             entities, total_count = get_entities_for_class(
-                "http://example.org/Person", 1, 10
+                CatalogQuery(
+                    selected_class="http://example.org/Person", page=1, per_page=10
+                )
             )
 
             # Verify the results
@@ -489,11 +494,13 @@ class TestGetCatalogData:
         ):
             # Call get_catalog_data with the new parameter structure
             catalog_data = get_catalog_data(
-                "http://example.org/Person",
-                1,
-                10,
-                sort_property=None,
-                selected_shape="http://example.org/PersonShape",
+                CatalogQuery(
+                    selected_class="http://example.org/Person",
+                    page=1,
+                    per_page=10,
+                    sort_property=None,
+                    selected_shape="http://example.org/PersonShape",
+                )
             )
 
             # Verify that sort_property was set from the first sortable property
@@ -1243,7 +1250,12 @@ class TestGetEntitiesForClassShapeFiltering:
             )
 
             entities, total_count = get_entities_for_class(
-                selected_class, 1, 10, selected_shape=selected_shape
+                CatalogQuery(
+                    selected_class=selected_class,
+                    page=1,
+                    per_page=10,
+                    selected_shape=selected_shape,
+                )
             )
 
             # Now expects 2 queries: one for subjects, one for triples
@@ -1323,7 +1335,12 @@ class TestGetEntitiesForClassShapeFiltering:
             mock_filter.human_readable_entity.return_value = "Test Document"
 
             entities, total_count = get_entities_for_class(
-                selected_class, 1, 10, selected_shape=selected_shape
+                CatalogQuery(
+                    selected_class=selected_class,
+                    page=1,
+                    per_page=10,
+                    selected_shape=selected_shape,
+                )
             )
 
             # Now expects 2 queries: one for subjects, one for triples
@@ -1390,12 +1407,14 @@ class TestGetEntitiesForClassShapeFiltering:
             )
 
             entities_asc, total_count_asc = get_entities_for_class(
-                selected_class,
-                1,
-                10,
-                sort_property="http://example.org/name",
-                sort_direction="ASC",
-                selected_shape=selected_shape,
+                CatalogQuery(
+                    selected_class=selected_class,
+                    page=1,
+                    per_page=10,
+                    sort_property="http://example.org/name",
+                    sort_direction="ASC",
+                    selected_shape=selected_shape,
+                )
             )
 
             assert total_count_asc == 2
@@ -1408,12 +1427,14 @@ class TestGetEntitiesForClassShapeFiltering:
             )  # Bob should come second
 
             entities_desc, total_count_desc = get_entities_for_class(
-                selected_class,
-                1,
-                10,
-                sort_property="http://example.org/name",
-                sort_direction="DESC",
-                selected_shape=selected_shape,
+                CatalogQuery(
+                    selected_class=selected_class,
+                    page=1,
+                    per_page=10,
+                    sort_property="http://example.org/name",
+                    sort_direction="DESC",
+                    selected_shape=selected_shape,
+                )
             )
 
             assert total_count_desc == 2
@@ -1503,7 +1524,12 @@ class TestGetEntitiesForClassShapeFiltering:
             ]
 
             entities_page1, total_count = get_entities_for_class(
-                selected_class, 1, 3, selected_shape=selected_shape
+                CatalogQuery(
+                    selected_class=selected_class,
+                    page=1,
+                    per_page=3,
+                    selected_shape=selected_shape,
+                )
             )
 
             assert total_count == 5
@@ -1519,7 +1545,12 @@ class TestGetEntitiesForClassShapeFiltering:
             ]
 
             entities_page2, total_count = get_entities_for_class(
-                selected_class, 2, 3, selected_shape=selected_shape
+                CatalogQuery(
+                    selected_class=selected_class,
+                    page=2,
+                    per_page=3,
+                    selected_shape=selected_shape,
+                )
             )
 
             # With shape filtering pagination, total_count is approximate

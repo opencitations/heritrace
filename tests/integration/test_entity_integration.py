@@ -26,7 +26,7 @@ from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 from default_components.meta_counter_handler import MetaCounterHandler
 from default_components.meta_uri_generator import MetaURIGenerator
-from heritrace.editor import Editor
+from heritrace.editor import Editor, EndpointConfig
 from heritrace.extensions import (
     get_change_tracking_config,
     get_dataset_endpoint,
@@ -52,13 +52,15 @@ def test_entity(app: Flask) -> Generator[URIRef, None, None]:
     with app.app_context():
         # Create a test entity using the Editor
         editor = Editor(
-            get_dataset_endpoint(),
-            get_provenance_endpoint(),
+            EndpointConfig(
+                dataset=get_dataset_endpoint(),
+                provenance=get_provenance_endpoint(),
+                is_quadstore=app.config["DATASET_IS_QUADSTORE"],
+            ),
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
             app.config["DATASET_GENERATION_TIME"],
-            dataset_is_quadstore=app.config["DATASET_IS_QUADSTORE"],
         )
 
         # Generate a unique URI for the test entity using UUID to ensure uniqueness
@@ -306,13 +308,15 @@ def test_restore_version(
         time.sleep(1)
 
         editor = Editor(
-            get_dataset_endpoint(),
-            get_provenance_endpoint(),
+            EndpointConfig(
+                dataset=get_dataset_endpoint(),
+                provenance=get_provenance_endpoint(),
+                is_quadstore=True,
+            ),
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
             app.config["DATASET_GENERATION_TIME"],
-            dataset_is_quadstore=True,
         )
 
         entity_graph = fetch_data_graph_for_subject(test_entity)
@@ -588,13 +592,15 @@ def test_entity_modification_workflow(app: Flask) -> None:
     with app.app_context():
         # 1. Crea una nuova entità di test con proprietà specifiche
         editor = Editor(
-            get_dataset_endpoint(),
-            get_provenance_endpoint(),
+            EndpointConfig(
+                dataset=get_dataset_endpoint(),
+                provenance=get_provenance_endpoint(),
+                is_quadstore=app.config["DATASET_IS_QUADSTORE"],
+            ),
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
             app.config["DATASET_GENERATION_TIME"],
-            dataset_is_quadstore=app.config["DATASET_IS_QUADSTORE"],
         )
 
         # Genera un URI unico per l'entità di test
@@ -635,15 +641,15 @@ def test_entity_modification_workflow(app: Flask) -> None:
         editor = None
         # Create a fresh editor instance to ensure a new version
         editor = Editor(
-            get_dataset_endpoint(),
-            get_provenance_endpoint(),
+            EndpointConfig(
+                dataset=get_dataset_endpoint(),
+                provenance=get_provenance_endpoint(),
+                is_quadstore=app.config["DATASET_IS_QUADSTORE"],
+            ),
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
-            datetime.now(
-                tz=timezone.utc
-            ),  # Use current time to ensure a different timestamp
-            dataset_is_quadstore=app.config["DATASET_IS_QUADSTORE"],
+            datetime.now(tz=timezone.utc),
         )
 
         # Load the current state of the entity

@@ -316,12 +316,12 @@ def test_apply_changes_with_affected_entities(
     orphan_delete_calls = [
         call
         for call in mock_delete_logic.call_args_list
-        if call[0][1] == URIRef(orphan_uri)  # Check subject URI
+        if call[0][0].subject == URIRef(orphan_uri)
     ]
     proxy_delete_calls = [
         call
         for call in mock_delete_logic.call_args_list
-        if call[0][1] == URIRef(proxy_uri)  # Check subject URI
+        if call[0][0].subject == URIRef(proxy_uri)
     ]
     assert len(orphan_delete_calls) == 1, (
         f"Expected 1 delete call for orphan"
@@ -332,50 +332,36 @@ def test_apply_changes_with_affected_entities(
         f"Expected 1 delete call for proxy {proxy_uri}, got {len(proxy_delete_calls)}"
     )
 
-    # Check call specifically for the full entity deletion (L576)
-    full_delete_call_args = mock.call(
-        mock_editor,
-        URIRef(full_delete_target_uri),
-        graph_uri=None,
-        entity_type="http://example.org/FullDeleteType",
-        entity_shape=None,
-    )
-    mock_delete_logic.assert_any_call(
-        *full_delete_call_args[1], **full_delete_call_args[2]
-    )
+    # Check call specifically for the full entity deletion (phase 2)
+    full_delete_calls = [
+        call
+        for call in mock_delete_logic.call_args_list
+        if call[0][0].subject == URIRef(full_delete_target_uri)
+        and call[0][0].entity_type == "http://example.org/FullDeleteType"
+    ]
+    assert len(full_delete_calls) == 1
 
     # Check that delete_logic was NOT called for the skipped operations in Phase 2
     # Full orphan entity deletion (skipped by L573)
-    skipped_full_orphan_delete_call = mock.call(
-        mock_editor,
-        URIRef(orphan_uri),
-        None,  # predicate
-        None,  # object_value
-        graph_uri=None,
-        entity_type="http://example.org/OrphanType",
-    )
-    # Triple with deleted proxy object (skipped by L581)
-    mock.call(
-        mock_editor,
-        URIRef("http://example.org/another/subj"),
-        URIRef("http://example.org/relates/to"),
-        proxy_uri,  # Check the raw object value from the change
-        None,  # graph_uri
-        "http://example.org/AnotherType",
-    )
-    assert skipped_full_orphan_delete_call not in mock_delete_logic.call_args_list
+    skipped_orphan_full_delete_calls = [
+        call
+        for call in mock_delete_logic.call_args_list
+        if call[0][0].subject == URIRef(orphan_uri)
+        and call[0][0].entity_type == "http://example.org/OrphanType"
+        and len(call[0]) == 1  # no predicate/object_value
+    ]
+    assert len(skipped_orphan_full_delete_calls) == 0
 
     # More robust check for the skipped proxy object deletion call
     found_skipped_proxy_object_delete_call = False
     for call in mock_delete_logic.call_args_list:
-        # Check arguments matching the skipped operation
-        args, kwargs = call
+        args, _kwargs = call
+        op = args[0]
         if (
-            len(args) > 3
-            and args[1] == URIRef("http://example.org/another/subj")
-            and args[2] == URIRef("http://example.org/relates/to")
-            and str(args[3]) == proxy_uri
-            and kwargs.get("entity_type") == "http://example.org/AnotherType"
+            op.subject == URIRef("http://example.org/another/subj")
+            and len(args) > 2
+            and str(args[2]) == proxy_uri
+            and op.entity_type == "http://example.org/AnotherType"
         ):
             found_skipped_proxy_object_delete_call = True
             break

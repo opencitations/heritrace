@@ -20,14 +20,13 @@ from heritrace.extensions import (
 )
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._rendering import generate_modification_text
-from heritrace.routes.entity._types import _DATETIME_MIN_UTC
+from heritrace.routes.entity._types import _DATETIME_MIN_UTC, HistoryContext
 from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (
     get_grouped_triples,
     get_highest_priority_class,
 )
-from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
@@ -104,15 +103,20 @@ def entity_history(entity_uri: str) -> str:
             metadata["hadPrimarySource"]
         )
 
+        history_ctx = HistoryContext(
+            entity_uri=entity_uri,
+            highest_priority_class=highest_priority_class,
+            entity_shape=snapshot_entity_shape,
+            history=history,
+            sorted_timestamps=sorted_timestamps,
+            custom_filter=custom_filter,
+        )
+
         description = _format_snapshot_description(
             metadata,
-            entity_uri,
-            highest_priority_class,
+            history_ctx,
             context_snapshot,
-            history,
-            sorted_timestamps,
             i,
-            custom_filter,
         )
         modifications = metadata.get("hasUpdateQuery", "")
         modification_text = ""
@@ -120,13 +124,9 @@ def entity_history(entity_uri: str) -> str:
             parsed_modifications = parse_sparql_update(modifications)
             modification_text = generate_modification_text(
                 parsed_modifications,
-                highest_priority_class,
-                snapshot_entity_shape,
-                history=history,
-                entity_uri=entity_uri,
-                current_snapshot=snapshot_graph,
-                current_snapshot_timestamp=date.isoformat(),
-                custom_filter=custom_filter,
+                history_ctx,
+                snapshot_graph,
+                date.isoformat(),
             )
 
         can_restore = len(sorted_metadata) > 1 and i + 1 < len(sorted_metadata)
@@ -224,15 +224,11 @@ def entity_history(entity_uri: str) -> str:
     return render_template("entity/history.jinja", timeline_data=timeline_data)
 
 
-def _format_snapshot_description(  # noqa: PLR0913
+def _format_snapshot_description(
     metadata: dict,
-    entity_uri: str,
-    highest_priority_class: str | None,
+    ctx: HistoryContext,
     context_snapshot: Graph,
-    history: dict,
-    sorted_timestamps: list[str],
     current_index: int,
-    custom_filter: Filter,
 ) -> str:
     description = metadata.get("description", "")
     is_merge_snapshot = False
@@ -241,15 +237,17 @@ def _format_snapshot_description(  # noqa: PLR0913
         is_merge_snapshot = True
 
     if is_merge_snapshot:
-        match = re.search(r"merged with ['‘]?([^'’<>\s]+)['’]?", description)  # noqa: RUF001
+        match = re.search(r"merged with [‘’]?([^’’<>\s]+)[‘’]?", description)  # noqa: RUF001
         if match:
             potential_merged_uri = match.group(1)
             if is_valid_url(potential_merged_uri):
                 merged_entity_uri_from_desc = potential_merged_uri
                 merged_entity_label = None
                 if current_index > 0:
-                    previous_snapshot_timestamp = sorted_timestamps[current_index - 1]
-                    previous_snapshot_graph = history.get(entity_uri, {}).get(
+                    previous_snapshot_timestamp = (
+                        ctx.sorted_timestamps[current_index - 1]
+                    )
+                    previous_snapshot_graph = ctx.history.get(ctx.entity_uri, {}).get(
                         previous_snapshot_timestamp
                     )
                     if previous_snapshot_graph:
@@ -267,7 +265,7 @@ def _format_snapshot_description(  # noqa: PLR0913
                         )
 
                         shape = determine_shape_for_classes(raw_merged_entity_classes)
-                        merged_entity_label = custom_filter.human_readable_entity(
+                        merged_entity_label = ctx.custom_filter.human_readable_entity(
                             merged_entity_uri_from_desc,
                             (highest_priority_merged_class, shape),
                             previous_snapshot_graph,
@@ -281,16 +279,16 @@ def _format_snapshot_description(  # noqa: PLR0913
                             )
 
     shape = (
-        determine_shape_for_classes([highest_priority_class])
-        if highest_priority_class
+        determine_shape_for_classes([ctx.highest_priority_class])
+        if ctx.highest_priority_class
         else None
     )
-    entity_label_for_desc = custom_filter.human_readable_entity(
-        entity_uri, (highest_priority_class, shape), context_snapshot
+    entity_label_for_desc = ctx.custom_filter.human_readable_entity(
+        ctx.entity_uri, (ctx.highest_priority_class, shape), context_snapshot
     )
-    if entity_label_for_desc and entity_label_for_desc != entity_uri:
+    if entity_label_for_desc and entity_label_for_desc != ctx.entity_uri:
         description = description.replace(
-            f"'{entity_uri}'", f"'{entity_label_for_desc}'"
+            f"'{ctx.entity_uri}'", f"'{entity_label_for_desc}'"
         )
 
     return description
@@ -427,8 +425,7 @@ def entity_version(entity_uri: str, timestamp: str) -> str:  # noqa: C901, PLR09
         triples,
         list(valid_predicates_set),
         historical_snapshot=context_version,
-        highest_priority_class=highest_priority_class,
-        highest_priority_shape=entity_shape,
+        entity_key=(highest_priority_class, entity_shape),
     )
 
     snapshot_times: list[datetime] = [
@@ -452,19 +449,24 @@ def entity_version(entity_uri: str, timestamp: str) -> str:  # noqa: C901, PLR09
             prev_snapshot_timestamp = snap_time.isoformat()
             break
 
+    version_history_ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=entity_shape,
+        history=history,
+        sorted_timestamps=sorted_timestamps,
+        custom_filter=custom_filter,
+    )
+
     modifications = ""
     if closest_metadata.get("hasUpdateQuery"):
         sparql_query = closest_metadata["hasUpdateQuery"]
         parsed_modifications = parse_sparql_update(sparql_query)
         modifications = generate_modification_text(
             parsed_modifications,
-            highest_priority_class,
-            entity_shape,
-            history,
-            entity_uri,
+            version_history_ctx,
             context_version,
             closest_timestamp,
-            custom_filter,
         )
 
     try:
@@ -475,13 +477,9 @@ def entity_version(entity_uri: str, timestamp: str) -> str:  # noqa: C901, PLR09
     if closest_metadata.get("description"):
         formatted_description = _format_snapshot_description(
             closest_metadata,
-            entity_uri,
-            highest_priority_class,
+            version_history_ctx,
             context_version,
-            history,
-            sorted_timestamps,
             current_index,
-            custom_filter,
         )
         closest_metadata["description"] = formatted_description
 

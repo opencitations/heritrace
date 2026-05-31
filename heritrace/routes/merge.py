@@ -26,7 +26,7 @@ from rdflib import URIRef
 from SPARQLWrapper import JSON
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor
+from heritrace.editor import Editor, EndpointConfig
 from heritrace.extensions import (
     get_counter_handler,
     get_custom_filter,
@@ -194,11 +194,13 @@ def execute_merge() -> WerkzeugResponse:
         dataset_is_quadstore = get_dataset_is_quadstore()
 
         editor = Editor(
-            dataset_endpoint=dataset_endpoint,
-            provenance_endpoint=provenance_endpoint,
-            counter_handler=counter_handler,
-            resp_agent=resp_agent,
-            dataset_is_quadstore=dataset_is_quadstore,
+            EndpointConfig(
+                dataset=dataset_endpoint,
+                provenance=provenance_endpoint,
+                is_quadstore=dataset_is_quadstore,
+            ),
+            counter_handler,
+            resp_agent,
         )
 
         if primary_source and validators.url(primary_source):  # type: ignore[arg-type]

@@ -19,6 +19,7 @@ from rdflib import RDF, XSD, Graph, Literal, URIRef
 from redis import Redis
 
 from heritrace.routes.api import (
+    ChangeOperation,
     CreateEntityData,
     create_logic,
     delete_logic,
@@ -1369,14 +1370,17 @@ def test_update_logic_implementation(mock_validate_new_triple, app: Flask) -> No
         # Create a mock editor
         mock_editor = MagicMock()
 
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/entity/1"),
+            graph_uri=URIRef("http://example.org/graph/1"),
+            entity_type="http://example.org/type/1",
+        )
         update_logic(
-            mock_editor,
-            URIRef("http://example.org/entity/1"),
+            op,
             URIRef("http://example.org/property/1"),
             old_value,
             "New Value",
-            URIRef("http://example.org/graph/1"),
-            "http://example.org/type/1",
         )
 
         mock_validate_new_triple.assert_called_with(
@@ -1411,12 +1415,15 @@ def test_delete_logic_with_direct_graph_context(
         mock_validate_new_triple.return_value = (None, None, None)
 
         # Call delete_logic with test data
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/subject"),
+            graph_uri=URIRef("http://example.org/graph"),
+        )
         delete_logic(
-            mock_editor,
-            URIRef("http://example.org/subject"),
+            op,
             URIRef("http://example.org/predicate"),
             "http://example.org/object",
-            URIRef("http://example.org/graph"),
         )
 
         mock_editor.delete.assert_called_once_with(
@@ -1440,13 +1447,16 @@ def test_delete_logic_with_validation_error(
         mock_validate_new_triple.return_value = (None, None, "Validation error")
 
         # Call delete_logic with test data and expect a ValueError
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/subject"),
+            graph_uri=URIRef("http://example.org/graph"),
+        )
         with pytest.raises(ValueError, match="Validation error"):
             delete_logic(
-                mock_editor,
-                URIRef("http://example.org/subject"),
+                op,
                 URIRef("http://example.org/predicate"),
                 "http://example.org/object",
-                URIRef("http://example.org/graph"),
             )
 
         # Verify that editor.delete was not called
@@ -1471,9 +1481,13 @@ def test_delete_logic_implementation(mock_validate_new_triple, app: Flask) -> No
         graph_uri = URIRef("http://example.org/graph/1")
         entity_type = "http://example.org/type/1"
 
-        delete_logic(
-            mock_editor, subject, predicate, object_value, graph_uri, entity_type
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=subject,
+            graph_uri=graph_uri,
+            entity_type=entity_type,
         )
+        delete_logic(op, predicate, object_value)
 
         mock_validate_new_triple.assert_called_once_with(
             subject,
@@ -1574,13 +1588,16 @@ def test_order_logic_with_entity_type_determination(
         mock_editor.g_set.triples = MagicMock(side_effect=triples_side_effect)
 
         # Call order_logic with a new order that includes an old entity
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/container/1"),
+            graph_uri=URIRef("http://example.org/graph/1"),
+        )
         result = order_logic(
-            mock_editor,
-            URIRef("http://example.org/container/1"),
+            op,
             URIRef("http://example.org/property/items"),
             ["http://example.org/entity/old", "temp-123"],
             URIRef("http://example.org/property/next"),
-            URIRef("http://example.org/graph/1"),
             {"temp-123": "http://example.org/entity/new"},
         )
 
@@ -1834,15 +1851,18 @@ def test_update_logic_with_error_message(mock_validate_new_triple, app: Flask) -
         mock_editor = MagicMock()
 
         # Call update_logic with test data
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/subject/1"),
+            graph_uri=URIRef("http://example.org/graph/1"),
+            entity_type="http://example.org/type/1",
+        )
         with pytest.raises(ValueError, match="Invalid update value"):
             update_logic(
-                mock_editor,
-                URIRef("http://example.org/subject/1"),
+                op,
                 URIRef("http://example.org/predicate/1"),
                 "Old Value",
                 "New Value",
-                URIRef("http://example.org/graph/1"),
-                "http://example.org/type/1",
             )
 
         # Verify that editor.update was not called
@@ -1868,16 +1888,19 @@ def test_order_logic_entity_type_error(app: Flask) -> None:
         mock_editor.get_entity_type.return_value = None
 
         # Call order_logic with test data
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/subject/1"),
+            graph_uri=URIRef("http://example.org/graph/1"),
+        )
         with pytest.raises(
             ValueError, match="Impossibile determinare il tipo dell'entità"
         ):
             order_logic(
-                mock_editor,
-                URIRef("http://example.org/subject/1"),
+                op,
                 URIRef("http://example.org/predicate/1"),
                 ["http://example.org/old/1"],
                 URIRef("http://example.org/ordered_by"),
-                URIRef("http://example.org/graph/1"),
             )
 
 
@@ -2053,14 +2076,17 @@ def test_update_logic(mock_validate_new_triple, app: Flask) -> None:
         mock_validate_new_triple.return_value = (new_value, old_value, None)
 
         # Call the function
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/subject"),
+            graph_uri=URIRef("http://example.org/graph"),
+            entity_type="http://example.org/EntityType",
+        )
         update_logic(
-            mock_editor,
-            URIRef("http://example.org/subject"),
+            op,
             URIRef("http://example.org/predicate"),
             "http://example.org/old_value",
             "http://example.org/new_value",
-            URIRef("http://example.org/graph"),
-            "http://example.org/EntityType",
         )
 
         # Verify validate_new_triple was called correctly
@@ -2096,13 +2122,16 @@ def test_delete_logic(mock_validate_new_triple, app: Flask) -> None:
         mock_validate_new_triple.return_value = (None, object_value, None)
 
         # Call the function
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/subject"),
+            graph_uri=URIRef("http://example.org/graph"),
+            entity_type="http://example.org/EntityType",
+        )
         delete_logic(
-            mock_editor,
-            URIRef("http://example.org/subject"),
+            op,
             URIRef("http://example.org/predicate"),
             "http://example.org/object",
-            URIRef("http://example.org/graph"),
-            "http://example.org/EntityType",
         )
 
         # Verify validate_new_triple was called correctly
@@ -2182,13 +2211,16 @@ def test_order_logic(mock_generate_unique_uri, app: Flask) -> None:
         temp_id_to_uri = {}
 
         # Call the function
+        op = ChangeOperation(
+            editor=mock_editor,
+            subject=URIRef("http://example.org/subject"),
+            graph_uri=URIRef("http://example.org/graph"),
+        )
         result = order_logic(
-            mock_editor,
-            URIRef("http://example.org/subject"),
+            op,
             URIRef("http://example.org/predicate"),
             [str(entity1), str(entity2)],
             URIRef("http://example.org/ordered_by"),
-            URIRef("http://example.org/graph"),
             temp_id_to_uri,
         )
 

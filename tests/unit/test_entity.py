@@ -15,7 +15,9 @@ from flask import Flask
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 
 from heritrace.routes.entity import (
+    CreationContext,
     EntityRenderContext,
+    HistoryContext,
     _format_snapshot_description,
     compute_graph_differences,
     determine_object_class_and_shape,
@@ -25,11 +27,13 @@ from heritrace.routes.entity import (
     prepare_entity_snapshots,
     process_entity_value,
     process_modification_data,
-    process_ordered_entity_value,
     process_ordered_properties,
     process_unordered_properties,
     validate_entity_data,
     validate_modification,
+)
+from heritrace.routes.entity._creation import (
+    _process_ordered_entity_value,
 )
 from heritrace.utils.filters import Filter
 
@@ -1029,24 +1033,26 @@ def test_format_snapshot_description_simple(
     entity_uri = "http://example.org/person/123"
     highest_priority_class = "http://example.org/Person"
     context_snapshot = Graph()
-    history = {}
-    sorted_timestamps = []
-    current_index = 0
 
     # Create mock filter
     mock_filter = MagicMock()
     mock_filter.human_readable_entity.return_value = "John Doe"
 
+    ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=None,
+        history={},
+        sorted_timestamps=[],
+        custom_filter=mock_filter,
+    )
+
     # Call function
     result = _format_snapshot_description(
         metadata,
-        entity_uri,
-        highest_priority_class,
+        ctx,
         context_snapshot,
-        history,
-        sorted_timestamps,
-        current_index,
-        mock_filter,
+        0,
     )
 
     # Verify results
@@ -1112,7 +1118,6 @@ def test_format_snapshot_description_merge_with_uri(
         }
     }
     sorted_timestamps = ["2023-01-01T00:00:00", "2023-01-02T00:00:00"]
-    current_index = 1
 
     # Create mock filter
     mock_filter = MagicMock()
@@ -1124,16 +1129,21 @@ def test_format_snapshot_description_merge_with_uri(
 
     mock_filter.human_readable_entity.side_effect = _human_readable
 
+    ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=None,
+        history=history,
+        sorted_timestamps=sorted_timestamps,
+        custom_filter=mock_filter,
+    )
+
     # Call function
     result = _format_snapshot_description(
         metadata,
-        entity_uri,
-        highest_priority_class,
+        ctx,
         context_snapshot,
-        history,
-        sorted_timestamps,
-        current_index,
-        mock_filter,
+        1,
     )
 
     # Verify results
@@ -1155,24 +1165,26 @@ def test_format_snapshot_description_no_merge(mock_determine_shape) -> None:
     entity_uri = "http://example.org/person/123"
     highest_priority_class = "http://example.org/Person"
     context_snapshot = Graph()
-    history = {}
-    sorted_timestamps = []
-    current_index = 0
 
     # Create mock filter
     mock_filter = MagicMock()
     mock_filter.human_readable_entity.return_value = "John Doe"
 
+    ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=None,
+        history={},
+        sorted_timestamps=[],
+        custom_filter=mock_filter,
+    )
+
     # Call function
     result = _format_snapshot_description(
         metadata,
-        entity_uri,
-        highest_priority_class,
+        ctx,
         context_snapshot,
-        history,
-        sorted_timestamps,
-        current_index,
-        mock_filter,
+        0,
     )
 
     # Verify results
@@ -1200,24 +1212,26 @@ def test_format_snapshot_description_merge_invalid_uri(
     entity_uri = "http://example.org/person/123"
     highest_priority_class = "http://example.org/Person"
     context_snapshot = Graph()
-    history = {}
-    sorted_timestamps = []
-    current_index = 0
 
     # Create mock filter
     mock_filter = MagicMock()
     mock_filter.human_readable_entity.return_value = "John Doe"
 
+    ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=None,
+        history={},
+        sorted_timestamps=[],
+        custom_filter=mock_filter,
+    )
+
     # Call function
     result = _format_snapshot_description(
         metadata,
-        entity_uri,
-        highest_priority_class,
+        ctx,
         context_snapshot,
-        history,
-        sorted_timestamps,
-        current_index,
-        mock_filter,
+        0,
     )
 
     # Verify results - description should remain unchanged since URI is invalid
@@ -1240,24 +1254,26 @@ def test_format_snapshot_description_entity_uri_replacement(
     entity_uri = "http://example.org/person/123"
     highest_priority_class = "http://example.org/Person"
     context_snapshot = Graph()
-    history = {}
-    sorted_timestamps = []
-    current_index = 0
 
     # Create mock filter
     mock_filter = MagicMock()
     mock_filter.human_readable_entity.return_value = "John Doe"
 
+    ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=None,
+        history={},
+        sorted_timestamps=[],
+        custom_filter=mock_filter,
+    )
+
     # Call function
     result = _format_snapshot_description(
         metadata,
-        entity_uri,
-        highest_priority_class,
+        ctx,
         context_snapshot,
-        history,
-        sorted_timestamps,
-        current_index,
-        mock_filter,
+        0,
     )
 
     # Verify results - entity URI should be replaced with human-readable label
@@ -1279,24 +1295,26 @@ def test_format_snapshot_description_entity_same_as_uri(mock_determine_shape) ->
     entity_uri = "http://example.org/person/123"
     highest_priority_class = "http://example.org/Person"
     context_snapshot = Graph()
-    history = {}
-    sorted_timestamps = []
-    current_index = 0
 
     # Create mock filter that returns the same URI
     mock_filter = MagicMock()
     mock_filter.human_readable_entity.return_value = entity_uri
 
+    ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=None,
+        history={},
+        sorted_timestamps=[],
+        custom_filter=mock_filter,
+    )
+
     # Call function
     result = _format_snapshot_description(
         metadata,
-        entity_uri,
-        highest_priority_class,
+        ctx,
         context_snapshot,
-        history,
-        sorted_timestamps,
-        current_index,
-        mock_filter,
+        0,
     )
 
     # Verify results - no replacement should occur since label equals URI
@@ -1324,24 +1342,26 @@ def test_format_snapshot_description_merge_current_index_zero(
     entity_uri = "http://example.org/person/123"
     highest_priority_class = "http://example.org/Person"
     context_snapshot = Graph()
-    history = {}
-    sorted_timestamps = ["2023-01-01T00:00:00"]
-    current_index = 0  # No previous snapshot available
 
     # Create mock filter
     mock_filter = MagicMock()
     mock_filter.human_readable_entity.return_value = "John Doe"
 
+    ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=None,
+        history={},
+        sorted_timestamps=["2023-01-01T00:00:00"],
+        custom_filter=mock_filter,
+    )
+
     # Call function
     result = _format_snapshot_description(
         metadata,
-        entity_uri,
-        highest_priority_class,
+        ctx,
         context_snapshot,
-        history,
-        sorted_timestamps,
-        current_index,
-        mock_filter,
+        0,  # No previous snapshot available
     )
 
     # Verify results - should not attempt to replace merged entity label
@@ -1359,24 +1379,26 @@ def test_format_snapshot_description_empty_description(mock_determine_shape) -> 
     entity_uri = "http://example.org/person/123"
     highest_priority_class = "http://example.org/Person"
     context_snapshot = Graph()
-    history = {}
-    sorted_timestamps = []
-    current_index = 0
 
     # Create mock filter
     mock_filter = MagicMock()
     mock_filter.human_readable_entity.return_value = "John Doe"
 
+    ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=None,
+        history={},
+        sorted_timestamps=[],
+        custom_filter=mock_filter,
+    )
+
     # Call function
     result = _format_snapshot_description(
         metadata,
-        entity_uri,
-        highest_priority_class,
+        ctx,
         context_snapshot,
-        history,
-        sorted_timestamps,
-        current_index,
-        mock_filter,
+        0,
     )
 
     # Verify results - should return empty string
@@ -1514,9 +1536,13 @@ def test_process_entity_value_nested_entity(
     matching_field_def = {}
 
     # Call function
-    result = process_entity_value(
-        mock_editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    result = process_entity_value(ctx, value, matching_field_def)
 
     # Verify results
     assert result == URIRef("http://example.org/nested/123")
@@ -1545,9 +1571,13 @@ def test_process_entity_value_existing_entity(_mock_is_valid_url) -> None:
     matching_field_def = {}
 
     # Call function
-    result = process_entity_value(
-        mock_editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    result = process_entity_value(ctx, value, matching_field_def)
 
     # Verify results
     assert result == URIRef("http://example.org/person/789")
@@ -1574,17 +1604,16 @@ def test_process_entity_value_existing_entity_missing_uri() -> None:
     matching_field_def = {}
 
     # Call function and expect exception
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
+    )
     with pytest.raises(
         ValueError, match="Missing entity_uri in existing entity reference"
     ):
-        process_entity_value(
-            mock_editor,
-            entity_uri,
-            predicate,
-            value,
-            default_graph_uri,
-            matching_field_def,
-        )
+        process_entity_value(ctx, value, matching_field_def)
 
 
 @patch("heritrace.routes.entity._creation.determine_datatype")
@@ -1604,9 +1633,13 @@ def test_process_entity_value_uri_literal(
     matching_field_def = {}
 
     # Call function
-    result = process_entity_value(
-        mock_editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    result = process_entity_value(ctx, value, matching_field_def)
 
     # Verify results
     assert result == URIRef("http://example.org/website")
@@ -1634,9 +1667,13 @@ def test_process_entity_value_string_literal(
     matching_field_def = {"datatypes": [str(XSD.string)]}
 
     # Call function
-    result = process_entity_value(
-        mock_editor, entity_uri, predicate, value, default_graph_uri, matching_field_def
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    result = process_entity_value(ctx, value, matching_field_def)
 
     # Verify results
     assert result == Literal("Test Title", datatype=XSD.string)
@@ -1651,10 +1688,10 @@ def test_process_entity_value_string_literal(
 
 @patch("heritrace.routes.entity._creation.generate_unique_uri")
 @patch("heritrace.routes.entity._creation.create_nested_entity")
-def test_process_ordered_entity_value_nested_entity(
+def test__process_ordered_entity_value_nested_entity(
     mock_create_nested, mock_generate_uri
 ) -> None:
-    """Test process_ordered_entity_value with nested entity."""
+    """Test _process_ordered_entity_value with nested entity."""
     mock_generate_uri.return_value = URIRef("http://example.org/nested/123")
     mock_editor = MagicMock()
 
@@ -1668,9 +1705,13 @@ def test_process_ordered_entity_value_nested_entity(
     default_graph_uri = URIRef("http://example.org/graph")
 
     # Call function
-    result = process_ordered_entity_value(
-        mock_editor, entity_uri, predicate, value, default_graph_uri
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    result = _process_ordered_entity_value(ctx, value)
 
     # Verify results
     assert result == URIRef("http://example.org/nested/123")
@@ -1686,8 +1727,8 @@ def test_process_ordered_entity_value_nested_entity(
     )
 
 
-def test_process_ordered_entity_value_existing_entity() -> None:
-    """Test process_ordered_entity_value with existing entity reference."""
+def test__process_ordered_entity_value_existing_entity() -> None:
+    """Test _process_ordered_entity_value with existing entity reference."""
     mock_editor = MagicMock()
 
     # Test data
@@ -1697,9 +1738,13 @@ def test_process_ordered_entity_value_existing_entity() -> None:
     default_graph_uri = URIRef("http://example.org/graph")
 
     # Call function
-    result = process_ordered_entity_value(
-        mock_editor, entity_uri, predicate, value, default_graph_uri
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    result = _process_ordered_entity_value(ctx, value)
 
     # Verify results
     assert result == URIRef(value["entity_uri"])
@@ -1708,8 +1753,8 @@ def test_process_ordered_entity_value_existing_entity() -> None:
     )
 
 
-def test_process_ordered_entity_value_invalid_type() -> None:
-    """Test process_ordered_entity_value with invalid value type."""
+def test__process_ordered_entity_value_invalid_type() -> None:
+    """Test _process_ordered_entity_value with invalid value type."""
     mock_editor = MagicMock()
 
     # Test data
@@ -1719,13 +1764,17 @@ def test_process_ordered_entity_value_invalid_type() -> None:
     default_graph_uri = URIRef("http://example.org/graph")
 
     # Call function and expect exception
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
+    )
     with pytest.raises(ValueError, match="Unexpected value type for ordered property"):
-        process_ordered_entity_value(
-            mock_editor, entity_uri, predicate, value, default_graph_uri
-        )
+        _process_ordered_entity_value(ctx, value)
 
 
-@patch("heritrace.routes.entity._creation.process_ordered_entity_value")
+@patch("heritrace.routes.entity._creation._process_ordered_entity_value")
 def test_process_ordered_properties_single_shape(mock_process_ordered) -> None:
     """Test process_ordered_properties with values of single shape."""
     # Setup mocks
@@ -1748,12 +1797,18 @@ def test_process_ordered_properties_single_shape(mock_process_ordered) -> None:
     ordered_by = URIRef("http://example.org/next")
 
     # Call function
-    process_ordered_properties(
-        mock_editor, entity_uri, predicate, values, default_graph_uri, ordered_by
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    process_ordered_properties(ctx, values, ordered_by)
 
-    # Verify process_ordered_entity_value was called for each value
+    # Verify _process_ordered_entity_value was called for each value
     assert mock_process_ordered.call_count == 3
+    for value in values:
+        mock_process_ordered.assert_any_call(ctx, value)
 
     # Get actual calls to editor.create for ordering
     ordering_calls = [
@@ -1765,7 +1820,7 @@ def test_process_ordered_properties_single_shape(mock_process_ordered) -> None:
     assert len(ordering_calls) == 2
 
 
-@patch("heritrace.routes.entity._creation.process_ordered_entity_value")
+@patch("heritrace.routes.entity._creation._process_ordered_entity_value")
 def test_process_ordered_properties_multiple_shapes(mock_process_ordered) -> None:
     """Test process_ordered_properties with values of different shapes."""
     # Setup mocks - return different URIs for different calls
@@ -1790,12 +1845,18 @@ def test_process_ordered_properties_multiple_shapes(mock_process_ordered) -> Non
     ordered_by = URIRef("http://example.org/next")
 
     # Call function
-    process_ordered_properties(
-        mock_editor, entity_uri, predicate, values, default_graph_uri, ordered_by
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    process_ordered_properties(ctx, values, ordered_by)
 
-    # Verify process_ordered_entity_value was called for each value
+    # Verify _process_ordered_entity_value was called for each value
     assert mock_process_ordered.call_count == 4
+    for value in values:
+        mock_process_ordered.assert_any_call(ctx, value)
 
     # Verify ordering relationships were created within each shape group
     ordering_calls = [
@@ -1809,7 +1870,7 @@ def test_process_ordered_properties_multiple_shapes(mock_process_ordered) -> Non
     assert len(ordering_calls) == 2
 
 
-@patch("heritrace.routes.entity._creation.process_ordered_entity_value")
+@patch("heritrace.routes.entity._creation._process_ordered_entity_value")
 def test_process_ordered_properties_default_shape(mock_process_ordered) -> None:
     """Test process_ordered_properties with values missing entity_shape."""
     # Setup mocks
@@ -1830,12 +1891,18 @@ def test_process_ordered_properties_default_shape(mock_process_ordered) -> None:
     ordered_by = URIRef("http://example.org/next")
 
     # Call function
-    process_ordered_properties(
-        mock_editor, entity_uri, predicate, values, default_graph_uri, ordered_by
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    process_ordered_properties(ctx, values, ordered_by)
 
-    # Verify process_ordered_entity_value was called for each value
+    # Verify _process_ordered_entity_value was called for each value
     assert mock_process_ordered.call_count == 2
+    for value in values:
+        mock_process_ordered.assert_any_call(ctx, value)
 
     # Verify ordering relationship was created (both values in default_shape group)
     ordering_calls = [
@@ -1870,14 +1937,13 @@ def test_process_unordered_properties_multiple_values(mock_process_entity) -> No
     matching_field_def = {"datatypes": [str(XSD.string)]}
 
     # Call function
-    process_unordered_properties(
-        mock_editor,
-        entity_uri,
-        predicate,
-        values,
-        default_graph_uri,
-        matching_field_def,
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    process_unordered_properties(ctx, values, matching_field_def)
 
     # Verify process_entity_value was called for each value
     assert mock_process_entity.call_count == 3
@@ -1885,12 +1951,9 @@ def test_process_unordered_properties_multiple_values(mock_process_entity) -> No
     # Verify each call had correct parameters
     for i, call in enumerate(mock_process_entity.call_args_list):
         args, _kwargs = call
-        assert args[0] == mock_editor
-        assert args[1] == entity_uri
-        assert args[2] == predicate
-        assert args[3] == values[i]
-        assert args[4] == default_graph_uri
-        assert args[5] == matching_field_def
+        assert args[0] == ctx
+        assert args[1] == values[i]
+        assert args[2] == matching_field_def
 
 
 @patch("heritrace.routes.entity._creation.process_entity_value")
@@ -1906,14 +1969,13 @@ def test_process_unordered_properties_empty_values(mock_process_entity) -> None:
     matching_field_def = {}
 
     # Call function
-    process_unordered_properties(
-        mock_editor,
-        entity_uri,
-        predicate,
-        values,
-        default_graph_uri,
-        matching_field_def,
+    ctx = CreationContext(
+        editor=mock_editor,
+        entity_uri=entity_uri,
+        predicate=predicate,
+        default_graph_uri=default_graph_uri,
     )
+    process_unordered_properties(ctx, values, matching_field_def)
 
     # Verify process_entity_value was not called
     mock_process_entity.assert_not_called()

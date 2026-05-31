@@ -5,6 +5,7 @@
 import json
 from collections import OrderedDict, defaultdict
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
@@ -16,6 +17,14 @@ from rdflib.query import Result, ResultRow
 
 from heritrace.sparql import select_results
 from heritrace.utils.filters import Filter
+
+
+@dataclass(slots=True)
+class ShaclProcessingContext:
+    shacl: Graph
+    display_rules: list[dict[str, object]] | None
+    app: Flask
+    processed_shapes: set[str]
 
 COMMON_SPARQL_QUERY = prepareQuery(
     """
@@ -166,12 +175,14 @@ def process_query_results(  # noqa: C901, PLR0912, PLR0913, PLR0915
 
             if node_shape and node_shape not in processed_shapes:
                 field_info["nestedShape"] = process_nested_shapes(
-                    shacl,
-                    display_rules,
+                    ShaclProcessingContext(
+                        shacl=shacl,
+                        display_rules=display_rules,
+                        app=app,
+                        processed_shapes=processed_shapes,
+                    ),
                     node_shape,
-                    app,
                     depth=depth + 1,
-                    processed_shapes=processed_shapes,
                 )
 
             if or_nodes:
@@ -198,12 +209,14 @@ def process_query_results(  # noqa: C901, PLR0912, PLR0913, PLR0915
                     }
                     if node not in processed_shapes:
                         or_field_info["nestedShape"] = process_nested_shapes(
-                            shacl,
-                            display_rules,
+                            ShaclProcessingContext(
+                                shacl=shacl,
+                                display_rules=display_rules,
+                                app=app,
+                                processed_shapes=processed_shapes,
+                            ),
                             node,
-                            app,
                             depth=depth + 1,
-                            processed_shapes=processed_shapes,
                         )
                     field_info["or"].append(or_field_info)
 
@@ -212,56 +225,39 @@ def process_query_results(  # noqa: C901, PLR0912, PLR0913, PLR0915
     return form_fields
 
 
-def process_nested_shapes(  # noqa: PLR0913
-    shacl: Graph,
-    display_rules: list[dict[str, object]] | None,
+def process_nested_shapes(
+    ctx: ShaclProcessingContext,
     shape_uri: str,
-    app: Flask,
     depth: int = 0,
-    processed_shapes: set[str] | None = None,
 ) -> list[dict[str, object]]:
-    """
-    Processa ricorsivamente le shape annidate.
-
-    Argomenti:
-        shape_uri (str): L'URI della shape da processare.
-        depth (int): La profondità corrente della ricorsione.
-        processed_shapes (set): Un insieme delle shape già processate.
-
-    Restituisce:
-        list: Una lista di dizionari dei campi annidati.
-    """
-    if processed_shapes is None:
-        processed_shapes = set()
-
-    if shape_uri in processed_shapes:
+    if shape_uri in ctx.processed_shapes:
         return []
 
-    processed_shapes.add(shape_uri)
+    ctx.processed_shapes.add(shape_uri)
     init_bindings = {"shape": URIRef(shape_uri)}
-    nested_results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY, init_bindings)
+    nested_results = execute_shacl_query(ctx.shacl, COMMON_SPARQL_QUERY, init_bindings)
     nested_fields = []
 
     temp_form_fields = process_query_results(
-        shacl,
+        ctx.shacl,
         select_results(nested_results),
-        display_rules,
-        processed_shapes,
-        app=app,
+        ctx.display_rules,
+        ctx.processed_shapes,
+        app=ctx.app,
         depth=depth,
     )
 
-    # Applica le regole di visualizzazione ai campi annidati
-    if display_rules:
-        temp_form_fields = apply_display_rules(shacl, temp_form_fields, display_rules)
-        temp_form_fields = order_form_fields(temp_form_fields, display_rules)
+    if ctx.display_rules:
+        temp_form_fields = apply_display_rules(
+            ctx.shacl, temp_form_fields, ctx.display_rules
+        )
+        temp_form_fields = order_form_fields(temp_form_fields, ctx.display_rules)
 
-    # Estrai i campi per il tipo di entità
     for entity_type in temp_form_fields:
         for predicate in temp_form_fields[entity_type]:
             nested_fields.extend(temp_form_fields[entity_type][predicate])
 
-    processed_shapes.remove(shape_uri)
+    ctx.processed_shapes.remove(shape_uri)
     return nested_fields
 
 

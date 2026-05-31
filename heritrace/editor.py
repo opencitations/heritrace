@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from flask import current_app
@@ -15,29 +16,33 @@ from SPARQLWrapper import JSON
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
 
 
+@dataclass(frozen=True, slots=True)
+class EndpointConfig:
+    dataset: str
+    provenance: str
+    is_quadstore: bool = True
+
+
 class EditorError(Exception):
     pass
 
 
 class Editor:
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
-        dataset_endpoint: str,
-        provenance_endpoint: str,
+        endpoints: EndpointConfig,
         counter_handler: CounterHandler,
         resp_agent: URIRef,
         source: URIRef | None = None,
         c_time: datetime | None = None,
-        *,
-        dataset_is_quadstore: bool = True,
     ) -> None:
-        self.dataset_endpoint = dataset_endpoint
-        self.provenance_endpoint = provenance_endpoint
+        self.dataset_endpoint = endpoints.dataset
+        self.provenance_endpoint = endpoints.provenance
         self.counter_handler = counter_handler
         self.resp_agent = resp_agent
         self.source = source
         self.c_time = self.to_posix_timestamp(c_time)
-        self.dataset_is_quadstore = dataset_is_quadstore
+        self.dataset_is_quadstore = endpoints.is_quadstore
         self.g_set = (
             OCDMDataset(self.counter_handler)
             if self.dataset_is_quadstore

@@ -12,6 +12,7 @@ from heritrace.extensions import get_shacl_graph, get_sparql
 from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.display_rules_utils import get_class_priority
 from heritrace.utils.shacl_display import (
+    ShaclProcessingContext,
     apply_display_rules,
     extract_shacl_form_fields,
     order_form_fields,
@@ -42,17 +43,20 @@ def get_form_fields_from_shacl(
     form_fields = extract_shacl_form_fields(shacl, display_rules, app=app)
 
     # Step 2: Process nested shapes for each field
-    processed_shapes = set()
+    processed_shapes: set[str] = set()
+    ctx = ShaclProcessingContext(
+        shacl=shacl,
+        display_rules=display_rules,
+        app=app,
+        processed_shapes=processed_shapes,
+    )
     for entity_key in form_fields:
         for predicate in form_fields[entity_key]:
             for field_info in form_fields[entity_key][predicate]:
                 if field_info.get("nodeShape"):
                     field_info["nestedShape"] = process_nested_shapes(
-                        shacl,
-                        display_rules,
+                        ctx,
                         str(field_info["nodeShape"]),
-                        app=app,
-                        processed_shapes=processed_shapes,
                     )
 
     # Step 3: Apply display rules to the form fields
