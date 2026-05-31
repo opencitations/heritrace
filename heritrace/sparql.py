@@ -45,15 +45,18 @@ class SPARQLWrapperWithRetry(SPARQLWrapper):
             except Exception as e:  # noqa: BLE001, PERF203
                 last_exception = e
                 logger.warning(
-                    f"SPARQL query attempt {attempt}/{self.max_attempts} failed: {e}"
+                    "SPARQL query attempt %d/%d failed: %s",
+                    attempt,
+                    self.max_attempts,
+                    e,
                 )
 
                 if attempt < self.max_attempts:
-                    logger.info(f"Retrying in {delay:.2f} seconds...")
+                    logger.info("Retrying in %.2f seconds...", delay)
                     time.sleep(delay)
                     delay *= self.backoff_factor
 
-        logger.error(f"All {self.max_attempts} SPARQL query attempts failed")
+        logger.error("All %d SPARQL query attempts failed", self.max_attempts)
         raise last_exception  # type: ignore[misc]
 
 

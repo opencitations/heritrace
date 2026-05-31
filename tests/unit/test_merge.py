@@ -821,7 +821,10 @@ def test_find_similar_resources_missing_params(
     assert "Missing required parameters" in json_data["message"]
 
 
-@patch("heritrace.routes.merge.get_similarity_properties", side_effect=Exception("Database connection failed similar"))
+@patch(
+    "heritrace.routes.merge.get_similarity_properties",
+    side_effect=Exception("Database connection failed similar"),
+)
 @patch("flask_login.utils._get_user")
 def test_find_similar_resources_exception(
     mock_current_user, mock_get_sim_props, client, mock_user, similar_test_data
@@ -1056,7 +1059,10 @@ def test_find_similar_resources_invalid_limit_offset_value(
     )
 
 
-@patch("heritrace.routes.merge.get_similarity_properties", side_effect=Exception("Database connection failed similar"))
+@patch(
+    "heritrace.routes.merge.get_similarity_properties",
+    side_effect=Exception("Database connection failed similar"),
+)
 @patch("flask_login.utils._get_user")
 def test_find_similar_resources_database_exception(
     mock_current_user, mock_get_sim_props, client, mock_user, similar_test_data

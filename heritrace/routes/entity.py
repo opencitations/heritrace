@@ -464,14 +464,16 @@ def _handle_create_entity_post(
     *,
     save_default_source: bool,
 ) -> tuple[Response, int]:
-    if primary_source and not is_valid_url(primary_source):        return jsonify(
+    if primary_source and not is_valid_url(primary_source):
+        return jsonify(
             {
                 "status": "error",
                 "errors": [gettext("Invalid primary source URL provided")],
             }
         ), 400
 
-    if save_default_source and primary_source and is_valid_url(primary_source):        save_user_default_primary_source(current_user.orcid, primary_source)
+    if save_default_source and primary_source and is_valid_url(primary_source):
+        save_user_default_primary_source(current_user.orcid, primary_source)
 
     resp_agent = get_responsible_agent_uri(current_user.orcid)
     editor = Editor(
@@ -647,7 +649,8 @@ def create_nested_entity(
             else:
                 # Handle simple properties - check if it's a URI or literal
                 str_value = str(value)
-                if is_valid_url(str_value):                    object_value: URIRef | Literal = URIRef(str_value)
+                if is_valid_url(str_value):
+                    object_value: URIRef | Literal = URIRef(str_value)
                 else:
                     datatype = XSD.string  # Default to string if not specified
                     datatype_uris = []
@@ -691,7 +694,8 @@ def process_entity_value(  # noqa: PLR0913
         raise ValueError(msg)
     # Handle simple properties - check if it's a URI or literal
     str_value = str(value)
-    if is_valid_url(str_value):        object_value: URIRef | Literal = URIRef(str_value)
+    if is_valid_url(str_value):
+        object_value: URIRef | Literal = URIRef(str_value)
     else:
         datatype_uris = []
         if matching_field_def:
@@ -1728,7 +1732,8 @@ def get_entities_to_restore(
         subject = str(item[0])
         obj = str(item[2])
         for uri in [subject, obj]:
-            if uri != main_entity_uri and is_valid_url(uri):                entities_to_restore.add(uri)
+            if uri != main_entity_uri and is_valid_url(uri):
+                entities_to_restore.add(uri)
 
     return entities_to_restore
 
@@ -1834,7 +1839,8 @@ def determine_object_class_and_shape(
     Returns:
         Tuple of (object_class, object_shape_uri) or (None, None) if not determinable
     """
-    if not is_valid_url(str(object_value)) or not relevant_snapshot:        return None, None
+    if not is_valid_url(str(object_value)) or not relevant_snapshot:
+        return None, None
 
     object_triples = list(
         get_triples_from_graph(relevant_snapshot, (URIRef(object_value), None, None))
@@ -2186,7 +2192,8 @@ def process_modification_data(data: dict) -> tuple[str, list[dict]]:
 
 
 def _validate_removal(
-    predicate_fields: list[dict], predicate: str,
+    predicate_fields: list[dict],
+    predicate: str,
 ) -> tuple[bool, str]:
     for field in predicate_fields:
         if field.get("minCount", 0) > 0:
@@ -2195,7 +2202,9 @@ def _validate_removal(
 
 
 def _validate_addition(
-    predicate_fields: list[dict], predicate: str, subject_uri: URIRef,
+    predicate_fields: list[dict],
+    predicate: str,
+    subject_uri: URIRef,
 ) -> tuple[bool, str]:
     for field in predicate_fields:
         max_count = field.get("maxCount")
@@ -2210,7 +2219,8 @@ def _validate_addition(
 
 
 def _resolve_entity_type(
-    modification: dict, subject_uri: URIRef,
+    modification: dict,
+    subject_uri: URIRef,
 ) -> str | None:
     entity_type = modification.get("entity_type")
     if not entity_type:

@@ -4,6 +4,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
+
 from heritrace.routes.linked_resources import (
     _is_proxy_entity,
     _resolve_proxy_entity,
@@ -563,7 +565,7 @@ def test_resolve_proxy_entity_exception(mock_current_app, mock_get_sparql, app) 
     """Test _resolve_proxy_entity when SPARQL query raises exception."""
     mock_sparql = MagicMock()
     mock_get_sparql.return_value = mock_sparql
-    mock_sparql.query.side_effect = Exception("SPARQL Error")
+    mock_sparql.query.side_effect = SPARQLWrapperException()
 
     mock_logger = MagicMock()
     mock_current_app.logger = mock_logger
@@ -579,8 +581,9 @@ def test_resolve_proxy_entity_exception(mock_current_app, mock_get_sparql, app) 
 
     assert final_subject == subject_uri
     assert final_predicate == predicate
-    mock_logger.error.assert_called_once()
-    assert "Error resolving proxy entity" in mock_logger.error.call_args[0][0]
+    mock_logger.exception.assert_called_once_with(
+        "Error resolving proxy entity %s", subject_uri
+    )
 
 
 @patch("heritrace.routes.linked_resources._resolve_proxy_entity")

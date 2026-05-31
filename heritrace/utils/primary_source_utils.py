@@ -5,6 +5,7 @@
 from typing import TYPE_CHECKING, cast
 
 from flask import current_app
+from redis import RedisError
 
 from heritrace.utils.uri_utils import is_valid_url
 
@@ -30,11 +31,11 @@ def get_user_default_primary_source(user_id: str) -> str | None:
         try:
             redis_client: Redis = current_app.extensions["redis_client"]  # type: ignore[type-arg]
             user_default_source = cast("str | None", redis_client.get(key))
-        except Exception as e:
-            current_app.logger.error(
-                f"Failed to get user default primary source from Redis: {e}"
+        except RedisError:
+            current_app.logger.exception(
+                "Failed to get user default primary source from Redis"
             )
-            user_default_source = None  # Ensure it's None on error
+            user_default_source = None
 
     return user_default_source
 
@@ -71,9 +72,9 @@ def save_user_default_primary_source(user_id: str, primary_source: str) -> bool 
     try:
         redis_client: Redis = current_app.extensions["redis_client"]  # type: ignore[type-arg]
         redis_client.set(key, primary_source)
-    except Exception as e:
-        current_app.logger.error(
-            f"Failed to save user default primary source to Redis: {e}"
+    except RedisError:
+        current_app.logger.exception(
+            "Failed to save user default primary source to Redis"
         )
         return False
     else:

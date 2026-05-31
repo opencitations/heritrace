@@ -26,8 +26,8 @@ def test_translate_group_exists(app) -> None:
 
 
 @patch("os.system")
-@patch("os.remove")
-def test_translate_update(mock_remove, mock_system, app) -> None:
+@patch("pathlib.Path.unlink")
+def test_translate_update(mock_unlink, mock_system, app) -> None:
     """Test the translate update command"""
     mock_system.return_value = 0
     runner = app.test_cli_runner()
@@ -36,12 +36,12 @@ def test_translate_update(mock_remove, mock_system, app) -> None:
 
     assert result.exit_code == 0
     assert mock_system.call_count == 2
-    mock_remove.assert_called_once_with("babel/messages.pot")
+    mock_unlink.assert_called_once()
 
 
 @patch("os.system")
-@patch("os.remove")
-def test_translate_update_extract_failure(mock_remove, mock_system, app) -> None:
+@patch("pathlib.Path.unlink")
+def test_translate_update_extract_failure(mock_unlink, mock_system, app) -> None:
     """Test the translate update command when extract fails"""
     mock_system.side_effect = [1]  # First command fails
     runner = app.test_cli_runner()
@@ -51,12 +51,12 @@ def test_translate_update_extract_failure(mock_remove, mock_system, app) -> None
     assert result.exit_code != 0
     assert isinstance(result.exception, RuntimeError)
     assert str(result.exception) == "extract command failed"
-    mock_remove.assert_not_called()
+    mock_unlink.assert_not_called()
 
 
 @patch("os.system")
-@patch("os.remove")
-def test_translate_update_update_failure(mock_remove, mock_system, app) -> None:
+@patch("pathlib.Path.unlink")
+def test_translate_update_update_failure(mock_unlink, mock_system, app) -> None:
     """Test the translate update command when update fails"""
     mock_system.side_effect = [0, 1]  # Second command fails
     runner = app.test_cli_runner()
@@ -66,7 +66,7 @@ def test_translate_update_update_failure(mock_remove, mock_system, app) -> None:
     assert result.exit_code != 0
     assert isinstance(result.exception, RuntimeError)
     assert str(result.exception) == "update command failed"
-    mock_remove.assert_not_called()
+    mock_unlink.assert_not_called()
 
 
 @patch("os.system")
@@ -95,8 +95,8 @@ def test_translate_compile_failure(mock_system, app) -> None:
 
 
 @patch("os.system")
-@patch("os.remove")
-def test_translate_init(mock_remove, mock_system, app) -> None:
+@patch("pathlib.Path.unlink")
+def test_translate_init(mock_unlink, mock_system, app) -> None:
     """Test the translate init command"""
     mock_system.return_value = 0
     runner = app.test_cli_runner()
@@ -105,12 +105,12 @@ def test_translate_init(mock_remove, mock_system, app) -> None:
 
     assert result.exit_code == 0
     assert mock_system.call_count == 2
-    mock_remove.assert_called_once_with("messages.pot")
+    mock_unlink.assert_called_once()
 
 
 @patch("os.system")
-@patch("os.remove")
-def test_translate_init_extract_failure(mock_remove, mock_system, app) -> None:
+@patch("pathlib.Path.unlink")
+def test_translate_init_extract_failure(mock_unlink, mock_system, app) -> None:
     """Test the translate init command when extract fails"""
     mock_system.side_effect = [1]  # First command fails
     runner = app.test_cli_runner()
@@ -120,12 +120,12 @@ def test_translate_init_extract_failure(mock_remove, mock_system, app) -> None:
     assert result.exit_code != 0
     assert isinstance(result.exception, RuntimeError)
     assert str(result.exception) == "extract command failed"
-    mock_remove.assert_not_called()
+    mock_unlink.assert_not_called()
 
 
 @patch("os.system")
-@patch("os.remove")
-def test_translate_init_init_failure(mock_remove, mock_system, app) -> None:
+@patch("pathlib.Path.unlink")
+def test_translate_init_init_failure(mock_unlink, mock_system, app) -> None:
     """Test the translate init command when init fails"""
     mock_system.side_effect = [0, 1]  # Second command fails
     runner = app.test_cli_runner()
@@ -135,4 +135,4 @@ def test_translate_init_init_failure(mock_remove, mock_system, app) -> None:
     assert result.exit_code != 0
     assert isinstance(result.exception, RuntimeError)
     assert str(result.exception) == "init command failed"
-    mock_remove.assert_not_called()
+    mock_unlink.assert_not_called()

@@ -40,6 +40,7 @@ class TestGetAvailableClassesIntegration:
             )
             # Clear the cache to force recomputation
             from heritrace.utils import sparql_utils as _su  # noqa: PLC0415
+
             _su._cache["available_classes"] = None  # noqa: SLF001
 
             classes = get_available_classes()

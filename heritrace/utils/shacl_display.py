@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: ISC
 
 import json
-import os
 from collections import OrderedDict, defaultdict
 from collections.abc import Iterable
+from pathlib import Path
 from typing import cast
 
 from flask import Flask
@@ -86,7 +86,7 @@ def process_query_results(  # noqa: C901, PLR0912, PLR0913, PLR0915
 ) -> defaultdict[tuple[str, str], dict[str, list[dict[str, object]]]]:
     form_fields = defaultdict(dict)
 
-    with open(os.path.join(os.path.dirname(__file__), "context.json")) as config_file:
+    with (Path(__file__).parent / "context.json").open() as config_file:
         context = json.load(config_file)["@context"]
 
     custom_filter = Filter(context, display_rules, app.config["DATASET_DB_URL"])
@@ -350,11 +350,12 @@ def _find_matching_entity_keys(
 def _get_ordered_properties_from_rule(
     rule: dict[str, object],
 ) -> list[str | None]:
-    display_props = cast(
-        "list[dict[str, object]]", rule.get("displayProperties", [])
-    )
+    display_props = cast("list[dict[str, object]]", rule.get("displayProperties", []))
     return [
-        cast("str | None", prop_rule.get("property") or prop_rule.get("virtual_property"))
+        cast(
+            "str | None",
+            prop_rule.get("property") or prop_rule.get("virtual_property"),
+        )
         for prop_rule in display_props
         if prop_rule.get("property") or prop_rule.get("virtual_property")
     ]
@@ -488,9 +489,7 @@ def apply_rule_to_entity(
         entity_key: The entity key tuple (class, shape)
         rule: The display rule to apply
     """
-    display_props = cast(
-        "list[dict[str, object]]", rule.get("displayProperties", [])
-    )
+    display_props = cast("list[dict[str, object]]", rule.get("displayProperties", []))
     for prop in display_props:
         prop_uri = prop.get("property") or prop.get("virtual_property")
         if prop_uri and prop_uri in form_fields[entity_key]:
@@ -505,9 +504,7 @@ def apply_rule_to_entity(
                     )
                 if "or" in field_info:
                     target = cast("dict[str, str]", rule.get("target", {}))
-                    for or_field in cast(
-                        "list[dict[str, object]]", field_info["or"]
-                    ):
+                    for or_field in cast("list[dict[str, object]]", field_info["or"]):
                         apply_display_rules_to_nested_shapes(
                             [or_field], field_info, target.get("shape")
                         )
@@ -543,9 +540,7 @@ def apply_display_rules_to_nested_shapes(  # noqa: C901
         new_field = field.copy()
         result_fields.append(new_field)
 
-    display_rules = cast(
-        "list[dict[str, object]]", parent_prop.get("displayRules", [])
-    )
+    display_rules = cast("list[dict[str, object]]", parent_prop.get("displayRules", []))
     for rule in display_rules:
         if rule.get("shape") == shape_uri and "nestedDisplayRules" in rule:
             nested_display_rules = cast(
@@ -660,9 +655,7 @@ def handle_intermediate_relation(
     intermediate_properties = {}
     target_shape = None
     if "nestedShape" in field_info:
-        for nested_field in cast(
-            "list[dict[str, object]]", field_info["nestedShape"]
-        ):
+        for nested_field in cast("list[dict[str, object]]", field_info["nestedShape"]):
             if (
                 nested_field.get("uri") == connecting_property
                 and "nestedShape" in nested_field
@@ -712,9 +705,7 @@ def handle_sub_display_rules(
 
     for original_field in field_info_list:
         # Trova la display rule corrispondente allo shape del campo
-        sub_display_rules = cast(
-            "list[dict[str, object]]", prop["displayRules"]
-        )
+        sub_display_rules = cast("list[dict[str, object]]", prop["displayRules"])
         matching_rule = next(
             (
                 rule

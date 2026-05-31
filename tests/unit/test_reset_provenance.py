@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from rdflib import URIRef
 from SPARQLWrapper import JSON
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.scripts.reset_provenance import (
     ProvenanceResetter,
@@ -160,16 +161,15 @@ def test_delete_snapshots_error(resetter, mock_sparql, mock_logger) -> None:
     ]
 
     # Make the query method raise an exception
-    mock_sparql_instance.query.side_effect = Exception("SPARQL error")
+    mock_sparql_instance.query.side_effect = SPARQLWrapperException("SPARQL error")
 
     result = resetter.delete_snapshots(snapshots)
 
     assert result is False
-    mock_logger.error.assert_called_once()
-    error_msg = mock_logger.error.call_args[0][0]
-    assert "Error deleting snapshot" in error_msg
-    assert "http://example.org/snapshot/1" in error_msg
-    assert "SPARQL error" in error_msg
+    mock_logger.exception.assert_called_once()
+    error_msg = mock_logger.exception.call_args[0][0]
+    assert error_msg == "Error deleting snapshot %s"
+    assert mock_logger.exception.call_args[0][1] == "http://example.org/snapshot/1"
 
 
 def test_reset_provenance_counter(resetter, mock_counter_handler, mock_logger) -> None:
@@ -181,8 +181,8 @@ def test_reset_provenance_counter(resetter, mock_counter_handler, mock_logger) -
     mock_counter_handler.set_counter.assert_called_once_with(1, "123")
     mock_logger.info.assert_called_once()
     info_msg = mock_logger.info.call_args[0][0]
-    assert "Reset provenance counter" in info_msg
-    assert str(entity_uri) in info_msg
+    assert info_msg == "Reset provenance counter for entity %s to 1"
+    assert mock_logger.info.call_args[0][1] == entity_uri
 
 
 @patch("heritrace.scripts.reset_provenance.convert_to_datetime")
@@ -201,8 +201,8 @@ def test_reset_entity_provenance_no_snapshots(
     assert result is False
     mock_logger.warning.assert_called_once()
     warning_msg = mock_logger.warning.call_args[0][0]
-    assert "No snapshots found" in warning_msg
-    assert entity_uri in warning_msg
+    assert warning_msg == "No snapshots found for entity %s"
+    assert mock_logger.warning.call_args[0][1] == entity_uri
 
 
 @patch("heritrace.scripts.reset_provenance.convert_to_datetime")
@@ -237,7 +237,7 @@ def test_reset_entity_provenance_single_snapshot(
 
     # Verify the first info message
     first_info_msg = mock_logger.info.call_args_list[0][0][0]
-    assert "has only one snapshot" in first_info_msg
+    assert first_info_msg == "Entity %s has only one snapshot, nothing to reset"
 
     # Verify that invalidatedAtTime was removed
     assert any(
@@ -344,7 +344,7 @@ def test_reset_entity_provenance_delete_failure(
     mock_convert.side_effect = lambda x: x
 
     # Make deletion fail
-    mock_sparql_instance.query.side_effect = Exception("SPARQL error")
+    mock_sparql_instance.query.side_effect = SPARQLWrapperException("SPARQL error")
 
     entity_uri = "http://example.org/entity/1"
     result = resetter.reset_entity_provenance(entity_uri)
@@ -421,30 +421,38 @@ def test_load_config_success(mock_importlib_util) -> None:
 
 
 @patch("heritrace.scripts.reset_provenance.importlib.util")
-@patch("heritrace.scripts.reset_provenance.logging.error")
+@patch("heritrace.scripts.reset_provenance.logger")
 @patch("heritrace.scripts.reset_provenance.sys.exit")
-def test_load_config_error(mock_exit, mock_logging_error, mock_importlib_util) -> None:
+def test_load_config_error(mock_exit, mock_logger, mock_importlib_util) -> None:
     """Test load_config function with error during loading."""
     # Make importlib.util.spec_from_file_location raise an exception
-    mock_importlib_util.spec_from_file_location.side_effect = Exception("Import error")
+    mock_importlib_util.spec_from_file_location.side_effect = ImportError(
+        "Import error"
+    )
 
     # Call the function
     config_path = "/path/to/config.py"
     load_config(config_path)
 
     # Verify the results
-    mock_logging_error.assert_called_once()
-    error_msg = mock_logging_error.call_args[0][0]
-    assert "Error loading configuration file" in error_msg
+    mock_logger.exception.assert_called_once()
+    error_msg = mock_logger.exception.call_args[0][0]
+    assert error_msg == "Error loading configuration file: %s"
+    assert mock_logger.exception.call_args[0][1] == config_path
     mock_exit.assert_called_once_with(1)
 
 
 @patch("heritrace.scripts.reset_provenance.argparse.ArgumentParser")
 @patch("heritrace.scripts.reset_provenance.load_config")
 @patch("heritrace.scripts.reset_provenance.reset_entity_provenance")
+@patch("heritrace.scripts.reset_provenance.logger")
 @patch("heritrace.scripts.reset_provenance.logging")
 def test_main_success(
-    mock_logging, mock_reset_entity_provenance, mock_load_config, mock_argparse
+    mock_logging,
+    mock_logger,
+    mock_reset_entity_provenance,
+    mock_load_config,
+    mock_argparse,
 ) -> None:
     """Test main function with successful execution."""
     # Mock the ArgumentParser
@@ -478,17 +486,22 @@ def test_main_success(
         provenance_endpoint="http://example.org/sparql",
         counter_handler=mock_config_class.COUNTER_HANDLER,
     )
-    mock_logging.info.assert_called()
-    info_msg = mock_logging.info.call_args[0][0]
-    assert "Successfully reset provenance" in info_msg
+    mock_logger.info.assert_called()
+    info_msg = mock_logger.info.call_args[0][0]
+    assert info_msg == "Successfully reset provenance for entity %s"
 
 
 @patch("heritrace.scripts.reset_provenance.argparse.ArgumentParser")
 @patch("heritrace.scripts.reset_provenance.load_config")
 @patch("heritrace.scripts.reset_provenance.reset_entity_provenance")
+@patch("heritrace.scripts.reset_provenance.logger")
 @patch("heritrace.scripts.reset_provenance.logging")
 def test_main_failure(
-    mock_logging, mock_reset_entity_provenance, mock_load_config, mock_argparse
+    mock_logging,
+    mock_logger,
+    mock_reset_entity_provenance,
+    mock_load_config,
+    mock_argparse,
 ) -> None:
     """Test main function with failure during execution."""
     # Mock the ArgumentParser
@@ -522,17 +535,17 @@ def test_main_failure(
         provenance_endpoint="http://example.org/sparql",
         counter_handler=mock_config_class.COUNTER_HANDLER,
     )
-    mock_logging.error.assert_called()
-    error_msg = mock_logging.error.call_args[0][0]
-    assert "Failed to reset provenance" in error_msg
+    mock_logger.error.assert_called()
+    error_msg = mock_logger.error.call_args[0][0]
+    assert error_msg == "Failed to reset provenance for entity %s"
 
 
 @patch("heritrace.scripts.reset_provenance.argparse.ArgumentParser")
 @patch("heritrace.scripts.reset_provenance.load_config")
-@patch("heritrace.scripts.reset_provenance.logging.error")
+@patch("heritrace.scripts.reset_provenance.logger")
 @patch("heritrace.scripts.reset_provenance.hasattr")
 def test_main_missing_config_class(
-    mock_hasattr, mock_logging_error, mock_load_config, mock_argparse
+    mock_hasattr, mock_logger, mock_load_config, mock_argparse
 ) -> None:
     """Test main function with missing Config class in config."""
     # Mock the ArgumentParser
@@ -560,17 +573,17 @@ def test_main_missing_config_class(
 
     # Verify the results
     assert result == 1
-    mock_logging_error.assert_called_once()
-    error_msg = mock_logging_error.call_args[0][0]
-    assert "Configuration file must define a Config class" in error_msg
+    mock_logger.error.assert_called_once()
+    error_msg = mock_logger.error.call_args[0][0]
+    assert error_msg == "Configuration file must define a Config class"
 
 
 @patch("heritrace.scripts.reset_provenance.argparse.ArgumentParser")
 @patch("heritrace.scripts.reset_provenance.load_config")
-@patch("heritrace.scripts.reset_provenance.logging.error")
+@patch("heritrace.scripts.reset_provenance.logger")
 @patch("heritrace.scripts.reset_provenance.hasattr")
 def test_main_missing_provenance_endpoint(
-    mock_hasattr, mock_logging_error, mock_load_config, mock_argparse
+    mock_hasattr, mock_logger, mock_load_config, mock_argparse
 ) -> None:
     """Test main function with missing PROVENANCE_DB_URL in Config class."""
     # Mock the ArgumentParser
@@ -600,17 +613,17 @@ def test_main_missing_provenance_endpoint(
 
     # Verify the results
     assert result == 1
-    mock_logging_error.assert_called_once()
-    error_msg = mock_logging_error.call_args[0][0]
-    assert "Config class must define PROVENANCE_DB_URL" in error_msg
+    mock_logger.error.assert_called_once()
+    error_msg = mock_logger.error.call_args[0][0]
+    assert error_msg == "Config class must define PROVENANCE_DB_URL"
 
 
 @patch("heritrace.scripts.reset_provenance.argparse.ArgumentParser")
 @patch("heritrace.scripts.reset_provenance.load_config")
-@patch("heritrace.scripts.reset_provenance.logging.error")
+@patch("heritrace.scripts.reset_provenance.logger")
 @patch("heritrace.scripts.reset_provenance.hasattr")
 def test_main_missing_counter_handler(
-    mock_hasattr, mock_logging_error, mock_load_config, mock_argparse
+    mock_hasattr, mock_logger, mock_load_config, mock_argparse
 ) -> None:
     """Test main function with missing COUNTER_HANDLER in Config class."""
     # Mock the ArgumentParser
@@ -641,9 +654,9 @@ def test_main_missing_counter_handler(
 
     # Verify the results
     assert result == 1
-    mock_logging_error.assert_called_once()
-    error_msg = mock_logging_error.call_args[0][0]
-    assert "Config class must define COUNTER_HANDLER" in error_msg
+    mock_logger.error.assert_called_once()
+    error_msg = mock_logger.error.call_args[0][0]
+    assert error_msg == "Config class must define COUNTER_HANDLER"
 
 
 def test_remove_invalidated_time_error(resetter, mock_sparql, mock_logger) -> None:
@@ -651,7 +664,7 @@ def test_remove_invalidated_time_error(resetter, mock_sparql, mock_logger) -> No
     _, mock_sparql_instance = mock_sparql
 
     # Make the query method raise an exception
-    mock_sparql_instance.query.side_effect = Exception("SPARQL error")
+    mock_sparql_instance.query.side_effect = SPARQLWrapperException("SPARQL error")
 
     snapshot = {
         "uri": "http://example.org/snapshot/1",
@@ -664,11 +677,10 @@ def test_remove_invalidated_time_error(resetter, mock_sparql, mock_logger) -> No
     assert result is False
 
     # Verify error was logged
-    mock_logger.error.assert_called_once()
-    error_msg = mock_logger.error.call_args[0][0]
-    assert "Error removing invalidatedAtTime from snapshot" in error_msg
-    assert "http://example.org/snapshot/1" in error_msg
-    assert "SPARQL error" in error_msg
+    mock_logger.exception.assert_called_once()
+    error_msg = mock_logger.exception.call_args[0][0]
+    assert error_msg == "Error removing invalidatedAtTime from snapshot %s"
+    assert mock_logger.exception.call_args[0][1] == "http://example.org/snapshot/1"
 
     # Verify the query was set correctly
     mock_sparql_instance.setQuery.assert_called_once()
@@ -695,8 +707,8 @@ def test_remove_invalidated_time_success(resetter, mock_sparql, mock_logger) -> 
     # Verify success was logged
     mock_logger.info.assert_called_once()
     info_msg = mock_logger.info.call_args[0][0]
-    assert "Successfully removed invalidatedAtTime from snapshot" in info_msg
-    assert "http://example.org/snapshot/1" in info_msg
+    assert info_msg == "Successfully removed invalidatedAtTime from snapshot: %s"
+    assert mock_logger.info.call_args[0][1] == "http://example.org/snapshot/1"
 
     # Verify the query was set correctly
     mock_sparql_instance.setQuery.assert_called_once()

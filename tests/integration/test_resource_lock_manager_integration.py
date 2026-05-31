@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
+from redis.exceptions import RedisError
 
 from heritrace.services.resource_lock_manager import (
     LockInfo,
@@ -168,23 +169,18 @@ def test_check_lock_status_exception(
     """Test check_lock_status when an exception occurs."""
     resource_uri = "http://example.org/resource/error"
 
-    # Mock get_lock_info to raise an exception
+    # Mock get_lock_info to raise a RedisError
     with patch.object(
-        resource_lock_manager, "get_lock_info", side_effect=Exception("Test exception")
+        resource_lock_manager, "get_lock_info", side_effect=RedisError("Test exception")
     ):
-        # Call the method
         status, lock_info = resource_lock_manager.check_lock_status(resource_uri)
 
-        # Verify the result
         assert status == LockStatus.ERROR
         assert lock_info is None
 
-        # Verify that the error was logged
-        mock_logger.error.assert_any_call(
-            f"Error checking lock status for {resource_uri}: Test exception"
+        mock_logger.exception.assert_called_once_with(
+            "Error checking lock status for %s", resource_uri
         )
-        # The second call to logger.error is with traceback.format_exc(), which we can't
-        # easily verify
 
 
 @patch("heritrace.services.resource_lock_manager.current_user")
@@ -322,21 +318,18 @@ def test_acquire_lock_exception(
     resource_uri = "http://example.org/resource/error"
     linked_resources = ["http://example.org/resource/linked1"]
 
-    # Mock check_lock_status to raise an exception
+    # Mock check_lock_status to raise a RedisError
     with patch.object(
         resource_lock_manager,
         "check_lock_status",
-        side_effect=Exception("Test exception"),
+        side_effect=RedisError("Test exception"),
     ):
-        # Call the method
         result = resource_lock_manager.acquire_lock(resource_uri, linked_resources)
 
-        # Verify the result
         assert result is False
 
-        # Verify that the error was logged
-        mock_logger.error.assert_called_once_with(
-            f"Error acquiring lock for {resource_uri}: Test exception"
+        mock_logger.exception.assert_called_once_with(
+            "Error acquiring lock for %s", resource_uri
         )
 
 
@@ -353,21 +346,18 @@ def test_create_resource_lock_exception(
     mock_current_user.orcid = "user123"
     mock_current_user.name = "Test User"
 
-    # Mock redis.setex to raise an exception
+    # Mock redis.setex to raise a RedisError
     with patch.object(
-        resource_lock_manager.redis, "setex", side_effect=Exception("Test exception")
+        resource_lock_manager.redis, "setex", side_effect=RedisError("Test exception")
     ):
-        # Call the method
         result = resource_lock_manager.create_resource_lock(
             resource_uri, mock_current_user, linked_resources
         )
 
-        # Verify the result
         assert result is False
 
-        # Verify that the error was logged
-        mock_logger.error.assert_called_once_with(
-            f"Error creating lock for {resource_uri}: Test exception"
+        mock_logger.exception.assert_called_once_with(
+            "Error creating lock for %s", resource_uri
         )
 
 
@@ -427,19 +417,16 @@ def test_release_lock_exception(
     """Test release_lock when an exception occurs."""
     resource_uri = "http://example.org/resource/error"
 
-    # Mock get_lock_info to raise an exception
+    # Mock get_lock_info to raise a RedisError
     with patch.object(
-        resource_lock_manager, "get_lock_info", side_effect=Exception("Test exception")
+        resource_lock_manager, "get_lock_info", side_effect=RedisError("Test exception")
     ):
-        # Call the method
         result = resource_lock_manager.release_lock(resource_uri)
 
-        # Verify the result
         assert result is False
 
-        # Verify that the error was logged
-        mock_logger.error.assert_called_once_with(
-            f"Error releasing lock for {resource_uri}: Test exception"
+        mock_logger.exception.assert_called_once_with(
+            "Error releasing lock for %s", resource_uri
         )
 
 

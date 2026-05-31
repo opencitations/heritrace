@@ -8,6 +8,7 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from flask_babel import gettext
 from flask_login import login_required
 from SPARQLWrapper import JSON
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.extensions import (
     get_custom_filter,
@@ -151,8 +152,8 @@ def _resolve_proxy_entity(
 
             return source_uri, connecting_predicate
 
-    except Exception as e:
-        current_app.logger.error(f"Error resolving proxy entity {subject_uri}: {e}")
+    except SPARQLWrapperException:
+        current_app.logger.exception("Error resolving proxy entity %s", subject_uri)
 
     return subject_uri, predicate
 

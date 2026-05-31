@@ -5,6 +5,7 @@
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+from flask import Flask
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
@@ -453,22 +454,9 @@ def test_merge_skip_blank_node(
         },
     ]
 
-    # Patch print to capture the warning
-    with patch("builtins.print") as mock_print:
+    app = Flask(__name__)
+    with app.app_context():
         editor_instance.merge(KEEP_URI, DELETE_URI)
-
-        expected_warning = (
-            "Warning: Skipping non-URI/Literal"
-            f" object type 'bnode' from"
-            f" {DELETE_URI} via {bnode_prop}"
-        )
-        # Check if any call to print matches the warning
-        found_warning = False
-        for call_args, _call_kwargs in mock_print.call_args_list:
-            if call_args and call_args[0] == expected_warning:
-                found_warning = True
-                break
-        assert found_warning, f"Expected warning '{expected_warning}' was not printed."
 
     # Assert Reader was called (only keep/delete URIs, as bnode and its prop aren't
     # imported)

@@ -10,7 +10,7 @@ from enum import Enum
 from typing import cast
 
 from flask_login import current_user
-from redis import Redis
+from redis import Redis, RedisError
 
 from heritrace.models import User
 
@@ -135,8 +135,8 @@ class ResourceLockManager:
                     # Resource that links to this resource is locked by another user
                     return LockStatus.LOCKED, linking_lock_info
 
-        except Exception as e:
-            logger.error(f"Error checking lock status for {resource_uri}: {e}")
+        except RedisError:
+            logger.exception("Error checking lock status for %s", resource_uri)
             return LockStatus.ERROR, None
         else:
             return LockStatus.AVAILABLE, None
@@ -194,8 +194,8 @@ class ResourceLockManager:
                 resource_uri, cast("User", current_user), linked_resources
             )
 
-        except Exception as e:
-            logger.error(f"Error acquiring lock for {resource_uri}: {e}")
+        except RedisError:
+            logger.exception("Error acquiring lock for %s", resource_uri)
             return False
         else:
             return result
@@ -227,8 +227,8 @@ class ResourceLockManager:
 
             # Set the lock with expiration
             self.redis.setex(lock_key, self.lock_duration, json.dumps(lock_data))
-        except Exception as e:
-            logger.error(f"Error creating lock for {resource_uri}: {e}")
+        except RedisError:
+            logger.exception("Error creating lock for %s", resource_uri)
             return False
         else:
             return True
@@ -266,8 +266,8 @@ class ResourceLockManager:
 
             result = True
 
-        except Exception as e:
-            logger.error(f"Error releasing lock for {resource_uri}: {e}")
+        except RedisError:
+            logger.exception("Error releasing lock for %s", resource_uri)
             return False
         else:
             return result

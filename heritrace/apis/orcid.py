@@ -89,7 +89,7 @@ def get_orcid_data(orcid_id: str) -> dict | None:
 
             return result
 
-    except Exception:
+    except requests.RequestException:
         return None
 
     return None

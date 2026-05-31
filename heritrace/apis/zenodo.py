@@ -38,6 +38,7 @@ class ZenodoRecord(TypedDict):
     record_id: str
     notes: str
 
+
 _MIN_AUTHORS_FOR_ET_AL = 2
 
 

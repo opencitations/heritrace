@@ -6,9 +6,9 @@ import re
 from collections import defaultdict
 
 from rdflib import URIRef
+from rdflib_ocdm.counter_handler.counter_handler import SupplierAwareCounterHandler
 from SPARQLWrapper import JSON, SPARQLWrapper
 
-from rdflib_ocdm.counter_handler.counter_handler import SupplierAwareCounterHandler
 from heritrace.sparql import get_sparql_bindings
 from heritrace.uri_generator.uri_generator import URIGenerator
 

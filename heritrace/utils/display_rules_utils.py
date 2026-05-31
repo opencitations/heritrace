@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -1004,23 +1005,22 @@ def get_similarity_properties(
             ):
                 validated_props.append(item)
             else:
-                print(
-                    f"Warning: Invalid 'and' group in"
-                    f" similarity_properties for class"
-                    f" {class_uri}. Expected"
-                    f" {{'and': ['prop_uri', ...]}} with"
-                    f" a non-empty list of strings."
+                logging.getLogger(__name__).warning(
+                    "Invalid 'and' group in similarity_properties"
+                    " for class %s. Expected"
+                    " {'and': ['prop_uri', ...]} with"
+                    " a non-empty list of strings.",
+                    class_uri,
                 )
-                return None  # Invalid 'and' group structure
+                return None
         else:
-            print(
-                f"Warning: Invalid item format in"
-                f" similarity_properties list for"
-                f" class {class_uri}. Expected a"
-                f" property URI string or"
-                f" {{'and': [...]}} dict."
+            logging.getLogger(__name__).warning(
+                "Invalid item format in similarity_properties"
+                " list for class %s. Expected a property URI"
+                " string or {'and': [...]} dict.",
+                class_uri,
             )
-            return None  # Invalid item type
+            return None
 
     return (
         validated_props or None

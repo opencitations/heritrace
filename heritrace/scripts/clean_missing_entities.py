@@ -12,6 +12,7 @@ import types
 from typing import TypedDict
 
 from SPARQLWrapper import JSON
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
 from heritrace.utils.sparql_utils import VIRTUOSO_EXCLUDED_GRAPHS
@@ -181,11 +182,17 @@ class MissingEntityCleaner:
                 self.sparql.method = "POST"
                 self.sparql.query()
                 self.logger.info(
-                    f"Removed reference from {subject} to {entity_uri} via {predicate}"
+                    "Removed reference from %s to %s via %s",
+                    subject,
+                    entity_uri,
+                    predicate,
                 )
-            except Exception as e:
-                self.logger.error(
-                    f"Error removing reference from {subject} to {entity_uri} via {predicate}: {e}"
+            except SPARQLWrapperException:
+                self.logger.exception(
+                    "Error removing reference from %s to %s via %s",
+                    subject,
+                    entity_uri,
+                    predicate,
                 )
                 success = False
 
@@ -215,7 +222,7 @@ class MissingEntityCleaner:
             return []
 
         num_missing_entities = len(missing_entities_with_refs)
-        self.logger.info(f"Found {num_missing_entities} missing entity references.")
+        self.logger.info("Found %s missing entity references.", num_missing_entities)
 
         total_references = sum(
             len(refs) for refs in missing_entities_with_refs.values()
@@ -223,17 +230,20 @@ class MissingEntityCleaner:
         results = []
 
         for entity_uri, references in missing_entities_with_refs.items():
-            self.logger.info(f"Processing missing entity: {entity_uri}")
+            self.logger.info("Processing missing entity: %s", entity_uri)
 
             self.logger.info(
-                f"Found {len(references)} references to missing entity {entity_uri}"
+                "Found %s references to missing entity %s",
+                len(references),
+                entity_uri,
             )
 
             success = self.remove_references(entity_uri, references)
 
             if not success:
                 self.logger.error(
-                    f"Failed to remove references to missing entity {entity_uri}"
+                    "Failed to remove references to missing entity %s",
+                    entity_uri,
                 )
 
             results.append(
@@ -243,9 +253,11 @@ class MissingEntityCleaner:
         successful = all(result["success"] for result in results)
         if successful:
             self.logger.info(
-                f"Successfully processed all missing"
-                f" entities. Found {num_missing_entities} missing entities"
-                f" and removed {total_references} references."
+                "Successfully processed all missing"
+                " entities. Found %s missing entities"
+                " and removed %s references.",
+                num_missing_entities,
+                total_references,
             )
 
         return results
@@ -281,14 +293,14 @@ def load_config(config_path: str) -> types.ModuleType:
     try:
         spec = importlib.util.spec_from_file_location("config", config_path)
         if spec is None or spec.loader is None:
-            logging.error("Failed to create module spec from %s", config_path)
+            logger.error("Failed to create module spec from %s", config_path)
             sys.exit(1)
         config = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config)
     except SystemExit:
         raise
-    except Exception:
-        logging.error(f"Error loading configuration file: {config_path}")
+    except (FileNotFoundError, ImportError, AttributeError):
+        logger.exception("Error loading configuration file: %s", config_path)
         sys.exit(1)
     else:
         return config
@@ -317,7 +329,7 @@ def main() -> int:
     config = load_config(args.config)
 
     if not hasattr(config.Config, "DATASET_DB_URL"):
-        logging.error("Config class must define DATASET_DB_URL")
+        logger.error("Config class must define DATASET_DB_URL")
         return 1
 
     endpoint = config.Config.DATASET_DB_URL
@@ -326,27 +338,30 @@ def main() -> int:
     if hasattr(config.Config, "DATASET_DB_TRIPLESTORE"):
         is_virtuoso = config.Config.DATASET_DB_TRIPLESTORE.lower() == "virtuoso"
 
-    logging.info(
-        f"Starting missing entity detection and cleanup using endpoint: {endpoint}"
+    logger.info(
+        "Starting missing entity detection and cleanup using endpoint: %s",
+        endpoint,
     )
 
     results = clean_missing_entities(endpoint=endpoint, is_virtuoso=is_virtuoso)
 
     successful = all(result["success"] for result in results)
     if not results:
-        logging.info("No missing entity references found")
+        logger.info("No missing entity references found")
         return 0
     if successful:
-        logging.info(
-            f"Successfully cleaned up missing entity"
-            f" references from the dataset."
-            f" Processed {len(results)} missing entities."
+        logger.info(
+            "Successfully cleaned up missing entity"
+            " references from the dataset."
+            " Processed %s missing entities.",
+            len(results),
         )
         return 0
-    logging.error(
-        f"Failed to clean up some missing entity"
-        f" references from the dataset."
-        f" {len([r for r in results if not r['success']])} entities had errors."
+    logger.error(
+        "Failed to clean up some missing entity"
+        " references from the dataset."
+        " %s entities had errors.",
+        len([r for r in results if not r["success"]]),
     )
     return 1
 

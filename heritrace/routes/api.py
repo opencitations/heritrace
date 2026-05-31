@@ -359,9 +359,7 @@ def _collect_affected_entities(
             found_orphans, found_intermediates = find_orphaned_entities(
                 URIRef(change["subject"]),
                 entity_type,
-                URIRef(change["predicate"])
-                if change.get("predicate")
-                else None,
+                URIRef(change["predicate"]) if change.get("predicate") else None,
                 change.get("object"),
             )
             if check_for_orphans:
@@ -381,7 +379,9 @@ def _format_orphan_response(
     custom_filter = get_custom_filter()
 
     def format_entities(
-        entities: list[dict[str, str]], *, is_intermediate: bool = False,
+        entities: list[dict[str, str]],
+        *,
+        is_intermediate: bool = False,
     ) -> list[dict[str, str | bool]]:
         return [
             {
@@ -461,7 +461,8 @@ def check_orphans() -> Response | tuple[Response, int]:
         intermediate_orphans: list[dict[str, str]] = []
         if check_for_orphans or check_for_proxies:
             orphans, intermediate_orphans = _collect_affected_entities(
-                changes, entity_type,
+                changes,
+                entity_type,
                 check_for_orphans=check_for_orphans,
                 check_for_proxies=check_for_proxies,
             )
@@ -472,8 +473,11 @@ def check_orphans() -> Response | tuple[Response, int]:
             return jsonify({"status": "success", "affected_entities": []})
 
         return _format_orphan_response(
-            orphans, intermediate_orphans, entity_shape,
-            orphan_strategy, proxy_strategy,
+            orphans,
+            intermediate_orphans,
+            entity_shape,
+            orphan_strategy,
+            proxy_strategy,
         )
     except ValueError as e:
         error_message = str(e)
@@ -1072,7 +1076,10 @@ def order_logic(  # noqa: PLR0913
     for old_entity in current_entities:
         if str(old_entity) in new_order:
             entity_properties = list(
-                get_triples_from_graph(editor.g_set, (cast("URIRef", old_entity), None, None))
+                get_triples_from_graph(
+                    editor.g_set,
+                    (cast("URIRef", old_entity), None, None),
+                )
             )
 
             entity_type = next(
@@ -1420,9 +1427,7 @@ def render_nested_form_html() -> str | tuple[Response, int]:
             depth,
             is_template,
             all_form_fields,
-        ) = cast(
-            "tuple[str, str, str, str, str, int, bool, dict]", validated
-        )
+        ) = cast("tuple[str, str, str, str, str, int, bool, dict]", validated)
 
         parent_entity_key = (parent_entity_class, parent_entity_shape)
         parent_fields = all_form_fields[parent_entity_key]

@@ -82,9 +82,7 @@ def _apply_field_overrides(shape_data: dict, override: dict) -> dict:
     return nested_field
 
 
-def _build_nested_shape_entry(
-    vp: dict, enhanced_form_fields: dict
-) -> list[dict]:
+def _build_nested_shape_entry(vp: dict, enhanced_form_fields: dict) -> list[dict]:
     implementation = vp.get("implementedVia", {})
     target = implementation.get("target", {})
     intermediate_class = target.get("class")

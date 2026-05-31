@@ -137,7 +137,7 @@ def initialize_change_tracking_config(
 
     if "CHANGE_TRACKING_CONFIG" in app.config:
         config_path = app.config["CHANGE_TRACKING_CONFIG"]
-        if not os.path.exists(config_path):
+        if not Path(config_path).exists():
             app.logger.warning(
                 "Change tracking configuration file not found at specified path: %s",
                 config_path,
@@ -145,8 +145,8 @@ def initialize_change_tracking_config(
             config_needs_generation = True
     else:
         config_needs_generation = True
-        config_path = os.path.join(app.instance_path, "change_tracking_config.json")
-        os.makedirs(app.instance_path, exist_ok=True)
+        config_path = str(Path(app.instance_path) / "change_tracking_config.json")
+        Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
     if config_needs_generation:
         dataset_urls = [adjusted_dataset_endpoint] if adjusted_dataset_endpoint else []
@@ -185,19 +185,19 @@ def initialize_change_tracking_config(
             app.logger.info(
                 "Generated new change tracking configuration at: %s", config_path
             )
-        except Exception as e:
+        except OSError as e:
             msg = f"Failed to generate change tracking configuration: {e!s}"
             raise RuntimeError(msg) from e
 
     try:
         if not config:
-            with open(config_path, encoding="utf8") as f:
+            with Path(config_path).open(encoding="utf8") as f:
                 config = json.load(f)
 
     except json.JSONDecodeError as e:
         msg = f"Invalid change tracking configuration JSON at {config_path}: {e!s}"
         raise RuntimeError(msg) from e
-    except Exception as e:
+    except OSError as e:
         msg = f"Error reading change tracking configuration at {config_path}: {e!s}"
         raise RuntimeError(msg) from e
 
@@ -367,7 +367,7 @@ def initialize_global_variables(
                     form_fields_cache = get_form_fields_from_shacl(
                         shacl_graph, display_rules, app=app
                     )
-                except Exception as e:
+                except (OSError, ValueError) as e:
                     app.logger.exception("Error initializing form fields from SHACL")
                     msg = f"Failed to initialize form fields: {e!s}"
                     raise RuntimeError(msg) from e
@@ -380,7 +380,7 @@ def initialize_global_variables(
 
     except RuntimeError:
         raise
-    except Exception as e:
+    except (OSError, yaml.YAMLError, ValueError) as e:
         app.logger.exception("Error during global variables initialization")
         msg = f"Global variables initialization failed: {e!s}"
         raise RuntimeError(msg) from e
@@ -481,7 +481,7 @@ def adjust_endpoint_url(url: str) -> str:
 
 
 def running_in_docker() -> bool:
-    return os.path.exists("/.dockerenv")
+    return Path("/.dockerenv").exists()
 
 
 def get_dataset_endpoint() -> str:
@@ -505,7 +505,7 @@ def get_counter_handler() -> CounterHandler:
     if not isinstance(uri_generator, CounterBasedURIGenerator):
         current_app.logger.error("CounterHandler not found in URIGenerator config.")
         msg = "CounterHandler is not available. Initialization might have failed."
-        raise RuntimeError(msg)
+        raise TypeError(msg)
     return uri_generator.counter_handler
 
 

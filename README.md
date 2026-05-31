@@ -8,6 +8,7 @@ SPDX-License-Identifier: ISC
 
 [<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
 [![Tests](https://github.com/opencitations/heritrace/actions/workflows/python-tests.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/python-tests.yml)
+[![Ruff](https://github.com/opencitations/heritrace/actions/workflows/ruff.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/ruff.yml)
 [![Pyright](https://github.com/opencitations/heritrace/actions/workflows/pyright.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/pyright.yml)
 [![Coverage](https://opencitations.github.io/heritrace/coverage/coverage-badge.svg)](https://opencitations.github.io/heritrace/coverage/)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/opencitations/heritrace)

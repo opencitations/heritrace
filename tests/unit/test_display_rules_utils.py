@@ -2187,9 +2187,7 @@ class TestGetPropertyOrderFromRules:
 
             assert result == []
 
-    def test_get_property_order_from_rules_no_rules(
-        self, mock_subject_classes
-    ) -> None:
+    def test_get_property_order_from_rules_no_rules(self, mock_subject_classes) -> None:
         """Test getting property order from rules with no rules."""
         with patch(
             "heritrace.utils.display_rules_utils.get_display_rules", return_value=[]
@@ -2395,7 +2393,7 @@ class TestGetSimilarityProperties:
             assert result is None
 
     def test_get_similarity_properties_invalid_format_item_type(
-        self, mock_display_rules_with_similarity, capsys
+        self, mock_display_rules_with_similarity, caplog
     ) -> None:
         """Test when similarity_properties list contains non-string items."""
         entity_type = "http://example.org/Place"
@@ -2404,18 +2402,15 @@ class TestGetSimilarityProperties:
             return_value=mock_display_rules_with_similarity,
         ):
             result = get_similarity_properties((entity_type, None))
-            captured = capsys.readouterr()
             assert result is None
-            assert (
-                "Warning: Invalid item format in"
-                " similarity_properties list for"
-                f" class {entity_type}" in captured.out
-            )
-            assert (
-                "Expected a property URI string or {'and': [...]} dict" in captured.out
+            assert any(
+                "Invalid item format in similarity_properties list for class"
+                in record.message
+                and entity_type in record.message
+                for record in caplog.records
             )
 
-    def test_get_similarity_properties_with_and_structure(self, capsys) -> None:
+    def test_get_similarity_properties_with_and_structure(self, caplog) -> None:
         """Test get_similarity_properties with valid and invalid 'and' structures."""
         entity_type = "http://example.org/TestAnd"
         mock_rules_and = [
@@ -2452,43 +2447,31 @@ class TestGetSimilarityProperties:
             assert result_valid == ["prop1", {"and": ["prop2", "prop3"]}]
 
             invalid_type1 = "http://example.org/InvalidAndValue"
+            caplog.clear()
             result_invalid_value = get_similarity_properties((invalid_type1, None))
-            captured_invalid_value = capsys.readouterr()
             assert result_invalid_value is None
-            expected_warning1 = (
-                "Warning: Invalid 'and' group in"
-                " similarity_properties for class"
-                f" {invalid_type1}. Expected"
-                f" {{'and': ['prop_uri', ...]}} with"
-                " a non-empty list of strings."
+            assert any(
+                "Invalid 'and' group" in r.message and invalid_type1 in r.message
+                for r in caplog.records
             )
-            assert expected_warning1 in captured_invalid_value.out
 
             invalid_type2 = "http://example.org/InvalidAndListItem"
+            caplog.clear()
             result_invalid_item = get_similarity_properties((invalid_type2, None))
-            captured_invalid_item = capsys.readouterr()
             assert result_invalid_item is None
-            expected_warning2 = (
-                "Warning: Invalid 'and' group in"
-                " similarity_properties for class"
-                f" {invalid_type2}. Expected"
-                f" {{'and': ['prop_uri', ...]}} with"
-                " a non-empty list of strings."
+            assert any(
+                "Invalid 'and' group" in r.message and invalid_type2 in r.message
+                for r in caplog.records
             )
-            assert expected_warning2 in captured_invalid_item.out
 
             invalid_type3 = "http://example.org/InvalidAndDict"
+            caplog.clear()
             result_invalid_dict = get_similarity_properties((invalid_type3, None))
-            captured_invalid_dict = capsys.readouterr()
             assert result_invalid_dict is None
-            expected_warning3 = (
-                "Warning: Invalid item format in"
-                " similarity_properties list for"
-                f" class {invalid_type3}. Expected a"
-                " property URI string or"
-                f" {{'and': [...]}} dict."
+            assert any(
+                "Invalid item format" in r.message and invalid_type3 in r.message
+                for r in caplog.records
             )
-            assert expected_warning3 in captured_invalid_dict.out
 
     def test_get_similarity_properties_no_rules(self) -> None:
         """Test when get_display_rules returns empty list."""

@@ -4,6 +4,7 @@
 
 from datetime import datetime, timezone
 
+from flask import current_app
 from rdflib import Literal, URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
@@ -130,8 +131,7 @@ class Editor:
         if self.dataset_is_quadstore and graph:
             if (subject, predicate, value, graph) not in self.g_set:  # type: ignore[operator]
                 msg = (
-                    f"Triple ({subject}, {predicate},"
-                    f" {value}, {graph}) does not exist"
+                    f"Triple ({subject}, {predicate}, {value}, {graph}) does not exist"
                 )
                 raise EditorError(msg)
             self.g_set.remove((subject, predicate, value, graph))  # type: ignore[arg-type]
@@ -142,7 +142,10 @@ class Editor:
             self.g_set.remove((subject, predicate, value))  # type: ignore[arg-type]
 
     def _delete_all_for_predicate(
-        self, subject: URIRef, predicate: URIRef, graph: URIRef | None,
+        self,
+        subject: URIRef,
+        predicate: URIRef,
+        graph: URIRef | None,
     ) -> None:
         if self.dataset_is_quadstore and graph:
             quads = list(self.g_set.quads((subject, predicate, None, graph)))  # type: ignore[arg-type]
@@ -239,10 +242,11 @@ class Editor:
                     else None,
                 )
             else:
-                print(
-                    f"Warning: Skipping non-URI/Literal"
-                    f" object type '{o_node['type']}' from"
-                    f" {delete_entity_uri} via {p_uri}"
+                current_app.logger.warning(
+                    "Skipping non-URI/Literal object type '%s' from %s via %s",
+                    o_node["type"],
+                    delete_entity_uri,
+                    p_uri,
                 )
                 continue
             if o_val:

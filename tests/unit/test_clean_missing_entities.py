@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from SPARQLWrapper import JSON
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.scripts.clean_missing_entities import (
     MissingEntityCleaner,
@@ -186,11 +187,13 @@ def test_remove_references(cleaner, mock_sparql, mock_logger) -> None:
     # Verify log messages
     assert mock_logger.info.call_count >= 2
     for i, call_args in enumerate(mock_logger.info.call_args_list):
-        message = call_args[0][0]
-        assert "Removed reference" in message
-        assert references[i]["subject"] in message if i < len(references) else True
-        assert references[i]["predicate"] in message if i < len(references) else True
-        assert entity_uri in message
+        fmt = call_args[0][0]
+        args = call_args[0][1:]
+        assert "Removed reference" in fmt
+        if i < len(references):
+            assert references[i]["subject"] in args
+            assert references[i]["predicate"] in args
+            assert entity_uri in args
 
 
 def test_remove_references_error(cleaner, mock_sparql, mock_logger) -> None:
@@ -205,8 +208,8 @@ def test_remove_references_error(cleaner, mock_sparql, mock_logger) -> None:
         }
     ]
 
-    # Make the query method raise an exception
-    mock_sparql_instance.query.side_effect = Exception("SPARQL error")
+    # Make the query method raise a SPARQL exception
+    mock_sparql_instance.query.side_effect = SPARQLWrapperException("SPARQL error")
 
     entity_uri = "http://example.org/missing1"
 
@@ -217,12 +220,13 @@ def test_remove_references_error(cleaner, mock_sparql, mock_logger) -> None:
     assert success is False
 
     # Verify error was logged
-    mock_logger.error.assert_called_once()
-    error_msg = mock_logger.error.call_args[0][0]
-    assert "Error removing reference" in error_msg
-    assert references[0]["subject"] in error_msg
-    assert references[0]["predicate"] in error_msg
-    assert entity_uri in error_msg
+    mock_logger.exception.assert_called_once()
+    fmt = mock_logger.exception.call_args[0][0]
+    args = mock_logger.exception.call_args[0][1:]
+    assert "Error removing reference" in fmt
+    assert references[0]["subject"] in args
+    assert references[0]["predicate"] in args
+    assert entity_uri in args
 
 
 def test_find_missing_entities_with_references(cleaner, mock_sparql) -> None:
@@ -392,14 +396,13 @@ def test_process_missing_entities(cleaner, mock_sparql, mock_logger) -> None:
         assert mock_logger.info.call_count >= 4  # At least 2 for each missing entity
 
         # Verify the summary message
-        summary_msg = mock_logger.info.call_args_list[-1][0][0]
-        assert "Found 2 missing entities" in summary_msg
-        assert "removed 3 references" in summary_msg
+        summary_call = mock_logger.info.call_args_list[-1][0]
+        assert "missing entities" in summary_call[0]
+        assert summary_call[1] == 2
+        assert summary_call[2] == 3
 
 
-def test_process_missing_entities_no_missing(
-    cleaner, mock_sparql, mock_logger
-) -> None:
+def test_process_missing_entities_no_missing(cleaner, mock_sparql, mock_logger) -> None:
     """Test process_missing_entities method with no missing entities found."""
     with patch.object(
         cleaner, "find_missing_entities_with_references"
@@ -453,9 +456,10 @@ def test_process_missing_entities_error(cleaner, mock_sparql, mock_logger) -> No
 
         # Verify error was logged
         assert mock_logger.error.call_count >= 1
-        error_msg = mock_logger.error.call_args[0][0]
-        assert "Failed to remove references" in error_msg
-        assert "http://example.org/missing1" in error_msg
+        fmt = mock_logger.error.call_args[0][0]
+        args = mock_logger.error.call_args[0][1:]
+        assert "Failed to remove references" in fmt
+        assert "http://example.org/missing1" in args
 
 
 @patch("heritrace.scripts.clean_missing_entities.MissingEntityCleaner")
@@ -517,20 +521,22 @@ def test_load_config_success(mock_importlib_util) -> None:
 
 
 @patch("heritrace.scripts.clean_missing_entities.importlib.util")
-@patch("heritrace.scripts.clean_missing_entities.logging.error")
+@patch("heritrace.scripts.clean_missing_entities.logger")
 @patch("heritrace.scripts.clean_missing_entities.sys.exit")
-def test_load_config_error(mock_exit, mock_logging_error, mock_importlib_util) -> None:
+def test_load_config_error(mock_exit, mock_logger, mock_importlib_util) -> None:
     """Test config loading with an error."""
     # Mock error during config loading
-    mock_importlib_util.spec_from_file_location.side_effect = Exception("Config error")
+    mock_importlib_util.spec_from_file_location.side_effect = ImportError(
+        "Config error"
+    )
 
     # Call the function
     load_config("config.py")
 
     # Verify error was logged and sys.exit was called
-    mock_logging_error.assert_called_once()
-    error_msg = mock_logging_error.call_args[0][0]
-    assert "Error loading configuration file" in error_msg
+    mock_logger.exception.assert_called_once()
+    fmt = mock_logger.exception.call_args[0][0]
+    assert "Error loading configuration file" in fmt
     mock_exit.assert_called_once_with(1)
 
 
@@ -538,60 +544,52 @@ def test_load_config_error(mock_exit, mock_logging_error, mock_importlib_util) -
 @patch("heritrace.scripts.clean_missing_entities.load_config")
 @patch("heritrace.scripts.clean_missing_entities.clean_missing_entities")
 @patch("heritrace.scripts.clean_missing_entities.logging")
+@patch("heritrace.scripts.clean_missing_entities.logger")
 def test_main_success(
-    mock_logging, mock_clean_missing_entities, mock_load_config, mock_argparse
+    mock_logger,
+    mock_logging,
+    mock_clean_missing_entities,
+    mock_load_config,
+    mock_argparse,
 ) -> None:
     """Test main function with successful execution."""
-    # Set up mock argument parser
     mock_args = MagicMock()
     mock_args.config = "config.py"
     mock_args.verbose = False
     mock_parser = mock_argparse.return_value
     mock_parser.parse_args.return_value = mock_args
 
-    # Set up mock config
     mock_config = MagicMock()
     mock_config.Config.DATASET_DB_URL = "http://test.endpoint/sparql"
     mock_config.Config.DATASET_DB_TRIPLESTORE = "virtuoso"
     mock_load_config.return_value = mock_config
 
-    # Set up mock clean_missing_entities
     mock_clean_missing_entities.return_value = [
         {"uri": "http://example.org/missing1", "references": [], "success": True}
     ]
 
-    # Call main
     result = main()
 
-    # Verify load_config was called with correct args
     mock_load_config.assert_called_once_with("config.py")
-
-    # Verify clean_missing_entities was called with correct args
     mock_clean_missing_entities.assert_called_once_with(
         endpoint="http://test.endpoint/sparql", is_virtuoso=True
     )
-
-    # Verify result
     assert result == 0
-
-    # Verify logging was set up
     mock_logging.basicConfig.assert_called_once()
-
-    # Verify config was loaded
-    mock_load_config.assert_called_once_with("config.py")
-
-    # Verify clean_missing_entities was called with the correct endpoint
-    mock_clean_missing_entities.assert_called_once_with(
-        endpoint="http://test.endpoint/sparql", is_virtuoso=True
+    mock_logger.info.assert_any_call(
+        "Successfully cleaned up missing entity"
+        " references from the dataset."
+        " Processed %s missing entities.",
+        1,
     )
 
 
 @patch("heritrace.scripts.clean_missing_entities.argparse.ArgumentParser")
 @patch("heritrace.scripts.clean_missing_entities.load_config")
 @patch("heritrace.scripts.clean_missing_entities.clean_missing_entities")
-@patch("heritrace.scripts.clean_missing_entities.logging")
+@patch("heritrace.scripts.clean_missing_entities.logger")
 def test_main_failure(
-    mock_logging, mock_clean_missing_entities, mock_load_config, mock_argparse
+    mock_logger, mock_clean_missing_entities, mock_load_config, mock_argparse
 ) -> None:
     """Test main function with missing entity cleanup failure."""
     # Mock argument parsing
@@ -626,20 +624,17 @@ def test_main_failure(
     assert result == 1
 
     # Verify error was logged
-    mock_logging.error.assert_called_once()
-    error_msg = mock_logging.error.call_args[0][0]
-    assert (
-        "Failed to clean up some missing entity references from the dataset"
-        in error_msg
-    )
+    mock_logger.error.assert_called_once()
+    fmt = mock_logger.error.call_args[0][0]
+    assert "Failed to clean up some missing entity" in fmt
 
 
 @patch("heritrace.scripts.clean_missing_entities.argparse.ArgumentParser")
 @patch("heritrace.scripts.clean_missing_entities.load_config")
-@patch("heritrace.scripts.clean_missing_entities.logging.error")
+@patch("heritrace.scripts.clean_missing_entities.logger")
 @patch("heritrace.scripts.clean_missing_entities.hasattr")
 def test_main_missing_dataset_db_url(
-    mock_hasattr, mock_logging_error, mock_load_config, mock_argparse
+    mock_hasattr, mock_logger, mock_load_config, mock_argparse
 ) -> None:
     """Test main function with missing DATASET_DB_URL in config."""
     # Mock argument parsing
@@ -667,46 +662,36 @@ def test_main_missing_dataset_db_url(
     assert result == 1
 
     # Verify error was logged
-    mock_logging_error.assert_called_once()
-    error_msg = mock_logging_error.call_args[0][0]
-    assert "Config class must define DATASET_DB_URL" in error_msg
+    mock_logger.error.assert_called_once()
+    fmt = mock_logger.error.call_args[0][0]
+    assert "Config class must define DATASET_DB_URL" in fmt
 
 
 @patch("heritrace.scripts.clean_missing_entities.argparse.ArgumentParser")
 @patch("heritrace.scripts.clean_missing_entities.load_config")
 @patch("heritrace.scripts.clean_missing_entities.clean_missing_entities")
-@patch("heritrace.scripts.clean_missing_entities.logging")
+@patch("heritrace.scripts.clean_missing_entities.logger")
 def test_main_no_missing_entities(
-    mock_logging, mock_clean_missing_entities, mock_load_config, mock_argparse
+    mock_logger, mock_clean_missing_entities, mock_load_config, mock_argparse
 ) -> None:
     """Test main function when no missing entities are found."""
-    # Mock argument parsing
     mock_args = MagicMock()
     mock_args.config = "config.py"
     mock_args.verbose = False
     mock_argparse.return_value.parse_args.return_value = mock_args
 
-    # Mock config
     mock_config = MagicMock()
     mock_config.Config.DATASET_DB_URL = "http://example.org/sparql"
-    # Set DATASET_DB_TRIPLESTORE for is_virtuoso check (optional, but good practice)
     mock_config.Config.DATASET_DB_TRIPLESTORE = "other"
     mock_load_config.return_value = mock_config
 
-    # Mock clean_missing_entities returning an empty list
     mock_clean_missing_entities.return_value = []
 
-    # Call the function
     result = main()
 
-    # Verify the result is 0
     assert result == 0
-
-    # Verify the specific info log message was called
-    mock_logging.info.assert_any_call("No missing entity references found")
-
-    # Verify clean_missing_entities was called
+    mock_logger.info.assert_any_call("No missing entity references found")
     mock_clean_missing_entities.assert_called_once_with(
         endpoint="http://example.org/sparql",
-        is_virtuoso=False,  # Based on "other" triplestore type
+        is_virtuoso=False,
     )

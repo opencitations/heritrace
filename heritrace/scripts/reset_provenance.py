@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 from rdflib import URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from SPARQLWrapper import JSON
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
 from heritrace.utils.converters import convert_to_datetime
@@ -50,7 +51,7 @@ class ProvenanceResetter:
         # Step 1: Find all snapshots for the entity
         snapshots = self.get_entity_snapshots(entity_uri)
         if not snapshots:
-            self.logger.warning(f"No snapshots found for entity {entity_uri}")
+            self.logger.warning("No snapshots found for entity %s", entity_uri)
             return False
 
         # Sort snapshots by generation time, converting strings to datetime objects
@@ -68,7 +69,7 @@ class ProvenanceResetter:
 
         if not snapshots_to_delete:
             self.logger.info(
-                f"Entity {entity_uri} has only one snapshot, nothing to reset"
+                "Entity %s has only one snapshot, nothing to reset", entity_uri
             )
             # Still remove invalidatedAtTime from the first snapshot
             self.remove_invalidated_time(first_snapshot)
@@ -85,7 +86,7 @@ class ProvenanceResetter:
         # Step 4: Remove invalidatedAtTime from the first snapshot
         self.remove_invalidated_time(first_snapshot)
 
-        self.logger.info(f"Successfully reset provenance for entity {entity_uri}")
+        self.logger.info("Successfully reset provenance for entity %s", entity_uri)
         return True
 
     def get_entity_snapshots(self, entity_uri: URIRef) -> list:
@@ -186,10 +187,12 @@ class ProvenanceResetter:
                 self.provenance_sparql.query()
 
                 self.logger.debug(
-                    f"Successfully deleted snapshot: {snapshot_uri} from graph: {graph_uri}"
+                    "Successfully deleted snapshot: %s from graph: %s",
+                    snapshot_uri,
+                    graph_uri,
                 )
-            except Exception as e:
-                self.logger.error(f"Error deleting snapshot {snapshot_uri}: {e}")
+            except SPARQLWrapperException:
+                self.logger.exception("Error deleting snapshot %s", snapshot_uri)
                 success = False
 
         return success
@@ -207,7 +210,7 @@ class ProvenanceResetter:
 
         # Set the counter to 1 (for the first snapshot)
         self.counter_handler.set_counter(1, entity_name)
-        self.logger.info(f"Reset provenance counter for entity {entity_uri} to 1")
+        self.logger.info("Reset provenance counter for entity %s to 1", entity_uri)
 
     def remove_invalidated_time(self, snapshot: dict) -> bool:
         """
@@ -245,11 +248,12 @@ class ProvenanceResetter:
             self.provenance_sparql.method = "POST"
             self.provenance_sparql.query()
             self.logger.info(
-                f"Successfully removed invalidatedAtTime from snapshot: {snapshot_uri}"
+                "Successfully removed invalidatedAtTime from snapshot: %s",
+                snapshot_uri,
             )
-        except Exception as e:
-            self.logger.error(
-                f"Error removing invalidatedAtTime from snapshot {snapshot_uri}: {e}"
+        except SPARQLWrapperException:
+            self.logger.exception(
+                "Error removing invalidatedAtTime from snapshot %s", snapshot_uri
             )
             return False
         else:
@@ -282,14 +286,14 @@ def load_config(config_path: str) -> types.ModuleType:
     try:
         spec = importlib.util.spec_from_file_location("config", config_path)
         if spec is None or spec.loader is None:
-            logging.error("Failed to create module spec from %s", config_path)
+            logger.error("Failed to create module spec from %s", config_path)
             sys.exit(1)
         config = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config)
     except SystemExit:
         raise
-    except Exception:
-        logging.error(f"Error loading configuration file: {config_path}")
+    except (FileNotFoundError, ImportError, AttributeError):
+        logger.exception("Error loading configuration file: %s", config_path)
         sys.exit(1)
     else:
         return config
@@ -320,19 +324,19 @@ def main() -> int:
 
     # Check if Config class exists
     if not hasattr(config, "Config"):
-        logging.error("Configuration file must define a Config class")
+        logger.error("Configuration file must define a Config class")
         return 1
 
     # Get required configuration from Config class
     if not hasattr(config.Config, "PROVENANCE_DB_URL"):
-        logging.error("Config class must define PROVENANCE_DB_URL")
+        logger.error("Config class must define PROVENANCE_DB_URL")
         return 1
 
     provenance_endpoint = config.Config.PROVENANCE_DB_URL
 
     # Get counter handler from Config class
     if not hasattr(config.Config, "COUNTER_HANDLER"):
-        logging.error("Config class must define COUNTER_HANDLER")
+        logger.error("Config class must define COUNTER_HANDLER")
         return 1
 
     counter_handler = config.Config.COUNTER_HANDLER
@@ -344,9 +348,9 @@ def main() -> int:
     )
 
     if success:
-        logging.info(f"Successfully reset provenance for entity {args.entity_uri}")
+        logger.info("Successfully reset provenance for entity %s", args.entity_uri)
         return 0
-    logging.error(f"Failed to reset provenance for entity {args.entity_uri}")
+    logger.error("Failed to reset provenance for entity %s", args.entity_uri)
     return 1
 
 

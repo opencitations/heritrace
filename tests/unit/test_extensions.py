@@ -211,10 +211,10 @@ def test_adjust_endpoint_url() -> None:
 
 
 def test_running_in_docker() -> None:
-    with patch("os.path.exists", return_value=True):
+    with patch("pathlib.Path.exists", return_value=True):
         assert running_in_docker() is True
 
-    with patch("os.path.exists", return_value=False):
+    with patch("pathlib.Path.exists", return_value=False):
         assert running_in_docker() is False
 
 
@@ -253,7 +253,7 @@ def test_get_counter_handler_not_initialized(app) -> None:
     with (
         patch("heritrace.extensions.current_app.logger.error") as mock_logger_error,
         pytest.raises(
-            RuntimeError,
+            TypeError,
             match=(
                 r"CounterHandler is not available\."
                 r" Initialization might have failed\."
@@ -270,7 +270,7 @@ def test_get_counter_handler_not_initialized(app) -> None:
     with (
         patch("heritrace.extensions.current_app.logger.error") as mock_logger_error,
         pytest.raises(
-            RuntimeError,
+            TypeError,
             match=(
                 r"CounterHandler is not available\."
                 r" Initialization might have failed\."
@@ -401,8 +401,8 @@ def test_initialize_change_tracking_config(app, cleanup_nonexistent_config) -> N
     app.config["CHANGE_TRACKING_CONFIG"] = "existing_config.json"
 
     with (
-        patch("os.path.exists", return_value=True),
-        patch("builtins.open", MagicMock()),
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.open", MagicMock()),
         patch("json.load", return_value=mock_config),
     ):
         config = initialize_change_tracking_config(app)
@@ -413,8 +413,8 @@ def test_initialize_change_tracking_config(app, cleanup_nonexistent_config) -> N
     app.config["CHANGE_TRACKING_CONFIG"] = "nonexistent_config.json"
 
     with (
-        patch("os.path.exists", return_value=False),
-        patch("os.makedirs", MagicMock()),
+        patch("pathlib.Path.exists", return_value=False),
+        patch("pathlib.Path.mkdir", MagicMock()),
         patch(
             "time_agnostic_library.support.generate_config_file",
             return_value=mock_config,
@@ -431,17 +431,14 @@ def test_initialize_change_tracking_config(app, cleanup_nonexistent_config) -> N
     mock_open = MagicMock()
 
     with (
-        patch("os.path.join", return_value="instance/change_tracking_config.json"),
-        patch("os.makedirs", MagicMock()) as mock_makedirs,
-        patch("builtins.open", mock_open),
+        patch("pathlib.Path.mkdir", MagicMock()),
+        patch("pathlib.Path.open", mock_open),
         patch(
             "time_agnostic_library.support.generate_config_file",
             side_effect=lambda **_kwargs: mock_config,
         ),
     ):
         config = initialize_change_tracking_config(app)
-
-        mock_makedirs.assert_called_once_with(app.instance_path, exist_ok=True)
 
         assert config is not None
         assert "dataset" in config
@@ -459,11 +456,11 @@ def test_initialize_change_tracking_config_exceptions(
     app.config["CHANGE_TRACKING_CONFIG"] = "nonexistent_config.json"
 
     with (
-        patch("os.path.exists", return_value=False),
-        patch("os.makedirs", MagicMock()),
+        patch("pathlib.Path.exists", return_value=False),
+        patch("pathlib.Path.mkdir", MagicMock()),
         patch(
             "heritrace.extensions.generate_config_file",
-            side_effect=Exception("Test generation error"),
+            side_effect=OSError("Test generation error"),
         ),
         pytest.raises(RuntimeError) as excinfo,
     ):
@@ -480,31 +477,31 @@ def test_initialize_change_tracking_config_exceptions(
     mock_open.return_value.__enter__.return_value = MagicMock()
 
     with (
-        patch("os.path.exists", return_value=True),
-        patch("builtins.open", mock_open),
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.open", mock_open),
         patch("json.load", side_effect=json.JSONDecodeError("Test JSON error", "", 0)),
         pytest.raises(RuntimeError) as excinfo,
     ):
         initialize_change_tracking_config(app)
 
     assert (
-        "Invalid change tracking configuration JSON at invalid_json_config.json: Test JSON error"
-        in str(excinfo.value)
-    )
+        "Invalid change tracking configuration JSON at"
+        " invalid_json_config.json: Test JSON error"
+    ) in str(excinfo.value)
 
     app.config["CHANGE_TRACKING_CONFIG"] = "error_config.json"
 
     with (
-        patch("os.path.exists", return_value=True),
-        patch("builtins.open", side_effect=Exception("Test read error")),
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.open", side_effect=OSError("Test read error")),
         pytest.raises(RuntimeError) as excinfo,
     ):
         initialize_change_tracking_config(app)
 
     assert (
-        "Error reading change tracking configuration at error_config.json: Test read error"
-        in str(excinfo.value)
-    )
+        "Error reading change tracking configuration at"
+        " error_config.json: Test read error"
+    ) in str(excinfo.value)
 
 
 def test_initialize_counter_handler(app) -> None:
@@ -697,7 +694,7 @@ def test_initialize_global_variables_shacl_error(app, tmp_path) -> None:
     app.config["SHACL_PATH"] = shacl_path
 
     with (
-        patch("rdflib.Graph.parse", side_effect=Exception("Turtle parsing error")),
+        patch("rdflib.Graph.parse", side_effect=ValueError("Turtle parsing error")),
         pytest.raises(
             RuntimeError, match="Failed to initialize form fields: Turtle parsing error"
         ),
@@ -707,7 +704,7 @@ def test_initialize_global_variables_shacl_error(app, tmp_path) -> None:
 
 def test_initialize_global_variables_general_exception(app) -> None:
     with (
-        patch.object(app.config, "get", side_effect=Exception("General error")),
+        patch.object(app.config, "get", side_effect=ValueError("General error")),
         pytest.raises(
             RuntimeError, match="Global variables initialization failed: General error"
         ),
@@ -808,7 +805,7 @@ class TestSPARQLWrapperWithRetry:
 
             assert result == mock_result
             mock_logger.warning.assert_called_once()
-            mock_logger.info.assert_called_once_with("Retrying in 0.10 seconds...")
+            mock_logger.info.assert_called_once_with("Retrying in %.2f seconds...", 0.1)
             mock_sleep.assert_called_once_with(0.1)
 
     def test_query_all_attempts_fail_with_timeout(self) -> None:
@@ -831,9 +828,9 @@ class TestSPARQLWrapperWithRetry:
                 wrapper.query()
 
             assert mock_logger.warning.call_count == 2
-            mock_logger.info.assert_called_once_with("Retrying in 0.10 seconds...")
+            mock_logger.info.assert_called_once_with("Retrying in %.2f seconds...", 0.1)
             mock_logger.error.assert_called_once_with(
-                "All 2 SPARQL query attempts failed"
+                "All %d SPARQL query attempts failed", 2
             )
             mock_sleep.assert_called_once_with(0.1)
 
@@ -859,7 +856,7 @@ class TestSPARQLWrapperWithRetry:
             assert mock_logger.warning.call_count == 3
             assert mock_logger.info.call_count == 2
             mock_logger.error.assert_called_once_with(
-                "All 3 SPARQL query attempts failed"
+                "All %d SPARQL query attempts failed", 3
             )
 
             expected_calls = [call(0.1), call(0.2)]

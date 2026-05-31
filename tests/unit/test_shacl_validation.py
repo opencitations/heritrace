@@ -39,7 +39,10 @@ class TestShaclValidation(unittest.TestCase):
                     "heritrace.utils.shacl_validation.get_shacl_graph",
                     return_value=mock_shacl,
                 ),
-                patch("heritrace.utils.shacl_validation.is_valid_url", return_value=False),
+                patch(
+                    "heritrace.utils.shacl_validation.is_valid_url",
+                    return_value=False,
+                ),
             ):
                 valid_value, returned_old_value, error = validate_new_triple(
                     subject, predicate, new_value, "update", old_value=old_value_str

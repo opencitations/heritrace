@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import pytest
+import requests
 import responses
 
 from heritrace.apis.orcid import (
@@ -69,7 +70,7 @@ def test_get_orcid_data_exception(app) -> None:
     responses.add(
         responses.GET,
         f"https://pub.orcid.org/v3.0/{orcid_id}/person",
-        body=Exception("Connection error"),
+        body=requests.ConnectionError("Connection error"),
     )
     with app.app_context():
         assert get_orcid_data(orcid_id) is None

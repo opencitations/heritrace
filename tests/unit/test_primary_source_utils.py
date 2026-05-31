@@ -4,6 +4,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from redis import RedisError
+
 from heritrace.utils.primary_source_utils import (
     USER_DEFAULT_SOURCE_KEY,
     get_default_primary_source,
@@ -63,12 +65,12 @@ def test_get_user_default_primary_source_redis_error(mock_current_app, app) -> N
     mock_current_app.logger = mock_logger
 
     with app.app_context():
-        mock_redis.get.side_effect = Exception("Redis connection error")
+        mock_redis.get.side_effect = RedisError("Redis connection error")
         result = get_user_default_primary_source(user_id)
 
         mock_redis.get.assert_called_once_with(key)
-        mock_logger.error.assert_called_once_with(
-            "Failed to get user default primary source from Redis: Redis connection error"
+        mock_logger.exception.assert_called_once_with(
+            "Failed to get user default primary source from Redis"
         )
         assert result is None
 
@@ -180,11 +182,11 @@ def test_save_user_default_primary_source_redis_error(
     mock_current_app.logger = mock_logger
 
     with app.app_context():
-        mock_redis.set.side_effect = Exception("Redis connection error")
+        mock_redis.set.side_effect = RedisError("Redis connection error")
         result = save_user_default_primary_source(user_id, primary_source)
 
         mock_redis.set.assert_called_once_with(key, primary_source)
-        mock_logger.error.assert_called_once_with(
-            "Failed to save user default primary source to Redis: Redis connection error"
+        mock_logger.exception.assert_called_once_with(
+            "Failed to save user default primary source to Redis"
         )
         assert result is False

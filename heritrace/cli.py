@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import os
+from pathlib import Path
 
 import click
 from flask import Flask
@@ -24,10 +25,10 @@ def register_cli_commands(app: Flask) -> None:
         if os.system("pybabel update -i babel/messages.pot -d babel/translations"):
             msg = "update command failed"
             raise RuntimeError(msg)
-        os.remove("babel/messages.pot")
+        Path("babel/messages.pot").unlink()
 
-    @translate.command()
-    def compile() -> None:
+    @translate.command("compile")
+    def compile_translations() -> None:
         """Compile all languages."""
         if os.system("pybabel compile -d babel/translations"):
             msg = "compile command failed"
@@ -43,4 +44,4 @@ def register_cli_commands(app: Flask) -> None:
         if os.system("pybabel init -i messages.pot -d babel/translations -l " + lang):
             msg = "init command failed"
             raise RuntimeError(msg)
-        os.remove("messages.pot")
+        Path("messages.pot").unlink()

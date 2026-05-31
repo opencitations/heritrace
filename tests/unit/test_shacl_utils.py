@@ -157,16 +157,13 @@ class TestShaclUtils:
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
 
-        # Mock per il file context.json
         with (
-            patch("os.path.join", return_value="mock_path"),
-            patch("builtins.open", create=True),
+            patch("pathlib.Path.open", create=True),
             patch("json.load") as mock_json_load,
             patch("heritrace.extensions.get_sparql"),
         ):
             mock_json_load.return_value = {"@context": {}}
 
-            # Chiama direttamente process_query_results
             result = process_query_results(
                 shacl, results, display_rules, processed_shapes, app
             )
@@ -322,16 +319,13 @@ class TestShaclUtils:
         app = Flask(__name__)
         app.config["DATASET_DB_URL"] = "http://example.org/sparql"
 
-        # Mock per il file context.json
         with (
-            patch("os.path.join", return_value="mock_path"),
-            patch("builtins.open", create=True),
+            patch("pathlib.Path.open", create=True),
             patch("json.load") as mock_json_load,
             patch("heritrace.extensions.get_sparql"),
         ):
             mock_json_load.return_value = {"@context": {}}
 
-            # Chiama direttamente process_query_results
             result = process_query_results(
                 shacl, results, display_rules, processed_shapes, app
             )

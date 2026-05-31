@@ -6,14 +6,17 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from flask_babel import gettext
 from rdflib import RDF, XSD, Dataset, Graph, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
-from rdflib.query import ResultRow
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from rdflib.query import ResultRow
 
 from heritrace.extensions import get_custom_filter, get_shacl_graph
 from heritrace.sparql import select_results
@@ -42,7 +45,7 @@ class ValidationContext:
 def _build_cardinality_metadata(
     valid_predicates: list[dict],
     predicate_counts: dict[str, int],
-    triples: Sequence[tuple[URIRef, URIRef, URIRef | Literal]],
+    _triples: Sequence[tuple[URIRef, URIRef, URIRef | Literal]],
 ) -> tuple[set[str], set[str], dict[str, list[str]], dict[str, list[str]]]:
     can_be_added: set[str] = set()
     can_be_deleted: set[str] = set()
@@ -201,9 +204,7 @@ def _collect_subject_types(
     highest_priority_class = get_highest_priority_class(s_types)
 
     if entity_types and not s_types:
-        s_types = (
-            entity_types if isinstance(entity_types, list) else [entity_types]
-        )
+        s_types = entity_types if isinstance(entity_types, list) else [entity_types]
 
     for _s, _p, _o in get_triples_from_graph(data_graph, (None, None, subject)):
         s_types.extend(
@@ -279,11 +280,7 @@ def _validate_cardinality(
     min_count: int | None,
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str] | None:
     current_count = len(
-        list(
-            get_triples_from_graph(
-                ctx.data_graph, (ctx.subject, ctx.predicate, None)
-            )
-        )
+        list(get_triples_from_graph(ctx.data_graph, (ctx.subject, ctx.predicate, None)))
     )
 
     if action == "create":
@@ -374,9 +371,7 @@ def _validate_class_constraint(
         for c in classes
     )
 
-    def _class_error() -> (
-        tuple[URIRef | Literal | None, URIRef | Literal | None, str]
-    ):
+    def _class_error() -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
         return (
             None,
             ctx.old_value,
@@ -429,9 +424,7 @@ def _validate_datatype_constraint(
                 property=ctx.custom_filter.human_readable_predicate(
                     str(ctx.predicate), ctx.entity_key
                 ),
-                o_types=", ".join(
-                    f"<code>{label}</code>" for label in datatype_labels
-                ),
+                o_types=", ".join(f"<code>{label}</code>" for label in datatype_labels),
             ),
         )
     return valid_value, ctx.old_value, ""
@@ -475,16 +468,12 @@ def _extract_shacl_constraints(
     results_list: list[ResultRow],
 ) -> tuple[list[URIRef], list[URIRef], list[str], int | None, int | None]:
     datatypes: list[URIRef] = [
-        URIRef(str(row.datatype))
-        for row in results_list
-        if row.datatype is not None
+        URIRef(str(row.datatype)) for row in results_list if row.datatype is not None
     ]
     classes: list[URIRef] = [
         URIRef(str(row.a_class)) for row in results_list if row.a_class
     ]
-    classes.extend(
-        URIRef(str(row.classIn)) for row in results_list if row.classIn
-    )
+    classes.extend(URIRef(str(row.classIn)) for row in results_list if row.classIn)
     optional_values_str = [
         row.optionalValues for row in results_list if row.optionalValues
     ]
@@ -538,7 +527,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
     action: str,
     old_value: URIRef | Literal | None = None,
     entity_types: str | list[str] | None = None,
-    entity_shape: str | None = None,
+    entity_shape: str | None = None,  # noqa: ARG001
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
     data_graph = fetch_data_graph_for_subject(subject)
     old_value = _resolve_old_value(data_graph, subject, predicate, old_value)
@@ -583,9 +572,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
     if action == "delete":
         return None, old_value, ""
 
-    optional_error = _validate_optional_values(
-        new_value, ctx, optional_values
-    )
+    optional_error = _validate_optional_values(new_value, ctx, optional_values)
     if optional_error:
         return optional_error
 
