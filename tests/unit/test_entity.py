@@ -36,10 +36,10 @@ from heritrace.utils.filters import Filter
 # ===== Entity Tests =====
 
 
-@patch("heritrace.routes.entity.get_form_fields")
-@patch("heritrace.routes.entity.get_predicate_count")
-@patch("heritrace.routes.entity.get_entity_types")
-@patch("heritrace.routes.entity.get_highest_priority_class")
+@patch("heritrace.routes.entity._operations.get_form_fields")
+@patch("heritrace.routes.entity._operations.get_predicate_count")
+@patch("heritrace.routes.entity._operations.get_entity_types")
+@patch("heritrace.routes.entity._operations.get_highest_priority_class")
 def test_validate_modification_valid(
     mock_get_highest_priority,
     mock_get_entity_types,
@@ -88,7 +88,7 @@ def test_validate_modification_valid(
 
 @pytest.fixture
 def mock_get_custom_filter():
-    with patch("heritrace.routes.entity.get_custom_filter") as mock:
+    with patch("heritrace.routes.entity._validation.get_custom_filter") as mock:
         mock.return_value = MagicMock()
         mock.return_value.human_readable_predicate.return_value = "Human readable"
         yield mock
@@ -96,7 +96,7 @@ def mock_get_custom_filter():
 
 @pytest.fixture
 def mock_get_form_fields():
-    with patch("heritrace.routes.entity.get_form_fields") as mock:
+    with patch("heritrace.routes.entity._validation.get_form_fields") as mock:
         yield mock
 
 
@@ -354,10 +354,10 @@ def test_process_modification_data() -> None:
     assert modifications[0]["datatype"] == str(XSD.string)
 
 
-@patch("heritrace.routes.entity.get_form_fields")
-@patch("heritrace.routes.entity.get_entity_types")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.get_predicate_count")
+@patch("heritrace.routes.entity._operations.get_form_fields")
+@patch("heritrace.routes.entity._operations.get_entity_types")
+@patch("heritrace.routes.entity._operations.get_highest_priority_class")
+@patch("heritrace.routes.entity._operations.get_predicate_count")
 def test_validate_modification_max_count(
     mock_get_predicate_count,
     mock_get_highest_priority,
@@ -398,21 +398,10 @@ def test_validate_modification_max_count(
     assert "Maximum count" in error
 
 
-@patch("heritrace.routes.entity.RDF")
-@patch("heritrace.routes.entity.get_form_fields")
-def test_format_triple_modification_with_relevant_snapshot(
-    mock_get_form_fields, mock_rdf
-) -> None:
+def test_format_triple_modification_with_relevant_snapshot() -> None:
     """Test format_triple_modification with a relevant snapshot for deletions."""
-    # Setup mocks
-    mock_rdf.type = URIRef("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
     mock_filter = MagicMock(spec=Filter)
     mock_filter.human_readable_predicate.return_value = "Human Readable Predicate"
-    mock_get_form_fields.return_value = {
-        ("http://example.org/Person", "http://example.org/EntityShape"): {
-            "http://example.org/predicate": [{"datatypes": [str(XSD.string)]}]
-        }
-    }
 
     # Create test data
     entity_uri = "http://example.org/entity/123"
@@ -481,7 +470,7 @@ def test_entity_version_timestamp_from_provenance() -> None:
     with (
         app.test_request_context(),
         patch(
-            "heritrace.routes.entity.get_provenance_sparql"
+            "heritrace.routes.entity._history.get_provenance_sparql"
         ) as mock_get_provenance_sparql,
     ):
         # Setup the mock SPARQL endpoint
@@ -513,7 +502,7 @@ def test_entity_version_timestamp_from_provenance() -> None:
         assert timestamp_dt == datetime.fromisoformat("2023-01-01T00:00:00")
 
 
-@patch("heritrace.routes.entity.get_dataset_is_quadstore")
+@patch("heritrace.routes.entity._restoration.get_dataset_is_quadstore")
 def test_restore_version_with_triples(mock_get_dataset_is_quadstore) -> None:
     """Test restore_version with triples (non-quadstore)."""
     # Setup mocks
@@ -660,8 +649,8 @@ def test_restore_version_deleted_entity() -> None:
     )
 
 
-@patch("heritrace.routes.entity.flash")
-@patch("heritrace.routes.entity.gettext")
+@patch("heritrace.routes.entity._restoration.flash")
+@patch("heritrace.routes.entity._restoration.gettext")
 def test_restore_version_exception(mock_gettext, mock_flash) -> None:
     """Test restore_version with an exception during save."""
     # Setup mocks
@@ -791,7 +780,7 @@ def test_prepare_entity_snapshots_skip_no_valid_snapshot() -> None:
     assert "http://example.org/entity/2" in result
 
 
-@patch("heritrace.routes.entity.get_dataset_is_quadstore")
+@patch("heritrace.routes.entity._restoration.get_dataset_is_quadstore")
 def test_compute_graph_differences_non_quadstore(mock_get_dataset_is_quadstore) -> None:
     """Test compute_graph_differences when dataset is not a quadstore."""
     # Setup mocks
@@ -862,9 +851,9 @@ def test_compute_graph_differences_non_quadstore(mock_get_dataset_is_quadstore) 
 # ===== Tests for determine_object_class_and_shape =====
 
 
-@patch("heritrace.routes.entity.determine_shape_for_entity_triples")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._rendering.determine_shape_for_entity_triples")
+@patch("heritrace.routes.entity._rendering.get_highest_priority_class")
+@patch("heritrace.routes.entity._rendering.is_valid_url")
 def test_determine_object_class_and_shape_valid_uri(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -893,7 +882,7 @@ def test_determine_object_class_and_shape_valid_uri(
     mock_determine_shape.assert_called_once()
 
 
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._rendering.is_valid_url")
 def test_determine_object_class_and_shape_invalid_url(mock_is_valid_url) -> None:
     """Test determine_object_class_and_shape with invalid URL."""
     # Setup mocks
@@ -912,7 +901,7 @@ def test_determine_object_class_and_shape_invalid_url(mock_is_valid_url) -> None
     mock_is_valid_url.assert_called_once_with("not-a-url")
 
 
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._rendering.is_valid_url")
 def test_determine_object_class_and_shape_no_graph(mock_is_valid_url) -> None:
     """Test determine_object_class_and_shape with no graph provided."""
     # Setup mocks
@@ -928,9 +917,9 @@ def test_determine_object_class_and_shape_no_graph(mock_is_valid_url) -> None:
     assert object_shape is None
 
 
-@patch("heritrace.routes.entity.determine_shape_for_entity_triples")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._rendering.determine_shape_for_entity_triples")
+@patch("heritrace.routes.entity._rendering.get_highest_priority_class")
+@patch("heritrace.routes.entity._rendering.is_valid_url")
 def test_determine_object_class_and_shape_no_triples(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -953,9 +942,9 @@ def test_determine_object_class_and_shape_no_triples(
     mock_determine_shape.assert_not_called()
 
 
-@patch("heritrace.routes.entity.determine_shape_for_entity_triples")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._rendering.determine_shape_for_entity_triples")
+@patch("heritrace.routes.entity._rendering.get_highest_priority_class")
+@patch("heritrace.routes.entity._rendering.is_valid_url")
 def test_determine_object_class_and_shape_no_classes(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -984,9 +973,9 @@ def test_determine_object_class_and_shape_no_classes(
     mock_determine_shape.assert_called_once()
 
 
-@patch("heritrace.routes.entity.determine_shape_for_entity_triples")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._rendering.determine_shape_for_entity_triples")
+@patch("heritrace.routes.entity._rendering.get_highest_priority_class")
+@patch("heritrace.routes.entity._rendering.is_valid_url")
 def test_determine_object_class_and_shape_multiple_classes(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -1023,9 +1012,9 @@ def test_determine_object_class_and_shape_multiple_classes(
 # ===== Tests for _format_snapshot_description =====
 
 
-@patch("heritrace.routes.entity.determine_shape_for_classes")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._history.determine_shape_for_classes")
+@patch("heritrace.routes.entity._history.get_highest_priority_class")
+@patch("heritrace.routes.entity._history.is_valid_url")
 def test_format_snapshot_description_simple(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -1070,9 +1059,9 @@ def test_format_snapshot_description_simple(
     )
 
 
-@patch("heritrace.routes.entity.determine_shape_for_classes")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._history.determine_shape_for_classes")
+@patch("heritrace.routes.entity._history.get_highest_priority_class")
+@patch("heritrace.routes.entity._history.is_valid_url")
 def test_format_snapshot_description_merge_with_uri(
     mock_is_valid_url, _mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -1152,7 +1141,7 @@ def test_format_snapshot_description_merge_with_uri(
     assert "http://example.org/person/456" not in result  # URI should be replaced
 
 
-@patch("heritrace.routes.entity.determine_shape_for_classes")
+@patch("heritrace.routes.entity._history.determine_shape_for_classes")
 def test_format_snapshot_description_no_merge(mock_determine_shape) -> None:
     """Test _format_snapshot_description with non-merge description."""
     # Setup mocks
@@ -1190,9 +1179,9 @@ def test_format_snapshot_description_no_merge(mock_determine_shape) -> None:
     assert result == "Regular update description"
 
 
-@patch("heritrace.routes.entity.determine_shape_for_classes")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._history.determine_shape_for_classes")
+@patch("heritrace.routes.entity._history.get_highest_priority_class")
+@patch("heritrace.routes.entity._history.is_valid_url")
 def test_format_snapshot_description_merge_invalid_uri(
     mock_is_valid_url, _mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -1235,7 +1224,7 @@ def test_format_snapshot_description_merge_invalid_uri(
     assert result == "Entity was merged with invalid-uri"
 
 
-@patch("heritrace.routes.entity.determine_shape_for_classes")
+@patch("heritrace.routes.entity._history.determine_shape_for_classes")
 def test_format_snapshot_description_entity_uri_replacement(
     mock_determine_shape,
 ) -> None:
@@ -1276,7 +1265,7 @@ def test_format_snapshot_description_entity_uri_replacement(
     assert entity_uri not in result
 
 
-@patch("heritrace.routes.entity.determine_shape_for_classes")
+@patch("heritrace.routes.entity._history.determine_shape_for_classes")
 def test_format_snapshot_description_entity_same_as_uri(mock_determine_shape) -> None:
     """Test _format_snapshot_description when entity label is same as URI."""
     # Setup mocks
@@ -1314,9 +1303,9 @@ def test_format_snapshot_description_entity_same_as_uri(mock_determine_shape) ->
     assert result == "Created entity 'http://example.org/person/123'"
 
 
-@patch("heritrace.routes.entity.determine_shape_for_classes")
-@patch("heritrace.routes.entity.get_highest_priority_class")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._history.determine_shape_for_classes")
+@patch("heritrace.routes.entity._history.get_highest_priority_class")
+@patch("heritrace.routes.entity._history.is_valid_url")
 def test_format_snapshot_description_merge_current_index_zero(
     mock_is_valid_url, _mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -1359,7 +1348,7 @@ def test_format_snapshot_description_merge_current_index_zero(
     assert "merged with http://example.org/person/456" in result
 
 
-@patch("heritrace.routes.entity.determine_shape_for_classes")
+@patch("heritrace.routes.entity._history.determine_shape_for_classes")
 def test_format_snapshot_description_empty_description(mock_determine_shape) -> None:
     """Test _format_snapshot_description with empty description."""
     # Setup mocks
@@ -1421,10 +1410,10 @@ def test_get_deleted_entity_context_info() -> None:
     # Mock the functions that are called in the target function
     with (
         patch(
-            "heritrace.routes.entity.get_highest_priority_class"
+            "heritrace.routes.entity._about.get_highest_priority_class"
         ) as mock_get_highest_priority,
         patch(
-            "heritrace.routes.entity.determine_shape_for_entity_triples"
+            "heritrace.routes.entity._about.determine_shape_for_entity_triples"
         ) as mock_determine_shape,
     ):
         mock_get_highest_priority.return_value = "http://example.org/Person"
@@ -1502,10 +1491,10 @@ def test_get_deleted_entity_context_info() -> None:
         mock_determine_shape.assert_not_called()
 
 
-@patch("heritrace.routes.entity.generate_unique_uri")
-@patch("heritrace.routes.entity.create_nested_entity")
-@patch("heritrace.routes.entity.is_valid_url")
-@patch("heritrace.routes.entity.determine_datatype")
+@patch("heritrace.routes.entity._creation.generate_unique_uri")
+@patch("heritrace.routes.entity._creation.create_nested_entity")
+@patch("heritrace.routes.entity._creation.is_valid_url")
+@patch("heritrace.routes.entity._creation.determine_datatype")
 def test_process_entity_value_nested_entity(
     _mock_determine_datatype, _mock_is_valid_url, mock_create_nested, mock_generate_uri
 ) -> None:
@@ -1543,7 +1532,7 @@ def test_process_entity_value_nested_entity(
     )
 
 
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._creation.is_valid_url")
 def test_process_entity_value_existing_entity(_mock_is_valid_url) -> None:
     """Test process_entity_value with existing entity reference."""
     mock_editor = MagicMock()
@@ -1598,8 +1587,8 @@ def test_process_entity_value_existing_entity_missing_uri() -> None:
         )
 
 
-@patch("heritrace.routes.entity.determine_datatype")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._creation.determine_datatype")
+@patch("heritrace.routes.entity._creation.is_valid_url")
 def test_process_entity_value_uri_literal(
     mock_is_valid_url, mock_determine_datatype
 ) -> None:
@@ -1627,8 +1616,8 @@ def test_process_entity_value_uri_literal(
     mock_determine_datatype.assert_not_called()
 
 
-@patch("heritrace.routes.entity.determine_datatype")
-@patch("heritrace.routes.entity.is_valid_url")
+@patch("heritrace.routes.entity._creation.determine_datatype")
+@patch("heritrace.routes.entity._creation.is_valid_url")
 def test_process_entity_value_string_literal(
     mock_is_valid_url, mock_determine_datatype
 ) -> None:
@@ -1660,8 +1649,8 @@ def test_process_entity_value_string_literal(
     mock_determine_datatype.assert_called_once_with("Test Title", [str(XSD.string)])
 
 
-@patch("heritrace.routes.entity.generate_unique_uri")
-@patch("heritrace.routes.entity.create_nested_entity")
+@patch("heritrace.routes.entity._creation.generate_unique_uri")
+@patch("heritrace.routes.entity._creation.create_nested_entity")
 def test_process_ordered_entity_value_nested_entity(
     mock_create_nested, mock_generate_uri
 ) -> None:
@@ -1736,7 +1725,7 @@ def test_process_ordered_entity_value_invalid_type() -> None:
         )
 
 
-@patch("heritrace.routes.entity.process_ordered_entity_value")
+@patch("heritrace.routes.entity._creation.process_ordered_entity_value")
 def test_process_ordered_properties_single_shape(mock_process_ordered) -> None:
     """Test process_ordered_properties with values of single shape."""
     # Setup mocks
@@ -1776,7 +1765,7 @@ def test_process_ordered_properties_single_shape(mock_process_ordered) -> None:
     assert len(ordering_calls) == 2
 
 
-@patch("heritrace.routes.entity.process_ordered_entity_value")
+@patch("heritrace.routes.entity._creation.process_ordered_entity_value")
 def test_process_ordered_properties_multiple_shapes(mock_process_ordered) -> None:
     """Test process_ordered_properties with values of different shapes."""
     # Setup mocks - return different URIs for different calls
@@ -1820,7 +1809,7 @@ def test_process_ordered_properties_multiple_shapes(mock_process_ordered) -> Non
     assert len(ordering_calls) == 2
 
 
-@patch("heritrace.routes.entity.process_ordered_entity_value")
+@patch("heritrace.routes.entity._creation.process_ordered_entity_value")
 def test_process_ordered_properties_default_shape(mock_process_ordered) -> None:
     """Test process_ordered_properties with values missing entity_shape."""
     # Setup mocks
@@ -1858,7 +1847,7 @@ def test_process_ordered_properties_default_shape(mock_process_ordered) -> None:
     assert len(ordering_calls) == 1
 
 
-@patch("heritrace.routes.entity.process_entity_value")
+@patch("heritrace.routes.entity._creation.process_entity_value")
 def test_process_unordered_properties_multiple_values(mock_process_entity) -> None:
     """Test process_unordered_properties with multiple values."""
     # Setup mocks
@@ -1904,7 +1893,7 @@ def test_process_unordered_properties_multiple_values(mock_process_entity) -> No
         assert args[5] == matching_field_def
 
 
-@patch("heritrace.routes.entity.process_entity_value")
+@patch("heritrace.routes.entity._creation.process_entity_value")
 def test_process_unordered_properties_empty_values(mock_process_entity) -> None:
     """Test process_unordered_properties with empty values list."""
     mock_editor = MagicMock()

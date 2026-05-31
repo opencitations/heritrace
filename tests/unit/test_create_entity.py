@@ -39,14 +39,16 @@ def mock_editor():
     return MagicMock()
 
 
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
-@patch("heritrace.routes.entity.get_dataset_endpoint")
-@patch("heritrace.routes.entity.get_provenance_endpoint")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
+@patch("heritrace.routes.entity._creation.get_form_fields")
+@patch("heritrace.routes.entity._creation.get_dataset_endpoint")
+@patch("heritrace.routes.entity._creation.get_provenance_endpoint")
 def test_create_entity_with_shacl(
     _mock_get_prov,
     _mock_get_dataset,
     mock_get_form_fields,
+    _mock_validate,
     mock_editor,
     logged_in_client,
     app,
@@ -89,8 +91,8 @@ def test_create_entity_with_shacl(
     )  # At least 3 create calls expected
 
 
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_without_shacl(
     mock_get_form_fields, mock_editor, logged_in_client, app
 ) -> None:
@@ -129,10 +131,16 @@ def test_create_entity_without_shacl(
     )  # At least 2 create calls expected
 
 
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_with_ordered_properties(
-    mock_get_form_fields, mock_editor, logged_in_client, app, mock_form_fields
+    mock_get_form_fields,
+    _mock_validate,
+    mock_editor,
+    logged_in_client,
+    app,
+    mock_form_fields,
 ) -> None:
     """Test creating an entity with ordered properties"""
     mock_get_form_fields.return_value = {
@@ -187,10 +195,11 @@ def test_create_entity_with_ordered_properties(
     )  # At least 5 create calls expected (2 addresses + ordering + properties)
 
 
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_with_shape_matching(
-    mock_get_form_fields, _mock_editor, logged_in_client, app
+    mock_get_form_fields, _mock_validate, _mock_editor, logged_in_client, app
 ) -> None:
     """Test creating an entity with shape matching validation"""
     # Setup form fields with multiple shapes for the same property
@@ -256,8 +265,8 @@ def test_create_entity_with_shape_matching(
     assert response.json["status"] == "success"
 
 
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_validation_error(
     mock_get_form_fields, _mock_editor, logged_in_client, app, mock_form_fields
 ) -> None:
@@ -289,10 +298,16 @@ def test_create_entity_validation_error(
     assert len(response.json["errors"]) > 0
 
 
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_editor_exception(
-    mock_get_form_fields, mock_editor, logged_in_client, app, mock_form_fields
+    mock_get_form_fields,
+    _mock_validate,
+    mock_editor,
+    logged_in_client,
+    app,
+    mock_form_fields,
 ) -> None:
     """Test handling of editor exceptions during entity creation"""
     mock_get_form_fields.return_value = mock_form_fields
@@ -317,10 +332,11 @@ def test_create_entity_editor_exception(
     assert "Test error" in response.json["errors"][0]
 
 
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_with_direct_uri_reference(
-    mock_get_form_fields, mock_editor, logged_in_client, app
+    mock_get_form_fields, _mock_validate, mock_editor, logged_in_client, app
 ) -> None:
     """Test creating an entity with direct URI references to existing entities"""
     # Setup form fields
@@ -397,10 +413,11 @@ def test_create_entity_with_direct_uri_reference(
     )
 
 
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_with_single_value_properties(
-    mock_get_form_fields, mock_editor, logged_in_client, app
+    mock_get_form_fields, _mock_validate, mock_editor, logged_in_client, app
 ) -> None:
     """Test creating an entity with single value properties (non-list values)"""
     # Setup form fields
@@ -473,9 +490,9 @@ def test_create_entity_with_single_value_properties(
     )
 
 
-@patch("heritrace.routes.entity.gettext")
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.gettext")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_invalid_primary_source(
     mock_get_form_fields, mock_editor, mock_gettext, logged_in_client, app
 ) -> None:
@@ -512,15 +529,17 @@ def test_create_entity_invalid_primary_source(
     mock_editor.assert_not_called()  # Editor should not be instantiated
 
 
-@patch("heritrace.routes.entity.save_user_default_primary_source")
-@patch("heritrace.routes.entity.Editor")
-@patch("heritrace.routes.entity.get_form_fields")
-@patch("heritrace.routes.entity.get_dataset_endpoint")
-@patch("heritrace.routes.entity.get_provenance_endpoint")
+@patch("heritrace.routes.entity._creation.save_user_default_primary_source")
+@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
+@patch("heritrace.routes.entity._creation.get_form_fields")
+@patch("heritrace.routes.entity._creation.get_dataset_endpoint")
+@patch("heritrace.routes.entity._creation.get_provenance_endpoint")
 def test_create_entity_save_default_primary_source(
     _mock_get_prov,
     _mock_get_dataset,
     mock_get_form_fields,
+    _mock_validate,
     mock_editor,
     mock_save_default,
     logged_in_client,
@@ -542,7 +561,7 @@ def test_create_entity_save_default_primary_source(
     }
 
     # Mock current_user which is used inside the route
-    with patch("heritrace.routes.entity.current_user") as mock_current_user:
+    with patch("heritrace.routes.entity._creation.current_user") as mock_current_user:
         mock_current_user.orcid = "0000-0000-0000-0001"  # Example ORCID
 
         response = logged_in_client.post(

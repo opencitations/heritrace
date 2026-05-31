@@ -2,11 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
-"""
-Unit tests for the get_object_label function in entity.py.
-"""
-
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from rdflib import URIRef
@@ -17,56 +13,42 @@ from heritrace.utils.filters import Filter
 
 @pytest.fixture
 def mock_custom_filter():
-    """Create a mock custom filter."""
     filter_mock = MagicMock(spec=Filter)
     filter_mock.human_readable_class.return_value = "Person"
     filter_mock.human_readable_entity.return_value = "Human Readable Entity"
     return filter_mock
 
 
-@patch("heritrace.routes.entity.get_form_fields")
-def test_get_object_label_rdf_type(mock_get_form_fields) -> None:
-    """Test get_object_label with RDF type predicate."""
-    # Setup
+def test_get_object_label_rdf_type() -> None:
     object_value = "http://example.org/Person"
     predicate = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     entity_type = "http://example.org/Entity"
-    mock_get_form_fields.return_value = {}
-    snapshot = None
     mock_custom_filter = MagicMock(spec=Filter)
     mock_custom_filter.human_readable_class.return_value = "Person"
 
-    # Execute
     label = get_object_label(
         object_value,
         predicate,
         None,
         None,
-        snapshot,
+        None,
         mock_custom_filter,
         (entity_type, "http://example.org/EntityShape"),
     )
 
-    # Verify
     assert label == "Person"
     mock_custom_filter.human_readable_class.assert_called_once_with(
         (entity_type, "http://example.org/EntityShape")
     )
 
 
-@patch("heritrace.routes.entity.get_form_fields")
-def test_get_object_label_uri(mock_get_form_fields, mock_custom_filter) -> None:
-    """Test get_object_label with a URI."""
-    # Setup
+def test_get_object_label_uri(mock_custom_filter) -> None:
     object_value = "http://example.org/some-entity"
     predicate = "http://example.org/predicate"
-    mock_get_form_fields.return_value = {}
 
-    # Create a mock snapshot with type information
     snapshot = MagicMock()
     snapshot.triples.return_value = [(None, None, URIRef("http://example.org/Person"))]
 
-    # Execute
     label = get_object_label(
         object_value,
         predicate,
@@ -76,59 +58,37 @@ def test_get_object_label_uri(mock_get_form_fields, mock_custom_filter) -> None:
         mock_custom_filter,
     )
 
-    # Verify
     assert label == "Human Readable Entity"
     mock_custom_filter.human_readable_entity.assert_called_once_with(
         object_value, ("http://example.org/Person", None), snapshot
     )
 
 
-@patch("heritrace.routes.entity.get_form_fields")
-def test_get_object_label_uri_no_snapshot(
-    mock_get_form_fields, mock_custom_filter
-) -> None:
-    """Test get_object_label with a URI and no snapshot."""
-    # Setup
+def test_get_object_label_uri_no_snapshot(mock_custom_filter) -> None:
     object_value = "http://example.org/some-entity"
     predicate = "http://example.org/predicate"
-    mock_get_form_fields.return_value = {}
-    snapshot = None
 
-    # Execute
     label = get_object_label(
-        object_value, predicate, None, None, snapshot, mock_custom_filter
+        object_value, predicate, None, None, None, mock_custom_filter
     )
 
-    # Verify
-    assert (
-        label == "http://example.org/some-entity"
-    )  # Should return the URI as string when no class/shape info
-    # No mock assertion needed since it should return the URI directly
+    assert label == "http://example.org/some-entity"
 
 
-@patch("heritrace.routes.entity.get_form_fields")
-def test_get_object_label_literal_value(
-    mock_get_form_fields, mock_custom_filter
-) -> None:
-    """Test get_object_label with a literal (non-URL) value."""
-    # Setup
+def test_get_object_label_literal_value(mock_custom_filter) -> None:
     object_value = "Simple text value"
     predicate = "http://example.org/predicate"
     entity_type = "http://example.org/Entity"
-    mock_get_form_fields.return_value = {}
-    snapshot = None
 
-    # Execute
     label = get_object_label(
         object_value,
         predicate,
         entity_type,
         "http://example.org/EntityShape",
-        snapshot,
+        None,
         mock_custom_filter,
     )
 
-    # Verify
     assert label == "Simple text value"
     mock_custom_filter.human_readable_predicate.assert_not_called()
     mock_custom_filter.human_readable_entity.assert_not_called()

@@ -190,9 +190,10 @@ def test_create_entity_get(logged_in_client: FlaskClient) -> None:
     assert "entityForm" in response.data.decode()
 
 
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
+@patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_post(
-    mock_get_form_fields, logged_in_client: FlaskClient, app: Flask
+    mock_get_form_fields, _mock_validate, logged_in_client: FlaskClient, app: Flask
 ) -> None:
     """Test the POST method for the create entity route."""
     mock_form_fields = {
@@ -466,7 +467,10 @@ def test_validate_entity_data(app: Flask) -> None:
     with (
         app.app_context(),
         app.test_request_context(),
-        patch("heritrace.routes.entity.get_form_fields", return_value=form_fields),
+        patch(
+            "heritrace.routes.entity._validation.get_form_fields",
+            return_value=form_fields,
+        ),
     ):
         errors = validate_entity_data(valid_data)
         assert len(errors) == 0, f"Expected no errors, got: {errors}"
@@ -1051,7 +1055,10 @@ def test_compute_graph_differences() -> None:
     )
 
     # Compute differences
-    with patch("heritrace.routes.entity.get_dataset_is_quadstore", return_value=True):
+    with patch(
+        "heritrace.routes.entity._restoration.get_dataset_is_quadstore",
+        return_value=True,
+    ):
         to_delete, to_add = compute_graph_differences(graph1, graph2)
 
     # Check results

@@ -183,7 +183,7 @@ def test_apply_modifications_multiple() -> None:
     )
 
 
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._operations.get_form_fields")
 def test_validate_modification_no_operation(mock_get_form_fields) -> None:
     """Test validate_modification when no operation is specified."""
     # Setup
@@ -199,7 +199,7 @@ def test_validate_modification_no_operation(mock_get_form_fields) -> None:
     assert error_message == "No operation specified in modification"
 
 
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._operations.get_form_fields")
 def test_validate_modification_no_predicate(mock_get_form_fields) -> None:
     """Test validate_modification when no predicate is specified."""
     # Setup
@@ -215,7 +215,7 @@ def test_validate_modification_no_predicate(mock_get_form_fields) -> None:
     assert error_message == "No predicate specified in modification"
 
 
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._operations.get_form_fields")
 def test_validate_modification_invalid_operation(mock_get_form_fields) -> None:
     """Test validate_modification with an invalid operation."""
     # Setup
@@ -231,10 +231,10 @@ def test_validate_modification_invalid_operation(mock_get_form_fields) -> None:
     assert error_message == "Invalid operation: invalid"
 
 
-@patch("heritrace.routes.entity.get_form_fields")
-@patch("heritrace.routes.entity.get_predicate_count")
-@patch("heritrace.routes.entity.get_entity_types")
-@patch("heritrace.routes.entity.get_highest_priority_class")
+@patch("heritrace.routes.entity._operations.get_form_fields")
+@patch("heritrace.routes.entity._operations.get_predicate_count")
+@patch("heritrace.routes.entity._operations.get_entity_types")
+@patch("heritrace.routes.entity._operations.get_highest_priority_class")
 def test_validate_modification_remove_required(
     mock_get_highest_priority,
     mock_get_entity_types,
@@ -269,10 +269,10 @@ def test_validate_modification_remove_required(
     assert error_message == "Cannot remove required predicate: http://example.org/title"
 
 
-@patch("heritrace.routes.entity.get_form_fields")
-@patch("heritrace.routes.entity.get_predicate_count")
-@patch("heritrace.routes.entity.get_entity_types")
-@patch("heritrace.routes.entity.get_highest_priority_class")
+@patch("heritrace.routes.entity._operations.get_form_fields")
+@patch("heritrace.routes.entity._operations.get_predicate_count")
+@patch("heritrace.routes.entity._operations.get_entity_types")
+@patch("heritrace.routes.entity._operations.get_highest_priority_class")
 def test_validate_modification_exceed_max_count(
     mock_get_highest_priority,
     mock_get_entity_types,
@@ -311,7 +311,7 @@ def test_validate_modification_exceed_max_count(
     )
 
 
-@patch("heritrace.routes.entity.get_sparql")
+@patch("heritrace.routes.entity._operations.get_sparql")
 def test_get_predicate_count_single_value(mock_get_sparql) -> None:
     """Test get_predicate_count when there is a single value for the predicate."""
     # Setup mock SPARQL endpoint
@@ -344,7 +344,7 @@ def test_get_predicate_count_single_value(mock_get_sparql) -> None:
     assert "COUNT(?o)" in query
 
 
-@patch("heritrace.routes.entity.get_sparql")
+@patch("heritrace.routes.entity._operations.get_sparql")
 def test_get_predicate_count_multiple_values(mock_get_sparql) -> None:
     """Test get_predicate_count when there are multiple values for the predicate."""
     # Setup mock SPARQL endpoint
@@ -371,7 +371,7 @@ def test_get_predicate_count_multiple_values(mock_get_sparql) -> None:
     mock_sparql.query.assert_called_once()
 
 
-@patch("heritrace.routes.entity.get_sparql")
+@patch("heritrace.routes.entity._operations.get_sparql")
 def test_get_predicate_count_no_values(mock_get_sparql) -> None:
     """Test get_predicate_count when there are no values for the predicate."""
     # Setup mock SPARQL endpoint

@@ -15,8 +15,8 @@ from heritrace.routes.entity import validate_entity_data
 from heritrace.utils.filters import Filter
 
 
-@patch("heritrace.routes.entity.get_custom_filter")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._validation.get_custom_filter")
+@patch("heritrace.routes.entity._validation.get_form_fields")
 def test_validate_entity_data_valid(
     mock_get_form_fields, mock_get_custom_filter
 ) -> None:
@@ -69,8 +69,8 @@ def test_validate_entity_data_valid(
     assert errors == []
 
 
-@patch("heritrace.routes.entity.get_custom_filter")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._validation.get_custom_filter")
+@patch("heritrace.routes.entity._validation.get_form_fields")
 def test_validate_entity_data_missing_required(
     mock_get_form_fields, mock_get_custom_filter
 ) -> None:
@@ -122,8 +122,8 @@ def test_validate_entity_data_missing_required(
     assert "Title" in errors[0]
 
 
-@patch("heritrace.routes.entity.get_custom_filter")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._validation.get_custom_filter")
+@patch("heritrace.routes.entity._validation.get_form_fields")
 def test_validate_entity_data_invalid_entity_type(
     mock_get_form_fields, mock_get_custom_filter
 ) -> None:
@@ -164,8 +164,8 @@ def test_validate_entity_data_invalid_entity_type(
     assert "No form fields found for entity type" in errors[0]
 
 
-@patch("heritrace.routes.entity.get_custom_filter")
-@patch("heritrace.routes.entity.get_form_fields")
+@patch("heritrace.routes.entity._validation.get_custom_filter")
+@patch("heritrace.routes.entity._validation.get_form_fields")
 def test_validate_entity_data_with_shape(
     mock_get_form_fields, mock_get_custom_filter
 ) -> None:

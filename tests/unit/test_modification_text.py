@@ -28,18 +28,6 @@ def mock_custom_filter():
 
 
 @pytest.fixture
-def mock_display_rules():
-    """Create mock display rules."""
-    return [
-        {
-            "target": {"class": "http://example.org/Person"},
-            "properties": ["http://example.org/name", "http://example.org/age"],
-            "priority": 0,
-        }
-    ]
-
-
-@pytest.fixture
 def mock_gettext():
     """Create a mock gettext function."""
 
@@ -63,16 +51,15 @@ def mock_format_triple():
 
 
 def test_generate_modification_text_empty_modifications(
-    mock_custom_filter, mock_display_rules
+    mock_custom_filter,
 ) -> None:
     """Test generate_modification_text with empty modifications."""
     with (
         patch(
-            "heritrace.routes.entity.get_display_rules", return_value=mock_display_rules
+            "heritrace.routes.entity._rendering.get_property_order_from_rules",
+            return_value=[],
         ),
-        patch("heritrace.routes.entity.get_property_order_from_rules", return_value=[]),
-        patch("heritrace.routes.entity.gettext", side_effect=lambda x: x),
-        patch("heritrace.routes.entity.get_form_fields", return_value={}),
+        patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
     ):
         modifications = {}
         history = {}
@@ -96,32 +83,31 @@ def test_generate_modification_text_empty_modifications(
 
 
 def test_generate_modification_text_additions(
-    mock_custom_filter, mock_display_rules, mock_format_triple
+    mock_custom_filter, mock_format_triple
 ) -> None:
     """Test generate_modification_text with additions."""
     with (
         patch(
-            "heritrace.routes.entity.get_display_rules", return_value=mock_display_rules
-        ),
-        patch(
-            "heritrace.routes.entity.get_property_order_from_rules",
+            "heritrace.routes.entity._rendering.get_property_order_from_rules",
             return_value=["http://example.org/name"],
         ),
-        patch("heritrace.routes.entity.gettext", side_effect=lambda x: x),
+        patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
         patch(
-            "heritrace.routes.entity.format_triple_modification",
+            "heritrace.routes.entity._rendering.format_triple_modification",
             side_effect=mock_format_triple,
         ),
-        patch("heritrace.routes.entity.get_predicate_ordering_info", return_value=None),
         patch(
-            "heritrace.routes.entity.get_shape_order_from_display_rules",
+            "heritrace.routes.entity._rendering.get_predicate_ordering_info",
+            return_value=None,
+        ),
+        patch(
+            "heritrace.routes.entity._rendering.get_shape_order_from_display_rules",
             return_value=[],
         ),
         patch(
-            "heritrace.routes.entity.determine_object_class_and_shape",
+            "heritrace.routes.entity._rendering.determine_object_class_and_shape",
             return_value=(None, None),
         ),
-        patch("heritrace.routes.entity.get_form_fields", return_value={}),
     ):
         modifications = {
             "Additions": [
@@ -154,32 +140,31 @@ def test_generate_modification_text_additions(
 
 
 def test_generate_modification_text_deletions(
-    mock_custom_filter, mock_display_rules, mock_format_triple
+    mock_custom_filter, mock_format_triple
 ) -> None:
     """Test generate_modification_text with deletions."""
     with (
         patch(
-            "heritrace.routes.entity.get_display_rules", return_value=mock_display_rules
-        ),
-        patch(
-            "heritrace.routes.entity.get_property_order_from_rules",
+            "heritrace.routes.entity._rendering.get_property_order_from_rules",
             return_value=["http://example.org/age"],
         ),
-        patch("heritrace.routes.entity.gettext", side_effect=lambda x: x),
+        patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
         patch(
-            "heritrace.routes.entity.format_triple_modification",
+            "heritrace.routes.entity._rendering.format_triple_modification",
             side_effect=mock_format_triple,
         ),
-        patch("heritrace.routes.entity.get_predicate_ordering_info", return_value=None),
         patch(
-            "heritrace.routes.entity.get_shape_order_from_display_rules",
+            "heritrace.routes.entity._rendering.get_predicate_ordering_info",
+            return_value=None,
+        ),
+        patch(
+            "heritrace.routes.entity._rendering.get_shape_order_from_display_rules",
             return_value=[],
         ),
         patch(
-            "heritrace.routes.entity.determine_object_class_and_shape",
+            "heritrace.routes.entity._rendering.determine_object_class_and_shape",
             return_value=(None, None),
         ),
-        patch("heritrace.routes.entity.get_form_fields", return_value={}),
     ):
         modifications = {
             "Deletions": [
@@ -217,32 +202,31 @@ def test_generate_modification_text_deletions(
 
 
 def test_generate_modification_text_mixed_modifications(
-    mock_custom_filter, mock_display_rules, mock_format_triple
+    mock_custom_filter, mock_format_triple
 ) -> None:
     """Test generate_modification_text with both additions and deletions."""
     with (
         patch(
-            "heritrace.routes.entity.get_display_rules", return_value=mock_display_rules
-        ),
-        patch(
-            "heritrace.routes.entity.get_property_order_from_rules",
+            "heritrace.routes.entity._rendering.get_property_order_from_rules",
             return_value=["http://example.org/name", "http://example.org/age"],
         ),
-        patch("heritrace.routes.entity.gettext", side_effect=lambda x: x),
+        patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
         patch(
-            "heritrace.routes.entity.format_triple_modification",
+            "heritrace.routes.entity._rendering.format_triple_modification",
             side_effect=mock_format_triple,
         ),
-        patch("heritrace.routes.entity.get_predicate_ordering_info", return_value=None),
         patch(
-            "heritrace.routes.entity.get_shape_order_from_display_rules",
+            "heritrace.routes.entity._rendering.get_predicate_ordering_info",
+            return_value=None,
+        ),
+        patch(
+            "heritrace.routes.entity._rendering.get_shape_order_from_display_rules",
             return_value=[],
         ),
         patch(
-            "heritrace.routes.entity.determine_object_class_and_shape",
+            "heritrace.routes.entity._rendering.determine_object_class_and_shape",
             return_value=(None, None),
         ),
-        patch("heritrace.routes.entity.get_form_fields", return_value={}),
     ):
         modifications = {
             "Additions": [
@@ -289,32 +273,31 @@ def test_generate_modification_text_mixed_modifications(
 
 
 def test_generate_modification_text_ordered_properties(
-    mock_custom_filter, mock_display_rules, mock_format_triple
+    mock_custom_filter, mock_format_triple
 ) -> None:
     """Test generate_modification_text respects property ordering."""
     with (
         patch(
-            "heritrace.routes.entity.get_display_rules", return_value=mock_display_rules
-        ),
-        patch(
-            "heritrace.routes.entity.get_property_order_from_rules",
+            "heritrace.routes.entity._rendering.get_property_order_from_rules",
             return_value=["http://example.org/age", "http://example.org/name"],
         ),
-        patch("heritrace.routes.entity.gettext", side_effect=lambda x: x),
+        patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
         patch(
-            "heritrace.routes.entity.format_triple_modification",
+            "heritrace.routes.entity._rendering.format_triple_modification",
             side_effect=mock_format_triple,
         ),
-        patch("heritrace.routes.entity.get_predicate_ordering_info", return_value=None),
         patch(
-            "heritrace.routes.entity.get_shape_order_from_display_rules",
+            "heritrace.routes.entity._rendering.get_predicate_ordering_info",
+            return_value=None,
+        ),
+        patch(
+            "heritrace.routes.entity._rendering.get_shape_order_from_display_rules",
             return_value=[],
         ),
         patch(
-            "heritrace.routes.entity.determine_object_class_and_shape",
+            "heritrace.routes.entity._rendering.determine_object_class_and_shape",
             return_value=(None, None),
         ),
-        patch("heritrace.routes.entity.get_form_fields", return_value={}),
     ):
         modifications = {
             "Additions": [
@@ -353,32 +336,31 @@ def test_generate_modification_text_ordered_properties(
 
 
 def test_generate_modification_text_unordered_properties(
-    mock_custom_filter, mock_display_rules, mock_format_triple
+    mock_custom_filter, mock_format_triple
 ) -> None:
     """Test generate_modification_text handles properties not in ordered list."""
     with (
         patch(
-            "heritrace.routes.entity.get_display_rules", return_value=mock_display_rules
-        ),
-        patch(
-            "heritrace.routes.entity.get_property_order_from_rules",
+            "heritrace.routes.entity._rendering.get_property_order_from_rules",
             return_value=["http://example.org/name"],
         ),
-        patch("heritrace.routes.entity.gettext", side_effect=lambda x: x),
+        patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
         patch(
-            "heritrace.routes.entity.format_triple_modification",
+            "heritrace.routes.entity._rendering.format_triple_modification",
             side_effect=mock_format_triple,
         ),
-        patch("heritrace.routes.entity.get_predicate_ordering_info", return_value=None),
         patch(
-            "heritrace.routes.entity.get_shape_order_from_display_rules",
+            "heritrace.routes.entity._rendering.get_predicate_ordering_info",
+            return_value=None,
+        ),
+        patch(
+            "heritrace.routes.entity._rendering.get_shape_order_from_display_rules",
             return_value=[],
         ),
         patch(
-            "heritrace.routes.entity.determine_object_class_and_shape",
+            "heritrace.routes.entity._rendering.determine_object_class_and_shape",
             return_value=(None, None),
         ),
-        patch("heritrace.routes.entity.get_form_fields", return_value={}),
     ):
         modifications = {
             "Additions": [
@@ -415,37 +397,36 @@ def test_generate_modification_text_unordered_properties(
 
 
 def test_generate_modification_text_shape_priority_ordering(
-    mock_custom_filter, mock_display_rules, mock_format_triple
+    mock_custom_filter, mock_format_triple
 ) -> None:
     """Test shape priority ordering within predicates."""
     mock_snapshot = MagicMock(spec=Graph)
 
     with (
         patch(
-            "heritrace.routes.entity.get_display_rules", return_value=mock_display_rules
-        ),
-        patch(
-            "heritrace.routes.entity.get_property_order_from_rules",
+            "heritrace.routes.entity._rendering.get_property_order_from_rules",
             return_value=["http://example.org/property"],
         ),
         patch(
-            "heritrace.routes.entity.get_shape_order_from_display_rules",
+            "heritrace.routes.entity._rendering.get_shape_order_from_display_rules",
             return_value=["http://example.org/ShapeA", "http://example.org/ShapeB"],
         ) as mock_shape_order,
-        patch("heritrace.routes.entity.gettext", side_effect=lambda x: x),
+        patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
         patch(
-            "heritrace.routes.entity.format_triple_modification",
+            "heritrace.routes.entity._rendering.format_triple_modification",
             side_effect=mock_format_triple,
         ),
-        patch("heritrace.routes.entity.get_predicate_ordering_info", return_value=None),
         patch(
-            "heritrace.routes.entity.determine_object_class_and_shape",
+            "heritrace.routes.entity._rendering.get_predicate_ordering_info",
+            return_value=None,
+        ),
+        patch(
+            "heritrace.routes.entity._rendering.determine_object_class_and_shape",
             side_effect=[
                 ("ClassA", "http://example.org/ShapeB"),
                 ("ClassB", "http://example.org/ShapeA"),
             ],
         ),
-        patch("heritrace.routes.entity.get_form_fields", return_value={}),
     ):
         modifications = {
             "Additions": [
@@ -483,7 +464,7 @@ def test_generate_modification_text_shape_priority_ordering(
 
 
 def test_generate_modification_text_deletions_with_history(
-    mock_custom_filter, mock_display_rules, mock_format_triple
+    mock_custom_filter, mock_format_triple
 ) -> None:
     """Test deletions with historical snapshots logic."""
     mock_current_snapshot = MagicMock(spec=Graph)
@@ -491,27 +472,26 @@ def test_generate_modification_text_deletions_with_history(
 
     with (
         patch(
-            "heritrace.routes.entity.get_display_rules", return_value=mock_display_rules
-        ),
-        patch(
-            "heritrace.routes.entity.get_property_order_from_rules",
+            "heritrace.routes.entity._rendering.get_property_order_from_rules",
             return_value=["http://example.org/property"],
         ),
-        patch("heritrace.routes.entity.gettext", side_effect=lambda x: x),
+        patch("heritrace.routes.entity._rendering.gettext", side_effect=lambda x: x),
         patch(
-            "heritrace.routes.entity.format_triple_modification",
+            "heritrace.routes.entity._rendering.format_triple_modification",
             side_effect=mock_format_triple,
         ),
-        patch("heritrace.routes.entity.get_predicate_ordering_info", return_value=None),
         patch(
-            "heritrace.routes.entity.get_shape_order_from_display_rules",
+            "heritrace.routes.entity._rendering.get_predicate_ordering_info",
+            return_value=None,
+        ),
+        patch(
+            "heritrace.routes.entity._rendering.get_shape_order_from_display_rules",
             return_value=[],
         ),
         patch(
-            "heritrace.routes.entity.determine_object_class_and_shape",
+            "heritrace.routes.entity._rendering.determine_object_class_and_shape",
             return_value=("SomeClass", "SomeShape"),
         ),
-        patch("heritrace.routes.entity.get_form_fields", return_value={}),
     ):
         modifications = {
             "Deletions": [
@@ -582,8 +562,11 @@ def test_format_triple_modification_with_order_info() -> None:
     )
 
     with (
-        patch("heritrace.routes.entity.get_object_label", return_value="Test Object"),
-        patch("heritrace.routes.entity.is_valid_url", return_value=True),
+        patch(
+            "heritrace.routes.entity._rendering.get_object_label",
+            return_value="Test Object",
+        ),
+        patch("heritrace.routes.entity._rendering.is_valid_url", return_value=True),
     ):
         result = format_triple_modification(triple, ctx)
 
@@ -617,8 +600,11 @@ def test_format_triple_modification_without_order_info() -> None:
     )
 
     with (
-        patch("heritrace.routes.entity.get_object_label", return_value="Test Object"),
-        patch("heritrace.routes.entity.is_valid_url", return_value=True),
+        patch(
+            "heritrace.routes.entity._rendering.get_object_label",
+            return_value="Test Object",
+        ),
+        patch("heritrace.routes.entity._rendering.is_valid_url", return_value=True),
     ):
         result = format_triple_modification(triple, ctx)
 

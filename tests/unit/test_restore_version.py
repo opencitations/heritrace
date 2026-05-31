@@ -281,7 +281,7 @@ def test_restore_version_entity_not_in_snapshots_when_deleted() -> None:
     assert URIRef(entity_uri) not in editor.g_set.entity_index
 
 
-@patch("heritrace.routes.entity.get_dataset_is_quadstore")
+@patch("heritrace.routes.entity._restoration.get_dataset_is_quadstore")
 def test_compute_graph_differences_quadstore(mock_get_dataset_is_quadstore) -> None:
     """Test compute_graph_differences when dataset is a quadstore."""
     # Setup mocks
