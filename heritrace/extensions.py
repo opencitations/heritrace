@@ -19,6 +19,7 @@ from flask_login.signals import user_loaded_from_cookie
 from rdflib import Graph
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from redis import Redis
+from redis.exceptions import RedisError
 from SPARQLWrapper import JSON
 from time_agnostic_library.support import generate_config_file
 
@@ -26,7 +27,7 @@ from heritrace.models import User
 from heritrace.services.resource_lock_manager import ResourceLockManager
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings, select_results
 from heritrace.uri_generator.uri_generator import CounterBasedURIGenerator
-from heritrace.utils.filters import Filter
+from heritrace.utils.filters import Filter, split_namespace
 
 
 @dataclass(frozen=True)
@@ -162,7 +163,7 @@ def initialize_change_tracking_config(
         virtuoso_search = db_triplestore == "virtuoso" and text_index_enabled
 
         graphdb_connector = (
-            ""  # TODO(@arcangelo-massari): Add graphdb support  # noqa: FIX002, TD003
+            ""  # TODO(@arcangelo-massari): Add graphdb support
         )
         # https://github.com/opencitations/heritrace/issues/1
 
@@ -223,15 +224,15 @@ def need_initialization(app: Flask, redis: Redis) -> bool:
     cache_validity_days = app.config["CACHE_VALIDITY_DAYS"]
 
     try:
-        last_init_raw: bytes | None = redis.get("heritrace:last_initialization")  # type: ignore[assignment]
+        last_init_raw: str | None = redis.get("heritrace:last_initialization")  # type: ignore[assignment]
         if not last_init_raw:
             return True
 
-        last_init = datetime.fromisoformat(last_init_raw.decode("utf-8"))
+        last_init = datetime.fromisoformat(last_init_raw)
         return datetime.now(tz=timezone.utc) - last_init > timedelta(
             days=cache_validity_days
         )
-    except Exception:  # noqa: BLE001
+    except (RedisError, ValueError):
         return True
 
 
@@ -435,8 +436,6 @@ def init_filters(
         custom_filter.human_readable_primary_source
     )
     app.jinja_env.filters["format_datetime"] = custom_filter.human_readable_datetime
-    from heritrace.utils.filters import split_namespace  # noqa: PLC0415
-
     app.jinja_env.filters["split_ns"] = split_namespace
     app.jinja_env.filters["format_source_reference"] = (
         custom_filter.format_source_reference

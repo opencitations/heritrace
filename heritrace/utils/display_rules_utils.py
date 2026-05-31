@@ -598,29 +598,13 @@ def process_display_rule(
                 ctx.grouped_triples[display_name]["triples"].append(new_triple_data)
 
 
-def process_virtual_property_display(  # noqa: C901, PLR0912
-    display_name: str,
-    prop_config: dict,
+def _fetch_virtual_property_entities(
+    reference_field: str,
+    target_class: str | None,
     ctx: GroupingContext,
-) -> None:
-    implementation = prop_config.get("implementedVia", {})
-    field_overrides = implementation.get("fieldOverrides", {})
-    target = implementation.get("target", {})
-    target_class = target.get("class")
-
-    # Find which field should reference the current entity
-    reference_field = None
-    for field_uri, override in field_overrides.items():
-        if override.get("value") == "${currentEntity}":
-            reference_field = field_uri
-            break
-
-    if not reference_field:
-        return
-
+) -> list[str]:
     decoded_subject = unquote(str(ctx.subject))
 
-    # Query for entities that reference the current entity via the reference field
     query = f"""
         SELECT DISTINCT ?entity
         WHERE {{
@@ -637,75 +621,95 @@ def process_virtual_property_display(  # noqa: C901, PLR0912
     """
 
     if ctx.historical_snapshot:
-        # Execute query on historical snapshot
-        entity_uris = [
+        return [
             str(row[0]) for row in select_results(ctx.historical_snapshot.query(query))
         ]
-    else:
-        # Execute query on live triplestore
-        sparql = get_sparql()
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
-        bindings = get_sparql_bindings(sparql.query().convert())
-        entity_uris = [res["entity"]["value"] for res in bindings]
 
-    # Now fetch display values for these entities if fetchValueFromQuery is configured
+    sparql = get_sparql()
+    sparql.setQuery(query)
+    sparql.setReturnFormat(JSON)
+    bindings = get_sparql_bindings(sparql.query().convert())
+    return [res["entity"]["value"] for res in bindings]
 
-    if prop_config.get("fetchValueFromQuery") and entity_uris:
-        if display_name not in ctx.grouped_triples:
-            ctx.grouped_triples[display_name] = {
-                # Use display name as identifier
-                # for virtual properties
-                "property": display_name,
-                "triples": [],
-                "subjectClass": ctx.highest_priority_class,
-                "subjectShape": ctx.highest_priority_shape,
-                # Should be None for virtual properties
-                # to match key format
-                "objectShape": None,
-                "is_virtual": True,
-            }
 
-        for entity_uri in entity_uris:
-            # Execute the fetch query for each entity
-            if ctx.historical_snapshot:
-                result, external_entity = execute_historical_query(
-                    prop_config["fetchValueFromQuery"],
-                    ctx.subject,
-                    URIRef(entity_uri),
-                    ctx.historical_snapshot,
-                )
-            else:
-                result, external_entity = execute_sparql_query(
-                    prop_config["fetchValueFromQuery"], str(ctx.subject), entity_uri
-                )
-
-            if result:
-                ctx.fetched_values_map[str(result)] = entity_uri
-                new_triple_data = {
-                    "triple": (str(ctx.subject), display_name, str(result)),
-                    "external_entity": external_entity,
-                    "object": entity_uri,
-                    "subjectClass": ctx.highest_priority_class,
-                    "subjectShape": ctx.highest_priority_shape,
-                    "objectShape": target.get("shape"),
-                    "is_virtual": True,
-                }
-                ctx.grouped_triples[display_name]["triples"].append(new_triple_data)
-    # Even if no entities are found, we should still create
-    # the entry for virtual properties
-    # so they can be added via the interface
-
-    elif display_name not in ctx.grouped_triples:
+def _build_virtual_property_triples(
+    display_name: str,
+    prop_config: dict,
+    target_shape: str | None,
+    entity_uris: list[str],
+    ctx: GroupingContext,
+) -> None:
+    if display_name not in ctx.grouped_triples:
         ctx.grouped_triples[display_name] = {
-            # Use display name as identifier
-            # for virtual properties
             "property": display_name,
             "triples": [],
             "subjectClass": ctx.highest_priority_class,
             "subjectShape": ctx.highest_priority_shape,
-            # Should be None for virtual properties
-            # to match key format
+            "objectShape": None,
+            "is_virtual": True,
+        }
+
+    for entity_uri in entity_uris:
+        if ctx.historical_snapshot:
+            result, external_entity = execute_historical_query(
+                prop_config["fetchValueFromQuery"],
+                ctx.subject,
+                URIRef(entity_uri),
+                ctx.historical_snapshot,
+            )
+        else:
+            result, external_entity = execute_sparql_query(
+                prop_config["fetchValueFromQuery"], str(ctx.subject), entity_uri
+            )
+
+        if result:
+            ctx.fetched_values_map[str(result)] = entity_uri
+            new_triple_data = {
+                "triple": (str(ctx.subject), display_name, str(result)),
+                "external_entity": external_entity,
+                "object": entity_uri,
+                "subjectClass": ctx.highest_priority_class,
+                "subjectShape": ctx.highest_priority_shape,
+                "objectShape": target_shape,
+                "is_virtual": True,
+            }
+            ctx.grouped_triples[display_name]["triples"].append(new_triple_data)
+
+
+def process_virtual_property_display(
+    display_name: str,
+    prop_config: dict,
+    ctx: GroupingContext,
+) -> None:
+    implementation = prop_config.get("implementedVia", {})
+    field_overrides = implementation.get("fieldOverrides", {})
+    target = implementation.get("target", {})
+    target_class = target.get("class")
+
+    reference_field = None
+    for field_uri, override in field_overrides.items():
+        if override.get("value") == "${currentEntity}":
+            reference_field = field_uri
+            break
+
+    if not reference_field:
+        return
+
+    entity_uris = _fetch_virtual_property_entities(
+        reference_field, target_class, ctx
+    )
+
+    if prop_config.get("fetchValueFromQuery") and entity_uris:
+        _build_virtual_property_triples(
+            display_name, prop_config, target.get("shape"), entity_uris, ctx
+        )
+
+    elif display_name not in ctx.grouped_triples:
+        ctx.grouped_triples[display_name] = {
+            "property": display_name,
+            "triples": [],
+            "subjectClass": ctx.highest_priority_class,
+            "subjectShape": ctx.highest_priority_shape,
             "objectShape": None,
             "is_virtual": True,
         }

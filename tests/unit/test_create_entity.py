@@ -9,6 +9,8 @@ import pytest
 from flask import url_for
 from rdflib import XSD, URIRef
 
+from heritrace.editor import EditorError
+
 
 @pytest.fixture
 def mock_form_fields():
@@ -312,7 +314,7 @@ def test_create_entity_editor_exception(
     """Test handling of editor exceptions during entity creation"""
     mock_get_form_fields.return_value = mock_form_fields
     mock_editor_instance = mock_editor.return_value
-    mock_editor_instance.save.side_effect = Exception("Test error")
+    mock_editor_instance.save.side_effect = EditorError("Test error")
     app.config["URI_GENERATOR"] = MagicMock()
     app.config[
         "URI_GENERATOR"

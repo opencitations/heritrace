@@ -26,6 +26,24 @@ class ShaclProcessingContext:
     app: Flask
     processed_shapes: set[str]
 
+
+@dataclass(slots=True)
+class _ParsedRow:
+    subject_shape: str
+    entity_type: str
+    predicate: str
+    node_shape: str | None
+    has_value: str | None
+    object_class: str | None
+    min_count: int
+    max_count: int | None
+    datatype: str | None
+    optional_values: list[str]
+    or_nodes: list[str]
+    entity_key: tuple[str, str]
+    condition_entry: dict[str, object]
+    node_shapes: list[str]
+
 COMMON_SPARQL_QUERY = prepareQuery(
     """
     SELECT ?shape ?type ?predicate ?node_shape ?datatype
@@ -85,142 +103,190 @@ COMMON_SPARQL_QUERY = prepareQuery(
 )
 
 
-def process_query_results(  # noqa: C901, PLR0912, PLR0913, PLR0915
-    shacl: Graph,
+def _parse_row(row: ResultRow) -> _ParsedRow:
+    subject_shape = str(row.shape)
+    entity_type = str(row.type)
+    predicate = str(row.predicate)
+    node_shape = str(row.node_shape) if row.node_shape else None
+    has_value = str(row.has_value) if row.has_value else None
+    object_class = str(row.object_class) if row.object_class else None
+    min_count = 0 if row.min_count is None else int(row.min_count)
+    max_count = None if row.max_count is None else int(row.max_count)
+    datatype = str(row.datatype) if row.datatype else None
+    optional_values = [v for v in (row.optional_values or "").split(",") if v]
+    or_nodes = [v for v in (row.or_nodes or "").split(",") if v]
+
+    condition_entry: dict[str, object] = {}
+    if row.condition_path and row.condition_value:
+        condition_entry["condition"] = {
+            "path": str(row.condition_path),
+            "value": str(row.condition_value),
+        }
+    if row.pattern:
+        condition_entry["pattern"] = str(row.pattern)
+    if row.message:
+        condition_entry["message"] = str(row.message)
+
+    node_shapes = []
+    if node_shape:
+        node_shapes.append(node_shape)
+    node_shapes.extend(or_nodes)
+
+    return _ParsedRow(
+        subject_shape=subject_shape,
+        entity_type=entity_type,
+        predicate=predicate,
+        node_shape=node_shape,
+        has_value=has_value,
+        object_class=object_class,
+        min_count=min_count,
+        max_count=max_count,
+        datatype=datatype,
+        optional_values=optional_values,
+        or_nodes=or_nodes,
+        entity_key=(entity_type, subject_shape),
+        condition_entry=condition_entry,
+        node_shapes=node_shapes,
+    )
+
+
+def _find_existing_field(
+    fields: list[dict[str, object]],
+    parsed: _ParsedRow,
+) -> dict[str, object] | None:
+    for field in fields:
+        if (
+            field.get("nodeShape") == parsed.node_shape
+            and field.get("nodeShapes") == parsed.node_shapes
+            and field.get("subjectShape") == parsed.subject_shape
+            and field.get("hasValue") == parsed.has_value
+            and field.get("objectClass") == parsed.object_class
+            and field.get("min") == parsed.min_count
+            and field.get("max") == parsed.max_count
+            and field.get("optionalValues") == parsed.optional_values
+        ):
+            return field
+    return None
+
+
+def _process_or_nodes(
+    ctx: ShaclProcessingContext,
+    parsed: _ParsedRow,
+    custom_filter: Filter,
+    field_info: dict[str, object],
+    depth: int,
+) -> None:
+    field_info["or"] = []
+    for node in parsed.or_nodes:
+        entity_type_or_node = get_shape_target_class(ctx.shacl, node)
+        object_class = get_object_class(ctx.shacl, node, parsed.predicate)
+        shape_display_name = custom_filter.human_readable_class(
+            (entity_type_or_node, node)
+        )
+        or_field_info: dict[str, object] = {
+            "entityType": entity_type_or_node,
+            "uri": parsed.predicate,
+            "displayName": shape_display_name,
+            "subjectShape": parsed.subject_shape,
+            "nodeShape": node,
+            "min": parsed.min_count,
+            "max": parsed.max_count,
+            "hasValue": parsed.has_value,
+            "objectClass": object_class,
+            "optionalValues": parsed.optional_values,
+            "conditions": (
+                [parsed.condition_entry] if parsed.condition_entry else []
+            ),
+            "shouldBeDisplayed": True,
+        }
+        if node not in ctx.processed_shapes:
+            or_field_info["nestedShape"] = process_nested_shapes(
+                ctx,
+                node,
+                depth=depth + 1,
+            )
+        field_info["or"].append(or_field_info)
+
+
+def _process_single_row(
+    ctx: ShaclProcessingContext,
+    parsed: _ParsedRow,
+    custom_filter: Filter,
+    form_fields: defaultdict[tuple[str, str], dict[str, list[dict[str, object]]]],
+    depth: int,
+) -> None:
+    if parsed.predicate not in form_fields[parsed.entity_key]:
+        form_fields[parsed.entity_key][parsed.predicate] = []
+
+    existing_field = _find_existing_field(
+        form_fields[parsed.entity_key][parsed.predicate], parsed
+    )
+
+    if existing_field:
+        if parsed.datatype and str(parsed.datatype) not in cast(
+            "list", existing_field.get("datatypes", [])
+        ):
+            cast("list", existing_field.setdefault("datatypes", [])).append(
+                str(parsed.datatype)
+            )
+        if parsed.condition_entry:
+            cast("list", existing_field.setdefault("conditions", [])).append(
+                parsed.condition_entry
+            )
+        return
+
+    field_info: dict[str, object] = {
+        "entityType": parsed.entity_type,
+        "uri": parsed.predicate,
+        "nodeShape": parsed.node_shape,
+        "nodeShapes": parsed.node_shapes,
+        "subjectShape": parsed.subject_shape,
+        "entityKey": parsed.entity_key,
+        "datatypes": [parsed.datatype] if parsed.datatype else [],
+        "min": parsed.min_count,
+        "max": parsed.max_count,
+        "hasValue": parsed.has_value,
+        "objectClass": parsed.object_class,
+        "optionalValues": parsed.optional_values,
+        "conditions": (
+            [parsed.condition_entry] if parsed.condition_entry else []
+        ),
+        "inputType": determine_input_type(parsed.datatype),
+        "shouldBeDisplayed": True,
+    }
+
+    if parsed.node_shape and parsed.node_shape not in ctx.processed_shapes:
+        field_info["nestedShape"] = process_nested_shapes(
+            ctx,
+            parsed.node_shape,
+            depth=depth + 1,
+        )
+
+    if parsed.or_nodes:
+        _process_or_nodes(ctx, parsed, custom_filter, field_info, depth)
+
+    form_fields[parsed.entity_key][parsed.predicate].append(field_info)
+
+
+def process_query_results(
+    ctx: ShaclProcessingContext,
     results: Iterable[ResultRow],
-    display_rules: list[dict[str, object]] | None,
-    processed_shapes: set[str],
-    app: Flask,
     depth: int = 0,
 ) -> defaultdict[tuple[str, str], dict[str, list[dict[str, object]]]]:
-    form_fields = defaultdict(dict)
+    form_fields: defaultdict[tuple[str, str], dict[str, list[dict[str, object]]]] = (
+        defaultdict(dict)
+    )
 
     with (Path(__file__).parent / "context.json").open() as config_file:
         context = json.load(config_file)["@context"]
 
-    custom_filter = Filter(context, display_rules, app.config["DATASET_DB_URL"])
+    custom_filter = Filter(
+        context, ctx.display_rules, ctx.app.config["DATASET_DB_URL"]
+    )
 
     for row in results:
-        subject_shape = str(row.shape)
-        entity_type = str(row.type)
-        predicate = str(row.predicate)
-        node_shape = str(row.node_shape) if row.node_shape else None
-        has_value = str(row.has_value) if row.has_value else None
-        object_class = str(row.object_class) if row.object_class else None
-        min_count = 0 if row.min_count is None else int(row.min_count)
-        max_count = None if row.max_count is None else int(row.max_count)
-        datatype = str(row.datatype) if row.datatype else None
-        optional_values = [v for v in (row.optional_values or "").split(",") if v]
-        or_nodes = [v for v in (row.or_nodes or "").split(",") if v]
-
-        entity_key = (entity_type, subject_shape)
-
-        condition_entry = {}
-        if row.condition_path and row.condition_value:
-            condition_entry["condition"] = {
-                "path": str(row.condition_path),
-                "value": str(row.condition_value),
-            }
-        if row.pattern:
-            condition_entry["pattern"] = str(row.pattern)
-        if row.message:
-            condition_entry["message"] = str(row.message)
-
-        if predicate not in form_fields[entity_key]:
-            form_fields[entity_key][predicate] = []
-
-        node_shapes = []
-        if node_shape:
-            node_shapes.append(node_shape)
-        node_shapes.extend(or_nodes)
-
-        existing_field = None
-        for field in form_fields[entity_key][predicate]:
-            if (
-                field.get("nodeShape") == node_shape
-                and field.get("nodeShapes") == node_shapes
-                and field.get("subjectShape") == subject_shape
-                and field.get("hasValue") == has_value
-                and field.get("objectClass") == object_class
-                and field.get("min") == min_count
-                and field.get("max") == max_count
-                and field.get("optionalValues") == optional_values
-            ):
-                existing_field = field
-                break
-
-        if existing_field:
-            if datatype and str(datatype) not in existing_field.get("datatypes", []):
-                existing_field.setdefault("datatypes", []).append(str(datatype))
-            if condition_entry:
-                existing_field.setdefault("conditions", []).append(condition_entry)
-        else:
-            field_info = {
-                "entityType": entity_type,
-                "uri": predicate,
-                "nodeShape": node_shape,
-                "nodeShapes": node_shapes,
-                "subjectShape": subject_shape,
-                "entityKey": entity_key,
-                "datatypes": [datatype] if datatype else [],
-                "min": min_count,
-                "max": max_count,
-                "hasValue": has_value,
-                "objectClass": object_class,
-                "optionalValues": optional_values,
-                "conditions": [condition_entry] if condition_entry else [],
-                "inputType": determine_input_type(datatype),
-                "shouldBeDisplayed": True,
-            }
-
-            if node_shape and node_shape not in processed_shapes:
-                field_info["nestedShape"] = process_nested_shapes(
-                    ShaclProcessingContext(
-                        shacl=shacl,
-                        display_rules=display_rules,
-                        app=app,
-                        processed_shapes=processed_shapes,
-                    ),
-                    node_shape,
-                    depth=depth + 1,
-                )
-
-            if or_nodes:
-                field_info["or"] = []
-                for node in or_nodes:
-                    entity_type_or_node = get_shape_target_class(shacl, node)
-                    object_class = get_object_class(shacl, node, predicate)
-                    shape_display_name = custom_filter.human_readable_class(
-                        (entity_type_or_node, node)
-                    )
-                    or_field_info = {
-                        "entityType": entity_type_or_node,
-                        "uri": predicate,
-                        "displayName": shape_display_name,
-                        "subjectShape": subject_shape,
-                        "nodeShape": node,
-                        "min": min_count,
-                        "max": max_count,
-                        "hasValue": has_value,
-                        "objectClass": object_class,
-                        "optionalValues": optional_values,
-                        "conditions": [condition_entry] if condition_entry else [],
-                        "shouldBeDisplayed": True,
-                    }
-                    if node not in processed_shapes:
-                        or_field_info["nestedShape"] = process_nested_shapes(
-                            ShaclProcessingContext(
-                                shacl=shacl,
-                                display_rules=display_rules,
-                                app=app,
-                                processed_shapes=processed_shapes,
-                            ),
-                            node,
-                            depth=depth + 1,
-                        )
-                    field_info["or"].append(or_field_info)
-
-            form_fields[entity_key][predicate].append(field_info)
+        parsed = _parse_row(row)
+        _process_single_row(ctx, parsed, custom_filter, form_fields, depth)
 
     return form_fields
 
@@ -239,11 +305,8 @@ def process_nested_shapes(
     nested_fields = []
 
     temp_form_fields = process_query_results(
-        ctx.shacl,
+        ctx,
         select_results(nested_results),
-        ctx.display_rules,
-        ctx.processed_shapes,
-        app=ctx.app,
         depth=depth,
     )
 
@@ -841,14 +904,16 @@ def extract_shacl_form_fields(
     if not shacl:
         return {}
 
-    processed_shapes = set()
+    ctx = ShaclProcessingContext(
+        shacl=shacl,
+        display_rules=display_rules,
+        app=app,
+        processed_shapes=set(),
+    )
     results = execute_shacl_query(shacl, COMMON_SPARQL_QUERY)
     return process_query_results(
-        shacl,
+        ctx,
         select_results(results),
-        display_rules,
-        processed_shapes,
-        app=app,
         depth=0,
     )
 

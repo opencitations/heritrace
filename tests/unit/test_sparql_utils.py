@@ -14,6 +14,7 @@ from rdflib import Dataset, Graph, Literal, URIRef
 
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
+    DeletedEntitiesQuery,
     _get_entities_with_enhanced_shape_detection,
     build_sort_clause,
     fetch_current_state_with_related_entities,
@@ -1606,7 +1607,7 @@ class TestGetDeletedEntitiesWithFiltering:
         empty_results = {"results": {"bindings": []}}
         mock_provenance_sparql.query.return_value.convert.return_value = empty_results
 
-        result = get_deleted_entities_with_filtering()
+        result = get_deleted_entities_with_filtering(DeletedEntitiesQuery())
 
         (
             entities,
@@ -1679,7 +1680,7 @@ class TestGetDeletedEntitiesWithFiltering:
 
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
 
-            result = get_deleted_entities_with_filtering()
+            result = get_deleted_entities_with_filtering(DeletedEntitiesQuery())
 
             (
                 entities,
@@ -1739,7 +1740,9 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_as_completed.return_value = [mock_future, mock_future]
 
             result = get_deleted_entities_with_filtering(
-                page=1, per_page=1, selected_class="http://example.org/Person"
+                DeletedEntitiesQuery(
+                    page=1, per_page=1, selected_class="http://example.org/Person"
+                )
             )
 
             (
@@ -1809,7 +1812,9 @@ class TestGetDeletedEntitiesWithFiltering:
 
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
 
-            result = get_deleted_entities_with_filtering(sort_direction="DESC")
+            result = get_deleted_entities_with_filtering(
+                DeletedEntitiesQuery(sort_direction="DESC")
+            )
 
             (
                 entities,
@@ -1882,9 +1887,11 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
 
             result = get_deleted_entities_with_filtering(
-                sort_property="http://example.org/name",
-                sort_direction="ASC",
-                selected_class="http://example.org/Person",
+                DeletedEntitiesQuery(
+                    sort_property="http://example.org/name",
+                    sort_direction="ASC",
+                    selected_class="http://example.org/Person",
+                )
             )
 
             (
@@ -1968,7 +1975,9 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
 
             result = get_deleted_entities_with_filtering(
-                selected_class="http://example.org/Person"
+                DeletedEntitiesQuery(
+                    selected_class="http://example.org/Person"
+                )
             )
 
             (
@@ -2051,7 +2060,9 @@ class TestGetDeletedEntitiesWithFiltering:
 
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
 
-            result = get_deleted_entities_with_filtering(selected_class=None)
+            result = get_deleted_entities_with_filtering(
+                DeletedEntitiesQuery(selected_class=None)
+            )
 
             (
                 entities,

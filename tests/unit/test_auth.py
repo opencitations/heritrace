@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from flask import Flask, url_for
 from flask.testing import FlaskClient
+from requests.exceptions import RequestException
 
 
 def test_login_authenticated_user(logged_in_client: FlaskClient, app: Flask) -> None:
@@ -96,7 +97,7 @@ def test_callback_error(client: FlaskClient, app: Flask) -> None:
 
     with patch("heritrace.routes.auth.OAuth2Session") as mock_oauth:
         mock_session = MagicMock()
-        mock_session.fetch_token.side_effect = Exception("OAuth Error")
+        mock_session.fetch_token.side_effect = RequestException("OAuth Error")
         mock_oauth.return_value = mock_session
 
         with app.test_request_context():
@@ -114,7 +115,7 @@ def test_callback_http_to_https(client: FlaskClient, app: Flask) -> None:
 
     with patch("heritrace.routes.auth.OAuth2Session") as mock_oauth:
         mock_session = MagicMock()
-        mock_session.fetch_token.side_effect = Exception("OAuth Error")
+        mock_session.fetch_token.side_effect = RequestException("OAuth Error")
         mock_oauth.return_value = mock_session
 
         with app.test_request_context():
@@ -132,7 +133,7 @@ def test_callback_already_https(client: FlaskClient, app: Flask) -> None:
 
     with patch("heritrace.routes.auth.OAuth2Session") as mock_oauth:
         mock_session = MagicMock()
-        mock_session.fetch_token.side_effect = Exception("OAuth Error")
+        mock_session.fetch_token.side_effect = RequestException("OAuth Error")
         mock_oauth.return_value = mock_session
 
         with app.test_request_context():

@@ -140,7 +140,7 @@ def execute_merge() -> WerkzeugResponse:
     primary_source = request.form.get("primary_source")
     save_default_source = request.form.get("save_default_source") == "true"
 
-    # TODO(arcangelo): Implement CSRF validation  # noqa: FIX002, TD003
+    # TODO(arcangelo): Implement CSRF validation
     # if using Flask-WTF
 
     if not entity1_uri_str or not entity2_uri_str:

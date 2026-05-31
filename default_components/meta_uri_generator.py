@@ -17,6 +17,90 @@ class InvalidURIFormatError(Exception):
     """Exception raised when an URI has an invalid format."""
 
 
+def _process_data_bindings(
+    bindings: list[dict],
+    max_numbers_by_prefix: defaultdict,
+    entity_type_abbr: dict[str, str],
+    supplier_prefix_regex: str,
+) -> None:
+    for result in bindings:
+        entity_type = result["type"]["value"]
+        entity_uri = result["s"]["value"]
+
+        if entity_type in entity_type_abbr:
+            if entity_type == "http://purl.org/spar/cito/Citation":
+                continue
+
+            try:
+                numeric_part = entity_uri.rsplit("/", 1)[-1]
+                match = re.search(supplier_prefix_regex, numeric_part)
+                if match:
+                    supplier_prefix = match.group()
+                    number_str = numeric_part[match.end() :]
+                    if number_str:
+                        number = int(number_str)
+                        abbr = entity_type_abbr[entity_type]
+                        old_max = max_numbers_by_prefix[supplier_prefix][abbr]
+                        max_numbers_by_prefix[supplier_prefix][abbr] = max(
+                            old_max, number
+                        )
+            except (ValueError, IndexError) as err:
+                msg = f"Invalid URI format found for entity: {entity_uri}"
+                raise InvalidURIFormatError(msg) from err
+
+
+def _process_prov_bindings(
+    bindings: list[dict],
+    max_numbers_by_prefix: defaultdict,
+    entity_type_abbr: dict[str, str],
+    supplier_prefix_regex: str,
+) -> None:
+    for result in bindings:
+        entity_uri = result["entity"]["value"]
+
+        if "/ci/" in entity_uri:
+            continue
+
+        numeric_part = entity_uri.rsplit("/", 1)[-1]
+        match = re.search(supplier_prefix_regex, numeric_part)
+        if match:
+            supplier_prefix = match.group()
+            for abbr in set(entity_type_abbr.values()):
+                if f"/{abbr}/" in entity_uri:
+                    try:
+                        number_str = numeric_part[match.end() :]
+                        if number_str:
+                            number = int(number_str)
+                            max_numbers_by_prefix[supplier_prefix][abbr] = max(
+                                max_numbers_by_prefix[supplier_prefix][abbr], number
+                            )
+                    except (ValueError, IndexError) as err:
+                        msg = (
+                            "Invalid URI format found"
+                            f" in provenance for entity: {entity_uri}"
+                        )
+                        raise InvalidURIFormatError(msg) from err
+                    break
+
+
+def _set_counters_from_prefix_map(
+    max_numbers_by_prefix: defaultdict,
+    counter_handler: "SupplierAwareCounterHandler",
+    entity_type_abbr: dict[str, str],
+) -> None:
+    for supplier_prefix, max_numbers in max_numbers_by_prefix.items():
+        original_prefix = counter_handler.supplier_prefix
+        counter_handler.supplier_prefix = supplier_prefix
+
+        for entity_type, abbr in entity_type_abbr.items():
+            if entity_type == "http://purl.org/spar/cito/Citation":
+                continue
+            counter_value = max_numbers[abbr]
+            counter_handler.set_counter(counter_value, entity_type)
+
+        counter_handler.supplier_prefix = original_prefix
+
+
 class MetaURIGenerator(URIGenerator):
     def __init__(self, counter_handler: SupplierAwareCounterHandler) -> None:
         """
@@ -144,7 +228,7 @@ class MetaURIGenerator(URIGenerator):
 
         return None
 
-    def initialize_counters(self, sparql: SPARQLWrapper) -> None:  # noqa: C901, PLR0912, PLR0915
+    def initialize_counters(self, sparql: SPARQLWrapper) -> None:
         """
         Initialize counters for entity types supported by this URI generator.
         Extracts sequential numbers from both data and provenance for each abbreviation,
@@ -167,32 +251,12 @@ class MetaURIGenerator(URIGenerator):
         sparql.setReturnFormat(JSON)
         data_bindings = get_sparql_bindings(sparql.query().convert())
 
-        for result in data_bindings:
-            entity_type = result["type"]["value"]
-            entity_uri = result["s"]["value"]
-
-            if entity_type in self.entity_type_abbr:
-                if entity_type == "http://purl.org/spar/cito/Citation":
-                    # Citations use special URI generation
-                    # and are counted only in provenance
-                    continue
-
-                try:
-                    numeric_part = entity_uri.rsplit("/", 1)[-1]
-                    match = re.search(self.supplier_prefix_regex, numeric_part)
-                    if match:
-                        supplier_prefix = match.group()
-                        number_str = numeric_part[match.end() :]
-                        if number_str:
-                            number = int(number_str)
-                            abbr = self.entity_type_abbr[entity_type]
-                            old_max = max_numbers_by_prefix[supplier_prefix][abbr]
-                            max_numbers_by_prefix[supplier_prefix][abbr] = max(
-                                old_max, number
-                            )
-                except (ValueError, IndexError) as err:
-                    msg = f"Invalid URI format found for entity: {entity_uri}"
-                    raise InvalidURIFormatError(msg) from err
+        _process_data_bindings(
+            data_bindings,
+            max_numbers_by_prefix,
+            self.entity_type_abbr,
+            self.supplier_prefix_regex,
+        )
 
         prov_query = """
             SELECT ?entity
@@ -204,47 +268,13 @@ class MetaURIGenerator(URIGenerator):
         sparql.setQuery(prov_query)
         prov_bindings = get_sparql_bindings(sparql.query().convert())
 
-        for result in prov_bindings:
-            entity_uri = result["entity"]["value"]
+        _process_prov_bindings(
+            prov_bindings,
+            max_numbers_by_prefix,
+            self.entity_type_abbr,
+            self.supplier_prefix_regex,
+        )
 
-            if "/ci/" in entity_uri:
-                continue
-
-            # For provenance, we directly search for the abbreviation in the URI
-            numeric_part = entity_uri.rsplit("/", 1)[-1]
-            match = re.search(self.supplier_prefix_regex, numeric_part)
-            if match:
-                supplier_prefix = match.group()
-                # For provenance, we need to find the abbreviation
-                # in the URI to associate the counter correctly.
-                for abbr in set(self.entity_type_abbr.values()):
-                    if f"/{abbr}/" in entity_uri:
-                        try:
-                            number_str = numeric_part[match.end() :]
-                            if number_str:
-                                number = int(number_str)
-                                max_numbers_by_prefix[supplier_prefix][abbr] = max(
-                                    max_numbers_by_prefix[supplier_prefix][abbr], number
-                                )
-                        except (ValueError, IndexError) as err:
-                            msg = (
-                                "Invalid URI format found"
-                                f" in provenance for entity: {entity_uri}"
-                            )
-                            raise InvalidURIFormatError(msg) from err
-                        break
-
-        # Set counters for all found prefixes
-        for supplier_prefix, max_numbers in max_numbers_by_prefix.items():
-            # Temporarily set the supplier prefix for the counter handler
-            original_prefix = self.counter_handler.supplier_prefix
-            self.counter_handler.supplier_prefix = supplier_prefix
-
-            for entity_type, abbr in self.entity_type_abbr.items():
-                if entity_type == "http://purl.org/spar/cito/Citation":
-                    continue
-                counter_value = max_numbers[abbr]
-                self.counter_handler.set_counter(counter_value, entity_type)
-
-            # Restore original prefix
-            self.counter_handler.supplier_prefix = original_prefix
+        _set_counters_from_prefix_map(
+            max_numbers_by_prefix, self.counter_handler, self.entity_type_abbr
+        )

@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from rdflib import Graph
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.utils.filters import Filter
 
@@ -68,7 +69,7 @@ def test_get_fetch_uri_display_with_graph_exception(mock_filter) -> None:
     rule = {"fetchUriDisplay": _FETCH_PERSON_QUERY}
 
     mock_graph = MagicMock(spec=Graph)
-    mock_graph.query.side_effect = Exception("Test exception")
+    mock_graph.query.side_effect = ValueError("Test exception")
 
     result = mock_filter.get_fetch_uri_display(uri, rule, mock_graph)
 
@@ -108,7 +109,7 @@ def test_get_fetch_uri_display_with_sparql_exception(mock_filter) -> None:
         mock_find_rule.return_value = mock_filter.display_rules[0]
 
         with patch.object(mock_filter.sparql, "query") as mock_query:
-            mock_query.side_effect = Exception("Test exception")
+            mock_query.side_effect = SPARQLWrapperException("Test exception")
             result = mock_filter.get_fetch_uri_display(uri, rule, None)
 
     assert result is None

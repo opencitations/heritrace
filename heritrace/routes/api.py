@@ -34,6 +34,7 @@ from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.shacl_validation import validate_new_triple
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
+    DeletedEntitiesQuery,
     find_orphaned_entities,
     get_available_classes,
     get_catalog_data,
@@ -123,7 +124,10 @@ def get_deleted_entities_api() -> Response:
         sortable_properties,
         total_count,
     ) = get_deleted_entities_with_filtering(
-        page, per_page, sort_property, sort_direction, selected_class, selected_shape
+        DeletedEntitiesQuery(
+            page, per_page, sort_property, sort_direction,
+            selected_class, selected_shape,
+        )
     )
 
     return jsonify(
@@ -891,13 +895,107 @@ def determine_datatype(value: str, datatype_uris: list[str]) -> URIRef:
 
 class CreateEntityData(TypedDict, total=False):
     entity_type: str
-    # TODO(arcangelo): tighten this type after normalizing  # noqa: FIX002, TD003
+    # TODO(arcangelo): tighten this type after normalizing
     # the frontend payload to a consistent shape
     properties: dict[str, list | dict | str]
     tempId: str
 
 
-def create_logic(  # noqa: C901, PLR0912, PLR0913
+@dataclass
+class _CreateContext:
+    editor: Editor
+    graph_uri: URIRef | None
+    entity_type: str | None
+    temp_id_to_uri: dict[str, str] | None
+
+
+def _handle_property_value(
+    ctx: _CreateContext,
+    value: dict | str,
+    subject: URIRef,
+    predicate: URIRef,
+) -> None:
+    if isinstance(value, dict) and "entity_type" in value:
+        nested_subject = generate_unique_uri(value["entity_type"])
+        create_logic(
+            ctx.editor,
+            cast("CreateEntityData", value),
+            nested_subject,
+            ctx.graph_uri,
+            subject,
+            predicate,
+            ctx.temp_id_to_uri,
+            parent_entity_type=ctx.entity_type,
+        )
+    elif isinstance(value, dict) and value.get("is_existing_entity", False):
+        entity_uri = value.get("entity_uri")
+        if entity_uri:
+            ctx.editor.create(subject, predicate, URIRef(entity_uri), ctx.graph_uri)
+        else:
+            msg = "Missing entity_uri in existing entity reference"
+            raise ValueError(msg)
+    elif isinstance(value, dict) and value.get("is_custom_property", False):
+        if value["type"] == "uri":
+            object_value = URIRef(value["value"])
+        elif value["type"] == "literal":
+            datatype = (
+                URIRef(value["datatype"]) if "datatype" in value else XSD.string
+            )
+            object_value = Literal(value["value"], datatype=datatype)
+        else:
+            msg = f"Unknown custom property type: {value['type']}"
+            raise ValueError(msg)
+
+        ctx.editor.create(subject, predicate, object_value, ctx.graph_uri)
+    else:
+        object_value, _, error_message = validate_new_triple(
+            subject,
+            predicate,
+            str(value),
+            "create",
+            entity_types=ctx.entity_type,
+        )
+        if error_message:
+            raise ValueError(error_message)
+
+        if object_value is not None:
+            ctx.editor.create(subject, predicate, object_value, ctx.graph_uri)
+
+
+def _setup_parent_relations(
+    ctx: _CreateContext,
+    subject: URIRef,
+    parent_subject: URIRef,
+    parent_predicate: URIRef | None,
+    parent_entity_type: str | None,
+) -> None:
+    type_value, _, error_message = validate_new_triple(
+        subject, RDF.type, ctx.entity_type, "create", entity_types=ctx.entity_type
+    )
+    if error_message:
+        raise ValueError(error_message)
+
+    if type_value is not None:
+        ctx.editor.create(subject, RDF.type, type_value, ctx.graph_uri)
+
+    if parent_predicate:
+        parent_value, _, error_message = validate_new_triple(
+            parent_subject,
+            parent_predicate,
+            subject,
+            "create",
+            entity_types=parent_entity_type,
+        )
+        if error_message:
+            raise ValueError(error_message)
+
+        if parent_value is not None:
+            ctx.editor.create(
+                parent_subject, parent_predicate, parent_value, ctx.graph_uri
+            )
+
+
+def create_logic(  # noqa: PLR0913
     editor: Editor,
     data: CreateEntityData,
     subject: URIRef | None = None,
@@ -917,75 +1015,18 @@ def create_logic(  # noqa: C901, PLR0912, PLR0913
     if temp_id and temp_id_to_uri is not None:
         temp_id_to_uri[temp_id] = str(subject)
 
+    ctx = _CreateContext(editor, graph_uri, entity_type, temp_id_to_uri)
+
     if parent_subject is not None:
-        type_value, _, error_message = validate_new_triple(
-            subject, RDF.type, entity_type, "create", entity_types=entity_type
+        _setup_parent_relations(
+            ctx, subject, parent_subject, parent_predicate, parent_entity_type
         )
-        if error_message:
-            raise ValueError(error_message)
-
-        if type_value is not None:
-            editor.create(subject, RDF.type, type_value, graph_uri)
-
-    if parent_subject and parent_predicate:
-        parent_value, _, error_message = validate_new_triple(
-            parent_subject,
-            parent_predicate,
-            subject,
-            "create",
-            entity_types=parent_entity_type,
-        )
-        if error_message:
-            raise ValueError(error_message)
-
-        if parent_value is not None:
-            editor.create(parent_subject, parent_predicate, parent_value, graph_uri)
 
     for predicate_str, values in properties.items():
         predicate = URIRef(predicate_str)
         values_list = values if isinstance(values, list) else [values]
         for value in values_list:
-            if isinstance(value, dict) and "entity_type" in value:
-                nested_subject = generate_unique_uri(value["entity_type"])
-                create_logic(
-                    editor,
-                    cast("CreateEntityData", value),
-                    nested_subject,
-                    graph_uri,
-                    subject,
-                    predicate,
-                    temp_id_to_uri,
-                    parent_entity_type=entity_type,
-                )
-            elif isinstance(value, dict) and value.get("is_existing_entity", False):
-                entity_uri = value.get("entity_uri")
-                if entity_uri:
-                    editor.create(subject, predicate, URIRef(entity_uri), graph_uri)
-                else:
-                    msg = "Missing entity_uri in existing entity reference"
-                    raise ValueError(msg)
-            elif isinstance(value, dict) and value.get("is_custom_property", False):
-                if value["type"] == "uri":
-                    object_value = URIRef(value["value"])
-                elif value["type"] == "literal":
-                    datatype = (
-                        URIRef(value["datatype"]) if "datatype" in value else XSD.string
-                    )
-                    object_value = Literal(value["value"], datatype=datatype)
-                else:
-                    msg = f"Unknown custom property type: {value['type']}"
-                    raise ValueError(msg)
-
-                editor.create(subject, predicate, object_value, graph_uri)
-            else:
-                object_value, _, error_message = validate_new_triple(
-                    subject, predicate, str(value), "create", entity_types=entity_type
-                )
-                if error_message:
-                    raise ValueError(error_message)
-
-                if object_value is not None:
-                    editor.create(subject, predicate, object_value, graph_uri)
+            _handle_property_value(ctx, value, subject, predicate)
 
     return subject
 
@@ -1006,7 +1047,6 @@ def update_logic(
         "update",
         old_value_rdf,
         entity_types=op.entity_type,
-        entity_shape=op.entity_shape,
     )
     if error_message:
         raise ValueError(error_message)
@@ -1062,7 +1102,6 @@ def delete_logic(
             "delete",
             old_val_rdf,
             entity_types=op.entity_type,
-            entity_shape=op.entity_shape,
         )
         if error_message:
             raise ValueError(error_message)

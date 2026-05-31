@@ -12,7 +12,9 @@ from urllib.parse import quote, urlparse
 from dateutil import parser as dateutil_parser
 from flask import url_for
 from flask_babel import format_datetime, gettext, lazy_gettext
+from pyparsing.exceptions import ParseBaseException
 from SPARQLWrapper import JSON
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.apis.orcid import format_orcid_attribution, is_orcid_url
 from heritrace.apis.zenodo import format_zenodo_source, is_zenodo_url
@@ -35,7 +37,30 @@ class Filter:
         self.sparql.setReturnFormat(JSON)
         self._query_lock = threading.Lock()
 
-    def human_readable_predicate(  # noqa: C901
+    @staticmethod
+    def _find_display_name_from_rule(
+        rule: dict,
+        predicate_uri: str,
+        object_shape_uri: str | None,
+    ) -> str | None:
+        if "displayProperties" not in rule:
+            return None
+        for display_property in rule["displayProperties"]:
+            prop_uri = display_property.get("property") or display_property.get(
+                "virtual_property"
+            )
+            if prop_uri == str(predicate_uri):
+                if "displayRules" in display_property:
+                    if object_shape_uri:
+                        for display_rule in display_property["displayRules"]:
+                            if display_rule.get("shape") == object_shape_uri:
+                                return display_rule["displayName"]
+                    return display_property["displayRules"][0]["displayName"]
+                if "displayName" in display_property:
+                    return display_property["displayName"]
+        return None
+
+    def human_readable_predicate(
         self,
         predicate_uri: str,
         entity_key: tuple[str | None, str | None],
@@ -43,18 +68,6 @@ class Filter:
         is_link: bool = False,
         object_shape_uri: str | None = None,
     ) -> str:
-        """Get human readable label for a predicate in the context of an entity.
-
-        Args:
-            predicate_uri: URI of the predicate to get label for
-            entity_key: Tuple of (class_uri, shape_uri) for the entity context
-            is_link: Whether to format as a link
-            object_shape_uri: Shape URI of the object entity (for shape-specific display
-            rules)
-
-        Returns:
-            str: Human readable label for the predicate
-        """
         from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
             find_matching_rule,
         )
@@ -62,20 +75,12 @@ class Filter:
         class_uri, shape_uri = entity_key
         rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
 
-        if rule and "displayProperties" in rule:
-            for display_property in rule["displayProperties"]:
-                prop_uri = display_property.get("property") or display_property.get(
-                    "virtual_property"
-                )
-                if prop_uri == str(predicate_uri):
-                    if "displayRules" in display_property:
-                        if object_shape_uri:
-                            for display_rule in display_property["displayRules"]:
-                                if display_rule.get("shape") == object_shape_uri:
-                                    return display_rule["displayName"]
-                        return display_property["displayRules"][0]["displayName"]
-                    if "displayName" in display_property:
-                        return display_property["displayName"]
+        if rule:
+            display_name = self._find_display_name_from_rule(
+                rule, predicate_uri, object_shape_uri
+            )
+            if display_name is not None:
+                return display_name
 
         first_part, _ = split_namespace(predicate_uri)
         if first_part in self.context:
@@ -176,7 +181,7 @@ class Filter:
                         results = graph.query(query)
                     for row in select_results(results):
                         return str(row[0])
-                except Exception:  # noqa: BLE001
+                except (ParseBaseException, ValueError, TypeError):
                     logger.debug(
                         "Failed to execute fetchUriDisplay query on graph for URI %s",
                         uri,
@@ -189,7 +194,7 @@ class Filter:
                         first_binding = bindings[0]
                         first_key = next(iter(first_binding.keys()))
                         return first_binding[first_key]["value"]
-                except Exception:  # noqa: BLE001
+                except (SPARQLWrapperException, OSError, KeyError, StopIteration):
                     logger.debug(
                         "Failed to execute fetchUriDisplay SPARQL query for URI %s", uri
                     )

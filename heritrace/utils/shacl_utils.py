@@ -8,9 +8,10 @@ from flask import Flask
 from rdflib import RDF, Graph
 from SPARQLWrapper import JSON
 
-from heritrace.extensions import get_shacl_graph, get_sparql
+from heritrace.extensions import get_form_fields, get_shacl_graph, get_sparql
 from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.display_rules_utils import get_class_priority
+from heritrace.utils.filters import format_uri_as_readable
 from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
     apply_display_rules,
@@ -18,6 +19,7 @@ from heritrace.utils.shacl_display import (
     order_form_fields,
     process_nested_shapes,
 )
+from heritrace.utils.virtual_properties import get_virtual_properties_for_entity
 
 
 def get_form_fields_from_shacl(
@@ -124,10 +126,6 @@ def _build_nested_shape_entry(vp: dict, enhanced_form_fields: dict) -> list[dict
 
 
 def add_virtual_properties_to_form_fields_internal(form_fields: dict) -> dict:
-    from heritrace.utils.virtual_properties import (  # noqa: PLC0415
-        get_virtual_properties_for_entity,
-    )
-
     enhanced_form_fields = form_fields.copy() if form_fields else {}
 
     for entity_key in enhanced_form_fields:
@@ -380,8 +378,6 @@ def ensure_display_names(form_fields: dict) -> None:
     Args:
         form_fields: Dictionary of form fields to process
     """
-    from heritrace.utils.filters import format_uri_as_readable  # noqa: PLC0415
-
     for predicates in form_fields.values():
         for predicate_uri, details_list in predicates.items():
             for field_info in details_list:
@@ -409,8 +405,6 @@ def find_matching_form_field(
         The matching form field key (class_uri, shape_uri) or None if no match is found
     """
     if not form_fields:
-        from heritrace.extensions import get_form_fields  # noqa: PLC0415
-
         form_fields = get_form_fields()
 
     if not form_fields:

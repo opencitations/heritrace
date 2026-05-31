@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from werkzeug.wrappers import Response
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor, EndpointConfig
+from heritrace.editor import Editor, EditorError, EndpointConfig
 from heritrace.extensions import (
     get_change_tracking_config,
     get_dataset_endpoint,
@@ -36,9 +36,51 @@ from heritrace.utils.sparql_utils import (
 from heritrace.utils.uri_utils import is_valid_url
 
 
+def _apply_deletions(
+    editor: Editor, triples_to_delete: set, entity_snapshots: dict
+) -> None:
+    for item in triples_to_delete:
+        s, p, o = URIRef(str(item[0])), URIRef(str(item[1])), item[2]
+        obj: URIRef | Literal = URIRef(str(o)) if isinstance(o, URIRef) else Literal(o)
+        if len(item) == _QUAD_LENGTH:
+            editor.delete(s, p, obj, URIRef(str(item[3])))
+        else:
+            editor.delete(s, p, obj)
+
+        subject = str(item[0])
+        if subject in entity_snapshots:
+            entity_info = entity_snapshots[subject]
+            if entity_info["needs_restore"]:
+                editor.g_set.mark_as_restored(URIRef(subject))
+            editor.g_set.entity_index[URIRef(subject)]["restoration_source"] = (
+                entity_info["source"]
+            )
+
+
+def _apply_additions(
+    editor: Editor, triples_to_add: set, entity_snapshots: dict
+) -> None:
+    for item in triples_to_add:
+        s, p, o = URIRef(str(item[0])), URIRef(str(item[1])), item[2]
+        obj: URIRef | Literal = URIRef(str(o)) if isinstance(o, URIRef) else Literal(o)
+        if len(item) == _QUAD_LENGTH:
+            editor.create(s, p, obj, URIRef(str(item[3])))
+        else:
+            editor.create(s, p, obj)
+
+        subject = str(item[0])
+        if subject in entity_snapshots:
+            entity_info = entity_snapshots[subject]
+            if entity_info["needs_restore"]:
+                editor.g_set.mark_as_restored(URIRef(subject))
+                editor.g_set.entity_index[URIRef(subject)]["source"] = entity_info[
+                    "source"
+                ]
+
+
 @entity_bp.route("/restore-version/<path:entity_uri>/<timestamp>", methods=["POST"])
 @login_required
-def restore_version(entity_uri: str, timestamp: str) -> Response:  # noqa: C901, PLR0912, PLR0915
+def restore_version(entity_uri: str, timestamp: str) -> Response:
     entity_uri_ref = URIRef(entity_uri)
     timestamp_dt = convert_to_datetime(timestamp)
     if timestamp_dt is None:
@@ -104,39 +146,8 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:  # noqa: C901,
             editor.g_set.add(triple)  # type: ignore[arg-type]
     editor.preexisting_finished()
 
-    for item in triples_or_quads_to_delete:
-        s, p, o = URIRef(str(item[0])), URIRef(str(item[1])), item[2]
-        obj: URIRef | Literal = URIRef(str(o)) if isinstance(o, URIRef) else Literal(o)
-        if len(item) == _QUAD_LENGTH:
-            editor.delete(s, p, obj, URIRef(str(item[3])))
-        else:
-            editor.delete(s, p, obj)
-
-        subject = str(item[0])
-        if subject in entity_snapshots:
-            entity_info = entity_snapshots[subject]
-            if entity_info["needs_restore"]:
-                editor.g_set.mark_as_restored(URIRef(subject))
-            editor.g_set.entity_index[URIRef(subject)]["restoration_source"] = (
-                entity_info["source"]
-            )
-
-    for item in triples_or_quads_to_add:
-        s, p, o = URIRef(str(item[0])), URIRef(str(item[1])), item[2]
-        obj = URIRef(str(o)) if isinstance(o, URIRef) else Literal(o)
-        if len(item) == _QUAD_LENGTH:
-            editor.create(s, p, obj, URIRef(str(item[3])))
-        else:
-            editor.create(s, p, obj)
-
-        subject = str(item[0])
-        if subject in entity_snapshots:
-            entity_info = entity_snapshots[subject]
-            if entity_info["needs_restore"]:
-                editor.g_set.mark_as_restored(URIRef(subject))
-                editor.g_set.entity_index[URIRef(subject)]["source"] = entity_info[
-                    "source"
-                ]
+    _apply_deletions(editor, triples_or_quads_to_delete, entity_snapshots)
+    _apply_additions(editor, triples_or_quads_to_add, entity_snapshots)
 
     if is_deleted and entity_uri in entity_snapshots:
         editor.g_set.mark_as_restored(entity_uri_ref)
@@ -146,7 +157,7 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:  # noqa: C901,
     try:
         editor.save()
         flash(gettext("Version restored successfully"), "success")
-    except Exception as e:  # noqa: BLE001
+    except (EditorError, OSError) as e:
         flash(
             gettext(
                 "An error occurred while restoring the version: %(error)s", error=str(e)

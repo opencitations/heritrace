@@ -9,6 +9,7 @@ from typing import TypedDict, cast
 
 from rdflib.query import Result, ResultRow
 from SPARQLWrapper import POST, QueryResult, SPARQLWrapper
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 
 class SPARQLWrapperWithRetry(SPARQLWrapper):
@@ -42,7 +43,7 @@ class SPARQLWrapperWithRetry(SPARQLWrapper):
         for attempt in range(1, self.max_attempts + 1):
             try:
                 return super().query()
-            except Exception as e:  # noqa: BLE001, PERF203
+            except (SPARQLWrapperException, OSError) as e:  # noqa: PERF203
                 last_exception = e
                 logger.warning(
                     "SPARQL query attempt %d/%d failed: %s",

@@ -8,6 +8,7 @@ from datetime import timedelta
 from flask import Blueprint, current_app, flash, redirect, request, session, url_for
 from flask_babel import gettext
 from flask_login import current_user, login_user, logout_user
+from requests.exceptions import RequestException
 from requests_oauthlib import OAuth2Session
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -69,7 +70,7 @@ def callback() -> WerkzeugResponse:
             client_secret=current_app.config["ORCID_CLIENT_SECRET"],
             authorization_response=secure_url,
         )
-    except Exception:  # noqa: BLE001
+    except (RequestException, ValueError, KeyError):
         flash(
             gettext("An error occurred during authentication. Please try again"),
             "danger",

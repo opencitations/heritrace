@@ -527,7 +527,6 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
     action: str,
     old_value: URIRef | Literal | None = None,
     entity_types: str | list[str] | None = None,
-    entity_shape: str | None = None,  # noqa: ARG001
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
     data_graph = fetch_data_graph_for_subject(subject)
     old_value = _resolve_old_value(data_graph, subject, predicate, old_value)

@@ -294,34 +294,124 @@ def _format_snapshot_description(
     return description
 
 
+def _resolve_timestamp(entity_uri: str, timestamp: str) -> tuple[str, datetime]:
+    try:
+        return timestamp, datetime.fromisoformat(timestamp)
+    except ValueError:
+        pass
+
+    provenance_sparql = get_provenance_sparql()
+    query_timestamp = f"""
+        SELECT ?generation_time
+        WHERE {{
+            <{entity_uri}/prov/se/{timestamp}>
+            <http://www.w3.org/ns/prov#generatedAtTime>
+            ?generation_time.
+        }}
+    """
+    provenance_sparql.setQuery(query_timestamp)
+    provenance_sparql.setReturnFormat(JSON)
+    try:
+        bindings = get_sparql_bindings(provenance_sparql.queryAndConvert())
+        generation_time = bindings[0]["generation_time"]["value"]
+    except IndexError:
+        abort(404)
+    return generation_time, datetime.fromisoformat(generation_time)
+
+
+def _find_closest_metadata(
+    entity_metadata: dict,
+    timestamp_dt: datetime,
+    latest_timestamp: str,
+) -> tuple[dict | None, dict | None]:
+    closest_metadata = None
+    min_time_diff = None
+    latest_metadata = None
+
+    for meta in entity_metadata.values():
+        meta_time = convert_to_datetime(meta["generatedAtTime"])
+        if meta_time is None:
+            msg = "meta_time must not be None"
+            raise AssertionError(msg)
+        time_diff = abs((meta_time - timestamp_dt).total_seconds())
+
+        if (
+            closest_metadata is None
+            or min_time_diff is None
+            or time_diff < min_time_diff
+        ):
+            closest_metadata = meta
+            min_time_diff = time_diff
+
+        if meta["generatedAtTime"] == latest_timestamp:
+            latest_metadata = meta
+
+    return closest_metadata, latest_metadata
+
+
+def _compute_version_navigation(
+    snapshot_times: list[datetime],
+    timestamp_dt: datetime,
+) -> tuple[str | None, str | None]:
+    next_snapshot_timestamp = None
+    prev_snapshot_timestamp = None
+
+    for snap_time in snapshot_times:
+        if snap_time > timestamp_dt:
+            next_snapshot_timestamp = snap_time.isoformat()
+            break
+
+    for snap_time in reversed(snapshot_times):
+        if snap_time < timestamp_dt:
+            prev_snapshot_timestamp = snap_time.isoformat()
+            break
+
+    return prev_snapshot_timestamp, next_snapshot_timestamp
+
+
+def _prepare_modifications(
+    closest_metadata: dict,
+    ctx: HistoryContext,
+    context_version: Graph,
+    closest_timestamp: str,
+    sorted_timestamps: list[str],
+) -> tuple[str, dict]:
+    modifications = ""
+    if closest_metadata.get("hasUpdateQuery"):
+        sparql_query = closest_metadata["hasUpdateQuery"]
+        parsed_modifications = parse_sparql_update(sparql_query)
+        modifications = generate_modification_text(
+            parsed_modifications,
+            ctx,
+            context_version,
+            closest_timestamp,
+        )
+
+    try:
+        current_index = sorted_timestamps.index(closest_timestamp)
+    except ValueError:
+        current_index = -1
+
+    if closest_metadata.get("description"):
+        formatted_description = _format_snapshot_description(
+            closest_metadata,
+            ctx,
+            context_version,
+            current_index,
+        )
+        closest_metadata["description"] = formatted_description
+
+    return modifications, closest_metadata
+
+
 @entity_bp.route("/entity-version/<path:entity_uri>/<timestamp>")
 @login_required
-def entity_version(entity_uri: str, timestamp: str) -> str:  # noqa: C901, PLR0912, PLR0915
+def entity_version(entity_uri: str, timestamp: str) -> str:
     entity_uri_ref = URIRef(entity_uri)
     custom_filter = get_custom_filter()
     change_tracking_config = get_change_tracking_config()
 
-    try:
-        timestamp_dt = datetime.fromisoformat(timestamp)
-    except ValueError:
-        provenance_sparql = get_provenance_sparql()
-        query_timestamp = f"""
-            SELECT ?generation_time
-            WHERE {{
-                <{entity_uri}/prov/se/{timestamp}>
-                <http://www.w3.org/ns/prov#generatedAtTime>
-                ?generation_time.
-            }}
-        """
-        provenance_sparql.setQuery(query_timestamp)
-        provenance_sparql.setReturnFormat(JSON)
-        try:
-            bindings = get_sparql_bindings(provenance_sparql.queryAndConvert())
-            generation_time = bindings[0]["generation_time"]["value"]
-        except IndexError:
-            abort(404)
-        timestamp = generation_time
-        timestamp_dt = datetime.fromisoformat(generation_time)
+    timestamp, timestamp_dt = _resolve_timestamp(entity_uri, timestamp)
 
     agnostic_entity = AgnosticEntity(
         res=entity_uri,
@@ -356,29 +446,10 @@ def entity_version(entity_uri: str, timestamp: str) -> str:  # noqa: C901, PLR09
     ]
 
     entity_metadata = provenance.get(entity_uri, {})
-    closest_metadata = None
-    min_time_diff = None
-
     latest_timestamp = max(sorted_timestamps)
-    latest_metadata = None
-
-    for meta in entity_metadata.values():
-        meta_time = convert_to_datetime(meta["generatedAtTime"])
-        if meta_time is None:
-            msg = "meta_time must not be None"
-            raise AssertionError(msg)
-        time_diff = abs((meta_time - timestamp_dt).total_seconds())
-
-        if (
-            closest_metadata is None
-            or min_time_diff is None
-            or time_diff < min_time_diff
-        ):
-            closest_metadata = meta
-            min_time_diff = time_diff
-
-        if meta["generatedAtTime"] == latest_timestamp:
-            latest_metadata = meta
+    closest_metadata, latest_metadata = _find_closest_metadata(
+        entity_metadata, timestamp_dt, latest_timestamp
+    )
 
     if closest_metadata is None or latest_metadata is None:
         abort(404)
@@ -436,18 +507,9 @@ def entity_version(entity_uri: str, timestamp: str) -> str:  # noqa: C901, PLR09
     snapshot_times = sorted(set(snapshot_times))
     version_number = snapshot_times.index(timestamp_dt) + 1
 
-    next_snapshot_timestamp = None
-    prev_snapshot_timestamp = None
-
-    for snap_time in snapshot_times:
-        if snap_time > timestamp_dt:
-            next_snapshot_timestamp = snap_time.isoformat()
-            break
-
-    for snap_time in reversed(snapshot_times):
-        if snap_time < timestamp_dt:
-            prev_snapshot_timestamp = snap_time.isoformat()
-            break
+    prev_snapshot_timestamp, next_snapshot_timestamp = _compute_version_navigation(
+        snapshot_times, timestamp_dt
+    )
 
     version_history_ctx = HistoryContext(
         entity_uri=entity_uri,
@@ -458,30 +520,13 @@ def entity_version(entity_uri: str, timestamp: str) -> str:  # noqa: C901, PLR09
         custom_filter=custom_filter,
     )
 
-    modifications = ""
-    if closest_metadata.get("hasUpdateQuery"):
-        sparql_query = closest_metadata["hasUpdateQuery"]
-        parsed_modifications = parse_sparql_update(sparql_query)
-        modifications = generate_modification_text(
-            parsed_modifications,
-            version_history_ctx,
-            context_version,
-            closest_timestamp,
-        )
-
-    try:
-        current_index = sorted_timestamps.index(closest_timestamp)
-    except ValueError:
-        current_index = -1
-
-    if closest_metadata.get("description"):
-        formatted_description = _format_snapshot_description(
-            closest_metadata,
-            version_history_ctx,
-            context_version,
-            current_index,
-        )
-        closest_metadata["description"] = formatted_description
+    modifications, closest_metadata = _prepare_modifications(
+        closest_metadata,
+        version_history_ctx,
+        context_version,
+        closest_timestamp,
+        sorted_timestamps,
+    )
 
     closest_timestamp = closest_metadata["generatedAtTime"]
 

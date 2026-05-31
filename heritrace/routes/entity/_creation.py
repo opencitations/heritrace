@@ -12,7 +12,7 @@ from rdflib import RDF, XSD, Literal, URIRef
 from werkzeug.wrappers import Response
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor, EndpointConfig
+from heritrace.editor import Editor, EditorError, EndpointConfig
 from heritrace.extensions import (
     get_dataset_endpoint,
     get_form_fields,
@@ -248,7 +248,7 @@ def _handle_create_entity_post(
         _process_virtual_properties_after_creation(
             editor, structured_data, entity_uri, default_graph_uri
         )
-    except Exception as e:  # noqa: BLE001
+    except (EditorError, OSError) as e:
         error_message = gettext(
             "An error occurred while creating the entity: %(error)s", error=str(e)
         )

@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, call, patch
 from flask.testing import FlaskClient
 from SPARQLWrapper import JSON
 
-from heritrace.utils.sparql_utils import CatalogQuery
+from heritrace.utils.sparql_utils import CatalogQuery, DeletedEntitiesQuery
 
 
 def test_index_route(client: FlaskClient) -> None:
@@ -110,7 +110,7 @@ def test_time_vault_route_authenticated(
     )
     assert response.status_code == 200
     mock_get_deleted_entities.assert_called_with(
-        2, 100, "name", "DESC", "test_class", None
+        DeletedEntitiesQuery(2, 100, "name", "DESC", "test_class", None)
     )
 
 

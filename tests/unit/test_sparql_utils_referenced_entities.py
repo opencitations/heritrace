@@ -113,7 +113,7 @@ class TestImportReferencedEntities:
         referenced_entities = {"http://example.org/person1"}
 
         mock_collect.return_value = referenced_entities
-        mock_editor.import_entity.side_effect = Exception("Import failed")
+        mock_editor.import_entity.side_effect = OSError("Import failed")
 
         # Should not raise exception, should continue
         import_referenced_entities(mock_editor, structured_data)

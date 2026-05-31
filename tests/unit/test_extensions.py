@@ -16,6 +16,7 @@ from flask_login import LoginManager
 from flask_login.signals import user_loaded_from_cookie
 from rdflib import Graph
 from redis import Redis
+from redis.exceptions import RedisError
 from SPARQLWrapper import SPARQLWrapper
 
 from heritrace.extensions import (
@@ -353,7 +354,7 @@ def test_need_initialization(app) -> None:
     mock_redis.get.return_value = None
     assert need_initialization(app, mock_redis) is True
 
-    mock_redis.get.side_effect = Exception("Redis error")
+    mock_redis.get.side_effect = RedisError("Redis error")
     assert need_initialization(app, mock_redis) is True
 
     expired_time = (datetime.now(tz=timezone.utc) - timedelta(days=10)).isoformat()
@@ -749,6 +750,8 @@ def test_need_initialization_without_counter_handler(app) -> None:
     app.config["CACHE_FILE"] = "nonexistent_cache_file.json"
     app.config["CACHE_VALIDITY_DAYS"] = 7
 
+    mock_redis.get.side_effect = None
+    mock_redis.get.return_value = None
     with patch("os.path.exists", return_value=False):
         assert need_initialization(app, mock_redis) is True
 
@@ -839,7 +842,7 @@ class TestSPARQLWrapperWithRetry:
             "http://example.com/sparql", max_attempts=3, initial_delay=0.1
         )
 
-        test_exception = Exception("Connection failed")
+        test_exception = OSError("Connection failed")
         side_effects = [test_exception, test_exception, test_exception]
 
         with (
@@ -850,7 +853,7 @@ class TestSPARQLWrapperWithRetry:
             mock_logger = MagicMock()
             mock_get_logger.return_value = mock_logger
 
-            with pytest.raises(Exception, match="Connection failed"):
+            with pytest.raises(OSError, match="Connection failed"):
                 wrapper.query()
 
             assert mock_logger.warning.call_count == 3
@@ -870,7 +873,7 @@ class TestSPARQLWrapperWithRetry:
 
         side_effects = [
             TimeoutError("The read operation timed out"),
-            Exception("Connection error"),
+            OSError("Connection error"),
             mock_result,
         ]
 
@@ -898,9 +901,9 @@ class TestSPARQLWrapperWithRetry:
         mock_result = MagicMock()
 
         side_effects = [
-            Exception("Error"),
-            Exception("Error"),
-            Exception("Error"),
+            OSError("Error"),
+            OSError("Error"),
+            OSError("Error"),
             mock_result,
         ]
 

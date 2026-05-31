@@ -15,6 +15,7 @@ from rdflib.plugins.sparql.parser import parseUpdate
 from rdflib.term import Node
 from rdflib.util import from_n3
 from SPARQLWrapper import JSON
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 from heritrace.editor import Editor
@@ -405,39 +406,80 @@ class CatalogQuery:
     selected_shape: str | None = None
 
 
-def get_entities_for_class(  # noqa: PLR0915
+def _get_entities_with_shape_filtering(
     query: CatalogQuery,
 ) -> tuple[list[dict[str, str]], int]:
+    sparql = get_sparql()
+    custom_filter = get_custom_filter()
+    selected_class = query.selected_class
+    selected_shape = query.selected_shape
+    offset = (query.page - 1) * query.per_page
+    fetch_limit = query.per_page * 5
+
+    subjects_query = f"""
+        SELECT DISTINCT ?subject
+        WHERE {{
+            ?subject a <{selected_class}> .
+        }}
+        LIMIT {fetch_limit}
+        OFFSET {offset}
     """
-    Retrieve entities for a specific class with pagination and sorting.
 
-    Args:
-        selected_class (str): URI of the class to retrieve entities for
-        page (int): Page number (1-indexed)
-        per_page (int): Number of entities per page
-        sort_property (str, optional): Property URI to sort by. Defaults to None.
-        sort_direction (str, optional): Sort direction ("ASC" or "DESC"). Defaults to
-        "ASC".
-        selected_shape (str, optional): Shape URI for filtering entities. Defaults to
-        None.
+    sparql.setQuery(subjects_query)
+    sparql.setReturnFormat(JSON)
+    subjects_bindings = get_sparql_bindings(sparql.query().convert())
 
-    Returns:
-        tuple: (list of entities, total count)
+    subjects = [r["subject"]["value"] for r in subjects_bindings]
 
-    Performance Notes:
-        - If sort_property is None, NO ORDER BY clause is applied to the SPARQL query.
-          This significantly improves performance for large datasets by avoiding
-          expensive
-          sorting operations on URIs.
-        - Without explicit ordering, the triplestore returns results in its natural
-        order,
-          which is deterministic within a session but may vary after database reloads.
-        - For optimal performance with large datasets, configure display_rules.yaml
-        without
-          sortableBy properties to prevent users from triggering expensive sort
-          operations.
+    if not subjects:
+        return [], 0
+
+    subjects_filter = " ".join([f"(<{s}>)" for s in subjects])
+
+    triples_query = f"""
+        SELECT ?subject ?p ?o
+        WHERE {{
+            ?subject a <{selected_class}> . ?subject ?p ?o . VALUES (?subject) {{
+            {subjects_filter} }}
+        }}
     """
-    assert query.selected_class is not None
+
+    sparql.setQuery(triples_query)
+    sparql.setReturnFormat(JSON)
+    triples_bindings = get_sparql_bindings(sparql.query().convert())
+
+    entities_triples = defaultdict(list)
+    for binding in triples_bindings:
+        subject = binding["subject"]["value"]
+        predicate = binding["p"]["value"]
+        obj = binding["o"]["value"]
+        entities_triples[subject].append((subject, predicate, obj))
+
+    filtered_entities = []
+    for subject_uri, triples in entities_triples.items():
+        entity_shape = determine_shape_for_entity_triples(list(triples))
+        if entity_shape == selected_shape:
+            entity_label = custom_filter.human_readable_entity(
+                subject_uri, (selected_class, selected_shape), None
+            )
+            filtered_entities.append({"uri": subject_uri, "label": entity_label})
+
+    if query.sort_property and query.sort_direction:
+        reverse_sort = query.sort_direction.upper() == "DESC"
+        filtered_entities.sort(
+            key=lambda x: x["label"].lower(), reverse=reverse_sort
+        )
+
+    total_count = len(filtered_entities)
+    return filtered_entities[:query.per_page], total_count
+
+
+def get_entities_for_class(
+    query: CatalogQuery,
+) -> tuple[list[dict[str, str]], int]:
+    if query.selected_class is None:
+        msg = "selected_class must not be None"
+        raise ValueError(msg)
     sparql = get_sparql()
     custom_filter = get_custom_filter()
     classes_with_multiple_shapes = get_classes_with_multiple_shapes()
@@ -454,65 +496,7 @@ def get_entities_for_class(  # noqa: PLR0915
     )
 
     if use_shape_filtering:
-        offset = (page - 1) * per_page
-        fetch_limit = per_page * 5
-
-        subjects_query = f"""
-            SELECT DISTINCT ?subject
-            WHERE {{
-                ?subject a <{selected_class}> .
-            }}
-            LIMIT {fetch_limit}
-            OFFSET {offset}
-        """
-
-        sparql.setQuery(subjects_query)
-        sparql.setReturnFormat(JSON)
-        subjects_bindings = get_sparql_bindings(sparql.query().convert())
-
-        subjects = [r["subject"]["value"] for r in subjects_bindings]
-
-        if not subjects:
-            return [], 0
-
-        subjects_filter = " ".join([f"(<{s}>)" for s in subjects])
-
-        triples_query = f"""
-            SELECT ?subject ?p ?o
-            WHERE {{
-                ?subject a <{selected_class}> . ?subject ?p ?o . VALUES (?subject) {{
-                {subjects_filter} }}
-            }}
-        """
-
-        sparql.setQuery(triples_query)
-        sparql.setReturnFormat(JSON)
-        triples_bindings = get_sparql_bindings(sparql.query().convert())
-
-        entities_triples = defaultdict(list)
-        for binding in triples_bindings:
-            subject = binding["subject"]["value"]
-            predicate = binding["p"]["value"]
-            obj = binding["o"]["value"]
-            entities_triples[subject].append((subject, predicate, obj))
-
-        filtered_entities = []
-        for subject_uri, triples in entities_triples.items():
-            entity_shape = determine_shape_for_entity_triples(list(triples))
-            if entity_shape == selected_shape:
-                entity_label = custom_filter.human_readable_entity(
-                    subject_uri, (selected_class, selected_shape), None
-                )
-                filtered_entities.append({"uri": subject_uri, "label": entity_label})
-
-        if sort_property and sort_direction:
-            reverse_sort = sort_direction.upper() == "DESC"
-            filtered_entities.sort(
-                key=lambda x: x["label"].lower(), reverse=reverse_sort
-            )
-
-        total_count = len(filtered_entities)
-        return filtered_entities[:per_page], total_count
+        return _get_entities_with_shape_filtering(query)
 
     offset = (page - 1) * per_page
     sort_clause = ""
@@ -733,13 +717,69 @@ def fetch_current_state_with_related_entities(
     return combined_graph
 
 
-def get_deleted_entities_with_filtering(  # noqa: C901, PLR0913
-    page: int = 1,
-    per_page: int = 50,
-    sort_property: str = "deletionTime",
-    sort_direction: str = "DESC",
-    selected_class: str | None = None,
-    selected_shape: str | None = None,
+@dataclass(frozen=True, slots=True)
+class DeletedEntitiesQuery:
+    page: int = 1
+    per_page: int = 50
+    sort_property: str = "deletionTime"
+    sort_direction: str = "DESC"
+    selected_class: str | None = None
+    selected_shape: str | None = None
+
+
+def _filter_and_paginate_deleted_entities(
+    deleted_entities: list[dict],
+    query: DeletedEntitiesQuery,
+    sortable_properties: list[dict[str, str]],
+) -> tuple[
+    list[dict],
+    str | None,
+    str | None,
+    list[dict[str, str]],
+    int,
+]:
+    selected_class = query.selected_class
+    selected_shape = query.selected_shape
+
+    reverse_sort = query.sort_direction.upper() == "DESC"
+    if query.sort_property == "deletionTime":
+        deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
+    else:
+        deleted_entities.sort(
+            key=lambda e: e["sort_values"].get(query.sort_property, "").lower(),
+            reverse=reverse_sort,
+        )
+
+    if selected_class:
+        if selected_shape is None:
+            selected_shape = determine_shape_for_classes([selected_class])
+        entity_key = (selected_class, selected_shape)
+        sortable_properties.extend(get_sortable_properties(entity_key))
+
+    if selected_class:
+        filtered_entities = [
+            entity
+            for entity in deleted_entities
+            if selected_class in entity["entity_types"]
+        ]
+    else:
+        filtered_entities = deleted_entities
+
+    total_count = len(filtered_entities)
+    offset = (query.page - 1) * query.per_page
+    paginated_entities = filtered_entities[offset : offset + query.per_page]
+
+    return (
+        paginated_entities,
+        selected_class,
+        selected_shape,
+        sortable_properties,
+        total_count,
+    )
+
+
+def get_deleted_entities_with_filtering(
+    query: DeletedEntitiesQuery,
 ) -> tuple[
     list[dict[str, str | list[str] | dict[str, str]]],
     list[dict[str, str | int]],
@@ -748,10 +788,6 @@ def get_deleted_entities_with_filtering(  # noqa: C901, PLR0913
     list[dict[str, str]],
     int,
 ]:
-    """
-    Fetch and process deleted entities from the provenance graph, with filtering and
-    sorting.
-    """
     sortable_properties = [
         {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
     ]
@@ -811,37 +847,28 @@ def get_deleted_entities_with_filtering(  # noqa: C901, PLR0913
         for class_uri, count in class_counts.items()
     ]
 
-    reverse_sort = sort_direction.upper() == "DESC"
-    if sort_property == "deletionTime":
-        deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
-    else:
-        deleted_entities.sort(
-            key=lambda e: e["sort_values"].get(sort_property, "").lower(),
-            reverse=reverse_sort,
+    available_classes.sort(key=lambda x: x["label"].lower())
+
+    resolved_query = query
+    if not query.selected_class and available_classes:
+        resolved_query = DeletedEntitiesQuery(
+            page=query.page,
+            per_page=query.per_page,
+            sort_property=query.sort_property,
+            sort_direction=query.sort_direction,
+            selected_class=available_classes[0]["uri"],
+            selected_shape=query.selected_shape,
         )
 
-    available_classes.sort(key=lambda x: x["label"].lower())
-    if not selected_class and available_classes:
-        selected_class = available_classes[0]["uri"]
-
-    if selected_class:
-        if selected_shape is None:
-            selected_shape = determine_shape_for_classes([selected_class])
-        entity_key = (selected_class, selected_shape)
-        sortable_properties.extend(get_sortable_properties(entity_key))
-
-    if selected_class:
-        filtered_entities = [
-            entity
-            for entity in deleted_entities
-            if selected_class in entity["entity_types"]
-        ]
-    else:
-        filtered_entities = deleted_entities
-
-    total_count = len(filtered_entities)
-    offset = (page - 1) * per_page
-    paginated_entities = filtered_entities[offset : offset + per_page]
+    (
+        paginated_entities,
+        selected_class,
+        selected_shape,
+        sortable_properties,
+        total_count,
+    ) = _filter_and_paginate_deleted_entities(
+        deleted_entities, resolved_query, sortable_properties
+    )
 
     return (
         paginated_entities,
@@ -1172,7 +1199,7 @@ def import_referenced_entities(
     for entity_uri in referenced_entities:
         try:
             editor.import_entity(URIRef(entity_uri))
-        except Exception:  # noqa: BLE001, PERF203
+        except (SPARQLWrapperException, OSError, ValueError):  # noqa: PERF203
             logging.getLogger(__name__).debug(
                 "Failed to import referenced entity %s", entity_uri
             )

@@ -12,6 +12,8 @@ from flask_login import LoginManager
 from redis import Redis
 
 from heritrace.cli import register_cli_commands
+from heritrace.extensions import init_extensions
+from heritrace.routes import register_blueprints
 from heritrace.utils.sparql_utils import precompute_available_classes_cache
 
 
@@ -42,9 +44,6 @@ def create_app(config_object: object = None) -> Flask:
         )
         app.logger.info("Connecting to Redis at: %s", redis_url)
         redis_client = Redis.from_url(redis_url, decode_responses=True)
-
-        from heritrace.extensions import init_extensions  # noqa: PLC0415
-        from heritrace.routes import register_blueprints  # noqa: PLC0415
 
         with app.app_context():
             init_extensions(app, babel, login_manager, redis_client)

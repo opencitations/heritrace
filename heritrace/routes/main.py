@@ -14,6 +14,7 @@ from heritrace.extensions import get_dataset_endpoint, get_sparql
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
+    DeletedEntitiesQuery,
     get_available_classes,
     get_catalog_data,
     get_deleted_entities_with_filtering,
@@ -100,12 +101,14 @@ def time_vault() -> str:
         sortable_properties,
         total_count,
     ) = get_deleted_entities_with_filtering(
-        initial_page,
-        initial_per_page,
-        sort_property,
-        sort_direction,
-        selected_class,
-        selected_shape,
+        DeletedEntitiesQuery(
+            initial_page,
+            initial_per_page,
+            sort_property,
+            sort_direction,
+            selected_class,
+            selected_shape,
+        )
     )
 
     sortable_properties = [

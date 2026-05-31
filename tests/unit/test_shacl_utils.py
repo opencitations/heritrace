@@ -165,9 +165,13 @@ class TestShaclUtils:
         ):
             mock_json_load.return_value = {"@context": {}}
 
-            result = process_query_results(
-                shacl, results, display_rules, processed_shapes, app
+            ctx = ShaclProcessingContext(
+                shacl=shacl,
+                display_rules=display_rules,
+                app=app,
+                processed_shapes=processed_shapes,
             )
+            result = process_query_results(ctx, results)
 
         # Verifica che il risultato contenga la struttura orNodes attesa con chiave
         # tuple
@@ -328,9 +332,13 @@ class TestShaclUtils:
         ):
             mock_json_load.return_value = {"@context": {}}
 
-            result = process_query_results(
-                shacl, results, display_rules, processed_shapes, app
+            ctx = ShaclProcessingContext(
+                shacl=shacl,
+                display_rules=display_rules,
+                app=app,
+                processed_shapes=processed_shapes,
             )
+            result = process_query_results(ctx, results)
 
         # Verifica che il risultato contenga la struttura attesa con chiave tuple
         entity_key = ("entity_type1", "subjectShape1")

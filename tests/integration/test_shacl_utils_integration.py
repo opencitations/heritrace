@@ -1265,9 +1265,13 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         # Process with existing field - updated for tuple-based keys
         entity_key = ("http://example.org/type", "http://example.org/shape")
 
-        result = process_query_results(
-            shacl_graph, mock_results, None, set(), app, depth=0
+        ctx = ShaclProcessingContext(
+            shacl=shacl_graph,
+            display_rules=None,
+            app=app,
+            processed_shapes=set(),
         )
+        result = process_query_results(ctx, mock_results, depth=0)
         entity_key = ("http://example.org/type", "http://example.org/shape")
         assert entity_key in result
         assert "http://example.org/predicate" in result[entity_key]
@@ -1276,9 +1280,13 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         mock_row.datatype = URIRef("http://www.w3.org/2001/XMLSchema#integer")
         mock_results.__iter__.return_value = [mock_row]
 
-        result = process_query_results(
-            shacl_graph, mock_results, None, set(), app, depth=0
+        ctx = ShaclProcessingContext(
+            shacl=shacl_graph,
+            display_rules=None,
+            app=app,
+            processed_shapes=set(),
         )
+        result = process_query_results(ctx, mock_results, depth=0)
         entity_key = ("http://example.org/type", "http://example.org/shape")
         assert entity_key in result
         assert "http://example.org/predicate" in result[entity_key]
@@ -1703,12 +1711,15 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 return_value={"nestedField": "nestedValue"},
             ),
         ):
-            # Call the function with empty processed_shapes
             display_rules = []
             processed_shapes = set()
-            fields = process_query_results(
-                shacl_graph, rows, display_rules, processed_shapes, app
+            ctx = ShaclProcessingContext(
+                shacl=shacl_graph,
+                display_rules=display_rules,
+                app=app,
+                processed_shapes=processed_shapes,
             )
+            fields = process_query_results(ctx, rows)
 
             # Verify the result has the expected structure with tuple-based keys
             entity_key1 = ("http://example.org/type1", "http://example.org/shape1")
@@ -1742,12 +1753,15 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 return_value={"nestedField": "nestedValue"},
             ),
         ):
-            # Call the function with processed_shapes containing one of the orNodes
             display_rules = []
             processed_shapes = {"http://example.org/orNode1"}
-            fields = process_query_results(
-                shacl_graph, rows, display_rules, processed_shapes, app
+            ctx = ShaclProcessingContext(
+                shacl=shacl_graph,
+                display_rules=display_rules,
+                app=app,
+                processed_shapes=processed_shapes,
             )
+            fields = process_query_results(ctx, rows)
 
             # Verify the result still has the OR nodes with tuple-based keys
             entity_key1 = ("http://example.org/type1", "http://example.org/shape1")

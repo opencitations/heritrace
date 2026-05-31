@@ -11,6 +11,7 @@ from rdflib import RDF, Dataset, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
 
+from heritrace.utils import sparql_utils as _su
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
     fetch_current_state_with_related_entities,
@@ -39,9 +40,6 @@ class TestGetAvailableClassesIntegration:
                 "heritrace.utils.sparql_utils.is_entity_type_visible",
                 lambda _uri: True,
             )
-            # Clear the cache to force recomputation
-            from heritrace.utils import sparql_utils as _su  # noqa: PLC0415
-
             _su._cache["available_classes"] = None  # noqa: SLF001
 
             classes = get_available_classes()
@@ -219,7 +217,9 @@ class TestGetCatalogDataIntegration:
     def test_get_catalog_data_no_class(self, app) -> None:
         """Test getting catalog data with no class selected."""
         with app.app_context():
-            catalog_data = get_catalog_data(CatalogQuery(selected_class=None, page=1, per_page=10))
+            catalog_data = get_catalog_data(
+                CatalogQuery(selected_class=None, page=1, per_page=10)
+            )
 
             # Verify the catalog data
             assert catalog_data["total_count"] == 0
