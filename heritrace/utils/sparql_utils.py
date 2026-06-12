@@ -4,7 +4,7 @@
 
 import logging
 import os
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -466,12 +466,10 @@ def _get_entities_with_shape_filtering(
 
     if query.sort_property and query.sort_direction:
         reverse_sort = query.sort_direction.upper() == "DESC"
-        filtered_entities.sort(
-            key=lambda x: x["label"].lower(), reverse=reverse_sort
-        )
+        filtered_entities.sort(key=lambda x: x["label"].lower(), reverse=reverse_sort)
 
     total_count = len(filtered_entities)
-    return filtered_entities[:query.per_page], total_count
+    return filtered_entities[: query.per_page], total_count
 
 
 def get_entities_for_class(
@@ -1103,9 +1101,15 @@ def import_entity_graph(
                 imported_subjects.add(referencing_subject)
                 editor.import_entity(URIRef(referencing_subject))
 
-    def recursive_import(current_subject: str, current_depth: int) -> None:
+    # Breadth-first traversal so each entity is visited at its minimal distance
+    # from the subject: a depth-first walk would consume one level per hop along
+    # ordering chains (e.g. oco:hasNext) and silently skip entities pushed beyond
+    # max_depth, leaving them without provenance snapshots.
+    queue: deque[tuple[str, int]] = deque([(subject_str, 1)])
+    while queue:
+        current_subject, current_depth = queue.popleft()
         if current_depth > max_depth or current_subject in imported_subjects:
-            return
+            continue
 
         imported_subjects.add(current_subject)
         editor.import_entity(URIRef(current_subject))
@@ -1125,10 +1129,8 @@ def import_entity_graph(
         inner_bindings = get_sparql_bindings(sparql.query().convert())
 
         for result in inner_bindings:
-            object_entity = result["o"]["value"]
-            recursive_import(object_entity, current_depth + 1)
+            queue.append((result["o"]["value"], current_depth + 1))
 
-    recursive_import(subject_str, 1)
     return editor
 
 

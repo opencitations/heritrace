@@ -125,8 +125,12 @@ def get_deleted_entities_api() -> Response:
         total_count,
     ) = get_deleted_entities_with_filtering(
         DeletedEntitiesQuery(
-            page, per_page, sort_property, sort_direction,
-            selected_class, selected_shape,
+            page,
+            per_page,
+            sort_property,
+            sort_direction,
+            selected_class,
+            selected_shape,
         )
     )
 
@@ -664,9 +668,7 @@ def _handle_affected_entities(
                 continue
 
             delete_logic(
-                ChangeOperation(
-                    editor=editor, subject=orphan_uri, graph_uri=graph_uri
-                )
+                ChangeOperation(editor=editor, subject=orphan_uri, graph_uri=graph_uri)
             )
             deleted_entities.add(orphan_uri)
 
@@ -682,9 +684,7 @@ def _handle_affected_entities(
                 continue
 
             delete_logic(
-                ChangeOperation(
-                    editor=editor, subject=proxy_uri, graph_uri=graph_uri
-                )
+                ChangeOperation(editor=editor, subject=proxy_uri, graph_uri=graph_uri)
             )
             deleted_entities.add(proxy_uri)
 
@@ -938,9 +938,7 @@ def _handle_property_value(
         if value["type"] == "uri":
             object_value = URIRef(value["value"])
         elif value["type"] == "literal":
-            datatype = (
-                URIRef(value["datatype"]) if "datatype" in value else XSD.string
-            )
+            datatype = URIRef(value["datatype"]) if "datatype" in value else XSD.string
             object_value = Literal(value["value"], datatype=datatype)
         else:
             msg = f"Unknown custom property type: {value['type']}"

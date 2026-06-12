@@ -44,6 +44,7 @@ class _ParsedRow:
     condition_entry: dict[str, object]
     node_shapes: list[str]
 
+
 COMMON_SPARQL_QUERY = prepareQuery(
     """
     SELECT ?shape ?type ?predicate ?node_shape ?datatype
@@ -194,9 +195,7 @@ def _process_or_nodes(
             "hasValue": parsed.has_value,
             "objectClass": object_class,
             "optionalValues": parsed.optional_values,
-            "conditions": (
-                [parsed.condition_entry] if parsed.condition_entry else []
-            ),
+            "conditions": ([parsed.condition_entry] if parsed.condition_entry else []),
             "shouldBeDisplayed": True,
         }
         if node not in ctx.processed_shapes:
@@ -248,9 +247,7 @@ def _process_single_row(
         "hasValue": parsed.has_value,
         "objectClass": parsed.object_class,
         "optionalValues": parsed.optional_values,
-        "conditions": (
-            [parsed.condition_entry] if parsed.condition_entry else []
-        ),
+        "conditions": ([parsed.condition_entry] if parsed.condition_entry else []),
         "inputType": determine_input_type(parsed.datatype),
         "shouldBeDisplayed": True,
     }
@@ -280,9 +277,7 @@ def process_query_results(
     with (Path(__file__).parent / "context.json").open() as config_file:
         context = json.load(config_file)["@context"]
 
-    custom_filter = Filter(
-        context, ctx.display_rules, ctx.app.config["DATASET_DB_URL"]
-    )
+    custom_filter = Filter(context, ctx.display_rules, ctx.app.config["DATASET_DB_URL"])
 
     for row in results:
         parsed = _parse_row(row)

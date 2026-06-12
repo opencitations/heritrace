@@ -244,9 +244,9 @@ def _format_snapshot_description(
                 merged_entity_uri_from_desc = potential_merged_uri
                 merged_entity_label = None
                 if current_index > 0:
-                    previous_snapshot_timestamp = (
-                        ctx.sorted_timestamps[current_index - 1]
-                    )
+                    previous_snapshot_timestamp = ctx.sorted_timestamps[
+                        current_index - 1
+                    ]
                     previous_snapshot_graph = ctx.history.get(ctx.entity_uri, {}).get(
                         previous_snapshot_timestamp
                     )

@@ -101,9 +101,7 @@ def test_get_object_label_uri_no_snapshot(mock_custom_filter) -> None:
         custom_filter=mock_custom_filter,
     )
 
-    label = get_object_label(
-        object_value, predicate, None, None, ctx
-    )
+    label = get_object_label(object_value, predicate, None, None, ctx)
 
     assert label == "http://example.org/some-entity"
 

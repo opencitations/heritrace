@@ -358,12 +358,12 @@ def test_need_initialization(app) -> None:
     assert need_initialization(app, mock_redis) is True
 
     expired_time = (datetime.now(tz=timezone.utc) - timedelta(days=10)).isoformat()
-    mock_redis.get.return_value = expired_time.encode("utf-8")
+    mock_redis.get.return_value = expired_time
     mock_redis.get.side_effect = None
     assert need_initialization(app, mock_redis) is True
 
     current_time = datetime.now(tz=timezone.utc).isoformat()
-    mock_redis.get.return_value = current_time.encode("utf-8")
+    mock_redis.get.return_value = current_time
     assert need_initialization(app, mock_redis) is False
 
     app.config["URI_GENERATOR"] = MagicMock(spec=[])

@@ -162,9 +162,7 @@ def initialize_change_tracking_config(
         fuseki_search = db_triplestore == "fuseki" and text_index_enabled
         virtuoso_search = db_triplestore == "virtuoso" and text_index_enabled
 
-        graphdb_connector = (
-            ""  # TODO(@arcangelo-massari): Add graphdb support
-        )
+        graphdb_connector = ""  # TODO(@arcangelo-massari): Add graphdb support
         # https://github.com/opencitations/heritrace/issues/1
 
         try:

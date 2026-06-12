@@ -686,6 +686,62 @@ class TestImportEntityGraph:
 
             assert result == mock_editor
 
+    def test_import_entity_graph_imports_ordered_chain_at_minimal_depth(self) -> None:
+        base = "http://example.org"
+        br = f"{base}/br"
+        bindings_by_subject = {
+            br: [
+                {
+                    "p": {"value": "http://purl.org/spar/pro/isDocumentContextFor"},
+                    "o": {"value": f"{base}/ar{i}"},
+                }
+                for i in range(1, 6)
+            ]
+        }
+        for i in range(1, 6):
+            rows = [
+                {
+                    "p": {"value": "http://purl.org/spar/pro/isHeldBy"},
+                    "o": {"value": f"{base}/ra{i}"},
+                }
+            ]
+            if i < 5:
+                rows.insert(
+                    0,
+                    {
+                        "p": {"value": "https://w3id.org/oc/ontology/hasNext"},
+                        "o": {"value": f"{base}/ar{i + 1}"},
+                    },
+                )
+            bindings_by_subject[f"{base}/ar{i}"] = rows
+            bindings_by_subject[f"{base}/ra{i}"] = []
+
+        mock_editor = MagicMock()
+        current_query = {}
+
+        with patch("heritrace.utils.sparql_utils.get_sparql") as mock_get_sparql:
+            mock_sparql_wrapper = mock_get_sparql.return_value
+            mock_sparql_wrapper.setQuery.side_effect = lambda q: current_query.update(
+                query=q
+            )
+            mock_sparql_wrapper.query.return_value.convert.side_effect = lambda: {
+                "results": {
+                    "bindings": bindings_by_subject[
+                        current_query["query"].split("<")[1].split(">")[0]
+                    ]
+                }
+            }
+
+            import_entity_graph(mock_editor, URIRef(br))
+
+        imported = {call.args[0] for call in mock_editor.import_entity.call_args_list}
+        expected = (
+            {URIRef(br)}
+            | {URIRef(f"{base}/ar{i}") for i in range(1, 6)}
+            | {URIRef(f"{base}/ra{i}") for i in range(1, 6)}
+        )
+        assert imported == expected
+
 
 class TestFetchCurrentStateWithRelatedEntities:
     """Tests for the fetch_current_state_with_related_entities function."""
@@ -1975,9 +2031,7 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
 
             result = get_deleted_entities_with_filtering(
-                DeletedEntitiesQuery(
-                    selected_class="http://example.org/Person"
-                )
+                DeletedEntitiesQuery(selected_class="http://example.org/Person")
             )
 
             (

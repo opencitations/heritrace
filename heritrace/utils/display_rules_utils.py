@@ -695,9 +695,7 @@ def process_virtual_property_display(
     if not reference_field:
         return
 
-    entity_uris = _fetch_virtual_property_entities(
-        reference_field, target_class, ctx
-    )
+    entity_uris = _fetch_virtual_property_entities(reference_field, target_class, ctx)
 
     if prop_config.get("fetchValueFromQuery") and entity_uris:
         _build_virtual_property_triples(

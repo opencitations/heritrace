@@ -81,9 +81,7 @@ def _build_live_entity_context(
     ]
     subject_classes = [
         str(o)
-        for _, _, o in get_triples_from_graph(
-            data_graph, (subject_uri, RDF.type, None)
-        )
+        for _, _, o in get_triples_from_graph(data_graph, (subject_uri, RDF.type, None))
     ]
     subject_triples = list(
         get_triples_from_graph(data_graph, (subject_uri, None, None))
@@ -121,12 +119,12 @@ def _build_live_entity_context(
     else:
         virtual_properties = []
 
-    can_be_added = [
-        uri for uri in can_be_added if uri in relevant_properties
-    ] + [vp[0] for vp in virtual_properties]
-    can_be_deleted = [
-        uri for uri in can_be_deleted if uri in relevant_properties
-    ] + [vp[0] for vp in virtual_properties]
+    can_be_added = [uri for uri in can_be_added if uri in relevant_properties] + [
+        vp[0] for vp in virtual_properties
+    ]
+    can_be_deleted = [uri for uri in can_be_deleted if uri in relevant_properties] + [
+        vp[0] for vp in virtual_properties
+    ]
 
     return (
         grouped_triples,
