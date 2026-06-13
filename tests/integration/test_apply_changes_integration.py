@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
+from dateutil import parser
 from flask import Flask
 from flask.testing import FlaskClient
 from SPARQLWrapper import JSON, POST, SPARQLWrapper
@@ -78,10 +79,7 @@ def _provenance_generation_times(entity_uri: str) -> list[datetime]:
     }}
     """)
     bindings = get_sparql_bindings(sparql.queryAndConvert())
-    return [
-        datetime.fromisoformat(b["t"]["value"]).astimezone(timezone.utc)
-        for b in bindings
-    ]
+    return [parser.isoparse(b["t"]["value"]).astimezone(timezone.utc) for b in bindings]
 
 
 def test_reorder_backfills_provenance_for_all_chained_authors(
