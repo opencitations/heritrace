@@ -7,7 +7,7 @@ Unit tests for entity-related functions in entity.py.
 These tests focus on the modification, references, and snapshot functionality.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -782,6 +782,55 @@ def test_prepare_entity_snapshots_skip_no_valid_snapshot() -> None:
     assert len(result) == 1
     assert "http://example.org/entity/1" not in result
     assert "http://example.org/entity/2" in result
+
+
+def test_find_appropriate_snapshot_exclusive() -> None:
+    """Test find_appropriate_snapshot with inclusive=False."""
+    provenance_data = {
+        "snapshot1": {
+            "generatedAtTime": "2024-01-01T00:00:00",
+            "invalidatedAtTime": None,
+        },
+        "snapshot2": {
+            "generatedAtTime": "2024-01-01T01:00:00",
+            "invalidatedAtTime": None,
+        },
+    }
+    target_time = "2024-01-01T01:00:00"
+
+    assert find_appropriate_snapshot(provenance_data, target_time) == "snapshot2"
+    assert (
+        find_appropriate_snapshot(provenance_data, target_time, inclusive=False)
+        == "snapshot1"
+    )
+
+
+def test_prepare_entity_snapshots_with_revert_floors() -> None:
+    """Test prepare_entity_snapshots source selection with a revert floor."""
+    entity_uri = "http://example.org/entity/1"
+    entities_to_restore = {entity_uri}
+    provenance = {
+        entity_uri: {
+            "snapshot1": {
+                "generatedAtTime": "2024-01-01T00:00:00",
+                "invalidatedAtTime": None,
+            },
+            "snapshot2": {
+                "generatedAtTime": "2024-01-01T01:00:00",
+                "invalidatedAtTime": None,
+            },
+        }
+    }
+    target_time = "2024-01-01T02:00:00"
+    revert_floors = {
+        entity_uri: datetime(2024, 1, 1, 1, 0, 0, tzinfo=timezone.utc),
+    }
+
+    result = prepare_entity_snapshots(
+        entities_to_restore, provenance, target_time, revert_floors
+    )
+
+    assert result == {entity_uri: {"source": "snapshot1", "needs_restore": False}}
 
 
 @patch("heritrace.routes.entity._restoration.get_dataset_is_quadstore")

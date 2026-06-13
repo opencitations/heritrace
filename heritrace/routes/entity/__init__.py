@@ -34,8 +34,11 @@ from heritrace.routes.entity._rendering import (
     get_object_label,
 )
 from heritrace.routes.entity._restoration import (
+    build_restored_state,
+    compute_entity_deltas,
     compute_graph_differences,
     find_appropriate_snapshot,
+    get_co_transaction_times,
     get_entities_to_restore,
     prepare_entity_snapshots,
     restore_version,
@@ -56,6 +59,8 @@ __all__ = [
     "_format_snapshot_description",
     "about",
     "apply_modifications",
+    "build_restored_state",
+    "compute_entity_deltas",
     "compute_graph_differences",
     "create_entity",
     "create_nested_entity",
@@ -68,6 +73,7 @@ __all__ = [
     "format_triple_modification",
     "generate_modification_text",
     "generate_unique_uri",
+    "get_co_transaction_times",
     "get_deleted_entity_context_info",
     "get_entities_to_restore",
     "get_object_label",

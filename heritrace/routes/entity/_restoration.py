@@ -29,9 +29,9 @@ from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._types import _DATETIME_MIN_UTC, _QUAD_LENGTH
 from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.sparql_utils import (
-    convert_to_rdflib_graphs,
     fetch_current_state_with_related_entities,
     get_triples_from_graph,
+    n3_set_to_graph,
 )
 from heritrace.utils.uri_utils import is_valid_url
 
@@ -78,6 +78,81 @@ def _apply_additions(
                 ]
 
 
+def _parse_snapshot_time(value: str) -> datetime:
+    parsed = convert_to_datetime(value)
+    if parsed is None:
+        msg = f"Failed to parse snapshot time: {value}"
+        raise ValueError(msg)
+    return parsed
+
+
+def get_co_transaction_times(
+    entity_provenance: dict, target_time: datetime
+) -> set[datetime]:
+    return {
+        generation_time
+        for metadata in entity_provenance.values()
+        if (generation_time := _parse_snapshot_time(metadata["generatedAtTime"]))
+        > target_time
+    }
+
+
+def compute_entity_deltas(
+    entity_states: dict[str, set[tuple[str, ...]]],
+) -> list[tuple[datetime, set[tuple[str, ...]], set[tuple[str, ...]]]]:
+    sorted_states = sorted(
+        ((_parse_snapshot_time(ts), state) for ts, state in entity_states.items()),
+        key=lambda item: item[0],
+    )
+    deltas = []
+    previous: set[tuple[str, ...]] = set()
+    for time, state in sorted_states:
+        deltas.append((time, state - previous, previous - state))
+        previous = state
+    return deltas
+
+
+def build_restored_state(
+    entity_states: dict[str, set[tuple[str, ...]]],
+    co_transaction_times: set[datetime],
+) -> tuple[set[tuple[str, ...]], datetime | None]:
+    """Revert the entity's snapshots generated in the transactions being undone.
+
+    Snapshots whose generation time is not in ``co_transaction_times`` are kept,
+    so changes unrelated to the restored entity survive. Reverts use set
+    semantics: a triple added in a reverted snapshot but already removed by a
+    later surviving snapshot stays removed.
+    """
+    deltas = compute_entity_deltas(entity_states)
+    restored: set[tuple[str, ...]] = set()
+    for _, added, removed in deltas:
+        restored |= added
+        restored -= removed
+    revert_floor = None
+    for time, added, removed in reversed(deltas):
+        if time in co_transaction_times:
+            restored -= added
+            restored |= removed
+            revert_floor = time
+    return restored, revert_floor
+
+
+def _build_restored_states(
+    states: dict[str, dict[str, set[tuple[str, ...]]]],
+    co_transaction_times: set[datetime],
+) -> tuple[set[tuple[str, ...]], dict[str, datetime]]:
+    restored_n3_state: set[tuple[str, ...]] = set()
+    revert_floors: dict[str, datetime] = {}
+    for uri, entity_states in states.items():
+        entity_restored_state, revert_floor = build_restored_state(
+            entity_states, co_transaction_times
+        )
+        restored_n3_state |= entity_restored_state
+        if revert_floor is not None:
+            revert_floors[uri] = revert_floor
+    return restored_n3_state, revert_floors
+
+
 @entity_bp.route("/restore-version/<path:entity_uri>/<timestamp>", methods=["POST"])
 @login_required
 def restore_version(entity_uri: str, timestamp: str) -> Response:
@@ -85,7 +160,6 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:
     timestamp_dt = convert_to_datetime(timestamp)
     if timestamp_dt is None:
         abort(404)
-    timestamp = timestamp_dt.isoformat()
     change_tracking_config = get_change_tracking_config()
 
     agnostic_entity = AgnosticEntity(
@@ -95,13 +169,26 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:
         include_merged_entities=True,
         include_reverse_relations=True,
     )
-    history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-    history = convert_to_rdflib_graphs(history, is_quadstore=get_dataset_is_quadstore())
+    states, provenance = agnostic_entity.get_histories_by_entity(
+        include_prov_metadata=True
+    )
 
-    historical_graph = history.get(entity_uri, {}).get(timestamp)
-    if historical_graph is None:
+    main_entity_states = states.get(entity_uri)
+    if not main_entity_states or timestamp_dt not in {
+        convert_to_datetime(ts) for ts in main_entity_states
+    }:
         abort(404)
 
+    co_transaction_times = get_co_transaction_times(
+        provenance[entity_uri], timestamp_dt
+    )
+    restored_n3_state, revert_floors = _build_restored_states(
+        states, co_transaction_times
+    )
+
+    historical_graph = n3_set_to_graph(
+        restored_n3_state, is_quadstore=get_dataset_is_quadstore()
+    )
     current_graph = fetch_current_state_with_related_entities(provenance)
 
     is_deleted = (
@@ -118,7 +205,7 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:
     )
 
     entity_snapshots = prepare_entity_snapshots(
-        entities_to_restore, provenance, timestamp
+        entities_to_restore, provenance, timestamp_dt.isoformat(), revert_floors
     )
 
     source_uri = None if is_deleted else entity_snapshots[entity_uri]["source"]
@@ -208,15 +295,27 @@ def get_entities_to_restore(
 
 
 def prepare_entity_snapshots(
-    entities_to_restore: set, provenance: dict, target_time: str
+    entities_to_restore: set,
+    provenance: dict,
+    target_time: str,
+    revert_floors: dict[str, datetime] | None = None,
 ) -> dict:
+    revert_floors = revert_floors or {}
     entity_snapshots = {}
 
     for entity_uri in entities_to_restore:
         if entity_uri not in provenance:
             continue
 
-        source_snapshot = find_appropriate_snapshot(provenance[entity_uri], target_time)
+        revert_floor = revert_floors.get(entity_uri)
+        if revert_floor is None:
+            source_snapshot = find_appropriate_snapshot(
+                provenance[entity_uri], target_time
+            )
+        else:
+            source_snapshot = find_appropriate_snapshot(
+                provenance[entity_uri], revert_floor.isoformat(), inclusive=False
+            )
         if not source_snapshot:
             continue
 
@@ -227,7 +326,7 @@ def prepare_entity_snapshots(
             ),
         )
         latest_snapshot = sorted_snapshots[-1][1]
-        is_deleted = (
+        is_deleted = bool(
             latest_snapshot.get("invalidatedAtTime")
             and latest_snapshot["generatedAtTime"]
             == latest_snapshot["invalidatedAtTime"]
@@ -241,7 +340,9 @@ def prepare_entity_snapshots(
     return entity_snapshots
 
 
-def find_appropriate_snapshot(provenance_data: dict, target_time: str) -> str | None:
+def find_appropriate_snapshot(
+    provenance_data: dict, target_time: str, *, inclusive: bool = True
+) -> str | None:
     target_datetime = convert_to_datetime(target_time)
     if target_datetime is None:
         msg = f"Failed to parse target_time: {target_time}"
@@ -257,7 +358,14 @@ def find_appropriate_snapshot(provenance_data: dict, target_time: str) -> str | 
         ):
             continue
 
-        if generation_time is not None and generation_time <= target_datetime:
+        if generation_time is None:
+            continue
+        in_range = (
+            generation_time <= target_datetime
+            if inclusive
+            else generation_time < target_datetime
+        )
+        if in_range:
             valid_snapshots.append((generation_time, snapshot_uri))
 
     if not valid_snapshots:

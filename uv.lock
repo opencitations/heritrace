@@ -582,7 +582,7 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=2.0.0" },
     { name = "setuptools", specifier = ">=68.2.2" },
     { name = "sparqlwrapper", specifier = ">=2.0.0" },
-    { name = "time-agnostic-library", specifier = ">=6.0.0" },
+    { name = "time-agnostic-library", specifier = ">=7.1.0" },
     { name = "validators", specifier = "==0.20.0" },
 ]
 
@@ -592,7 +592,7 @@ dev = [
     { name = "cffconvert", specifier = ">=2.0.0" },
     { name = "coverage", specifier = ">=7.6.12" },
     { name = "genbadge", extras = ["coverage"], specifier = ">=1.1.3" },
-    { name = "pyright", specifier = ">=1.1.409" },
+    { name = "pyright", specifier = ">=1.1.410" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-cov", specifier = ">=6.0.0" },
     { name = "responses", specifier = ">=0.25.6" },
@@ -1065,15 +1065,15 @@ wheels = [
 
 [[package]]
 name = "pyright"
-version = "1.1.409"
+version = "1.1.410"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "nodeenv" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/51/4e/3aa27f74211522dba7e9cbc3e74de779c6d4b654c54e50a4840623be8014/pyright-1.1.409.tar.gz", hash = "sha256:986ee05beca9e077c165758ad123667c679e050059a2546aa02473930394bc93", size = 4430434, upload-time = "2026-04-23T11:02:03.799Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/53/e4d8ea1391bd4355231be6f91bf239479aa0014260ed3fb5526eeb12a1f2/pyright-1.1.410.tar.gz", hash = "sha256:07a073b8ba6749826773c1269773efa11b93440d9a6aa60419d9a3172d6dc488", size = 4062013, upload-time = "2026-06-01T17:35:48.894Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/6b/330d8ebae582b30c2959a1ef4c3bc344ebde48c2ff0c3f113c4710735e11/pyright-1.1.409-py3-none-any.whl", hash = "sha256:aa3ea228cab90c845c7a60d28db7a844c04315356392aa09fafcee98c8c22fb3", size = 6438161, upload-time = "2026-04-23T11:02:01.309Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/33/288b5868fa00846dacf249633719d747893e54aebd196b9968ac1878a5d3/pyright-1.1.410-py3-none-any.whl", hash = "sha256:5e961bed37cacf96b3f7cd7b1da39b350a9239aa2e69138d0e88f728cfaf296c", size = 6082448, upload-time = "2026-06-01T17:35:46.387Z" },
 ]
 
 [[package]]
@@ -1450,15 +1450,15 @@ wheels = [
 
 [[package]]
 name = "time-agnostic-library"
-version = "6.0.0"
+version = "7.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "rdflib" },
     { name = "sparqlite" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f0/de/64fc05c20cb663eb00261d3879bb9aba231309d7ffed6da9bd287b8c5e5c/time_agnostic_library-6.0.0.tar.gz", hash = "sha256:9f7af757a7c27b5473b60e8336bae96f626ee6f89bee86b55a6dbe5a5a4f08a6", size = 269291, upload-time = "2026-02-13T16:39:08.373Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b8/93/f8880199efcbe34c9d4f4b5c25952e34c8bd9a926bc86e378841eae3fc23/time_agnostic_library-7.1.0.tar.gz", hash = "sha256:0287fb97938c1c651872790e4fbf110ed85fc8aa6591073f700cf5bcc192abe5", size = 292632, upload-time = "2026-06-12T21:48:47.121Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/e7/3d3165c819f44dfea21f32223a7ef18f4fb325e0da7db37e23f5e5ff1d15/time_agnostic_library-6.0.0-py3-none-any.whl", hash = "sha256:f13e754b86d0771d8eed6508fb2d37381588a00991a9c1b5d05f5a5a66233198", size = 31874, upload-time = "2026-02-13T16:39:09.321Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/8e/803e61b73f05ff2a0c0f0aa89eb5de51b0692e3cc3a7f886e203acd31a29/time_agnostic_library-7.1.0-py3-none-any.whl", hash = "sha256:fd245ade94764ae69e459addc85158c7b5117303cacc399ffa92416df5374826", size = 30596, upload-time = "2026-06-12T21:48:48.335Z" },
 ]
 
 [[package]]

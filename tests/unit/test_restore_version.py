@@ -2,11 +2,17 @@
 #
 # SPDX-License-Identifier: ISC
 
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from rdflib import Dataset, Literal, URIRef
 
-from heritrace.routes.entity import compute_graph_differences
+from heritrace.routes.entity import (
+    build_restored_state,
+    compute_entity_deltas,
+    compute_graph_differences,
+    get_co_transaction_times,
+)
 
 
 def test_restore_version_with_quadstore() -> None:
@@ -352,3 +358,133 @@ def test_compute_graph_differences_quadstore(mock_get_dataset_is_quadstore) -> N
     assert add_quad[1] == URIRef("http://example.org/predicate3")
     assert add_quad[2] == Literal("value3")
     assert str(add_quad[3]) == "http://example.org/graph3"
+
+
+def _utc(hour: int) -> datetime:
+    return datetime(2024, 1, 1, hour, 0, 0, tzinfo=timezone.utc)
+
+
+def test_get_co_transaction_times() -> None:
+    entity_provenance = {
+        "snapshot1": {"generatedAtTime": "2024-01-01T00:00:00+00:00"},
+        "snapshot2": {"generatedAtTime": "2024-01-01T01:00:00+00:00"},
+        "snapshot3": {"generatedAtTime": "2024-01-01T02:00:00Z"},
+    }
+
+    result = get_co_transaction_times(entity_provenance, _utc(0))
+
+    assert result == {_utc(1), _utc(2)}
+
+
+def test_get_co_transaction_times_no_later_snapshots() -> None:
+    entity_provenance = {
+        "snapshot1": {"generatedAtTime": "2024-01-01T00:00:00+00:00"},
+    }
+
+    result = get_co_transaction_times(entity_provenance, _utc(0))
+
+    assert result == set()
+
+
+def test_compute_entity_deltas() -> None:
+    triple_a = ("<http://example.org/s>", "<http://example.org/p>", '"a"')
+    triple_b = ("<http://example.org/s>", "<http://example.org/p>", '"b"')
+    triple_c = ("<http://example.org/s>", "<http://example.org/p>", '"c"')
+    entity_states = {
+        "2024-01-01T01:00:00+00:00": {triple_b, triple_c},
+        "2024-01-01T00:00:00+00:00": {triple_a, triple_b},
+    }
+
+    result = compute_entity_deltas(entity_states)
+
+    assert result == [
+        (_utc(0), {triple_a, triple_b}, set()),
+        (_utc(1), {triple_c}, {triple_a}),
+    ]
+
+
+def test_build_restored_state_without_co_transactions_is_identity() -> None:
+    triple_a = ("<http://example.org/s>", "<http://example.org/p>", '"a"')
+    triple_b = ("<http://example.org/s>", "<http://example.org/p>", '"b"')
+    entity_states = {
+        "2024-01-01T00:00:00+00:00": {triple_a},
+        "2024-01-01T01:00:00+00:00": {triple_a, triple_b},
+    }
+
+    restored, revert_floor = build_restored_state(entity_states, set())
+
+    assert restored == {triple_a, triple_b}
+    assert revert_floor is None
+
+
+def test_build_restored_state_reverts_creation() -> None:
+    triple_a = ("<http://example.org/s>", "<http://example.org/p>", '"a"')
+    entity_states = {"2024-01-01T00:00:00+00:00": {triple_a}}
+
+    restored, revert_floor = build_restored_state(entity_states, {_utc(0)})
+
+    assert restored == set()
+    assert revert_floor == _utc(0)
+
+
+def test_build_restored_state_telescopes_to_target_state() -> None:
+    triple_a = ("<http://example.org/s>", "<http://example.org/p>", '"a"')
+    triple_b = ("<http://example.org/s>", "<http://example.org/p>", '"b"')
+    triple_c = ("<http://example.org/s>", "<http://example.org/p>", '"c"')
+    entity_states = {
+        "2024-01-01T00:00:00+00:00": {triple_a},
+        "2024-01-01T01:00:00+00:00": {triple_a, triple_b},
+        "2024-01-01T02:00:00+00:00": {triple_b, triple_c},
+    }
+
+    restored, revert_floor = build_restored_state(entity_states, {_utc(1), _utc(2)})
+
+    assert restored == {triple_a}
+    assert revert_floor == _utc(1)
+
+
+def test_build_restored_state_keeps_unrelated_snapshots() -> None:
+    triple_a = ("<http://example.org/s>", "<http://example.org/p>", '"a"')
+    triple_b = ("<http://example.org/s>", "<http://example.org/p>", '"b"')
+    triple_c = ("<http://example.org/s>", "<http://example.org/p>", '"c"')
+    entity_states = {
+        "2024-01-01T00:00:00+00:00": {triple_a},
+        "2024-01-01T01:00:00+00:00": {triple_b},
+        "2024-01-01T02:00:00+00:00": {triple_b, triple_c},
+    }
+
+    restored, revert_floor = build_restored_state(entity_states, {_utc(2)})
+
+    assert restored == {triple_b}
+    assert revert_floor == _utc(2)
+
+
+def test_build_restored_state_resurrects_deleted_entity() -> None:
+    triple_a = ("<http://example.org/s>", "<http://example.org/p>", '"a"')
+    entity_states = {
+        "2024-01-01T00:00:00+00:00": {triple_a},
+        "2024-01-01T01:00:00+00:00": set(),
+    }
+
+    restored, revert_floor = build_restored_state(entity_states, {_utc(1)})
+
+    assert restored == {triple_a}
+    assert revert_floor == _utc(1)
+
+
+def test_build_restored_state_floor_skips_unreverted_snapshots() -> None:
+    triple_a = ("<http://example.org/s>", "<http://example.org/p>", '"a"')
+    triple_b = ("<http://example.org/s>", "<http://example.org/p>", '"b"')
+    triple_c = ("<http://example.org/s>", "<http://example.org/p>", '"c"')
+    triple_d = ("<http://example.org/s>", "<http://example.org/p>", '"d"')
+    entity_states = {
+        "2024-01-01T00:00:00+00:00": {triple_a},
+        "2024-01-01T01:00:00+00:00": {triple_a, triple_b},
+        "2024-01-01T02:00:00+00:00": {triple_a, triple_b, triple_c},
+        "2024-01-01T03:00:00+00:00": {triple_a, triple_b, triple_c, triple_d},
+    }
+
+    restored, revert_floor = build_restored_state(entity_states, {_utc(1), _utc(3)})
+
+    assert restored == {triple_a, triple_c}
+    assert revert_floor == _utc(1)

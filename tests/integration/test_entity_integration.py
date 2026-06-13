@@ -105,6 +105,235 @@ def test_entity(app: Flask) -> Generator[URIRef, None, None]:
         yield entity_uri
 
 
+def _make_editor(app: Flask) -> Editor:
+    return Editor(
+        EndpointConfig(
+            dataset=get_dataset_endpoint(),
+            provenance=get_provenance_endpoint(),
+            is_quadstore=app.config["DATASET_IS_QUADSTORE"],
+        ),
+        app.config["COUNTER_HANDLER"],
+        URIRef("https://orcid.org/0000-0000-0000-0000"),
+        app.config["PRIMARY_SOURCE"],
+        app.config["DATASET_GENERATION_TIME"],
+    )
+
+
+def _editor_with_preloaded(app: Flask, subjects: list[URIRef]) -> Editor:
+    editor = _make_editor(app)
+    for subject in subjects:
+        graph = fetch_data_graph_for_subject(subject)
+        assert isinstance(graph, Dataset)
+        for quad in graph.quads():
+            editor.g_set.add(quad)  # type: ignore[arg-type]
+    editor.preexisting_finished()
+    return editor
+
+
+def _predicate_object_pairs(subject: URIRef) -> set[tuple[str, str]]:
+    graph = fetch_data_graph_for_subject(subject)
+    assert isinstance(graph, Dataset)
+    return {(str(p), str(o)) for _s, p, o, _g in graph.quads()}
+
+
+def _snapshot_count(entity_uri: URIRef) -> int:
+    change_tracking_config = get_change_tracking_config()
+    _, provenance = AgnosticEntity(
+        res=str(entity_uri), config=change_tracking_config
+    ).get_history(include_prov_metadata=True)
+    return len(provenance[str(entity_uri)])
+
+
+def _first_snapshot_timestamp(entity_uri: URIRef) -> str:
+    change_tracking_config = get_change_tracking_config()
+    _, provenance = AgnosticEntity(
+        res=str(entity_uri), config=change_tracking_config
+    ).get_history(include_prov_metadata=True)
+    snapshots = sorted(
+        provenance[str(entity_uri)].values(),
+        key=lambda metadata: metadata["generatedAtTime"],
+    )
+    return snapshots[0]["generatedAtTime"]
+
+
+_ROLE_IN_TIME = URIRef("http://purl.org/spar/pro/RoleInTime")
+_FOAF_AGENT = URIRef("http://xmlns.com/foaf/0.1/Agent")
+_DOCUMENT_CONTEXT = URIRef("http://purl.org/spar/pro/isDocumentContextFor")
+_WITH_ROLE = URIRef("http://purl.org/spar/pro/withRole")
+_AUTHOR_ROLE = URIRef("http://purl.org/spar/pro/author")
+_IS_HELD_BY = URIRef("http://purl.org/spar/pro/isHeldBy")
+_HAS_NEXT = URIRef("https://w3id.org/oc/ontology/hasNext")
+_FAMILY_NAME = URIRef("http://xmlns.com/foaf/0.1/familyName")
+_FOAF_NAME = URIRef("http://xmlns.com/foaf/0.1/name")
+_HAS_IDENTIFIER = URIRef("http://purl.org/spar/datacite/hasIdentifier")
+_DATACITE_IDENTIFIER = URIRef("http://purl.org/spar/datacite/Identifier")
+
+
+def test_restore_version_scoped_to_restored_entity(
+    logged_in_client: FlaskClient, app: Flask
+) -> None:
+    """Regression test: restoring an agent must not revert unrelated changes of
+    related entities, such as a parent whose ordered role list was rebuilt with
+    new URIs in a transaction that did not touch the agent."""
+    test_id = str(uuid.uuid4())
+    parent = URIRef(f"https://w3id.org/oc/meta/br/test_{test_id}")
+    child1 = URIRef(f"https://w3id.org/oc/meta/ar/test_{test_id}_1")
+    child2 = URIRef(f"https://w3id.org/oc/meta/ar/test_{test_id}_2")
+    child3 = URIRef(f"https://w3id.org/oc/meta/ar/test_{test_id}_3")
+    child4 = URIRef(f"https://w3id.org/oc/meta/ar/test_{test_id}_4")
+    agent = URIRef(f"https://w3id.org/oc/meta/ra/test_{test_id}_a")
+    other_agent = URIRef(f"https://w3id.org/oc/meta/ra/test_{test_id}_b")
+    identifier = URIRef(f"https://w3id.org/oc/meta/id/test_{test_id}")
+    graph_uri = URIRef(f"{parent}/graph")
+    journal_article = URIRef("http://purl.org/spar/fabio/JournalArticle")
+    title = URIRef("http://purl.org/dc/terms/title")
+
+    with app.app_context():
+        editor = _make_editor(app)
+        editor.preexisting_finished()
+        editor.create(parent, RDF.type, journal_article, graph_uri)
+        editor.create(
+            parent, title, Literal("Scoped restore", datatype=XSD.string), graph_uri
+        )
+        editor.create(parent, _DOCUMENT_CONTEXT, child1, graph_uri)
+        editor.create(parent, _DOCUMENT_CONTEXT, child2, graph_uri)
+        editor.create(child1, RDF.type, _ROLE_IN_TIME, graph_uri)
+        editor.create(child1, _WITH_ROLE, _AUTHOR_ROLE, graph_uri)
+        editor.create(child1, _IS_HELD_BY, agent, graph_uri)
+        editor.create(child1, _HAS_NEXT, child2, graph_uri)
+        editor.create(child2, RDF.type, _ROLE_IN_TIME, graph_uri)
+        editor.create(child2, _WITH_ROLE, _AUTHOR_ROLE, graph_uri)
+        editor.create(child2, _IS_HELD_BY, other_agent, graph_uri)
+        editor.create(agent, RDF.type, _FOAF_AGENT, graph_uri)
+        editor.create(
+            agent, _FAMILY_NAME, Literal("Doe", datatype=XSD.string), graph_uri
+        )
+        editor.create(other_agent, RDF.type, _FOAF_AGENT, graph_uri)
+        editor.create(
+            other_agent, _FAMILY_NAME, Literal("Smith", datatype=XSD.string), graph_uri
+        )
+        editor.save()
+
+        time.sleep(1)
+
+        # Rebuild the ordered child list with new URIs, as order_logic does
+        editor = _editor_with_preloaded(app, [parent, child1, child2])
+        editor.delete(parent, _DOCUMENT_CONTEXT, child1, graph_uri)
+        editor.delete(child1, graph=graph_uri)
+        editor.delete(parent, _DOCUMENT_CONTEXT, child2, graph_uri)
+        editor.delete(child2, graph=graph_uri)
+        for new_child, held_by in ((child3, agent), (child4, other_agent)):
+            editor.create(new_child, RDF.type, _ROLE_IN_TIME, graph_uri)
+            editor.create(new_child, _WITH_ROLE, _AUTHOR_ROLE, graph_uri)
+            editor.create(new_child, _IS_HELD_BY, held_by, graph_uri)
+            editor.create(parent, _DOCUMENT_CONTEXT, new_child, graph_uri)
+        editor.create(child3, _HAS_NEXT, child4, graph_uri)
+        editor.save()
+
+        time.sleep(1)
+
+        editor = _editor_with_preloaded(app, [agent])
+        editor.create(
+            agent, _FOAF_NAME, Literal("John Doe", datatype=XSD.string), graph_uri
+        )
+        editor.create(identifier, RDF.type, _DATACITE_IDENTIFIER, graph_uri)
+        editor.create(agent, _HAS_IDENTIFIER, identifier, graph_uri)
+        editor.save()
+
+        assert _snapshot_count(agent) == 2
+        tx1_timestamp = _first_snapshot_timestamp(agent)
+
+    restore_response = logged_in_client.post(
+        f"/restore-version/{agent}/{tx1_timestamp}"
+    )
+    assert restore_response.status_code == 302
+
+    with app.app_context():
+        assert _predicate_object_pairs(agent) == {
+            (str(RDF.type), str(_FOAF_AGENT)),
+            (str(_FAMILY_NAME), "Doe"),
+        }
+        assert _predicate_object_pairs(identifier) == set()
+        assert _predicate_object_pairs(parent) == {
+            (str(RDF.type), str(journal_article)),
+            (str(title), "Scoped restore"),
+            (str(_DOCUMENT_CONTEXT), str(child3)),
+            (str(_DOCUMENT_CONTEXT), str(child4)),
+        }
+        assert _predicate_object_pairs(child3) == {
+            (str(RDF.type), str(_ROLE_IN_TIME)),
+            (str(_WITH_ROLE), str(_AUTHOR_ROLE)),
+            (str(_IS_HELD_BY), str(agent)),
+            (str(_HAS_NEXT), str(child4)),
+        }
+        assert _predicate_object_pairs(child4) == {
+            (str(RDF.type), str(_ROLE_IN_TIME)),
+            (str(_WITH_ROLE), str(_AUTHOR_ROLE)),
+            (str(_IS_HELD_BY), str(other_agent)),
+        }
+        assert _predicate_object_pairs(child1) == set()
+        assert _predicate_object_pairs(child2) == set()
+
+        assert _snapshot_count(agent) == 3
+        assert _snapshot_count(parent) == 2
+        assert _snapshot_count(child3) == 1
+        assert _snapshot_count(child4) == 1
+
+
+def test_restore_version_resurrects_deleted_entity_with_incoming_link(
+    logged_in_client: FlaskClient, app: Flask
+) -> None:
+    """Restoring a deleted entity re-adds the incoming link removed in the same
+    transaction as the deletion."""
+    test_id = str(uuid.uuid4())
+    role = URIRef(f"https://w3id.org/oc/meta/ar/test_{test_id}")
+    agent = URIRef(f"https://w3id.org/oc/meta/ra/test_{test_id}")
+    graph_uri = URIRef(f"{role}/graph")
+
+    with app.app_context():
+        editor = _make_editor(app)
+        editor.preexisting_finished()
+        editor.create(role, RDF.type, _ROLE_IN_TIME, graph_uri)
+        editor.create(role, _WITH_ROLE, _AUTHOR_ROLE, graph_uri)
+        editor.create(role, _IS_HELD_BY, agent, graph_uri)
+        editor.create(agent, RDF.type, _FOAF_AGENT, graph_uri)
+        editor.create(
+            agent, _FAMILY_NAME, Literal("Doe", datatype=XSD.string), graph_uri
+        )
+        editor.save()
+
+        time.sleep(1)
+
+        editor = _editor_with_preloaded(app, [role, agent])
+        editor.delete(agent, graph=graph_uri)
+        editor.save()
+
+        assert _predicate_object_pairs(agent) == set()
+        assert _predicate_object_pairs(role) == {
+            (str(RDF.type), str(_ROLE_IN_TIME)),
+            (str(_WITH_ROLE), str(_AUTHOR_ROLE)),
+        }
+        tx1_timestamp = _first_snapshot_timestamp(agent)
+
+    restore_response = logged_in_client.post(
+        f"/restore-version/{agent}/{tx1_timestamp}"
+    )
+    assert restore_response.status_code == 302
+
+    with app.app_context():
+        assert _predicate_object_pairs(agent) == {
+            (str(RDF.type), str(_FOAF_AGENT)),
+            (str(_FAMILY_NAME), "Doe"),
+        }
+        assert _predicate_object_pairs(role) == {
+            (str(RDF.type), str(_ROLE_IN_TIME)),
+            (str(_WITH_ROLE), str(_AUTHOR_ROLE)),
+            (str(_IS_HELD_BY), str(agent)),
+        }
+        assert _snapshot_count(agent) == 3
+        assert _snapshot_count(role) == 3
+
+
 def test_entity_history(
     logged_in_client: FlaskClient, test_entity: URIRef, app: Flask
 ) -> None:
