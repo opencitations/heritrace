@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import uuid
+from collections.abc import Generator
 from datetime import datetime, timezone
 
 import pytest
@@ -23,7 +24,7 @@ AUTHOR_COUNT = 5
 
 
 @pytest.fixture
-def ordered_authors_article(app: Flask) -> dict:
+def ordered_authors_article(app: Flask) -> Generator[dict, None, None]:
     test_id = uuid.uuid4().hex
     base = "https://w3id.org/oc/meta"
     br = f"{base}/br/test{test_id}"
@@ -63,7 +64,32 @@ def ordered_authors_article(app: Flask) -> dict:
     """)
     sparql.query()
 
-    return {"test_id": test_id, "br": br, "ars": ars, "ras": ras}
+    yield {"test_id": test_id, "br": br, "ars": ars, "ras": ras}
+
+    entities = [br, *ars, *ras]
+    values = " ".join(f"<{entity}>" for entity in entities)
+
+    cleanup_data = SPARQLWrapper(app.config["DATASET_DB_URL"])
+    cleanup_data.setMethod(POST)
+    cleanup_data.setQuery(f"""
+    DELETE {{ GRAPH ?g {{ ?s ?p ?o }} }}
+    WHERE {{ GRAPH ?g {{ ?s ?p ?o . VALUES ?s {{ {values} }} }} }}
+    """)
+    cleanup_data.query()
+
+    cleanup_prov = SPARQLWrapper(app.config["PROVENANCE_DB_URL"])
+    cleanup_prov.setMethod(POST)
+    cleanup_prov.setQuery(f"""
+    DELETE {{ GRAPH ?g {{ ?snapshot ?p ?o }} }}
+    WHERE {{
+        GRAPH ?g {{
+            ?snapshot <http://www.w3.org/ns/prov#specializationOf> ?entity ;
+                      ?p ?o .
+            VALUES ?entity {{ {values} }}
+        }}
+    }}
+    """)
+    cleanup_prov.query()
 
 
 def _provenance_generation_times(entity_uri: str) -> list[datetime]:
