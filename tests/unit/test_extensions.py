@@ -343,10 +343,6 @@ def test_rotate_session_token(app) -> None:
 
 
 def test_need_initialization(app) -> None:
-    mock_uri_generator = MagicMock()
-    mock_uri_generator.counter_handler = MagicMock()
-    mock_uri_generator.initialize_counters = MagicMock()
-    app.config["URI_GENERATOR"] = mock_uri_generator
     app.config["CACHE_VALIDITY_DAYS"] = 7
 
     mock_redis = MagicMock()
@@ -364,9 +360,6 @@ def test_need_initialization(app) -> None:
 
     current_time = datetime.now(tz=timezone.utc).isoformat()
     mock_redis.get.return_value = current_time
-    assert need_initialization(app, mock_redis) is False
-
-    app.config["URI_GENERATOR"] = MagicMock(spec=[])
     assert need_initialization(app, mock_redis) is False
 
 
@@ -534,6 +527,7 @@ def test_initialize_counter_handler(app) -> None:
     mock_uri_generator.counter_handler = mock_counter_handler
 
     app.config["URI_GENERATOR"] = mock_uri_generator
+    app.config["COUNTER_HANDLER"] = mock_counter_handler
 
     with (
         patch("heritrace.extensions.need_initialization", return_value=True),
@@ -735,25 +729,37 @@ def test_initialize_counter_handler_no_initialization_needed(app) -> None:
         mock_provenance_sparql.setQuery.assert_not_called()
 
 
-def test_need_initialization_without_counter_handler(app) -> None:
-    mock_uri_generator = MagicMock(spec=[])
-    app.config["URI_GENERATOR"] = mock_uri_generator
+def test_initialize_counter_handler_non_counter_based_generator(app) -> None:
+    """Provenance counters are seeded even for a non-counter-based generator."""
     mock_redis = MagicMock(spec=Redis)
+    mock_sparql = MagicMock(spec=SPARQLWrapperWithRetry)
+    mock_provenance_sparql = MagicMock(spec=SPARQLWrapperWithRetry)
 
-    assert need_initialization(app, mock_redis) is False
+    mock_provenance_sparql.query.return_value.convert.return_value = {
+        "results": {
+            "bindings": [
+                {
+                    "entity": {"value": "http://example.org/Person"},
+                    "count": {"value": "3"},
+                },
+            ]
+        }
+    }
 
-    mock_uri_generator = MagicMock()
-    mock_uri_generator.counter_handler = None
-    mock_uri_generator.initialize_counters = MagicMock()
+    mock_counter_handler = MagicMock()
+    # A generator without counter_handler/initialize_counters is not counter-based
+    mock_uri_generator = MagicMock(spec=["generate_uri"])
     app.config["URI_GENERATOR"] = mock_uri_generator
+    app.config["COUNTER_HANDLER"] = mock_counter_handler
 
-    app.config["CACHE_FILE"] = "nonexistent_cache_file.json"
-    app.config["CACHE_VALIDITY_DAYS"] = 7
+    with (
+        patch("heritrace.extensions.need_initialization", return_value=True),
+        patch("heritrace.extensions.update_cache"),
+    ):
+        initialize_counter_handler(app, mock_redis, mock_sparql, mock_provenance_sparql)
 
-    mock_redis.get.side_effect = None
-    mock_redis.get.return_value = None
-    with patch("os.path.exists", return_value=False):
-        assert need_initialization(app, mock_redis) is True
+    mock_counter_handler.set_counter.assert_any_call(3, "http://example.org/Person")
+    mock_sparql.setQuery.assert_not_called()
 
 
 class TestSPARQLWrapperWithRetry:

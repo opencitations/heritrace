@@ -205,11 +205,6 @@ def initialize_change_tracking_config(
 
 
 def need_initialization(app: Flask, redis: Redis) -> bool:
-    uri_generator = app.config["URI_GENERATOR"]
-
-    if not isinstance(uri_generator, CounterBasedURIGenerator):
-        return False
-
     redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
     is_external_redis = redis_url != "redis://localhost:6379/0"
 
@@ -249,9 +244,11 @@ def initialize_counter_handler(
     if not need_initialization(app, redis):
         return
 
-    uri_generator: CounterBasedURIGenerator = app.config["URI_GENERATOR"]
+    uri_generator = app.config["URI_GENERATOR"]
+    if isinstance(uri_generator, CounterBasedURIGenerator):
+        uri_generator.initialize_counters(sparql)
 
-    uri_generator.initialize_counters(sparql)
+    counter_handler = app.config["COUNTER_HANDLER"]
 
     prov_query = """
         SELECT ?entity (COUNT(DISTINCT ?snapshot) as ?count)
@@ -272,7 +269,7 @@ def initialize_counter_handler(
     for result in prov_bindings:
         entity = result["entity"]["value"]
         count = int(result["count"]["value"])
-        uri_generator.counter_handler.set_counter(count, entity)
+        counter_handler.set_counter(count, entity)
 
     update_cache(app, redis)
 

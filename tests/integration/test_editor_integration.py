@@ -7,17 +7,23 @@ Tests for the editor module.
 """
 
 from datetime import datetime, timezone
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
+from urllib.parse import urlparse
 
 import pytest
 from rdflib import RDF, XSD, Literal, URIRef
+from rdflib_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 from heritrace.editor import Editor, EndpointConfig
 from heritrace.sparql import get_sparql_bindings
+from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
 from tests.test_config import TestConfig
+
+if TYPE_CHECKING:
+    from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 
 
 @pytest.fixture
@@ -57,6 +63,28 @@ def real_editor():
         ),
         TestConfig.COUNTER_HANDLER,
         resp_agent,
+    )
+
+
+@pytest.fixture
+def default_components_editor() -> Editor:
+    """Editor wired with the code-free defaults: a generic Redis counter handler."""
+    parsed = urlparse(TestConfig.REDIS_URL)
+    counter_handler = RedisCounterHandler(
+        host=parsed.hostname or "localhost",
+        port=parsed.port or 6379,
+        db=int(parsed.path.lstrip("/") or 0),
+    )
+    counter_handler.connect()
+
+    return Editor(
+        EndpointConfig(
+            dataset=TestConfig.DATASET_DB_URL,
+            provenance=TestConfig.PROVENANCE_DB_URL,
+            is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
+        ),
+        cast("CounterHandler", counter_handler),
+        URIRef("http://example.org/test-agent"),
     )
 
 
@@ -405,6 +433,56 @@ def test_delete_with_provenance(real_editor: Editor) -> None:
         real_editor.create(subject, predicate, value, graph)
         real_editor.delete(subject)
         real_editor.save()
+
+
+def test_provenance_numbering_with_default_components(
+    default_components_editor: Editor,
+) -> None:
+    """The UUID generator + generic Redis counter handler number snapshots correctly."""
+    uri_generator = DefaultURIGenerator("http://example.org/default")
+    subject = URIRef(uri_generator.generate_uri())
+    predicate = URIRef("http://example.org/predicate")
+    graph = URIRef("http://example.org/graph")
+
+    try:
+        default_components_editor.create(subject, predicate, Literal("v1"), graph)
+        default_components_editor.save()
+
+        default_components_editor.update(
+            subject, predicate, Literal("v1"), Literal("v2"), graph
+        )
+        default_components_editor.save()
+
+        provenance_sparql = SPARQLWrapper(default_components_editor.provenance_endpoint)
+        provenance_sparql.setReturnFormat(JSON)
+        query = f"""
+        PREFIX prov: <http://www.w3.org/ns/prov#>
+        SELECT ?snapshot ?derived_from
+        WHERE {{
+            GRAPH ?g {{
+                ?snapshot prov:specializationOf <{subject}> .
+                OPTIONAL {{ ?snapshot prov:wasDerivedFrom ?derived_from . }}
+            }}
+        }}
+        ORDER BY ?snapshot
+        """
+        provenance_sparql.setQuery(query)
+        provenance_sparql.setMethod("GET")
+        bindings = get_sparql_bindings(provenance_sparql.queryAndConvert())
+
+        snapshots = sorted(binding["snapshot"]["value"] for binding in bindings)
+        assert snapshots == [f"{subject}/prov/se/1", f"{subject}/prov/se/2"]
+
+        derived = {
+            binding["snapshot"]["value"]: binding.get("derived_from", {}).get("value")
+            for binding in bindings
+        }
+        assert derived[f"{subject}/prov/se/2"] == f"{subject}/prov/se/1"
+
+    finally:
+        default_components_editor.create(subject, predicate, Literal("v2"), graph)
+        default_components_editor.delete(subject)
+        default_components_editor.save()
 
 
 def test_batch_operations(editor: Editor) -> None:

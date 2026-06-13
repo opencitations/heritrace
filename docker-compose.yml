@@ -80,6 +80,10 @@ services:
       - DATASET_GENERATION_TIME=2024-01-01T00:00:00+00:00
       - PRIMARY_SOURCE=https://example.org
 
+      # Base namespace for the default IRI generator (used only when the component
+      # classes below are left unset)
+      - BASE_IRI=https://example.org
+
       # Entity handling strategies (Options: ASK, DELETE, KEEP)
       - ORPHAN_HANDLING_STRATEGY=ASK
       - PROXY_HANDLING_STRATEGY=ASK
@@ -92,7 +96,10 @@ services:
       - CATALOGUE_DEFAULT_PER_PAGE=50
       - CATALOGUE_ALLOWED_PER_PAGE=50,100,200,500
 
-      # Component classes - specify custom implementations via these variables
+      # IRI minting components. Leave both unset for the built-in default: a UUID-based
+      # generator (BASE_IRI/<uuid>) with provenance counters in Redis, requiring no code.
+      # Set both for a custom convention; the values below are the OpenCitations Meta
+      # example.
       - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
       - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
     volumes:

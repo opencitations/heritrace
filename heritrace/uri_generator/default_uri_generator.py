@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import os
 import uuid
 from typing import TYPE_CHECKING
 
@@ -16,8 +17,8 @@ if TYPE_CHECKING:
 
 
 class DefaultURIGenerator(URIGenerator):
-    def __init__(self, base_iri: str) -> None:
-        self.base_iri = base_iri
+    def __init__(self, base_iri: str | None = None) -> None:
+        self.base_iri = base_iri if base_iri is not None else os.environ["BASE_IRI"]
 
     def generate_uri(
         self, _entity_type: str | None = None, _context_data: dict | None = None

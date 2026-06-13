@@ -5,10 +5,17 @@
 import os
 from pathlib import Path
 from typing import ClassVar
+from urllib.parse import urlparse
+
+from rdflib_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
 from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
 
 _BASE_DIR = Path(__file__).resolve().parent
+
+DEFAULT_URI_GENERATOR_CLASS = (
+    "heritrace.uri_generator.default_uri_generator.DefaultURIGenerator"
+)
 
 
 def _load_class(class_path: str) -> type:
@@ -17,10 +24,28 @@ def _load_class(class_path: str) -> type:
     return getattr(module, class_name)
 
 
-counter_handler_class = _load_class(os.environ["COUNTER_HANDLER_CLASS"])
-uri_generator_class = _load_class(os.environ["URI_GENERATOR_CLASS"])
-counter_handler = counter_handler_class()
-uri_generator = uri_generator_class(counter_handler)
+def _default_counter_handler() -> RedisCounterHandler:
+    parsed = urlparse(os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
+    handler = RedisCounterHandler(
+        host=parsed.hostname or "localhost",
+        port=parsed.port or 6379,
+        db=int(parsed.path.lstrip("/") or 0),
+        password=parsed.password,
+    )
+    handler.connect()
+    return handler
+
+
+uri_generator_class = _load_class(
+    os.environ.get("URI_GENERATOR_CLASS", DEFAULT_URI_GENERATOR_CLASS)
+)
+counter_handler_class_path = os.environ.get("COUNTER_HANDLER_CLASS")
+if counter_handler_class_path:
+    counter_handler = _load_class(counter_handler_class_path)()
+    uri_generator = uri_generator_class(counter_handler)
+else:
+    counter_handler = _default_counter_handler()
+    uri_generator = uri_generator_class()
 
 
 class Config:
@@ -53,6 +78,7 @@ class Config:
     PROVENANCE_IS_QUADSTORE = os.environ["PROVENANCE_IS_QUADSTORE"].lower() == "true"
 
     DATASET_GENERATION_TIME = os.environ["DATASET_GENERATION_TIME"]
+    BASE_IRI = os.environ.get("BASE_IRI")
     URI_GENERATOR = uri_generator
     COUNTER_HANDLER = counter_handler
 

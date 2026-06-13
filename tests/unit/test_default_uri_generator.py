@@ -62,3 +62,19 @@ def test_generate_uri(uri_generator_setup) -> None:
     # Generate another URI and verify it's different
     uri2 = uri_generator.generate_uri()
     assert uri != uri2
+
+
+def test_base_iri_from_environment(monkeypatch) -> None:
+    """DefaultURIGenerator falls back to the BASE_IRI environment variable."""
+    base_iri = "https://example.org/from-env"
+    monkeypatch.setenv("BASE_IRI", base_iri)
+
+    uri_generator = DefaultURIGenerator()
+
+    assert uri_generator.base_iri == base_iri
+
+    uri = uri_generator.generate_uri()
+    assert str(uri).startswith(f"{base_iri}/")
+    uuid_part = str(uri).replace(f"{base_iri}/", "")
+    assert len(uuid_part) == 32
+    int(uuid_part, 16)

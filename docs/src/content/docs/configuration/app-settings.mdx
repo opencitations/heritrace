@@ -233,9 +233,20 @@ environment:
 
 HERITRACE uses a pluggable architecture for URI generation and counter management, allowing you to customize how unique identifiers are created for entities.
 
+### Built-in default (no code)
+
+Leaving both `URI_GENERATOR_CLASS` and `COUNTER_HANDLER_CLASS` unset enables the built-in default: a UUID-based generator that mints IRIs of the form `BASE_IRI/<uuid>`, with provenance snapshot counters stored automatically in the Redis instance at `REDIS_URL`. This requires no code, only the `BASE_IRI` environment variable.
+
 ```yaml
 environment:
-  # Component classes - specify custom implementations via these variables
+  - BASE_IRI=https://example.org/my-collection
+  # URI_GENERATOR_CLASS and COUNTER_HANDLER_CLASS left unset
+```
+
+To use a custom naming convention instead, set both class variables, as in the OpenCitations Meta example shipped with the demo:
+
+```yaml
+environment:
   - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
   - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
 ```
@@ -305,7 +316,7 @@ class UUIDURIGenerator(URIGenerator):
 ### COUNTER_HANDLER
 
 <Aside type="caution">
-The `COUNTER_HANDLER` is only required if your `URI_GENERATOR` uses a counter-based strategy. If you use a different approach (like the UUID example above), this component is not needed and can be omitted from the configuration.
+`COUNTER_HANDLER_CLASS` is only required if your `URI_GENERATOR` uses a counter-based strategy. If you use a non-counter generator (like the UUID example above), you can omit it: HERITRACE then provides a generic Redis-backed counter handler automatically, since provenance snapshot numbering always relies on a counter handler.
 </Aside>
 
 The `COUNTER_HANDLER` is a component designed to work with **counter-based** URI generators. It manages the persistent state of the numerical counters. Without it, counter-based URI generators cannot guarantee uniqueness across application restarts.
