@@ -293,14 +293,31 @@ def test_apply_changes_with_affected_entities(
     assert data["status"] == "success"
     assert "Changes applied successfully" in data["message"]
 
-    # Verify import_entity_graph was called (only once for the first change's subject)
-    # Note: include_referencing_entities is True because the changes list *contains* a
-    # full entity deletion
-    mock_import_entity_graph.assert_called_once_with(
-        mock.ANY,  # editor instance
-        URIRef(main_entity_uri),
-        include_referencing_entities=True,
+    mock_import_entity_graph.assert_has_calls(
+        [
+            mock.call(
+                mock.ANY,
+                URIRef(main_entity_uri),
+                include_referencing_entities=False,
+            ),
+            mock.call(
+                mock_editor,
+                URIRef(full_delete_target_uri),
+                include_referencing_entities=True,
+            ),
+            mock.call(
+                mock_editor,
+                URIRef(orphan_uri),
+                include_referencing_entities=True,
+            ),
+            mock.call(
+                mock_editor,
+                URIRef(proxy_uri),
+                include_referencing_entities=True,
+            ),
+        ]
     )
+    assert mock_import_entity_graph.call_count == 4
 
     # Verify delete_logic calls:
     # Expected calls:

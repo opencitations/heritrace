@@ -554,10 +554,47 @@ def _parse_change_request(
     )
 
 
+def _affected_entity_will_be_deleted(entity: dict, *, delete_affected: bool) -> bool:
+    orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
+    proxy_strategy = current_app.config["PROXY_HANDLING_STRATEGY"]
+
+    if entity["is_intermediate"]:
+        return delete_affected and proxy_strategy in (
+            ProxyHandlingStrategy.DELETE,
+            ProxyHandlingStrategy.ASK,
+        )
+    return delete_affected and orphan_strategy in (
+        OrphanHandlingStrategy.DELETE,
+        OrphanHandlingStrategy.ASK,
+    )
+
+
+def _collect_entity_deletion_subjects(
+    changes: list[dict],
+    affected_entities: list[dict],
+    *,
+    delete_affected: bool,
+) -> set[URIRef]:
+    deletion_subjects = {
+        URIRef(change["subject"])
+        for change in changes
+        if change["action"] == "delete" and not change.get("predicate")
+    }
+
+    for entity in affected_entities:
+        if _affected_entity_will_be_deleted(entity, delete_affected=delete_affected):
+            deletion_subjects.add(URIRef(entity["uri"]))
+
+    return deletion_subjects
+
+
 def _setup_editor(
     primary_source: str | None,
     changes: list[dict],
     subject: URIRef,
+    affected_entities: list[dict],
+    *,
+    delete_affected: bool,
 ) -> tuple[Editor, URIRef | None]:
     resp_agent = get_responsible_agent_uri(current_user.orcid)
     editor = Editor(
@@ -575,14 +612,19 @@ def _setup_editor(
     if primary_source and is_valid_url(primary_source):
         editor.set_primary_source(URIRef(primary_source))
 
-    has_entity_deletion = any(
-        change["action"] == "delete" and not change.get("predicate")
-        for change in changes
+    deletion_subjects = _collect_entity_deletion_subjects(
+        changes, affected_entities, delete_affected=delete_affected
     )
 
     editor = import_entity_graph(
-        editor, subject, include_referencing_entities=has_entity_deletion
+        editor,
+        subject,
+        include_referencing_entities=subject in deletion_subjects,
     )
+    for deletion_subject in sorted(deletion_subjects - {subject}, key=str):
+        editor = import_entity_graph(
+            editor, deletion_subject, include_referencing_entities=True
+        )
 
     for change in changes:
         if change["action"] == "create":
@@ -831,7 +873,13 @@ def apply_changes() -> tuple[Response, int]:
 
         changes = transform_changes_with_virtual_properties(changes)
 
-        editor, graph_uri = _setup_editor(primary_source, changes, subject)
+        editor, graph_uri = _setup_editor(
+            primary_source,
+            changes,
+            subject,
+            affected_entities,
+            delete_affected=delete_affected,
+        )
 
         temp_id_to_uri, subject = _process_creates(editor, changes, graph_uri, subject)
 

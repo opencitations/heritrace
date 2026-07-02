@@ -148,9 +148,11 @@ queries:
   page_info_query: &page_info_query |
     PREFIX frbr: <http://purl.org/vocab/frbr/core#>
     PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
     SELECT ?pageInfo ?re
     WHERE {
         [[subject]] frbr:embodiment ?re.
+        ?re a fabio:Manifestation.
         OPTIONAL { ?re prism:startingPage ?startingPage. }
         OPTIONAL { ?re prism:endingPage ?endingPage. }
         BIND(

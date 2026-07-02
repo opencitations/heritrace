@@ -82,4 +82,4 @@ ENV FLASK_APP=app.py
 
 EXPOSE 5000
 
-CMD ["/app/start-dev.sh", "sh", "-c", "npm run build && /app/.venv/bin/gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-$(python -c 'import os; print(os.cpu_count() * 2 + 1)')} --timeout ${GUNICORN_TIMEOUT:-120} --certfile /app/ssl/cert.pem --keyfile /app/ssl/key.pem --reload app:app"]
+CMD ["/app/start-dev.sh", "sh", "-c", "/bin/uv sync --locked && npm run build && /app/.venv/bin/gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-$(python -c 'import os; print(os.cpu_count() * 2 + 1)')} --timeout ${GUNICORN_TIMEOUT:-120} --certfile /app/ssl/cert.pem --keyfile /app/ssl/key.pem --reload app:app"]

@@ -169,6 +169,63 @@ _HAS_IDENTIFIER = URIRef("http://purl.org/spar/datacite/hasIdentifier")
 _DATACITE_IDENTIFIER = URIRef("http://purl.org/spar/datacite/Identifier")
 
 
+def test_apply_changes_entity_deletion_removes_incoming_links_for_later_targets(
+    logged_in_client: FlaskClient, app: Flask
+) -> None:
+    test_id = str(uuid.uuid4())
+    article = URIRef(f"https://w3id.org/oc/meta/br/test_{test_id}_a")
+    other_article = URIRef(f"https://w3id.org/oc/meta/br/test_{test_id}_b")
+    page = URIRef(f"https://w3id.org/oc/meta/re/test_{test_id}")
+    graph_uri = URIRef(f"https://w3id.org/oc/meta/br/test_{test_id}/graph")
+    journal_article = URIRef("http://purl.org/spar/fabio/JournalArticle")
+    manifestation = URIRef("http://purl.org/spar/fabio/Manifestation")
+    title = URIRef("http://purl.org/dc/terms/title")
+    embodiment = URIRef("http://purl.org/vocab/frbr/core#embodiment")
+
+    with app.app_context():
+        editor = _make_editor(app)
+        editor.preexisting_finished()
+        editor.create(article, RDF.type, journal_article, graph_uri)
+        editor.create(
+            article,
+            title,
+            Literal("Primary article", datatype=XSD.string),
+            graph_uri,
+        )
+        editor.create(article, embodiment, page, graph_uri)
+        editor.create(other_article, RDF.type, journal_article, graph_uri)
+        editor.create(
+            other_article,
+            title,
+            Literal("Other article", datatype=XSD.string),
+            graph_uri,
+        )
+        editor.create(other_article, embodiment, page, graph_uri)
+        editor.create(page, RDF.type, manifestation, graph_uri)
+        editor.save()
+
+    response = logged_in_client.post(
+        "/api/apply_changes",
+        json=[
+            {"action": "delete", "subject": str(article)},
+            {"action": "delete", "subject": str(page)},
+        ],
+    )
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "message": "Changes applied successfully",
+        "status": "success",
+    }
+
+    with app.app_context():
+        assert _predicate_object_pairs(article) == set()
+        assert _predicate_object_pairs(page) == set()
+        assert _predicate_object_pairs(other_article) == {
+            (str(RDF.type), str(journal_article)),
+            (str(title), "Other article"),
+        }
+
+
 def test_restore_version_scoped_to_restored_entity(
     logged_in_client: FlaskClient, app: Flask
 ) -> None:
