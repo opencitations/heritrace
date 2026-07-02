@@ -22,6 +22,7 @@ from heritrace.utils.shacl_display import (
 from heritrace.utils.shacl_utils import (
     _find_entity_position_in_order_map,
     _get_shape_properties,
+    determine_shape_for_classes,
     determine_shape_for_entity_triples,
     extract_shacl_form_fields,
     get_entity_position_in_sequence,
@@ -1732,3 +1733,51 @@ class TestGetEntityPositionInSequence:
             snapshot,
         )
         assert result is None
+
+
+class TestShaclQueryMemoization:
+    """Tests for the per-graph memoization of static SHACL queries."""
+
+    @staticmethod
+    def _mock_graph_with_shape(shape_uri: str) -> MagicMock:
+        graph = MagicMock()
+        graph.__bool__ = MagicMock(return_value=True)
+        mock_result = MagicMock()
+        mock_result.shape = URIRef(shape_uri)
+        graph.query.return_value = [mock_result]
+        return graph
+
+    @patch("heritrace.utils.shacl_utils.get_shacl_graph")
+    @patch("heritrace.utils.shacl_utils.get_class_priority")
+    def test_repeated_calls_query_the_graph_once(
+        self, mock_get_priority, mock_get_shacl
+    ) -> None:
+        mock_get_priority.return_value = 1
+        graph = self._mock_graph_with_shape("http://schema.org/JournalShape")
+        mock_get_shacl.return_value = graph
+
+        first = determine_shape_for_classes([str(FABIO.Journal)])
+        second = determine_shape_for_classes([str(FABIO.Journal)])
+
+        assert first == "http://schema.org/JournalShape"
+        assert second == "http://schema.org/JournalShape"
+        assert graph.query.call_count == 1
+
+    @patch("heritrace.utils.shacl_utils.get_shacl_graph")
+    @patch("heritrace.utils.shacl_utils.get_class_priority")
+    def test_distinct_graphs_have_separate_caches(
+        self, mock_get_priority, mock_get_shacl
+    ) -> None:
+        mock_get_priority.return_value = 1
+        graph_a = self._mock_graph_with_shape("http://schema.org/ShapeA")
+        graph_b = self._mock_graph_with_shape("http://schema.org/ShapeB")
+
+        mock_get_shacl.return_value = graph_a
+        result_a = determine_shape_for_classes([str(FABIO.Journal)])
+        mock_get_shacl.return_value = graph_b
+        result_b = determine_shape_for_classes([str(FABIO.Journal)])
+
+        assert result_a == "http://schema.org/ShapeA"
+        assert result_b == "http://schema.org/ShapeB"
+        assert graph_a.query.call_count == 1
+        assert graph_b.query.call_count == 1

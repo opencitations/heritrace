@@ -4,11 +4,13 @@
 
 import logging
 import os
+import time
 from collections import defaultdict, deque
 from collections.abc import Generator
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
+from flask import current_app
 from rdflib import RDF, Dataset, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
@@ -43,7 +45,10 @@ from heritrace.utils.shacl_utils import (
 )
 from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
 
-_cache: dict[str, list | None] = {"available_classes": None}
+_cache: dict[str, tuple[list[dict[str, str | int]], float] | None] = {
+    "available_classes": None
+}
+AVAILABLE_CLASSES_TTL_SECONDS = 60
 
 
 def _parse_n3(value: str) -> Node:
@@ -114,12 +119,6 @@ def get_triples_from_graph(
 
 
 COUNT_LIMIT = int(os.getenv("COUNT_LIMIT", "10000"))
-
-
-def precompute_available_classes_cache() -> list[dict[str, str | int]]:
-    """Pre-compute available classes cache at application startup."""
-    _cache["available_classes"] = get_available_classes()
-    return _cache["available_classes"]
 
 
 def _wrap_virtuoso_graph_pattern(pattern: str) -> str:
@@ -294,15 +293,11 @@ def _get_classes_from_sparql() -> list[str]:
 
 
 def get_available_classes() -> list[dict[str, str | int]]:
-    if _cache["available_classes"] is not None:
-        total_count = sum(
-            cls.get("count_numeric", 0) for cls in _cache["available_classes"]
-        )
-        if total_count < COUNT_LIMIT:
-            _cache["available_classes"] = None
-
-    if _cache["available_classes"] is not None:
-        return _cache["available_classes"]
+    cached = _cache["available_classes"]
+    if cached is not None:
+        available_classes, computed_at = cached
+        if time.monotonic() - computed_at < AVAILABLE_CLASSES_TTL_SECONDS:
+            return available_classes
 
     custom_filter = get_custom_filter()
     class_uris = _get_classes_from_config()
@@ -361,6 +356,7 @@ def get_available_classes() -> list[dict[str, str | int]]:
                 )
 
     available_classes.sort(key=lambda x: x["label"].lower())
+    _cache["available_classes"] = (available_classes, time.monotonic())
     return available_classes
 
 
@@ -406,11 +402,26 @@ class CatalogQuery:
     selected_shape: str | None = None
 
 
+def _fetch_entity_labels(
+    subject_uris: list[str], entity_key: tuple[str | None, str | None]
+) -> list[str]:
+    if not subject_uris:
+        return []
+    custom_filter = get_custom_filter()
+    app = current_app._get_current_object()  # type: ignore[attr-defined]  # noqa: SLF001
+
+    def fetch_label(uri: str) -> str:
+        with app.app_context():
+            return custom_filter.human_readable_entity(uri, entity_key, None)
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        return list(executor.map(fetch_label, subject_uris))
+
+
 def _get_entities_with_shape_filtering(
     query: CatalogQuery,
 ) -> tuple[list[dict[str, str]], int]:
     sparql = get_sparql()
-    custom_filter = get_custom_filter()
     selected_class = query.selected_class
     selected_shape = query.selected_shape
     offset = (query.page - 1) * query.per_page
@@ -455,14 +466,16 @@ def _get_entities_with_shape_filtering(
         obj = binding["o"]["value"]
         entities_triples[subject].append((subject, predicate, obj))
 
-    filtered_entities = []
-    for subject_uri, triples in entities_triples.items():
-        entity_shape = determine_shape_for_entity_triples(list(triples))
-        if entity_shape == selected_shape:
-            entity_label = custom_filter.human_readable_entity(
-                subject_uri, (selected_class, selected_shape), None
-            )
-            filtered_entities.append({"uri": subject_uri, "label": entity_label})
+    matching_uris = [
+        subject_uri
+        for subject_uri, triples in entities_triples.items()
+        if determine_shape_for_entity_triples(list(triples)) == selected_shape
+    ]
+    labels = _fetch_entity_labels(matching_uris, (selected_class, selected_shape))
+    filtered_entities = [
+        {"uri": uri, "label": label}
+        for uri, label in zip(matching_uris, labels, strict=True)
+    ]
 
     if query.sort_property and query.sort_direction:
         reverse_sort = query.sort_direction.upper() == "DESC"
@@ -474,12 +487,12 @@ def _get_entities_with_shape_filtering(
 
 def get_entities_for_class(
     query: CatalogQuery,
+    available_classes: list[dict[str, str | int]],
 ) -> tuple[list[dict[str, str]], int]:
     if query.selected_class is None:
         msg = "selected_class must not be None"
         raise ValueError(msg)
     sparql = get_sparql()
-    custom_filter = get_custom_filter()
     classes_with_multiple_shapes = get_classes_with_multiple_shapes()
 
     selected_class: str = query.selected_class
@@ -515,8 +528,6 @@ def get_entities_for_class(
         OFFSET {offset}
     """
 
-    available_classes = get_available_classes()
-
     class_info = next(
         (
             c
@@ -531,20 +542,21 @@ def get_entities_for_class(
     sparql.setReturnFormat(JSON)
     entities_bindings = get_sparql_bindings(sparql.query().convert())
 
-    entities = []
     shape = selected_shape or determine_shape_for_classes([selected_class])
-
-    for result in entities_bindings:
-        subject_uri = result["subject"]["value"]
-        entity_label = custom_filter.human_readable_entity(
-            subject_uri, (selected_class, shape), None
-        )
-        entities.append({"uri": subject_uri, "label": entity_label})
+    subject_uris = [result["subject"]["value"] for result in entities_bindings]
+    labels = _fetch_entity_labels(subject_uris, (selected_class, shape))
+    entities = [
+        {"uri": uri, "label": label}
+        for uri, label in zip(subject_uris, labels, strict=True)
+    ]
 
     return entities, total_count
 
 
-def get_catalog_data(query: CatalogQuery) -> dict:
+def get_catalog_data(
+    query: CatalogQuery,
+    available_classes: list[dict[str, str | int]],
+) -> dict:
     entities = []
     total_count = 0
     sortable_properties = []
@@ -566,7 +578,7 @@ def get_catalog_data(query: CatalogQuery) -> dict:
             sort_direction=query.sort_direction,
             selected_shape=query.selected_shape,
         )
-        entities, total_count = get_entities_for_class(inner_query)
+        entities, total_count = get_entities_for_class(inner_query, available_classes)
 
     return {
         "entities": entities,

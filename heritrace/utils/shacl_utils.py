@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 from collections.abc import Iterable
+from weakref import WeakKeyDictionary
 
 from flask import Flask
 from rdflib import RDF, Graph
@@ -20,6 +21,16 @@ from heritrace.utils.shacl_display import (
     process_nested_shapes,
 )
 from heritrace.utils.virtual_properties import get_virtual_properties_for_entity
+
+_class_shapes_cache: WeakKeyDictionary[Graph, dict[str, list[str]]] = (
+    WeakKeyDictionary()
+)
+_shape_properties_cache: WeakKeyDictionary[Graph, dict[str, set[str]]] = (
+    WeakKeyDictionary()
+)
+_hasvalue_constraints_cache: WeakKeyDictionary[
+    Graph, dict[str, list[tuple[str, str]]]
+] = WeakKeyDictionary()
 
 
 def get_form_fields_from_shacl(
@@ -169,6 +180,20 @@ def add_virtual_properties_to_form_fields_internal(form_fields: dict) -> dict:
     return enhanced_form_fields
 
 
+def _get_shapes_for_class(shacl_graph: Graph, class_uri: str) -> list[str]:
+    per_graph = _class_shapes_cache.setdefault(shacl_graph, {})
+    if class_uri not in per_graph:
+        query_string = f"""
+            SELECT DISTINCT ?shape WHERE {{
+                ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
+            }}
+        """
+
+        results = shacl_graph.query(query_string)
+        per_graph[class_uri] = [str(row.shape) for row in select_results(results)]
+    return per_graph[class_uri]
+
+
 def determine_shape_for_classes(class_list: list[str]) -> str | None:
     """
     Determine the most appropriate SHACL shape for a list of class URIs.
@@ -186,15 +211,7 @@ def determine_shape_for_classes(class_list: list[str]) -> str | None:
     all_shacl_shapes = []
 
     for class_uri in class_list:
-        query_string = f"""
-            SELECT DISTINCT ?shape WHERE {{
-                ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
-            }}
-        """
-
-        results = shacl_graph.query(query_string)
-        shapes = [str(row.shape) for row in select_results(results)]
-
+        shapes = _get_shapes_for_class(shacl_graph, class_uri)
         all_shacl_shapes.extend((class_uri, shape) for shape in shapes)
 
     return _find_highest_priority_shape(all_shacl_shapes)
@@ -233,15 +250,7 @@ def determine_shape_for_entity_triples(entity_triples: Iterable) -> str | None:
     candidate_shapes = []
 
     for class_uri in entity_classes:
-        query_string = f"""
-            SELECT DISTINCT ?shape WHERE {{
-                ?shape <http://www.w3.org/ns/shacl#targetClass> <{class_uri}> .
-            }}
-        """
-
-        results = shacl_graph.query(query_string)
-        shapes = [str(row.shape) for row in select_results(results)]
-
+        shapes = _get_shapes_for_class(shacl_graph, class_uri)
         candidate_shapes.extend((class_uri, shape) for shape in shapes)
 
     if not candidate_shapes:
@@ -308,21 +317,42 @@ def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:
     Returns:
         Set of property URIs defined in the shape
     """
-    properties = set()
+    per_graph = _shape_properties_cache.setdefault(shacl_graph, {})
+    if shape_uri not in per_graph:
+        query_string = f"""
+            PREFIX sh: <http://www.w3.org/ns/shacl#>
+            SELECT DISTINCT ?property WHERE {{
+                <{shape_uri}> sh:property ?propertyShape .
+                ?propertyShape sh:path ?property .
+            }}
+        """
 
-    query_string = f"""
-        PREFIX sh: <http://www.w3.org/ns/shacl#>
-        SELECT DISTINCT ?property WHERE {{
-            <{shape_uri}> sh:property ?propertyShape .
-            ?propertyShape sh:path ?property .
-        }}
-    """
+        results = shacl_graph.query(query_string)
+        per_graph[shape_uri] = {str(row.property) for row in select_results(results)}
 
-    results = shacl_graph.query(query_string)
-    for row in select_results(results):
-        properties.add(str(row.property))
+    return per_graph[shape_uri]
 
-    return properties
+
+def _get_hasvalue_constraints(
+    shacl_graph: Graph, shape_uri: str
+) -> list[tuple[str, str]]:
+    per_graph = _hasvalue_constraints_cache.setdefault(shacl_graph, {})
+    if shape_uri not in per_graph:
+        query_string = f"""
+            PREFIX sh: <http://www.w3.org/ns/shacl#>
+            SELECT DISTINCT ?property ?value WHERE {{
+                <{shape_uri}> sh:property ?propertyShape .
+                ?propertyShape sh:path ?property .
+                ?propertyShape sh:hasValue ?value .
+            }}
+        """
+
+        results = shacl_graph.query(query_string)
+        per_graph[shape_uri] = [
+            (str(row.property), str(row.value)) for row in select_results(results)
+        ]
+
+    return per_graph[shape_uri]
 
 
 def _check_hasvalue_constraints(
@@ -339,20 +369,7 @@ def _check_hasvalue_constraints(
     Returns:
         Number of hasValue constraints satisfied by the entity
     """
-    # Get all hasValue constraints for this shape
-    query_string = f"""
-        PREFIX sh: <http://www.w3.org/ns/shacl#>
-        SELECT DISTINCT ?property ?value WHERE {{
-            <{shape_uri}> sh:property ?propertyShape .
-            ?propertyShape sh:path ?property .
-            ?propertyShape sh:hasValue ?value .
-        }}
-    """
-
-    results = shacl_graph.query(query_string)
-    constraints = [
-        (str(row.property), str(row.value)) for row in select_results(results)
-    ]
+    constraints = _get_hasvalue_constraints(shacl_graph, shape_uri)
 
     if not constraints:
         return 0

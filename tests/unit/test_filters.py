@@ -32,10 +32,7 @@ def mock_filter():
         }
     ]
     sparql_endpoint = "http://example.org/sparql"
-    with patch("heritrace.extensions.get_sparql") as mock_get_sparql:
-        mock_sparql = MagicMock()
-        mock_get_sparql.return_value = mock_sparql
-        yield Filter(context, display_rules, sparql_endpoint)
+    return Filter(context, display_rules, sparql_endpoint)
 
 
 def test_get_fetch_uri_display_with_graph_success(mock_filter) -> None:
@@ -89,13 +86,14 @@ def test_get_fetch_uri_display_with_sparql_success(mock_filter) -> None:
     mock_response = {"results": {"bindings": [{"name": {"value": "John Doe"}}]}}
 
     # Execute
-    with patch.object(mock_filter.sparql, "query") as mock_query:
-        mock_query.return_value.convert.return_value = mock_response
+    mock_sparql = MagicMock()
+    mock_sparql.query.return_value.convert.return_value = mock_response
+    with patch.object(mock_filter, "_get_sparql", return_value=mock_sparql):
         result = mock_filter.get_fetch_uri_display(uri, rule, None)
 
     # Verify
     assert result == "John Doe"
-    mock_query.assert_called_once()
+    mock_sparql.query.assert_called_once()
 
 
 def test_get_fetch_uri_display_with_sparql_exception(mock_filter) -> None:
@@ -108,12 +106,13 @@ def test_get_fetch_uri_display_with_sparql_exception(mock_filter) -> None:
     ) as mock_find_rule:
         mock_find_rule.return_value = mock_filter.display_rules[0]
 
-        with patch.object(mock_filter.sparql, "query") as mock_query:
-            mock_query.side_effect = SPARQLWrapperException("Test exception")
+        mock_sparql = MagicMock()
+        mock_sparql.query.side_effect = SPARQLWrapperException("Test exception")
+        with patch.object(mock_filter, "_get_sparql", return_value=mock_sparql):
             result = mock_filter.get_fetch_uri_display(uri, rule, None)
 
     assert result is None
-    mock_query.assert_called_once()
+    mock_sparql.query.assert_called_once()
 
 
 def test_get_fetch_uri_display_no_matching_class(mock_filter) -> None:
@@ -152,23 +151,24 @@ def test_get_fetch_uri_display_sparql_no_results(mock_filter) -> None:
     mock_response = {"results": {"bindings": []}}
 
     # Execute
-    with patch.object(mock_filter.sparql, "query") as mock_query:
-        mock_query.return_value.convert.return_value = mock_response
+    mock_sparql = MagicMock()
+    mock_sparql.query.return_value.convert.return_value = mock_response
+    with patch.object(mock_filter, "_get_sparql", return_value=mock_sparql):
         result = mock_filter.get_fetch_uri_display(uri, rule, None)
 
         # Verify
         assert result is None
-        mock_query.assert_called_once()
+        mock_sparql.query.assert_called_once()
 
         # Test with no results.bindings
         mock_response = {"results": {}}
-        mock_query.reset_mock()
-        with patch.object(mock_filter.sparql, "query") as mock_query_2:
-            mock_query_2.return_value.convert.return_value = mock_response
+        mock_sparql_2 = MagicMock()
+        mock_sparql_2.query.return_value.convert.return_value = mock_response
+        with patch.object(mock_filter, "_get_sparql", return_value=mock_sparql_2):
             result = mock_filter.get_fetch_uri_display(uri, rule, None)
 
         assert result is None
-        mock_query_2.assert_called_once()
+        mock_sparql_2.query.assert_called_once()
 
 
 def test_human_readable_primary_source_none(mock_filter) -> None:

@@ -89,7 +89,8 @@ def catalogue_api() -> Response:
             sort_property=sort_property,
             sort_direction=sort_direction,
             selected_shape=selected_shape,
-        )
+        ),
+        available_classes,
     )
 
     catalog_data["available_classes"] = available_classes

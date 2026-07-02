@@ -18,7 +18,11 @@ from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.apis.orcid import format_orcid_attribution, is_orcid_url
 from heritrace.apis.zenodo import format_zenodo_source, is_zenodo_url
-from heritrace.sparql import get_sparql_bindings, select_results
+from heritrace.sparql import (
+    SPARQLWrapperWithRetry,
+    get_sparql_bindings,
+    select_results,
+)
 from heritrace.utils.uri_utils import is_valid_url
 
 if TYPE_CHECKING:
@@ -27,15 +31,20 @@ if TYPE_CHECKING:
 
 class Filter:
     def __init__(
-        self, context: dict, display_rules: list[dict] | None, _sparql_endpoint: str
+        self, context: dict, display_rules: list[dict] | None, sparql_endpoint: str
     ) -> None:
-        from heritrace.extensions import get_sparql  # noqa: PLC0415
-
         self.context = context
         self.display_rules = display_rules
-        self.sparql = get_sparql()
-        self.sparql.setReturnFormat(JSON)
+        self.sparql_endpoint = sparql_endpoint
+        self._thread_local = threading.local()
         self._query_lock = threading.Lock()
+
+    def _get_sparql(self) -> SPARQLWrapperWithRetry:
+        if not hasattr(self._thread_local, "sparql"):
+            sparql = SPARQLWrapperWithRetry(self.sparql_endpoint, timeout=30.0)
+            sparql.setReturnFormat(JSON)
+            self._thread_local.sparql = sparql
+        return self._thread_local.sparql
 
     @staticmethod
     def _find_display_name_from_rule(
@@ -187,9 +196,10 @@ class Filter:
                         uri,
                     )
             else:
-                self.sparql.setQuery(query)
+                sparql = self._get_sparql()
+                sparql.setQuery(query)
                 try:
-                    bindings = get_sparql_bindings(self.sparql.query().convert())
+                    bindings = get_sparql_bindings(sparql.query().convert())
                     if bindings:
                         first_binding = bindings[0]
                         first_key = next(iter(first_binding.keys()))

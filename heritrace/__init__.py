@@ -14,7 +14,7 @@ from redis import Redis
 from heritrace.cli import register_cli_commands
 from heritrace.extensions import init_extensions
 from heritrace.routes import register_blueprints
-from heritrace.utils.sparql_utils import precompute_available_classes_cache
+from heritrace.utils.sparql_utils import get_available_classes
 
 
 def create_app(config_object: object = None) -> Flask:
@@ -49,7 +49,7 @@ def create_app(config_object: object = None) -> Flask:
             init_extensions(app, babel, login_manager, redis_client)
 
             app.logger.info("[STARTUP] Pre-computing available classes cache...")
-            precompute_available_classes_cache()
+            get_available_classes()
             app.logger.info("[STARTUP] Available classes cache computed successfully")
 
         register_blueprints(app)

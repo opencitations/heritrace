@@ -67,8 +67,7 @@ class TestGetEntitiesForClassIntegration:
 
     def test_get_entities_for_class_real_db(self, app, setup_test_data) -> None:
         """Test getting entities for a class from the real test database."""
-        with app.app_context(), pytest.MonkeyPatch.context() as monkeypatch:
-            # Mock get_available_classes to return our test class with count
+        with app.app_context():
             mock_available_classes = [
                 {
                     "uri": "http://example.org/Person",
@@ -78,16 +77,13 @@ class TestGetEntitiesForClassIntegration:
                     "shape": None,
                 }
             ]
-            monkeypatch.setattr(
-                "heritrace.utils.sparql_utils.get_available_classes",
-                lambda: mock_available_classes,
-            )
 
             # Get entities for the Person class
             entities, total_count = get_entities_for_class(
                 CatalogQuery(
                     selected_class="http://example.org/Person", page=1, per_page=10
-                )
+                ),
+                mock_available_classes,
             )
 
             # Verify the results
@@ -101,8 +97,7 @@ class TestGetEntitiesForClassIntegration:
 
     def test_get_entities_with_sorting(self, app, setup_test_data) -> None:
         """Test getting entities with sorting from the real test database."""
-        with app.app_context(), pytest.MonkeyPatch.context() as monkeypatch:
-            # Mock get_available_classes to return our test class with count
+        with app.app_context():
             mock_available_classes = [
                 {
                     "uri": "http://example.org/Person",
@@ -112,10 +107,6 @@ class TestGetEntitiesForClassIntegration:
                     "shape": None,
                 }
             ]
-            monkeypatch.setattr(
-                "heritrace.utils.sparql_utils.get_available_classes",
-                lambda: mock_available_classes,
-            )
 
             # Get entities for the Person class, sorted by name
             entities, total_count = get_entities_for_class(
@@ -125,7 +116,8 @@ class TestGetEntitiesForClassIntegration:
                     per_page=10,
                     sort_property="http://example.org/name",
                     sort_direction="ASC",
-                )
+                ),
+                mock_available_classes,
             )
 
             # Verify the results without assuming specific order
@@ -161,7 +153,6 @@ class TestGetCatalogDataIntegration:
                 ],
             )
 
-            # Mock get_available_classes to return our test class with count
             mock_available_classes = [
                 {
                     "uri": "http://example.org/Person",
@@ -171,10 +162,6 @@ class TestGetCatalogDataIntegration:
                     "shape": "http://example.org/PersonShape",
                 }
             ]
-            monkeypatch.setattr(
-                "heritrace.utils.sparql_utils.get_available_classes",
-                lambda: mock_available_classes,
-            )
 
             # Get catalog data for the Person class
             catalog_data = get_catalog_data(
@@ -185,7 +172,8 @@ class TestGetCatalogDataIntegration:
                     sort_property="http://example.org/name",
                     sort_direction="ASC",
                     selected_shape="http://example.org/PersonShape",
-                )
+                ),
+                mock_available_classes,
             )
 
             # Verify the catalog data
@@ -218,7 +206,7 @@ class TestGetCatalogDataIntegration:
         """Test getting catalog data with no class selected."""
         with app.app_context():
             catalog_data = get_catalog_data(
-                CatalogQuery(selected_class=None, page=1, per_page=10)
+                CatalogQuery(selected_class=None, page=1, per_page=10), []
             )
 
             # Verify the catalog data

@@ -57,7 +57,8 @@ def catalogue() -> str:
             sort_property=sort_property,
             sort_direction=sort_direction,
             selected_shape=selected_shape,
-        )
+        ),
+        available_classes,
     )
 
     return render_template(

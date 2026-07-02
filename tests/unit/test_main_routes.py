@@ -66,7 +66,8 @@ def test_catalogue_route_authenticated(
             sort_property="name",
             sort_direction="DESC",
             selected_shape=None,
-        )
+        ),
+        available_classes,
     )
 
 

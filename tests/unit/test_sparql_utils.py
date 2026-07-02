@@ -6,13 +6,16 @@
 Tests for the SPARQL utilities module.
 """
 
+import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
 from rdflib import Dataset, Graph, Literal, URIRef
 
+from heritrace.utils import sparql_utils
 from heritrace.utils.sparql_utils import (
+    AVAILABLE_CLASSES_TTL_SECONDS,
     CatalogQuery,
     DeletedEntitiesQuery,
     _get_entities_with_enhanced_shape_detection,
@@ -174,6 +177,88 @@ class TestGetAvailableClasses:
             assert person_class["count"] == "10"
             assert document_class["count"] == "5"
 
+    def test_fresh_cache_is_returned_without_recompute(self) -> None:
+        """Test that a cache entry younger than the TTL is returned as is."""
+        cached_classes = [
+            {
+                "uri": "http://example.org/Person",
+                "label": "Person",
+                "count": "2",
+                "count_numeric": 2,
+                "shape": None,
+            }
+        ]
+        with (
+            patch.dict(
+                "heritrace.utils.sparql_utils._cache",
+                {"available_classes": (cached_classes, time.monotonic())},
+            ),
+            patch("heritrace.utils.sparql_utils._count_class_instances") as mock_count,
+        ):
+            result = get_available_classes()
+
+        assert result == cached_classes
+        mock_count.assert_not_called()
+
+    def test_expired_cache_is_recomputed_and_stored(self, mock_custom_filter) -> None:
+        """Test that a cache entry older than the TTL triggers a recompute."""
+        stale_classes = [
+            {
+                "uri": "http://example.org/Person",
+                "label": "Stale",
+                "count": "1",
+                "count_numeric": 1,
+                "shape": None,
+            }
+        ]
+        stale_entry = (
+            stale_classes,
+            time.monotonic() - (AVAILABLE_CLASSES_TTL_SECONDS + 1),
+        )
+        mock_custom_filter.human_readable_class.return_value = "Person"
+
+        with (
+            patch.dict(
+                "heritrace.utils.sparql_utils._cache",
+                {"available_classes": stale_entry},
+            ),
+            patch(
+                "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
+                return_value=["http://example.org/Person"],
+            ),
+            patch(
+                "heritrace.utils.sparql_utils._count_class_instances",
+                return_value=("2", 2),
+            ) as mock_count,
+            patch(
+                "heritrace.utils.sparql_utils.determine_shape_for_classes",
+                return_value=None,
+            ),
+            patch(
+                "heritrace.utils.sparql_utils.is_entity_type_visible",
+                return_value=True,
+            ),
+            patch(
+                "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
+                return_value=set(),
+            ),
+        ):
+            result = get_available_classes()
+            cached_value = sparql_utils._cache["available_classes"]  # noqa: SLF001
+
+        mock_count.assert_called_once_with("http://example.org/Person")
+        assert result == [
+            {
+                "uri": "http://example.org/Person",
+                "label": "Person",
+                "count": "2",
+                "count_numeric": 2,
+                "shape": None,
+            }
+        ]
+        assert cached_value is not None
+        assert cached_value[0] == result
+
     def test_get_available_classes_non_virtuoso(
         self, mock_sparql_wrapper, mock_custom_filter
     ) -> None:
@@ -292,7 +377,7 @@ class TestGetEntitiesForClass:
     """Tests for the get_entities_for_class function."""
 
     def test_get_entities_for_class_virtuoso(
-        self, mock_sparql_wrapper, mock_custom_filter, mock_virtuoso
+        self, app, mock_sparql_wrapper, mock_custom_filter, mock_virtuoso
     ) -> None:
         """Test getting entities for a class from a Virtuoso store."""
         # Configure mock to return some entities
@@ -322,10 +407,6 @@ class TestGetEntitiesForClass:
 
         with (
             patch(
-                "heritrace.utils.sparql_utils.get_available_classes",
-                return_value=mock_available_classes,
-            ),
-            patch(
                 "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
                 return_value=set(),
             ),
@@ -340,7 +421,8 @@ class TestGetEntitiesForClass:
             entities, total_count = get_entities_for_class(
                 CatalogQuery(
                     selected_class="http://example.org/Person", page=1, per_page=10
-                )
+                ),
+                mock_available_classes,
             )
 
             # Verify the results
@@ -359,7 +441,7 @@ class TestGetEntitiesForClass:
             assert "OFFSET 0" in entities_query
 
     def test_get_entities_for_class_non_virtuoso(
-        self, mock_sparql_wrapper, mock_custom_filter
+        self, app, mock_sparql_wrapper, mock_custom_filter
     ) -> None:
         """Test getting entities for a class from a non-Virtuoso store."""
         # Configure mock to return some entities
@@ -391,10 +473,6 @@ class TestGetEntitiesForClass:
         with (
             patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=False),
             patch(
-                "heritrace.utils.sparql_utils.get_available_classes",
-                return_value=mock_available_classes,
-            ),
-            patch(
                 "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
                 return_value=set(),
             ),
@@ -409,7 +487,8 @@ class TestGetEntitiesForClass:
             entities, total_count = get_entities_for_class(
                 CatalogQuery(
                     selected_class="http://example.org/Person", page=1, per_page=10
-                )
+                ),
+                mock_available_classes,
             )
 
             # Verify the results
@@ -432,7 +511,7 @@ class TestGetCatalogData:
     """Tests for the get_catalog_data function."""
 
     def test_get_catalog_data_with_default_sort_property(
-        self, mock_sparql_wrapper, mock_custom_filter, mock_virtuoso
+        self, app, mock_sparql_wrapper, mock_custom_filter, mock_virtuoso
     ) -> None:
         """
         Test get_catalog_data when sort_property is not provided but sortable_properties
@@ -474,15 +553,11 @@ class TestGetCatalogData:
             }
         ]
 
-        # Patch get_sortable_properties and get_available_classes
+        # Patch get_sortable_properties
         with (
             patch(
                 "heritrace.utils.sparql_utils.get_sortable_properties",
                 return_value=sortable_properties,
-            ),
-            patch(
-                "heritrace.utils.sparql_utils.get_available_classes",
-                return_value=mock_available_classes,
             ),
             patch(
                 "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
@@ -493,7 +568,6 @@ class TestGetCatalogData:
                 return_value=[],
             ),
         ):
-            # Call get_catalog_data with the new parameter structure
             catalog_data = get_catalog_data(
                 CatalogQuery(
                     selected_class="http://example.org/Person",
@@ -501,7 +575,8 @@ class TestGetCatalogData:
                     per_page=10,
                     sort_property=None,
                     selected_shape="http://example.org/PersonShape",
-                )
+                ),
+                mock_available_classes,
             )
 
             # Verify that sort_property was set from the first sortable property
@@ -1228,7 +1303,7 @@ class TestGetAvailableClassesMultipleShapes:
 class TestGetEntitiesForClassShapeFiltering:
     """Tests for the shape filtering branch in get_entities_for_class function."""
 
-    def test_get_entities_for_class_with_shape_filtering_virtuoso(self) -> None:
+    def test_get_entities_for_class_with_shape_filtering_virtuoso(self, app) -> None:
         """Test get_entities_for_class with shape filtering on Virtuoso."""
         selected_class = "http://example.org/Person"
         selected_shape = "http://example.org/PersonShapeA"
@@ -1312,7 +1387,8 @@ class TestGetEntitiesForClassShapeFiltering:
                     page=1,
                     per_page=10,
                     selected_shape=selected_shape,
-                )
+                ),
+                [],
             )
 
             # Now expects 2 queries: one for subjects, one for triples
@@ -1333,7 +1409,9 @@ class TestGetEntitiesForClassShapeFiltering:
             assert entities[0]["uri"] == "http://example.org/person1"
             assert entities[0]["label"] == "Entity person1"
 
-    def test_get_entities_for_class_with_shape_filtering_non_virtuoso(self) -> None:
+    def test_get_entities_for_class_with_shape_filtering_non_virtuoso(
+        self, app
+    ) -> None:
         """Test get_entities_for_class with shape filtering on non-Virtuoso."""
         selected_class = "http://example.org/Document"
         selected_shape = "http://example.org/DocumentShapeA"
@@ -1397,7 +1475,8 @@ class TestGetEntitiesForClassShapeFiltering:
                     page=1,
                     per_page=10,
                     selected_shape=selected_shape,
-                )
+                ),
+                [],
             )
 
             # Now expects 2 queries: one for subjects, one for triples
@@ -1419,7 +1498,7 @@ class TestGetEntitiesForClassShapeFiltering:
             assert entities[0]["uri"] == "http://example.org/doc1"
             assert entities[0]["label"] == "Test Document"
 
-    def test_get_entities_for_class_with_shape_filtering_and_sorting(self) -> None:
+    def test_get_entities_for_class_with_shape_filtering_and_sorting(self, app) -> None:
         """Test get_entities_for_class with shape filtering and sorting."""
         selected_class = "http://example.org/Person"
         selected_shape = "http://example.org/PersonShapeA"
@@ -1471,7 +1550,8 @@ class TestGetEntitiesForClassShapeFiltering:
                     sort_property="http://example.org/name",
                     sort_direction="ASC",
                     selected_shape=selected_shape,
-                )
+                ),
+                [],
             )
 
             assert total_count_asc == 2
@@ -1491,7 +1571,8 @@ class TestGetEntitiesForClassShapeFiltering:
                     sort_property="http://example.org/name",
                     sort_direction="DESC",
                     selected_shape=selected_shape,
-                )
+                ),
+                [],
             )
 
             assert total_count_desc == 2
@@ -1503,7 +1584,7 @@ class TestGetEntitiesForClassShapeFiltering:
                 entities_desc[1]["uri"] == "http://example.org/person1"
             )  # Alice should come second
 
-    def test_get_entities_for_class_with_shape_filtering_pagination(self) -> None:
+    def test_get_entities_for_class_with_shape_filtering_pagination(self, app) -> None:
         """Test get_entities_for_class with shape filtering and pagination."""
         selected_class = "http://example.org/Person"
         selected_shape = "http://example.org/PersonShapeA"
@@ -1586,7 +1667,8 @@ class TestGetEntitiesForClassShapeFiltering:
                     page=1,
                     per_page=3,
                     selected_shape=selected_shape,
-                )
+                ),
+                [],
             )
 
             assert total_count == 5
@@ -1607,7 +1689,8 @@ class TestGetEntitiesForClassShapeFiltering:
                     page=2,
                     per_page=3,
                     selected_shape=selected_shape,
-                )
+                ),
+                [],
             )
 
             # With shape filtering pagination, total_count is approximate
