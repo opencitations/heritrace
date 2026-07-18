@@ -1,9 +1,10 @@
-# SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from flask import current_app
 from rdflib import Literal, URIRef
@@ -14,6 +15,9 @@ from rdflib_ocdm.storer import Storer
 from SPARQLWrapper import JSON
 
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
+
+if TYPE_CHECKING:
+    from heritrace.save_plugin import SavePlugin
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,13 +32,14 @@ class EditorError(Exception):
 
 
 class Editor:
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         endpoints: EndpointConfig,
         counter_handler: CounterHandler,
         resp_agent: URIRef,
         source: URIRef | None = None,
         c_time: datetime | None = None,
+        save_plugin: "SavePlugin | None" = None,
     ) -> None:
         self.dataset_endpoint = endpoints.dataset
         self.provenance_endpoint = endpoints.provenance
@@ -42,6 +47,7 @@ class Editor:
         self.resp_agent = resp_agent
         self.source = source
         self.c_time = self.to_posix_timestamp(c_time)
+        self.save_plugin = save_plugin
         self.dataset_is_quadstore = endpoints.is_quadstore
         self.g_set = (
             OCDMDataset(self.counter_handler)
@@ -278,6 +284,8 @@ class Editor:
         prov_storer = Storer(self.g_set.provenance)  # type: ignore[attr-defined]
         dataset_storer.upload_all(self.dataset_endpoint)  # type: ignore[arg-type]
         prov_storer.upload_all(self.provenance_endpoint)  # type: ignore[arg-type]
+        if self.save_plugin is not None:
+            self.save_plugin.persist(self.g_set)
         self.g_set.commit_changes()  # type: ignore[arg-type]
 
     def to_posix_timestamp(self, value: str | datetime | None) -> float | None:

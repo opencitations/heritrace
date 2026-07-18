@@ -220,6 +220,7 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:
         resp_agent,
         URIRef(source_uri) if source_uri else None,
         current_app.config["DATASET_GENERATION_TIME"],
+        save_plugin=current_app.config.get("SAVE_PLUGIN"),
     )
 
     if get_dataset_is_quadstore():

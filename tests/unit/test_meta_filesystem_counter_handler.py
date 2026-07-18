@@ -15,7 +15,6 @@ from default_components.meta_filesystem_counter_handler import (
 BASE_IRI = "https://w3id.org/oc/meta"
 EXPRESSION = "http://purl.org/spar/fabio/Expression"
 AGENT = "http://xmlns.com/foaf/0.1/Agent"
-CITATION = "http://purl.org/spar/cito/Citation"
 OWL_THING = "http://www.w3.org/2002/07/owl#Thing"
 
 
@@ -35,14 +34,12 @@ def test_data_counters_use_the_configured_supplier_prefix(
     counter_handler.set_counter(42, EXPRESSION)
     counter_handler.set_counter(7, AGENT)
     counter_handler.set_counter(3, OWL_THING)
-    counter_handler.set_counter(2, CITATION)
 
     assert counter_handler.read_counter(EXPRESSION) == 42
     assert counter_handler.increment_counter(EXPRESSION) == 43
     assert (tmp_path / "09110" / "info_file_br.txt").read_text() == "43\n"
     assert (tmp_path / "09110" / "info_file_ra.txt").read_text() == "7\n"
     assert (tmp_path / "09110" / "info_file_en.txt").read_text() == "3\n"
-    assert (tmp_path / "09110" / "info_file_ci.txt").read_text() == "2\n"
 
 
 def test_provenance_counters_derive_prefix_and_line_from_the_entity(
@@ -69,21 +66,6 @@ def test_zero_counter_is_stored_as_an_empty_line(
 
     assert counter_handler.read_counter(entity) == 0
     assert (tmp_path / "0690" / "prov_file_id.txt").read_text() == "\n\n"
-
-
-def test_citation_provenance_uses_a_counter_file_per_identifier(
-    counter_handler: MetaFilesystemCounterHandler, tmp_path: Path
-) -> None:
-    first_citation = f"{BASE_IRI}/ci/06101-06102"
-    second_citation = f"{BASE_IRI}/ci/06101-06203"
-
-    counter_handler.set_counter(4, first_citation)
-    counter_handler.set_counter(7, second_citation)
-
-    assert counter_handler.increment_counter(first_citation) == 5
-    assert counter_handler.read_counter(second_citation) == 7
-    assert (tmp_path / "0610" / "prov_file_ci_1-06102.txt").read_text() == "5\n"
-    assert (tmp_path / "0610" / "prov_file_ci_1-06203.txt").read_text() == "7\n"
 
 
 def test_rejects_unsupported_entities(

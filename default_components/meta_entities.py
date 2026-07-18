@@ -27,7 +27,6 @@ META_DATA_ENTITY_TYPE_ABBR = {
 
 META_URI_ENTITY_TYPE_ABBR = {
     **META_DATA_ENTITY_TYPE_ABBR,
-    "http://purl.org/spar/cito/Citation": "ci",
     "http://www.w3.org/2002/07/owl#Thing": "en",
 }
 META_SHORT_NAMES = frozenset(META_URI_ENTITY_TYPE_ABBR.values())

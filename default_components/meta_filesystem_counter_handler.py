@@ -72,14 +72,6 @@ class MetaFilesystemCounterHandler(SupplierAwareCounterHandler):
             msg = f"Unsupported OpenCitations Meta entity: {entity_name_string}"
             raise ValueError(msg)
 
-        if short_name == "ci":
-            return CounterLocation(
-                self.info_dir
-                / supplier_prefix
-                / f"prov_file_{short_name}_{resource_identifier}.txt",
-                1,
-            )
-
         return CounterLocation(
             self.info_dir / supplier_prefix / f"prov_file_{short_name}.txt",
             get_resource_number(entity_name_string),

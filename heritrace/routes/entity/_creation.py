@@ -209,6 +209,7 @@ def _handle_create_entity_post(
         resp_agent,
         URIRef(primary_source) if primary_source else None,
         current_app.config["DATASET_GENERATION_TIME"],
+        save_plugin=current_app.config.get("SAVE_PLUGIN"),
     )
 
     if not structured_data.get("entity_type"):

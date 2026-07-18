@@ -3,86 +3,116 @@
 # SPDX-License-Identifier: ISC
 
 services:
+  dataset-db:
+    image: openlink/virtuoso-opensource-7@sha256:2a9914b95f8a52927a73947c87ec2727f78f87d38e41c38c379efb121f9cbed1
+    entrypoint:
+      - /bin/bash
+      - -c
+    command:
+      - |
+        set -e
+        chmod o+x /opt/virtuoso-opensource
+        inifile +inifile virtuoso.ini +section Parameters +key NumberOfBuffers +value 2215610
+        inifile +inifile virtuoso.ini +section Parameters +key MaxDirtyBuffers +value 1661707
+        inifile +inifile virtuoso.ini +section Parameters +key MaxQueryMem +value 7G
+        inifile +inifile virtuoso.ini +section Database +key MaxCheckpointRemap +value 6127616
+        inifile +inifile virtuoso.ini +section TempDatabase +key MaxCheckpointRemap +value 6127616
+        (
+          until isql -U dba -P dba "exec=status();" >/dev/null 2>&1; do
+            sleep 2
+          done
+          isql -U dba -P dba 'exec=GRANT SPARQL_UPDATE TO "SPARQL"; GRANT execute ON "DB.DBA.SPARQL_INSERT_DICT_CONTENT" TO "SPARQL"; GRANT execute ON "DB.DBA.SPARQL_DELETE_DICT_CONTENT" TO "SPARQL";'
+        ) &
+        exec gosu 1000:1000 virtuoso-t -f
+    volumes:
+      - ../meta_data_db:/database
+    working_dir: /database
+    mem_limit: 48g
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - /opt/virtuoso-opensource/bin/isql
+        - -U
+        - dba
+        - -P
+        - dba
+        - exec=status();
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 5m
+
+  provenance-db:
+    image: docker.io/adfreiburg/qlever:commit-5c6a72a@sha256:3f3b7b9d20d7c7bf50750744ace629ba7293170a3f23dadd9ff558155ba222b8
+    user: "1000:1000"
+    init: true
+    entrypoint: /qlever/qlever-server
+    command:
+      - --index-basename
+      - meta-provenance
+      - --port
+      - "7001"
+      - --memory-max-size
+      - 40G
+      - --cache-max-size
+      - 5G
+      - --default-query-timeout
+      - 120s
+      - --no-access-check
+      - --persist-updates
+    volumes:
+      - ../meta_prov_db:/index
+    working_dir: /index
+    mem_limit: 48g
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --show-error
+        - http://localhost:7001/?query=ASK%20%7B%7D
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 5m
+
   web:
     build:
       context: ..
       dockerfile: dev/Dockerfile.dev
+    env_file: ../.env
+    environment:
+      DATASET_DB_URL: http://dataset-db:8890/sparql
+      PROVENANCE_DB_URL: http://provenance-db:7001
+      DATASET_DB_TRIPLESTORE: virtuoso
+      PROVENANCE_DB_TRIPLESTORE: qlever
+      COUNT_LIMIT: "500"
+      COUNTER_HANDLER_CLASS: default_components.meta_filesystem_counter_handler.MetaFilesystemCounterHandler
+      COUNTER_HANDLER_OPTIONS: '{"info_dir":"/app/info_dir","supplier_prefix":"09110","base_iri":"https://w3id.org/oc/meta"}'
+      URI_GENERATOR_CLASS: default_components.meta_uri_generator.MetaURIGenerator
+      URI_GENERATOR_OPTIONS: "{}"
+      SAVE_PLUGIN_CLASS: default_components.meta_rdf_file_writer.MetaRDFFileWriter
+      SAVE_PLUGIN_OPTIONS: '{"rdf_dir":"/app/rdf","base_iri":"https://w3id.org/oc/meta/","dir_split_number":10000,"items_per_file":1000}'
+    depends_on:
+      dataset-db:
+        condition: service_healthy
+      provenance-db:
+        condition: service_healthy
     ports:
       - "5000:5000"
-      - "6379:6379"  # Redis port for development
-    environment:
-      # Application Configuration
-      - FLASK_ENV=demo
-      - APP_TITLE=HERITRACE
-      - APP_SUBTITLE=A semantic editor for heritage data
-      - SECRET_KEY=dev-secret-key-change-in-production
-      
-      # Cache Configuration
-      - CACHE_VALIDITY_DAYS=7
-      
-      # Query Configuration
-      - COUNT_LIMIT=10000
-
-      # Redis Configuration
-      # Use external Redis container (where counters are already initialized)
-      # Using container name since both are on the same Docker network
-      - REDIS_URL=redis://heritrace-redis:6379/0
-
-      # Database Configuration
-      - DATASET_DB_URL=http://oc_meta_data:8890/sparql
-      - PROVENANCE_DB_URL=http://oc_meta_prov:8890/sparql
-      - DATASET_DB_TRIPLESTORE=virtuoso
-      - PROVENANCE_DB_TRIPLESTORE=virtuoso
-      - DATASET_DB_TEXT_INDEX_ENABLED=false
-      - DATASET_IS_QUADSTORE=true
-      - PROVENANCE_IS_QUADSTORE=true
-      
-      # ORCID Configuration (placeholder values - not used in demo mode)
-      - ORCID_CLIENT_ID=your-orcid-client-id
-      - ORCID_CLIENT_SECRET=your-orcid-client-secret
-      - ORCID_SAFELIST=0000-0000-0000-0000
-      
-      # Provenance Configuration
-      - DATASET_GENERATION_TIME=2024-12-25T00:00:00+00:00
-      - PRIMARY_SOURCE=https://example.org
-      
-      # Handling Strategies
-      - ORPHAN_HANDLING_STRATEGY=ASK
-      - PROXY_HANDLING_STRATEGY=ASK
-
-      # Gunicorn Configuration
-      # - GUNICORN_WORKERS=2
-      # - GUNICORN_TIMEOUT=120
-
-      # Catalogue pagination settings
-      - CATALOGUE_DEFAULT_PER_PAGE=5
-      - CATALOGUE_ALLOWED_PER_PAGE=5,10,20
-
-      # Component Classes
-      - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
-      - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
-
-      # Development Configuration
-      - BAKE=true
-      - SHACL_PATH=/app/shacl.ttl
-      - DISPLAY_RULES_PATH=/app/display_rules.yaml
     volumes:
       - ../heritrace:/app/heritrace
       - ../app.py:/app/app.py
+      - ../config.py:/app/config.py
       - ../default_components:/app/default_components
+      - ../info_dir:/app/info_dir
       - ../pyproject.toml:/app/pyproject.toml
       - ../uv.lock:/app/uv.lock
       - ../example_configurations/opencitations_meta/shacl.ttl:/app/shacl.ttl
       - ../example_configurations/opencitations_meta/display_rules.yaml:/app/display_rules.yaml
       - ../babel:/app/babel
       - ../webpack.config.js:/app/webpack.config.js
-      - ../redis-data:/data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - heritrace-network
-      
-
-networks:
-  heritrace-network:
-    driver: bridge
+      - ../rdf:/app/rdf

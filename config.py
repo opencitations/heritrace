@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -43,6 +43,8 @@ uri_generator_class = _load_class(
 uri_generator_options = load_component_options("URI_GENERATOR_OPTIONS")
 counter_handler_class_path = os.environ.get("COUNTER_HANDLER_CLASS")
 counter_handler_options = load_component_options("COUNTER_HANDLER_OPTIONS")
+save_plugin_class_path = os.environ.get("SAVE_PLUGIN_CLASS")
+save_plugin_options = load_component_options("SAVE_PLUGIN_OPTIONS")
 if counter_handler_class_path:
     counter_handler = _load_class(counter_handler_class_path)(**counter_handler_options)
     uri_generator = uri_generator_class(counter_handler, **uri_generator_options)
@@ -52,6 +54,14 @@ else:
         raise ValueError(msg)
     counter_handler = _default_counter_handler()
     uri_generator = uri_generator_class(**uri_generator_options)
+
+if save_plugin_class_path:
+    save_plugin = _load_class(save_plugin_class_path)(**save_plugin_options)
+elif save_plugin_options:
+    msg = "SAVE_PLUGIN_OPTIONS requires SAVE_PLUGIN_CLASS"
+    raise ValueError(msg)
+else:
+    save_plugin = None
 
 
 class Config:
@@ -87,6 +97,7 @@ class Config:
     BASE_IRI = os.environ.get("BASE_IRI")
     URI_GENERATOR = uri_generator
     COUNTER_HANDLER = counter_handler
+    SAVE_PLUGIN = save_plugin
 
     PRIMARY_SOURCE = os.environ["PRIMARY_SOURCE"]
     SHACL_PATH = _BASE_DIR / "shacl.ttl"

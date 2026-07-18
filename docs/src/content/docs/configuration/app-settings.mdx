@@ -229,6 +229,41 @@ environment:
 | `PRIMARY_SOURCE` | Defines the default primary source (DOI/URL). This value is used for the `prov:hadPrimarySource` property. It's used for the initial dataset import and proposed as the default when creating or modifying entities | Required |
 | `DATASET_GENERATION_TIME` | Specifies the creation timestamp for a pre-existing dataset. This value is used for the `prov:generatedAtTime` property in the initial historical snapshot | Current time |
 
+## Optional save plugin
+
+`SAVE_PLUGIN_CLASS` selects a component that receives the working RDF graph after
+the dataset and provenance SPARQL updates and before HERITRACE commits its internal
+changes. `SAVE_PLUGIN_OPTIONS` accepts a JSON object whose properties are passed to
+the component constructor. The component must provide:
+
+```python
+from typing import Protocol
+
+from rdflib_ocdm.ocdm_graph import OCDMGraphCommons
+
+
+class SavePlugin(Protocol):
+    def persist(self, graph_set: OCDMGraphCommons) -> None: ...
+```
+
+Leaving both variables unset disables the extension.
+
+The included OpenCitations Meta component updates the zipped JSON-LD data and
+provenance files using the Meta directory convention. It requires
+`DATASET_IS_QUADSTORE=true`.
+
+```yaml
+environment:
+  SAVE_PLUGIN_CLASS: default_components.meta_rdf_file_writer.MetaRDFFileWriter
+  SAVE_PLUGIN_OPTIONS: '{"rdf_dir":"/app/rdf","base_iri":"https://w3id.org/oc/meta/","dir_split_number":10000,"items_per_file":1000}'
+volumes:
+  - ./rdf:/app/rdf
+```
+
+The component rewrites only archives containing changed entities. It locks each
+archive during read-modify-write operations so multiple application workers do
+not overwrite each other's changes.
+
 ## URI generation and counter handling
 
 HERITRACE uses a pluggable architecture for URI generation and counter management, allowing you to customize how unique identifiers are created for entities.

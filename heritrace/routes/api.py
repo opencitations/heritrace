@@ -607,6 +607,7 @@ def _setup_editor(
         resp_agent,
         current_app.config["PRIMARY_SOURCE"],
         current_app.config["DATASET_GENERATION_TIME"],
+        save_plugin=current_app.config.get("SAVE_PLUGIN"),
     )
 
     if primary_source and is_valid_url(primary_source):

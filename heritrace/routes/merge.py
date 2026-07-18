@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -201,6 +201,7 @@ def execute_merge() -> WerkzeugResponse:
             ),
             counter_handler,
             resp_agent,
+            save_plugin=current_app.config.get("SAVE_PLUGIN"),
         )
 
         if primary_source and validators.url(primary_source):  # type: ignore[arg-type]

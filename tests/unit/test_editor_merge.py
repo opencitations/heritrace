@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -109,6 +109,52 @@ def editor_instance_non_quadstore(mock_counter_handler, mock_reader, mock_storer
         mock_counter_handler,
         RESP_AGENT,
     )
+
+
+def test_save_plugin_runs_after_uploads_and_before_commit(
+    mock_counter_handler, mock_storer
+) -> None:
+    events = []
+    save_plugin = MagicMock()
+    editor = Editor(
+        EndpointConfig(
+            dataset=DATASET_ENDPOINT,
+            provenance=PROVENANCE_ENDPOINT,
+            is_quadstore=True,
+        ),
+        mock_counter_handler,
+        RESP_AGENT,
+        save_plugin=save_plugin,
+    )
+    mock_storer.return_value.upload_all.side_effect = events.append
+
+    def record_plugin(_graph: object) -> None:
+        events.append("plugin")
+
+    save_plugin.persist.side_effect = record_plugin
+
+    with (
+        patch.object(
+            editor.g_set,
+            "generate_provenance",
+            side_effect=lambda: events.append("provenance"),
+        ),
+        patch.object(
+            editor.g_set,
+            "commit_changes",
+            side_effect=lambda: events.append("commit"),
+        ),
+    ):
+        editor.save()
+
+    assert events == [
+        "provenance",
+        DATASET_ENDPOINT,
+        PROVENANCE_ENDPOINT,
+        "plugin",
+        "commit",
+    ]
+    save_plugin.persist.assert_called_once_with(editor.g_set)
 
 
 def test_merge_basic(

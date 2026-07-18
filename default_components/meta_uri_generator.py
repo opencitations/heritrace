@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -31,9 +31,6 @@ def _process_data_bindings(
         entity_uri = result["s"]["value"]
 
         if entity_type in entity_type_abbr:
-            if entity_type == "http://purl.org/spar/cito/Citation":
-                continue
-
             try:
                 numeric_part = entity_uri.rsplit("/", 1)[-1]
                 match = re.search(supplier_prefix_regex, numeric_part)
@@ -60,9 +57,6 @@ def _process_prov_bindings(
 ) -> None:
     for result in bindings:
         entity_uri = result["entity"]["value"]
-
-        if "/ci/" in entity_uri:
-            continue
 
         numeric_part = entity_uri.rsplit("/", 1)[-1]
         match = re.search(supplier_prefix_regex, numeric_part)
@@ -96,8 +90,6 @@ def _set_counters_from_prefix_map(
         counter_handler.supplier_prefix = supplier_prefix
 
         for entity_type, abbr in entity_type_abbr.items():
-            if entity_type == "http://purl.org/spar/cito/Citation":
-                continue
             counter_value = max_numbers[abbr]
             counter_handler.set_counter(counter_value, entity_type)
 
@@ -118,91 +110,11 @@ class MetaURIGenerator(URIGenerator):
         self.counter_handler.supplier_prefix = self.new_supplier_prefix
         self.entity_type_abbr = META_URI_ENTITY_TYPE_ABBR
 
-    def generate_uri(self, entity_type: str, context_data: dict | None = None) -> str:
-        """
-        Generate a URI for the given entity type.
-
-        For Citation entities, generates URIs in the format:
-        https://w3id.org/oc/meta/ci/{citing_omid}-{cited_omid}
-
-        :param entity_type: The RDF type of the entity
-        :param context_data: Entity data containing properties. For Citations, expects:
-            {
-                "entity_type": "http://purl.org/spar/cito/Citation",
-                "properties": {
-                    "http://purl.org/spar/cito/hasCitingEntity": [
-                        {
-                            "is_existing_entity": True,
-                            "entity_uri": "https://w3id.org/oc/meta/br/061503302037"
-                        }
-                    ],
-                    "http://purl.org/spar/cito/hasCitedEntity": [
-                        {
-                            "is_existing_entity": True,
-                            "entity_uri": "https://w3id.org/oc/meta/br/061503302004"
-                        }
-                    ]
-                }
-            }
-        :return: Generated URI as URIRef
-        """
-        if entity_type == "http://purl.org/spar/cito/Citation" and context_data:
-            citing_entity = None
-            cited_entity = None
-
-            properties = context_data.get("properties", {})
-            for prop_key, prop_value in properties.items():
-                if prop_key == "http://purl.org/spar/cito/hasCitingEntity":
-                    if isinstance(prop_value, list) and len(prop_value) > 0:
-                        first_value = prop_value[0]
-                        if isinstance(first_value, dict) and first_value.get(
-                            "is_existing_entity"
-                        ):
-                            citing_entity = first_value.get("entity_uri")
-                        else:
-                            citing_entity = first_value
-                elif (
-                    prop_key == "http://purl.org/spar/cito/hasCitedEntity"
-                    and isinstance(prop_value, list)
-                    and len(prop_value) > 0
-                ):
-                    first_value = prop_value[0]
-                    if isinstance(first_value, dict) and first_value.get(
-                        "is_existing_entity"
-                    ):
-                        cited_entity = first_value.get("entity_uri")
-                    else:
-                        cited_entity = first_value
-
-            if citing_entity and cited_entity:
-                citing_omid = self._extract_omid_from_uri(str(citing_entity))
-                cited_omid = self._extract_omid_from_uri(str(cited_entity))
-                if citing_omid and cited_omid:
-                    uri = f"{self.base_iri}/ci/{citing_omid}-{cited_omid}"
-                    return URIRef(uri)
-
+    def generate_uri(self, entity_type: str, _context_data: dict | None = None) -> str:
         next_number = self.counter_handler.increment_counter(entity_type)
         return URIRef(
             f"{self.base_iri}/{self.entity_type_abbr[entity_type]}/{self.new_supplier_prefix}{next_number}"
         )
-
-    def _extract_omid_from_uri(self, uri_string: str) -> str | None:
-        """Extract the OMID (numerical part) from a URI using regex pattern."""
-        if not uri_string:
-            return None
-
-        escaped_base = re.escape(self.base_iri)
-        abbr_pattern = "|".join(
-            re.escape(abbr) for abbr in self.entity_type_abbr.values()
-        )
-
-        pattern = f"^{escaped_base}/({abbr_pattern})/(.+)$"
-        match = re.match(pattern, uri_string)
-
-        if match:
-            return match.group(2)
-
-        return None
 
     def initialize_counters(self, sparql: SPARQLWrapper) -> None:
         """
