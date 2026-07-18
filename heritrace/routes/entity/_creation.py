@@ -40,15 +40,13 @@ from heritrace.utils.virtual_properties import (
 
 def _prepare_entity_creation_data(
     structured_data: dict,
-) -> tuple[dict, str, dict, URIRef]:
+) -> tuple[dict, str]:
     cleaned_structured_data = remove_virtual_properties_from_creation_data(
         structured_data
     )
     entity_type: str = cleaned_structured_data["entity_type"]
-    properties = cleaned_structured_data.get("properties", {})
-    entity_uri = generate_unique_uri(entity_type)
 
-    return cleaned_structured_data, entity_type, properties, entity_uri
+    return cleaned_structured_data, entity_type
 
 
 def _setup_editor_for_creation(editor: Editor, cleaned_structured_data: dict) -> None:
@@ -67,6 +65,7 @@ def _process_virtual_properties_after_creation(
     )
 
     if virtual_entities:
+        editor.begin_counter_transaction()
         for virtual_entity in virtual_entities:
             virtual_entity_uri = generate_unique_uri(virtual_entity["entity_type"])
             create_nested_entity(
@@ -198,6 +197,20 @@ def _handle_create_entity_post(
     if save_default_source and primary_source and is_valid_url(primary_source):
         save_user_default_primary_source(current_user.orcid, primary_source)
 
+    if not structured_data.get("entity_type"):
+        return jsonify(
+            {"status": "error", "errors": [gettext("Entity type is required")]}
+        ), 400
+
+    cleaned_structured_data, entity_type = _prepare_entity_creation_data(
+        structured_data
+    )
+
+    if form_fields:
+        validation_errors = validate_entity_data(cleaned_structured_data)
+        if validation_errors:
+            return jsonify({"status": "error", "errors": validation_errors}), 400
+
     resp_agent = get_responsible_agent_uri(current_user.orcid)
     editor = Editor(
         EndpointConfig(
@@ -211,24 +224,12 @@ def _handle_create_entity_post(
         current_app.config["DATASET_GENERATION_TIME"],
         save_plugin=current_app.config.get("SAVE_PLUGIN"),
     )
-
-    if not structured_data.get("entity_type"):
-        return jsonify(
-            {"status": "error", "errors": [gettext("Entity type is required")]}
-        ), 400
-
-    cleaned_structured_data, _entity_type, _properties, entity_uri = (
-        _prepare_entity_creation_data(structured_data)
-    )
-
+    entity_uri = generate_unique_uri(entity_type)
     default_graph_uri = (
         URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
     )
 
     if form_fields:
-        validation_errors = validate_entity_data(cleaned_structured_data)
-        if validation_errors:
-            return jsonify({"status": "error", "errors": validation_errors}), 400
         _create_entity_with_form_fields(
             editor,
             structured_data,

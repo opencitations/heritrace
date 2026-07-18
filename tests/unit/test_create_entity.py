@@ -268,12 +268,19 @@ def test_create_entity_with_shape_matching(
 
 
 @patch("heritrace.routes.entity._creation.Editor")
+@patch(
+    "heritrace.routes.entity._creation.validate_entity_data",
+    return_value=["Missing required property"],
+)
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_validation_error(
-    mock_get_form_fields, _mock_editor, logged_in_client, app, mock_form_fields
+    mock_get_form_fields,
+    mock_validate_entity_data,
+    mock_editor,
+    logged_in_client,
+    app,
 ) -> None:
     """Test entity creation with validation errors"""
-    # Setup mocks
     mock_get_form_fields.return_value = {
         ("http://example.org/Person", None): {
             "http://example.org/hasName": [
@@ -286,7 +293,6 @@ def test_create_entity_validation_error(
         "URI_GENERATOR"
     ].generate_uri.return_value = "http://example.org/test/123"
 
-    # Missing required hasName property
     data = {"entity_type": "http://example.org/Person", "properties": {}}
 
     response = logged_in_client.post(
@@ -294,10 +300,13 @@ def test_create_entity_validation_error(
     )
 
     assert response.status_code == 400
-    assert response.json["status"] == "error"
-    assert len(response.json["errors"]) > 0
-
-    assert len(response.json["errors"]) > 0
+    assert response.get_json() == {
+        "status": "error",
+        "errors": ["Missing required property"],
+    }
+    mock_validate_entity_data.assert_called_once_with(data)
+    mock_editor.assert_not_called()
+    app.config["URI_GENERATOR"].generate_uri.assert_not_called()
 
 
 @patch("heritrace.routes.entity._creation.Editor")

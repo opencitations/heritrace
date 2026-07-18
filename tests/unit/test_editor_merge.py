@@ -12,6 +12,7 @@ from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from SPARQLWrapper import JSON
 
+from heritrace.counter_handler import TransactionalCounterHandler
 from heritrace.editor import Editor, EndpointConfig
 
 DATASET_ENDPOINT = "http://localhost:9999/blazegraph/sparql"
@@ -155,6 +156,83 @@ def test_save_plugin_runs_after_uploads_and_before_commit(
         "commit",
     ]
     save_plugin.persist.assert_called_once_with(editor.g_set)
+
+
+def test_save_commits_transactional_counter_after_graph_commit(mock_storer) -> None:
+    events = []
+    counter_handler = MagicMock(spec=TransactionalCounterHandler)
+    counter_handler.begin_counter_transaction.side_effect = lambda: events.append(
+        "counter_begin"
+    )
+    counter_handler.commit_counter_transaction.side_effect = lambda: events.append(
+        "counter_commit"
+    )
+    save_plugin = MagicMock()
+    editor = Editor(
+        EndpointConfig(
+            dataset=DATASET_ENDPOINT,
+            provenance=PROVENANCE_ENDPOINT,
+            is_quadstore=True,
+        ),
+        counter_handler,
+        RESP_AGENT,
+        save_plugin=save_plugin,
+    )
+    mock_storer.return_value.upload_all.side_effect = events.append
+    save_plugin.persist.side_effect = lambda _graph: events.append("plugin")
+
+    with (
+        patch.object(
+            editor.g_set,
+            "generate_provenance",
+            side_effect=lambda: events.append("provenance"),
+        ),
+        patch.object(
+            editor.g_set,
+            "commit_changes",
+            side_effect=lambda: events.append("graph_commit"),
+        ),
+    ):
+        editor.save()
+
+    assert events == [
+        "counter_begin",
+        "provenance",
+        DATASET_ENDPOINT,
+        PROVENANCE_ENDPOINT,
+        "plugin",
+        "graph_commit",
+        "counter_commit",
+    ]
+    counter_handler.rollback_counter_transaction.assert_not_called()
+
+
+def test_save_rolls_back_transactional_counter_on_failure(mock_storer) -> None:
+    counter_handler = MagicMock(spec=TransactionalCounterHandler)
+    save_plugin = MagicMock()
+    save_plugin.persist.side_effect = OSError("RDF file write failed")
+    editor = Editor(
+        EndpointConfig(
+            dataset=DATASET_ENDPOINT,
+            provenance=PROVENANCE_ENDPOINT,
+            is_quadstore=True,
+        ),
+        counter_handler,
+        RESP_AGENT,
+        save_plugin=save_plugin,
+    )
+
+    with (
+        patch.object(editor.g_set, "generate_provenance"),
+        patch.object(editor.g_set, "commit_changes") as commit_changes,
+        pytest.raises(OSError, match="RDF file write failed"),
+    ):
+        editor.save()
+
+    counter_handler.begin_counter_transaction.assert_called_once_with()
+    counter_handler.commit_counter_transaction.assert_not_called()
+    counter_handler.rollback_counter_transaction.assert_called_once_with()
+    commit_changes.assert_not_called()
 
 
 def test_merge_basic(

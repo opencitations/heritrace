@@ -1,13 +1,13 @@
-# SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
 import json
-import time
 
 from flask import Blueprint, current_app, redirect, render_template, request, url_for
 from flask_login import login_required
 from SPARQLWrapper import JSON
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from heritrace.extensions import get_dataset_endpoint, get_sparql
@@ -149,37 +149,26 @@ def sparql_proxy() -> tuple[str, int, dict[str, str]]:
     sparql_wrapper.setQuery(query)
     sparql_wrapper.setReturnFormat(JSON)
 
-    # Implement retry mechanism
-    max_retries = 3
-    retry_delay = 1  # seconds
-
-    for attempt in range(max_retries):
-        try:
-            results = sparql_wrapper.query().convert()
-            return (
-                json.dumps(results),
-                200,
-                {"Content-Type": "application/sparql-results+json"},
-            )
-        except Exception as e:  # noqa: PERF203
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2  # Exponential backoff
-            else:
-                current_app.logger.exception(
-                    "All SPARQL query attempts failed for query: %s", query
-                )
-                return (
-                    json.dumps({"error": str(e)}),
-                    500,
-                    {"Content-Type": "application/json"},
-                )
-
-    return (
-        json.dumps({"error": "All SPARQL query attempts failed"}),
-        500,
-        {"Content-Type": "application/json"},
-    )
+    try:
+        results = sparql_wrapper.query().convert()
+        return (
+            json.dumps(results),
+            200,
+            {"Content-Type": "application/sparql-results+json"},
+        )
+    except (
+        json.JSONDecodeError,
+        OSError,
+        SPARQLWrapperException,
+        TypeError,
+        UnicodeDecodeError,
+    ) as error:
+        current_app.logger.exception("SPARQL query failed for query: %s", query)
+        return (
+            json.dumps({"error": str(error)}),
+            500,
+            {"Content-Type": "application/json"},
+        )
 
 
 @main_bp.route("/endpoint")

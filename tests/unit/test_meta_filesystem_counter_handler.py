@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: ISC
 
 import re
+import shutil
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -66,6 +68,83 @@ def test_zero_counter_is_stored_as_an_empty_line(
 
     assert counter_handler.read_counter(entity) == 0
     assert (tmp_path / "0690" / "prov_file_id.txt").read_text() == "\n\n"
+
+
+def test_counter_width_change_preserves_surrounding_lines(
+    counter_handler: MetaFilesystemCounterHandler, tmp_path: Path
+) -> None:
+    provenance_file = tmp_path / "0610" / "prov_file_br.txt"
+    provenance_file.parent.mkdir()
+    provenance_file.write_text("4\n9\n3\n")
+
+    assert counter_handler.increment_counter(f"{BASE_IRI}/br/06102") == 10
+    assert provenance_file.read_text() == "4\n10\n3\n"
+
+
+def test_repeated_read_uses_cached_counter_state(
+    counter_handler: MetaFilesystemCounterHandler,
+) -> None:
+    entity = f"{BASE_IRI}/br/06101"
+    counter_handler.set_counter(4, entity)
+
+    assert counter_handler.read_counter(entity) == 4
+    with patch("pathlib.Path.open") as open_file:
+        assert counter_handler.read_counter(entity) == 4
+    open_file.assert_not_called()
+
+
+def test_counter_transaction_rolls_back_staged_value(
+    counter_handler: MetaFilesystemCounterHandler, tmp_path: Path
+) -> None:
+    entity = f"{BASE_IRI}/br/06101"
+    counter_handler.set_counter(4, entity)
+    provenance_file = tmp_path / "0610" / "prov_file_br.txt"
+
+    counter_handler.begin_counter_transaction()
+    assert counter_handler.increment_counter(entity) == 5
+    assert counter_handler.read_counter(entity) == 5
+    assert provenance_file.read_text() == "4\n"
+
+    counter_handler.rollback_counter_transaction()
+
+    assert counter_handler.read_counter(entity) == 4
+    assert provenance_file.read_text() == "4\n"
+
+
+def test_counter_transaction_writes_each_file_once(
+    counter_handler: MetaFilesystemCounterHandler, tmp_path: Path
+) -> None:
+    first_entity = f"{BASE_IRI}/br/06101"
+    second_entity = f"{BASE_IRI}/br/06102"
+    counter_handler.set_counter(4, first_entity)
+    counter_handler.set_counter(8, second_entity)
+
+    counter_handler.begin_counter_transaction()
+    assert counter_handler.increment_counter(first_entity) == 5
+    assert counter_handler.increment_counter(second_entity) == 9
+    with patch(
+        "default_components.meta_filesystem_counter_handler.shutil.copyfile",
+        wraps=shutil.copyfile,
+    ) as copy_file:
+        counter_handler.commit_counter_transaction()
+
+    assert copy_file.call_count == 1
+    assert (tmp_path / "0610" / "prov_file_br.txt").read_text() == "5\n9\n"
+
+
+def test_external_file_replacement_invalidates_cached_counter(
+    counter_handler: MetaFilesystemCounterHandler, tmp_path: Path
+) -> None:
+    entity = f"{BASE_IRI}/br/06101"
+    counter_handler.set_counter(4, entity)
+    provenance_file = tmp_path / "0610" / "prov_file_br.txt"
+    replacement_file = provenance_file.with_suffix(".replacement")
+
+    assert counter_handler.read_counter(entity) == 4
+    replacement_file.write_text("8\n")
+    replacement_file.replace(provenance_file)
+
+    assert counter_handler.read_counter(entity) == 8
 
 
 def test_rejects_unsupported_entities(

@@ -88,7 +88,9 @@ services:
       DATASET_DB_URL: http://dataset-db:8890/sparql
       PROVENANCE_DB_URL: http://provenance-db:7001
       DATASET_DB_TRIPLESTORE: virtuoso
+      DATASET_DB_TEXT_INDEX_ENABLED: "true"
       PROVENANCE_DB_TRIPLESTORE: qlever
+      GUNICORN_WORKERS: "1"
       COUNT_LIMIT: "500"
       COUNTER_HANDLER_CLASS: default_components.meta_filesystem_counter_handler.MetaFilesystemCounterHandler
       COUNTER_HANDLER_OPTIONS: '{"info_dir":"/app/info_dir","supplier_prefix":"09110","base_iri":"https://w3id.org/oc/meta"}'

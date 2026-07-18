@@ -14,6 +14,7 @@ from rdflib_ocdm.reader import Reader
 from rdflib_ocdm.storer import Storer
 from SPARQLWrapper import JSON
 
+from heritrace.counter_handler import TransactionalCounterHandler
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
 
 if TYPE_CHECKING:
@@ -49,11 +50,18 @@ class Editor:
         self.c_time = self.to_posix_timestamp(c_time)
         self.save_plugin = save_plugin
         self.dataset_is_quadstore = endpoints.is_quadstore
+        self.transactional_counter_handler: TransactionalCounterHandler | None = (
+            counter_handler
+            if isinstance(counter_handler, TransactionalCounterHandler)
+            else None
+        )
+        self._counter_transaction_started = False
         self.g_set = (
             OCDMDataset(self.counter_handler)
             if self.dataset_is_quadstore
             else OCDMGraph(self.counter_handler)
         )
+        self.begin_counter_transaction()
 
     def create(
         self,
@@ -269,6 +277,7 @@ class Editor:
                 self.dataset_endpoint,
                 list(entities_to_import),  # type: ignore[arg-type]
             )
+        self.begin_counter_transaction()
         self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)  # type: ignore[arg-type]
 
         self.g_set.merge(keep_entity_uri, delete_entity_uri)  # type: ignore[arg-type]
@@ -276,17 +285,51 @@ class Editor:
         self.save()
 
     def preexisting_finished(self) -> None:
+        self.begin_counter_transaction()
         self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)  # type: ignore[arg-type]
 
     def save(self) -> None:
-        self.g_set.generate_provenance()  # type: ignore[arg-type]
-        dataset_storer = Storer(self.g_set)  # type: ignore[arg-type]
-        prov_storer = Storer(self.g_set.provenance)  # type: ignore[attr-defined]
-        dataset_storer.upload_all(self.dataset_endpoint)  # type: ignore[arg-type]
-        prov_storer.upload_all(self.provenance_endpoint)  # type: ignore[arg-type]
-        if self.save_plugin is not None:
-            self.save_plugin.persist(self.g_set)
-        self.g_set.commit_changes()  # type: ignore[arg-type]
+        self.begin_counter_transaction()
+        try:
+            self.g_set.generate_provenance()  # type: ignore[arg-type]
+            dataset_storer = Storer(self.g_set)  # type: ignore[arg-type]
+            prov_storer = Storer(self.g_set.provenance)  # type: ignore[attr-defined]
+            dataset_storer.upload_all(self.dataset_endpoint)  # type: ignore[arg-type]
+            prov_storer.upload_all(self.provenance_endpoint)  # type: ignore[arg-type]
+            if self.save_plugin is not None:
+                self.save_plugin.persist(self.g_set)
+            self.g_set.commit_changes()  # type: ignore[arg-type]
+            self._commit_counter_transaction()
+        except Exception:
+            self._rollback_counter_transaction()
+            raise
+
+    def begin_counter_transaction(self) -> None:
+        if (
+            self._counter_transaction_started
+            or self.transactional_counter_handler is None
+        ):
+            return
+        self.transactional_counter_handler.begin_counter_transaction()
+        self._counter_transaction_started = True
+
+    def _commit_counter_transaction(self) -> None:
+        if (
+            not self._counter_transaction_started
+            or self.transactional_counter_handler is None
+        ):
+            return
+        self.transactional_counter_handler.commit_counter_transaction()
+        self._counter_transaction_started = False
+
+    def _rollback_counter_transaction(self) -> None:
+        if (
+            not self._counter_transaction_started
+            or self.transactional_counter_handler is None
+        ):
+            return
+        self.transactional_counter_handler.rollback_counter_transaction()
+        self._counter_transaction_started = False
 
     def to_posix_timestamp(self, value: str | datetime | None) -> float | None:
         if value is None:
