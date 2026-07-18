@@ -19,6 +19,9 @@ from redis import Redis
 from redis.exceptions import RedisError
 from SPARQLWrapper import SPARQLWrapper
 
+from default_components.meta_filesystem_counter_handler import (
+    MetaFilesystemCounterHandler,
+)
 from heritrace.extensions import (
     AppState,
     adjust_endpoint_url,
@@ -727,6 +730,27 @@ def test_initialize_counter_handler_no_initialization_needed(app) -> None:
         mock_counter_handler.set_counter.assert_not_called()
         mock_uri_generator.initialize_counters.assert_not_called()
         mock_provenance_sparql.setQuery.assert_not_called()
+
+
+def test_initialize_counter_handler_skips_preinitialized_storage(app, tmp_path) -> None:
+    mock_redis = MagicMock(spec=Redis)
+    mock_sparql = MagicMock(spec=SPARQLWrapperWithRetry)
+    mock_provenance_sparql = MagicMock(spec=SPARQLWrapperWithRetry)
+    counter_handler = MetaFilesystemCounterHandler(
+        str(tmp_path), "09110", "https://w3id.org/oc/meta"
+    )
+    mock_uri_generator = MagicMock()
+    mock_uri_generator.counter_handler = counter_handler
+    app.config["URI_GENERATOR"] = mock_uri_generator
+    app.config["COUNTER_HANDLER"] = counter_handler
+
+    with patch("heritrace.extensions.need_initialization") as mock_need_initialization:
+        initialize_counter_handler(app, mock_redis, mock_sparql, mock_provenance_sparql)
+
+    mock_need_initialization.assert_not_called()
+    mock_uri_generator.initialize_counters.assert_not_called()
+    mock_sparql.setQuery.assert_not_called()
+    mock_provenance_sparql.setQuery.assert_not_called()
 
 
 def test_initialize_counter_handler_non_counter_based_generator(app) -> None:

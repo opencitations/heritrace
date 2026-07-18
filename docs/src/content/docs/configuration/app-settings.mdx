@@ -243,15 +243,22 @@ environment:
   # URI_GENERATOR_CLASS and COUNTER_HANDLER_CLASS left unset
 ```
 
-To use a custom naming convention instead, set both class variables, as in the OpenCitations Meta example shipped with the demo:
+### Optional and custom components
+
+Setting `URI_GENERATOR_CLASS` replaces the built-in UUID generator. Set
+`COUNTER_HANDLER_CLASS` as well when the selected generator uses counters.
+
+`COUNTER_HANDLER_OPTIONS` and `URI_GENERATOR_OPTIONS` accept JSON objects. HERITRACE
+passes their properties as keyword arguments to the selected constructors. For
+example:
 
 ```yaml
 environment:
-  - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
-  - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
+  COUNTER_HANDLER_CLASS: custom_components.my_counter.FileCounterHandler
+  COUNTER_HANDLER_OPTIONS: '{"directory":"/app/counters"}'
+  URI_GENERATOR_CLASS: custom_components.my_uri.SequentialURIGenerator
+  URI_GENERATOR_OPTIONS: '{"base_iri":"https://example.org"}'
 ```
-
-### Custom components
 
 You can create custom URI generators and counter handlers by:
 
@@ -267,13 +274,6 @@ environment:
 volumes:
   - ./custom_components:/app/custom_components
 ```
-
-### Default components configuration
-
-The default components are configured through environment variables within their respective Python files:
-
-- **MetaCounterHandler**: Configure Redis connection settings directly in `default_components/meta_counter_handler.py`
-- **MetaURIGenerator**: Configure base IRI, supplier prefix, and regex patterns directly in `default_components/meta_uri_generator.py`
 
 ### URI_GENERATOR
 
@@ -327,7 +327,6 @@ A custom counter handler should implement the following methods:
 -   **`increment_counter(entity_name: str) -> int`**: Atomically increments the counter for an entity type by one and returns the new value.
 -   **`close()`**: Closes any open connections (e.g., to a database).
 
-The default implementation, `MetaCounterHandler`, uses a **Redis** database to store these counters. This provides a fast and reliable way to persist the counter state.
 
 <Aside type="note" title="Example: A Simple In-Memory Counter Handler">
 Here is an example of a minimal, non-persistent counter handler. **Note:** This is for demonstration only and is not suitable for production, as counter values will be lost on application restart.

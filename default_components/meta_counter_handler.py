@@ -7,6 +7,8 @@ import urllib.parse
 import redis
 from rdflib_ocdm.counter_handler.counter_handler import SupplierAwareCounterHandler
 
+from default_components.meta_entities import META_DATA_ENTITY_TYPE_ABBR
+
 
 class MetaCounterHandler(SupplierAwareCounterHandler):
     def __init__(self) -> None:
@@ -30,30 +32,10 @@ class MetaCounterHandler(SupplierAwareCounterHandler):
         self.password = password
         self._redis_client = None
 
-        self.base_iri = "https://w3id.org/oc/meta/"
+        self.base_iri = "https://w3id.org/oc/meta"
         self.short_names = ["ar", "br", "id", "ra", "re"]
         self.supplier_prefix = supplier_prefix
-
-        self.entity_type_abbr = {
-            "http://purl.org/spar/fabio/Expression": "br",
-            "http://purl.org/spar/fabio/Article": "br",
-            "http://purl.org/spar/fabio/JournalArticle": "br",
-            "http://purl.org/spar/fabio/Book": "br",
-            "http://purl.org/spar/fabio/JournalIssue": "br",
-            "http://purl.org/spar/fabio/JournalVolume": "br",
-            "http://purl.org/spar/fabio/Journal": "br",
-            "http://purl.org/spar/fabio/AcademicProceedings": "br",
-            "http://purl.org/spar/fabio/ProceedingsPaper": "br",
-            "http://purl.org/spar/fabio/ReferenceBook": "br",
-            "http://purl.org/spar/fabio/Review": "br",
-            "http://purl.org/spar/fabio/ReviewArticle": "br",
-            "http://purl.org/spar/fabio/Series": "br",
-            "http://purl.org/spar/fabio/Thesis": "br",
-            "http://purl.org/spar/pro/RoleInTime": "ar",
-            "http://purl.org/spar/fabio/Manifestation": "re",
-            "http://xmlns.com/foaf/0.1/Agent": "ra",
-            "http://purl.org/spar/datacite/Identifier": "id",
-        }
+        self.entity_type_abbr = META_DATA_ENTITY_TYPE_ABBR
 
     @property
     def redis_client(self) -> redis.Redis:

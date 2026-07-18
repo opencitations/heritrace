@@ -21,6 +21,7 @@ def uri_generator_setup():
     base_iri = "https://w3id.org/oc/meta"
     supplier_prefix = "test"
     counter_handler = MagicMock(spec=MetaCounterHandler)
+    counter_handler.base_iri = base_iri
     counter_handler.supplier_prefix = supplier_prefix
     supplier_prefix_regex = supplier_prefix
     uri_generator = MetaURIGenerator(counter_handler)
@@ -45,31 +46,29 @@ def test_generate_uri(uri_generator_setup) -> None:
     uri_generator_setup["supplier_prefix"]
 
     # Set up the mock counter handler
-    counter_handler.read_counter.return_value = 42
+    counter_handler.increment_counter.return_value = 43
 
     # Test generating a URI for an Expression entity
     entity_type = "http://purl.org/spar/fabio/Expression"
     uri = uri_generator.generate_uri(entity_type)
 
     # Verify the counter handler was called correctly
-    counter_handler.read_counter.assert_called_once_with(entity_type)
-    counter_handler.set_counter.assert_called_once_with(43, entity_type)
+    counter_handler.increment_counter.assert_called_once_with(entity_type)
 
     # Verify the generated URI is correct
-    expected_uri = URIRef(f"{base_iri}/br/0911043")
+    expected_uri = URIRef(f"{base_iri}/br/test43")
     assert uri == expected_uri
 
     # Test with a different entity type
     counter_handler.reset_mock()
-    counter_handler.read_counter.return_value = 99
+    counter_handler.increment_counter.return_value = 100
 
     entity_type = "http://xmlns.com/foaf/0.1/Agent"
     uri = uri_generator.generate_uri(entity_type)
 
-    counter_handler.read_counter.assert_called_once_with(entity_type)
-    counter_handler.set_counter.assert_called_once_with(100, entity_type)
+    counter_handler.increment_counter.assert_called_once_with(entity_type)
 
-    expected_uri = URIRef(f"{base_iri}/ra/09110100")
+    expected_uri = URIRef(f"{base_iri}/ra/test100")
     assert uri == expected_uri
 
 
@@ -456,6 +455,7 @@ def test_initialize_counters_with_multiple_prefixes() -> None:
     base_iri = "https://w3id.org/oc/meta"
     new_supplier_prefix = "09110"
     counter_handler = MagicMock(spec=MetaCounterHandler)
+    counter_handler.base_iri = base_iri
     counter_handler.supplier_prefix = new_supplier_prefix
 
     uri_generator = MetaURIGenerator(counter_handler)
@@ -521,8 +521,9 @@ def test_generate_uri_uses_correct_prefix() -> None:
     base_iri = "https://w3id.org/oc/meta"
     new_supplier_prefix = "09110"
     counter_handler = MagicMock(spec=MetaCounterHandler)
+    counter_handler.base_iri = base_iri
     counter_handler.supplier_prefix = new_supplier_prefix
-    counter_handler.read_counter.return_value = 42
+    counter_handler.increment_counter.return_value = 43
 
     uri_generator = MetaURIGenerator(counter_handler)
 
@@ -530,8 +531,7 @@ def test_generate_uri_uses_correct_prefix() -> None:
     uri = uri_generator.generate_uri(entity_type)
 
     # Verify the counter handler was called correctly
-    counter_handler.read_counter.assert_called_once_with(entity_type)
-    counter_handler.set_counter.assert_called_once_with(43, entity_type)
+    counter_handler.increment_counter.assert_called_once_with(entity_type)
 
     # Verify the generated URI contains the correct prefix
     expected_uri = URIRef(f"{base_iri}/br/{new_supplier_prefix}43")

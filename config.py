@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from rdflib_ocdm.counter_handler.redis_counter_handler import RedisCounterHandler
 
+from heritrace.component_options import load_component_options
 from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
 
 _BASE_DIR = Path(__file__).resolve().parent
@@ -39,13 +40,18 @@ def _default_counter_handler() -> RedisCounterHandler:
 uri_generator_class = _load_class(
     os.environ.get("URI_GENERATOR_CLASS", DEFAULT_URI_GENERATOR_CLASS)
 )
+uri_generator_options = load_component_options("URI_GENERATOR_OPTIONS")
 counter_handler_class_path = os.environ.get("COUNTER_HANDLER_CLASS")
+counter_handler_options = load_component_options("COUNTER_HANDLER_OPTIONS")
 if counter_handler_class_path:
-    counter_handler = _load_class(counter_handler_class_path)()
-    uri_generator = uri_generator_class(counter_handler)
+    counter_handler = _load_class(counter_handler_class_path)(**counter_handler_options)
+    uri_generator = uri_generator_class(counter_handler, **uri_generator_options)
 else:
+    if counter_handler_options:
+        msg = "COUNTER_HANDLER_OPTIONS requires COUNTER_HANDLER_CLASS"
+        raise ValueError(msg)
     counter_handler = _default_counter_handler()
-    uri_generator = uri_generator_class()
+    uri_generator = uri_generator_class(**uri_generator_options)
 
 
 class Config:

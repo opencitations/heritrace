@@ -6,9 +6,12 @@ import re
 from collections import defaultdict
 
 from rdflib import URIRef
-from rdflib_ocdm.counter_handler.counter_handler import SupplierAwareCounterHandler
 from SPARQLWrapper import JSON, SPARQLWrapper
 
+from default_components.meta_entities import (
+    META_URI_ENTITY_TYPE_ABBR,
+    MetaCounterHandlerProtocol,
+)
 from heritrace.sparql import get_sparql_bindings
 from heritrace.uri_generator.uri_generator import URIGenerator
 
@@ -85,7 +88,7 @@ def _process_prov_bindings(
 
 def _set_counters_from_prefix_map(
     max_numbers_by_prefix: defaultdict,
-    counter_handler: "SupplierAwareCounterHandler",
+    counter_handler: MetaCounterHandlerProtocol,
     entity_type_abbr: dict[str, str],
 ) -> None:
     for supplier_prefix, max_numbers in max_numbers_by_prefix.items():
@@ -102,43 +105,18 @@ def _set_counters_from_prefix_map(
 
 
 class MetaURIGenerator(URIGenerator):
-    def __init__(self, counter_handler: SupplierAwareCounterHandler) -> None:
-        """
-        Initialize MetaURIGenerator with hardcoded configuration.
-        Configure these values directly in this script.
-
-        :param counter_handler: Counter handler instance for URI generation
-        """
-        # Configuration - modify these values directly
-        self.base_iri = "https://w3id.org/oc/meta"
-        self.supplier_prefix_regex = "0[6|9][1-9]+0"
-        self.new_supplier_prefix = "09110"
+    def __init__(
+        self,
+        counter_handler: MetaCounterHandlerProtocol,
+        supplier_prefix_regex: str = r"0[69][1-9]*0",
+    ) -> None:
+        self.base_iri = counter_handler.base_iri.rstrip("/")
+        self.supplier_prefix_regex = supplier_prefix_regex
+        self.new_supplier_prefix = counter_handler.supplier_prefix
 
         self.counter_handler = counter_handler
         self.counter_handler.supplier_prefix = self.new_supplier_prefix
-
-        self.entity_type_abbr = {
-            "http://purl.org/spar/fabio/Expression": "br",
-            "http://purl.org/spar/fabio/Article": "br",
-            "http://purl.org/spar/fabio/JournalArticle": "br",
-            "http://purl.org/spar/fabio/Book": "br",
-            "http://purl.org/spar/fabio/JournalIssue": "br",
-            "http://purl.org/spar/fabio/JournalVolume": "br",
-            "http://purl.org/spar/fabio/Journal": "br",
-            "http://purl.org/spar/fabio/AcademicProceedings": "br",
-            "http://purl.org/spar/fabio/ProceedingsPaper": "br",
-            "http://purl.org/spar/fabio/ReferenceBook": "br",
-            "http://purl.org/spar/fabio/Review": "br",
-            "http://purl.org/spar/fabio/ReviewArticle": "br",
-            "http://purl.org/spar/fabio/Series": "br",
-            "http://purl.org/spar/fabio/Thesis": "br",
-            "http://purl.org/spar/pro/RoleInTime": "ar",
-            "http://purl.org/spar/fabio/Manifestation": "re",
-            "http://xmlns.com/foaf/0.1/Agent": "ra",
-            "http://purl.org/spar/datacite/Identifier": "id",
-            "http://purl.org/spar/cito/Citation": "ci",
-            "http://www.w3.org/2002/07/owl#Thing": "en",
-        }
+        self.entity_type_abbr = META_URI_ENTITY_TYPE_ABBR
 
     def generate_uri(self, entity_type: str, context_data: dict | None = None) -> str:
         """
@@ -203,9 +181,7 @@ class MetaURIGenerator(URIGenerator):
                     uri = f"{self.base_iri}/ci/{citing_omid}-{cited_omid}"
                     return URIRef(uri)
 
-        last_used = self.counter_handler.read_counter(entity_type)
-        next_number = last_used + 1
-        self.counter_handler.set_counter(next_number, entity_type)
+        next_number = self.counter_handler.increment_counter(entity_type)
         return URIRef(
             f"{self.base_iri}/{self.entity_type_abbr[entity_type]}/{self.new_supplier_prefix}{next_number}"
         )

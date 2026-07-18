@@ -23,6 +23,7 @@ from redis.exceptions import RedisError
 from SPARQLWrapper import JSON
 from time_agnostic_library.support import generate_config_file
 
+from heritrace.counter_handler import CounterInitializationPolicy
 from heritrace.models import User
 from heritrace.services.resource_lock_manager import ResourceLockManager
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings, select_results
@@ -241,14 +242,19 @@ def initialize_counter_handler(
     sparql: SPARQLWrapperWithRetry,
     provenance_sparql: SPARQLWrapperWithRetry,
 ) -> None:
+    counter_handler = cast("CounterHandler", app.config["COUNTER_HANDLER"])
+    if (
+        isinstance(counter_handler, CounterInitializationPolicy)
+        and not counter_handler.should_initialize_from_triplestore()
+    ):
+        return
+
     if not need_initialization(app, redis):
         return
 
     uri_generator = app.config["URI_GENERATOR"]
     if isinstance(uri_generator, CounterBasedURIGenerator):
         uri_generator.initialize_counters(sparql)
-
-    counter_handler = app.config["COUNTER_HANDLER"]
 
     prov_query = """
         SELECT ?entity (COUNT(DISTINCT ?snapshot) as ?count)

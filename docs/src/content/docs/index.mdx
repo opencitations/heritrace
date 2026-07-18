@@ -54,11 +54,14 @@ http://127.0.0.1:5000
 
 ## Configuration
 
-HERITRACE requires two configuration files:
+HERITRACE requires two data-model configuration files:
 
 - **SHACL schema** (`.ttl`): Defines the data model, classes, and properties. See [SHACL configuration](/heritrace/configuration/shacl/).
 - **Display rules** (`.yaml`): Controls how entities appear in the interface. See [Display rules configuration](/heritrace/configuration/display-rules/).
-- **Custom components** (`default_components/`): URI generator and counter handler implementations. See [Application settings](/heritrace/configuration/app-settings/#custom-components).
+
+The `default_components/` directory contains optional URI generator and counter
+handler implementations. They are distributed with HERITRACE but enabled only
+when selected in the [application settings](/heritrace/configuration/app-settings/#optional-and-custom-components).
 
 The `example_configurations/` directory contains examples to use as a starting point, including one based on the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank" rel="noopener noreferrer">OpenCitations Data Model (OCDM)</a>.
 

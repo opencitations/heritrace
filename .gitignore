@@ -1,37 +1,39 @@
-__pycache__
-blazegraph.jnl
-db_volumes/
-*.pem
-*.db
+# Python
+__pycache__/
+.venv/
+.ruff_cache/
+
+# JavaScript
 node_modules/
-database/
+heritrace/static/dist/
+
+# Local configuration
+.env
+*.pem
+instance/
+change_tracking.json
+
+# Local databases and source data
+*.db
 dataset_database/*
 !dataset_database/virtuoso.ini
 prov_database/*
 !prov_database/virtuoso.ini
-cache.json
-heritrace/static/dist/
-.vscode/
-.venv/
-tests/test_cache.json
-redis-data
-change_tracking.json
+redis-data/
+meta_*_db/
+rdf/
+
+# User testing packages
 heritrace-*-local/
 heritrace-*-local.zip
 heritrace-*-testing/
 heritrace-*-testing.zip
 heritrace_user_testing_results.zip
-instance/
-.env
 
-# Unit test / coverage reports
+# Test and coverage reports
 .coverage
 .coverage.*
 htmlcov/
 .pytest_cache/
 pytest-report.xml
 coverage.xml
-*.cover
-.hypothesis/
-nosetests.xml
-
