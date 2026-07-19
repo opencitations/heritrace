@@ -12,8 +12,8 @@ services:
       - |
         set -e
         chmod o+x /opt/virtuoso-opensource
-        inifile +inifile virtuoso.ini +section Parameters +key NumberOfBuffers +value 2215610
-        inifile +inifile virtuoso.ini +section Parameters +key MaxDirtyBuffers +value 1661707
+        inifile +inifile virtuoso.ini +section Parameters +key NumberOfBuffers +value 4000000
+        inifile +inifile virtuoso.ini +section Parameters +key MaxDirtyBuffers +value 3000000
         inifile +inifile virtuoso.ini +section Parameters +key MaxQueryMem +value 7G
         inifile +inifile virtuoso.ini +section Database +key MaxCheckpointRemap +value 6127616
         inifile +inifile virtuoso.ini +section TempDatabase +key MaxCheckpointRemap +value 6127616
@@ -92,6 +92,7 @@ services:
       DATASET_DB_TEXT_INDEX_ENABLED: "true"
       PROVENANCE_DB_TRIPLESTORE: qlever
       GUNICORN_WORKERS: "1"
+      MAX_WORKERS: "8"
       COUNT_LIMIT: "500"
       COUNTER_HANDLER_CLASS: default_components.meta_filesystem_counter_handler.MetaFilesystemCounterHandler
       COUNTER_HANDLER_OPTIONS: '{"info_dir":"/app/info_dir","supplier_prefix":"09110","base_iri":"https://w3id.org/oc/meta"}'

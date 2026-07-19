@@ -8,16 +8,19 @@ Tests for the SPARQL utilities module.
 
 import time
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from rdflib import Dataset, Graph, Literal, URIRef
+from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.utils import sparql_utils
 from heritrace.utils.sparql_utils import (
     AVAILABLE_CLASSES_TTL_SECONDS,
     CatalogQuery,
     DeletedEntitiesQuery,
+    _fetch_entity_label,
+    _fetch_entity_labels,
     _get_entities_with_enhanced_shape_detection,
     build_sort_clause,
     fetch_current_state_with_related_entities,
@@ -29,6 +32,7 @@ from heritrace.utils.sparql_utils import (
     get_entities_for_class,
     import_entity_graph,
     process_deleted_entity,
+    warm_catalogue,
 )
 
 
@@ -104,6 +108,85 @@ def mock_quadstore():
     ) as mock_is_quadstore:
         mock_is_quadstore.return_value = True
         yield mock_is_quadstore
+
+
+class TestWorkerPool:
+    def test_configures_shared_process_budget(self) -> None:
+        executor = MagicMock()
+
+        with (
+            patch("heritrace.utils.sparql_utils._worker_pool.executor", None),
+            patch(
+                "heritrace.utils.sparql_utils.ProcessPoolExecutor",
+                return_value=executor,
+            ) as mock_executor_class,
+        ):
+            sparql_utils.configure_worker_pool(8, 2)
+            sparql_utils.shutdown_worker_pool()
+
+        mock_executor_class.assert_called_once_with(max_workers=4)
+        executor.shutdown.assert_called_once_with()
+
+    def test_uses_sequential_execution_when_budget_is_below_server_workers(
+        self,
+    ) -> None:
+        with (
+            patch("heritrace.utils.sparql_utils._worker_pool.executor", None),
+            patch(
+                "heritrace.utils.sparql_utils.ProcessPoolExecutor"
+            ) as mock_executor_class,
+        ):
+            sparql_utils.configure_worker_pool(1, 2)
+
+        mock_executor_class.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("max_workers", "gunicorn_workers", "message"),
+        [
+            (0, 1, "MAX_WORKERS must be at least 1"),
+            (1, 0, "GUNICORN_WORKERS must be at least 1"),
+        ],
+    )
+    def test_rejects_invalid_worker_counts(
+        self, max_workers: int, gunicorn_workers: int, message: str
+    ) -> None:
+        with (
+            patch("heritrace.utils.sparql_utils._worker_pool.executor", None),
+            pytest.raises(ValueError, match=message),
+        ):
+            sparql_utils.configure_worker_pool(max_workers, gunicorn_workers)
+
+    def test_fetches_fifty_labels_in_input_order_with_shared_pool(self) -> None:
+        uris = [f"http://example.org/person/{index}" for index in range(50)]
+        entity_key = (
+            "http://example.org/Person",
+            "http://example.org/PersonShape",
+        )
+        labels = [f"Person {index}" for index in range(50)]
+        executor = MagicMock()
+        executor.map.return_value = labels
+
+        with patch("heritrace.utils.sparql_utils._worker_pool.executor", executor):
+            result = _fetch_entity_labels(uris, entity_key)
+
+        assert result == labels
+        worker, submitted_uris, submitted_keys = executor.map.call_args.args
+        assert worker is _fetch_entity_label
+        assert submitted_uris == uris
+        assert list(submitted_keys) == [entity_key] * 50
+
+    def test_label_error_propagates_from_shared_pool(self) -> None:
+        executor = MagicMock()
+        executor.map.side_effect = SPARQLWrapperException(b"query failed")
+
+        with (
+            patch("heritrace.utils.sparql_utils._worker_pool.executor", executor),
+            pytest.raises(SPARQLWrapperException, match="query failed"),
+        ):
+            _fetch_entity_labels(
+                ["http://example.org/person/1"],
+                ("http://example.org/Person", "http://example.org/PersonShape"),
+            )
 
 
 class TestGetAvailableClasses:
@@ -506,6 +589,93 @@ class TestGetEntitiesForClass:
             assert "LIMIT 10" in entities_query
             assert "OFFSET 0" in entities_query
 
+    @pytest.mark.parametrize("per_page", [50, 100, 200, 500])
+    def test_get_entities_for_second_page_fetches_labels(
+        self, app, mock_sparql_wrapper, mock_custom_filter, per_page
+    ) -> None:
+        selected_class = "http://example.org/Person"
+        selected_shape = "http://example.org/PersonShape"
+        uris = [
+            f"http://example.org/person/{index}"
+            for index in range(per_page, per_page * 2)
+        ]
+        mock_sparql_wrapper.query.return_value.convert.return_value = {
+            "results": {"bindings": [{"subject": {"value": uri}} for uri in uris]}
+        }
+        available_classes = [
+            {
+                "uri": selected_class,
+                "label": "Person",
+                "count": "1000",
+                "count_numeric": 1000,
+                "shape": selected_shape,
+            }
+        ]
+
+        with patch(
+            "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
+            return_value=set(),
+        ):
+            entities, total_count = get_entities_for_class(
+                CatalogQuery(
+                    selected_class=selected_class,
+                    selected_shape=selected_shape,
+                    page=2,
+                    per_page=per_page,
+                ),
+                available_classes,
+            )
+
+        assert entities == [
+            {"uri": uri, "label": "Human Readable Entity"} for uri in uris
+        ]
+        assert total_count == 1000
+        mock_sparql_wrapper.setQuery.assert_called_once()
+        entities_query = mock_sparql_wrapper.setQuery.call_args.args[0]
+        assert f"LIMIT {per_page}" in entities_query
+        assert f"OFFSET {per_page}" in entities_query
+        assert mock_custom_filter.human_readable_entity.call_args_list == [
+            call(uri, (selected_class, selected_shape), None) for uri in uris
+        ]
+
+    def test_get_entities_for_empty_class_skips_label_query(
+        self, app, mock_sparql_wrapper, mock_custom_filter
+    ) -> None:
+        selected_class = "http://example.org/Empty"
+        available_classes = [
+            {
+                "uri": selected_class,
+                "label": "Empty",
+                "count": "0",
+                "count_numeric": 0,
+                "shape": None,
+            }
+        ]
+
+        with (
+            patch(
+                "heritrace.utils.sparql_utils.get_classes_with_multiple_shapes",
+                return_value=set(),
+            ),
+            patch(
+                "heritrace.utils.sparql_utils.determine_shape_for_classes",
+                return_value=None,
+            ),
+        ):
+            entities, total_count = get_entities_for_class(
+                CatalogQuery(
+                    selected_class=selected_class,
+                    page=1,
+                    per_page=50,
+                ),
+                available_classes,
+            )
+
+        assert entities == []
+        assert total_count == 0
+        mock_sparql_wrapper.setQuery.assert_called_once()
+        mock_custom_filter.human_readable_entity.assert_not_called()
+
 
 class TestGetCatalogData:
     """Tests for the get_catalog_data function."""
@@ -588,6 +758,77 @@ class TestGetCatalogData:
             assert catalog_data["current_page"] == 1
             assert catalog_data["per_page"] == 10
             assert len(catalog_data["entities"]) == 2
+
+
+class TestWarmCatalogue:
+    def test_warms_first_page_of_each_non_empty_class(self, app) -> None:
+        available_classes = [
+            {
+                "uri": "http://example.org/Person",
+                "label": "Person",
+                "count": "12",
+                "count_numeric": 12,
+                "shape": "http://example.org/PersonShape",
+            },
+            {
+                "uri": "http://example.org/Empty",
+                "label": "Empty",
+                "count": "0",
+                "count_numeric": 0,
+                "shape": "http://example.org/EmptyShape",
+            },
+            {
+                "uri": "http://example.org/Document",
+                "label": "Document",
+                "count": "4",
+                "count_numeric": 4,
+                "shape": "http://example.org/DocumentShape",
+            },
+        ]
+
+        with patch("heritrace.utils.sparql_utils.get_catalog_data") as mock_get_data:
+            warm_catalogue(available_classes, 50)
+
+        assert mock_get_data.call_args_list == [
+            call(
+                CatalogQuery(
+                    selected_class="http://example.org/Person",
+                    selected_shape="http://example.org/PersonShape",
+                    page=1,
+                    per_page=50,
+                ),
+                available_classes,
+            ),
+            call(
+                CatalogQuery(
+                    selected_class="http://example.org/Document",
+                    selected_shape="http://example.org/DocumentShape",
+                    page=1,
+                    per_page=50,
+                ),
+                available_classes,
+            ),
+        ]
+
+    def test_sparql_error_stops_warm_up(self, app) -> None:
+        available_classes = [
+            {
+                "uri": "http://example.org/Person",
+                "label": "Person",
+                "count": "1",
+                "count_numeric": 1,
+                "shape": "http://example.org/PersonShape",
+            }
+        ]
+
+        with (
+            patch(
+                "heritrace.utils.sparql_utils.get_catalog_data",
+                side_effect=SPARQLWrapperException(b"query failed"),
+            ),
+            pytest.raises(SPARQLWrapperException, match="query failed"),
+        ):
+            warm_catalogue(available_classes, 50)
 
 
 class TestFetchDataGraphForSubject:
@@ -1796,9 +2037,10 @@ class TestGetDeletedEntitiesWithFiltering:
         }
 
         with (
-            patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor,
+            patch(
+                "heritrace.utils.sparql_utils._worker_pool.executor"
+            ) as mock_executor_instance,
             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed,
-            patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4),
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
                 return_value="http://example.org/PersonShape",
@@ -1813,8 +2055,6 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
 
-            mock_executor_instance = MagicMock()
-            mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
 
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
@@ -1858,9 +2098,10 @@ class TestGetDeletedEntitiesWithFiltering:
         }
 
         with (
-            patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor,
+            patch(
+                "heritrace.utils.sparql_utils._worker_pool.executor"
+            ) as mock_executor_instance,
             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed,
-            patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4),
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
                 return_value="http://example.org/PersonShape",
@@ -1872,8 +2113,6 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_future = MagicMock()
             mock_future.result.return_value = mock_entity_info
 
-            mock_executor_instance = MagicMock()
-            mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.return_value = mock_future
 
             mock_as_completed.return_value = [mock_future, mock_future]
@@ -1929,9 +2168,10 @@ class TestGetDeletedEntitiesWithFiltering:
         }
 
         with (
-            patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor,
+            patch(
+                "heritrace.utils.sparql_utils._worker_pool.executor"
+            ) as mock_executor_instance,
             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed,
-            patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4),
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
                 return_value="http://example.org/PersonShape",
@@ -1945,8 +2185,6 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
 
-            mock_executor_instance = MagicMock()
-            mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
 
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
@@ -2000,9 +2238,10 @@ class TestGetDeletedEntitiesWithFiltering:
         }
 
         with (
-            patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor,
+            patch(
+                "heritrace.utils.sparql_utils._worker_pool.executor"
+            ) as mock_executor_instance,
             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed,
-            patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4),
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
                 return_value="http://example.org/PersonShape",
@@ -2019,8 +2258,6 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
 
-            mock_executor_instance = MagicMock()
-            mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
 
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
@@ -2087,9 +2324,10 @@ class TestGetDeletedEntitiesWithFiltering:
         }
 
         with (
-            patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor,
+            patch(
+                "heritrace.utils.sparql_utils._worker_pool.executor"
+            ) as mock_executor_instance,
             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed,
-            patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4),
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes"
             ) as mock_determine_shape,
@@ -2107,8 +2345,6 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
 
-            mock_executor_instance = MagicMock()
-            mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
 
             mock_as_completed.return_value = [mock_future_1, mock_future_2]
@@ -2171,9 +2407,10 @@ class TestGetDeletedEntitiesWithFiltering:
         }
 
         with (
-            patch("heritrace.utils.sparql_utils.ProcessPoolExecutor") as mock_executor,
+            patch(
+                "heritrace.utils.sparql_utils._worker_pool.executor"
+            ) as mock_executor_instance,
             patch("heritrace.utils.sparql_utils.as_completed") as mock_as_completed,
-            patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=4),
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes"
             ) as mock_determine_shape,
@@ -2191,8 +2428,6 @@ class TestGetDeletedEntitiesWithFiltering:
             mock_future_2 = MagicMock()
             mock_future_2.result.return_value = mock_entity_info_2
 
-            mock_executor_instance = MagicMock()
-            mock_executor.return_value.__enter__.return_value = mock_executor_instance
             mock_executor_instance.submit.side_effect = [mock_future_1, mock_future_2]
 
             mock_as_completed.return_value = [mock_future_1, mock_future_2]

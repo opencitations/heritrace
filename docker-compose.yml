@@ -90,6 +90,7 @@ services:
 
       # Gunicorn Configuration
       - GUNICORN_WORKERS=2
+      - MAX_WORKERS=8
       # - GUNICORN_TIMEOUT=120
 
       # Catalogue pagination settings

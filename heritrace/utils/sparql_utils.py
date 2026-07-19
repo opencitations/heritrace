@@ -2,12 +2,13 @@
 #
 # SPDX-License-Identifier: ISC
 
+import atexit
 import logging
 import os
 import time
 from collections import defaultdict, deque
 from collections.abc import Generator
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 
 from flask import current_app
@@ -119,6 +120,42 @@ def get_triples_from_graph(
 
 
 COUNT_LIMIT = int(os.getenv("COUNT_LIMIT", "10000"))
+
+
+@dataclass(slots=True)
+class _WorkerPool:
+    executor: ProcessPoolExecutor | None = None
+
+
+_worker_pool = _WorkerPool()
+
+
+def configure_worker_pool(max_workers: int, gunicorn_workers: int) -> None:
+    if max_workers < 1:
+        msg = "MAX_WORKERS must be at least 1"
+        raise ValueError(msg)
+    if gunicorn_workers < 1:
+        msg = "GUNICORN_WORKERS must be at least 1"
+        raise ValueError(msg)
+
+    if _worker_pool.executor is not None:
+        _worker_pool.executor.shutdown()
+
+    workers_per_server = max_workers // gunicorn_workers
+    _worker_pool.executor = (
+        ProcessPoolExecutor(max_workers=workers_per_server)
+        if workers_per_server > 0
+        else None
+    )
+
+
+def shutdown_worker_pool() -> None:
+    if _worker_pool.executor is not None:
+        _worker_pool.executor.shutdown()
+        _worker_pool.executor = None
+
+
+atexit.register(shutdown_worker_pool)
 
 
 def _wrap_virtuoso_graph_pattern(pattern: str) -> str:
@@ -407,15 +444,18 @@ def _fetch_entity_labels(
 ) -> list[str]:
     if not subject_uris:
         return []
-    custom_filter = get_custom_filter()
-    app = current_app._get_current_object()  # type: ignore[attr-defined]  # noqa: SLF001
 
-    def fetch_label(uri: str) -> str:
-        with app.app_context():
-            return custom_filter.human_readable_entity(uri, entity_key, None)
+    if _worker_pool.executor is None:
+        return [_fetch_entity_label(uri, entity_key) for uri in subject_uris]
+    return list(
+        _worker_pool.executor.map(
+            _fetch_entity_label, subject_uris, [entity_key] * len(subject_uris)
+        )
+    )
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        return list(executor.map(fetch_label, subject_uris))
+
+def _fetch_entity_label(uri: str, entity_key: tuple[str | None, str | None]) -> str:
+    return get_custom_filter().human_readable_entity(uri, entity_key, None)
 
 
 def _get_entities_with_shape_filtering(
@@ -596,6 +636,43 @@ def get_catalog_data(
         "selected_class": query.selected_class,
         "selected_shape": query.selected_shape,
     }
+
+
+def warm_catalogue(
+    available_classes: list[dict[str, str | int]], per_page: int
+) -> None:
+    total_started_at = time.monotonic()
+
+    for class_info in available_classes:
+        if int(class_info["count_numeric"]) == 0:
+            continue
+
+        class_uri = str(class_info["uri"])
+        shape_value = class_info["shape"]
+        shape_uri = str(shape_value) if shape_value is not None else None
+        category_started_at = time.monotonic()
+
+        get_catalog_data(
+            CatalogQuery(
+                selected_class=class_uri,
+                selected_shape=shape_uri,
+                page=1,
+                per_page=per_page,
+            ),
+            available_classes,
+        )
+
+        current_app.logger.info(
+            "[STARTUP] Warmed catalogue category class=%s shape=%s in %.3f seconds",
+            class_uri,
+            shape_uri,
+            time.monotonic() - category_started_at,
+        )
+
+    current_app.logger.info(
+        "[STARTUP] Catalogue warm-up completed in %.3f seconds",
+        time.monotonic() - total_started_at,
+    )
 
 
 def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
@@ -829,17 +906,21 @@ def get_deleted_entities_with_filtering(
     if not results_bindings:
         return [], [], None, None, [], 0
 
-    deleted_entities = []
-    max_workers = max(1, min(os.cpu_count() or 4, len(results_bindings)))
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        future_to_entity = {
-            executor.submit(process_deleted_entity, result, sortable_properties): result
+    if _worker_pool.executor is None:
+        processed_entities = [
+            process_deleted_entity(result, sortable_properties)
             for result in results_bindings
-        }
-        for future in as_completed(future_to_entity):
-            entity_info = future.result()
-            if entity_info is not None:
-                deleted_entities.append(entity_info)
+        ]
+    else:
+        futures = [
+            _worker_pool.executor.submit(
+                process_deleted_entity, result, sortable_properties
+            )
+            for result in results_bindings
+        ]
+        processed_entities = [future.result() for future in as_completed(futures)]
+
+    deleted_entities = [entity for entity in processed_entities if entity is not None]
 
     class_counts = {}
     for entity in deleted_entities:

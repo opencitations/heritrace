@@ -12,6 +12,7 @@ heritrace/static/dist/
 *.pem
 instance/
 change_tracking.json
+.vscode
 
 # Local databases and source data
 *.db

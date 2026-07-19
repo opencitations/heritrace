@@ -68,3 +68,5 @@ class TestConfig:
 
     # Query configuration
     COUNT_LIMIT = 10000
+    MAX_WORKERS = 1
+    GUNICORN_WORKERS = 2

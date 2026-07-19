@@ -18,6 +18,15 @@ DEFAULT_URI_GENERATOR_CLASS = (
     "heritrace.uri_generator.default_uri_generator.DefaultURIGenerator"
 )
 
+if "GUNICORN_WORKERS" in os.environ:
+    _gunicorn_workers = int(os.environ["GUNICORN_WORKERS"])
+else:
+    _cpu_count = os.cpu_count()
+    if _cpu_count is None:
+        msg = "Cannot determine the default GUNICORN_WORKERS value"
+        raise RuntimeError(msg)
+    _gunicorn_workers = _cpu_count * 2 + 1
+
 
 def _load_class(class_path: str) -> type:
     module_path, class_name = class_path.rsplit(".", 1)
@@ -80,6 +89,8 @@ class Config:
     #    - Datasets above this limit: cache remains static
     #      (manual refresh via admin endpoint)
     COUNT_LIMIT = int(os.environ["COUNT_LIMIT"])
+    MAX_WORKERS = int(os.environ["MAX_WORKERS"])
+    GUNICORN_WORKERS = _gunicorn_workers
 
     DATASET_DB_TRIPLESTORE = os.environ["DATASET_DB_TRIPLESTORE"]
     DATASET_DB_TEXT_INDEX_ENABLED = (

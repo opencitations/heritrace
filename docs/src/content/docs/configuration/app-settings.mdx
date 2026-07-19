@@ -27,6 +27,7 @@ environment:
 
   # Query Configuration
   - COUNT_LIMIT=10000
+  - MAX_WORKERS=8
 
   # Database endpoints
   - DATASET_DB_URL=http://dataset-db:8890/sparql
@@ -54,6 +55,7 @@ Keep sensitive credentials secure. Use Docker secrets or external secret managem
 | `APP_SUBTITLE` | String | Subtitle displayed in interface | No | `Heritage Enhanced Repository Interface` |
 | `SECRET_KEY` | String | Flask secret key for security | **Yes** | `generate-a-secure-random-key` |
 | `CACHE_VALIDITY_DAYS` | Integer | Days until the performance cache expires (internal Redis only) | No | `7` |
+| `MAX_WORKERS` | Integer | Maximum number of auxiliary worker processes available to HERITRACE | **Yes** | None |
 
 <Aside type="caution">
 Set a unique `SECRET_KEY` in production.

@@ -14,7 +14,11 @@ from redis import Redis
 from heritrace.cli import register_cli_commands
 from heritrace.extensions import init_extensions
 from heritrace.routes import register_blueprints
-from heritrace.utils.sparql_utils import get_available_classes
+from heritrace.utils.sparql_utils import (
+    configure_worker_pool,
+    get_available_classes,
+    warm_catalogue,
+)
 
 
 def create_app(config_object: object = None) -> Flask:
@@ -47,10 +51,14 @@ def create_app(config_object: object = None) -> Flask:
 
         with app.app_context():
             init_extensions(app, babel, login_manager, redis_client)
+            configure_worker_pool(
+                app.config["MAX_WORKERS"], app.config["GUNICORN_WORKERS"]
+            )
 
             app.logger.info("[STARTUP] Pre-computing available classes cache...")
-            get_available_classes()
+            available_classes = get_available_classes()
             app.logger.info("[STARTUP] Available classes cache computed successfully")
+            warm_catalogue(available_classes, app.config["CATALOGUE_DEFAULT_PER_PAGE"])
 
         register_blueprints(app)
 

@@ -95,9 +95,9 @@ Here are the top-level settings for each rule, listed in order of how they are p
 
 While URIs are great for machines, they are not user-friendly. The `fetchUriDisplay` setting allows you to define a human-readable label for an entity type using a SPARQL query. This label is used throughout the HERITRACE interface, for instance, in search results and breadcrumbs, to represent the entity.
 
-The query uses `[[uri]]` as a placeholder, which HERITRACE dynamically replaces with the URI of the entity being displayed.
+The query uses `[[uri]]` as a placeholder, which HERITRACE replaces with the URI of the entity being displayed.
 
-Your SPARQL query for `fetchUriDisplay` **must `SELECT` a single variable**. This variable holds the final formatted string that will be shown to the user.
+The query must return `?display`. If it fails or returns no result, HERITRACE reports the error.
 
 You can find many practical examples of this in the default `display_rules.yaml` file.
 

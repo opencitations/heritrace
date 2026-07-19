@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import logging
 import threading
 from typing import TYPE_CHECKING
 from urllib.parse import quote, urlparse
@@ -12,9 +11,7 @@ from urllib.parse import quote, urlparse
 from dateutil import parser as dateutil_parser
 from flask import url_for
 from flask_babel import format_datetime, gettext, lazy_gettext
-from pyparsing.exceptions import ParseBaseException
 from SPARQLWrapper import JSON
-from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.apis.orcid import format_orcid_attribution, is_orcid_url
 from heritrace.apis.zenodo import format_zenodo_source, is_zenodo_url
@@ -26,7 +23,7 @@ from heritrace.sparql import (
 from heritrace.utils.uri_utils import is_valid_url
 
 if TYPE_CHECKING:
-    from rdflib import Dataset, Graph
+    from rdflib import Dataset, Graph, URIRef
 
 
 class Filter:
@@ -143,72 +140,52 @@ class Filter:
 
     def human_readable_entity(
         self,
-        uri: str,
+        uri: str | URIRef,
         entity_key: tuple[str | None, str | None],
         graph: Graph | Dataset | None = None,
     ) -> str:
-        """Convert an entity URI to human-readable format using display rules.
-
-        Args:
-            uri: The URI of the entity to format
-            entity_key: A tuple containing (class_uri, shape_uri)
-            graph: Optional graph to use for fetching URI display values
-
-        Returns:
-            str: Human-readable representation of the entity
-        """
         from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
             find_matching_rule,
         )
 
-        class_uri = entity_key[0]
-        shape_uri = entity_key[1]
-
-        rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
+        uri_string = str(uri)
+        rule = find_matching_rule(entity_key[0], entity_key[1], self.display_rules)
         if not rule:
-            return uri
+            return uri_string
 
         if "fetchUriDisplay" in rule:
-            uri_display = self.get_fetch_uri_display(uri, rule, graph)
-            if uri_display:
-                return uri_display
+            return self.get_fetch_uri_display(uri_string, rule, graph)
 
         if "displayName" in rule:
             return rule["displayName"]
 
-        return uri
+        return uri_string
 
     def get_fetch_uri_display(
-        self, uri: str, rule: dict, graph: Graph | Dataset | None = None
-    ) -> str | None:
-        logger = logging.getLogger(__name__)
-        if "fetchUriDisplay" in rule:
-            query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri}>")
-            if graph is not None:
-                try:
-                    with self._query_lock:
-                        results = graph.query(query)
-                    for row in select_results(results):
-                        return str(row[0])
-                except (ParseBaseException, ValueError, TypeError):
-                    logger.debug(
-                        "Failed to execute fetchUriDisplay query on graph for URI %s",
-                        uri,
-                    )
-            else:
-                sparql = self._get_sparql()
-                sparql.setQuery(query)
-                try:
-                    bindings = get_sparql_bindings(sparql.query().convert())
-                    if bindings:
-                        first_binding = bindings[0]
-                        first_key = next(iter(first_binding.keys()))
-                        return first_binding[first_key]["value"]
-                except (SPARQLWrapperException, OSError, KeyError, StopIteration):
-                    logger.debug(
-                        "Failed to execute fetchUriDisplay SPARQL query for URI %s", uri
-                    )
-        return None
+        self,
+        uri: str | URIRef,
+        rule: dict,
+        graph: Graph | Dataset | None = None,
+    ) -> str:
+        uri_string = str(uri)
+        query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri_string}>")
+
+        if graph is not None:
+            with self._query_lock:
+                results = graph.query(query)
+            for row in select_results(results):
+                display = row["display"]
+                if display is not None:
+                    return str(display)
+        else:
+            sparql = self._get_sparql()
+            sparql.setQuery(query)
+            bindings = get_sparql_bindings(sparql.query().convert())
+            if bindings:
+                return bindings[0]["display"]["value"]
+
+        msg = f"fetchUriDisplay returned no result for {uri_string}"
+        raise ValueError(msg)
 
     def human_readable_datetime(self, dt_str: str) -> str:
         dt = dateutil_parser.parse(dt_str)

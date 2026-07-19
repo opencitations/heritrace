@@ -2,19 +2,22 @@
 #
 # SPDX-License-Identifier: ISC
 
+import re
 from unittest.mock import MagicMock, patch
 
 import pytest
-from rdflib import Graph
+from rdflib import Graph, URIRef
 from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.utils.filters import Filter
 
-_FETCH_URI_QUERY = "SELECT ?name WHERE { [[uri]] <http://example.org/name> ?name }"
+_FETCH_URI_QUERY = (
+    "SELECT ?display WHERE { [[uri]] <http://example.org/name> ?display }"
+)
 _FETCH_PERSON_QUERY = (
-    "SELECT ?name WHERE"
+    "SELECT ?display WHERE"
     " { <http://example.org/person/1>"
-    " <http://example.org/name> ?name }"
+    " <http://example.org/name> ?display }"
 )
 
 
@@ -44,16 +47,10 @@ def test_get_fetch_uri_display_with_graph_success(mock_filter) -> None:
     # Create a mock graph that returns a result
     mock_graph = MagicMock(spec=Graph)
     mock_results = MagicMock()
-    mock_results.__iter__.return_value = [("John Doe",)]
+    mock_results.__iter__.return_value = [{"display": "John Doe"}]
     mock_graph.query.return_value = mock_results
 
-    with patch(
-        "heritrace.utils.display_rules_utils.find_matching_rule"
-    ) as mock_find_rule:
-        mock_find_rule.return_value = mock_filter.display_rules[0]
-
-        # Execute
-        result = mock_filter.get_fetch_uri_display(uri, rule, mock_graph)
+    result = mock_filter.get_fetch_uri_display(uri, rule, mock_graph)
 
     # Verify
     assert result == "John Doe"
@@ -68,9 +65,9 @@ def test_get_fetch_uri_display_with_graph_exception(mock_filter) -> None:
     mock_graph = MagicMock(spec=Graph)
     mock_graph.query.side_effect = ValueError("Test exception")
 
-    result = mock_filter.get_fetch_uri_display(uri, rule, mock_graph)
+    with pytest.raises(ValueError, match="Test exception"):
+        mock_filter.get_fetch_uri_display(uri, rule, mock_graph)
 
-    assert result is None
     mock_graph.query.assert_called_once()
 
 
@@ -83,7 +80,7 @@ def test_get_fetch_uri_display_with_sparql_success(mock_filter) -> None:
     rule = {"fetchUriDisplay": _FETCH_PERSON_QUERY}
 
     # Mock the SPARQL query response
-    mock_response = {"results": {"bindings": [{"name": {"value": "John Doe"}}]}}
+    mock_response = {"results": {"bindings": [{"display": {"value": "John Doe"}}]}}
 
     # Execute
     mock_sparql = MagicMock()
@@ -91,8 +88,8 @@ def test_get_fetch_uri_display_with_sparql_success(mock_filter) -> None:
     with patch.object(mock_filter, "_get_sparql", return_value=mock_sparql):
         result = mock_filter.get_fetch_uri_display(uri, rule, None)
 
-    # Verify
     assert result == "John Doe"
+    assert mock_sparql.setQuery.call_args.args[0] == _FETCH_PERSON_QUERY
     mock_sparql.query.assert_called_once()
 
 
@@ -101,44 +98,15 @@ def test_get_fetch_uri_display_with_sparql_exception(mock_filter) -> None:
     uri = "http://example.org/person/1"
     rule = {"fetchUriDisplay": _FETCH_PERSON_QUERY}
 
-    with patch(
-        "heritrace.utils.display_rules_utils.find_matching_rule"
-    ) as mock_find_rule:
-        mock_find_rule.return_value = mock_filter.display_rules[0]
+    mock_sparql = MagicMock()
+    mock_sparql.query.side_effect = SPARQLWrapperException(b"Test exception")
+    with (
+        patch.object(mock_filter, "_get_sparql", return_value=mock_sparql),
+        pytest.raises(SPARQLWrapperException, match="Test exception"),
+    ):
+        mock_filter.get_fetch_uri_display(uri, rule, None)
 
-        mock_sparql = MagicMock()
-        mock_sparql.query.side_effect = SPARQLWrapperException("Test exception")
-        with patch.object(mock_filter, "_get_sparql", return_value=mock_sparql):
-            result = mock_filter.get_fetch_uri_display(uri, rule, None)
-
-    assert result is None
     mock_sparql.query.assert_called_once()
-
-
-def test_get_fetch_uri_display_no_matching_class(mock_filter) -> None:
-    """Test get_fetch_uri_display when no matching class is found."""
-    # Setup
-    uri = "http://example.org/person/1"
-    rule = {}  # Empty rule with no fetchUriDisplay
-
-    # Execute
-    result = mock_filter.get_fetch_uri_display(uri, rule, None)
-
-    # Verify
-    assert result is None
-
-
-def test_get_fetch_uri_display_no_fetch_uri_display(mock_filter) -> None:
-    """Test get_fetch_uri_display when rule has no fetchUriDisplay."""
-    # Setup
-    uri = "http://example.org/person/1"
-    rule = {}  # Empty rule with no fetchUriDisplay
-
-    # Execute
-    result = mock_filter.get_fetch_uri_display(uri, rule, None)
-
-    # Verify
-    assert result is None
 
 
 def test_get_fetch_uri_display_sparql_no_results(mock_filter) -> None:
@@ -150,25 +118,40 @@ def test_get_fetch_uri_display_sparql_no_results(mock_filter) -> None:
     # Mock the SPARQL query response with no bindings
     mock_response = {"results": {"bindings": []}}
 
-    # Execute
     mock_sparql = MagicMock()
     mock_sparql.query.return_value.convert.return_value = mock_response
-    with patch.object(mock_filter, "_get_sparql", return_value=mock_sparql):
-        result = mock_filter.get_fetch_uri_display(uri, rule, None)
+    with (
+        patch.object(mock_filter, "_get_sparql", return_value=mock_sparql),
+        pytest.raises(
+            ValueError,
+            match=re.escape(
+                "fetchUriDisplay returned no result for http://example.org/person/1"
+            ),
+        ),
+    ):
+        mock_filter.get_fetch_uri_display(uri, rule, None)
 
-        # Verify
-        assert result is None
-        mock_sparql.query.assert_called_once()
+    mock_sparql.query.assert_called_once()
 
-        # Test with no results.bindings
-        mock_response = {"results": {}}
-        mock_sparql_2 = MagicMock()
-        mock_sparql_2.query.return_value.convert.return_value = mock_response
-        with patch.object(mock_filter, "_get_sparql", return_value=mock_sparql_2):
-            result = mock_filter.get_fetch_uri_display(uri, rule, None)
 
-        assert result is None
-        mock_sparql_2.query.assert_called_once()
+def test_get_fetch_uri_display_graph_unbound_result(mock_filter) -> None:
+    uri = "http://example.org/person/1"
+    rule = {
+        "fetchUriDisplay": (
+            "SELECT ?display ?subject WHERE {"
+            " VALUES ?subject { [[uri]] }"
+            " OPTIONAL { ?subject <http://example.org/name> ?display }"
+            " }"
+        )
+    }
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "fetchUriDisplay returned no result for http://example.org/person/1"
+        ),
+    ):
+        mock_filter.get_fetch_uri_display(uri, rule, Graph())
 
 
 def test_human_readable_primary_source_none(mock_filter) -> None:
@@ -454,7 +437,7 @@ def test_human_readable_entity_with_fetch_uri_display(mock_filter) -> None:
     mock_get_fetch.assert_called_once_with(uri, rule, None)
 
 
-def test_human_readable_entity_with_fetch_uri_display_no_result(mock_filter) -> None:
+def test_human_readable_entity_propagates_missing_display(mock_filter) -> None:
     """
     Test human_readable_entity when rule has a fetchUriDisplay property but it returns
     no result.
@@ -470,16 +453,33 @@ def test_human_readable_entity_with_fetch_uri_display_no_result(mock_filter) -> 
         "heritrace.utils.display_rules_utils.find_matching_rule"
     ) as mock_find_rule:
         mock_find_rule.return_value = rule
-        with patch.object(
-            mock_filter, "get_fetch_uri_display", return_value=None
-        ) as mock_get_fetch:
-            result = mock_filter.human_readable_entity(uri, entity_key)
+        with (
+            patch.object(
+                mock_filter,
+                "get_fetch_uri_display",
+                side_effect=ValueError("missing display"),
+            ) as mock_get_fetch,
+            pytest.raises(ValueError, match="missing display"),
+        ):
+            mock_filter.human_readable_entity(uri, entity_key)
 
-    assert result == "Person Display Name"
     mock_find_rule.assert_called_once_with(
         entity_key[0], entity_key[1], mock_filter.display_rules
     )
     mock_get_fetch.assert_called_once_with(uri, rule, None)
+
+
+def test_human_readable_entity_formats_uri_ref(mock_filter) -> None:
+    uri = URIRef("http://example.org/person/1")
+    entity_key = ("http://example.org/Person", "http://example.org/PersonShape")
+
+    with patch.object(
+        mock_filter, "get_fetch_uri_display", return_value="John Doe"
+    ) as mock_get_fetch:
+        result = mock_filter.human_readable_entity(uri, entity_key)
+
+    assert result == "John Doe"
+    mock_get_fetch.assert_called_once_with(str(uri), mock_filter.display_rules[0], None)
 
 
 def test_human_readable_entity_no_rule(mock_filter) -> None:
