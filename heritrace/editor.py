@@ -294,15 +294,28 @@ class Editor:
             self.g_set.generate_provenance()  # type: ignore[arg-type]
             dataset_storer = Storer(self.g_set)  # type: ignore[arg-type]
             prov_storer = Storer(self.g_set.provenance)  # type: ignore[attr-defined]
-            dataset_storer.upload_all(self.dataset_endpoint)  # type: ignore[arg-type]
-            prov_storer.upload_all(self.provenance_endpoint)  # type: ignore[arg-type]
+            self._upload_or_raise(
+                dataset_storer,
+                self.dataset_endpoint,
+                "Failed to update the dataset triplestore",
+            )
+            self._upload_or_raise(
+                prov_storer,
+                self.provenance_endpoint,
+                "Failed to update the provenance triplestore",
+            )
             if self.save_plugin is not None:
                 self.save_plugin.persist(self.g_set)
             self.g_set.commit_changes()  # type: ignore[arg-type]
             self._commit_counter_transaction()
-        except Exception:
-            self._rollback_counter_transaction()
-            raise
+        finally:
+            if self._counter_transaction_started:
+                self._rollback_counter_transaction()
+
+    @staticmethod
+    def _upload_or_raise(storer: Storer, endpoint: str, error_message: str) -> None:
+        if not storer.upload_all(endpoint):  # type: ignore[arg-type]
+            raise EditorError(error_message)
 
     def begin_counter_transaction(self) -> None:
         if (

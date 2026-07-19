@@ -4,6 +4,7 @@
 
 import json
 import os
+import stat
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -147,11 +148,19 @@ class MetaRDFFileWriter:
         changes: list[_EntityChange],
     ) -> None:
         archive_path.parent.mkdir(parents=True, exist_ok=True)
-        with FileLock(f"{archive_path}.lock"):
+        lock_path = Path(f"{archive_path}.lock")
+        with FileLock(lock_path):
             document = self._read_archive(archive_path, member_name)
             for change in changes:
                 self._apply_change(document, change)
             self._write_archive(archive_path, member_name, document)
+            archive_stat = archive_path.stat()
+            self._set_file_metadata(
+                lock_path,
+                archive_stat.st_uid,
+                archive_stat.st_gid,
+                0o644,
+            )
 
     @staticmethod
     def _read_archive(archive_path: Path, member_name: str) -> JsonLdDocument:
@@ -206,6 +215,11 @@ class MetaRDFFileWriter:
     def _write_archive(
         archive_path: Path, member_name: str, document: JsonLdDocument
     ) -> None:
+        archive_exists = archive_path.exists()
+        reference_stat = (
+            archive_path.stat() if archive_exists else archive_path.parent.stat()
+        )
+        mode = stat.S_IMODE(reference_stat.st_mode) if archive_exists else 0o644
         with NamedTemporaryFile(
             dir=archive_path.parent,
             prefix=f".{archive_path.name}.",
@@ -229,8 +243,19 @@ class MetaRDFFileWriter:
                         separators=(",", ":"),
                     ).encode(),
                 )
+            MetaRDFFileWriter._set_file_metadata(
+                temporary_path,
+                reference_stat.st_uid,
+                reference_stat.st_gid,
+                mode,
+            )
             with temporary_path.open("rb") as temporary_file:
                 os.fsync(temporary_file.fileno())
             temporary_path.replace(archive_path)
         finally:
             temporary_path.unlink(missing_ok=True)
+
+    @staticmethod
+    def _set_file_metadata(path: Path, uid: int, gid: int, mode: int) -> None:
+        os.chown(path, uid, gid)
+        path.chmod(mode)

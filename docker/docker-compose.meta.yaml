@@ -22,6 +22,7 @@ services:
             sleep 2
           done
           isql -U dba -P dba 'exec=GRANT SPARQL_UPDATE TO "SPARQL"; GRANT execute ON "DB.DBA.SPARQL_INSERT_DICT_CONTENT" TO "SPARQL"; GRANT execute ON "DB.DBA.SPARQL_DELETE_DICT_CONTENT" TO "SPARQL";'
+          isql -U dba -P dba "exec=DB.DBA.RDF_DEFAULT_USER_PERMS_SET ('nobody', 7);"
         ) &
         exec gosu 1000:1000 virtuoso-t -f
     volumes:

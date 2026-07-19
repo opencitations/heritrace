@@ -159,6 +159,13 @@ def test_writes_new_data_and_provenance_archives(tmp_path: Path) -> None:
             ],
         }
     ]
+    assert data_path.stat().st_mode & 0o777 == 0o644
+    assert data_path.stat().st_uid == tmp_path.stat().st_uid
+    assert data_path.stat().st_gid == tmp_path.stat().st_gid
+    data_lock_path = Path(f"{data_path}.lock")
+    assert data_lock_path.stat().st_mode & 0o777 == 0o644
+    assert data_lock_path.stat().st_uid == tmp_path.stat().st_uid
+    assert data_lock_path.stat().st_gid == tmp_path.stat().st_gid
 
 
 def test_updates_and_deletes_without_losing_shared_archive_content(
@@ -178,6 +185,7 @@ def test_updates_and_deletes_without_losing_shared_archive_content(
     data_path = tmp_path / "br" / "09110" / "10000" / "1000.zip"
     provenance_path = tmp_path / "br" / "09110" / "10000" / "1000" / "prov" / "se.zip"
     initial_provenance = _entities(_read_archive(provenance_path, "se.json"))
+    data_path.chmod(0o640)
 
     updated = _existing_entity(counter, subject, "Initial title")
     updated.remove(
@@ -221,6 +229,7 @@ def test_updates_and_deletes_without_losing_shared_archive_content(
             "@value": "1970-01-01T00:33:20+00:00",
         }
     ]
+    assert data_path.stat().st_mode & 0o777 == 0o640
 
     deleted = _existing_entity(counter, subject, "Updated title")
     for quad_subject, predicate, value, context in list(

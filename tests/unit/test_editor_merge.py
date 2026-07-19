@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+from functools import partial
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -13,7 +14,7 @@ from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from SPARQLWrapper import JSON
 
 from heritrace.counter_handler import TransactionalCounterHandler
-from heritrace.editor import Editor, EndpointConfig
+from heritrace.editor import Editor, EditorError, EndpointConfig
 
 DATASET_ENDPOINT = "http://localhost:9999/blazegraph/sparql"
 PROVENANCE_ENDPOINT = "http://localhost:9998/blazegraph/sparql"
@@ -27,6 +28,11 @@ PROP_OUTGOING = URIRef("http://example.org/prop/outgoingRef")
 PROP_LITERAL = URIRef("http://example.org/prop/literal")
 LITERAL_VALUE = Literal("Some value")
 TYPE_TO_DELETE_URI = URIRef("http://example.org/TypeToDelete")
+
+
+def _record_upload(events: list[object], endpoint: str) -> bool:
+    events.append(endpoint)
+    return True
 
 
 @pytest.fixture
@@ -80,7 +86,7 @@ def mock_storer():
     with patch("heritrace.editor.Storer") as mock_storer_cls:
         mock_instance = MagicMock()
         mock_storer_cls.return_value = mock_instance
-        mock_instance.upload_all.return_value = None
+        mock_instance.upload_all.return_value = True
         yield mock_storer_cls
 
 
@@ -127,7 +133,8 @@ def test_save_plugin_runs_after_uploads_and_before_commit(
         RESP_AGENT,
         save_plugin=save_plugin,
     )
-    mock_storer.return_value.upload_all.side_effect = events.append
+
+    mock_storer.return_value.upload_all.side_effect = partial(_record_upload, events)
 
     def record_plugin(_graph: object) -> None:
         events.append("plugin")
@@ -178,7 +185,8 @@ def test_save_commits_transactional_counter_after_graph_commit(mock_storer) -> N
         RESP_AGENT,
         save_plugin=save_plugin,
     )
-    mock_storer.return_value.upload_all.side_effect = events.append
+
+    mock_storer.return_value.upload_all.side_effect = partial(_record_upload, events)
     save_plugin.persist.side_effect = lambda _graph: events.append("plugin")
 
     with (
@@ -233,6 +241,55 @@ def test_save_rolls_back_transactional_counter_on_failure(mock_storer) -> None:
     counter_handler.commit_counter_transaction.assert_not_called()
     counter_handler.rollback_counter_transaction.assert_called_once_with()
     commit_changes.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("upload_results", "expected_error", "expected_calls"),
+    [
+        (
+            [False],
+            "Failed to update the dataset triplestore",
+            [call(DATASET_ENDPOINT)],
+        ),
+        (
+            [True, False],
+            "Failed to update the provenance triplestore",
+            [call(DATASET_ENDPOINT), call(PROVENANCE_ENDPOINT)],
+        ),
+    ],
+)
+def test_save_rejects_failed_triplestore_upload(
+    mock_storer,
+    upload_results: list[bool],
+    expected_error: str,
+    expected_calls: list[object],
+) -> None:
+    counter_handler = MagicMock(spec=TransactionalCounterHandler)
+    save_plugin = MagicMock()
+    editor = Editor(
+        EndpointConfig(
+            dataset=DATASET_ENDPOINT,
+            provenance=PROVENANCE_ENDPOINT,
+            is_quadstore=True,
+        ),
+        counter_handler,
+        RESP_AGENT,
+        save_plugin=save_plugin,
+    )
+    mock_storer.return_value.upload_all.side_effect = upload_results
+
+    with (
+        patch.object(editor.g_set, "generate_provenance"),
+        patch.object(editor.g_set, "commit_changes") as commit_changes,
+        pytest.raises(EditorError, match=expected_error),
+    ):
+        editor.save()
+
+    assert mock_storer.return_value.upload_all.call_args_list == expected_calls
+    save_plugin.persist.assert_not_called()
+    commit_changes.assert_not_called()
+    counter_handler.commit_counter_transaction.assert_not_called()
+    counter_handler.rollback_counter_transaction.assert_called_once_with()
 
 
 def test_merge_basic(
