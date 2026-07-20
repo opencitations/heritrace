@@ -154,6 +154,42 @@ def test_apply_changes_delete(
 
 
 @patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.delete_logic")
+@patch("heritrace.routes.api.g")
+def test_apply_changes_delete_integer_literal(
+    mock_g,
+    mock_delete_logic,
+    mock_import_entity_graph,
+    logged_in_client: FlaskClient,
+) -> None:
+    mock_g.resource_lock_manager = MagicMock()
+    mock_editor = MagicMock()
+    mock_import_entity_graph.return_value = mock_editor
+
+    response = logged_in_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "action": "delete",
+                "subject": "http://example.org/entity/1",
+                "predicate": "http://example.org/property/1",
+                "object": 123,
+                "affected_entities": [],
+                "delete_affected": False,
+            }
+        ],
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "success"
+    mock_delete_logic.assert_called_once_with(
+        mock.ANY,
+        URIRef("http://example.org/property/1"),
+        "123",
+    )
+
+
+@patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.order_logic")
 @patch("heritrace.routes.api.g")
 def test_apply_changes_order(

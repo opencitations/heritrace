@@ -543,8 +543,8 @@
 
                 var items = list.find('[data-repeater-item].draggable').not('.repeater-template');
                 items.sort(function(a, b) {
-                    var aId = $(a).data('old-object-id');
-                    var bId = $(b).data('old-object-id');
+                    var aId = getOldObjectId(a);
+                    var bId = getOldObjectId(b);
                     return originalListOrder.indexOf(aId) - originalListOrder.indexOf(bId);
                 });
                 list.append(items);
@@ -634,7 +634,7 @@
                             // Only collect items with matching shape
                             var itemShape = $item.data('shape') || '';
                             if (itemShape === shape) {
-                                var objectId = $item.data('old-object-id');
+                                var objectId = getOldObjectId($item);
                                 var tempId = $item.data('temp-id');
                                 if (objectId) {
                                     newOrder.push(objectId);
@@ -715,7 +715,7 @@
             const listItem = $(this).closest('.property-value');
             const subject = listItem.data('subject-id');
             const predicate = listItem.data('property-id');
-            const oldObject = listItem.data('old-object-id');
+            const oldObject = getOldObjectId(listItem);
             const shape = listItem.data('shape');
 
             let newObject;
@@ -737,7 +737,7 @@
             toggleDateStrike(dateInputGroup, true);
             const subject = listItem.data('subject-id');
             const predicate = listItem.data('property-id');
-            const object_value = listItem.data('old-object-id');
+            const object_value = getOldObjectId(listItem);
             const shape = listItem.data('shape');
             const orderedBy = listItem.data('ordered_by');
             const isVirtual = listItem.data('is-virtual') === 'True';
@@ -760,7 +760,7 @@
                 // Crea un nuovo array di ordine escludendo l'elemento cancellato
                 const newOrder = [];
                 list.each(function() {
-                    const itemId = $(this).data('old-object-id');
+                    const itemId = getOldObjectId(this);
                     if (itemId && itemId !== object_value) {
                         newOrder.push(itemId);
                     }
@@ -817,7 +817,7 @@
                         // Crea un nuovo array di ordine includendo l'elemento ripristinato
                         const newOrder = [];
                         list.each(function() {
-                            const itemId = $(this).data('old-object-id');
+                            const itemId = getOldObjectId(this);
                             if (itemId) {
                                 newOrder.push(itemId);
                             }

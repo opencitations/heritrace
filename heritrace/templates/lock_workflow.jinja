@@ -49,7 +49,7 @@
 
             list.find('[data-repeater-item].draggable').not('.repeater-template').each(function() {
                 var item = $(this);
-                var itemId = item.data('old-object-id');
+                var itemId = getOldObjectId(item);
                 originalOrder[listId].push(itemId);
             });
         });

@@ -7,6 +7,11 @@ var pendingChanges = [];
 var tempIdCounter = 0;
 
 
+function getOldObjectId(element) {
+    return $(element).attr('data-old-object-id');
+}
+
+
 function generateUniqueId(prefix) {
     return prefix + '_' + Math.random().toString(36).substr(2, 9);
 }
@@ -405,7 +410,7 @@ function initSortable(element) {
             $(evt.from).find('.property-value').each(function() {
                 const itemShape = $(this).data('shape') || '';
                 if (itemShape === shape) {
-                    const objectId = $(this).data('old-object-id');
+                    const objectId = getOldObjectId(this);
                     const tempId = $(this).data('temp-id');
                     if (objectId) {
                         new_order.push(objectId);

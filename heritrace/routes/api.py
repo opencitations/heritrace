@@ -780,7 +780,8 @@ def _process_delete_change(
 ) -> None:
     change_subject = URIRef(change["subject"])
     change_predicate = URIRef(change["predicate"]) if change.get("predicate") else None
-    object_value = change.get("object")
+    raw_object_value = change.get("object")
+    object_value = str(raw_object_value) if raw_object_value is not None else None
 
     op = ChangeOperation(
         editor=editor,
@@ -796,8 +797,8 @@ def _process_delete_change(
 
         delete_logic(op)
         deleted_entities.add(change_subject)
-    elif object_value:
-        if URIRef(object_value) in deleted_entities:
+    elif object_value is not None:
+        if is_valid_url(object_value) and URIRef(object_value) in deleted_entities:
             return
 
         delete_logic(op, change_predicate, object_value)
