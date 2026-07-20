@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 import json
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import cast
 from zipfile import ZipFile
@@ -100,6 +100,19 @@ def _apply_provenance_changes(
         else:
             expected[entity_uri] = change
     return expected
+
+
+def _persist_new_entity(
+    output_dir: str,
+    subject: str,
+    title: str,
+) -> None:
+    graph = _new_entities(
+        InMemoryCounterHandler(),
+        [(URIRef(subject), title)],
+        1000,
+    )
+    MetaRDFFileWriter(output_dir).persist(graph)
 
 
 def test_writes_new_data_and_provenance_archives(tmp_path: Path) -> None:
@@ -264,18 +277,19 @@ def test_concurrent_writes_to_the_same_archives_preserve_both_entities(
 ) -> None:
     first = URIRef(f"{BASE_IRI}br/091101")
     second = URIRef(f"{BASE_IRI}br/091102")
-    graphs = [
-        _new_entities(InMemoryCounterHandler(), [(first, "First")], 1000),
-        _new_entities(InMemoryCounterHandler(), [(second, "Second")], 1000),
-    ]
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        list(
-            executor.map(
-                MetaRDFFileWriter(str(tmp_path)).persist,
-                graphs,
+    with ProcessPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(
+                _persist_new_entity,
+                str(tmp_path),
+                str(subject),
+                title,
             )
-        )
+            for subject, title in [(first, "First"), (second, "Second")]
+        ]
+        for future in futures:
+            future.result()
 
     data_path = tmp_path / "br" / "09110" / "10000" / "1000.zip"
     provenance_path = tmp_path / "br" / "09110" / "10000" / "1000" / "prov" / "se.zip"

@@ -4,8 +4,10 @@
 
 import os
 import shutil
+from bisect import bisect_left
 from collections import defaultdict
 from dataclasses import dataclass
+from mmap import ACCESS_READ, mmap
 from pathlib import Path
 from typing import BinaryIO
 
@@ -37,12 +39,12 @@ class CounterFileState:
 @dataclass
 class CounterFileIndex:
     signature: tuple[int, int, int, int]
-    checkpoints: dict[int, int]
+    checkpoints: list[tuple[int, int]]
     states: dict[int, CounterFileState]
 
 
 class MetaFilesystemCounterHandler(SupplierAwareCounterHandler):
-    checkpoint_interval = 100_000
+    chunk_size = 1024 * 1024
 
     def __init__(self, info_dir: str, supplier_prefix: str, base_iri: str) -> None:
         self.info_dir = Path(info_dir)
@@ -165,49 +167,125 @@ class MetaFilesystemCounterHandler(SupplierAwareCounterHandler):
         if cached_state is not None:
             return cached_state
 
-        scan_from_line = max(
-            line_number
-            for line_number in index.checkpoints
-            if line_number <= location.line_number
-        )
-        offset = index.checkpoints[scan_from_line]
-        existing_lines = scan_from_line - 1
-        last_line_terminated = True
-        with location.path.open("rb") as counter_file:
-            counter_file.seek(offset)
-            for line_number, line in enumerate(counter_file, start=scan_from_line):
-                if (line_number - 1) % self.checkpoint_interval == 0:
-                    index.checkpoints[line_number] = offset
-                existing_lines = line_number
-                last_line_terminated = line.endswith(b"\n")
-                if line_number == location.line_number:
-                    value = line.strip()
-                    state = CounterFileState(
-                        value=int(value) if value else 0,
-                        offset=offset,
-                        line=line,
-                        existing_lines=existing_lines,
-                        last_line_terminated=last_line_terminated,
-                    )
-                    index.states[line_number] = state
-                    return state
-                offset += len(line)
+        self._extend_file_index(location.path, index, location.line_number)
+        file_size = index.signature[2]
+        if file_size == 0:
+            state = CounterFileState(
+                value=0,
+                offset=0,
+                line=None,
+                existing_lines=0,
+                last_line_terminated=True,
+            )
+            index.states[location.line_number] = state
+            return state
 
-        state = CounterFileState(
-            value=0,
-            offset=offset,
-            line=None,
-            existing_lines=existing_lines,
-            last_line_terminated=last_line_terminated,
-        )
+        newline_count = index.checkpoints[-1][1]
+        index_reached_end = index.checkpoints[-1][0] == file_size
+        with (
+            location.path.open("rb") as counter_file,
+            mmap(counter_file.fileno(), 0, access=ACCESS_READ) as mapped_file,
+        ):
+            last_line_terminated = mapped_file[-1:] == b"\n"
+            existing_lines = (
+                newline_count
+                if last_line_terminated
+                else newline_count + int(index_reached_end)
+            )
+            if index_reached_end and location.line_number > existing_lines:
+                state = CounterFileState(
+                    value=0,
+                    offset=file_size,
+                    line=None,
+                    existing_lines=existing_lines,
+                    last_line_terminated=last_line_terminated,
+                )
+            else:
+                start = (
+                    self._find_newline(
+                        mapped_file,
+                        index,
+                        location.line_number - 1,
+                    )
+                    + 1
+                )
+                end = (
+                    self._find_newline(
+                        mapped_file,
+                        index,
+                        location.line_number,
+                    )
+                    + 1
+                    if location.line_number <= newline_count
+                    else file_size
+                )
+                line = mapped_file[start:end]
+                value = line.strip()
+                state = CounterFileState(
+                    value=int(value) if value else 0,
+                    offset=start,
+                    line=line,
+                    existing_lines=location.line_number,
+                    last_line_terminated=line.endswith(b"\n"),
+                )
         index.states[location.line_number] = state
         return state
+
+    def _extend_file_index(
+        self,
+        path: Path,
+        index: CounterFileIndex,
+        target_line: int,
+    ) -> None:
+        if index.checkpoints:
+            offset, newline_count = index.checkpoints[-1]
+        else:
+            offset = 0
+            newline_count = 0
+
+        file_size = index.signature[2]
+        if offset == file_size or newline_count >= target_line:
+            return
+
+        with path.open("rb") as counter_file:
+            counter_file.seek(offset)
+            while offset < file_size and newline_count < target_line:
+                chunk = counter_file.read(self.chunk_size)
+                offset += len(chunk)
+                newline_count += chunk.count(b"\n")
+                index.checkpoints.append((offset, newline_count))
+
+    @staticmethod
+    def _find_newline(
+        mapped_file: mmap,
+        index: CounterFileIndex,
+        newline_number: int,
+    ) -> int:
+        if newline_number == 0:
+            return -1
+
+        newline_counts = [
+            checkpoint_newline_count
+            for _, checkpoint_newline_count in index.checkpoints
+        ]
+        checkpoint_index = bisect_left(newline_counts, newline_number)
+        chunk_start = (
+            index.checkpoints[checkpoint_index - 1][0] if checkpoint_index else 0
+        )
+        preceding_newlines = (
+            index.checkpoints[checkpoint_index - 1][1] if checkpoint_index else 0
+        )
+        chunk_end = index.checkpoints[checkpoint_index][0]
+        position = chunk_start - 1
+        for _ in range(newline_number - preceding_newlines):
+            position = mapped_file.find(b"\n", position + 1, chunk_end)
+        return position
 
     def _get_file_index(self, path: Path) -> CounterFileIndex:
         signature = self._file_signature(path)
         index = self._indexes.get(path)
         if index is None or index.signature != signature:
-            index = CounterFileIndex(signature, {1: 0}, {})
+            index = CounterFileIndex(signature, [], {})
             self._indexes[path] = index
         return index
 

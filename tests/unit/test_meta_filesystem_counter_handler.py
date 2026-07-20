@@ -70,6 +70,32 @@ def test_zero_counter_is_stored_as_an_empty_line(
     assert (tmp_path / "0690" / "prov_file_id.txt").read_text() == "\n\n"
 
 
+def test_reads_counters_across_byte_chunks(
+    counter_handler: MetaFilesystemCounterHandler, tmp_path: Path
+) -> None:
+    counter_handler.chunk_size = 4
+    provenance_file = tmp_path / "0610" / "prov_file_br.txt"
+    provenance_file.parent.mkdir()
+    provenance_file.write_bytes(b"4\n10\n\n7")
+
+    assert counter_handler.read_counter(f"{BASE_IRI}/br/06104") == 7
+    assert counter_handler.read_counter(f"{BASE_IRI}/br/06102") == 10
+    assert counter_handler.read_counter(f"{BASE_IRI}/br/06103") == 0
+    assert counter_handler.read_counter(f"{BASE_IRI}/br/06105") == 0
+    assert counter_handler.increment_counter(f"{BASE_IRI}/br/06102") == 11
+    assert provenance_file.read_bytes() == b"4\n11\n\n7"
+
+
+def test_reads_empty_counter_file(
+    counter_handler: MetaFilesystemCounterHandler, tmp_path: Path
+) -> None:
+    provenance_file = tmp_path / "0610" / "prov_file_br.txt"
+    provenance_file.parent.mkdir()
+    provenance_file.touch()
+
+    assert counter_handler.read_counter(f"{BASE_IRI}/br/06101") == 0
+
+
 def test_counter_width_change_preserves_surrounding_lines(
     counter_handler: MetaFilesystemCounterHandler, tmp_path: Path
 ) -> None:
