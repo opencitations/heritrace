@@ -2,13 +2,14 @@
 #
 # SPDX-License-Identifier: ISC
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 from flask import url_for
 from rdflib import URIRef
 
+from heritrace.editor import EndpointConfig
 from heritrace.routes.merge import get_entity_details, merge_bp
 
 ENTITY1_URI = "http://example.org/entity1"
@@ -53,6 +54,13 @@ def ensure_merge_bp(app) -> None:
     """Ensures the merge blueprint is registered on the app."""
     if not app.blueprints.get("merge"):
         app.register_blueprint(merge_bp, url_prefix="/merge")
+
+
+@pytest.fixture(autouse=True)
+def mock_import_entity_graph():
+    with patch("heritrace.routes.merge.import_entity_graph") as mock:
+        mock.side_effect = lambda editor, _subject: editor
+        yield mock
 
 
 @patch("heritrace.routes.merge.get_sparql")
@@ -190,10 +198,11 @@ def test_execute_merge_success_flash(
     _mock_quadstore,
     _mock_prov,
     _mock_ds,
-    _mock_counter,
+    mock_counter,
     mock_editor_cls,
     mock_get_details,
     mock_get_filter,
+    mock_import_entity_graph,
     client,
     mock_user,
     merge_test_data,
@@ -237,6 +246,22 @@ def test_execute_merge_success_flash(
         url_for("entity.about", subject=merge_test_data["entity1_uri"])
     ).path
     assert urlparse(response.location).path == expected_path
+    mock_editor_cls.assert_called_once_with(
+        EndpointConfig(
+            dataset="http://db/ds_merge_flash",
+            provenance="http://db/prov_merge_flash",
+            is_quadstore=False,
+        ),
+        mock_counter.return_value,
+        merge_test_data["resp_agent_uri"],
+        URIRef("https://example.com/test-primary-source"),
+        "2024-01-01T00:00:00+00:00",
+        save_plugin=None,
+    )
+    assert mock_import_entity_graph.call_args_list == [
+        call(mock_editor_instance, URIRef(merge_test_data["entity1_uri"])),
+        call(mock_editor_instance, URIRef(merge_test_data["entity2_uri"])),
+    ]
 
 
 @patch("flask_login.utils._get_user")

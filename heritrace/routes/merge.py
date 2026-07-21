@@ -45,7 +45,7 @@ from heritrace.utils.primary_source_utils import (
     save_user_default_primary_source,
 )
 from heritrace.utils.shacl_utils import determine_shape_for_classes
-from heritrace.utils.sparql_utils import get_entity_types
+from heritrace.utils.sparql_utils import get_entity_types, import_entity_graph
 
 if TYPE_CHECKING:
     from werkzeug.wrappers import Response as WerkzeugResponse
@@ -201,12 +201,16 @@ def execute_merge() -> WerkzeugResponse:
             ),
             counter_handler,
             resp_agent,
+            URIRef(current_app.config["PRIMARY_SOURCE"]),
+            current_app.config["DATASET_GENERATION_TIME"],
             save_plugin=current_app.config.get("SAVE_PLUGIN"),
         )
 
         if primary_source and validators.url(primary_source):  # type: ignore[arg-type]
             editor.set_primary_source(URIRef(primary_source))
 
+        editor = import_entity_graph(editor, entity1_uri)
+        editor = import_entity_graph(editor, entity2_uri)
         editor.merge(keep_entity_uri=entity1_uri, delete_entity_uri=entity2_uri)
 
         entity1_url = url_for("entity.about", subject=entity1_uri)
