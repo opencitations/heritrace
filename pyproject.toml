@@ -7,29 +7,29 @@ license = {text = "ISC"}
 readme = "README.md"
 requires-python = ">=3.10, <3.14"
 dependencies = [
-    "docker>=7.1.0",
-    "filelock>=3.24.0",
-    "flask>=3.1.2",
+    "docker>=7.2.0",
+    "filelock>=3.32.0",
+    "flask>=3.1.3",
     "flask-babel>=4.0.0",
     "flask-login>=0.6.3",
-    "flask-wtf>=1.1.1",
-    "gunicorn>=25.1.0",
+    "flask-wtf>=1.3.0",
+    "gunicorn>=26.0.0",
     "oc-ocdm>=11.0.22",
-    "pyopenssl>=24.3.0",
-    "pyshacl>=0.30.1",
+    "pyopenssl>=26.3.0",
+    "pyshacl>=0.40.0",
     "python-dateutil>=2.9.0.post0",
-    "pyyaml>=6.0.1",
+    "pyyaml>=6.0.3",
     "rdflib-ocdm==2.0.1",
-    "requests>=2.31.0",
+    "requests>=2.34.2",
     "requests-oauthlib>=2.0.0",
-    "setuptools>=68.2.2",
+    "setuptools>=83.0.0",
     "sparqlwrapper>=2.0.0",
     "time-agnostic-library>=7.1.0",
-    "validators==0.20.0",
+    "validators==0.35.0",
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.31"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
@@ -91,14 +91,14 @@ quote-style = "double"
 
 [dependency-groups]
 dev = [
-    "beautifulsoup4>=4.13.3",
+    "beautifulsoup4>=4.15.0",
     "cffconvert>=2.0.0",
-    "coverage>=7.6.12",
+    "coverage>=7.15.2",
     "genbadge[coverage]>=1.1.3",
-    "pyright>=1.1.410",
-    "pytest>=9.0.2",
-    "pytest-cov>=6.0.0",
-    "responses>=0.25.6",
+    "pyright>=1.1.411",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "responses>=0.26.2",
     "reuse>=6.2.0",
-    "ruff>=0.15.14",
+    "ruff>=0.15.22",
 ]

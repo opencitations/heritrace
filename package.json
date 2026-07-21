@@ -1,6 +1,6 @@
 {
   "name": "heritrace",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "HERITRACE (Heritage Enhanced Repository Interface for Tracing, Research, Archival Curation, and Engagement) is a semantic content management system designed for professionals in galleries, libraries, archives, and museums (GLAM). This system facilitates non-technical domain experts in enriching and editing metadata in a semantically robust manner. It is developed with a focus on user-friendliness, provenance management, change tracking, customization, and integration with heterogeneous data sources.",
   "scripts": {
     "build": "webpack --mode production",
@@ -20,18 +20,21 @@
   },
   "homepage": "https://github.com/opencitations/heritrace#readme",
   "dependencies": {
-    "lucide-react": "^0.460.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "lucide-react": "^1.25.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@babel/core": "^7.26.0",
-    "@babel/preset-env": "^7.26.0",
-    "@babel/preset-react": "^7.25.9",
-    "babel-loader": "^9.2.1",
-    "concurrently": "^9.1.2",
-    "webpack": "^5.96.1",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.1.0"
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "@babel/preset-react": "^8.0.1",
+    "babel-loader": "^10.1.1",
+    "concurrently": "^10.0.3",
+    "webpack": "5.108",
+    "webpack-cli": "^7.2.1",
+    "webpack-dev-server": "^6.0.0"
+  },
+  "overrides": {
+    "shell-quote": "1.10.0"
   }
 }

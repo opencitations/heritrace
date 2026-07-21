@@ -22,12 +22,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           enable-cache: true
           python-version: "3.10"
@@ -39,26 +39,30 @@ jobs:
         run: uv sync --locked
 
       - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "lts/*"
+          node-version: "24"
 
       - name: Install semantic-release
         run: |
-          npm install -g semantic-release
-          npm install -g @semantic-release/git
-          npm install -g @semantic-release/changelog
-          npm install -g @semantic-release/exec
+          npm install --global \
+            semantic-release@25.0.8 \
+            @semantic-release/commit-analyzer@13.0.1 \
+            @semantic-release/release-notes-generator@14.1.1 \
+            @semantic-release/changelog@7.0.0 \
+            @semantic-release/exec@7.1.0 \
+            @semantic-release/git@11.0.0 \
+            @semantic-release/github@12.0.9
 
       - name: Create Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
+        run: semantic-release
 
       - name: Get latest version tag
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "latest")
+          VERSION=$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || echo "latest")
           # Remove 'v' prefix for Docker image tagging
           VERSION_CLEAN=${VERSION#v}
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
@@ -66,16 +70,16 @@ jobs:
           echo "Latest version: ${VERSION} (clean: ${VERSION_CLEAN})"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -83,7 +87,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: |
             ${{ secrets.DOCKER_HUB_USERNAME }}/heritrace
@@ -95,7 +99,7 @@ jobs:
             latest=false
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: ./Dockerfile
@@ -111,7 +115,7 @@ jobs:
       - name: Update docker-compose.yml with latest version
         run: |
           # Extract the latest version tag from semantic-release output
-          VERSION=$(git describe --tags --abbrev=0)
+          VERSION=$(git describe --tags --match 'v[0-9]*' --abbrev=0)
           # Remove 'v' prefix for Docker image tagging
           VERSION_CLEAN=${VERSION#v}
 

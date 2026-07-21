@@ -1,0 +1,97 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+name: Software citation
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Release"]
+    branches: [main]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_commit.message, '[release]')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
+          fetch-depth: 0
+      - uses: arcangelo7/software-citation-sync@0b18b7e155e903db9661bb14d60e6f8a40e8c8cf # v2.0.1
+      - name: Resolve release revision
+        id: release
+        shell: bash
+        run: |
+          tag=$(git describe --tags --match 'v[0-9]*' --abbrev=0)
+          revision=$(git rev-parse "${tag}^{commit}")
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "swhid=swh:1:rev:${revision}" >> "$GITHUB_OUTPUT"
+          echo "url=https://archive.softwareheritage.org/swh:1:rev:${revision}" >> "$GITHUB_OUTPUT"
+      - name: Align citation metadata with release revision
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          SWHID: ${{ steps.release.outputs.swhid }}
+          SWH_URL: ${{ steps.release.outputs.url }}
+        run: |
+          python <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          def replace_one(content, pattern, replacement):
+              updated, count = re.subn(pattern, replacement, content)
+              if count != 1:
+                  raise ValueError(f"Expected one match for {pattern!r}, found {count}")
+              return updated
+
+          swhid = os.environ["SWHID"]
+          swh_url = os.environ["SWH_URL"]
+
+          citation_path = Path("CITATION.cff")
+          citation = citation_path.read_text(encoding="utf-8")
+          citation = replace_one(
+              citation,
+              r'(?m)^(  - type: swh\n    value: )(?:"[^"]+"|\x27[^\x27]+\x27|\S+)$',
+              rf'\g<1>"{swhid}"',
+          )
+          citation = replace_one(
+              citation,
+              r'(?m)^url: (?:"[^"]+"|\x27[^\x27]+\x27|\S+)$',
+              f'url: "{swh_url}"',
+          )
+          citation_path.write_text(citation, encoding="utf-8")
+
+          codemeta_path = Path("codemeta.json")
+          codemeta = json.loads(codemeta_path.read_text(encoding="utf-8"))
+          codemeta["version"] = os.environ["RELEASE_VERSION"]
+          codemeta["identifier"] = swhid
+          codemeta_path.write_text(f"{json.dumps(codemeta, indent=2)}\n", encoding="utf-8")
+
+          readme_path = Path("README.md")
+          readme = readme_path.read_text(encoding="utf-8")
+          readme = replace_one(
+              readme,
+              r'(?m)^url = \{[^}\n]+\},$',
+              f'url = {{{swh_url}}},',
+          )
+          readme_path.write_text(readme, encoding="utf-8")
+          PY
+      - name: Commit citation updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CITATION.cff codemeta.json README.md
+          if git diff --staged --quiet; then
+            echo "No citation updates to commit"
+          else
+            git commit -m "docs: update software citation metadata"
+            git push
+          fi

@@ -7,9 +7,12 @@ message: "If you use this software, please cite it as below."
 type: software
 title: "HERITRACE"
 version: "3.0.0"
-doi: "10.5281/zenodo.11198004"
+date-released: "2026-02-14"
+identifiers:
+  - type: swh
+    value: "swh:1:rev:0ba135ea1bda8d8375505a5ecf49b70fa9573409"
 license: ISC
-url: "https://opencitations.github.io/heritrace/"
+url: "https://archive.softwareheritage.org/swh:1:rev:0ba135ea1bda8d8375505a5ecf49b70fa9573409"
 repository-code: "https://github.com/opencitations/heritrace"
 authors:
   - family-names: "Massari"

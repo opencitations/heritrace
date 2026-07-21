@@ -8,7 +8,7 @@
   "url": "https://opencitations.github.io/heritrace/",
   "codeRepository": "https://github.com/opencitations/heritrace",
   "issueTracker": "https://github.com/opencitations/heritrace/issues",
-  "identifier": "https://doi.org/10.5281/ZENODO.18642856",
+  "identifier": "swh:1:rev:0ba135ea1bda8d8375505a5ecf49b70fa9573409",
   "programmingLanguage": [
     "Python",
     "JavaScript"

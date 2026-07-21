@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
-FROM nikolaik/python-nodejs:python3.13-nodejs23-slim
+FROM nikolaik/python-nodejs:python3.13-nodejs24-slim@sha256:7747dad819e83f44290053a89bf47968996b8c35b7a2a89a737434aa1407f09e
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y lsb-release curl gpg && \
 
 RUN mkdir -p /app/heritrace /app/babel
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.9.8@sha256:08f409e1d53e77dfb5b65c788491f8ca70fe1d2d459f41c89afa2fcbef998abe /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock README.md ./
 COPY heritrace ./heritrace
@@ -30,7 +30,7 @@ COPY babel ./babel
 RUN uv sync --locked --no-dev
 
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci
 
 COPY webpack.config.js ./
 COPY app.py ./
@@ -39,7 +39,7 @@ RUN npm run build
 
 RUN mkdir -p /data
 
-RUN echo '#!/bin/bash\n\
+RUN printf '%b' '#!/bin/bash\n\
 set -e\n\
 echo "Starting Redis..."\n\
 redis-server --daemonize yes --bind 0.0.0.0 --port 6379 --dir /data --save 900 1 --save 300 10 --save 60 10000 --protected-mode no\n\

@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
-FROM nikolaik/python-nodejs:python3.13-nodejs23
+FROM nikolaik/python-nodejs:python3.13-nodejs24@sha256:816f2ee9723a90b2ab737933ae8ab6e35e00b897efdc750e8371f2a47c5b5fa5
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y lsb-release curl gpg && \
 
 RUN mkdir -p /app/heritrace /app/babel
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.9.8@sha256:08f409e1d53e77dfb5b65c788491f8ca70fe1d2d459f41c89afa2fcbef998abe /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock README.md ./
 COPY heritrace ./heritrace
@@ -27,11 +27,11 @@ COPY dev/generate_ssl_cert.py ./generate_ssl_cert.py
 RUN uv sync --locked
 
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci
 
 RUN mkdir -p /data
 
-RUN echo '#!/bin/bash\n\
+RUN printf '%b' '#!/bin/bash\n\
 set -e\n\
 \n\
 # Check if external Redis is configured\n\

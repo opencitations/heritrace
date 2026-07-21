@@ -4,6 +4,7 @@
 
 // @ts-check
 import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import starlightImageZoom from 'starlight-image-zoom';
 
@@ -11,6 +12,9 @@ import starlightImageZoom from 'starlight-image-zoom';
 export default defineConfig({
 	site: 'https://opencitations.github.io',
 	base: '/heritrace',
+	markdown: {
+		processor: unified(),
+	},
 	integrations: [
 		starlight({
 			title: 'HERITRACE',

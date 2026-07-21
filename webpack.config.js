@@ -4,7 +4,7 @@
 
 const path = require('path');
 
-module.exports = {
+module.exports = (_env, argv) => ({
   entry: {
     catalogue: path.resolve(__dirname, 'heritrace/static/js/components/Catalogue/index.jsx'),
     timeline: path.resolve(__dirname, 'heritrace/static/js/components/Timeline/index.jsx'),
@@ -23,7 +23,10 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env', '@babel/preset-react']
+            presets: [
+              '@babel/preset-env',
+              ['@babel/preset-react', { development: argv.mode === 'development' }]
+            ]
           }
         }
       }
@@ -36,7 +39,6 @@ module.exports = {
       '@components': path.resolve(__dirname, 'heritrace/static/js/components')
     }
   },
-  // Per il development
   devtool: 'source-map',
-  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development'
-};
+  mode: argv.mode
+});

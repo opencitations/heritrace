@@ -8,7 +8,7 @@ SPDX-License-Identifier: ISC
 
 [<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/opencitations/heritrace)
-[![Flask](https://img.shields.io/badge/Flask-3.1.2-red)](https://flask.palletsprojects.com/)
+[![Flask](https://img.shields.io/badge/Flask-3.1.3-red)](https://flask.palletsprojects.com/)
 [![Tests](https://github.com/opencitations/heritrace/actions/workflows/python-tests.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/python-tests.yml)
 [![Coverage](https://opencitations.github.io/heritrace/coverage/coverage-badge.svg)](https://opencitations.github.io/heritrace/coverage/)
 [![Pyright](https://github.com/opencitations/heritrace/actions/workflows/pyright.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/pyright.yml)
@@ -75,6 +75,20 @@ HERITRACE is data model agnostic. You define your domain through SHACL shapes (f
 ## Paper
 
 Massari, A., & Peroni, S. (2025). HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions. *Umanistica Digitale*, 9(20), 317--340. https://doi.org/10.6092/issn.2532-8816/21218
+
+<!-- software-citation-action:start -->
+To cite the latest version of this software (3.0.0), use this BibTeX entry:
+
+```bibtex
+@software{HERITRACE-3.0.0,
+author = {Massari, Arcangelo},
+title = {HERITRACE},
+url = {https://archive.softwareheritage.org/swh:1:rev:0ba135ea1bda8d8375505a5ecf49b70fa9573409},
+version = {3.0.0},
+year = {2026}
+}
+```
+<!-- software-citation-action:end -->
 
 ## Acknowledgments
 

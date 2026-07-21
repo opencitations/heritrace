@@ -7,13 +7,19 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "uv version ${nextRelease.version} && uv lock"
+        "prepareCmd": "uv version ${nextRelease.version} && npm version ${nextRelease.version} --no-git-tag-version && uv lock"
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["pyproject.toml", "uv.lock", "CHANGELOG.md"],
+        "assets": [
+          "pyproject.toml",
+          "uv.lock",
+          "package.json",
+          "package-lock.json",
+          "CHANGELOG.md"
+        ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
