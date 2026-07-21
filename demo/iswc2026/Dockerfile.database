@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+FROM openlink/virtuoso-opensource-7:7.2-alpine
+
+RUN apk add --no-cache curl py3-requests python3
+
+COPY demo/iswc2026/data/dataset.nq /data/dataset.nq
+RUN gzip -n /data/dataset.nq
+
+COPY demo/scripts /scripts
+COPY demo/config/virtuoso_dataset.ini /config/virtuoso_dataset.ini
+COPY demo/config/virtuoso_provenance.ini /config/virtuoso_provenance.ini
+
+ENTRYPOINT ["/scripts/entrypoint.sh"]

@@ -1,0 +1,185 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+<https://w3id.org/oc/meta/br/06601213255> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/dc/terms/title> "A Fourth Dose Of DTPa-IPV Vaccine Given To 4-6 Year Old Children In Italy And Sweden Following Primary Vaccination At 3, 5 And 11-12 Months Of Age"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2005"^^<http://www.w3.org/2001/XMLSchema#gYear> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06601260376> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/demo/br/nilsson-issue> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/vocab/frbr/core#embodiment> <https://w3id.org/oc/meta/demo/re/nilsson> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-1> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-2> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-3> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-4> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-5> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/br/06601213255> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-6> <https://w3id.org/oc/meta/br/> .
+
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/dc/terms/title> "A Fourth Dose Of DTPa-IPV Vaccine Given To 4-6 Year Old Children In Italy And Sweden Following Primary Vaccination At 3, 5 And 11-12 Months Of Age"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2005"^^<http://www.w3.org/2001/XMLSchema#gYear> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06601260376> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06103979651> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/demo/br/nilsson-issue> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/vocab/frbr/core#embodiment> <https://w3id.org/oc/meta/demo/re/nilsson> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-1> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-2> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-3> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-4> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-5> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15849057> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/nilsson-6> <https://w3id.org/oc/meta/br/> .
+
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalArticle> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/dc/terms/title> "Mycoplasma pneumoniae and Legionella pneumophila in community-acquired lower respiratory tract infections among hospitalized children: diagnosis by real time PCR"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://prismstandard.org/namespaces/basic/2.0/publicationDate> "2004"^^<http://www.w3.org/2001/XMLSchema#gYear> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06601260376> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/datacite/hasIdentifier> <https://w3id.org/oc/meta/id/06103979528> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/demo/br/maltezou-issue> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/vocab/frbr/core#embodiment> <https://w3id.org/oc/meta/demo/re/maltezou> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/maltezou-1> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/maltezou-2> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/maltezou-3> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/maltezou-4> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/maltezou-5> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/maltezou-6> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/maltezou-7> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/pubmed-15370649> <http://purl.org/spar/pro/isDocumentContextFor> <https://w3id.org/oc/meta/demo/ar/maltezou-8> <https://w3id.org/oc/meta/br/> .
+
+<https://w3id.org/oc/meta/id/06601260376> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> <https://w3id.org/oc/meta/id/> .
+<https://w3id.org/oc/meta/id/06601260376> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/doi> <https://w3id.org/oc/meta/id/> .
+<https://w3id.org/oc/meta/id/06601260376> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "10.1080/00365540410020884"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/id/> .
+<https://w3id.org/oc/meta/id/06103979651> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> <https://w3id.org/oc/meta/id/> .
+<https://w3id.org/oc/meta/id/06103979651> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/pmid> <https://w3id.org/oc/meta/id/> .
+<https://w3id.org/oc/meta/id/06103979651> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "15849057"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/id/> .
+<https://w3id.org/oc/meta/id/06103979528> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/datacite/Identifier> <https://w3id.org/oc/meta/id/> .
+<https://w3id.org/oc/meta/id/06103979528> <http://purl.org/spar/datacite/usesIdentifierScheme> <http://purl.org/spar/datacite/pmid> <https://w3id.org/oc/meta/id/> .
+<https://w3id.org/oc/meta/id/06103979528> <http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue> "15370649"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/id/> .
+
+<https://w3id.org/oc/meta/demo/br/journal> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/journal> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Journal> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/journal> <http://purl.org/dc/terms/title> "Scandinavian Journal of Infectious Diseases"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/nilsson-volume> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/nilsson-volume> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/nilsson-volume> <http://purl.org/spar/fabio/hasSequenceIdentifier> "37"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/nilsson-volume> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/demo/br/journal> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/nilsson-issue> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/nilsson-issue> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/nilsson-issue> <http://purl.org/spar/fabio/hasSequenceIdentifier> "3"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/nilsson-issue> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/demo/br/nilsson-volume> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/maltezou-volume> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/maltezou-volume> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalVolume> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/maltezou-volume> <http://purl.org/spar/fabio/hasSequenceIdentifier> "36"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/maltezou-volume> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/demo/br/journal> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/maltezou-issue> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Expression> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/maltezou-issue> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/JournalIssue> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/maltezou-issue> <http://purl.org/spar/fabio/hasSequenceIdentifier> "9"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/br/> .
+<https://w3id.org/oc/meta/demo/br/maltezou-issue> <http://purl.org/vocab/frbr/core#partOf> <https://w3id.org/oc/meta/demo/br/maltezou-volume> <https://w3id.org/oc/meta/br/> .
+
+<https://w3id.org/oc/meta/demo/re/nilsson> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Manifestation> <https://w3id.org/oc/meta/re/> .
+<https://w3id.org/oc/meta/demo/re/nilsson> <http://prismstandard.org/namespaces/basic/2.0/startingPage> "221"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/re/> .
+<https://w3id.org/oc/meta/demo/re/nilsson> <http://prismstandard.org/namespaces/basic/2.0/endingPage> "229"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/re/> .
+<https://w3id.org/oc/meta/demo/re/maltezou> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/fabio/Manifestation> <https://w3id.org/oc/meta/re/> .
+<https://w3id.org/oc/meta/demo/re/maltezou> <http://prismstandard.org/namespaces/basic/2.0/startingPage> "639"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/re/> .
+<https://w3id.org/oc/meta/demo/re/maltezou> <http://prismstandard.org/namespaces/basic/2.0/endingPage> "642"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/re/> .
+
+<https://w3id.org/oc/meta/demo/ar/nilsson-1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-1> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-1> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/nilsson> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-1> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/nilsson-2> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-2> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-2> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/faldella> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-2> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/nilsson-3> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-3> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-3> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/jacquet> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-3> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/nilsson-4> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-4> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-4> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-4> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/storsaeter> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-4> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/nilsson-5> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-5> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-5> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/silfverdal> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-5> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/nilsson-6> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-6> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-6> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/nilsson-6> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/ekholm> <https://w3id.org/oc/meta/ar/> .
+
+<https://w3id.org/oc/meta/demo/ar/maltezou-1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-1> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-1> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/maltezou> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-1> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/maltezou-2> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-2> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-2> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-2> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/la-scola> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-2> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/maltezou-3> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-3> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-3> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-3> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/astra> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-3> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/maltezou-4> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-4> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-4> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-4> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/constantopoulou> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-4> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/maltezou-5> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-5> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-5> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-5> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/vlahou> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-5> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/maltezou-6> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-6> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-6> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-6> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/kafetzis> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-6> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/maltezou-7> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-7> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-7> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-7> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/constantopoulos> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-7> <https://w3id.org/oc/ontology/hasNext> <https://w3id.org/oc/meta/demo/ar/maltezou-8> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-8> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/pro/RoleInTime> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-8> <http://purl.org/spar/pro/withRole> <http://purl.org/spar/pro/author> <https://w3id.org/oc/meta/ar/> .
+<https://w3id.org/oc/meta/demo/ar/maltezou-8> <http://purl.org/spar/pro/isHeldBy> <https://w3id.org/oc/meta/demo/ra/raoult> <https://w3id.org/oc/meta/ar/> .
+
+<https://w3id.org/oc/meta/demo/ra/nilsson> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/nilsson> <http://xmlns.com/foaf/0.1/givenName> "Lennart"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/nilsson> <http://xmlns.com/foaf/0.1/familyName> "Nilsson"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/faldella> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/faldella> <http://xmlns.com/foaf/0.1/givenName> "Giacomo"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/faldella> <http://xmlns.com/foaf/0.1/familyName> "Faldella"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/jacquet> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/jacquet> <http://xmlns.com/foaf/0.1/givenName> "Jeanne-Marie"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/jacquet> <http://xmlns.com/foaf/0.1/familyName> "Jacquet"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/storsaeter> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/storsaeter> <http://xmlns.com/foaf/0.1/givenName> "Jann"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/storsaeter> <http://xmlns.com/foaf/0.1/familyName> "Storsaeter"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/silfverdal> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/silfverdal> <http://xmlns.com/foaf/0.1/givenName> "Sven-Arne"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/silfverdal> <http://xmlns.com/foaf/0.1/familyName> "Silfverdal"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/ekholm> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/ekholm> <http://xmlns.com/foaf/0.1/givenName> "Leif"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/ekholm> <http://xmlns.com/foaf/0.1/familyName> "Ekholm"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/maltezou> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/maltezou> <http://xmlns.com/foaf/0.1/givenName> "Helen C."^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/maltezou> <http://xmlns.com/foaf/0.1/familyName> "Maltezou"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/la-scola> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/la-scola> <http://xmlns.com/foaf/0.1/givenName> "Bernard"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/la-scola> <http://xmlns.com/foaf/0.1/familyName> "La-Scola"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/astra> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/astra> <http://xmlns.com/foaf/0.1/givenName> "Helen"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/astra> <http://xmlns.com/foaf/0.1/familyName> "Astra"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/constantopoulou> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/constantopoulou> <http://xmlns.com/foaf/0.1/givenName> "Ioanna"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/constantopoulou> <http://xmlns.com/foaf/0.1/familyName> "Constantopoulou"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/vlahou> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/vlahou> <http://xmlns.com/foaf/0.1/givenName> "Vasiliki"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/vlahou> <http://xmlns.com/foaf/0.1/familyName> "Vlahou"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/kafetzis> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/kafetzis> <http://xmlns.com/foaf/0.1/givenName> "Dimitris A."^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/kafetzis> <http://xmlns.com/foaf/0.1/familyName> "Kafetzis"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/constantopoulos> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/constantopoulos> <http://xmlns.com/foaf/0.1/givenName> "Andreas G."^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/constantopoulos> <http://xmlns.com/foaf/0.1/familyName> "Constantopoulos"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/raoult> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Agent> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/raoult> <http://xmlns.com/foaf/0.1/givenName> "Didier"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .
+<https://w3id.org/oc/meta/demo/ra/raoult> <http://xmlns.com/foaf/0.1/familyName> "Raoult"^^<http://www.w3.org/2001/XMLSchema#string> <https://w3id.org/oc/meta/ra/> .

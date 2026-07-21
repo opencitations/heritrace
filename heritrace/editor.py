@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from flask import current_app
 from rdflib import Literal, URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
@@ -220,11 +219,9 @@ class Editor:
 
         merge_sparql = SPARQLWrapperWithRetry(self.dataset_endpoint)
         entities_to_import: set[URIRef] = {keep_entity_uri, delete_entity_uri}
-        incoming_triples_to_update: list[tuple[URIRef, URIRef]] = []
-        outgoing_triples_to_move: list[tuple[URIRef, Literal | URIRef]] = []
 
         query_incoming = (
-            "SELECT DISTINCT ?s ?p WHERE {"
+            "SELECT DISTINCT ?s WHERE {"
             f" ?s ?p <{delete_entity_uri}> ."
             f" FILTER (?s != <{keep_entity_uri}>) }}"
         )
@@ -232,54 +229,15 @@ class Editor:
         merge_sparql.setReturnFormat(JSON)
         for binding in get_sparql_bindings(merge_sparql.query().convert()):
             s_uri = URIRef(binding["s"]["value"])
-            p_uri = URIRef(binding["p"]["value"])
-            incoming_triples_to_update.append((s_uri, p_uri))
             entities_to_import.add(s_uri)
 
-        query_outgoing = f"""
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            SELECT DISTINCT ?p ?o WHERE {{
-                <{delete_entity_uri}> ?p ?o .
-                FILTER (?p != rdf:type)
-            }}
-        """
-        merge_sparql.setQuery(query_outgoing)
-        merge_sparql.setReturnFormat(JSON)
-        for binding in get_sparql_bindings(merge_sparql.query().convert()):
-            p_uri = URIRef(binding["p"]["value"])
-            o_node = binding["o"]
-            o_val: Literal | URIRef | None = None
-            if o_node["type"] == "uri":
-                o_val = URIRef(o_node["value"])
-                entities_to_import.add(o_val)
-            elif o_node["type"] in {"literal", "typed-literal"}:
-                o_val = Literal(
-                    o_node["value"],
-                    lang=o_node.get("xml:lang"),
-                    datatype=URIRef(o_node["datatype"])
-                    if o_node.get("datatype")
-                    else None,
-                )
-            else:
-                current_app.logger.warning(
-                    "Skipping non-URI/Literal object type '%s' from %s via %s",
-                    o_node["type"],
-                    delete_entity_uri,
-                    p_uri,
-                )
-                continue
-            if o_val:
-                outgoing_triples_to_move.append((p_uri, o_val))
-
-        if entities_to_import:
-            Reader.import_entities_from_triplestore(
-                self.g_set,
-                self.dataset_endpoint,
-                list(entities_to_import),  # type: ignore[arg-type]
-            )
+        Reader.import_entities_from_triplestore(
+            self.g_set,
+            self.dataset_endpoint,
+            list(entities_to_import),  # type: ignore[arg-type]
+        )
         self.begin_counter_transaction()
         self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)  # type: ignore[arg-type]
-
         self.g_set.merge(keep_entity_uri, delete_entity_uri)  # type: ignore[arg-type]
 
         self.save()

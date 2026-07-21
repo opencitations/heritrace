@@ -420,7 +420,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -581,7 +581,7 @@ requires-dist = [
     { name = "pyshacl", specifier = ">=0.30.1" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "pyyaml", specifier = ">=6.0.1" },
-    { name = "rdflib-ocdm", specifier = "==2.0.0" },
+    { name = "rdflib-ocdm", specifier = "==2.0.1" },
     { name = "requests", specifier = ">=2.31.0" },
     { name = "requests-oauthlib", specifier = ">=2.0.0" },
     { name = "setuptools", specifier = ">=68.2.2" },
@@ -627,7 +627,7 @@ name = "importlib-metadata"
 version = "8.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "python_full_version < '3.12'" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/49/3b30cad09e7771a4982d9975a8cbf64f00d4a1ececb53297f1d9a7be1b10/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb", size = 57107, upload-time = "2025-12-21T10:00:19.278Z" }
 wheels = [
@@ -1282,7 +1282,7 @@ html = [
 
 [[package]]
 name = "rdflib-ocdm"
-version = "2.0.0"
+version = "2.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "oc-ocdm" },
@@ -1290,21 +1290,21 @@ dependencies = [
     { name = "redis" },
     { name = "sparqlwrapper" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/11/fe/e913269923e2ba5c5a56d4bd52015562bd5da5fb92bd7b406fe3c7b1d547/rdflib_ocdm-2.0.0.tar.gz", hash = "sha256:5538bc7aaf9fa9e35b4de61409180fedd38cdc8bee7bc24fa3fbde7bb1dfe1b9", size = 89349, upload-time = "2026-05-30T21:17:45.647Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/9e/f909e17e07b136eb618b40c2debbcf0177bcad705e3a5d502a4056fe53d0/rdflib_ocdm-2.0.1.tar.gz", hash = "sha256:d1aab74285efc245dc2dfe9b1ea95774d9017205f0368757fed30e35eac36459", size = 91273, upload-time = "2026-07-21T14:06:05.803Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/a7/ca274bba7dc1f626a956c7667fbf781769b6af3580589f585e37114267ed/rdflib_ocdm-2.0.0-py3-none-any.whl", hash = "sha256:21fdc7cf0806039a4b89d51e6f63b2efb80850b59f108db05a8f774d0ab03ace", size = 29733, upload-time = "2026-05-30T21:17:46.902Z" },
+    { url = "https://files.pythonhosted.org/packages/90/83/94991f69b814f72a07e8ba01ba9e5024de8989c59c76f701872a4412b725/rdflib_ocdm-2.0.1-py3-none-any.whl", hash = "sha256:e88d96d00d09d686c8c0b977a4b38ce8bf12fcf2d00014b4b2e21510e6fa4803", size = 28942, upload-time = "2026-07-21T14:06:04.902Z" },
 ]
 
 [[package]]
 name = "redis"
-version = "4.6.0"
+version = "7.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "async-timeout", marker = "python_full_version <= '3.11.2'" },
+    { name = "async-timeout", marker = "python_full_version < '3.11.3'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/73/88/63d802c2b18dd9eaa5b846cbf18917c6b2882f20efda398cc16a7500b02c/redis-4.6.0.tar.gz", hash = "sha256:585dc516b9eb042a619ef0a39c3d7d55fe81bdb4df09a52c9cdde0d07bf1aa7d", size = 4561721, upload-time = "2023-06-25T13:13:57.139Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/51/93/05e7d4a65285066a74f48697f9b9cde5cfce71398033d69ed83c3d98f5c9/redis-7.4.1.tar.gz", hash = "sha256:1a1df5067062cf7cbe677994e391f8ee0840f499d370f1a71266e0dd3aa9308e", size = 4945742, upload-time = "2026-06-05T09:10:06.703Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/2e/409703d645363352a20c944f5d119bdae3eb3034051a53724a7c5fee12b8/redis-4.6.0-py3-none-any.whl", hash = "sha256:e2b03db868160ee4591de3cb90d40ebb50a90dd302138775937f6a42b7ed183c", size = 241149, upload-time = "2023-06-25T13:13:54.563Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/2e/2677f3f93dae0497e7e33b6637302e7f3744efc553f34231183e32584885/redis-7.4.1-py3-none-any.whl", hash = "sha256:1fa4647af1c5e93a2c685aa248ee44cce092691146d41390518dabe9a99839b0", size = 410171, upload-time = "2026-06-05T09:10:05.128Z" },
 ]
 
 [[package]]

@@ -6,7 +6,6 @@ from functools import partial
 from unittest.mock import MagicMock, call, patch
 
 import pytest
-from flask import Flask
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
@@ -28,6 +27,7 @@ PROP_OUTGOING = URIRef("http://example.org/prop/outgoingRef")
 PROP_LITERAL = URIRef("http://example.org/prop/literal")
 LITERAL_VALUE = Literal("Some value")
 TYPE_TO_DELETE_URI = URIRef("http://example.org/TypeToDelete")
+GRAPH_URI = URIRef("http://example.org/graph")
 
 
 def _record_upload(events: list[object], endpoint: str) -> bool:
@@ -70,7 +70,15 @@ def mock_reader():
                     "is_restored": False,
                     "source": None,
                     "resp_agent": None,
+                    "graph_iri": None,
                 }
+        if KEEP_URI in entities_to_import and DELETE_URI in entities_to_import:
+            if isinstance(g_set, OCDMDataset):
+                g_set.add((KEEP_URI, RDF.type, TYPE_TO_DELETE_URI, GRAPH_URI))
+                g_set.add((DELETE_URI, RDF.type, TYPE_TO_DELETE_URI, GRAPH_URI))
+            else:
+                g_set.add((KEEP_URI, RDF.type, TYPE_TO_DELETE_URI))
+                g_set.add((DELETE_URI, RDF.type, TYPE_TO_DELETE_URI))
 
     # Mock the static method directly on the class
     with patch(
@@ -295,136 +303,86 @@ def test_save_rejects_failed_triplestore_upload(
 def test_merge_basic(
     editor_instance, mock_sparql_wrapper, mock_reader, mock_storer
 ) -> None:
-    """Test basic merge functionality with incoming and outgoing triples."""
-    mock_sparql_wrapper.setQuery.side_effect = lambda _query: None
-    mock_sparql_wrapper.query.return_value.convert.side_effect = [
-        # Response for incoming query
-        {
-            "results": {
-                "bindings": [
-                    {
-                        "s": {"type": "uri", "value": str(INCOMING_SUBJ_URI)},
-                        "p": {"type": "uri", "value": str(PROP_INCOMING)},
-                    }
-                ]
-            }
-        },
-        # Response for outgoing query
-        {
-            "results": {
-                "bindings": [
-                    {
-                        "p": {"type": "uri", "value": str(PROP_OUTGOING)},
-                        "o": {"type": "uri", "value": str(OUTGOING_OBJ_URI)},
-                    },
-                    {
-                        "p": {"type": "uri", "value": str(PROP_LITERAL)},
-                        "o": {"type": "literal", "value": str(LITERAL_VALUE)},
-                    },
-                    {
-                        "p": {"type": "uri", "value": str(RDF.type)},
-                        "o": {"type": "uri", "value": str(TYPE_TO_DELETE_URI)},
-                    },
-                ]
-            }
-        },
-    ]
+    mock_sparql_wrapper.query.return_value.convert.return_value = {
+        "results": {
+            "bindings": [{"s": {"type": "uri", "value": str(INCOMING_SUBJ_URI)}}]
+        }
+    }
 
-    # Call the merge function
     editor_instance.merge(KEEP_URI, DELETE_URI)
 
-    # --- Assertions ---
-    # 1. Assert SPARQL queries were made correctly
     expected_incoming_query = (
-        "SELECT DISTINCT ?s ?p WHERE {"
+        "SELECT DISTINCT ?s WHERE {"
         f" ?s ?p <{DELETE_URI}> ."
         f" FILTER (?s != <{KEEP_URI}>)"
         " }"
     )
-    expected_outgoing_query = f"""
-                PREFIX rdf: <{RDF}>
-                SELECT DISTINCT ?p ?o WHERE {{
-                    <{DELETE_URI}> ?p ?o .
-                    FILTER (?p != rdf:type)
-                }}
-            """
-
-    def normalize_ws(s):
-        return " ".join(s.strip().split())
-
-    actual_calls = [
-        normalize_ws(call[0][0]) for call in mock_sparql_wrapper.setQuery.call_args_list
+    assert mock_sparql_wrapper.setQuery.call_args_list == [
+        call(expected_incoming_query)
     ]
-    assert normalize_ws(expected_incoming_query) in actual_calls
-    assert normalize_ws(expected_outgoing_query) in actual_calls
-    assert mock_sparql_wrapper.setReturnFormat.call_args_list == [
-        call(JSON),
-        call(JSON),
-    ]
-    assert mock_sparql_wrapper.query.call_count == 2
+    assert mock_sparql_wrapper.setReturnFormat.call_args_list == [call(JSON)]
+    assert mock_sparql_wrapper.query.call_count == 1
 
-    # 2. Assert Reader.import_entities_from_triplestore was called correctly
     expected_import_entities = {
         KEEP_URI,
         DELETE_URI,
         INCOMING_SUBJ_URI,
-        OUTGOING_OBJ_URI,
-        TYPE_TO_DELETE_URI,
     }
     mock_reader.assert_called_once()
     call_args, _call_kwargs = mock_reader.call_args
-    # The first arg to import_entities_from_triplestore is the graph set instance
-    assert isinstance(call_args[0], OCDMDataset)  # Check it's the real graph
+    assert isinstance(call_args[0], OCDMDataset)
     assert call_args[1] == DATASET_ENDPOINT
     assert set(call_args[2]) == expected_import_entities
 
-    # 3. Assert save sequence was called (Storer init, upload_all)
-    # Storer class should be called twice (for dataset and provenance)
     assert mock_storer.call_count == 2
-    # Check arguments passed to Storer.__init__
     init_call_args_list = mock_storer.call_args_list
-    assert isinstance(
-        init_call_args_list[0][0][0], OCDMDataset
-    )  # First call with dataset graph
-    assert isinstance(
-        init_call_args_list[1][0][0], Graph
-    )  # Second call with provenance graph (g_set.provenance)
+    assert isinstance(init_call_args_list[0][0][0], OCDMDataset)
+    assert isinstance(init_call_args_list[1][0][0], Graph)
 
-    # Check calls to the mocked Storer instance's upload_all method
     mock_storer_instance = mock_storer.return_value
-    # Since Storer() is called twice, return_value is the *second* instance.
-    # We need to check the upload_all calls on *both* instances. Let's use
-    # call_args_list on the instance mock.
-    # No, mock_storer is the CLASS mock. mock_storer.return_value is the INSTANCE mock
-    # returned by __init__.
-    # Need to check calls on the instances returned by the two __init__ calls.
-    # Easier: check the total call count on the method of the return_value mock.
     assert mock_storer_instance.upload_all.call_count == 2
-    # Check the endpoints passed to upload_all
     upload_calls = mock_storer_instance.upload_all.call_args_list
     assert upload_calls[0] == call(DATASET_ENDPOINT)
     assert upload_calls[1] == call(PROVENANCE_ENDPOINT)
+
+
+def test_merge_transfers_outgoing_statements_and_incoming_links(
+    editor_instance, mock_sparql_wrapper, mock_reader
+) -> None:
+    mock_sparql_wrapper.query.return_value.convert.return_value = {
+        "results": {
+            "bindings": [{"s": {"type": "uri", "value": str(INCOMING_SUBJ_URI)}}]
+        }
+    }
+
+    def import_merge_entities(g_set, _endpoint, _entities) -> None:
+        g_set.add((KEEP_URI, RDF.type, TYPE_TO_DELETE_URI, GRAPH_URI))
+        g_set.add((DELETE_URI, RDF.type, TYPE_TO_DELETE_URI, GRAPH_URI))
+        g_set.add((DELETE_URI, PROP_OUTGOING, OUTGOING_OBJ_URI, GRAPH_URI))
+        g_set.add((DELETE_URI, PROP_LITERAL, LITERAL_VALUE, GRAPH_URI))
+        g_set.add((INCOMING_SUBJ_URI, PROP_INCOMING, DELETE_URI, GRAPH_URI))
+
+    mock_reader.side_effect = import_merge_entities
+
+    with patch.object(editor_instance, "save"):
+        editor_instance.merge(KEEP_URI, DELETE_URI)
+
+    assert set(editor_instance.g_set.quads((KEEP_URI, PROP_OUTGOING, None, None))) == {
+        (KEEP_URI, PROP_OUTGOING, OUTGOING_OBJ_URI, GRAPH_URI)
+    }
+    assert set(editor_instance.g_set.quads((KEEP_URI, PROP_LITERAL, None, None))) == {
+        (KEEP_URI, PROP_LITERAL, LITERAL_VALUE, GRAPH_URI)
+    }
+    assert set(
+        editor_instance.g_set.quads((INCOMING_SUBJ_URI, PROP_INCOMING, None, None))
+    ) == {(INCOMING_SUBJ_URI, PROP_INCOMING, KEEP_URI, GRAPH_URI)}
+    assert set(editor_instance.g_set.quads((DELETE_URI, None, None, None))) == set()
 
 
 def test_merge_no_incoming(
     editor_instance, mock_sparql_wrapper, mock_reader, mock_storer
 ) -> None:
     """Test merge when the entity to be deleted has no incoming references."""
-    mock_sparql_wrapper.setQuery.side_effect = lambda _query: None
-    mock_sparql_wrapper.query.return_value.convert.side_effect = [
-        {"results": {"bindings": []}},  # No incoming
-        {
-            "results": {
-                "bindings": [
-                    {
-                        "p": {"type": "uri", "value": str(PROP_LITERAL)},
-                        "o": {"type": "literal", "value": "Test Value"},
-                    }
-                ]
-            }
-        },  # Outgoing
-    ]
-
     editor_instance.merge(KEEP_URI, DELETE_URI)
 
     expected_import_entities = {KEEP_URI, DELETE_URI}
@@ -434,34 +392,19 @@ def test_merge_no_incoming(
     assert call_args[1] == DATASET_ENDPOINT
     assert set(call_args[2]) == expected_import_entities
 
-    # Assert save sequence happened
     assert mock_storer.call_count == 2
     mock_storer_instance = mock_storer.return_value
     assert mock_storer_instance.upload_all.call_count == 2
 
 
-# Test 3: Merge with no outgoing properties (except rdf:type)
-def test_merge_no_outgoing(
+def test_merge_with_incoming_reference(
     editor_instance, mock_sparql_wrapper, mock_reader, mock_storer
 ) -> None:
-    """
-    Test merge when the entity to be deleted has no outgoing properties (except
-    rdf:type).
-    """
-    mock_sparql_wrapper.setQuery.side_effect = lambda _query: None
-    mock_sparql_wrapper.query.return_value.convert.side_effect = [
-        {
-            "results": {
-                "bindings": [
-                    {
-                        "s": {"type": "uri", "value": str(INCOMING_SUBJ_URI)},
-                        "p": {"type": "uri", "value": str(PROP_INCOMING)},
-                    }
-                ]
-            }
-        },  # Incoming
-        {"results": {"bindings": []}},  # No outgoing
-    ]
+    mock_sparql_wrapper.query.return_value.convert.return_value = {
+        "results": {
+            "bindings": [{"s": {"type": "uri", "value": str(INCOMING_SUBJ_URI)}}]
+        }
+    }
 
     editor_instance.merge(KEEP_URI, DELETE_URI)
 
@@ -472,7 +415,6 @@ def test_merge_no_outgoing(
     assert call_args[1] == DATASET_ENDPOINT
     assert set(call_args[2]) == expected_import_entities
 
-    # Assert save sequence happened
     assert mock_storer.call_count == 2
     mock_storer_instance = mock_storer.return_value
     assert mock_storer_instance.upload_all.call_count == 2
@@ -505,57 +447,13 @@ def test_merge_reader_error(
     editor_instance, mock_sparql_wrapper, mock_reader, mock_storer
 ) -> None:
     """Test that an exception during entity import prevents saving."""
-    mock_sparql_wrapper.setQuery.side_effect = lambda _query: None
-    mock_sparql_wrapper.query.return_value.convert.side_effect = [
-        {"results": {"bindings": []}},
-        {"results": {"bindings": []}},
-    ]
-    mock_reader.side_effect = Exception("Import failed")  # Make the mocked method raise
+    mock_reader.side_effect = Exception("Import failed")
 
     with pytest.raises(Exception, match="Import failed"):
         editor_instance.merge(KEEP_URI, DELETE_URI)
 
-    # Assert that import was attempted but Storer was not called
     mock_reader.assert_called_once()
     mock_storer.assert_not_called()
-
-
-def test_merge_literal_types(
-    editor_instance, mock_sparql_wrapper, mock_reader, mock_storer
-) -> None:
-    """Test merge with literals having language tags and datatypes."""
-    prop_lang = URIRef("http://example.org/prop/langLiteral")
-    prop_dtype = URIRef("http://example.org/prop/dtypeLiteral")
-
-    mock_sparql_wrapper.setQuery.side_effect = lambda _query: None
-    mock_sparql_wrapper.query.return_value.convert.side_effect = [
-        {"results": {"bindings": []}},  # Incoming
-        {
-            "results": {
-                "bindings": [  # Outgoing
-                    {
-                        "p": {"type": "uri", "value": str(prop_lang)},
-                        "o": {"type": "literal", "value": "Bonjour", "xml:lang": "fr"},
-                    },
-                    {
-                        "p": {"type": "uri", "value": str(prop_dtype)},
-                        "o": {
-                            "type": "typed-literal",
-                            "value": "123",
-                            "datatype": "http://www.w3.org/2001/XMLSchema#integer",
-                        },
-                    },
-                ]
-            }
-        },
-    ]
-
-    editor_instance.merge(KEEP_URI, DELETE_URI)
-
-    # Primary check: Did the operation complete by calling Storer?
-    assert mock_storer.call_count == 2
-    mock_storer_instance = mock_storer.return_value
-    assert mock_storer_instance.upload_all.call_count == 2
 
 
 def test_merge_non_quadstore(
@@ -567,92 +465,24 @@ def test_merge_non_quadstore(
     # Use the specific fixture editor_instance_non_quadstore
     editor = editor_instance_non_quadstore
 
-    mock_sparql_wrapper.setQuery.side_effect = lambda _query: None
-    mock_sparql_wrapper.query.return_value.convert.side_effect = [
-        {"results": {"bindings": []}},  # No incoming
-        {"results": {"bindings": []}},  # No outgoing
-    ]
-
     editor.merge(KEEP_URI, DELETE_URI)
 
-    # Assertions
-    # 1. SPARQL queries
-    assert mock_sparql_wrapper.setQuery.call_count == 2
-    assert mock_sparql_wrapper.query.call_count == 2
+    assert mock_sparql_wrapper.setQuery.call_count == 1
+    assert mock_sparql_wrapper.query.call_count == 1
 
-    # 2. Reader import uses the correct graph instance (OCDMGraph)
     mock_reader.assert_called_once()
     call_args, _ = mock_reader.call_args
-    assert isinstance(call_args[0], OCDMGraph)  # Check it's the non-conjunctive graph
+    assert isinstance(call_args[0], OCDMGraph)
     assert call_args[1] == DATASET_ENDPOINT
-    assert set(call_args[2]) == {
-        KEEP_URI,
-        DELETE_URI,
-    }  # Only keep/delete URIs expected here
+    assert set(call_args[2]) == {KEEP_URI, DELETE_URI}
 
-    # 3. Save sequence uses correct graph instance
     assert mock_storer.call_count == 2
     init_call_args_list = mock_storer.call_args_list
-    assert isinstance(
-        init_call_args_list[0][0][0], OCDMGraph
-    )  # First call with dataset graph
-    assert isinstance(
-        init_call_args_list[1][0][0], Graph
-    )  # Second call with provenance graph
+    assert isinstance(init_call_args_list[0][0][0], OCDMGraph)
+    assert isinstance(init_call_args_list[1][0][0], Graph)
 
     mock_storer_instance = mock_storer.return_value
     assert mock_storer_instance.upload_all.call_count == 2
     upload_calls = mock_storer_instance.upload_all.call_args_list
     assert upload_calls[0] == call(DATASET_ENDPOINT)
     assert upload_calls[1] == call(PROVENANCE_ENDPOINT)
-
-
-def test_merge_skip_blank_node(
-    editor_instance, mock_sparql_wrapper, mock_reader, mock_storer
-) -> None:
-    """
-    Test that non-URI/Literal objects (e.g., blank nodes) are skipped with a warning.
-    """
-    bnode_prop = URIRef("http://example.org/prop/bnodeRef")
-    bnode_id = "bnode123"
-    literal_prop_2 = URIRef("http://example.org/prop/anotherLiteral")
-    literal_value_2 = Literal("Another value")
-
-    mock_sparql_wrapper.setQuery.side_effect = lambda _query: None
-    mock_sparql_wrapper.query.return_value.convert.side_effect = [
-        # Incoming query (empty)
-        {"results": {"bindings": []}},
-        # Outgoing query (with bnode and literal)
-        {
-            "results": {
-                "bindings": [
-                    {
-                        "p": {"type": "uri", "value": str(bnode_prop)},
-                        "o": {"type": "bnode", "value": bnode_id},  # Blank Node
-                    },
-                    {
-                        "p": {"type": "uri", "value": str(literal_prop_2)},
-                        "o": {"type": "literal", "value": str(literal_value_2)},
-                    },
-                ]
-            }
-        },
-    ]
-
-    app = Flask(__name__)
-    with app.app_context():
-        editor_instance.merge(KEEP_URI, DELETE_URI)
-
-    # Assert Reader was called (only keep/delete URIs, as bnode and its prop aren't
-    # imported)
-    expected_import_entities = {KEEP_URI, DELETE_URI}
-    mock_reader.assert_called_once()
-    call_args, _ = mock_reader.call_args
-    assert isinstance(call_args[0], OCDMDataset)  # Assuming quadstore instance
-    assert call_args[1] == DATASET_ENDPOINT
-    assert set(call_args[2]) == expected_import_entities
-
-    # Assert save sequence completed, indicating the literal was processed
-    assert mock_storer.call_count == 2
-    mock_storer_instance = mock_storer.return_value
-    assert mock_storer_instance.upload_all.call_count == 2

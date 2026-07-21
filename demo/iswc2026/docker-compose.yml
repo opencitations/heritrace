@@ -1,0 +1,90 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+services:
+  dataset-db:
+    image: heritrace-iswc2026-database:local
+    build:
+      context: ../..
+      dockerfile: demo/iswc2026/Dockerfile.database
+    restart: unless-stopped
+    environment:
+      DBA_PASSWORD: dba
+      DAV_PASSWORD: dba
+      CONTAINER_TYPE: dataset
+    volumes:
+      - dataset-data:/database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  provenance-db:
+    image: heritrace-iswc2026-database:local
+    build:
+      context: ../..
+      dockerfile: demo/iswc2026/Dockerfile.database
+    restart: unless-stopped
+    environment:
+      DBA_PASSWORD: dba
+      DAV_PASSWORD: dba
+      CONTAINER_TYPE: provenance
+    volumes:
+      - provenance-data:/database
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8890/sparql"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  web:
+    image: heritrace-iswc2026-web:local
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    depends_on:
+      dataset-db:
+        condition: service_healthy
+      provenance-db:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: demo
+      APP_TITLE: HERITRACE ISWC 2026 demo
+      APP_SUBTITLE: Ask the Curator
+      SECRET_KEY: heritrace-iswc2026-demo
+      CACHE_VALIDITY_DAYS: 7
+      DATASET_DB_URL: http://dataset-db:8890/sparql
+      PROVENANCE_DB_URL: http://provenance-db:8890/sparql
+      DATASET_DB_TRIPLESTORE: virtuoso
+      PROVENANCE_DB_TRIPLESTORE: virtuoso
+      DATASET_DB_TEXT_INDEX_ENABLED: "false"
+      DATASET_IS_QUADSTORE: "true"
+      PROVENANCE_IS_QUADSTORE: "true"
+      DATASET_GENERATION_TIME: "2026-07-19T00:00:00+00:00"
+      PRIMARY_SOURCE: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=15370649,15849057&retmode=json
+      BASE_IRI: https://w3id.org/oc/meta/demo
+      COUNTER_HANDLER_CLASS: default_components.meta_counter_handler.MetaCounterHandler
+      URI_GENERATOR_CLASS: default_components.meta_uri_generator.MetaURIGenerator
+      COUNT_LIMIT: 10000
+      MAX_WORKERS: 4
+      GUNICORN_WORKERS: 1
+      ORCID_CLIENT_ID: demo
+      ORCID_CLIENT_SECRET: demo
+      ORCID_SAFELIST: 0000-0000-0000-0000
+      ORPHAN_HANDLING_STRATEGY: ASK
+      PROXY_HANDLING_STRATEGY: ASK
+      CATALOGUE_DEFAULT_PER_PAGE: 50
+      CATALOGUE_ALLOWED_PER_PAGE: 50,100
+    volumes:
+      - ./config/shacl.ttl:/app/shacl.ttl:ro
+      - ./config/display_rules.yaml:/app/display_rules.yaml:ro
+      - redis-data:/data
+
+volumes:
+  dataset-data:
+  provenance-data:
+  redis-data:

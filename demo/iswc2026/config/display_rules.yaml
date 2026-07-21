@@ -1,0 +1,368 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+queries:
+  identifier_query: &identifier_query |
+    PREFIX datacite: <http://purl.org/spar/datacite/>
+    PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+    SELECT (CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?literal) AS ?display) ?identifier
+    WHERE {
+      [[subject]] datacite:hasIdentifier ?identifier .
+      VALUES (?identifier) {([[value]])}
+      ?identifier datacite:usesIdentifierScheme ?scheme ;
+                  literal:hasLiteralValue ?literal .
+    }
+
+  author_query: &author_query |
+    PREFIX pro: <http://purl.org/spar/pro/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    SELECT (CONCAT(?familyName, ", ", ?givenName) AS ?display) ?agent
+    WHERE {
+      [[value]] pro:withRole pro:author ;
+                pro:isHeldBy ?agent .
+      ?agent foaf:familyName ?familyName ;
+             foaf:givenName ?givenName .
+    }
+
+  page_query: &page_query |
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+    SELECT (CONCAT(?start, "-", ?end) AS ?display) ?manifestation
+    WHERE {
+      [[subject]] frbr:embodiment ?manifestation .
+      VALUES (?manifestation) {([[value]])}
+      ?manifestation prism:startingPage ?start ;
+                     prism:endingPage ?end .
+    }
+
+  issue_query: &issue_query |
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    SELECT (CONCAT(?journalTitle, ", ", ?volumeNumber, "(", ?issueNumber, ")") AS ?display) ?issue
+    WHERE {
+      [[subject]] frbr:partOf ?issue .
+      VALUES (?issue) {([[value]])}
+      ?issue fabio:hasSequenceIdentifier ?issueNumber ;
+             frbr:partOf ?volume .
+      ?volume fabio:hasSequenceIdentifier ?volumeNumber ;
+              frbr:partOf ?journal .
+      ?journal dcterms:title ?journalTitle .
+    }
+
+  journal_query: &journal_query |
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    SELECT ?display ?journal
+    WHERE {
+      [[subject]] frbr:partOf ?journal .
+      VALUES (?journal) {([[value]])}
+      ?journal dcterms:title ?display .
+    }
+
+  volume_query: &volume_query |
+    PREFIX dcterms: <http://purl.org/dc/terms/>
+    PREFIX fabio: <http://purl.org/spar/fabio/>
+    PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+    SELECT (CONCAT("Volume ", ?number, " of ", ?journalTitle) AS ?display) ?volume
+    WHERE {
+      [[subject]] frbr:partOf ?volume .
+      VALUES (?volume) {([[value]])}
+      ?volume fabio:hasSequenceIdentifier ?number ;
+              frbr:partOf ?journal .
+      ?journal dcterms:title ?journalTitle .
+    }
+
+  held_by_query: &held_by_query |
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX pro: <http://purl.org/spar/pro/>
+    SELECT (CONCAT(?familyName, ", ", ?givenName) AS ?display) ?agent
+    WHERE {
+      [[subject]] pro:isHeldBy ?agent .
+      VALUES (?agent) {([[value]])}
+      ?agent foaf:familyName ?familyName ;
+             foaf:givenName ?givenName .
+    }
+
+  next_author_query: &next_author_query |
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+    PREFIX oco: <https://w3id.org/oc/ontology/>
+    PREFIX pro: <http://purl.org/spar/pro/>
+    SELECT (CONCAT(?familyName, ", ", ?givenName) AS ?display) ?next
+    WHERE {
+      [[subject]] oco:hasNext ?next .
+      VALUES (?next) {([[value]])}
+      ?next pro:isHeldBy ?agent .
+      ?agent foaf:familyName ?familyName ;
+             foaf:givenName ?givenName .
+    }
+
+common_properties:
+  type_property: &type_property
+    property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    displayName: "Type"
+    shouldBeDisplayed: true
+    supportsSearch: false
+
+  identifier_property: &identifier_property
+    property: "http://purl.org/spar/datacite/hasIdentifier"
+    displayName: "Identifier"
+    shouldBeDisplayed: true
+    fetchValueFromQuery: *identifier_query
+    supportsSearch: true
+    minCharsForSearch: 3
+    searchTarget: "parent"
+
+  title_property: &title_property
+    property: "http://purl.org/dc/terms/title"
+    displayName: "Title"
+    shouldBeDisplayed: true
+    inputType: "textarea"
+    supportsSearch: true
+    minCharsForSearch: 2
+    searchTarget: "self"
+
+  publication_date_property: &publication_date_property
+    property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
+    displayName: "Publication Date"
+    shouldBeDisplayed: true
+    supportsSearch: false
+
+  author_property: &author_property
+    property: "http://purl.org/spar/pro/isDocumentContextFor"
+    orderedBy: "https://w3id.org/oc/ontology/hasNext"
+    intermediateRelation:
+      class: "http://purl.org/spar/pro/RoleInTime"
+      targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
+    displayRules:
+      - shape: "http://schema.org/AuthorShape"
+        displayName: "Author"
+        fetchValueFromQuery: *author_query
+
+  page_property: &page_property
+    property: "http://purl.org/vocab/frbr/core#embodiment"
+    displayName: "Pages"
+    shouldBeDisplayed: true
+    fetchValueFromQuery: *page_query
+    supportsSearch: false
+
+  issue_property: &issue_property
+    property: "http://purl.org/vocab/frbr/core#partOf"
+    displayName: "Container"
+    shouldBeDisplayed: true
+    fetchValueFromQuery: *issue_query
+    supportsSearch: false
+
+  sequence_property: &sequence_property
+    property: "http://purl.org/spar/fabio/hasSequenceIdentifier"
+    displayName: "Number"
+    shouldBeDisplayed: true
+    supportsSearch: false
+
+rules:
+  - target:
+      class: "http://purl.org/spar/fabio/JournalArticle"
+    priority: 1
+    shouldBeDisplayed: true
+    displayName: "Journal Article"
+    similarity_properties:
+      - "http://purl.org/dc/terms/title"
+      - "http://purl.org/spar/datacite/hasIdentifier"
+    fetchUriDisplay: |
+      PREFIX datacite: <http://purl.org/spar/datacite/>
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+      PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+      SELECT ?display
+      WHERE {
+        {
+          SELECT ?title ?date (GROUP_CONCAT(?identifier; separator=" ") AS ?identifiers)
+          WHERE {
+            [[uri]] dcterms:title ?title ;
+                    prism:publicationDate ?date .
+            OPTIONAL {
+              [[uri]] datacite:hasIdentifier ?identifierNode .
+              ?identifierNode datacite:usesIdentifierScheme ?scheme ;
+                              literal:hasLiteralValue ?value .
+              BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?identifier)
+            }
+          }
+          GROUP BY ?title ?date
+        }
+        BIND(CONCAT(?title, " (", STR(?date), ") [", ?identifiers, "]") AS ?display)
+      }
+    displayProperties:
+      - *type_property
+      - *identifier_property
+      - *title_property
+      - *author_property
+      - *publication_date_property
+      - *issue_property
+      - *page_property
+
+  - target:
+      class: "http://purl.org/spar/fabio/Journal"
+    priority: 1
+    shouldBeDisplayed: false
+    displayName: "Journal"
+    fetchUriDisplay: |
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      SELECT ?display
+      WHERE {
+        [[uri]] dcterms:title ?display .
+      }
+    displayProperties:
+      - *type_property
+      - *title_property
+
+  - target:
+      class: "http://purl.org/spar/fabio/JournalVolume"
+    priority: 1
+    shouldBeDisplayed: false
+    displayName: "Volume"
+    fetchUriDisplay: |
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+      SELECT (CONCAT("Volume ", ?number, " of ", ?journalTitle) AS ?display)
+      WHERE {
+        [[uri]] fabio:hasSequenceIdentifier ?number ;
+                frbr:partOf ?journal .
+        ?journal dcterms:title ?journalTitle .
+      }
+    displayProperties:
+      - *type_property
+      - *sequence_property
+      - property: "http://purl.org/vocab/frbr/core#partOf"
+        displayName: "Journal"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: *journal_query
+        supportsSearch: false
+
+  - target:
+      class: "http://purl.org/spar/fabio/JournalIssue"
+    priority: 1
+    shouldBeDisplayed: false
+    displayName: "Issue"
+    fetchUriDisplay: |
+      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX fabio: <http://purl.org/spar/fabio/>
+      PREFIX frbr: <http://purl.org/vocab/frbr/core#>
+      SELECT (CONCAT("Issue ", ?issueNumber, " of Volume ", ?volumeNumber, ", ", ?journalTitle) AS ?display)
+      WHERE {
+        [[uri]] fabio:hasSequenceIdentifier ?issueNumber ;
+                frbr:partOf ?volume .
+        ?volume fabio:hasSequenceIdentifier ?volumeNumber ;
+                frbr:partOf ?journal .
+        ?journal dcterms:title ?journalTitle .
+      }
+    displayProperties:
+      - *type_property
+      - *sequence_property
+      - property: "http://purl.org/vocab/frbr/core#partOf"
+        displayName: "Volume"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: *volume_query
+        supportsSearch: false
+
+  - target:
+      class: "http://purl.org/spar/datacite/Identifier"
+    priority: 1
+    shouldBeDisplayed: false
+    displayName: "Identifier"
+    fetchUriDisplay: |
+      PREFIX datacite: <http://purl.org/spar/datacite/>
+      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+      SELECT (CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+      WHERE {
+        [[uri]] datacite:usesIdentifierScheme ?scheme ;
+                literal:hasLiteralValue ?value .
+      }
+    displayProperties:
+      - *type_property
+      - property: "http://purl.org/spar/datacite/usesIdentifierScheme"
+        displayName: "Identifier Scheme"
+        shouldBeDisplayed: true
+        supportsSearch: false
+      - property: "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
+        displayName: "Literal Value"
+        shouldBeDisplayed: true
+        supportsSearch: false
+
+  - target:
+      class: "http://purl.org/spar/fabio/Manifestation"
+    priority: 1
+    shouldBeDisplayed: false
+    displayName: "Pages"
+    fetchUriDisplay: |
+      PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+      SELECT (CONCAT("Pages ", ?start, "-", ?end) AS ?display)
+      WHERE {
+        [[uri]] prism:startingPage ?start ;
+                prism:endingPage ?end .
+      }
+    displayProperties:
+      - *type_property
+      - property: "http://prismstandard.org/namespaces/basic/2.0/startingPage"
+        displayName: "Starting Page"
+        shouldBeDisplayed: true
+        supportsSearch: false
+      - property: "http://prismstandard.org/namespaces/basic/2.0/endingPage"
+        displayName: "Ending Page"
+        shouldBeDisplayed: true
+        supportsSearch: false
+
+  - target:
+      class: "http://purl.org/spar/pro/RoleInTime"
+    priority: 1
+    shouldBeDisplayed: false
+    displayName: "Author Role"
+    fetchUriDisplay: |
+      PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+      PREFIX pro: <http://purl.org/spar/pro/>
+      SELECT (CONCAT(?familyName, ", ", ?givenName) AS ?display)
+      WHERE {
+        [[uri]] pro:isHeldBy ?agent .
+        ?agent foaf:familyName ?familyName ;
+               foaf:givenName ?givenName .
+      }
+    displayProperties:
+      - *type_property
+      - property: "http://purl.org/spar/pro/isHeldBy"
+        displayName: "Held By"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: *held_by_query
+        supportsSearch: false
+      - property: "http://purl.org/spar/pro/withRole"
+        displayName: "Role"
+        shouldBeDisplayed: true
+        supportsSearch: false
+      - property: "https://w3id.org/oc/ontology/hasNext"
+        displayName: "Next Author"
+        shouldBeDisplayed: true
+        fetchValueFromQuery: *next_author_query
+        supportsSearch: false
+
+  - target:
+      class: "http://xmlns.com/foaf/0.1/Agent"
+    priority: 1
+    shouldBeDisplayed: false
+    displayName: "Author"
+    fetchUriDisplay: |
+      PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+      SELECT (CONCAT(?familyName, ", ", ?givenName) AS ?display)
+      WHERE {
+        [[uri]] foaf:familyName ?familyName ;
+                foaf:givenName ?givenName .
+      }
+    displayProperties:
+      - *type_property
+      - property: "http://xmlns.com/foaf/0.1/givenName"
+        displayName: "Given Name"
+        shouldBeDisplayed: true
+        supportsSearch: false
+      - property: "http://xmlns.com/foaf/0.1/familyName"
+        displayName: "Family Name"
+        shouldBeDisplayed: true
+        supportsSearch: false

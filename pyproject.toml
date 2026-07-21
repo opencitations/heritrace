@@ -19,7 +19,7 @@ dependencies = [
     "pyshacl>=0.30.1",
     "python-dateutil>=2.9.0.post0",
     "pyyaml>=6.0.1",
-    "rdflib-ocdm==2.0.0",
+    "rdflib-ocdm==2.0.1",
     "requests>=2.31.0",
     "requests-oauthlib>=2.0.0",
     "setuptools>=68.2.2",
