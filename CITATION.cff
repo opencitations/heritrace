@@ -3,42 +3,42 @@
 # SPDX-License-Identifier: ISC
 
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: If you use this software, please cite it as below.
 type: software
-title: "HERITRACE"
-version: "3.0.0"
-date-released: "2026-02-14"
+title: HERITRACE
+version: 3.1.0
+date-released: '2026-07-21'
 identifiers:
   - type: swh
-    value: "swh:1:rev:0ba135ea1bda8d8375505a5ecf49b70fa9573409"
+    value: "swh:1:rev:56465454e278767772cce207209a84485b1c727d"
 license: ISC
-url: "https://archive.softwareheritage.org/swh:1:rev:0ba135ea1bda8d8375505a5ecf49b70fa9573409"
-repository-code: "https://github.com/opencitations/heritrace"
+url: "https://archive.softwareheritage.org/swh:1:rev:56465454e278767772cce207209a84485b1c727d"
+repository-code: https://github.com/opencitations/heritrace
 authors:
-  - family-names: "Massari"
-    given-names: "Arcangelo"
-    orcid: "https://orcid.org/0000-0002-8420-0696"
-    affiliation: "University of Bologna"
+  - family-names: Massari
+    given-names: Arcangelo
+    orcid: https://orcid.org/0000-0002-8420-0696
+    affiliation: University of Bologna
 keywords:
-  - "Semantic Web"
-  - "RDF"
-  - "data curation"
-  - "provenance"
-  - "change tracking"
-  - "SHACL"
-  - "cultural heritage"
+  - Semantic Web
+  - RDF
+  - data curation
+  - provenance
+  - change tracking
+  - SHACL
+  - cultural heritage
 preferred-citation:
   type: article
-  title: "HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions"
+  title: 'HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions'
   authors:
-    - family-names: "Massari"
-      given-names: "Arcangelo"
-    - family-names: "Peroni"
-      given-names: "Silvio"
-  journal: "Umanistica Digitale"
+    - family-names: Massari
+      given-names: Arcangelo
+    - family-names: Peroni
+      given-names: Silvio
+  journal: Umanistica Digitale
   volume: 9
   issue: 20
   start: 317
   end: 340
   year: 2025
-  doi: "10.6092/ISSN.2532-8816/21218"
+  doi: 10.6092/ISSN.2532-8816/21218
