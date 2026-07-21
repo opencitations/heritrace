@@ -3,12 +3,12 @@
   "@type": "SoftwareSourceCode",
   "name": "HERITRACE",
   "description": "A domain-agnostic web application for SHACL-driven RDF data curation with provenance documentation and change tracking",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "license": "https://spdx.org/licenses/ISC",
   "url": "https://opencitations.github.io/heritrace/",
   "codeRepository": "https://github.com/opencitations/heritrace",
   "issueTracker": "https://github.com/opencitations/heritrace/issues",
-  "identifier": "swh:1:rev:56465454e278767772cce207209a84485b1c727d",
+  "identifier": "swh:1:rev:10e8f4921c887f5a83538ad391fa20a09fc410b8",
   "programmingLanguage": [
     "Python",
     "JavaScript"
