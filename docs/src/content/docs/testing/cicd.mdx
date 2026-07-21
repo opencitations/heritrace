@@ -3,19 +3,25 @@
 #
 # SPDX-License-Identifier: ISC
 
-title: CI/CD Pipeline
+title: CI/CD pipeline
 description: Continuous integration pipeline for HERITRACE using GitHub Actions.
 ---
 import { Aside } from '@astrojs/starlight/components';
 
-This guide covers the continuous integration (CI) pipeline used in HERITRACE to ensure code quality and automate testing.
+This guide covers the continuous integration (CI) pipeline used in HERITRACE for automated checks, documentation deployment, releases, and citation updates.
 
 ## GitHub Actions workflows
 
-HERITRACE uses GitHub Actions for continuous integration and release automation. The project includes two main workflows:
+HERITRACE uses separate GitHub Actions workflows so that each check has its own status and README badge:
 
-1. **Testing Workflow** (`.github/workflows/python-tests.yml`): Triggered on every push to any branch and on pull requests to the `main` branch
-2. **Release Workflow** (`.github/workflows/release.yml`): Triggered on pushes to `main` branch containing `[release]` in the commit message
+- **Run tests** (`.github/workflows/python-tests.yml`) runs the test matrix and deploys the documentation and coverage report to GitHub Pages.
+- **Pyright** (`.github/workflows/pyright.yml`) checks Python types.
+- **Ruff** (`.github/workflows/ruff.yml`) checks linting and formatting.
+- **REUSE compliance** (`.github/workflows/reuse.yml`) checks licensing metadata.
+- **Release** (`.github/workflows/release.yml`) creates the release and publishes container images after all four checks succeed.
+- **Software citation** (`.github/workflows/software-citation.yml`) updates citation metadata after a successful release.
+
+The first four workflows run independently on every push and on pull requests to `main`. On `main`, `Release` starts when `Run tests` completes. It proceeds only when that workflow succeeds, the commit message contains `[release]`, and the Pyright, Ruff, and REUSE push runs for the same commit also succeed.
 
 ### Testing workflow steps
 
@@ -33,7 +39,7 @@ The workflow uses <a href="https://pypi.org/project/genbadge/" target="_blank">g
 
 ## Release workflow
 
-The release workflow automates the creation of releases and publication of Docker images. It is triggered when a commit to the `main` branch contains `[release]` in the commit message.
+The release workflow automates the creation of releases and publication of Docker images. A commit on `main` is eligible when its message contains `[release]`; publication starts only after the workflow gates described above succeed for that commit.
 
 ### Release workflow steps
 
