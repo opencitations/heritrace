@@ -4,10 +4,7 @@
 
 services:
   dataset-db:
-    image: heritrace-iswc2026-database:local
-    build:
-      context: ../..
-      dockerfile: demo/iswc2026/Dockerfile.database
+    image: arcangelo7/heritrace-iswc2026-database:1.0.0
     restart: unless-stopped
     environment:
       DBA_PASSWORD: dba
@@ -22,10 +19,7 @@ services:
       retries: 12
 
   provenance-db:
-    image: heritrace-iswc2026-database:local
-    build:
-      context: ../..
-      dockerfile: demo/iswc2026/Dockerfile.database
+    image: arcangelo7/heritrace-iswc2026-database:1.0.0
     restart: unless-stopped
     environment:
       DBA_PASSWORD: dba
@@ -40,10 +34,7 @@ services:
       retries: 12
 
   web:
-    image: heritrace-iswc2026-web:local
-    build:
-      context: ../..
-      dockerfile: Dockerfile
+    image: arcangelo7/heritrace:3.1.0
     ports:
       - "5000:5000"
     depends_on:
@@ -53,8 +44,8 @@ services:
         condition: service_healthy
     environment:
       FLASK_ENV: demo
-      APP_TITLE: HERITRACE ISWC 2026 demo
-      APP_SUBTITLE: Ask the Curator
+      APP_TITLE: Ask the Curator
+      APP_SUBTITLE: HERITRACE curation demo
       SECRET_KEY: heritrace-iswc2026-demo
       CACHE_VALIDITY_DAYS: 7
       DATASET_DB_URL: http://dataset-db:8890/sparql
