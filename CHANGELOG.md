@@ -1,3 +1,33 @@
+# [3.1.0](https://github.com/opencitations/heritrace/compare/v3.0.0...v3.1.0) (2026-07-21)
+
+
+### Bug Fixes
+
+* allow deletion of numeric rdf literals ([e852ca1](https://github.com/opencitations/heritrace/commit/e852ca1e872dcf1404328c5b9ae48b967ca4ff4e))
+* **api:** import references for all deleted entities ([a2e526f](https://github.com/opencitations/heritrace/commit/a2e526f41d379da9c6e288d1cfadfc6ad9afe91c))
+* **ci:** resolve coverage data collection conflict with pytest-cov ([46b2295](https://github.com/opencitations/heritrace/commit/46b2295bd432abf7a983b231326af366f1bf23a9))
+* make IRI minting components optional with a built-in default ([585ebd3](https://github.com/opencitations/heritrace/commit/585ebd3a16757a2bafc0d02a0a8fe4f0e88fd56c))
+* **meta:** keep RDF storage in sync with triplestore updates ([e1675a7](https://github.com/opencitations/heritrace/commit/e1675a72f262bef369bd837df4ba58b46ace0c0a))
+* **restore:** scope version restore to the transactions being undone ([07f79f6](https://github.com/opencitations/heritrace/commit/07f79f6a9e5688ff71e95276e0afc36487444bde))
+* **search:** close entity search dropdown on outside click ([91ba6f5](https://github.com/opencitations/heritrace/commit/91ba6f50ba5a9a1308bc88d7ed635d46472e2953))
+* **sparql:** import ordered entity graphs by minimal depth ([e03329c](https://github.com/opencitations/heritrace/commit/e03329c70b925fd19f9b96fa70429ea4054691cf))
+* **sparql:** use POST method for SPARQL queries ([335af5b](https://github.com/opencitations/heritrace/commit/335af5b9a138c77e87cbb173079e8854c4c1383b))
+
+
+### Features
+
+* **demo:** add curation walkthrough ([a8a9415](https://github.com/opencitations/heritrace/commit/a8a9415649971e0d2c257f5d242bdde1282dcb3a))
+* **iri:** configure IRI minting components ([4337c46](https://github.com/opencitations/heritrace/commit/4337c46c6524a29dd036de9317755d52dae2174c))
+* **meta:** persist rdf archives after saves ([61394e9](https://github.com/opencitations/heritrace/commit/61394e9900472c39de94b76cba7c801ea9b3b454))
+
+
+### Performance Improvements
+
+* **catalog:** avoid repeated label and class queries ([30809bc](https://github.com/opencitations/heritrace/commit/30809bca82ab9dfc656fb7add00403a2ec87e4cc))
+* **catalog:** warm catalogue ([e06f43f](https://github.com/opencitations/heritrace/commit/e06f43f9cea2465887729252cd6513c4241f52d7))
+* **meta:** commit filesystem counters after successful saves ([7cfc805](https://github.com/opencitations/heritrace/commit/7cfc805f93e5cf90ed1e4e2def3304f40359da70))
+* **meta:** index counter files by byte chunks ([e4397e7](https://github.com/opencitations/heritrace/commit/e4397e735c78fcc0f13e8dc680df44fb04981694))
+
 # [3.0.0](https://github.com/opencitations/heritrace/compare/v2.8.1...v3.0.0) (2026-02-14)
 
 
