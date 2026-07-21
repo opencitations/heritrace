@@ -1,3 +1,11 @@
+## [3.1.1](https://github.com/opencitations/heritrace/compare/v3.1.0...v3.1.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **demo:** use published images for curation deployment ([5ea6eff](https://github.com/opencitations/heritrace/commit/5ea6eff3111b3984d01821da32a00f87d6ccbbcf))
+* **merge:** preserve provenance context during entity merges [release] ([6dd2424](https://github.com/opencitations/heritrace/commit/6dd2424eee0c96b451668600bb1c6f7701b4462b))
+
 # [3.1.0](https://github.com/opencitations/heritrace/compare/v3.0.0...v3.1.0) (2026-07-21)
 
 
