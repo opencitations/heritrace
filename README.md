@@ -77,14 +77,14 @@ HERITRACE is data model agnostic. You define your domain through SHACL shapes (f
 Massari, A., & Peroni, S. (2025). HERITRACE: A User-Friendly Semantic Data Editor with Change Tracking and Provenance Management for Cultural Heritage Institutions. *Umanistica Digitale*, 9(20), 317--340. https://doi.org/10.6092/issn.2532-8816/21218
 
 <!-- software-citation-action:start -->
-To cite the latest version of this software (3.1.1), use this BibTeX entry:
+To cite the latest version of this software (3.1.2), use this BibTeX entry:
 
 ```bibtex
-@software{HERITRACE-3.1.1,
+@software{HERITRACE-3.1.2,
 author = {Massari, Arcangelo},
 title = {HERITRACE},
-url = {https://archive.softwareheritage.org/swh:1:rev:10e8f4921c887f5a83538ad391fa20a09fc410b8},
-version = {3.1.1},
+url = {https://archive.softwareheritage.org/swh:1:rev:3f0db6e4848de6cba35156db2e67f29fd5fe82f9},
+version = {3.1.2},
 year = {2026}
 }
 ```
