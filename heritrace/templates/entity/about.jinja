@@ -215,8 +215,7 @@
     const entity_type = "{{ entity_type }}";
     const entity_shape = "{{ entity_shape }}";
     const subject = "{{ subject }}";
-    const default_primary_source = "{{ default_primary_source }}";
-    const format_source_api_url = "{{ url_for('api.format_source_api') }}";
+    const default_primary_source = {{ default_primary_source | tojson }};
 
     window.dataset_db_triplestore = {{ dataset_db_triplestore | tojson | safe }};
     window.dataset_db_text_index_enabled = {{ dataset_db_text_index_enabled | tojson | safe }};
@@ -919,7 +918,6 @@
                 // Use the new primary source dialog
                 showPrimarySourceDialog({
                     defaultPrimarySource: default_primary_source,
-                    formatSourceApiUrl: format_source_api_url,
                     onConfirm: function(primarySourceUrl, saveAsDefault) {
                         // Add primary source information to the first change
                         if (pendingChanges.length > 0) {

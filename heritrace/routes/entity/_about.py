@@ -21,7 +21,7 @@ from heritrace.utils.display_rules_utils import (
     get_grouped_triples,
     get_highest_priority_class,
 )
-from heritrace.utils.primary_source_utils import get_default_primary_source
+from heritrace.utils.primary_source_utils import get_user_default_primary_source
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
@@ -144,7 +144,7 @@ def about(subject: str) -> str:
     subject_uri = URIRef(subject)
     change_tracking_config = get_change_tracking_config()
 
-    default_primary_source = get_default_primary_source(current_user.orcid)
+    default_primary_source = get_user_default_primary_source(current_user.orcid)
 
     agnostic_entity = AgnosticEntity(
         res=subject,

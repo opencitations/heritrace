@@ -41,7 +41,7 @@ from heritrace.utils.display_rules_utils import (
     get_similarity_properties,
 )
 from heritrace.utils.primary_source_utils import (
-    get_default_primary_source,
+    get_user_default_primary_source,
     save_user_default_primary_source,
 )
 from heritrace.utils.shacl_utils import determine_shape_for_classes
@@ -206,12 +206,13 @@ def execute_merge() -> WerkzeugResponse:
             save_plugin=current_app.config.get("SAVE_PLUGIN"),
         )
 
-        if primary_source and validators.url(primary_source):  # type: ignore[arg-type]
-            editor.set_primary_source(URIRef(primary_source))
-
         editor = import_entity_graph(editor, entity1_uri)
         editor = import_entity_graph(editor, entity2_uri)
-        editor.merge(keep_entity_uri=entity1_uri, delete_entity_uri=entity2_uri)
+        editor.merge(
+            keep_entity_uri=entity1_uri,
+            delete_entity_uri=entity2_uri,
+            primary_source=URIRef(primary_source) if primary_source else None,
+        )
 
         entity1_url = url_for("entity.about", subject=entity1_uri)
         entity2_url = url_for("entity.about", subject=entity2_uri)
@@ -321,7 +322,7 @@ def compare_and_merge() -> str | WerkzeugResponse:
         "properties": entity2_props,
     }
 
-    default_primary_source = get_default_primary_source(current_user.orcid)
+    default_primary_source = get_user_default_primary_source(current_user.orcid)
 
     return render_template(
         "entity/merge_confirm.jinja",

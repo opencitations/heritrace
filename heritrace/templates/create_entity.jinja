@@ -144,8 +144,7 @@
             }
 
             showPrimarySourceDialog({
-                defaultPrimarySource: '{{ default_primary_source }}',
-                formatSourceApiUrl: '{{ url_for("api.format_source_api") }}',
+                defaultPrimarySource: {{ default_primary_source | tojson }},
                 onConfirm: function(primarySourceUrl, saveAsDefault) {
                     let structuredData = {};
 

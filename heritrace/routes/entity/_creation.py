@@ -26,7 +26,7 @@ from heritrace.utils.display_rules_utils import (
     is_entity_type_visible,
 )
 from heritrace.utils.primary_source_utils import (
-    get_default_primary_source,
+    get_user_default_primary_source,
     save_user_default_primary_source,
 )
 from heritrace.utils.shacl_utils import find_matching_form_field
@@ -88,8 +88,6 @@ def _create_entity_with_form_fields(
     entity_type = cleaned_structured_data["entity_type"]
     properties = cleaned_structured_data.get("properties", {})
 
-    _setup_editor_for_creation(editor, cleaned_structured_data)
-
     for predicate, raw_values in properties.items():
         predicate_uri = URIRef(predicate)
         values = raw_values if isinstance(raw_values, list) else [raw_values]
@@ -144,9 +142,6 @@ def _create_entity_without_form_fields(
     )
     entity_type = cleaned_structured_data["entity_type"]
     properties = cleaned_structured_data.get("properties", {})
-
-    editor.import_entity(entity_uri)
-    _setup_editor_for_creation(editor, cleaned_structured_data)
 
     editor.create(
         entity_uri,
@@ -220,7 +215,7 @@ def _handle_create_entity_post(
         ),
         current_app.config["COUNTER_HANDLER"],
         resp_agent,
-        URIRef(primary_source) if primary_source else None,
+        URIRef(current_app.config["PRIMARY_SOURCE"]),
         current_app.config["DATASET_GENERATION_TIME"],
         save_plugin=current_app.config.get("SAVE_PLUGIN"),
     )
@@ -228,6 +223,10 @@ def _handle_create_entity_post(
     default_graph_uri = (
         URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
     )
+    if not form_fields:
+        editor.import_entity(entity_uri)
+    _setup_editor_for_creation(editor, cleaned_structured_data)
+    editor.set_primary_source(URIRef(primary_source) if primary_source else None)
 
     if form_fields:
         _create_entity_with_form_fields(
@@ -271,7 +270,7 @@ def _handle_create_entity_post(
 def create_entity() -> str | tuple[Response, int]:
     form_fields = get_form_fields()
 
-    default_primary_source = get_default_primary_source(current_user.orcid)
+    default_primary_source = get_user_default_primary_source(current_user.orcid)
 
     entity_class_shape_pairs = sorted(
         [

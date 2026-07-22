@@ -262,6 +262,11 @@ def test_execute_merge_success_flash(
         call(mock_editor_instance, URIRef(merge_test_data["entity1_uri"])),
         call(mock_editor_instance, URIRef(merge_test_data["entity2_uri"])),
     ]
+    mock_editor_instance.merge.assert_called_once_with(
+        keep_entity_uri=URIRef(merge_test_data["entity1_uri"]),
+        delete_entity_uri=URIRef(merge_test_data["entity2_uri"]),
+        primary_source=None,
+    )
 
 
 @patch("flask_login.utils._get_user")
@@ -362,8 +367,10 @@ def test_execute_merge_save_default_source(
 
     mock_save_source.assert_called_once_with(mock_user.orcid, primary_source)
 
-    mock_editor_instance.set_primary_source.assert_called_once_with(
-        URIRef(primary_source)
+    mock_editor_instance.merge.assert_called_once_with(
+        keep_entity_uri=URIRef(merge_test_data["entity1_uri"]),
+        delete_entity_uri=URIRef(merge_test_data["entity2_uri"]),
+        primary_source=URIRef(primary_source),
     )
 
 

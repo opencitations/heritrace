@@ -228,7 +228,7 @@ environment:
 
 | Environment Variable | Description | Default |
 |---------------------|-------------|---------|
-| `PRIMARY_SOURCE` | Defines the default primary source (DOI/URL). This value is used for the `prov:hadPrimarySource` property. It's used for the initial dataset import and proposed as the default when creating or modifying entities | Required |
+| `PRIMARY_SOURCE` | Defines the DOI or URL recorded as `prov:hadPrimarySource` for the initial historical snapshot of the pre-existing dataset | Required |
 | `DATASET_GENERATION_TIME` | Specifies the creation timestamp for a pre-existing dataset. This value is used for the `prov:generatedAtTime` property in the initial historical snapshot | Current time |
 
 ## Optional save plugin

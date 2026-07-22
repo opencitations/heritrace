@@ -8,7 +8,6 @@ from redis import RedisError
 
 from heritrace.utils.primary_source_utils import (
     USER_DEFAULT_SOURCE_KEY,
-    get_default_primary_source,
     get_user_default_primary_source,
     save_user_default_primary_source,
 )
@@ -73,34 +72,6 @@ def test_get_user_default_primary_source_redis_error(mock_current_app, app) -> N
             "Failed to get user default primary source from Redis"
         )
         assert result is None
-
-
-@patch("heritrace.utils.primary_source_utils.get_user_default_primary_source")
-def test_get_default_primary_source_user_set(mock_get_user_default, app) -> None:
-    """Test getting default primary source when user has one set."""
-    user_id = "0000-0000-0000-0004"
-    user_source = "http://user.specific.source"
-
-    with app.app_context():
-        mock_get_user_default.return_value = user_source
-        result = get_default_primary_source(user_id)
-
-        mock_get_user_default.assert_called_once_with(user_id)
-        assert result == user_source
-
-
-@patch("heritrace.utils.primary_source_utils.get_user_default_primary_source")
-def test_get_default_primary_source_user_not_set(mock_get_user_default, app) -> None:
-    """Test getting default primary source falls back to app config."""
-    user_id = "0000-0000-0000-0005"
-    app_default_source = app.config["PRIMARY_SOURCE"]
-
-    with app.app_context():
-        mock_get_user_default.return_value = None
-        result = get_default_primary_source(user_id)
-
-        mock_get_user_default.assert_called_once_with(user_id)
-        assert result == app_default_source
 
 
 @patch("heritrace.utils.primary_source_utils.is_valid_url", return_value=True)

@@ -2807,56 +2807,6 @@ def test_render_nested_form_html_exception(
     assert data["status"] == "error"
 
 
-def test_format_source_api_invalid_url(api_client: FlaskClient) -> None:
-    """Test format_source_api with invalid URL."""
-    response = api_client.post("/api/format-source", json={"url": "not-a-valid-url"})
-
-    assert response.status_code == 400
-    data = json.loads(response.data)
-    assert "error" in data
-    assert "Invalid or missing URL" in data["error"]
-
-
-@patch("heritrace.routes.api.get_custom_filter")
-def test_format_source_api_exception(
-    mock_get_custom_filter, api_client: FlaskClient
-) -> None:
-    """Test format_source_api when an exception occurs."""
-    mock_filter = MagicMock()
-    mock_filter.format_source_reference.side_effect = Exception("Test error")
-    mock_get_custom_filter.return_value = mock_filter
-
-    response = api_client.post(
-        "/api/format-source", json={"url": "http://example.org/source"}
-    )
-
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert "formatted_html" in data
-    assert "example.org" in data["formatted_html"]
-
-
-@patch("heritrace.routes.api.get_custom_filter")
-def test_format_source_api_success(
-    mock_get_custom_filter, api_client: FlaskClient
-) -> None:
-    """Test format_source_api success path."""
-    mock_filter = MagicMock()
-    mock_filter.format_source_reference.return_value = (
-        "<a href='http://example.org'>Example</a>"
-    )
-    mock_get_custom_filter.return_value = mock_filter
-
-    response = api_client.post(
-        "/api/format-source", json={"url": "http://example.org/source"}
-    )
-
-    assert response.status_code == 200
-    data = json.loads(response.data)
-    assert "formatted_html" in data
-    assert "Example" in data["formatted_html"]
-
-
 # Tests for apply_changes endpoint
 
 

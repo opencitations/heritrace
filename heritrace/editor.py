@@ -212,7 +212,12 @@ class Editor:
             [subject],  # type: ignore[arg-type]
         )
 
-    def merge(self, keep_entity_uri: URIRef, delete_entity_uri: URIRef) -> None:
+    def merge(
+        self,
+        keep_entity_uri: URIRef,
+        delete_entity_uri: URIRef,
+        primary_source: URIRef | None = None,
+    ) -> None:
         if keep_entity_uri == delete_entity_uri:
             msg = "Cannot merge an entity with itself."
             raise ValueError(msg)
@@ -238,6 +243,7 @@ class Editor:
         )
         self.begin_counter_transaction()
         self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)  # type: ignore[arg-type]
+        self.set_primary_source(primary_source)
         self.g_set.merge(keep_entity_uri, delete_entity_uri)  # type: ignore[arg-type]
 
         self.save()
@@ -314,5 +320,7 @@ class Editor:
             return dt.timestamp()
         return None
 
-    def set_primary_source(self, source: URIRef) -> None:
+    def set_primary_source(self, source: URIRef | None) -> None:
         self.source = source
+        for metadata in self.g_set.entity_index.values():  # type: ignore[union-attr]
+            metadata["source"] = source

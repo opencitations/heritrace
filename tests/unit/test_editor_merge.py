@@ -397,6 +397,51 @@ def test_merge_no_incoming(
     assert mock_storer_instance.upload_all.call_count == 2
 
 
+def test_merge_separates_initial_and_empty_operation_sources(
+    mock_counter_handler, mock_sparql_wrapper, mock_reader, mock_storer
+) -> None:
+    initial_source = URIRef("https://example.org/initial-dataset")
+    editor = Editor(
+        EndpointConfig(
+            dataset=DATASET_ENDPOINT,
+            provenance=PROVENANCE_ENDPOINT,
+            is_quadstore=True,
+        ),
+        mock_counter_handler,
+        RESP_AGENT,
+        initial_source,
+    )
+    operation_sources: dict[URIRef, URIRef | None] = {}
+
+    def capture_operation_sources() -> None:
+        operation_sources.update(
+            {
+                subject: metadata["source"]
+                for subject, metadata in editor.g_set.entity_index.items()
+            }
+        )
+
+    original_preexisting_finished = editor.g_set.preexisting_finished
+    with (
+        patch.object(
+            editor.g_set,
+            "preexisting_finished",
+            side_effect=original_preexisting_finished,
+        ) as mock_preexisting_finished,
+        patch.object(
+            editor.g_set,
+            "generate_provenance",
+            side_effect=capture_operation_sources,
+        ),
+    ):
+        editor.merge(KEEP_URI, DELETE_URI, primary_source=None)
+
+    mock_preexisting_finished.assert_called_once_with(
+        RESP_AGENT, initial_source, editor.c_time
+    )
+    assert operation_sources == {KEEP_URI: None, DELETE_URI: None}
+
+
 def test_merge_with_incoming_reference(
     editor_instance, mock_sparql_wrapper, mock_reader, mock_storer
 ) -> None:

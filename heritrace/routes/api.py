@@ -605,13 +605,10 @@ def _setup_editor(
         ),
         current_app.config["COUNTER_HANDLER"],
         resp_agent,
-        current_app.config["PRIMARY_SOURCE"],
+        URIRef(current_app.config["PRIMARY_SOURCE"]),
         current_app.config["DATASET_GENERATION_TIME"],
         save_plugin=current_app.config.get("SAVE_PLUGIN"),
     )
-
-    if primary_source and is_valid_url(primary_source):
-        editor.set_primary_source(URIRef(primary_source))
 
     deletion_subjects = _collect_entity_deletion_subjects(
         changes, affected_entities, delete_affected=delete_affected
@@ -634,6 +631,7 @@ def _setup_editor(
                 import_referenced_entities(editor, data)
 
     editor.preexisting_finished()
+    editor.set_primary_source(URIRef(primary_source) if primary_source else None)
 
     graph_uri: URIRef | None = None
     if editor.dataset_is_quadstore:
@@ -1249,33 +1247,6 @@ def get_human_readable_entity() -> str | tuple[Response, int]:
     shape = determine_shape_for_classes([entity_class])
     filter_instance = custom_filter
     return filter_instance.human_readable_entity(uri, (entity_class, shape))
-
-
-@api_bp.route("/format-source", methods=["POST"])
-@login_required
-def format_source_api() -> Response | tuple[Response, int]:
-    """
-    API endpoint to format a source URL using the application's filters.
-    Accepts POST request with JSON body: {"url": "source_url"}
-    Returns JSON: {"formatted_html": "html_string"}
-    """
-    data = request.get_json()
-    source_url = data.get("url")
-
-    if not source_url or not is_valid_url(source_url):
-        return jsonify({"error": gettext("Invalid or missing URL")}), 400
-
-    try:
-        custom_filter = get_custom_filter()
-        formatted_html = custom_filter.format_source_reference(source_url)
-        return jsonify({"formatted_html": formatted_html})
-    except Exception:
-        current_app.logger.exception(
-            "Error formatting source URL '%s'",
-            source_url,
-        )
-        fallback_html = f'<a href="{source_url}" target="_blank">{source_url}</a>'
-        return jsonify({"formatted_html": fallback_html})
 
 
 @api_bp.route("/form-fields", methods=["GET"])

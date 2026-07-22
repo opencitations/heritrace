@@ -88,9 +88,57 @@ def test_create_entity_with_shacl(
 
     # Verify editor calls
     mock_editor_instance.preexisting_finished.assert_called_once()
+    mock_editor_instance.set_primary_source.assert_called_once_with(None)
+    assert mock_editor.call_args.args[3] == URIRef(app.config["PRIMARY_SOURCE"])
     assert (
         mock_editor_instance.create.call_count >= 3
     )  # At least 3 create calls expected
+
+
+@patch(
+    "heritrace.routes.entity._creation.get_user_default_primary_source",
+    return_value=None,
+)
+@patch("heritrace.routes.entity._creation.get_form_fields", return_value={})
+def test_create_entity_renders_empty_primary_source_dialog_without_preview(
+    _mock_form_fields,
+    _mock_user_source,
+    logged_in_client,
+    app,
+) -> None:
+    response = logged_in_client.get(url_for("entity.create_entity"))
+
+    assert response.status_code == 200
+    assert response.data.count(b"defaultPrimarySource: null") == 1
+    assert response.data.count(app.config["PRIMARY_SOURCE"].encode()) == 0
+    assert response.data.count(b'id="primary-source-preview"') == 0
+    assert response.data.count(b"/api/format-source") == 0
+    assert response.data.count(b"No primary source will be recorded") == 0
+    assert response.data.count(b"Source (optional):") == 0
+    expected_prompt = (
+        b"Enter the URL of the primary source for this operation, or leave the "
+        b"field blank to record no source."
+    )
+    assert response.data.count(expected_prompt) == 1
+
+
+@patch(
+    "heritrace.routes.entity._creation.get_user_default_primary_source",
+    return_value="https://saved.example/source",
+)
+@patch("heritrace.routes.entity._creation.get_form_fields", return_value={})
+def test_create_entity_prefills_user_primary_source(
+    _mock_form_fields,
+    _mock_user_source,
+    logged_in_client,
+) -> None:
+    response = logged_in_client.get(url_for("entity.create_entity"))
+
+    assert response.status_code == 200
+    assert (
+        response.data.count(b'defaultPrimarySource: "https://saved.example/source"')
+        == 1
+    )
 
 
 @patch("heritrace.routes.entity._creation.Editor")
@@ -590,9 +638,11 @@ def test_create_entity_save_default_primary_source(
     # Verify save_user_default_primary_source was called correctly
     mock_save_default.assert_called_once_with("0000-0000-0000-0001", primary_source_url)
 
-    # Verify editor was instantiated with the primary source
     mock_editor.assert_called_once()
     call_args, _call_kwargs = mock_editor.call_args
     # Editor args: (endpoints, counter_handler, resp_agent, source, c_time)
     assert len(call_args) >= 4
-    assert call_args[3] == URIRef(primary_source_url)
+    assert call_args[3] == URIRef(app.config["PRIMARY_SOURCE"])
+    mock_editor.return_value.set_primary_source.assert_called_once_with(
+        URIRef(primary_source_url)
+    )

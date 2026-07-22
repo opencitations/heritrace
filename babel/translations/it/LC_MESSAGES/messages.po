@@ -85,10 +85,6 @@ msgstr "Modifiche applicate con successo"
 msgid "An error occurred while applying changes"
 msgstr "Si è verificato un errore durante l'applicazione delle modifiche"
 
-#: heritrace/routes/api.py:985
-msgid "Invalid or missing URL"
-msgstr "URL non valido o mancante"
-
 #: heritrace/routes/auth.py:51
 msgid "An error occurred during authentication. Please try again"
 msgstr "Si è verificato un errore durante l'autenticazione. Riprova"
@@ -526,7 +522,6 @@ msgstr "Vai al catalogo"
 #: heritrace/templates/entity/linked_resources.jinja:43
 #: heritrace/templates/entity/similar_resources.jinja:55
 #: heritrace/templates/lock_workflow.jinja:25
-#: heritrace/templates/primary_source_handler.jinja:53
 msgid "Loading..."
 msgstr "Caricamento..."
 
@@ -642,75 +637,38 @@ msgstr "Disconnetti"
 msgid "Login"
 msgstr "Accedi"
 
-#: heritrace/templates/primary_source_handler.jinja:35
-msgid "Source (Optional):"
-msgstr "Fonte (Opzionale):"
+#: heritrace/templates/primary_source_handler.jinja:6
+msgid "Enter primary source"
+msgstr "Inserisci la fonte primaria"
 
-#: heritrace/templates/primary_source_handler.jinja:37
-#: heritrace/templates/primary_source_handler.jinja:88
-msgid "Current Default:"
-msgstr "Predefinito attuale:"
-
-#: heritrace/templates/primary_source_handler.jinja:39
-msgid "Preview:"
-msgstr "Anteprima:"
-
-#: heritrace/templates/primary_source_handler.jinja:43
-msgid "No primary source will be recorded"
-msgstr "Nessuna fonte primaria verrà registrata"
-
-#: heritrace/templates/primary_source_handler.jinja:48
-msgid "Enter a valid URL or leave blank"
-msgstr "Inserisci un URL valido o lascia vuoto"
-
-#: heritrace/templates/primary_source_handler.jinja:66
-msgid "Preview failed to load"
-msgstr "Caricamento anteprima fallito"
-
-#: heritrace/templates/primary_source_handler.jinja:85
-msgid "Enter Primary Source"
-msgstr "Inserisci Fonte Primaria"
-
-#: heritrace/templates/primary_source_handler.jinja:87
+#: heritrace/templates/primary_source_handler.jinja:8
 msgid ""
-"Please provide the URL of the primary source for this entity, or leave "
-"blank if not applicable"
+"Enter the URL of the primary source for this operation, or leave the field "
+"blank to record no source."
 msgstr ""
-"Fornisci l'URL della fonte primaria per questa entità, o lascia vuoto se "
-"non applicabile"
+"Inserisci l'URL della fonte primaria per questa operazione oppure lascia il "
+"campo vuoto per non registrare alcuna fonte."
 
-#: heritrace/templates/primary_source_handler.jinja:91
-msgid "Loading preview..."
-msgstr "Caricamento anteprima..."
-
-#: heritrace/templates/primary_source_handler.jinja:96
+#: heritrace/templates/primary_source_handler.jinja:12
 msgid "Enter the URL"
 msgstr "Inserisci l'URL"
 
-#: heritrace/templates/primary_source_handler.jinja:98
+#: heritrace/templates/primary_source_handler.jinja:14
 msgid "Confirm"
 msgstr "Conferma"
 
 #: heritrace/templates/entity/about.jinja:155
 #: heritrace/templates/entity/about.jinja:826
 #: heritrace/templates/entity/merge_confirm.jinja:122
-#: heritrace/templates/primary_source_handler.jinja:99
+#: heritrace/templates/primary_source_handler.jinja:15
 msgid "Cancel"
 msgstr "Annulla"
 
-#: heritrace/templates/primary_source_handler.jinja:103
+#: heritrace/templates/primary_source_handler.jinja:19
 msgid "Save this URL as my default primary source"
 msgstr "Salva questo URL come mia fonte primaria predefinita"
 
-#: heritrace/templates/primary_source_handler.jinja:115
-msgid "No default source set"
-msgstr "Nessuna fonte predefinita impostata"
-
-#: heritrace/templates/primary_source_handler.jinja:116
-msgid "Source:"
-msgstr "Fonte:"
-
-#: heritrace/templates/primary_source_handler.jinja:132
+#: heritrace/templates/primary_source_handler.jinja:24
 msgid "Please enter a valid URL or leave blank."
 msgstr "Inserisci un URL valido o lascia vuoto."
 
@@ -1352,4 +1310,3 @@ msgstr ""
 
 #~ msgid "At least %(min_count)d item(s) required"
 #~ msgstr "Sono richiesti almeno %(min_count)d elementi"
-

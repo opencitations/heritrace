@@ -40,20 +40,6 @@ def get_user_default_primary_source(user_id: str) -> str | None:
     return user_default_source
 
 
-def get_default_primary_source(user_id: str) -> str:
-    """
-    Get the default primary source to use, falling back to app config if user has none
-
-    Args:
-        user_id: The user's ID (e.g. ORCID)
-
-    Returns:
-        The primary source to use (user's default or app default)
-    """
-    user_default = get_user_default_primary_source(user_id)
-    return user_default or current_app.config["PRIMARY_SOURCE"]
-
-
 def save_user_default_primary_source(user_id: str, primary_source: str) -> bool | None:
     """
     Save the user's default primary source to Redis

@@ -735,3 +735,36 @@ def test_apply_changes_sets_editor_primary_source(
     )
     mock_import_entity_graph.assert_called_once()
     mock_editor_instance.save.assert_called_once()
+
+
+@patch("heritrace.routes.api.import_entity_graph")
+@patch("heritrace.routes.api.Editor")
+@patch("heritrace.routes.api.g")
+def test_apply_changes_uses_no_operation_source_when_field_is_empty(
+    mock_g,
+    mock_editor_cls,
+    mock_import_entity_graph,
+    logged_in_client: FlaskClient,
+    app: Flask,
+) -> None:
+    mock_g.resource_lock_manager = MagicMock()
+    mock_editor_instance = mock_editor_cls.return_value
+    mock_import_entity_graph.return_value = mock_editor_instance
+    changes = [
+        {
+            "action": "update",
+            "subject": "http://example.org/entity/1",
+            "predicate": "http://example.org/title",
+            "object": "Old title",
+            "newObject": "Updated title",
+            "primary_source": "",
+        }
+    ]
+
+    with patch("heritrace.routes.api.update_logic"):
+        response = logged_in_client.post("/api/apply_changes", json=changes)
+
+    assert response.status_code == 200
+    assert mock_editor_cls.call_args.args[3] == URIRef(app.config["PRIMARY_SOURCE"])
+    mock_editor_instance.preexisting_finished.assert_called_once()
+    mock_editor_instance.set_primary_source.assert_called_once_with(None)
