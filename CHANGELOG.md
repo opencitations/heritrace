@@ -1,3 +1,11 @@
+## [3.1.2](https://github.com/opencitations/heritrace/compare/v3.1.1...v3.1.2) (2026-07-22)
+
+
+### Bug Fixes
+
+* **navbar:** replace emoji with Bootstrap icons [release] ([5789e55](https://github.com/opencitations/heritrace/commit/5789e5593f69a25f217a5144d9ba895f62608f75))
+* **primary-source:** make operation primary sources optional ([09ffbb6](https://github.com/opencitations/heritrace/commit/09ffbb649e19325fb25e09e8fa058cca74422842))
+
 ## [3.1.1](https://github.com/opencitations/heritrace/compare/v3.1.0...v3.1.1) (2026-07-21)
 
 
