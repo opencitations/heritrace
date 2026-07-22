@@ -39,7 +39,7 @@ services:
       - heritrace-network
 
   web:
-    image: arcangelo7/heritrace:3.1.1
+    image: arcangelo7/heritrace:3.1.2
     ports:
       - "5000:5000"
     depends_on:
