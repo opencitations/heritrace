@@ -1,3 +1,10 @@
+## [3.1.3](https://github.com/opencitations/heritrace/compare/v3.1.2...v3.1.3) (2026-07-23)
+
+
+### Bug Fixes
+
+* recognize quoted merge URIs [release] ([b2968bb](https://github.com/opencitations/heritrace/commit/b2968bb751dcb7753555406d57e2b4e55031e73c))
+
 ## [3.1.2](https://github.com/opencitations/heritrace/compare/v3.1.1...v3.1.2) (2026-07-22)
 
 
