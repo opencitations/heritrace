@@ -179,26 +179,51 @@ rules:
       - "http://purl.org/spar/datacite/hasIdentifier"
     fetchUriDisplay: |
       PREFIX datacite: <http://purl.org/spar/datacite/>
-      PREFIX dcterms: <http://purl.org/dc/terms/>
+      PREFIX foaf: <http://xmlns.com/foaf/0.1/>
       PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
+      PREFIX oco: <https://w3id.org/oc/ontology/>
       PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
+      PREFIX pro: <http://purl.org/spar/pro/>
       SELECT ?display
       WHERE {
         {
-          SELECT ?title ?date (GROUP_CONCAT(?identifier; separator=" ") AS ?identifiers)
+          SELECT ?firstAuthorRole
           WHERE {
-            [[uri]] dcterms:title ?title ;
-                    prism:publicationDate ?date .
-            OPTIONAL {
-              [[uri]] datacite:hasIdentifier ?identifierNode .
-              ?identifierNode datacite:usesIdentifierScheme ?scheme ;
-                              literal:hasLiteralValue ?value .
-              BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?identifier)
+            [[uri]] pro:isDocumentContextFor ?firstAuthorRole .
+            ?firstAuthorRole pro:withRole pro:author .
+            FILTER NOT EXISTS {
+              [[uri]] pro:isDocumentContextFor ?precedingRole .
+              ?precedingRole oco:hasNext ?firstAuthorRole .
             }
           }
-          GROUP BY ?title ?date
+          ORDER BY DESC(?firstAuthorRole)
+          LIMIT 1
         }
-        BIND(CONCAT(?title, " (", STR(?date), ") [", ?identifiers, "]") AS ?display)
+        ?firstAuthorRole pro:isHeldBy ?agent .
+        ?agent foaf:familyName ?familyName .
+        {
+          SELECT ?date
+          WHERE {
+            [[uri]] prism:publicationDate ?date .
+          }
+          ORDER BY DESC(?date)
+          LIMIT 1
+        }
+        {
+          SELECT (GROUP_CONCAT(?identifier; separator=" ") AS ?identifiers)
+          WHERE {
+            {
+              SELECT (CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?identifier)
+              WHERE {
+                [[uri]] datacite:hasIdentifier ?identifierNode .
+                ?identifierNode datacite:usesIdentifierScheme ?scheme ;
+                                literal:hasLiteralValue ?value .
+              }
+              ORDER BY ?identifier
+            }
+          }
+        }
+        BIND(CONCAT("(", ?familyName, " et al., ", STR(?date), ") [", ?identifiers, "]") AS ?display)
       }
     displayProperties:
       - *type_property
