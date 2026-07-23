@@ -1,7 +1,7 @@
 {% macro render_triple(triple, subject) %}
     <li class="d-flex align-items-center">
         <span class="flex-grow-1 d-flex flex-column justify-content-center py-3 w-75">
-            <span class="object-value word-wrap">
+            <span class="object-value version-object-value word-wrap">
                 {{triple[2]}}
             </span>
         </span>
@@ -28,9 +28,9 @@
     <div class="col-sm-6 col-12">
         <a href="{{ url_for('entity.entity_history', entity_uri=subject) }}" class="btn btn-outline-primary w-100" id="historyBtn">
             <i class="bi bi-clock-history me-2"></i> {{_('Time Machine')}}
-        </a>    
+        </a>
     </div>
-    
+
     <div class="col-sm-6 col-12">
         {% if next_snapshot_timestamp %}
             <form action="{{ url_for('entity.restore_version', entity_uri=subject, timestamp=timestamp) }}" method="post" id="restoreVersionForm">
@@ -38,7 +38,7 @@
                     <i class="bi bi-arrow-counterclockwise me-2"></i> {{ _('Restore this Version') }}
                 </button>
             </form>
-        {% endif %}    
+        {% endif %}
     </div>
 </div>
 
@@ -46,7 +46,7 @@
     <div class="row g-3 mb-5">
         <div class="col-sm-6 col-12">
             {% if prev_snapshot_timestamp %}
-                <a href="{{ url_for('entity.entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}" 
+                <a href="{{ url_for('entity.entity_version', entity_uri=subject, timestamp=prev_snapshot_timestamp) }}"
                    class="btn btn-outline-primary w-100 prevVersionBtn">
                     <i class="bi bi-arrow-left me-2"></i> {{ _('Previous version') }}
                 </a>
@@ -58,10 +58,10 @@
                 </div>
             {% endif %}
         </div>
-        
+
         <div class="col-sm-6 col-12">
             {% if next_snapshot_timestamp %}
-                <a href="{{ url_for('entity.entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}" 
+                <a href="{{ url_for('entity.entity_version', entity_uri=subject, timestamp=next_snapshot_timestamp) }}"
                    class="btn btn-outline-primary w-100 nextVersionBtn">
                     {{ _('Next version') }} <i class="bi bi-arrow-right ms-2"></i>
                 </a>
@@ -88,20 +88,20 @@
                         <li class="list-group-item"><strong>{{_('Invalidation time')}}:</strong> {{ meta['invalidatedAtTime'] | format_datetime }}</li>
                     {% endif %}
                     <li class="list-group-item">
-                        <strong>{{_('Attributed to')}}:</strong> 
+                        <strong>{{_('Attributed to')}}:</strong>
                         {{ meta['wasAttributedTo'] | format_agent_reference | safe }}
                     </li>
                     {% if meta['hadPrimarySource'] %}
                         <li class="list-group-item">
-                            <strong>{{_('Primary source')}}:</strong> 
+                            <strong>{{_('Primary source')}}:</strong>
                             {{ meta['hadPrimarySource'] | format_source_reference | safe }}
                         </li>
                     {% endif %}
                     {% if meta['description'] %}
-                    <li class="list-group-item"><strong>{{_('Description')}}:</strong> {{ meta['description'] }}</li>
+                    <li class="list-group-item version-metadata-text"><strong>{{_('Description')}}:</strong> {{ meta['description'] }}</li>
                     {% endif %}
                     {% if modifications %}
-                    <li class="list-group-item">
+                    <li class="list-group-item version-metadata-text">
                         {{ modifications }}
                     </li>
                     {% endif %}
@@ -138,7 +138,7 @@
         $('#restoreVersionForm').on('submit', function(e) {
             // Prevent the default form submission
             e.preventDefault();
-            
+
             // Show loading indicator
             Swal.fire({
                 title: "{{ _('Restoring...') }}",
@@ -149,7 +149,7 @@
                     Swal.showLoading();
                 }
             });
-            
+
             // Submit the form
             this.submit();
         });

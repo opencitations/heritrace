@@ -34,7 +34,7 @@ services:
       retries: 12
 
   web:
-    image: arcangelo7/heritrace:3.1.0
+    image: arcangelo7/heritrace:3.1.1
     ports:
       - "5000:5000"
     depends_on:
@@ -44,8 +44,8 @@ services:
         condition: service_healthy
     environment:
       FLASK_ENV: demo
-      APP_TITLE: Ask the Curator
-      APP_SUBTITLE: HERITRACE curation demo
+      APP_TITLE: HERITRACE
+      APP_SUBTITLE: RDF data curation demo
       SECRET_KEY: heritrace-iswc2026-demo
       CACHE_VALIDITY_DAYS: 7
       DATASET_DB_URL: http://dataset-db:8890/sparql
@@ -55,8 +55,8 @@ services:
       DATASET_DB_TEXT_INDEX_ENABLED: "false"
       DATASET_IS_QUADSTORE: "true"
       PROVENANCE_IS_QUADSTORE: "true"
-      DATASET_GENERATION_TIME: "2026-07-19T00:00:00+00:00"
-      PRIMARY_SOURCE: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=15370649,15849057&retmode=json
+      DATASET_GENERATION_TIME: "2023-06-28T13:00:48+00:00"
+      PRIMARY_SOURCE: https://doi.org/10.6084/m9.figshare.21747536.v4
       BASE_IRI: https://w3id.org/oc/meta/demo
       COUNTER_HANDLER_CLASS: default_components.meta_counter_handler.MetaCounterHandler
       URI_GENERATOR_CLASS: default_components.meta_uri_generator.MetaURIGenerator

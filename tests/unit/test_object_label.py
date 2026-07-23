@@ -19,12 +19,18 @@ def mock_custom_filter():
     return filter_mock
 
 
-def test_get_object_label_rdf_type() -> None:
-    object_value = "http://example.org/Person"
+@pytest.mark.parametrize(
+    ("object_value", "expected_label"),
+    [
+        ("http://example.org/Expression", "Expression"),
+        ("http://example.org/JournalArticle", "Journal Article"),
+    ],
+)
+def test_get_object_label_rdf_type(object_value: str, expected_label: str) -> None:
     predicate = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     entity_type = "http://example.org/Entity"
     mock_custom_filter = MagicMock(spec=Filter)
-    mock_custom_filter.human_readable_class.return_value = "Person"
+    mock_custom_filter.human_readable_class.return_value = expected_label
 
     ctx = EntityRenderContext(
         entity_uri="http://example.org/entity/1",
@@ -46,9 +52,9 @@ def test_get_object_label_rdf_type() -> None:
         ctx,
     )
 
-    assert label == "Person"
+    assert label == expected_label
     mock_custom_filter.human_readable_class.assert_called_once_with(
-        (entity_type, "http://example.org/EntityShape")
+        (object_value, None)
     )
 
 

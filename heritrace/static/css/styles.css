@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: ISC
  */
 
+:root {
+  --page-gutter: clamp(1rem, 3vw, 3rem);
+}
+
 body {
   display: flex;
   flex-direction: column;
@@ -17,8 +21,109 @@ main {
   flex: 1;
 }
 
-.container {
-  max-width: 70ch !important;
+.page-shell {
+  width: min(var(--page-max-width), calc(100% - 2 * var(--page-gutter)));
+  margin-inline: auto;
+}
+
+.page-shell--compact {
+  --page-max-width: 42rem;
+}
+
+.page-shell--standard {
+  --page-max-width: 72rem;
+}
+
+.page-shell--wide {
+  --page-max-width: 90rem;
+}
+
+.page-shell--full {
+  width: 100%;
+  max-width: none;
+}
+
+.catalogue-layout {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  gap: clamp(1.5rem, 3vw, 3rem);
+}
+
+.catalogue-categories,
+.catalogue-content {
+  min-width: 0;
+}
+
+.pagination-controls,
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pagination-controls {
+  justify-content: space-between;
+}
+
+.catalogue-item-summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.catalogue-item-title {
+  display: inline-block;
+}
+
+.property-value,
+.tripleObject,
+.tripleObject > :first-child {
+  min-width: 0;
+}
+
+.tripleObject {
+  width: 100%;
+}
+
+.tripleObject > :first-child {
+  max-width: calc(100% - 7rem);
+  overflow-wrap: anywhere;
+}
+
+.entity-reference-display,
+.linked-resources,
+.similar-resources,
+.modifications,
+.version-object-value,
+.version-metadata-text,
+.breadcrumb,
+.merge-page {
+  overflow-wrap: anywhere;
+}
+
+.time-vault-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.time-vault-actions > * {
+  flex: 1 1 16rem;
+}
+
+@media (max-width: 767.98px) {
+  .catalogue-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pagination-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination-controls .pagination {
+    justify-content: center;
+  }
 }
 
 .container-fluid {
@@ -49,7 +154,7 @@ a {
 }
 
 .word-wrap {
-  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 .edit-mode {

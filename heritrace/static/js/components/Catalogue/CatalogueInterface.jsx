@@ -170,8 +170,8 @@ const CatalogueInterface = ({
   )?.label;
 
   return (
-    <div className="row">
-      <div className="col-md-4">
+    <div className="catalogue-layout">
+      <div className="catalogue-categories">
         <div className="card mb-4">
           <div className="card-header bg-light">
             <div className="d-flex justify-content-between align-items-center">
@@ -218,7 +218,7 @@ const CatalogueInterface = ({
         </div>
       </div>
 
-      <div className="col-md-8">
+      <div className="catalogue-content">
         <h3 className="mb-3">
           {isTimeVault ? 'Deleted Resources in category:' : 'Items in category:'} {selectedClassName}
         </h3>
@@ -233,7 +233,7 @@ const CatalogueInterface = ({
           <>
             <div className="mb-3">
               {state.sortableProperties?.length > 0 && (
-                <div className="mb-3">  
+                <div className="mb-3">
                   <SortControls
                     sortableProperties={state.sortableProperties}
                     currentProperty={state.sortProperty}
@@ -257,13 +257,13 @@ const CatalogueInterface = ({
               <div className="list-group">
                 {state.entities.map((entity) => (
                   <div key={entity.uri} className="list-group-item d-flex flex-column">
-                    <div className="mb-3">
+                    <div className="catalogue-item-summary mb-3">
                       <a
                         href={isTimeVault 
                           ? `/entity-version/${entity.uri}/${entity.lastValidSnapshotTime}`
                           : `/about/${entity.uri}`
                         }
-                        className="text-decoration-none mb-1"
+                        className="catalogue-item-title text-decoration-none mb-1"
                       >
                         {entity.label}
                       </a>
@@ -276,7 +276,7 @@ const CatalogueInterface = ({
                       )}
                     </div>
                     {isTimeVault && (
-                      <div className="d-flex gap-2">
+                      <div className="time-vault-actions">
                         <a
                           href={`/entity-version/${entity.uri}/${entity.lastValidSnapshotTime}`}
                           className="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center"

@@ -1,5 +1,7 @@
 {% extends "_base.jinja" %}
 
+{% block page_width %}page-shell--compact{% endblock %}
+
 {% block content %}
 
 <style>
@@ -188,6 +190,17 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
+    }
+    @media (max-width: 575.98px) {
+        .shelfContainer {
+            width: calc(100vw - 2rem);
+        }
+        .shelf {
+            left: 50%;
+            margin: 0 0 -4.5rem;
+            transform: translateX(-50%) scale(0.68);
+            transform-origin: top center;
+        }
     }
 </style>
 

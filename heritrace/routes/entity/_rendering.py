@@ -322,8 +322,7 @@ def get_object_label(
     predicate = str(predicate)
 
     if predicate == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-        subject_entity_key = (ctx.highest_priority_class or "", ctx.entity_shape)
-        return ctx.custom_filter.human_readable_class(subject_entity_key)
+        return ctx.custom_filter.human_readable_class((str(object_value), None))
 
     if is_valid_url(object_value):
         if object_shape_uri or object_class:

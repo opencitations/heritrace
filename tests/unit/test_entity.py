@@ -1120,30 +1120,27 @@ def test_format_snapshot_description_simple(
 def test_format_snapshot_description_merge_with_uri(
     mock_is_valid_url, _mock_get_highest_priority, mock_determine_shape
 ) -> None:
-    """Test _format_snapshot_description with merge description containing URI."""
-    # Setup mocks for entity URI replacement
     mock_determine_shape.side_effect = lambda classes: (
         "http://example.org/PersonShape" if classes else None
     )
 
-    # Mock validators to return True for the merged entity URI
     def mock_url_validator(url):
         return url == "http://example.org/person/456"
 
     mock_is_valid_url.side_effect = mock_url_validator
 
-    # Create test data
     metadata = {
-        "description": "Entity was merged with http://example.org/person/456",
-        "wasDerivedFrom": ["uri1", "uri2"],  # Multiple sources indicate merge
+        "description": (
+            "The entity 'http://example.org/person/123' was merged with "
+            "'http://example.org/person/456'."
+        ),
+        "wasDerivedFrom": ["uri1", "uri2"],
     }
     entity_uri = "http://example.org/person/123"
     highest_priority_class = "http://example.org/Person"
 
-    # Create context snapshot
     context_snapshot = Graph()
 
-    # Create history with previous snapshot
     previous_snapshot = Graph()
     previous_snapshot.add(
         (
@@ -1168,7 +1165,6 @@ def test_format_snapshot_description_merge_with_uri(
     }
     sorted_timestamps = ["2023-01-01T00:00:00", "2023-01-02T00:00:00"]
 
-    # Create mock filter
     mock_filter = MagicMock()
 
     def _human_readable(uri, _entity_key, _snapshot):
@@ -1187,7 +1183,6 @@ def test_format_snapshot_description_merge_with_uri(
         custom_filter=mock_filter,
     )
 
-    # Call function
     result = _format_snapshot_description(
         metadata,
         ctx,
@@ -1195,9 +1190,7 @@ def test_format_snapshot_description_merge_with_uri(
         1,
     )
 
-    # Verify results
-    assert "merged with 'Jane Doe'" in result
-    assert "http://example.org/person/456" not in result  # URI should be replaced
+    assert result == "The entity 'John Doe' was merged with 'Jane Doe'."
 
 
 @patch("heritrace.routes.entity._history.determine_shape_for_classes")

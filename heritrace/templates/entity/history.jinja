@@ -1,5 +1,7 @@
 {% extends "_base.jinja" %}
 
+{% block page_width %}page-shell--wide{% endblock %}
+
 {% block content %}
 
 <style>
@@ -68,11 +70,14 @@
     .restore-btn {
         white-space: nowrap;
     }
+    #timeline-container .tl-text-content {
+        overflow-wrap: anywhere;
+    }
 </style>
 
 <div id="breadcrumb-root"></div>
 
-<h2 className="mb-4 word-wrap">Version history for <em>{{ timeline_data.entityLabel }}</em></h2>
+<h2 class="mb-4 word-wrap">Version history for <em>{{ timeline_data.entityLabel }}</em></h2>
 
 <div id="entity-timeline-root"></div>
 

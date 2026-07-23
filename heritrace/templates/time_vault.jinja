@@ -1,5 +1,7 @@
 {% extends "_base.jinja" %}
 
+{% block page_width %}page-shell--wide{% endblock %}
+
 {% block content %}
 
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -19,6 +21,7 @@
      data-selected-shape='{{ selected_shape }}'
      data-initial-page='{{ page }}'
      data-initial-per-page='{{ per_page }}'
+     data-total-pages='{{ total_entity_pages }}'
      data-allowed-per-page='{{ allowed_per_page | tojson }}'
      data-sortable-properties='{{ sortable_properties | e }}'
      data-initial-sort-property='{{ current_sort_property }}'

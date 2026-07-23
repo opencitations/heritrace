@@ -237,7 +237,11 @@ def _format_snapshot_description(
         is_merge_snapshot = True
 
     if is_merge_snapshot:
-        match = re.search(r"merged with [‘’]?([^’’<>\s]+)[‘’]?", description)  # noqa: RUF001
+        match = re.search(
+            r"merged with ['\u2018\u2019]?([^'\u2018\u2019<>\s]+)"
+            r"['\u2018\u2019]?",
+            description,
+        )
         if match:
             potential_merged_uri = match.group(1)
             if is_valid_url(potential_merged_uri):

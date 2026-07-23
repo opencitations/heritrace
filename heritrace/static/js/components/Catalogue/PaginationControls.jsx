@@ -19,7 +19,7 @@ const PaginationControls = ({
   };
 
   return (
-    <div className="d-flex justify-content-between align-items-center">
+    <div className="pagination-controls">
       <div className="d-flex align-items-center">
         <label htmlFor="per_page" className="form-label me-2 mb-0">Items per page:</label>
         <select

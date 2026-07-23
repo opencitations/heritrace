@@ -27,7 +27,7 @@ const SortControls = ({
   };
 
   return (
-    <div className="d-flex align-items-center gap-2">
+    <div className="sort-controls">
       <label htmlFor="sort_property" className="form-label mb-0">Sort by:</label>
       <select
         id="sort_property"

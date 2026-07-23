@@ -1,5 +1,7 @@
 {% extends "_base.jinja" %}
 
+{% block page_width %}page-shell--wide{% endblock %}
+
 {% macro render_merge_card(entity, card_title, header_bg_class, header_icon_class, column_class) %}
 <div class="{{ column_class }}">
     <div class="card h-100 shadow-sm">
@@ -54,7 +56,7 @@
 {% endmacro %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="merge-page mt-4">
     <h2 class="mb-4">{{_('Confirm Entity Merge')}}</h2>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -78,7 +80,7 @@
 
         <div class="row mb-2">
             <div class="col-5"></div>
-            <div class="col-2 text-center"> 
+            <div class="col-2 text-center">
                 <i class="bi bi-arrow-right-circle-fill display-4 text-primary"></i>
                 <p class="text-muted small mt-1">{{_('Merge Into')}}</p>
             </div>

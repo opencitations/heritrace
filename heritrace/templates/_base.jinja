@@ -42,7 +42,7 @@
     {% include 'navigation.jinja' %}
 
     <main>
-        <div class="container">
+        <div class="page-shell {% block page_width %}page-shell--standard{% endblock %}">
             {% block content %}{% endblock %}
         </div>
     </main>
