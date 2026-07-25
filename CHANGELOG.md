@@ -1,3 +1,15 @@
+# [3.2.0](https://github.com/opencitations/heritrace/compare/v3.1.3...v3.2.0) (2026-07-25)
+
+
+### Bug Fixes
+
+* **demo:** update package version ([e7d2805](https://github.com/opencitations/heritrace/commit/e7d2805524fa72b2780153f092c8803dffd155e9))
+
+
+### Features
+
+* **shacl:** read constraints from sh:qualifiedValueShape [release] ([d4249d0](https://github.com/opencitations/heritrace/commit/d4249d01f0496b3353889444a48989906e6bbd9e))
+
 ## [3.1.3](https://github.com/opencitations/heritrace/compare/v3.1.2...v3.1.3) (2026-07-23)
 
 
