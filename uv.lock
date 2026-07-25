@@ -394,7 +394,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -515,6 +515,7 @@ dependencies = [
     { name = "gunicorn" },
     { name = "oc-ocdm" },
     { name = "pyopenssl" },
+    { name = "pyparsing" },
     { name = "pyshacl" },
     { name = "python-dateutil" },
     { name = "pyyaml" },
@@ -552,6 +553,7 @@ requires-dist = [
     { name = "gunicorn", specifier = ">=26.0.0" },
     { name = "oc-ocdm", specifier = ">=11.0.22" },
     { name = "pyopenssl", specifier = ">=26.3.0" },
+    { name = "pyparsing", specifier = ">=3.3.2" },
     { name = "pyshacl", specifier = ">=0.40.0" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
@@ -560,7 +562,7 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=2.0.0" },
     { name = "setuptools", specifier = ">=83.0.0" },
     { name = "sparqlwrapper", specifier = ">=2.0.0" },
-    { name = "time-agnostic-library", specifier = ">=7.1.0" },
+    { name = "time-agnostic-library", specifier = ">=7.2.0" },
     { name = "validators", specifier = "==0.35.0" },
 ]
 
@@ -601,7 +603,7 @@ name = "importlib-metadata"
 version = "8.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp" },
+    { name = "zipp", marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f3/49/3b30cad09e7771a4982d9975a8cbf64f00d4a1ececb53297f1d9a7be1b10/importlib_metadata-8.7.1.tar.gz", hash = "sha256:49fef1ae6440c182052f407c8d34a68f72efc36db9ca90dc0113398f2fdde8bb", size = 57107, upload-time = "2025-12-21T10:00:19.278Z" }
 wheels = [
@@ -1428,15 +1430,15 @@ wheels = [
 
 [[package]]
 name = "time-agnostic-library"
-version = "7.1.0"
+version = "7.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "rdflib" },
     { name = "sparqlite" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b8/93/f8880199efcbe34c9d4f4b5c25952e34c8bd9a926bc86e378841eae3fc23/time_agnostic_library-7.1.0.tar.gz", hash = "sha256:0287fb97938c1c651872790e4fbf110ed85fc8aa6591073f700cf5bcc192abe5", size = 292632, upload-time = "2026-06-12T21:48:47.121Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/65/5c6cacca330fa0c013ac4bcead4f0ea2b8760318c54caadd3aba743696be/time_agnostic_library-7.2.0.tar.gz", hash = "sha256:0b753bdff8eeeb457fa98a02fe3807dceb0164fc0dc6b4bd9d160eaac6ee7574", size = 293141, upload-time = "2026-07-25T21:35:40.855Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c9/8e/803e61b73f05ff2a0c0f0aa89eb5de51b0692e3cc3a7f886e203acd31a29/time_agnostic_library-7.1.0-py3-none-any.whl", hash = "sha256:fd245ade94764ae69e459addc85158c7b5117303cacc399ffa92416df5374826", size = 30596, upload-time = "2026-06-12T21:48:48.335Z" },
+    { url = "https://files.pythonhosted.org/packages/be/cc/847b61ccc065b2325fbd1b51ad3cf247061bc2c0ed921655505c1cf8d17b/time_agnostic_library-7.2.0-py3-none-any.whl", hash = "sha256:8eacd8755f3c85652353c239f64a0aa12e4567e30eabecafa1b5aca1de7bad93", size = 30819, upload-time = "2026-07-25T21:35:39.785Z" },
 ]
 
 [[package]]

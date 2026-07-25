@@ -235,6 +235,7 @@ def test_getter_functions(app) -> None:
         dataset_is_quadstore=True,
         shacl_graph=Graph(),
         classes_with_multiple_shapes={"http://example.org/Class1"},
+        display_rules_use_inverse_relations=False,
     )
     app.extensions["heritrace"] = mock_state
 

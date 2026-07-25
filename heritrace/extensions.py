@@ -44,6 +44,7 @@ class AppState:
     dataset_is_quadstore: bool
     shacl_graph: Graph
     classes_with_multiple_shapes: set[str]
+    display_rules_use_inverse_relations: bool
 
 
 def get_app_state() -> AppState:
@@ -53,6 +54,10 @@ def get_app_state() -> AppState:
 def init_extensions(
     app: Flask, babel: Babel, login_manager: LoginManager, redis: Redis
 ) -> None:
+    from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
+        uses_inverse_relations,
+    )
+
     babel.init_app(
         app=app,
         locale_selector=lambda: session.get("lang", "en"),
@@ -84,6 +89,7 @@ def init_extensions(
         dataset_is_quadstore=False,
         shacl_graph=Graph(),
         classes_with_multiple_shapes=set(),
+        display_rules_use_inverse_relations=False,
     )
 
     (
@@ -108,6 +114,7 @@ def init_extensions(
         dataset_is_quadstore=dataset_is_quadstore,
         shacl_graph=shacl_graph,
         classes_with_multiple_shapes=classes_with_multiple_shapes,
+        display_rules_use_inverse_relations=uses_inverse_relations(display_rules),
     )
     app.extensions["login_manager"] = login_manager
     app.extensions["redis_client"] = redis
@@ -527,6 +534,10 @@ def get_form_fields() -> dict:
 
 def get_dataset_is_quadstore() -> bool:
     return get_app_state().dataset_is_quadstore
+
+
+def get_display_rules_use_inverse_relations() -> bool:
+    return get_app_state().display_rules_use_inverse_relations
 
 
 def get_shacl_graph() -> Graph:

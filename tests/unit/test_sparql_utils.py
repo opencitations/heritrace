@@ -2524,6 +2524,10 @@ class TestProcessDeletedEntity:
                 return_value=True,
             ),
             patch(
+                "heritrace.utils.sparql_utils.get_display_rules_use_inverse_relations",
+                return_value=False,
+            ),
+            patch(
                 "heritrace.utils.sparql_utils.convert_to_datetime",
                 return_value=datetime(2023, 1, 14, 15, 20, 0, tzinfo=timezone.utc),
             ),
@@ -2571,7 +2575,7 @@ class TestProcessDeletedEntity:
                 config=mock_config,
                 include_related_objects=True,
                 include_merged_entities=True,
-                include_reverse_relations=True,
+                include_reverse_relations=False,
             )
 
     def test_process_deleted_entity_no_agent(
@@ -2605,6 +2609,10 @@ class TestProcessDeletedEntity:
             patch(
                 "heritrace.utils.sparql_utils.get_dataset_is_quadstore",
                 return_value=True,
+            ),
+            patch(
+                "heritrace.utils.sparql_utils.get_display_rules_use_inverse_relations",
+                return_value=False,
             ),
             patch(
                 "heritrace.utils.sparql_utils.convert_to_datetime",
@@ -2663,6 +2671,10 @@ class TestProcessDeletedEntity:
                 return_value=True,
             ),
             patch(
+                "heritrace.utils.sparql_utils.get_display_rules_use_inverse_relations",
+                return_value=False,
+            ),
+            patch(
                 "heritrace.utils.sparql_utils.convert_to_datetime",
                 return_value=datetime(2023, 1, 14, 15, 20, 0, tzinfo=timezone.utc),
             ),
@@ -2709,6 +2721,10 @@ class TestProcessDeletedEntity:
             patch(
                 "heritrace.utils.sparql_utils.get_dataset_is_quadstore",
                 return_value=True,
+            ),
+            patch(
+                "heritrace.utils.sparql_utils.get_display_rules_use_inverse_relations",
+                return_value=False,
             ),
             patch(
                 "heritrace.utils.sparql_utils.convert_to_datetime",
@@ -2790,6 +2806,10 @@ class TestProcessDeletedEntity:
             patch(
                 "heritrace.utils.sparql_utils.get_dataset_is_quadstore",
                 return_value=True,
+            ),
+            patch(
+                "heritrace.utils.sparql_utils.get_display_rules_use_inverse_relations",
+                return_value=False,
             ),
             patch(
                 "heritrace.utils.sparql_utils.convert_to_datetime",

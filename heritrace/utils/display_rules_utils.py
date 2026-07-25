@@ -10,8 +10,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
+from pyparsing.exceptions import ParseException
 from rdflib import Graph, Literal, URIRef
-from rdflib.plugins.sparql.algebra import translateQuery
+from rdflib.plugins.sparql.algebra import translateQuery, traverse
 from rdflib.plugins.sparql.parser import parseQuery
 from SPARQLWrapper import JSON
 
@@ -41,6 +42,49 @@ class GroupingContext:
 
 
 _SUBJECT_LABEL_PAIR_LENGTH = 2
+
+_INVERSE_PROBE = URIRef("urn:heritrace:inverse-probe")
+
+
+def _binds_uri_as_object(fetch_uri_display: str) -> bool:
+    probed = fetch_uri_display.replace("[[uri]]", f"<{_INVERSE_PROBE}>")
+    try:
+        algebra = translateQuery(parseQuery(probed)).algebra
+    except ParseException:
+        # rdflib evaluates fetchUriDisplay against the snapshot graph with this
+        # same parser, so a query it cannot parse cannot produce a label there
+        # and cannot need incoming references either.
+        logging.getLogger(__name__).warning(
+            "fetchUriDisplay query is not valid SPARQL and will not render in "
+            "entity history: %s",
+            fetch_uri_display,
+        )
+        return False
+    found = False
+
+    def visit(node: object) -> None:
+        nonlocal found
+        triples = getattr(node, "triples", None)
+        if triples is None:
+            return
+        for triple in triples:
+            if triple[2] == _INVERSE_PROBE:
+                found = True
+
+    traverse(algebra, visitPre=visit)
+    return found
+
+
+# A rule that binds [[uri]] as an object resolves its label from entities
+# pointing at the current one, so history retrieval must collect reverse
+# relations to render it. That means reconstructing the history of every
+# referring entity, so it is done only when a rule actually needs it.
+def uses_inverse_relations(display_rules: list[dict]) -> bool:
+    return any(
+        _binds_uri_as_object(rule["fetchUriDisplay"])
+        for rule in display_rules
+        if "fetchUriDisplay" in rule
+    )
 
 
 def find_matching_rule(

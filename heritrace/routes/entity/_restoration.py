@@ -168,6 +168,7 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:
         include_related_objects=True,
         include_merged_entities=True,
         include_reverse_relations=True,
+        include_historical_reverse_relations=True,
     )
     states, provenance = agnostic_entity.get_histories_by_entity(
         include_prov_metadata=True

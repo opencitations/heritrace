@@ -28,6 +28,7 @@ from heritrace.extensions import (
     get_custom_filter,
     get_dataset_is_quadstore,
     get_display_rules,
+    get_display_rules_use_inverse_relations,
     get_provenance_sparql,
     get_shacl_graph,
     get_sparql,
@@ -986,7 +987,7 @@ def process_deleted_entity(result: dict, sortable_properties: list) -> dict | No
         config=change_tracking_config,
         include_related_objects=True,
         include_merged_entities=True,
-        include_reverse_relations=True,
+        include_reverse_relations=get_display_rules_use_inverse_relations(),
     )
     state, _, _ = agnostic_entity.get_state_at_time(
         (last_valid_snapshot_time, last_valid_snapshot_time)

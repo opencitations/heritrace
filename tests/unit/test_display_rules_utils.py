@@ -27,6 +27,7 @@ from heritrace.utils.display_rules_utils import (
     process_default_property,
     process_display_rule,
     process_ordering,
+    uses_inverse_relations,
 )
 
 _RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
@@ -2533,3 +2534,78 @@ class TestFindMatchingRule:
         assert result["priority"] == 10  # Confirming it's the exact match rule
 
         assert result["priority"] > mock_rules[2]["priority"]  # 10 > 1
+
+
+class TestUsesInverseRelations:
+    """Tests for uses_inverse_relations"""
+
+    def test_no_rules(self):
+        assert uses_inverse_relations([]) is False
+
+    def test_rule_without_fetch_uri_display(self):
+        assert uses_inverse_relations([{"target": {"class": "http://e/C"}}]) is False
+
+    def test_forward_only_rule(self):
+        rules = [
+            {
+                "fetchUriDisplay": (
+                    "SELECT ?display WHERE { [[uri]] <http://e/title> ?display }"
+                )
+            }
+        ]
+        assert uses_inverse_relations(rules) is False
+
+    def test_inverse_rule(self):
+        rules = [
+            {
+                "fetchUriDisplay": (
+                    "SELECT ?display WHERE { ?x <http://e/refersTo> [[uri]] . "
+                    "?x <http://e/title> ?display }"
+                )
+            }
+        ]
+        assert uses_inverse_relations(rules) is True
+
+    def test_inverse_rule_nested_in_optional(self):
+        rules = [
+            {
+                "fetchUriDisplay": (
+                    "SELECT ?display WHERE { [[uri]] <http://e/title> ?display . "
+                    "OPTIONAL { ?x <http://e/refersTo> [[uri]] } }"
+                )
+            }
+        ]
+        assert uses_inverse_relations(rules) is True
+
+    def test_inverse_rule_nested_in_union(self):
+        rules = [
+            {
+                "fetchUriDisplay": (
+                    "SELECT ?display WHERE { { [[uri]] <http://e/a> ?display } "
+                    "UNION { ?x <http://e/b> [[uri]] } }"
+                )
+            }
+        ]
+        assert uses_inverse_relations(rules) is True
+
+    def test_any_inverse_rule_wins(self):
+        rules = [
+            {
+                "fetchUriDisplay": (
+                    "SELECT ?display WHERE { [[uri]] <http://e/title> ?display }"
+                )
+            },
+            {
+                "fetchUriDisplay": (
+                    "SELECT ?display WHERE { ?x <http://e/refersTo> [[uri]] . "
+                    "?x <http://e/title> ?display }"
+                )
+            },
+        ]
+        assert uses_inverse_relations(rules) is True
+
+    def test_unparseable_rule_is_reported_and_treated_as_forward(self, caplog):
+        rules = [{"fetchUriDisplay": "SELECT ?display WHERE { [[uri]] <http://e/a> }"}]
+
+        assert uses_inverse_relations(rules) is False
+        assert "not valid SPARQL" in caplog.text

@@ -16,6 +16,7 @@ dependencies = [
     "gunicorn>=26.0.0",
     "oc-ocdm>=11.0.22",
     "pyopenssl>=26.3.0",
+    "pyparsing>=3.3.2",
     "pyshacl>=0.40.0",
     "python-dateutil>=2.9.0.post0",
     "pyyaml>=6.0.3",
@@ -24,7 +25,7 @@ dependencies = [
     "requests-oauthlib>=2.0.0",
     "setuptools>=83.0.0",
     "sparqlwrapper>=2.0.0",
-    "time-agnostic-library>=7.1.0",
+    "time-agnostic-library>=7.2.0",
     "validators==0.35.0",
 ]
 

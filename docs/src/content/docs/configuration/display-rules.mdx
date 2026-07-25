@@ -119,6 +119,10 @@ You can find many practical examples of this in the default `display_rules.yaml`
 ```
 This configuration takes a `JournalVolume` entity and displays it as "Volume [number] of [Journal Title]", which is much clearer than its URI.
 
+<Aside type="caution" title="Queries that follow incoming references">
+A query can also bind `[[uri]]` as an object, building the label from the entities that point at it. HERITRACE detects this and loads those entities on history pages, which is expensive when an entity has many referrers, so prefer following references away from the entity. In fact, such a label resolves only for snapshots taken after the referring entity existed.
+</Aside>
+
 ## Configuring properties (`displayProperties`)
 
 This is where you define the behavior of each field in the entity view and edit forms.
