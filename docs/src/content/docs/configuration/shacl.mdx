@@ -75,7 +75,10 @@ schema:JournalArticleShape
 SHACL constraints define the validation rules for properties on a targeted class.
 
 ### Cardinality (`sh:minCount` and `sh:maxCount`)
-Control how many values a property can have.
+Control how many values a property can have. Both count every value of `sh:path` on the
+entity, across all the property constraints declared for it. To constrain the number of
+occurrences of one specific value rather than the total, see
+[Occurrences of a specific value](#occurrences-of-a-specific-value-shqualifiedvalueshape).
 
 - `sh:minCount`: The minimum number of values. A value of `1` or more makes the property required.
 - `sh:maxCount`: The maximum number of values. A value of `1` restricts it to a single value.
@@ -136,6 +139,57 @@ sh:property [
     sh:in ( datacite:doi datacite:pmid datacite:pmcid ) ;
 ] .
 ```
+
+HERITRACE renders a property constrained with `sh:hasValue` as a read-only field: the value is
+displayed, marked as mandatory, and cannot be edited, added, or removed.
+
+### Occurrences of a specific value (`sh:qualifiedValueShape`)
+Constrain how many values of a property match a given condition, leaving the other values
+unconstrained.
+
+- `sh:qualifiedValueShape`: The condition that the counted values must satisfy.
+- `sh:qualifiedMinCount` and `sh:qualifiedMaxCount`: How many values may satisfy it.
+
+Use this instead of `sh:hasValue` with `sh:minCount`/`sh:maxCount` whenever the property carries
+several values at once. A common case is an entity typed with both a general and a specific
+class: `sh:maxCount 1` would count both types and could never be satisfied, whereas the
+qualified counts apply to each type separately.
+
+```ttl
+# The entity must be typed both fabio:Expression and fabio:JournalArticle
+sh:property [
+    sh:path rdf:type ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
+] ;
+sh:property [
+    sh:path rdf:type ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:JournalArticle ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
+] .
+```
+
+Nesting `sh:or` inside the qualified shape turns the constraint into a choice among values,
+which HERITRACE renders as a dropdown:
+
+```ttl
+# At most one further type, picked from the listed ones
+sh:property [
+    sh:path rdf:type ;
+    sh:qualifiedValueShape [
+      sh:or (
+        [ sh:hasValue fabio:Book ]
+        [ sh:hasValue fabio:Thesis ]
+      )
+    ] ;
+    sh:qualifiedMaxCount 1 ;
+] .
+```
+
+A single property constraint must not declare both plain and qualified counts: HERITRACE would
+read them as two separate fields on the same property.
 
 ### Shape reference (`sh:node`)
 Specify that a property's value must conform to another shape. This is used to validate complex objects or relationships.

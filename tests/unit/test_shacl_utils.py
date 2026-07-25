@@ -72,6 +72,78 @@ class TestShaclUtils:
         result = extract_shacl_form_fields(None, display_rules, app)
         assert result == {}
 
+    def test_qualified_value_shapes_yield_mandatory_values(self) -> None:
+        app = Flask(__name__)
+        app.config["DATASET_DB_URL"] = "http://example.org/sparql"
+
+        shacl = Graph().parse(
+            data="""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+            @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+            @prefix ex: <http://example.org/> .
+
+            ex:ArticleShape a sh:NodeShape ;
+              sh:targetClass ex:Article ;
+              sh:property [
+                sh:path rdf:type ;
+                sh:qualifiedValueShape [ sh:hasValue ex:Expression ] ;
+                sh:qualifiedMinCount 1 ;
+                sh:qualifiedMaxCount 1 ;
+              ] ;
+              sh:property [
+                sh:path rdf:type ;
+                sh:qualifiedValueShape [ sh:hasValue ex:Article ] ;
+                sh:qualifiedMinCount 1 ;
+                sh:qualifiedMaxCount 1 ;
+              ] ;
+              sh:property [
+                sh:path rdf:type ;
+                sh:qualifiedValueShape [
+                  sh:or ( [ sh:hasValue ex:Review ] [ sh:hasValue ex:Thesis ] )
+                ] ;
+                sh:qualifiedMaxCount 1 ;
+              ] ;
+              sh:property [
+                sh:path ex:role ;
+                sh:hasValue ex:author ;
+                sh:minCount 1 ;
+                sh:maxCount 1 ;
+              ] .
+            """,
+            format="turtle",
+        )
+
+        form_fields = extract_shacl_form_fields(shacl, [], app)
+        entity_key = ("http://example.org/Article", "http://example.org/ArticleShape")
+        summary = sorted(
+            (
+                (
+                    details["uri"],
+                    details["hasValue"],
+                    details["min"],
+                    details["max"],
+                    tuple(sorted(details["optionalValues"])),
+                )
+                for details_list in form_fields[entity_key].values()
+                for details in details_list
+            ),
+            key=repr,
+        )
+
+        assert summary == [
+            ("http://example.org/role", "http://example.org/author", 1, 1, ()),
+            (str(RDF.type), "http://example.org/Article", 1, 1, ()),
+            (str(RDF.type), "http://example.org/Expression", 1, 1, ()),
+            (
+                str(RDF.type),
+                None,
+                0,
+                1,
+                ("http://example.org/Review", "http://example.org/Thesis"),
+            ),
+        ]
+
     @patch("heritrace.utils.shacl_utils.extract_shacl_form_fields")
     @patch("heritrace.utils.shacl_utils.process_nested_shapes")
     @patch("heritrace.utils.shacl_utils.apply_display_rules")

@@ -343,7 +343,9 @@ def _get_hasvalue_constraints(
             SELECT DISTINCT ?property ?value WHERE {{
                 <{shape_uri}> sh:property ?propertyShape .
                 ?propertyShape sh:path ?property .
-                ?propertyShape sh:hasValue ?value .
+                {{ ?propertyShape sh:hasValue ?value . }}
+                UNION
+                {{ ?propertyShape sh:qualifiedValueShape/sh:hasValue ?value . }}
             }}
         """
 

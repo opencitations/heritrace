@@ -111,15 +111,29 @@ def get_valid_predicates(
             VALUES ?type {{<{highest_priority_class}>}}
             ?property sh:path ?predicate .
             OPTIONAL {{?property sh:datatype ?datatype .}}
-            OPTIONAL {{?property sh:maxCount ?maxCount .}}
-            OPTIONAL {{?property sh:minCount ?minCount .}}
-            OPTIONAL {{?property sh:hasValue ?hasValue .}}
+            OPTIONAL {{
+                {{?property sh:maxCount ?maxCount .}}
+                UNION
+                {{?property sh:qualifiedMaxCount ?maxCount .}}
+            }}
+            OPTIONAL {{
+                {{?property sh:minCount ?minCount .}}
+                UNION
+                {{?property sh:qualifiedMinCount ?minCount .}}
+            }}
+            OPTIONAL {{
+                {{?property sh:hasValue ?hasValue .}}
+                UNION
+                {{?property sh:qualifiedValueShape/sh:hasValue ?hasValue .}}
+            }}
             OPTIONAL {{
                 ?property sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }}
             OPTIONAL {{
-                ?property sh:or ?orList .
+                {{?property sh:or ?orList .}}
+                UNION
+                {{?property sh:qualifiedValueShape/sh:or ?orList .}}
                 ?orList rdf:rest*/rdf:first ?orConstraint .
                 OPTIONAL {{?orConstraint sh:datatype ?datatype .}}
                 OPTIONAL {{?orConstraint sh:hasValue ?optionalValue .}}
@@ -238,8 +252,16 @@ def _query_shacl_constraints(
             FILTER(?path = <{predicate}>)
             VALUES ?type {{<{"> <".join(str(t) for t in s_types)}>}}
             OPTIONAL {{?propertyShape sh:datatype ?datatype .}}
-            OPTIONAL {{?propertyShape sh:maxCount ?maxCount .}}
-            OPTIONAL {{?propertyShape sh:minCount ?minCount .}}
+            OPTIONAL {{
+                {{?propertyShape sh:maxCount ?maxCount .}}
+                UNION
+                {{?propertyShape sh:qualifiedMaxCount ?maxCount .}}
+            }}
+            OPTIONAL {{
+                {{?propertyShape sh:minCount ?minCount .}}
+                UNION
+                {{?propertyShape sh:qualifiedMinCount ?minCount .}}
+            }}
             OPTIONAL {{?propertyShape sh:class ?a_class .}}
             OPTIONAL {{
                 ?propertyShape sh:or ?orList .

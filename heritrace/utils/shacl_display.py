@@ -64,7 +64,9 @@ COMMON_SPARQL_QUERY = prepareQuery(
             }
         }
         OPTIONAL {
-            ?property sh:or ?orList .
+            { ?property sh:or ?orList . }
+            UNION
+            { ?property sh:qualifiedValueShape/sh:or ?orList . }
             {
                 ?orList rdf:rest*/rdf:first ?or_constraint .
                 ?or_constraint sh:datatype ?datatype .
@@ -77,9 +79,21 @@ COMMON_SPARQL_QUERY = prepareQuery(
             }
         }
         OPTIONAL { ?property sh:datatype ?datatype . }
-        OPTIONAL { ?property sh:maxCount ?max_count . }
-        OPTIONAL { ?property sh:minCount ?min_count . }
-        OPTIONAL { ?property sh:hasValue ?has_value . }
+        OPTIONAL {
+            { ?property sh:maxCount ?max_count . }
+            UNION
+            { ?property sh:qualifiedMaxCount ?max_count . }
+        }
+        OPTIONAL {
+            { ?property sh:minCount ?min_count . }
+            UNION
+            { ?property sh:qualifiedMinCount ?min_count . }
+        }
+        OPTIONAL {
+            { ?property sh:hasValue ?has_value . }
+            UNION
+            { ?property sh:qualifiedValueShape/sh:hasValue ?has_value . }
+        }
         OPTIONAL {
             ?property sh:in ?list .
             ?list rdf:rest*/rdf:first ?optional_value .
@@ -950,8 +964,10 @@ def extract_additional_properties(shacl: Graph, shape_uri: str) -> dict[str, str
         WHERE {
             ?shape a sh:NodeShape ;
                    sh:property ?property .
-            ?property sh:path ?predicate ;
-                     sh:hasValue ?has_value .
+            ?property sh:path ?predicate .
+            { ?property sh:hasValue ?has_value . }
+            UNION
+            { ?property sh:qualifiedValueShape/sh:hasValue ?has_value . }
         }
     """,
         initNs={"sh": "http://www.w3.org/ns/shacl#"},

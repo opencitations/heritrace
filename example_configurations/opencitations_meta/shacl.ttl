@@ -22,9 +22,9 @@ schema:IdentifierShape
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue datacite:Identifier ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
@@ -59,9 +59,9 @@ schema:JournalArticleIdentifierShape
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue datacite:Identifier ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
@@ -129,9 +129,9 @@ schema:JournalIdentifierShape
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue datacite:Identifier ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
@@ -199,9 +199,9 @@ schema:SeriesAndProceedingsIdentifierShape
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue datacite:Identifier ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
@@ -282,9 +282,9 @@ schema:BookIdentifierShape
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue datacite:Identifier ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
@@ -365,9 +365,9 @@ schema:AgentIdentifierShape
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue datacite:Identifier ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue datacite:Identifier ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
@@ -468,9 +468,9 @@ schema:AgentRoleShape
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue pro:RoleInTime ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path oco:hasNext ;
@@ -499,25 +499,26 @@ schema:ExpressionShape
   sh:targetClass fabio:Expression ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:or (
-      [ sh:hasValue fabio:JournalArticle ]
-      [ sh:hasValue fabio:Book ]
-      [ sh:hasValue fabio:ProceedingsPaper ]
-      [ sh:hasValue fabio:AcademicProceedings ]
-      [ sh:hasValue fabio:Journal ]
-      [ sh:hasValue fabio:JournalVolume ]
-      [ sh:hasValue fabio:JournalIssue ]
-      [ sh:hasValue fabio:ReferenceBook ]
-      [ sh:hasValue fabio:Thesis ]
-    ) ;
-    sh:minCount 0 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [
+      sh:or (
+        [ sh:hasValue fabio:JournalArticle ]
+        [ sh:hasValue fabio:Book ]
+        [ sh:hasValue fabio:ProceedingsPaper ]
+        [ sh:hasValue fabio:AcademicProceedings ]
+        [ sh:hasValue fabio:Journal ]
+        [ sh:hasValue fabio:JournalVolume ]
+        [ sh:hasValue fabio:JournalIssue ]
+        [ sh:hasValue fabio:ReferenceBook ]
+        [ sh:hasValue fabio:Thesis ]
+      )
+    ] ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
@@ -567,15 +568,15 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:JournalArticle ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:JournalArticle ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
@@ -634,15 +635,15 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Book ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Book ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
@@ -681,15 +682,15 @@ schema:ProceedingsPaperShape
   sh:targetClass fabio:ProceedingsPaper ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:ProceedingsPaper ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:ProceedingsPaper ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
@@ -745,15 +746,15 @@ schema:ProceedingsShape
   sh:targetClass fabio:AcademicProceedings ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:AcademicProceedings ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:AcademicProceedings ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
@@ -792,15 +793,15 @@ schema:JournalShape
   sh:targetClass fabio:Journal ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Journal ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Journal ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
@@ -818,15 +819,15 @@ schema:VolumeShape
   sh:targetClass fabio:JournalVolume ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:JournalVolume ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:JournalVolume ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
@@ -846,15 +847,15 @@ schema:IssueShape
   sh:targetClass fabio:JournalIssue ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:JournalIssue ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:JournalIssue ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
@@ -877,15 +878,15 @@ schema:ReferenceBookShape
   sh:targetClass fabio:ReferenceBook ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:ReferenceBook ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:ReferenceBook ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
@@ -929,15 +930,15 @@ schema:ThesisShape
   sh:targetClass fabio:Thesis ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Expression ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Expression ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Thesis ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Thesis ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
@@ -985,9 +986,9 @@ schema:ResourceEmbodimentShape
   sh:targetClass fabio:Manifestation ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue fabio:Manifestation ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue fabio:Manifestation ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:startingPage ;
@@ -1009,9 +1010,9 @@ schema:ResponsibleAgentShape
   a sh:NodeShape ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue foaf:Agent ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue foaf:Agent ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:targetClass foaf:Agent ;
   sh:property [
@@ -1045,9 +1046,9 @@ schema:AuthorShape
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue pro:RoleInTime ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
@@ -1073,9 +1074,9 @@ schema:EditorShape
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue pro:RoleInTime ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
@@ -1101,9 +1102,9 @@ schema:PublisherShape
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
-    sh:hasValue pro:RoleInTime ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
+    sh:qualifiedValueShape [ sh:hasValue pro:RoleInTime ] ;
+    sh:qualifiedMinCount 1 ;
+    sh:qualifiedMaxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
