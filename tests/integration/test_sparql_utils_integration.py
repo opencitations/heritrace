@@ -6,22 +6,30 @@
 Integration tests for the SPARQL utilities module using real test databases.
 """
 
+import uuid
+
 import pytest
 from rdflib import RDF, Dataset, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
+from SPARQLWrapper import SPARQLWrapper
 
+from heritrace.editor import Editor, EndpointConfig
 from heritrace.utils import sparql_utils as _su
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
+    DeletedEntitiesQuery,
     fetch_current_state_with_related_entities,
     fetch_data_graph_for_subject,
     find_orphaned_entities,
     get_available_classes,
     get_catalog_data,
+    get_deleted_available_classes,
+    get_deleted_entities_with_filtering,
     get_entities_for_class,
     parse_sparql_update,
 )
+from tests.test_config import TestConfig
 
 
 @pytest.mark.usefixtures("setup_test_data")
@@ -688,3 +696,133 @@ class TestParseSparqlUpdateIntegration:
 
             for expected in expected_triples:
                 assert expected in additions
+
+
+FABIO = "http://purl.org/spar/fabio/"
+JOURNAL_VOLUME = f"{FABIO}JournalVolume"
+
+
+class TestTimeVaultIntegration:
+    """Integration tests for the Time Vault listing against the real databases."""
+
+    @pytest.fixture
+    def deleted_volume(self, app):
+        """Create a journal volume, delete it, and clean up afterwards."""
+        test_id = str(uuid.uuid4())
+        graph = URIRef(f"http://example.org/time-vault-{test_id}")
+        journal = URIRef(f"http://example.org/journal-{test_id}")
+        volume = URIRef(f"http://example.org/volume-{test_id}")
+
+        editor = Editor(
+            EndpointConfig(
+                dataset=TestConfig.DATASET_DB_URL,
+                provenance=TestConfig.PROVENANCE_DB_URL,
+                is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
+            ),
+            TestConfig.COUNTER_HANDLER,
+            URIRef("http://example.org/test-agent"),
+        )
+        editor.create(journal, RDF.type, URIRef(f"{FABIO}Journal"), graph)
+        editor.create(
+            journal,
+            URIRef("http://purl.org/dc/terms/title"),
+            Literal("Test Journal"),
+            graph,
+        )
+        editor.create(volume, RDF.type, URIRef(JOURNAL_VOLUME), graph)
+        editor.create(
+            volume,
+            URIRef(f"{FABIO}hasSequenceIdentifier"),
+            Literal("42"),
+            graph,
+        )
+        editor.create(
+            volume,
+            URIRef("http://purl.org/vocab/frbr/core#partOf"),
+            journal,
+            graph,
+        )
+        editor.save()
+
+        delete_editor = Editor(
+            EndpointConfig(
+                dataset=TestConfig.DATASET_DB_URL,
+                provenance=TestConfig.PROVENANCE_DB_URL,
+                is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
+            ),
+            TestConfig.COUNTER_HANDLER,
+            URIRef("http://example.org/test-agent"),
+        )
+        delete_editor.import_entity(volume)
+        delete_editor.preexisting_finished()
+        delete_editor.delete(volume)
+        delete_editor.save()
+
+        _su._cache["deleted_classes"] = None  # noqa: SLF001
+
+        yield {"volume": str(volume), "journal": str(journal), "graph": str(graph)}
+
+        _su._cache["deleted_classes"] = None  # noqa: SLF001
+        sparql = SPARQLWrapper(TestConfig.DATASET_DB_URL)
+        sparql.setMethod("POST")
+        sparql.setQuery(f"CLEAR GRAPH <{graph}>")
+        sparql.query()
+        prov_sparql = SPARQLWrapper(TestConfig.PROVENANCE_DB_URL)
+        prov_sparql.setMethod("POST")
+        for entity in (volume, journal):
+            prov_sparql.setQuery(f"CLEAR GRAPH <{entity}/prov/>")
+            prov_sparql.query()
+
+    def test_deleted_volume_is_listed_with_its_label(self, app, deleted_volume) -> None:
+        with app.app_context():
+            deleted_classes = get_deleted_available_classes()
+
+            volume_class = next(
+                c for c in deleted_classes if c["uri"] == JOURNAL_VOLUME
+            )
+            assert volume_class["label"] == "Volume"
+
+            entities, _, selected_class, _, sortable_properties, _ = (
+                get_deleted_entities_with_filtering(
+                    DeletedEntitiesQuery(selected_class=JOURNAL_VOLUME)
+                )
+            )
+
+            assert selected_class == JOURNAL_VOLUME
+            assert sortable_properties == [_su.DELETION_TIME_PROPERTY]
+            assert entities[0]["uri"] == deleted_volume["volume"]
+            assert entities[0]["label"] == "Volume 42 of Test Journal"
+            assert entities[0]["type"] == "journal volume"
+
+    def test_restored_volume_is_no_longer_listed(self, app, deleted_volume) -> None:
+        with app.app_context():
+            entities, _, _, _, _, _ = get_deleted_entities_with_filtering(
+                DeletedEntitiesQuery(selected_class=JOURNAL_VOLUME)
+            )
+            assert entities[0]["uri"] == deleted_volume["volume"]
+
+            restore_editor = Editor(
+                EndpointConfig(
+                    dataset=TestConfig.DATASET_DB_URL,
+                    provenance=TestConfig.PROVENANCE_DB_URL,
+                    is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
+                ),
+                TestConfig.COUNTER_HANDLER,
+                URIRef("http://example.org/test-agent"),
+            )
+            volume = URIRef(deleted_volume["volume"])
+            restore_editor.g_set.mark_as_restored(volume)
+            restore_editor.create(
+                volume,
+                URIRef(f"{FABIO}hasSequenceIdentifier"),
+                Literal("42"),
+                URIRef(deleted_volume["graph"]),
+            )
+            restore_editor.save()
+
+            _su._cache["deleted_classes"] = None  # noqa: SLF001
+            entities, _, _, _, _, _ = get_deleted_entities_with_filtering(
+                DeletedEntitiesQuery(selected_class=JOURNAL_VOLUME)
+            )
+
+            assert all(entity["uri"] != deleted_volume["volume"] for entity in entities)

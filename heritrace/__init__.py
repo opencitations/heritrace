@@ -18,6 +18,7 @@ from heritrace.utils.sparql_utils import (
     configure_worker_pool,
     get_available_classes,
     warm_catalogue,
+    warm_time_vault,
 )
 
 
@@ -59,6 +60,7 @@ def create_app(config_object: object = None) -> Flask:
             available_classes = get_available_classes()
             app.logger.info("[STARTUP] Available classes cache computed successfully")
             warm_catalogue(available_classes, app.config["CATALOGUE_DEFAULT_PER_PAGE"])
+            warm_time_vault()
 
         register_blueprints(app)
 

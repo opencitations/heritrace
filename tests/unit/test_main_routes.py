@@ -81,9 +81,7 @@ def test_time_vault_route_unauthenticated(client: FlaskClient) -> None:
 @patch("heritrace.extensions.get_display_rules")
 @patch("heritrace.extensions.get_form_fields")
 @patch("heritrace.routes.main.get_deleted_entities_with_filtering")
-@patch("heritrace.routes.main.get_sortable_properties")
 def test_time_vault_route_authenticated(
-    mock_get_sortable_properties: MagicMock,
     mock_get_deleted_entities: MagicMock,
     mock_get_form_fields: MagicMock,
     mock_get_display_rules: MagicMock,
@@ -98,21 +96,20 @@ def test_time_vault_route_authenticated(
         [{"uri": "test_class", "label": "Test Class"}],  # available_classes
         "test_class",  # selected_class
         None,  # selected_shape
-        [],  # sortable_properties
+        [{"property": "deletionTime"}],  # sortable_properties
         10,  # total_count
     )
-    mock_get_sortable_properties.return_value = []
 
     response = logged_in_client.get("/time-vault")
     assert response.status_code == 200
 
     # Test with query parameters
     response = logged_in_client.get(
-        "/time-vault?page=2&per_page=100&class=test_class&sort_property=name&sort_direction=DESC"
+        "/time-vault?page=2&per_page=100&class=test_class&sort_direction=DESC"
     )
     assert response.status_code == 200
     mock_get_deleted_entities.assert_called_with(
-        DeletedEntitiesQuery(2, 100, "name", "DESC", "test_class", None)
+        DeletedEntitiesQuery(2, 100, "DESC", "test_class", None)
     )
 
 

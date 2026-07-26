@@ -18,7 +18,6 @@ from heritrace.utils.sparql_utils import (
     get_available_classes,
     get_catalog_data,
     get_deleted_entities_with_filtering,
-    get_sortable_properties,
 )
 
 main_bp = Blueprint("main", __name__)
@@ -87,7 +86,6 @@ def time_vault() -> str:
     initial_per_page = request.args.get(
         "per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"], type=int
     )
-    sort_property = request.args.get("sort_property", "deletionTime")
     sort_direction = request.args.get("sort_direction", "DESC")
     selected_class = request.args.get("class")
     selected_shape = request.args.get("shape")
@@ -105,22 +103,11 @@ def time_vault() -> str:
         DeletedEntitiesQuery(
             initial_page,
             initial_per_page,
-            sort_property,
             sort_direction,
             selected_class,
             selected_shape,
         )
     )
-
-    sortable_properties = [
-        {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
-    ]
-
-    if selected_class is not None:
-        entity_key = (selected_class, selected_shape)
-        sortable_properties.extend(get_sortable_properties(entity_key))
-
-    sortable_properties = json.dumps(sortable_properties)
 
     return render_template(
         "time_vault.jinja",
@@ -133,8 +120,8 @@ def time_vault() -> str:
         else 0,
         per_page=initial_per_page,
         allowed_per_page=allowed_per_page,
-        sortable_properties=sortable_properties,
-        current_sort_property=sort_property,
+        sortable_properties=json.dumps(sortable_properties),
+        current_sort_property=sortable_properties[0]["property"],
         current_sort_direction=sort_direction,
         initial_entities=initial_entities,
     )

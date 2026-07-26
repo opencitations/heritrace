@@ -28,24 +28,30 @@ const SortControls = ({
 
   return (
     <div className="sort-controls">
-      <label htmlFor="sort_property" className="form-label mb-0">Sort by:</label>
-      <select
-        id="sort_property"
-        className="form-select form-select-sm"
-        style={{ width: 'auto' }}
-        value={currentProperty || ''}
-        onChange={handlePropertyChange}
-        data-sort-property={currentProperty || ''}
-        data-sort-direction={currentDirection}
-      >
-        {sortableProperties.map((prop) => (
-          <option key={prop.property} value={prop.property}>
-            {prop.displayName}
-          </option>
-        ))}
-      </select>
+      {sortableProperties.length === 1 ? (
+        <span className="form-label mb-0">Sort by: {sortableProperties[0].displayName}</span>
+      ) : (
+        <>
+          <label htmlFor="sort_property" className="form-label mb-0">Sort by:</label>
+          <select
+            id="sort_property"
+            className="form-select form-select-sm"
+            style={{ width: 'auto' }}
+            value={currentProperty || ''}
+            onChange={handlePropertyChange}
+            data-sort-property={currentProperty || ''}
+            data-sort-direction={currentDirection}
+          >
+            {sortableProperties.map((prop) => (
+              <option key={prop.property} value={prop.property}>
+                {prop.displayName}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
 
-      <button 
+      <button
         className="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center toggleSortDirection"
         onClick={toggleDirection}
         title={`Change sort direction`}

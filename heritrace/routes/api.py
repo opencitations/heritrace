@@ -110,7 +110,6 @@ def get_deleted_entities_api() -> Response:
     per_page = int(
         request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"])
     )
-    sort_property = request.args.get("sort_property", "deletionTime")
     sort_direction = request.args.get("sort_direction", "DESC")
 
     allowed_per_page = current_app.config["CATALOGUE_ALLOWED_PER_PAGE"]
@@ -128,7 +127,6 @@ def get_deleted_entities_api() -> Response:
         DeletedEntitiesQuery(
             page,
             per_page,
-            sort_property,
             sort_direction,
             selected_class,
             selected_shape,
@@ -144,7 +142,7 @@ def get_deleted_entities_api() -> Response:
             "current_page": page,
             "per_page": per_page,
             "total_count": total_count,
-            "sort_property": sort_property,
+            "sort_property": sortable_properties[0]["property"],
             "sort_direction": sort_direction,
             "selected_class": selected_class,
             "selected_shape": selected_shape,

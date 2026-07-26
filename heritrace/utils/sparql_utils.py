@@ -5,10 +5,11 @@
 import atexit
 import logging
 import os
+import re
 import time
 from collections import defaultdict, deque
 from collections.abc import Generator
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 
 from flask import current_app
@@ -19,22 +20,18 @@ from rdflib.term import Node
 from rdflib.util import from_n3
 from SPARQLWrapper import JSON
 from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
-from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 from heritrace.editor import Editor
 from heritrace.extensions import (
-    get_change_tracking_config,
     get_classes_with_multiple_shapes,
     get_custom_filter,
     get_dataset_is_quadstore,
     get_display_rules,
-    get_display_rules_use_inverse_relations,
     get_provenance_sparql,
     get_shacl_graph,
     get_sparql,
 )
 from heritrace.sparql import get_sparql_bindings
-from heritrace.utils.converters import convert_to_datetime
 from heritrace.utils.display_rules_utils import (
     find_matching_rule,
     get_highest_priority_class,
@@ -48,7 +45,8 @@ from heritrace.utils.shacl_utils import (
 from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
 
 _cache: dict[str, tuple[list[dict[str, str | int]], float] | None] = {
-    "available_classes": None
+    "available_classes": None,
+    "deleted_classes": None,
 }
 AVAILABLE_CLASSES_TTL_SECONDS = 60
 
@@ -676,6 +674,15 @@ def warm_catalogue(
     )
 
 
+def _binding_to_node(binding: dict[str, str]) -> Literal | URIRef:
+    if binding["type"] not in {"literal", "typed-literal"}:
+        return URIRef(binding["value"])
+    if "datatype" in binding:
+        return Literal(binding["value"], datatype=URIRef(binding["datatype"]))
+    # Omit explicit datatype to match Reader's import behavior
+    return Literal(binding["value"])
+
+
 def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
     g = Dataset() if get_dataset_is_quadstore() else Graph()
     sparql = get_sparql()
@@ -712,18 +719,7 @@ def fetch_data_graph_for_subject(subject: URIRef) -> Graph | Dataset:
     bindings = get_sparql_bindings(sparql.query().convert())
 
     for result in bindings:
-        # Create the appropriate value (Literal or URIRef)
-        obj_data = result["object"]
-        if obj_data["type"] in {"literal", "typed-literal"}:
-            if "datatype" in obj_data:
-                value = Literal(
-                    obj_data["value"], datatype=URIRef(obj_data["datatype"])
-                )
-            else:
-                # Omit explicit datatype to match Reader's import behavior
-                value = Literal(obj_data["value"])
-        else:
-            value = URIRef(obj_data["value"])
+        value = _binding_to_node(result["object"])
 
         # Add triple/quad based on store type
         if get_dataset_is_quadstore():
@@ -809,245 +805,292 @@ def fetch_current_state_with_related_entities(
 class DeletedEntitiesQuery:
     page: int = 1
     per_page: int = 50
-    sort_property: str = "deletionTime"
     sort_direction: str = "DESC"
     selected_class: str | None = None
     selected_shape: str | None = None
 
 
-def _filter_and_paginate_deleted_entities(
-    deleted_entities: list[dict],
-    query: DeletedEntitiesQuery,
-    sortable_properties: list[dict[str, str]],
-) -> tuple[
-    list[dict],
-    str | None,
-    str | None,
-    list[dict[str, str]],
-    int,
-]:
-    selected_class = query.selected_class
-    selected_shape = query.selected_shape
+PROV = "http://www.w3.org/ns/prov#"
+OCO_HAS_UPDATE_QUERY = "https://w3id.org/oc/ontology/hasUpdateQuery"
+RDF_TYPE_STATEMENT = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"
+DELETION_TIME_PROPERTY = {
+    "property": "deletionTime",
+    "displayName": "Deletion Time",
+    "sortType": "date",
+}
+RELATED_STATE_DEPTH = 5
 
-    reverse_sort = query.sort_direction.upper() == "DESC"
-    if query.sort_property == "deletionTime":
-        deleted_entities.sort(key=lambda e: e["deletionTime"], reverse=reverse_sort)
-    else:
-        deleted_entities.sort(
-            key=lambda e: e["sort_values"].get(query.sort_property, "").lower(),
-            reverse=reverse_sort,
+
+def _deletion_snapshots_pattern(selected_class: str | None) -> str:
+    """
+    Match the snapshots that deleted their entity.
+
+    A deletion snapshot is generated and invalidated at the same instant, and no
+    later snapshot derives from it. Restoring an entity adds a snapshot derived
+    from the deletion one, which is what excludes restored entities here.
+    """
+    class_pattern = ""
+    if selected_class:
+        class_pattern = f"""
+                ?snapshot <{OCO_HAS_UPDATE_QUERY}> ?candidateUpdateQuery .
+                FILTER(CONTAINS(
+                    ?candidateUpdateQuery,
+                    "{RDF_TYPE_STATEMENT} <{selected_class}>"
+                ))"""
+    return f"""
+                ?snapshot <{PROV}invalidatedAtTime> ?invalidationTime ;
+                          <{PROV}generatedAtTime> ?deletionTime .
+                FILTER(?deletionTime = ?invalidationTime)
+                FILTER NOT EXISTS {{
+                    ?laterSnapshot <{PROV}wasDerivedFrom> ?snapshot .
+                }}{class_pattern}"""
+
+
+def _deleted_entity_types(entity_uri: str, update_query: str) -> list[str]:
+    """Read the entity types out of the DELETE DATA recorded by the snapshot."""
+    statement = re.escape(f"<{entity_uri}> {RDF_TYPE_STATEMENT} ")
+    return re.findall(f"{statement}<([^>]+)>", update_query)
+
+
+def _count_deleted_class_instances(
+    class_uri: str, limit: int = COUNT_LIMIT
+) -> tuple[str, int]:
+    """
+    Count deleted entities of a class up to a limit.
+
+    Returns:
+        tuple: (display_count, numeric_count) where display_count may be "LIMIT+"
+    """
+    provenance_sparql = get_provenance_sparql()
+    provenance_sparql.setQuery(f"""
+        SELECT (COUNT(?snapshot) AS ?count)
+        WHERE {{
+            {{
+                SELECT ?snapshot
+                WHERE {{{_deletion_snapshots_pattern(class_uri)}
+                }}
+                LIMIT {limit + 1}
+            }}
+        }}
+    """)
+    provenance_sparql.setReturnFormat(JSON)
+    bindings = get_sparql_bindings(provenance_sparql.query().convert())
+
+    count = int(bindings[0]["count"]["value"])
+
+    if count > limit:
+        return f"{limit}+", limit
+    return str(count), count
+
+
+def get_deleted_available_classes() -> list[dict[str, str | int]]:
+    """Count the deleted entities of every class the configuration displays."""
+    cached = _cache["deleted_classes"]
+    if cached is not None:
+        deleted_classes, computed_at = cached
+        if time.monotonic() - computed_at < AVAILABLE_CLASSES_TTL_SECONDS:
+            return deleted_classes
+
+    custom_filter = get_custom_filter()
+
+    deleted_classes = []
+    for class_uri in _get_classes_from_config():
+        shape_uri = determine_shape_for_classes([class_uri])
+        entity_key = (class_uri, shape_uri)
+        if not is_entity_type_visible(entity_key):
+            continue
+
+        display_count, numeric_count = _count_deleted_class_instances(class_uri)
+        if numeric_count == 0:
+            continue
+
+        deleted_classes.append(
+            {
+                "uri": class_uri,
+                "label": custom_filter.human_readable_class(entity_key),
+                "count": display_count,
+                "count_numeric": numeric_count,
+                "shape": shape_uri,
+            }
         )
 
-    if selected_class:
-        if selected_shape is None:
-            selected_shape = determine_shape_for_classes([selected_class])
-        entity_key = (selected_class, selected_shape)
-        sortable_properties.extend(get_sortable_properties(entity_key))
+    deleted_classes.sort(key=lambda x: str(x["label"]).lower())
+    _cache["deleted_classes"] = (deleted_classes, time.monotonic())
+    return deleted_classes
 
-    if selected_class:
-        filtered_entities = [
-            entity
-            for entity in deleted_entities
-            if selected_class in entity["entity_types"]
-        ]
-    else:
-        filtered_entities = deleted_entities
 
-    total_count = len(filtered_entities)
-    offset = (query.page - 1) * query.per_page
-    paginated_entities = filtered_entities[offset : offset + query.per_page]
-
-    return (
-        paginated_entities,
-        selected_class,
-        selected_shape,
-        sortable_properties,
-        total_count,
+def warm_time_vault() -> None:
+    started_at = time.monotonic()
+    deleted_classes = get_deleted_available_classes()
+    current_app.logger.info(
+        "[STARTUP] Time Vault warm-up completed for %d categories in %.3f seconds",
+        len(deleted_classes),
+        time.monotonic() - started_at,
     )
+
+
+def _referenced_uris(graph: Graph) -> set[str]:
+    return {
+        str(obj)
+        for _, predicate, obj in graph
+        if isinstance(obj, URIRef) and predicate != RDF.type
+    }
+
+
+def _expand_with_current_state(graph: Graph) -> None:
+    """
+    Add the entities the deleted ones point at, so that display rules reaching
+    into neighbours can still resolve a label. The neighbours are read from the
+    dataset at their current state: only the deleted entities themselves are
+    gone from it.
+    """
+    sparql = get_sparql()
+    known = {str(subject) for subject in graph.subjects()}
+    frontier = _referenced_uris(graph) - known
+
+    for _ in range(RELATED_STATE_DEPTH):
+        if not frontier:
+            return
+
+        values = " ".join(f"<{uri}>" for uri in frontier)
+        pattern = f"VALUES ?subject {{ {values} }} ?subject ?predicate ?object ."
+        sparql.setQuery(f"""
+            SELECT ?subject ?predicate ?object
+            WHERE {{
+                {_wrap_virtuoso_graph_pattern(pattern)}
+            }}
+        """)
+        sparql.setReturnFormat(JSON)
+        bindings = get_sparql_bindings(sparql.query().convert())
+
+        for binding in bindings:
+            graph.add(
+                (
+                    URIRef(binding["subject"]["value"]),
+                    URIRef(binding["predicate"]["value"]),
+                    _binding_to_node(binding["object"]),
+                )
+            )
+
+        known |= frontier
+        frontier = _referenced_uris(graph) - known
+
+
+def process_deleted_entities(bindings: list[dict]) -> list[dict[str, str]]:
+    """
+    Build the listing entries for one page of deleted entities.
+
+    The state each entity had when it was deleted is already recorded in the
+    snapshot as a DELETE DATA update query, so nothing has to be replayed from
+    the provenance history to type and label it.
+    """
+    custom_filter = get_custom_filter()
+    state = Graph()
+    typed_bindings = []
+
+    for binding in bindings:
+        entity_uri = binding["entity"]["value"]
+        update_query = binding["updateQuery"]["value"]
+        entity_types = _deleted_entity_types(entity_uri, update_query)
+        highest_priority_type = get_highest_priority_class(entity_types)
+        if not highest_priority_type:
+            continue
+        for triple in parse_sparql_update(update_query)["Deletions"]:
+            state.add(triple)
+        typed_bindings.append((binding, entity_uri, highest_priority_type))
+
+    _expand_with_current_state(state)
+
+    entities = []
+    for binding, entity_uri, highest_priority_type in typed_bindings:
+        entity_key = (
+            highest_priority_type,
+            determine_shape_for_classes([highest_priority_type]),
+        )
+        entities.append(
+            {
+                "uri": entity_uri,
+                "deletionTime": binding["deletionTime"]["value"],
+                "deletedBy": custom_filter.format_agent_reference(
+                    binding["agent"]["value"] if "agent" in binding else ""
+                ),
+                "lastValidSnapshotTime": binding["lastValidSnapshotTime"]["value"],
+                "type": custom_filter.human_readable_predicate(
+                    highest_priority_type, entity_key
+                ),
+                "label": custom_filter.human_readable_entity(
+                    entity_uri, entity_key, state
+                ),
+            }
+        )
+
+    return entities
 
 
 def get_deleted_entities_with_filtering(
     query: DeletedEntitiesQuery,
 ) -> tuple[
-    list[dict[str, str | list[str] | dict[str, str]]],
+    list[dict[str, str]],
     list[dict[str, str | int]],
     str | None,
     str | None,
     list[dict[str, str]],
     int,
 ]:
-    sortable_properties = [
-        {"property": "deletionTime", "displayName": "Deletion Time", "sortType": "date"}
-    ]
-    provenance_sparql = get_provenance_sparql()
-    custom_filter = get_custom_filter()
+    sortable_properties = [DELETION_TIME_PROPERTY]
+    available_classes = get_deleted_available_classes()
+    if not available_classes:
+        return [], [], None, None, sortable_properties, 0
 
-    prov_query = """
-    SELECT DISTINCT ?entity ?lastSnapshot ?deletionTime ?agent ?lastValidSnapshotTime
-    WHERE {
-        ?lastSnapshot a <http://www.w3.org/ns/prov#Entity> ;
-                     <http://www.w3.org/ns/prov#specializationOf> ?entity ;
-                     <http://www.w3.org/ns/prov#generatedAtTime> ?deletionTime ;
-                     <http://www.w3.org/ns/prov#invalidatedAtTime> ?invalidationTime ;
-                     <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastValidSnapshot.
-
-        ?lastValidSnapshot <http://www.w3.org/ns/prov#generatedAtTime>
-        ?lastValidSnapshotTime .
-
-        OPTIONAL { ?lastSnapshot <http://www.w3.org/ns/prov#wasAttributedTo> ?agent . }
-
-        FILTER NOT EXISTS {
-            ?laterSnapshot <http://www.w3.org/ns/prov#wasDerivedFrom> ?lastSnapshot .
-        }
-    }
-    """
-    provenance_sparql.setQuery(prov_query)
-    provenance_sparql.setReturnFormat(JSON)
-    results_bindings = get_sparql_bindings(provenance_sparql.query().convert())
-    if not results_bindings:
-        return [], [], None, None, [], 0
-
-    if _worker_pool.executor is None:
-        processed_entities = [
-            process_deleted_entity(result, sortable_properties)
-            for result in results_bindings
-        ]
-    else:
-        futures = [
-            _worker_pool.executor.submit(
-                process_deleted_entity, result, sortable_properties
-            )
-            for result in results_bindings
-        ]
-        processed_entities = [future.result() for future in as_completed(futures)]
-
-    deleted_entities = [entity for entity in processed_entities if entity is not None]
-
-    class_counts = {}
-    for entity in deleted_entities:
-        for type_uri in entity["entity_types"]:
-            class_counts[type_uri] = class_counts.get(type_uri, 0) + 1
-
-    available_classes = [
-        {
-            "uri": class_uri,
-            "label": custom_filter.human_readable_class(
-                (class_uri, determine_shape_for_classes([class_uri]))
-            ),
-            "count": count,
-        }
-        for class_uri, count in class_counts.items()
-    ]
-
-    available_classes.sort(key=lambda x: x["label"].lower())
-
-    resolved_query = query
-    if not query.selected_class and available_classes:
-        resolved_query = DeletedEntitiesQuery(
-            page=query.page,
-            per_page=query.per_page,
-            sort_property=query.sort_property,
-            sort_direction=query.sort_direction,
-            selected_class=available_classes[0]["uri"],
-            selected_shape=query.selected_shape,
-        )
-
-    (
-        paginated_entities,
-        selected_class,
-        selected_shape,
-        sortable_properties,
-        total_count,
-    ) = _filter_and_paginate_deleted_entities(
-        deleted_entities, resolved_query, sortable_properties
+    requested_shape = query.selected_shape or None
+    selected = next(
+        (
+            class_info
+            for class_info in available_classes
+            if class_info["uri"] == query.selected_class
+            and (requested_shape is None or class_info["shape"] == requested_shape)
+        ),
+        available_classes[0],
     )
+    selected_class = str(selected["uri"])
+    shape = selected["shape"]
+    selected_shape = str(shape) if shape is not None else None
+    total_count = int(selected["count_numeric"])
+
+    direction = "ASC" if query.sort_direction.upper() == "ASC" else "DESC"
+    offset = (query.page - 1) * query.per_page
+
+    provenance_sparql = get_provenance_sparql()
+    provenance_sparql.setQuery(f"""
+        SELECT ?entity ?deletionTime ?agent ?lastValidSnapshotTime ?updateQuery
+        WHERE {{
+            {{
+                SELECT ?snapshot ?deletionTime
+                WHERE {{{_deletion_snapshots_pattern(selected_class)}
+                }}
+                ORDER BY {direction}(?deletionTime)
+                LIMIT {query.per_page}
+                OFFSET {offset}
+            }}
+            ?snapshot <{PROV}specializationOf> ?entity ;
+                      <{PROV}wasDerivedFrom> ?lastValidSnapshot ;
+                      <{OCO_HAS_UPDATE_QUERY}> ?updateQuery .
+            ?lastValidSnapshot <{PROV}generatedAtTime> ?lastValidSnapshotTime .
+            OPTIONAL {{ ?snapshot <{PROV}wasAttributedTo> ?agent . }}
+        }}
+        ORDER BY {direction}(?deletionTime)
+    """)
+    provenance_sparql.setReturnFormat(JSON)
+    bindings = get_sparql_bindings(provenance_sparql.query().convert())
 
     return (
-        paginated_entities,
+        process_deleted_entities(bindings),
         available_classes,
         selected_class,
         selected_shape,
         sortable_properties,
         total_count,
     )
-
-
-def process_deleted_entity(result: dict, sortable_properties: list) -> dict | None:
-    """
-    Process a single deleted entity, filtering by visible classes.
-    """
-    change_tracking_config = get_change_tracking_config()
-    custom_filter = get_custom_filter()
-
-    entity_uri = result["entity"]["value"]
-    last_valid_snapshot_time = result["lastValidSnapshotTime"]["value"]
-
-    agnostic_entity = AgnosticEntity(
-        res=entity_uri,
-        config=change_tracking_config,
-        include_related_objects=True,
-        include_merged_entities=True,
-        include_reverse_relations=get_display_rules_use_inverse_relations(),
-    )
-    state, _, _ = agnostic_entity.get_state_at_time(
-        (last_valid_snapshot_time, last_valid_snapshot_time)
-    )
-    state = convert_to_rdflib_graphs(state, is_quadstore=get_dataset_is_quadstore())
-
-    if entity_uri not in state:
-        return None
-
-    last_valid_dt = convert_to_datetime(last_valid_snapshot_time)
-    if last_valid_dt is None:
-        msg = "last_valid_dt must not be None"
-        raise AssertionError(msg)
-    last_valid_state: Graph | Dataset = state[entity_uri][last_valid_dt.isoformat()]
-
-    entity_types = [
-        str(o)
-        for _, _, o in get_triples_from_graph(
-            last_valid_state, (URIRef(entity_uri), RDF.type, None)
-        )
-    ]
-    highest_priority_type = get_highest_priority_class(entity_types)
-    if not highest_priority_type:
-        return None
-    shape = determine_shape_for_classes([highest_priority_type])
-    visible_types = [
-        t
-        for t in entity_types
-        if is_entity_type_visible((t, determine_shape_for_classes([t])))
-    ]
-    if not visible_types:
-        return None
-
-    sort_values = {}
-    for prop in sortable_properties:
-        prop_uri = prop["property"]
-        values = [
-            str(o)
-            for _, _, o in get_triples_from_graph(
-                last_valid_state, (URIRef(entity_uri), URIRef(prop_uri), None)
-            )
-        ]
-        sort_values[prop_uri] = values[0] if values else ""
-
-    return {
-        "uri": entity_uri,
-        "deletionTime": result["deletionTime"]["value"],
-        "deletedBy": custom_filter.format_agent_reference(
-            result.get("agent", {}).get("value", "")
-        ),
-        "lastValidSnapshotTime": last_valid_snapshot_time,
-        "type": custom_filter.human_readable_predicate(
-            highest_priority_type, (highest_priority_type, shape)
-        ),
-        "label": custom_filter.human_readable_entity(
-            entity_uri, (highest_priority_type, shape), last_valid_state
-        ),
-        "entity_types": visible_types,
-        "sort_values": sort_values,
-    }
 
 
 def find_orphaned_entities(

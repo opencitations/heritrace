@@ -143,3 +143,44 @@ def setup_test_data(app):
 
     sparql.setQuery(clear_query)
     sparql.query()
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_test_meta_entities() -> Generator[None, None, None]:
+    # Leftover test_ entities under the meta base IRI break
+    # MetaURIGenerator.initialize_counters() for later tests/sessions
+    # reusing the shared dataset/provenance stores.
+    yield
+
+    dataset = SPARQLWrapper(TestConfig.DATASET_DB_URL)
+    dataset.setMethod("POST")
+    dataset.setQuery("""
+    DELETE { GRAPH ?g { ?s ?p ?o } }
+    WHERE {
+        GRAPH ?g {
+            ?s ?p ?o .
+            FILTER(
+                STRSTARTS(str(?s), "https://w3id.org/oc/meta/")
+                && CONTAINS(str(?s), "/test_")
+            )
+        }
+    }
+    """)
+    dataset.query()
+
+    provenance = SPARQLWrapper(TestConfig.PROVENANCE_DB_URL)
+    provenance.setMethod("POST")
+    provenance.setQuery("""
+    DELETE { GRAPH ?g { ?snapshot ?p ?o } }
+    WHERE {
+        GRAPH ?g {
+            ?snapshot <http://www.w3.org/ns/prov#specializationOf> ?entity ;
+                      ?p ?o .
+            FILTER(
+                STRSTARTS(str(?entity), "https://w3id.org/oc/meta/")
+                && CONTAINS(str(?entity), "/test_")
+            )
+        }
+    }
+    """)
+    provenance.query()
