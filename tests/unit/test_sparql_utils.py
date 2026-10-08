@@ -952,9 +952,12 @@ class TestFindOrphanedEntities:
             }
         }
 
-        with patch(
-            "heritrace.utils.sparql_utils.get_display_rules",
-            return_value=mock_display_rules,
+        with (
+            patch(
+                "heritrace.utils.sparql_utils.get_display_rules",
+                return_value=mock_display_rules,
+            ),
+            patch("heritrace.utils.sparql_utils.is_virtuoso", return_value=True),
         ):
             orphaned, _intermediate_orphans = find_orphaned_entities(
                 URIRef("http://example.org/person1"), "http://example.org/Person"

@@ -1093,6 +1093,32 @@ def get_deleted_entities_with_filtering(
     )
 
 
+def _orphan_candidate_restriction(
+    subject: URIRef,
+    predicate: URIRef | None,
+    object_value: str | None,
+    intermediate_classes: set[str],
+) -> str:
+    if is_virtuoso():
+        return ""
+    if predicate:
+        return f"VALUES ?entity {{ <{object_value}> }}" if object_value else ""
+
+    sparql = get_sparql()
+    sparql.setQuery(f"""
+        SELECT DISTINCT ?entity WHERE {{
+            <{subject}> ?p ?entity .
+            FILTER(isIRI(?entity))
+            ?entity a ?type .
+            FILTER(?type NOT IN (<{">, <".join(intermediate_classes)}>))
+        }}
+    """)
+    sparql.setReturnFormat(JSON)
+    bindings = get_sparql_bindings(sparql.query().convert())
+    candidates = " ".join(URIRef(row["entity"]["value"]).n3() for row in bindings)
+    return f"VALUES ?entity {{ {candidates} }}"
+
+
 def find_orphaned_entities(
     subject: URIRef,
     entity_type: str,
@@ -1114,6 +1140,17 @@ def find_orphaned_entities(
                 if "intermediateRelation" in prop:
                     intermediate_classes.add(prop["intermediateRelation"]["class"])
 
+    candidate_restriction = _orphan_candidate_restriction(
+        subject, predicate, object_value, intermediate_classes
+    )
+    intermediate_type_restriction = (
+        f"FILTER(?type IN (<{'>, <'.join(intermediate_classes)}>))"
+        if is_virtuoso()
+        else "VALUES ?type { "
+        + " ".join(URIRef(class_uri).n3() for class_uri in intermediate_classes)
+        + " }"
+    )
+
     orphan_query = f"""
     SELECT DISTINCT ?entity ?type
     WHERE {{
@@ -1128,12 +1165,14 @@ def find_orphaned_entities(
 
         # No incoming references from other entities
         FILTER NOT EXISTS {{
+            {candidate_restriction}
             ?other ?anyPredicate ?entity .
             FILTER(?other != <{subject}>)
         }}
 
         # No outgoing references to active entities
         FILTER NOT EXISTS {{
+            {candidate_restriction}
             ?entity ?outgoingPredicate ?connectedEntity .
             ?connectedEntity ?furtherPredicate ?furtherObject .
             {f"FILTER(?connectedEntity != <{subject}>)" if not predicate else ""}
@@ -1150,7 +1189,7 @@ def find_orphaned_entities(
         SELECT DISTINCT ?entity ?type
         WHERE {{
             <{object_value}> a ?type .
-            FILTER(?type IN (<{">, <".join(intermediate_classes)}>))
+            {intermediate_type_restriction}
             BIND(<{object_value}> AS ?entity)
         }}
         """
@@ -1164,11 +1203,11 @@ def find_orphaned_entities(
             {{
                 <{subject}> ?p ?entity .
                 ?entity a ?type .
-                FILTER(?type IN (<{">, <".join(intermediate_classes)}>))
+                {intermediate_type_restriction}
             }} UNION {{
                 ?entity ?p <{subject}> .
                 ?entity a ?type .
-                FILTER(?type IN (<{">, <".join(intermediate_classes)}>))
+                {intermediate_type_restriction}
             }}
         }}
         """
