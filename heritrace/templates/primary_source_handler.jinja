@@ -1,15 +1,13 @@
 <script>
     function showPrimarySourceDialog(options) {
-        const { defaultPrimarySource, onConfirm, confirmButtonText } = options;
+        const { defaultPrimarySource, onConfirm, confirmButtonText, description } = options;
         
         Swal.fire({
             title: '{{ _("Enter primary source") }}',
-            html: `
-                <p>{{ _("Enter the URL of the primary source for this operation, or leave the field blank to record no source.") }}</p>
-            `,
+            text: description || {{ _("Enter the URL of the primary source for this operation, or leave the field blank to record no source.") | tojson }},
             input: 'url',
             inputValue: defaultPrimarySource || '',
-            inputPlaceholder: '{{ _("Enter the URL") }}',
+            inputPlaceholder: {{ _("Enter the URL") | tojson }},
             showCancelButton: true,
             confirmButtonText: confirmButtonText || '{{ _("Confirm") }}',
             cancelButtonText: '{{ _("Cancel") }}',

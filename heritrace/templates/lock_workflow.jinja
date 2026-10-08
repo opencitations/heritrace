@@ -70,8 +70,6 @@
         $('[data-repeater-list][data-ordered-by]').each(function() {
             updateSortable($(this));
         });
-        $("#saveChangesBtn").show();
-        $("#cancelChangesBtn").show();
 
         // Gestione dei campi data
         $(".date-type-selector-container").removeClass('d-none');
@@ -91,10 +89,11 @@
 
         // Imposta flag di modalità editing
         isInEditMode = true;
+        saveChangesBar.start();
     }
 
     function exitEditMode() {
-        if (pendingChanges.length > 0) {
+        if (saveChangesBar.hasChanges()) {
             Swal.fire({
                 title: '{{ _("Unsaved Changes") }}',
                 text: '{{ _("You have unsaved changes. Are you sure you want to exit edit mode?") }}',
@@ -126,6 +125,7 @@
                     clearInterval(window.lockRenewalTimer);
                 }
 
+                saveChangesBar.stop();
                 restoreOriginalValues();
 
                 $(".editable-field").prop('readonly', true);
@@ -142,8 +142,6 @@
                 $(".delete-button").hide();
                 $(".text-info").addClass('d-none');
                 $(".drag-handle").children().addClass('d-none');
-                $("#saveChangesBtn").hide();
-                $("#cancelChangesBtn").hide();
 
                 $(".date-type-selector-container").addClass('d-none');
                 $(".date-input-container").hide();

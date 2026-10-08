@@ -154,18 +154,24 @@
 </div>
 {% endif %}
 
-<div class="row g-3 mb-5">
-    <div class="col-12 col-sm-6">
-        <button class="btn btn-outline-primary w-100" id="saveChangesBtn" style="display: none;">
-            <i class="bi bi-check-circle me-2"></i>{{_('Save Changes')}}
-        </button>
+<section id="saveChangesBar" class="save-changes-bar" hidden
+    aria-label="{{ _('Save changes') }}"
+    data-unchanged="{{ _('No changes') }}"
+    data-unsaved="{{ _('Unsaved changes') }}"
+    data-saving="{{ _('Saving changes…') }}"
+    data-saved="{{ _('Changes saved') }}">
+    <div class="page-shell page-shell--standard save-changes-bar-content">
+        <p id="saveChangesStatus" class="mb-0" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div class="save-changes-actions">
+            <button type="button" class="btn btn-outline-secondary" id="cancelChangesBtn">
+                {{ _('Cancel changes') }}
+            </button>
+            <button type="button" class="btn btn-primary" id="saveChangesBtn" disabled>
+                {{ _('Save changes') }}
+            </button>
+        </div>
     </div>
-    <div class="col-12 col-sm-6">
-        <button class="btn btn-outline-secondary w-100" id="cancelChangesBtn" style="display: none;">
-            <i class="bi bi-x-circle me-2"></i>{{_('Cancel')}}
-        </button>
-    </div>
-</div>
+</section>
 
 <div class="linked-resources mt-5">
     <h4 class="mb-4">{{ _('Resources Referencing This') }}</h4>
@@ -231,6 +237,7 @@
 {% include 'entity/similar_resources.jinja' %}
 {% include 'entity/linked_resources.jinja' %}
 
+<script src="{{ url_for('static', filename='js/save_changes_bar.js') }}"></script>
 {% include 'lock_workflow.jinja' with context %}
 
 <script src="{{ url_for('static', filename='js/creation_workflow.js') }}"></script>
@@ -401,7 +408,7 @@
             }
         });
 
-        $.ajax({
+        return $.ajax({
             url: "{{ url_for('api.apply_changes') }}",
             method: 'POST',
             contentType: 'application/json',
@@ -884,6 +891,7 @@
         });
 
         $('#saveChangesBtn').click(function() {
+            if (saveChangesBar.saving || !saveChangesBar.hasChanges()) return;
             $('.collapse:not(.show)').collapse('show');
             
             let errors = [];
@@ -921,6 +929,8 @@
                 // Use the new primary source dialog
                 showPrimarySourceDialog({
                     defaultPrimarySource: default_primary_source,
+                    confirmButtonText: {{ _('Save changes') | tojson }},
+                    description: {{ _('The primary source is optional. Click Save changes to finish saving.') | tojson }},
                     onConfirm: function(primarySourceUrl, saveAsDefault) {
                         // Add primary source information to the first change
                         if (pendingChanges.length > 0) {
@@ -928,8 +938,13 @@
                             pendingChanges[0].save_default_source = saveAsDefault;
                         }
                         
+                        saveChangesBar.setSaving(true);
                         applyChangesToEntity(pendingChanges, function() {
                             window.location.href = "{{ url_for('entity.about', subject=subject) }}";
+                        }).done(function(response) {
+                            if (response.status === 'success') saveChangesBar.setSaved();
+                        }).always(function() {
+                            saveChangesBar.setSaving(false);
                         });
                     }
                 });

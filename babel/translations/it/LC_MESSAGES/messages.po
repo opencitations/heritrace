@@ -1310,3 +1310,24 @@ msgstr ""
 
 #~ msgid "At least %(min_count)d item(s) required"
 #~ msgstr "Sono richiesti almeno %(min_count)d elementi"
+
+msgid "Save changes"
+msgstr "Salva modifiche"
+
+msgid "Cancel changes"
+msgstr "Annulla modifiche"
+
+msgid "No changes"
+msgstr "Nessuna modifica"
+
+msgid "Unsaved changes"
+msgstr "Modifiche non salvate"
+
+msgid "Saving changes…"
+msgstr "Salvataggio in corso…"
+
+msgid "Changes saved"
+msgstr "Modifiche salvate"
+
+msgid "The primary source is optional. Click Save changes to finish saving."
+msgstr "La fonte primaria è facoltativa. Premi Salva modifiche per completare il salvataggio."

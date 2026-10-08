@@ -18,7 +18,7 @@ class CustomPropertiesManager {
             literal: '{{ _("Literal") }}',
             uri: '{{ _("URI") }}',
             selectDatatype: '{{ _("Select Datatype") }}',
-            validUrlError: '{{ _("Please enter a valid URL for the property URI") }}',
+            validUrlError: {{ _("Please enter a valid URL for the property URI") | tojson }},
             noValidDatatypes: '{{ _("No valid datatypes for this value") }}',
             delete: '{{ _("Delete") }}'
         };

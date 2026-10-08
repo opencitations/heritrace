@@ -1680,3 +1680,24 @@ msgstr ""
 
 #~ msgid "At least %(min_count)d item(s) required"
 #~ msgstr ""
+
+msgid "Save changes"
+msgstr "Save changes"
+
+msgid "Cancel changes"
+msgstr "Cancel changes"
+
+msgid "No changes"
+msgstr "No changes"
+
+msgid "Unsaved changes"
+msgstr "Unsaved changes"
+
+msgid "Saving changes…"
+msgstr "Saving changes…"
+
+msgid "Changes saved"
+msgstr "Changes saved"
+
+msgid "The primary source is optional. Click Save changes to finish saving."
+msgstr "The primary source is optional. Click Save changes to finish saving."
