@@ -743,10 +743,23 @@ rules:
               [[uri]] pro:isDocumentContextFor ?authorRole .
               ?authorRole pro:withRole pro:author ;
                           pro:isHeldBy ?author .
-              OPTIONAL { ?author foaf:name ?authorName . }
               OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
+                ?author foaf:name ?authorName .
+              }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
                 ?author foaf:familyName ?familyName .
-                OPTIONAL { ?author foaf:givenName ?givenName . }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?authorRole .
+                  ?authorRole pro:withRole pro:author ;
+                              pro:isHeldBy ?author .
+                  ?author foaf:givenName ?givenName .
+                }
                 BIND(CONCAT(?familyName, COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")) AS ?authorName)
               }
             }
@@ -919,10 +932,23 @@ rules:
               [[uri]] pro:isDocumentContextFor ?authorRole .
               ?authorRole pro:withRole pro:author ;
                           pro:isHeldBy ?author .
-              OPTIONAL { ?author foaf:name ?authorName . }
               OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
+                ?author foaf:name ?authorName .
+              }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
                 ?author foaf:familyName ?familyName .
-                OPTIONAL { ?author foaf:givenName ?givenName . }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?authorRole .
+                  ?authorRole pro:withRole pro:author ;
+                              pro:isHeldBy ?author .
+                  ?author foaf:givenName ?givenName .
+                }
                 BIND(CONCAT(
                   ?familyName,
                   COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
@@ -935,10 +961,23 @@ rules:
               [[uri]] pro:isDocumentContextFor ?editorRole .
               ?editorRole pro:withRole pro:editor ;
                           pro:isHeldBy ?editor .
-              OPTIONAL { ?editor foaf:name ?editorName . }
               OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?editorRole .
+                ?editorRole pro:withRole pro:editor ;
+                            pro:isHeldBy ?editor .
+                ?editor foaf:name ?editorName .
+              }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?editorRole .
+                ?editorRole pro:withRole pro:editor ;
+                            pro:isHeldBy ?editor .
                 ?editor foaf:familyName ?familyName .
-                OPTIONAL { ?editor foaf:givenName ?givenName . }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?editorRole .
+                  ?editorRole pro:withRole pro:editor ;
+                              pro:isHeldBy ?editor .
+                  ?editor foaf:givenName ?givenName .
+                }
                 BIND(CONCAT(
                   ?familyName,
                   COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
@@ -1032,10 +1071,23 @@ rules:
               [[uri]] pro:isDocumentContextFor ?authorRole .
               ?authorRole pro:withRole pro:author ;
                           pro:isHeldBy ?author .
-              OPTIONAL { ?author foaf:name ?authorName . }
               OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
+                ?author foaf:name ?authorName .
+              }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
                 ?author foaf:familyName ?familyName .
-                OPTIONAL { ?author foaf:givenName ?givenName . }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?authorRole .
+                  ?authorRole pro:withRole pro:author ;
+                              pro:isHeldBy ?author .
+                  ?author foaf:givenName ?givenName .
+                }
                 BIND(CONCAT(
                   ?familyName,
                   COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
@@ -1251,10 +1303,23 @@ rules:
               [[uri]] pro:isDocumentContextFor ?authorRole .
               ?authorRole pro:withRole pro:author ;
                           pro:isHeldBy ?author .
-              OPTIONAL { ?author foaf:name ?authorName . }
               OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
+                ?author foaf:name ?authorName .
+              }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
                 ?author foaf:familyName ?familyName .
-                OPTIONAL { ?author foaf:givenName ?givenName . }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?authorRole .
+                  ?authorRole pro:withRole pro:author ;
+                              pro:isHeldBy ?author .
+                  ?author foaf:givenName ?givenName .
+                }
                 BIND(CONCAT(
                   ?familyName,
                   COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
@@ -1340,10 +1405,23 @@ rules:
             [[uri]] pro:isDocumentContextFor ?editorRole .
             ?editorRole pro:withRole pro:editor ;
                         pro:isHeldBy ?editor .
-            OPTIONAL { ?editor foaf:name ?editorName . }
             OPTIONAL {
+              [[uri]] pro:isDocumentContextFor ?editorRole .
+              ?editorRole pro:withRole pro:editor ;
+                          pro:isHeldBy ?editor .
+              ?editor foaf:name ?editorName .
+            }
+            OPTIONAL {
+              [[uri]] pro:isDocumentContextFor ?editorRole .
+              ?editorRole pro:withRole pro:editor ;
+                          pro:isHeldBy ?editor .
               ?editor foaf:familyName ?familyName .
-              OPTIONAL { ?editor foaf:givenName ?givenName . }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?editorRole .
+                ?editorRole pro:withRole pro:editor ;
+                            pro:isHeldBy ?editor .
+                ?editor foaf:givenName ?givenName .
+              }
               BIND(CONCAT(
                 ?familyName,
                 COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
@@ -1397,10 +1475,23 @@ rules:
               [[uri]] pro:isDocumentContextFor ?authorRole .
               ?authorRole pro:withRole pro:author ;
                           pro:isHeldBy ?author .
-              OPTIONAL { ?author foaf:name ?authorName . }
               OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
+                ?author foaf:name ?authorName .
+              }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
                 ?author foaf:familyName ?familyName .
-                OPTIONAL { ?author foaf:givenName ?givenName . }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?authorRole .
+                  ?authorRole pro:withRole pro:author ;
+                              pro:isHeldBy ?author .
+                  ?author foaf:givenName ?givenName .
+                }
                 BIND(CONCAT(
                   ?familyName,
                   COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
@@ -1413,10 +1504,23 @@ rules:
               [[uri]] pro:isDocumentContextFor ?editorRole .
               ?editorRole pro:withRole pro:editor ;
                           pro:isHeldBy ?editor .
-              OPTIONAL { ?editor foaf:name ?editorName . }
               OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?editorRole .
+                ?editorRole pro:withRole pro:editor ;
+                            pro:isHeldBy ?editor .
+                ?editor foaf:name ?editorName .
+              }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?editorRole .
+                ?editorRole pro:withRole pro:editor ;
+                            pro:isHeldBy ?editor .
                 ?editor foaf:familyName ?familyName .
-                OPTIONAL { ?editor foaf:givenName ?givenName . }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?editorRole .
+                  ?editorRole pro:withRole pro:editor ;
+                              pro:isHeldBy ?editor .
+                  ?editor foaf:givenName ?givenName .
+                }
                 BIND(CONCAT(
                   ?familyName,
                   COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
@@ -1500,10 +1604,23 @@ rules:
               [[uri]] pro:isDocumentContextFor ?authorRole .
               ?authorRole pro:withRole pro:author ;
                           pro:isHeldBy ?author .
-              OPTIONAL { ?author foaf:name ?authorName . }
               OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
+                ?author foaf:name ?authorName .
+              }
+              OPTIONAL {
+                [[uri]] pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
                 ?author foaf:familyName ?familyName .
-                OPTIONAL { ?author foaf:givenName ?givenName . }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?authorRole .
+                  ?authorRole pro:withRole pro:author ;
+                              pro:isHeldBy ?author .
+                  ?author foaf:givenName ?givenName .
+                }
                 BIND(CONCAT(
                   ?familyName,
                   COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")

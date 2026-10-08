@@ -207,7 +207,14 @@ For managing your Virtuoso instance (launching the server, bulk-loading data, ex
 
 These settings control the data model's constraints and its presentation in the user interface.
 
-The application reads SHACL and display rules from fixed paths inside the container: `/app/shacl.ttl` and `/app/display_rules.yaml`. These are not configurable via environment variables. To customize them, mount your files as Docker volumes:
+Set `SHACL_PATH` and `DISPLAY_RULES_PATH` in `.env` to choose the files that define the schema and display rules:
+
+```dotenv
+SHACL_PATH=example_configurations/opencitations_meta/shacl.ttl
+DISPLAY_RULES_PATH=example_configurations/opencitations_meta/display_rules.yaml
+```
+
+Relative paths start from the project root, and absolute paths are also supported. The defaults are `shacl.ttl` and `display_rules.yaml` in the project root. For Docker, use paths inside the container and mount the files at those locations:
 
 ```yaml
 volumes:

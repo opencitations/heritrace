@@ -111,8 +111,10 @@ class Config:
     SAVE_PLUGIN = save_plugin
 
     PRIMARY_SOURCE = os.environ["PRIMARY_SOURCE"]
-    SHACL_PATH = _BASE_DIR / "shacl.ttl"
-    DISPLAY_RULES_PATH = _BASE_DIR / "display_rules.yaml"
+    SHACL_PATH = _BASE_DIR / os.getenv("SHACL_PATH", "shacl.ttl")
+    DISPLAY_RULES_PATH = _BASE_DIR / os.getenv(
+        "DISPLAY_RULES_PATH", "display_rules.yaml"
+    )
 
     ORCID_CLIENT_ID = os.environ["ORCID_CLIENT_ID"]
     ORCID_CLIENT_SECRET = os.environ["ORCID_CLIENT_SECRET"]
