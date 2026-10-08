@@ -9,13 +9,16 @@
 {% block content %}
 
 <style>
-.inverse-references .list-group-item,
-.similar-resources .list-group-item {
+.linked-resources .list-group-item,
+.similar-resources .list-group-item,
+.property-value {
+    background-color: transparent;
     transition: background-color 0.2s;
 }
 
-.inverse-references .list-group-item:hover,
-.similar-resources .list-group-item:hover {
+.linked-resources .list-group-item:hover,
+.similar-resources .list-group-item:hover,
+.property-value:hover {
     background-color: rgba(0,0,0,0.02);
 }
 

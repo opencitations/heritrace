@@ -415,7 +415,7 @@
             {% else %}
                 {% if shacl and triple[1] in mandatory_values and object in mandatory_values[triple[1]] %}
                     <div class="d-flex align-items-baseline">
-                        <p style="margin-left: 0.75rem">{{ triple[2] }}</p>
+                        <p class="mb-0" style="margin-left: 0.75rem">{{ triple[2] }}</p>
                         <i class="bi bi-question-circle-fill ms-2 text-info" 
                            data-bs-toggle="tooltip" 
                            data-bs-placement="right"
