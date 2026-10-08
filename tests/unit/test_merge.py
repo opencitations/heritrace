@@ -883,6 +883,7 @@ def test_find_similar_resources_exception(
 @patch("heritrace.routes.merge.get_similarity_properties")
 @patch("heritrace.routes.merge.get_entity_types")
 @patch("flask_login.utils._get_user")
+@pytest.mark.parametrize("backend", ["virtuoso", "qlever", "default"])
 def test_find_similar_resources_literal_formatting(
     mock_current_user,
     mock_get_types,
@@ -890,10 +891,13 @@ def test_find_similar_resources_literal_formatting(
     mock_get_filter,
     mock_get_sparql,
     client,
+    app,
+    backend,
     mock_user,
     similar_test_data,
 ) -> None:
     """Test correct SPARQL formatting for various literal types."""
+    app.config["DATASET_DB_TRIPLESTORE"] = backend
     mock_current_user.return_value = mock_user
     mock_sparql_instance = MagicMock()
 
@@ -962,15 +966,32 @@ def test_find_similar_resources_literal_formatting(
 
     assert mock_sparql_instance.setQuery.call_count == 2
 
-    find_query = mock_sparql_instance.setQuery.call_args_list[1].args[0]
-
-    assert (
-        'FILTER(?o_1 IN ("TypedValue"^^<http://www.w3.org/2001/XMLSchema#string>))'
-        in find_query
+    final_query = mock_sparql_instance.setQuery.call_args_list[1].args[0]
+    if backend != "virtuoso":
+        patterns = (
+            '{ VALUES ?o_1 { "TypedValue"^^'
+            "<http://www.w3.org/2001/XMLSchema#string> } "
+            f"?similar <{prop_typed}> ?o_1 . }} UNION "
+            '{ VALUES ?o_2 { "LangValue"@en } '
+            f"?similar <{prop_lang}> ?o_2 . }} UNION "
+            f'{{ VALUES ?o_3 {{ "PlainValue" }} ?similar <{prop_plain}> ?o_3 . }} '
+        )
+    else:
+        patterns = (
+            f"{{ ?similar <{prop_typed}> ?o_1 . "
+            'FILTER(?o_1 IN ("TypedValue"^^'
+            "<http://www.w3.org/2001/XMLSchema#string>)) } UNION "
+            f"{{ ?similar <{prop_lang}> ?o_2 . "
+            'FILTER(?o_2 IN ("LangValue"@en)) } UNION '
+            f'{{ ?similar <{prop_plain}> ?o_3 . FILTER(?o_3 IN ("PlainValue")) }} '
+        )
+    assert " ".join(final_query.split()) == (
+        "SELECT DISTINCT ?similar WHERE { "
+        f"?similar a <{similar_test_data['subject_type']}> . "
+        f"FILTER(?similar != <{similar_test_data['subject_uri']}>) {{ "
+        + patterns
+        + "} } ORDER BY ?similar OFFSET 0 LIMIT 6"
     )
-    assert 'FILTER(?o_2 IN ("LangValue"@en))' in find_query
-    assert 'FILTER(?o_3 IN ("PlainValue"))' in find_query
-    assert f"<{prop_bnode}>" not in find_query
 
 
 @patch("heritrace.routes.merge.get_sparql")
@@ -1290,6 +1311,7 @@ def test_find_similar_resources_no_valid_union_blocks_due_to_formatting(
 @patch("heritrace.routes.merge.get_similarity_properties")
 @patch("heritrace.routes.merge.get_entity_types")
 @patch("flask_login.utils._get_user")
+@pytest.mark.parametrize("backend", ["virtuoso", "qlever", "default"])
 def test_find_similar_resources_success_with_and_group(
     mock_current_user,
     mock_get_types,
@@ -1297,10 +1319,13 @@ def test_find_similar_resources_success_with_and_group(
     mock_get_filter,
     mock_get_sparql,
     client,
+    app,
+    backend,
     mock_user,
     similar_test_data,
 ) -> None:
     """Test finding similar resources successfully using an AND group condition."""
+    app.config["DATASET_DB_TRIPLESTORE"] = backend
     mock_current_user.return_value = mock_user
     mock_sparql_instance = MagicMock()
     prop_a = "http://similar.prop/propA"
@@ -1354,14 +1379,21 @@ def test_find_similar_resources_success_with_and_group(
     assert not data["has_more"]
     assert mock_sparql_instance.setQuery.call_count == 2
 
-    # Verify the final query includes the AND patterns correctly
     final_query = mock_sparql_instance.setQuery.call_args_list[1].args[0]
-    assert f"<{prop_a}> ?o_" in final_query  # Variable name depends on counter
-    assert (
-        f'FILTER(?o_1 IN ("{val_a}"))' in final_query
-    )  # Assuming var_counter starts at 0 -> o_1
-    assert f"<{prop_b}> ?o_" in final_query
-    assert (
-        f'FILTER(?o_2 IN ("{val_b}"))' in final_query
-    )  # Assuming var_counter increments -> o_2
-    assert "UNION" not in final_query  # Since there's only one AND group
+    if backend != "virtuoso":
+        patterns = (
+            f'VALUES ?o_1 {{ "{val_a}" }} ?similar <{prop_a}> ?o_1 . '
+            f'VALUES ?o_2 {{ "{val_b}" }} ?similar <{prop_b}> ?o_2 . '
+        )
+    else:
+        patterns = (
+            f'?similar <{prop_a}> ?o_1 . FILTER(?o_1 IN ("{val_a}")) '
+            f'?similar <{prop_b}> ?o_2 . FILTER(?o_2 IN ("{val_b}")) '
+        )
+    assert " ".join(final_query.split()) == (
+        "SELECT DISTINCT ?similar WHERE { "
+        f"?similar a <{similar_test_data['subject_type']}> . "
+        f"FILTER(?similar != <{similar_test_data['subject_uri']}>) {{ {{ "
+        + patterns
+        + "} } } ORDER BY ?similar OFFSET 0 LIMIT 6"
+    )

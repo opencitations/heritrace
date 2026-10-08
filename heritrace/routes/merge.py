@@ -46,6 +46,7 @@ from heritrace.utils.primary_source_utils import (
 )
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import get_entity_types, import_entity_graph
+from heritrace.utils.virtuoso_utils import is_virtuoso
 
 if TYPE_CHECKING:
     from werkzeug.wrappers import Response as WerkzeugResponse
@@ -398,6 +399,19 @@ def _fetch_subject_values(
     return subject_values_by_prop
 
 
+def _build_similarity_pattern(prop_uri: str, values: list[str], index: int) -> str:
+    variable = f"?o_{index}"
+    if not is_virtuoso():
+        return (
+            f"VALUES {variable} {{ {' '.join(values)} }} "
+            f"?similar <{prop_uri}> {variable} ."
+        )
+    return (
+        f"?similar <{prop_uri}> {variable} . "
+        f"FILTER({variable} IN ({', '.join(values)}))"
+    )
+
+
 def _build_union_blocks(
     similarity_config: list,
     subject_values_by_prop: defaultdict[str, list[str]],
@@ -411,13 +425,8 @@ def _build_union_blocks(
             prop_values = subject_values_by_prop.get(condition)
             if prop_values:
                 var_counter += 1
-                values_filter = ", ".join(prop_values)
-                union_blocks.append(
-                    f"  {{ ?similar <{condition}>"
-                    f" ?o_{var_counter} ."
-                    f" FILTER(?o_{var_counter}"
-                    f" IN ({values_filter})) }}"
-                )
+                pattern = _build_similarity_pattern(condition, prop_values, var_counter)
+                union_blocks.append(f"  {{ {pattern} }}")
         elif isinstance(condition, dict) and "and" in condition:
             block = _build_and_block(
                 condition["and"], subject_values_by_prop, subject_uri, var_counter
@@ -451,12 +460,8 @@ def _build_and_block(
     for prop_uri in and_props:
         prop_values = subject_values_by_prop[prop_uri]
         var_counter += 1
-        values_filter = ", ".join(prop_values)
         and_patterns.append(
-            f"    ?similar <{prop_uri}>"
-            f" ?o_{var_counter} ."
-            f" FILTER(?o_{var_counter}"
-            f" IN ({values_filter})) ."
+            f"    {_build_similarity_pattern(prop_uri, prop_values, var_counter)}"
         )
 
     patterns_str = "\n".join(and_patterns)

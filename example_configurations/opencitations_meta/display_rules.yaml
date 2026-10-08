@@ -22,14 +22,25 @@ queries:
     SELECT DISTINCT ?formattedName ?ra WHERE {
       [[value]] pro:isHeldBy ?ra;
           pro:withRole pro:author.
-      OPTIONAL { ?ra foaf:name ?name. }
-      OPTIONAL { ?ra foaf:familyName ?familyName. }
-      OPTIONAL { ?ra foaf:givenName ?givenName. }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:name ?name .
+      }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:familyName ?familyName .
+      }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:givenName ?givenName .
+      }
       
       {
         SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
+          [[value]] pro:isHeldBy ?ra .
           OPTIONAL {
+            [[value]] pro:isHeldBy ?ra .
             ?ra datacite:hasIdentifier ?identifier .
             ?identifier datacite:usesIdentifierScheme ?scheme ;
                       literal:hasLiteralValue ?value .
@@ -65,14 +76,25 @@ queries:
     SELECT DISTINCT ?formattedName ?ra WHERE {
       [[value]] pro:isHeldBy ?ra;
           pro:withRole pro:editor.
-      OPTIONAL { ?ra foaf:name ?name. }
-      OPTIONAL { ?ra foaf:familyName ?familyName. }
-      OPTIONAL { ?ra foaf:givenName ?givenName. }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:name ?name .
+      }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:familyName ?familyName .
+      }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:givenName ?givenName .
+      }
       
       {
         SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
+          [[value]] pro:isHeldBy ?ra .
           OPTIONAL {
+            [[value]] pro:isHeldBy ?ra .
             ?ra datacite:hasIdentifier ?identifier .
             ?identifier datacite:usesIdentifierScheme ?scheme ;
                       literal:hasLiteralValue ?value .
@@ -110,14 +132,25 @@ queries:
     SELECT DISTINCT ?formattedName ?ra WHERE {
       [[value]] pro:isHeldBy ?ra;
           pro:withRole pro:publisher.
-      OPTIONAL { ?ra foaf:name ?name. }
-      OPTIONAL { ?ra foaf:familyName ?familyName. }
-      OPTIONAL { ?ra foaf:givenName ?givenName. }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:name ?name .
+      }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:familyName ?familyName .
+      }
+      OPTIONAL {
+        [[value]] pro:isHeldBy ?ra .
+        ?ra foaf:givenName ?givenName .
+      }
       
       {
         SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
+          [[value]] pro:isHeldBy ?ra .
           OPTIONAL {
+            [[value]] pro:isHeldBy ?ra .
             ?ra datacite:hasIdentifier ?identifier .
             ?identifier datacite:usesIdentifierScheme ?scheme ;
                       literal:hasLiteralValue ?value .
@@ -191,7 +224,9 @@ queries:
       {
         SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
+          [[subject]] frbr:partOf+ ?journal .
           OPTIONAL {
+            [[subject]] frbr:partOf+ ?journal .
             ?journal datacite:hasIdentifier ?identifier .
             ?identifier datacite:usesIdentifierScheme ?scheme ;
                       literal:hasLiteralValue ?value .
@@ -221,11 +256,13 @@ queries:
       
       # Try to find volume information
       OPTIONAL {
+        [[subject]] frbr:partOf ?container .
         ?container a fabio:JournalVolume .
         ?container fabio:hasSequenceIdentifier ?volumeNumber .
         
         # Try to find journal information
         OPTIONAL {
+          [[subject]] frbr:partOf ?container .
           ?container frbr:partOf ?journal .
           ?journal a fabio:Journal .
           ?journal dcterms:title ?journalTitle .
@@ -234,7 +271,11 @@ queries:
           OPTIONAL {
             SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
             WHERE {
+              [[subject]] frbr:partOf ?container .
+              ?container frbr:partOf ?journal .
               OPTIONAL {
+                [[subject]] frbr:partOf ?container .
+                ?container frbr:partOf ?journal .
                 ?journal datacite:hasIdentifier ?identifier .
                 ?identifier datacite:usesIdentifierScheme ?scheme ;
                           literal:hasLiteralValue ?value .
@@ -256,7 +297,11 @@ queries:
       
       # If no volume, try to find journal directly
       OPTIONAL {
-        FILTER (!BOUND(?volumeNumber))
+        [[subject]] frbr:partOf ?container .
+        FILTER NOT EXISTS {
+          ?container a fabio:JournalVolume ;
+                     fabio:hasSequenceIdentifier ?volumeNumber .
+        }
         ?container a fabio:Journal .
         ?container dcterms:title ?journalTitle .
         
@@ -264,7 +309,9 @@ queries:
         OPTIONAL {
           SELECT ?container (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
           WHERE {
+            [[subject]] frbr:partOf ?container .
             OPTIONAL {
+              [[subject]] frbr:partOf ?container .
               ?container datacite:hasIdentifier ?identifier .
               ?identifier datacite:usesIdentifierScheme ?scheme ;
                         literal:hasLiteralValue ?value .
@@ -319,7 +366,9 @@ queries:
       {
         SELECT ?book (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
         WHERE {
+          [[subject]] frbr:partOf ?book .
           OPTIONAL {
+            [[subject]] frbr:partOf ?book .
             ?book datacite:hasIdentifier ?identifier .
             ?identifier datacite:usesIdentifierScheme ?scheme ;
                       literal:hasLiteralValue ?value .
@@ -431,25 +480,46 @@ queries:
           ?container a fabio:JournalIssue .
           
           # Get issue number
-          OPTIONAL { ?container fabio:hasSequenceIdentifier ?issueNumber . }
+          OPTIONAL {
+            [[subject]] frbr:partOf ?container .
+            ?container fabio:hasSequenceIdentifier ?issueNumber .
+          }
           
           # Get volume information
           OPTIONAL {
+            [[subject]] frbr:partOf ?container .
             ?container frbr:partOf ?volume .
             ?volume a fabio:JournalVolume .
-            OPTIONAL { ?volume fabio:hasSequenceIdentifier ?volumeNumber . }
+            OPTIONAL {
+              [[subject]] frbr:partOf ?container .
+              ?container frbr:partOf ?volume .
+              ?volume fabio:hasSequenceIdentifier ?volumeNumber .
+            }
             
             # Get journal information
             OPTIONAL {
+              [[subject]] frbr:partOf ?container .
+              ?container frbr:partOf ?volume .
               ?volume frbr:partOf ?journal .
               ?journal a fabio:Journal .
-              OPTIONAL { ?journal dcterms:title ?journalTitle . }
+              OPTIONAL {
+                [[subject]] frbr:partOf ?container .
+                ?container frbr:partOf ?volume .
+                ?volume frbr:partOf ?journal .
+                ?journal dcterms:title ?journalTitle .
+              }
               
               # Get journal identifiers
               OPTIONAL {
                 SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
                 WHERE {
+                  [[subject]] frbr:partOf ?container .
+                  ?container frbr:partOf ?volume .
+                  ?volume frbr:partOf ?journal .
                   OPTIONAL {
+                    [[subject]] frbr:partOf ?container .
+                    ?container frbr:partOf ?volume .
+                    ?volume frbr:partOf ?journal .
                     ?journal datacite:hasIdentifier ?identifier .
                     ?identifier datacite:usesIdentifierScheme ?scheme ;
                               literal:hasLiteralValue ?value .
@@ -488,19 +558,31 @@ queries:
           ?container a fabio:JournalVolume .
           
           # Get volume number
-          OPTIONAL { ?container fabio:hasSequenceIdentifier ?volumeNumber . }
+          OPTIONAL {
+            [[subject]] frbr:partOf ?container .
+            ?container fabio:hasSequenceIdentifier ?volumeNumber .
+          }
           
           # Get journal information
           OPTIONAL {
+            [[subject]] frbr:partOf ?container .
             ?container frbr:partOf ?journal .
             ?journal a fabio:Journal .
-            OPTIONAL { ?journal dcterms:title ?journalTitle . }
+            OPTIONAL {
+              [[subject]] frbr:partOf ?container .
+              ?container frbr:partOf ?journal .
+              ?journal dcterms:title ?journalTitle .
+            }
             
             # Get journal identifiers
             OPTIONAL {
               SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
               WHERE {
+                [[subject]] frbr:partOf ?container .
+                ?container frbr:partOf ?journal .
                 OPTIONAL {
+                  [[subject]] frbr:partOf ?container .
+                  ?container frbr:partOf ?journal .
                   ?journal datacite:hasIdentifier ?identifier .
                   ?identifier datacite:usesIdentifierScheme ?scheme ;
                             literal:hasLiteralValue ?value .
@@ -543,13 +625,18 @@ queries:
           ?container a fabio:Journal .
           
           # Get journal title
-          OPTIONAL { ?container dcterms:title ?journalTitle . }
+          OPTIONAL {
+            [[subject]] frbr:partOf ?container .
+            ?container dcterms:title ?journalTitle .
+          }
           
           # Get journal identifiers
           OPTIONAL {
             SELECT ?container (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
             WHERE {
+              [[subject]] frbr:partOf ?container .
               OPTIONAL {
+                [[subject]] frbr:partOf ?container .
                 ?container datacite:hasIdentifier ?identifier .
                 ?identifier datacite:usesIdentifierScheme ?scheme ;
                           literal:hasLiteralValue ?value .
@@ -731,15 +818,13 @@ rules:
             OPTIONAL { 
               [[uri]] a ?specificType .
               FILTER(?specificType != fabio:Expression)
-              BIND(?specificType AS ?entityType)
             }
-            BIND(COALESCE(?entityType, fabio:Expression) AS ?entityType)
+            BIND(COALESCE(?specificType, fabio:Expression) AS ?entityType)
             
             OPTIONAL { [[uri]] dcterms:title ?title . }
             
             # Authors (not applicable for Journal, Volume, Issue)
             OPTIONAL {
-              FILTER(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue))
               [[uri]] pro:isDocumentContextFor ?authorRole .
               ?authorRole pro:withRole pro:author ;
                           pro:isHeldBy ?author .
@@ -747,7 +832,7 @@ rules:
                 [[uri]] pro:isDocumentContextFor ?authorRole .
                 ?authorRole pro:withRole pro:author ;
                             pro:isHeldBy ?author .
-                ?author foaf:name ?authorName .
+                ?author foaf:name ?candidateAuthorName .
               }
               OPTIONAL {
                 [[uri]] pro:isDocumentContextFor ?authorRole .
@@ -760,10 +845,11 @@ rules:
                               pro:isHeldBy ?author .
                   ?author foaf:givenName ?givenName .
                 }
-                BIND(CONCAT(?familyName, COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")) AS ?authorName)
+                BIND(CONCAT(?familyName, COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")) AS ?candidateAuthorName)
               }
             }
-            
+            BIND(IF(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue), ?candidateAuthorName, ?unboundAuthorName) AS ?authorName)
+
             # Publication Date
             OPTIONAL {
               [[uri]] prism:publicationDate ?pubDateRaw . 
@@ -804,19 +890,19 @@ rules:
             
             # Book Chapter specific info
             OPTIONAL {
-              FILTER(?entityType IN (fabio:BookChapter, fabio:Expression))
               [[uri]] frbr:partOf ?book .
               ?book a fabio:Book ;
-                    dcterms:title ?bookTitle .
+                    dcterms:title ?candidateBookTitle .
             }
+            BIND(IF(?entityType IN (fabio:BookChapter, fabio:Expression), ?candidateBookTitle, ?unboundBookTitle) AS ?bookTitle)
             
             # Proceedings Paper specific info
             OPTIONAL {
-              FILTER(?entityType IN (fabio:ProceedingsPaper, fabio:Expression))
               [[uri]] frbr:partOf ?proceedings .
               ?proceedings a fabio:AcademicProceedings ;
-                          dcterms:title ?proceedingsTitle .
+                          dcterms:title ?candidateProceedingsTitle .
             }
+            BIND(IF(?entityType IN (fabio:ProceedingsPaper, fabio:Expression), ?candidateProceedingsTitle, ?unboundProceedingsTitle) AS ?proceedingsTitle)
             
             # Page information
             OPTIONAL {
@@ -1244,6 +1330,7 @@ rules:
           
           # Try to find journal through volume
           OPTIONAL {
+            [[uri]] frbr:partOf ?volume .
             ?volume frbr:partOf ?journal .
             ?journal a fabio:Journal ;
                     dcterms:title ?journalTitle .
@@ -1252,7 +1339,11 @@ rules:
         
         # If no volume, try to find journal directly
         OPTIONAL {
-          FILTER (!BOUND(?volumeNumber))
+          FILTER NOT EXISTS {
+            [[uri]] frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    fabio:hasSequenceIdentifier ?volumeNumber .
+          }
           [[uri]] frbr:partOf ?journal .
           ?journal a fabio:Journal ;
                   dcterms:title ?journalTitle .

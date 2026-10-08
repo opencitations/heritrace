@@ -4,6 +4,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.routes.linked_resources import (
@@ -11,6 +12,7 @@ from heritrace.routes.linked_resources import (
     _resolve_proxy_entity,
     get_paginated_inverse_references,
 )
+from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS
 
 SAMPLE_SUBJECT_URI = "http://example.org/entity1"
 SAMPLE_REFERRING_SUBJECT_1 = "http://example.org/ref1"
@@ -49,7 +51,7 @@ def mock_sparql_query_results(results_bindings=None, limit=None, offset=None):
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_get_paginated_inverse_references_basic(
     mock_get_sparql, mock_get_filter, mock_get_types, app
 ) -> None:
@@ -98,7 +100,7 @@ def test_get_paginated_inverse_references_basic(
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_get_paginated_inverse_references_pagination_has_more(
     mock_get_sparql, mock_get_filter, mock_get_types, app
 ) -> None:
@@ -151,7 +153,7 @@ def test_get_paginated_inverse_references_pagination_has_more(
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_get_paginated_inverse_references_pagination_no_more(
     mock_get_sparql, mock_get_filter, mock_get_types, app
 ) -> None:
@@ -203,7 +205,7 @@ def test_get_paginated_inverse_references_pagination_no_more(
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_get_paginated_inverse_references_no_results(
     mock_get_sparql, mock_get_filter, mock_get_types, app
 ) -> None:
@@ -225,11 +227,11 @@ def test_get_paginated_inverse_references_no_results(
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=True)
-def test_get_paginated_inverse_references_virtuoso(
-    mock_get_sparql, mock_get_filter, mock_get_types, app
+@pytest.mark.parametrize("backend", ["virtuoso", "qlever", "default"])
+def test_get_paginated_inverse_references_backend(
+    mock_get_sparql, mock_get_filter, mock_get_types, app, backend
 ) -> None:
-    """Test query structure when is_virtuoso is True."""
+    app.config["DATASET_DB_TRIPLESTORE"] = backend
     limit = 5
     offset = 0
     mock_sparql_instance = mock_sparql_query_results([], limit=limit, offset=offset)
@@ -241,25 +243,32 @@ def test_get_paginated_inverse_references_virtuoso(
     call_args_list = mock_sparql_instance.setQuery.call_args_list
     assert len(call_args_list) == 1
     main_query = call_args_list[0].args[0]
-    assert "GRAPH ?g { ?s ?p ?o . }" in main_query
-    assert "FILTER(?g NOT IN (" in main_query
-    assert f"OFFSET {offset} LIMIT {limit + 1}" in main_query
+    patterns = {
+        "virtuoso": [
+            "    GRAPH ?g { ?s ?p ?o . }",
+            f"    FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))",
+            f"    FILTER(?o = <{SAMPLE_SUBJECT_URI}>)",
+        ],
+        "qlever": [f"    ?s ?p <{SAMPLE_SUBJECT_URI}> ."],
+        "default": [f"    ?s ?p <{SAMPLE_SUBJECT_URI}> ."],
+    }
+    assert main_query.splitlines() == [
+        "SELECT DISTINCT ?s ?p WHERE {",
+        *patterns[backend],
+        "    FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)",
+        "} ORDER BY ?s OFFSET 0 LIMIT 6",
+    ]
 
 
 @patch("heritrace.routes.linked_resources.get_sparql")
 def test_get_paginated_inverse_references_exception(mock_get_sparql, app) -> None:
     """Test exception handling during SPARQL query."""
     mock_sparql_instance = MagicMock()
-    mock_sparql_instance.query.side_effect = Exception("SPARQL Error")
+    mock_sparql_instance.query.side_effect = RuntimeError("SPARQL Error")
     mock_get_sparql.return_value = mock_sparql_instance
 
-    with app.app_context():
-        refs, has_more = get_paginated_inverse_references(
-            SAMPLE_SUBJECT_URI, limit=5, offset=0
-        )
-
-    assert not has_more
-    assert len(refs) == 0
+    with app.app_context(), pytest.raises(RuntimeError, match="SPARQL Error"):
+        get_paginated_inverse_references(SAMPLE_SUBJECT_URI, limit=5, offset=0)
 
 
 @patch("heritrace.routes.linked_resources.get_paginated_inverse_references")
@@ -480,7 +489,7 @@ def test_is_proxy_entity_no_intermediate_relation(mock_get_display_rules) -> Non
 
 
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_resolve_proxy_entity_success_non_virtuoso(mock_get_sparql) -> None:
     """Test _resolve_proxy_entity successful resolution on non-Virtuoso."""
     mock_sparql = MagicMock()
@@ -508,7 +517,7 @@ def test_resolve_proxy_entity_success_non_virtuoso(mock_get_sparql) -> None:
 
 
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=True)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: True)
 def test_resolve_proxy_entity_success_virtuoso(mock_get_sparql) -> None:
     """Test _resolve_proxy_entity successful resolution on Virtuoso."""
     mock_sparql = MagicMock()
@@ -537,7 +546,7 @@ def test_resolve_proxy_entity_success_virtuoso(mock_get_sparql) -> None:
 
 
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_resolve_proxy_entity_no_results(mock_get_sparql) -> None:
     """Test _resolve_proxy_entity when no source is found."""
     mock_sparql = MagicMock()
@@ -559,31 +568,15 @@ def test_resolve_proxy_entity_no_results(mock_get_sparql) -> None:
 
 
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.current_app")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
-def test_resolve_proxy_entity_exception(mock_current_app, mock_get_sparql, app) -> None:
-    """Test _resolve_proxy_entity when SPARQL query raises exception."""
-    mock_sparql = MagicMock()
-    mock_get_sparql.return_value = mock_sparql
-    mock_sparql.query.side_effect = SPARQLWrapperException()
-
-    mock_logger = MagicMock()
-    mock_current_app.logger = mock_logger
-
-    subject_uri = "http://example.org/proxy1"
-    predicate = "http://example.org/originalPred"
-    connecting_predicate = "http://example.org/connectingPred"
-
-    with app.app_context():
-        final_subject, final_predicate = _resolve_proxy_entity(
-            subject_uri, predicate, connecting_predicate
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
+def test_resolve_proxy_entity_exception(mock_get_sparql):
+    mock_get_sparql.return_value.query.side_effect = SPARQLWrapperException()
+    with pytest.raises(SPARQLWrapperException):
+        _resolve_proxy_entity(
+            "http://example.org/proxy1",
+            "http://example.org/originalPred",
+            "http://example.org/connectingPred",
         )
-
-    assert final_subject == subject_uri
-    assert final_predicate == predicate
-    mock_logger.exception.assert_called_once_with(
-        "Error resolving proxy entity %s", subject_uri
-    )
 
 
 @patch("heritrace.routes.linked_resources._resolve_proxy_entity")
@@ -591,7 +584,7 @@ def test_resolve_proxy_entity_exception(mock_current_app, mock_get_sparql, app) 
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_get_paginated_inverse_references_with_proxy_entity(
     mock_get_sparql,
     mock_get_filter,
@@ -662,7 +655,7 @@ def test_get_paginated_inverse_references_with_proxy_entity(
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_get_paginated_inverse_references_proxy_same_as_original(
     mock_get_sparql,
     mock_get_filter,
@@ -725,7 +718,7 @@ def test_get_paginated_inverse_references_proxy_same_as_original(
 @patch("heritrace.routes.linked_resources.get_entity_types")
 @patch("heritrace.routes.linked_resources.get_custom_filter")
 @patch("heritrace.routes.linked_resources.get_sparql")
-@patch("heritrace.routes.linked_resources.is_virtuoso", new=False)
+@patch("heritrace.routes.linked_resources.is_virtuoso", new=lambda: False)
 def test_get_paginated_inverse_references_no_highest_priority_type(
     mock_get_sparql, mock_get_filter, mock_get_types, app
 ) -> None:
@@ -799,3 +792,17 @@ def test_is_proxy_entity_missing_display_rules_in_property(
     result, predicate = _is_proxy_entity(["http://example.org/SomeType"])
     assert not result
     assert predicate == ""
+
+
+@pytest.mark.parametrize("error", [TimeoutError("timed out"), SPARQLWrapperException()])
+@patch("heritrace.routes.linked_resources.get_paginated_inverse_references")
+def test_linked_resources_endpoint_failure(mock_get_paginated, logged_in_client, error):
+    mock_get_paginated.side_effect = error
+    response = logged_in_client.get(
+        "/api/linked-resources/", query_string={"subject_uri": SAMPLE_SUBJECT_URI}
+    )
+    assert response.status_code == 502
+    assert response.get_json() == {
+        "status": "error",
+        "message": "Error loading linked resources.",
+    }

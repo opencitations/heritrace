@@ -2,8 +2,6 @@
 #
 # SPDX-License-Identifier: ISC
 
-import traceback
-
 from flask import Blueprint, Response, current_app, jsonify, request
 from flask_babel import gettext
 from flask_login import login_required
@@ -124,7 +122,7 @@ def _resolve_proxy_entity(
         "SELECT DISTINCT ?source WHERE {",
     ]
 
-    if is_virtuoso:
+    if is_virtuoso():
         proxy_query_parts.extend(
             [
                 "    GRAPH ?g {",
@@ -141,19 +139,15 @@ def _resolve_proxy_entity(
     proxy_query_parts.append("} LIMIT 1")
     proxy_query = "\n".join(proxy_query_parts)
 
-    try:
-        sparql.setQuery(proxy_query)
-        sparql.setReturnFormat(JSON)
-        proxy_results = sparql.query().convert()
+    sparql.setQuery(proxy_query)
+    sparql.setReturnFormat(JSON)
+    proxy_results = sparql.query().convert()
 
-        proxy_bindings = get_sparql_bindings(proxy_results)
-        if proxy_bindings:
-            source_uri = proxy_bindings[0]["source"]["value"]
+    proxy_bindings = get_sparql_bindings(proxy_results)
+    if proxy_bindings:
+        source_uri = proxy_bindings[0]["source"]["value"]
 
-            return source_uri, connecting_predicate
-
-    except SPARQLWrapperException:
-        current_app.logger.exception("Error resolving proxy entity %s", subject_uri)
+        return source_uri, connecting_predicate
 
     return subject_uri, predicate
 
@@ -179,99 +173,91 @@ def get_paginated_inverse_references(
     references = []
     query_limit = limit + 1
 
-    try:
-        query_parts = [
-            "SELECT DISTINCT ?s ?p WHERE {",
+    query_parts = [
+        "SELECT DISTINCT ?s ?p WHERE {",
+    ]
+    if is_virtuoso():
+        query_parts.append("    GRAPH ?g { ?s ?p ?o . }")
+        query_parts.append(
+            f"    FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))"
+        )
+        query_parts.append(f"    FILTER(?o = <{subject_uri}>)")
+    else:
+        query_parts.append(f"    ?s ?p <{subject_uri}> .")
+
+    query_parts.extend(
+        [
+            "    FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)",
+            f"}} ORDER BY ?s OFFSET {offset} LIMIT {query_limit}",
         ]
-        if is_virtuoso:
-            query_parts.append("    GRAPH ?g { ?s ?p ?o . }")
-            query_parts.append(
-                f"    FILTER(?g NOT IN (<{'>, <'.join(VIRTUOSO_EXCLUDED_GRAPHS)}>))"
+    )
+    main_query = "\n".join(query_parts)
+
+    sparql.setQuery(main_query)
+    sparql.setReturnFormat(JSON)
+    results = sparql.query().convert()
+
+    bindings = get_sparql_bindings(results)
+
+    # Determine if there are more results
+    has_more = len(bindings) > limit
+
+    # Process only up to 'limit' results
+    results_to_process = bindings[:limit]
+
+    for result in results_to_process:
+        subject = result["s"]["value"]
+        predicate = result["p"]["value"]
+
+        types = get_entity_types(subject)
+
+        if _is_virtual_property_intermediate_entity(types):
+            continue
+
+        highest_priority_type = get_highest_priority_class(types)
+        shape = determine_shape_for_classes(types)
+
+        is_proxy, connecting_predicate = _is_proxy_entity(types)
+        if is_proxy:
+            final_subject, final_predicate = _resolve_proxy_entity(
+                subject, predicate, connecting_predicate
             )
         else:
-            query_parts.append("    ?s ?p ?o .")
+            final_subject, final_predicate = subject, predicate
 
-        query_parts.extend(
-            [
-                f"    FILTER(?o = <{subject_uri}>)",
-                "    FILTER(?p != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)",
-                f"}} ORDER BY ?s OFFSET {offset} LIMIT {query_limit}",
-            ]
+        if final_subject != subject:
+            final_types = get_entity_types(final_subject)
+            final_highest_priority_type = get_highest_priority_class(final_types)
+            final_shape = determine_shape_for_classes(final_types)
+        else:
+            final_types = types
+            final_highest_priority_type = highest_priority_type
+            final_shape = shape
+
+        label = custom_filter.human_readable_entity(
+            final_subject, (final_highest_priority_type, final_shape)
         )
-        main_query = "\n".join(query_parts)
-
-        sparql.setQuery(main_query)
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-
-        bindings = get_sparql_bindings(results)
-
-        # Determine if there are more results
-        has_more = len(bindings) > limit
-
-        # Process only up to 'limit' results
-        results_to_process = bindings[:limit]
-
-        for result in results_to_process:
-            subject = result["s"]["value"]
-            predicate = result["p"]["value"]
-
-            types = get_entity_types(subject)
-
-            if _is_virtual_property_intermediate_entity(types):
-                continue
-
-            highest_priority_type = get_highest_priority_class(types)
-            shape = determine_shape_for_classes(types)
-
-            is_proxy, connecting_predicate = _is_proxy_entity(types)
-            if is_proxy:
-                final_subject, final_predicate = _resolve_proxy_entity(
-                    subject, predicate, connecting_predicate
-                )
-            else:
-                final_subject, final_predicate = subject, predicate
-
-            if final_subject != subject:
-                final_types = get_entity_types(final_subject)
-                final_highest_priority_type = get_highest_priority_class(final_types)
-                final_shape = determine_shape_for_classes(final_types)
-            else:
-                final_types = types
-                final_highest_priority_type = highest_priority_type
-                final_shape = shape
-
-            label = custom_filter.human_readable_entity(
-                final_subject, (final_highest_priority_type, final_shape)
+        type_label = (
+            custom_filter.human_readable_class(
+                (final_highest_priority_type, final_shape)
             )
-            type_label = (
-                custom_filter.human_readable_class(
-                    (final_highest_priority_type, final_shape)
-                )
-                if final_highest_priority_type
-                else None
-            )
-
-            references.append(
-                {
-                    "subject": final_subject,
-                    "predicate": final_predicate,
-                    "predicate_label": custom_filter.human_readable_predicate(
-                        final_predicate, (final_highest_priority_type, final_shape)
-                    ),
-                    "type_label": type_label,
-                    "label": label,
-                }
-            )
-
-    except Exception:
-        traceback.format_exc()
-        current_app.logger.exception(
-            "Error fetching inverse references for %s", subject_uri
+            if final_highest_priority_type
+            else None
         )
-        return [], False
-    else:
-        return references, has_more
+
+        references.append(
+            {
+                "subject": final_subject,
+                "predicate": final_predicate,
+                "predicate_label": custom_filter.human_readable_predicate(
+                    final_predicate, (final_highest_priority_type, final_shape)
+                ),
+                "type_label": type_label,
+                "label": label,
+            }
+        )
+
+    return references, has_more
 
 
 @linked_resources_bp.route("/", methods=["GET"])
@@ -300,6 +286,16 @@ def get_linked_resources_api() -> Response | tuple[Response, int]:
             }
         ), 400
 
-    references, has_more = get_paginated_inverse_references(subject_uri, limit, offset)
+    try:
+        references, has_more = get_paginated_inverse_references(
+            subject_uri, limit, offset
+        )
+    except (SPARQLWrapperException, OSError):
+        current_app.logger.exception(
+            "Error fetching inverse references for %s", subject_uri
+        )
+        return jsonify(
+            {"status": "error", "message": gettext("Error loading linked resources.")}
+        ), 502
 
     return jsonify({"status": "success", "results": references, "has_more": has_more})
