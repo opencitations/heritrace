@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 from flask_babel import gettext
-from rdflib import XSD
+from rdflib import XSD, URIRef
 
 from heritrace.utils.datatypes_validation import (
     validate_base64_binary,
@@ -158,3 +158,13 @@ DATATYPE_MAPPING = [
     [XSD.NOTATION, validate_notation, "text"],
     [XSD.Name, validate_name, "text"],
 ]
+
+
+def determine_datatype(value: str, datatype_uris: list[str]) -> URIRef:
+    for datatype_uri in datatype_uris:
+        validation_func = next(
+            (d[1] for d in DATATYPE_MAPPING if str(d[0]) == str(datatype_uri)), None
+        )
+        if validation_func and validation_func(value):
+            return URIRef(datatype_uri)
+    return XSD.string

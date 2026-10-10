@@ -20,7 +20,7 @@ from heritrace.extensions import (
 )
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._validation import validate_entity_data
-from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
+from heritrace.utils.datatypes import determine_datatype, get_datatype_options
 from heritrace.utils.display_rules_utils import (
     get_class_priority,
     is_entity_type_visible,
@@ -498,13 +498,3 @@ def process_unordered_properties(
 ) -> None:
     for value in values:
         process_entity_value(ctx, value, matching_field_def)
-
-
-def determine_datatype(value: str, datatype_uris: list[str]) -> URIRef:
-    for datatype_uri in datatype_uris:
-        validation_func = next(
-            (d[1] for d in DATATYPE_MAPPING if str(d[0]) == str(datatype_uri)), None
-        )
-        if validation_func and validation_func(value):
-            return URIRef(datatype_uri)
-    return XSD.string

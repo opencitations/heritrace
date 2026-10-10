@@ -29,35 +29,14 @@ function searchSimilarTopLevelEntities(term, entityType, predicateUri, minCharsF
         return;
     }
 
-    let sparqlQuery;
-    // Use Virtuoso text index only if ALL these conditions are true:
-    // 1. Term length >= 4 (Virtuoso requirement), AND
-    // 2. Term length >= minCharsForSearch, AND
-    // 3. Text index is enabled, AND
-    // 4. Triplestore is virtuoso
-    if (term.length >= minCharsForSearch && window.dataset_db_text_index_enabled && window.dataset_db_triplestore === 'virtuoso') {
-        sparqlQuery = `
-            SELECT DISTINCT ?entity ?scoreValue WHERE {
-                ?entity a <${entityType}> .
-                ?entity <${predicateUri}> ?text .
-                ?text bif:contains "'${term}'" OPTION (score ?scoreValue) .
-                FILTER(?scoreValue > 0.2)
-            }
-            ORDER BY DESC(?scoreValue) ASC(?entity)
-            LIMIT 5
-        `;
-    } else {
-        // Use standard REGEX search in all other cases without escaping
-        sparqlQuery = `
-            SELECT DISTINCT ?entity WHERE {
-                ?entity a <${entityType}> .
-                ?entity <${predicateUri}> ?searchValue .
-                FILTER(REGEX(STR(?searchValue), "${term}", "i"))
-            } 
-            ORDER BY ASC(?entity)
-            LIMIT 5
-        `;
-    }
+    const sparqlQuery = generateSearchQuery(
+        term,
+        entityType,
+        predicateUri,
+        window.dataset_db_triplestore,
+        window.dataset_db_text_index_enabled,
+        null
+    );
 
     $.ajax({
         url: '/dataset-endpoint',

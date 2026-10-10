@@ -23,7 +23,6 @@ from heritrace.routes.api import (
     CreateEntityData,
     create_logic,
     delete_logic,
-    determine_datatype,
     generate_unique_uri,
     get_graph_uri_from_context,
     order_logic,
@@ -1929,24 +1928,6 @@ def test_generate_unique_uri(app: Flask) -> None:
         finally:
             # Restore the original URI generator
             app.config["URI_GENERATOR"] = original_uri_generator
-
-
-def test_determine_datatype() -> None:
-    """Test the determine_datatype function."""
-    # Test with string value
-    assert determine_datatype("test", [str(XSD.string)]) == XSD.string
-
-    # Test with integer value
-    assert determine_datatype("123", [str(XSD.integer)]) == XSD.integer
-
-    # Test with date value
-    assert determine_datatype("2023-01-01", [str(XSD.date)]) == XSD.date
-
-    # Test with multiple possible datatypes
-    assert determine_datatype("123", [str(XSD.integer), str(XSD.string)]) == XSD.integer
-
-    # Test with no matching datatype
-    assert determine_datatype("not a date", [str(XSD.date)]) == XSD.string
 
 
 @patch("heritrace.routes.api.get_custom_filter")

@@ -1701,3 +1701,21 @@ msgstr "Changes saved"
 
 msgid "The primary source is optional. Click Save changes to finish saving."
 msgstr "The primary source is optional. Click Save changes to finish saving."
+
+
+#: heritrace/templates/macros.jinja
+#, python-format
+msgid "Open %(name)s"
+msgstr "Open %(name)s"
+
+#: heritrace/templates/macros.jinja
+msgid "Entity path"
+msgstr "Entity path"
+
+#: heritrace/templates/macros.jinja
+msgid "Could not update the entity label"
+msgstr "Could not update the entity label"
+
+#: heritrace/templates/macros.jinja
+msgid "Fill in the details"
+msgstr "Fill in the details"

@@ -5,6 +5,175 @@
 var pendingChanges = [];
 
 var tempIdCounter = 0;
+let formLoadVersion = 0;
+
+function isActiveFormElement() {
+    return !this.disabled && !this.closest('.repeater-template, .container-form.d-none, .container-forms.d-none, .date-input-container.d-none');
+}
+
+const nestedPreviewCache = new WeakMap();
+const nestedNavigation = {root: null, current: null, positions: new WeakMap(), chain: [], revision: 0};
+
+function nestedItemLabel(panel) {
+    const heading = panel.closest('[data-repeater-item]').querySelector('h6[data-original-text]');
+    return heading.textContent.replace('*', '').trim();
+}
+
+function showNestedPanel(panel, returnFocus = null) {
+    const root = panel ? panel.closest('#entityForm, .triples') : nestedNavigation.root;
+    if (!root) return;
+    const previous = nestedNavigation.current || root;
+    nestedNavigation.positions.set(previous, window.scrollY);
+    document.querySelectorAll('.nested-path, .nested-panel-active').forEach(node => node.classList.remove('nested-path', 'nested-panel-active'));
+    document.querySelectorAll('.nested-navigation').forEach(node => node.remove());
+    nestedNavigation.root = root;
+    nestedNavigation.current = panel;
+    if (panel) {
+        panel.classList.add('nested-panel-active');
+        for (let ancestor = panel.parentElement; ancestor; ancestor = ancestor.parentElement) {
+            ancestor.classList.add('nested-path');
+            if (ancestor === root) break;
+        }
+        const nav = document.createElement('nav');
+        nav.className = 'nested-navigation';
+        nav.setAttribute('aria-label', panel.dataset.navigationLabel);
+        const chain = [];
+        for (let parent = panel; parent; parent = parent.parentElement.closest('.nested-form-container')) chain.unshift(parent);
+        nestedNavigation.chain = chain;
+        const rootButton = document.createElement('button');
+        rootButton.type = 'button';
+        rootButton.textContent = document.querySelector('#entity_type option:checked')?.textContent || root.dataset.entityLabel;
+        rootButton.addEventListener('click', () => showNestedPanel(null, chain[0].previousElementSibling.querySelector('.nested-open')));
+        nav.append(rootButton);
+        chain.forEach((entry, index) => {
+            const separator = document.createElement('span');
+            separator.textContent = '›';
+            separator.setAttribute('aria-hidden', 'true');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = nestedItemLabel(entry);
+            if (entry === panel) {
+                button.setAttribute('aria-current', 'page');
+                button.disabled = true;
+            } else {
+                button.addEventListener('click', () => showNestedPanel(entry, chain[index + 1].previousElementSibling.querySelector('.nested-open')));
+            }
+            nav.append(separator, button);
+        });
+        root.prepend(nav);
+        panel.setAttribute('tabindex', '-1');
+        panel.setAttribute('role', 'group');
+        panel.setAttribute('aria-label', nestedItemLabel(panel));
+        panel.focus({preventScroll: true});
+    }
+    returnFocus?.focus({preventScroll: true});
+    window.scrollTo(0, nestedNavigation.positions.get(panel || root) || 0);
+    updateNestedPreviews();
+}
+
+function nestedDetailsComplete(panel) {
+    const fields = Array.from(panel.querySelectorAll('input:not([type="hidden"]), select, textarea'))
+        .filter(input => isActiveFormElement.call(input));
+    if (fields.some(input => input.required && !input.value.trim())) return false;
+    return fields.some(input => input.dataset.predicateUri &&
+        !input.matches('.container-type-selector, .date-type-selector') && input.value.trim()) ||
+        Array.from(panel.querySelectorAll('input[data-entity-reference="true"]')).some(input =>
+            isActiveFormElement.call(input) && input.value.trim());
+}
+
+function nestedFallback(panel) {
+    const values = Array.from(panel.querySelectorAll('input, select, textarea')).filter(input =>
+        isActiveFormElement.call(input) && input.closest('.nested-form-container') === panel &&
+        input.dataset.predicateUri && !input.matches('[type="hidden"], .container-type-selector') && input.value.trim()
+    ).slice(0, 2).map(input => {
+        const label = input.dataset.predicateLabel || input.closest('[data-repeater-item]').querySelector('h6[data-original-text]').dataset.originalText;
+        const value = input.matches('select') ? input.selectedOptions[0].textContent : input.value;
+        return label + ': ' + value;
+    });
+    return values.join(' · ');
+}
+
+async function updateNestedPreviews() {
+    const revision = ++nestedNavigation.revision;
+    const entries = [];
+    document.querySelectorAll('.nested-form-container').forEach(panel => {
+        if (!isActiveFormElement.call(panel)) return;
+        const label = panel.previousElementSibling.querySelector('.nested-entity-label');
+        if (!nestedDetailsComplete(panel)) {
+            label.textContent = panel.dataset.emptyLabel;
+            panel.previousElementSibling.querySelector('.nested-preview-error').hidden = true;
+            nestedPreviewCache.delete(panel);
+            return;
+        }
+        const item = panel.closest('[data-repeater-item]');
+        const properties = {};
+        collectFormData($(panel), properties, true, Number(item.dataset.depth) + 1);
+        let entity = {entity_type: panel.dataset.objectClass, entity_shape: panel.dataset.entityShape, properties};
+        if (item.dataset.intermediateRelation) {
+            entity = {
+                entity_type: item.dataset.intermediateRelation,
+                entity_shape: item.dataset.shape,
+                properties: {[item.dataset.connectingProperty]: [entity], ...$(item).data('additional-properties')}
+            };
+        }
+        const data = {
+            parent_class: panel.dataset.parentClass, parent_shape: panel.dataset.parentShape,
+            predicate: item.dataset.predicateUri, entity
+        };
+        const fingerprint = JSON.stringify(data);
+        if (nestedPreviewCache.get(panel) === fingerprint) return;
+        entries.push({panel, label, data, fingerprint});
+    });
+    await Promise.all(entries.map(async entry => {
+        try {
+            const response = await fetch('/api/draft-labels', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({entries: [entry.data]})
+            });
+            if (!response.ok) throw new Error('Draft labels: HTTP ' + response.status);
+            const result = await response.json();
+            if (revision !== nestedNavigation.revision) return;
+            entry.label.textContent = result.labels[0] || nestedFallback(entry.panel) || entry.panel.dataset.emptyLabel;
+            nestedPreviewCache.set(entry.panel, entry.fingerprint);
+            entry.panel.previousElementSibling.querySelector('.nested-preview-error').hidden = true;
+        } catch (error) {
+            if (revision !== nestedNavigation.revision) return;
+            entry.panel.previousElementSibling.querySelector('.nested-preview-error').hidden = false;
+            console.error(error);
+        }
+    }));
+}
+
+$(function() {
+    let timeout;
+    function schedulePreviews() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            if (nestedNavigation.current && !nestedNavigation.current.isConnected) {
+                const parent = nestedNavigation.chain.filter(panel => panel.isConnected).pop();
+                showNestedPanel(parent || null);
+            }
+            updateNestedPreviews();
+        }, 250);
+    }
+    $(document).on('click', '#editEntityBtn', () => showNestedPanel(null));
+    $(document).on('click', '.nested-open', function() {
+        showNestedPanel(this.closest('.nested-form-header').nextElementSibling);
+    });
+    $(document).on('input.nestedPanel change.nestedPanel', '[data-repeater-item] :input', schedulePreviews);
+    const observer = new MutationObserver(records => {
+        if (records.some(record => {
+            const target = record.target.nodeType === Node.ELEMENT_NODE ? record.target : record.target.parentElement;
+            return !target.closest('.nested-entity-label, .nested-navigation') && (
+                record.type === 'attributes' ? target.matches('.container-form, .container-forms, .date-input-container') :
+                target.closest('[data-repeater-list]') || Array.from(record.addedNodes).some(node =>
+                    node.nodeType === Node.ELEMENT_NODE && (node.matches('[data-repeater-list]') || node.querySelector('[data-repeater-list]')))
+            );
+        })) schedulePreviews();
+    });
+    observer.observe(document.body, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class']});
+    schedulePreviews();
+});
 
 
 function getOldObjectId(element) {
@@ -148,7 +317,7 @@ function initializeMandatoryElements(container) {
     // Collect all operations to batch them
     var operationsQueue = [];
     
-    container.find('[data-repeater-list]').each(function() {
+    container.find('[data-repeater-list]').filter(isActiveFormElement).each(function() {
         var list = $(this);
         var minItems = parseInt(list.data('min-items') || 0);
         var currentItems = list.children('[data-repeater-item]').not('.repeater-template').length;
@@ -245,6 +414,7 @@ async function initializeForm() {
 }
 
 async function loadFormFieldsAsync(entityClass, entityShape) {
+    const version = ++formLoadVersion;
     // Show loading indicator and hide previous content
     $('#form-loading').show();
     $('#form-error').hide();
@@ -296,6 +466,8 @@ async function loadFormFieldsAsync(entityClass, entityShape) {
 
         const html = await renderResponse.text();
 
+        if (version !== formLoadVersion) return;
+
         // Step 3: Insert HTML into the page
         $('#dynamic-form-container').append(html);
 
@@ -318,9 +490,9 @@ async function loadFormFieldsAsync(entityClass, entityShape) {
 
     } catch (error) {
         console.error('Error loading form fields:', error);
-        showFormError(error.message);
+        if (version === formLoadVersion) showFormError(error.message);
     } finally {
-        $('#form-loading').hide();
+        if (version === formLoadVersion) $('#form-loading').hide();
     }
 }
 
@@ -331,7 +503,7 @@ function showFormError(message) {
 
 function initializeRepeaters($container) {
     // Initialize repeaters for the new container
-    $container.find('[data-repeater-list]').each(function() {
+    $container.find('[data-repeater-list]').filter(isActiveFormElement).each(function() {
         var list = $(this);
 
         // Initialize Sortable for ordered lists
@@ -456,16 +628,16 @@ function updateSortable(list) {
     initSortable(list[0]);
 }
 
-function setRequiredForVisibleFields(item, isInitialStructure = false) {
-    item.find('input, select, textarea').each(function() {
+function setRequiredForActiveFields(item, isInitialStructure = false) {
+    item.find('input:not([type="hidden"]), select, textarea').each(function() {
         var elem = $(this);
-        var isVisible = elem.is(':visible');
+        var isActive = isActiveFormElement.call(this);
 
-        if (isVisible) {
+        if (isActive) {
             var parentRepeaterList = elem.closest('[data-repeater-list]');
             var isRequired = parentRepeaterList.length > 0 && 
                             (isInitialStructure || parseInt(parentRepeaterList.data('min-items') || 0) > 0);
-            elem.prop('required', isVisible && isRequired);    
+            elem.prop('required', isRequired);
         }
     });
 }
@@ -515,15 +687,14 @@ function initializeNewItem($newItem, isInitialStructure = false) {
     // Inizializza nested forms in batch
     $newItem.find('.nested-form-header').each(function() {
         const $header = $(this);
-        const $toggleBtn = $header.find('.toggle-btn');
-        const $collapseDiv = $header.next('.nested-form-container');
+        const $openButton = $header.find('.nested-open');
+        const $panel = $header.next('.nested-form-container');
         
         const newId = generateUniqueId('nested_form');
-        $toggleBtn.attr({
-            'data-bs-target': '#' + newId,
+        $openButton.attr({
             'aria-controls': newId
         });
-        $collapseDiv.attr('id', newId);
+        $panel.attr('id', newId);
     });
 
     // Inizializza struttura iniziale se necessario
@@ -555,7 +726,7 @@ function initializeNewItem($newItem, isInitialStructure = false) {
         showAppropriateDateInput($(this));
     });
 
-    setRequiredForVisibleFields($newItem, isInitialStructure);
+    setRequiredForActiveFields($newItem, isInitialStructure);
 
     $newItem.find('input[data-supports-search="True"], textarea[data-supports-search="True"]').each(function() {
         enhanceInputWithSearch($(this));
@@ -573,7 +744,7 @@ function initializeNewItem($newItem, isInitialStructure = false) {
 // Funzione ricorsiva per raccogliere i dati dai campi del form
 function collectFormData(container, data, shacl, depth) {    
     if (shacl === 'True' || shacl === true) {
-        container.find('[data-repeater-list]:visible').each(function() {
+        container.find('[data-repeater-list]').filter(isActiveFormElement).each(function() {
             let repeaterList = $(this);
 
             if (repeaterList.data('skip-collect')) {
@@ -582,7 +753,7 @@ function collectFormData(container, data, shacl, depth) {
 
             let predicateUri = repeaterList.find('[data-repeater-item]:first').data('predicate-uri');
             let orderedBy = repeaterList.data('ordered-by');
-            repeaterList.children('[data-repeater-item]:visible').each(function(index) {
+            repeaterList.children('[data-repeater-item]').filter(isActiveFormElement).each(function(index) {
                 let repeaterItem = $(this);
                 
                 if (repeaterItem.data('skip-collect')) {
@@ -590,7 +761,7 @@ function collectFormData(container, data, shacl, depth) {
                 }
                 
                 let itemDepth = parseInt(repeaterItem.data('depth'));
-                let objectClass = repeaterItem.find('[data-class]:visible').first().data('class');
+                let objectClass = repeaterItem.find('[data-class]').filter(isActiveFormElement).first().data('class');
                 let tempId = repeaterItem.data('temp-id');
                 let entityReference = repeaterItem.find('input[data-entity-reference="true"]');
                 
@@ -673,10 +844,10 @@ function collectFormData(container, data, shacl, depth) {
                         ensurePropertyArray(data, predicateUri).push(itemData);
                     }
                 } else if (itemDepth === depth) {
-                    repeaterItem.find('input:visible, select:visible, input[data-mandatory-value="true"], textarea:visible').each(function() {
+                    repeaterItem.find('input:not([type="hidden"]), select, input[data-mandatory-value="true"], textarea').filter(isActiveFormElement).each(function() {
                         let propertyUri = $(this).data('predicate-uri');
                         if (propertyUri) {
-                            let value = $(this).val() || $(this).data('value');
+                            let value = this.hasAttribute('data-mandatory-value') ? $(this).data('value') : $(this).val();
                             if (value !== "") {
                                 ensurePropertyArray(data, propertyUri).push(value);
                             }
@@ -686,11 +857,11 @@ function collectFormData(container, data, shacl, depth) {
             });
         });
 
-        container.children('input:visible, select:visible, input[data-mandatory-value="true"], textarea:visible').each(function() {
+        container.children('input:not([type="hidden"]), select, input[data-mandatory-value="true"], textarea').filter(isActiveFormElement).each(function() {
             let propertyUri = $(this).data('predicate-uri');
             let inputDepth = parseInt($(this).data('depth'));
             if (propertyUri && inputDepth === depth) {
-                let value = $(this).val();
+                let value = this.hasAttribute('data-mandatory-value') ? $(this).data('value') : $(this).val();
                 if (value !== "") {
                     ensurePropertyArray(data, propertyUri).push(value);
                 }
@@ -887,9 +1058,6 @@ $(document).ready(function() {
         // Inizializza il nuovo item
         initializeNewItem($newItem, isInitialStructure);
         
-        // Aggiorna UI e binding
-        const $newItemCollapse = $newItem.find('.collapse').addClass('show');
-        $newItem.find('.toggle-btn').removeClass('collapsed');
     
         updateButtons($list, true);
         
@@ -911,18 +1079,7 @@ $(document).ready(function() {
         $(this).closest('[data-repeater-item]').remove();
         updateButtons($list);
         updateOrderedElementsNumbering();
-        setRequiredForVisibleFields($list);
-    });
-
-    $(document)
-        .off('shown.bs.collapse hidden.bs.collapse', '.collapse')
-        .on('shown.bs.collapse hidden.bs.collapse', '.collapse', function(e) {
-        e.stopPropagation();
-        var $header = $(this).prev('.nested-form-header');
-        $header.find('.toggle-btn').toggleClass('collapsed', e.type === 'hidden');
-        
-        // Aggiorniamo lo stato required per tutti gli elementi visibili dopo l'espansione/collasso
-        setRequiredForVisibleFields($(this).closest('[data-repeater-list]'));
+        setRequiredForActiveFields($list);
     });
 
     $(document).on('change', '.container-type-selector', async function() {
@@ -931,14 +1088,14 @@ $(document).ready(function() {
         const selectedShape = $selectedOption.data('node-shape');
         const selectedClass = $selectedOption.data('object-class');
 
-        const $containerForms = $container.find('.container-forms');
-        $container.find('.container-form').addClass('d-none');
+        const $containerForms = $container.children('.container-forms');
+        $containerForms.children('.container-form').addClass('d-none');
 
         if (selectedShape) {
             $container.attr('data-skip-collect', 'true');
             $containerForms.removeClass('d-none');
 
-            const $selectedForm = $container.find(`.container-form[data-shape="${selectedShape}"][data-class="${selectedClass}"]`);
+            const $selectedForm = $containerForms.children(`.container-form[data-shape="${selectedShape}"][data-class="${selectedClass}"]`);
             const needsLazyLoad = $selectedForm.attr('data-lazy-form-placeholder') === 'true' && $containerForms.data('lazy-load') === true;
 
             if (needsLazyLoad) {

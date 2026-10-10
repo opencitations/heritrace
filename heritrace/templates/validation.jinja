@@ -8,7 +8,7 @@
 
     // Funzione per validare i campi richiesti
     function validateRequiredFields(errors) {
-        $(':input[required]:visible').each(function() {
+        $(':input[required]:not([type="hidden"])').filter(isActiveFormElement).each(function() {
             if (!$(this).val()) {
                 let fieldName = $(this).data('predicate-label');
                 let containerName = getContainerName($(this));
@@ -39,7 +39,7 @@
 
     // Funzione per validare gli URL
     function validateUrls(errors) {
-        $('input[type="url"]:visible').each(function() {
+        $('input[type="url"]').filter(isActiveFormElement).each(function() {
             let url = $(this).val();
             let fieldName = $(this).data('predicate-label') ;
             let containerName = getContainerName($(this));
@@ -54,7 +54,7 @@
 
     // Funzione per validare i campi in base al datatype
     function validateDatatypes(errors) {
-        $('[data-datatypes]:visible').each(function() {
+        $('[data-datatypes]').filter(isActiveFormElement).each(function() {
             let input = $(this);
             let datatypes = input.data('datatypes').split(',');
             let value = input.val();
@@ -235,7 +235,7 @@
 
     // Funzione per validare le condizioni
     function validateConditions(errors) {
-        $('input[data-conditions]:visible').each(function() {
+        $('input[data-conditions]').filter(isActiveFormElement).each(function() {
             let input = $(this);
             let conditions = input.data('conditions');
             let value = input.val();
@@ -275,13 +275,12 @@
 
     // Function to validate the cardinality (min and max) of properties
     function validateCardinality(errors) {
-        $('[data-repeater-list]:visible').each(function() {
+        $('[data-repeater-list]').filter(isActiveFormElement).each(function() {
             const repeaterList = $(this);
             const maxItems = parseInt(repeaterList.data('max-items')) || Infinity;
             const minItems = parseInt(repeaterList.data('min-items')) || 0;
             
-            // Count visible items that are not templates
-            const allItems = repeaterList.children('[data-repeater-item]:visible').not('.repeater-template');
+            const allItems = repeaterList.children('[data-repeater-item]').filter(isActiveFormElement);
             
             // Identify predefined values (hasValue items) that have data-mandatory-value="true"
             const predefinedItems = allItems.filter(function() {
@@ -340,6 +339,13 @@
             title: '{{ _("Invalid Submission") }}',
             html: errorMessage,
             confirmButtonText: '{{ _("OK") }}',
+        }).then(() => {
+            const field = errors.find(error => error.field)?.field[0];
+            if (field) {
+                showNestedPanel(field.closest('.nested-form-container'));
+                field.scrollIntoView({block: 'center'});
+                field.focus();
+            }
         });
 
         highlightValidationErrors(errors);

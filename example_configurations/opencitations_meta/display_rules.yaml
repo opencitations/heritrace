@@ -63,8 +63,8 @@ queries:
       BIND(STR(?ra) AS ?uriString)
       BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
       BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?nameDisplay, " [", ?identifiers, "]")),
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?nameDisplay, " [omid:", ?omid, "]"), ?nameDisplay)
         ) AS ?formattedName)
     }
 
@@ -117,8 +117,8 @@ queries:
       BIND(STR(?ra) AS ?uriString)
       BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
       BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?nameDisplay, " [", ?identifiers, "]")),
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?nameDisplay, " [omid:", ?omid, "]"), ?nameDisplay)
         ) AS ?formattedName)
     }
 
@@ -173,8 +173,8 @@ queries:
       BIND(STR(?ra) AS ?uriString)
       BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
       BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?nameDisplay, " [", ?identifiers, "]")),
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?nameDisplay, " [omid:", ?omid, "]"), ?nameDisplay)
         ) AS ?formattedName)
     }
 
@@ -239,8 +239,8 @@ queries:
       BIND(STR(?journal) AS ?uriString)
       BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
       BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?journalName, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?journalName, " [omid:", ?omid, "]")
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalName, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?journalName, " [", ?identifiers, "]")),
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalName, " [omid:", ?omid, "]"), ?journalName)
         ) AS ?journalDisplay)
     }
 
@@ -289,8 +289,8 @@ queries:
           BIND(STR(?journal) AS ?uriString)
           BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
           BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-                CONCAT(?journalTitle, " [omid:", ?omid, "]")
+                IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?journalTitle, " [", ?identifiers, "]")),
+                IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, "]"), ?journalTitle)
               ) AS ?journalTitleWithId)
         }
       }
@@ -325,8 +325,8 @@ queries:
         BIND(STR(?container) AS ?uriString)
         BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
         BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-              CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-              CONCAT(?journalTitle, " [omid:", ?omid, "]")
+              IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?journalTitle, " [", ?identifiers, "]")),
+              IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, "]"), ?journalTitle)
             ) AS ?journalTitleWithId)
       }
       
@@ -381,8 +381,8 @@ queries:
       BIND(STR(?book) AS ?uriString)
       BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
       BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-            CONCAT(?bookTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-            CONCAT(?bookTitle, " [omid:", ?omid, "]")
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?bookTitle, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?bookTitle, " [", ?identifiers, "]")),
+            IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?bookTitle, " [omid:", ?omid, "]"), ?bookTitle)
         ) AS ?bookDisplay)
     }
 
@@ -533,8 +533,8 @@ queries:
               BIND(STR(?journal) AS ?uriString)
               BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
               BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                    CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-                    CONCAT(?journalTitle, " [omid:", ?omid, "]")
+                    IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?journalTitle, " [", ?identifiers, "]")),
+                    IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, "]"), ?journalTitle)
                   ) AS ?journalTitleWithId)
             }
           }
@@ -596,8 +596,8 @@ queries:
             BIND(STR(?journal) AS ?uriString)
             BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
             BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                  CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-                  CONCAT(?journalTitle, " [omid:", ?omid, "]")
+                  IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?journalTitle, " [", ?identifiers, "]")),
+                  IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, "]"), ?journalTitle)
                 ) AS ?journalTitleWithId)
           }
           
@@ -650,8 +650,8 @@ queries:
           BIND(STR(?container) AS ?uriString)
           BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
           BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"),
-                CONCAT(?journalTitle, " [omid:", ?omid, "]")
+                IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?journalTitle, " [", ?identifiers, "]")),
+                IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?journalTitle, " [omid:", ?omid, "]"), ?journalTitle)
               ) AS ?journalTitleWithId)
           
           # Use the journal title as display
@@ -1272,8 +1272,8 @@ rules:
         BIND(STR([[uri]]) AS ?uriString)
         BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
         BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-              CONCAT(?title, " [omid:", ?omid, " ", ?identifiers, "]"),
-              CONCAT(?title, " [omid:", ?omid, "]")
+              IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?title, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?title, " [", ?identifiers, "]")),
+              IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?title, " [omid:", ?omid, "]"), ?title)
             ) AS ?display)
       }
     displayProperties:
@@ -1926,8 +1926,8 @@ rules:
         BIND(STR([[uri]]) AS ?uriString)
         BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
         BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                CONCAT(?agentName, " [omid:", ?omid, " ", ?identifiers, "]"),
-                CONCAT(?agentName, " [omid:", ?omid, "]")
+                IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?agentName, " [omid:", ?omid, " ", ?identifiers, "]"), CONCAT(?agentName, " [", ?identifiers, "]")),
+                IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT(?agentName, " [omid:", ?omid, "]"), ?agentName)
             ) AS ?display)
       }
     displayProperties:

@@ -240,9 +240,100 @@ footer.bg-dark {
 }
 
 .nested-form-container {
-  border-left: 0.2rem solid #eee;
-  padding-left: 1rem;
-  position: relative;
+  display: none;
+}
+
+.nested-panel-active, .nested-form-container.nested-path {
+  display: block;
+}
+
+.nested-path > :not(.nested-path):not(.nested-panel-active):not(.nested-navigation):not(.nested-global-actions) {
+  display: none !important;
+}
+
+.nested-path {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  border: 0 !important;
+}
+
+.nested-form-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nested-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  color: var(--bs-body-color);
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+}
+
+.nested-open:hover {
+  background: var(--bs-tertiary-bg);
+}
+
+.nested-open:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+.container-form > [data-repeater-list] > [data-repeater-item] > div:first-child,
+.container-form > [data-repeater-list] > [data-repeater-item] > .newEntityPropertiesContainer > .nested-form-header > [data-repeater-delete] {
+  display: none !important;
+}
+
+.nested-preview-error {
+  flex-basis: 100%;
+  order: 1;
+}
+
+.nested-entity-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nested-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.nested-navigation button {
+  border: 0;
+  background: none;
+  padding: 0.25rem;
+  color: var(--bs-link-color);
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.nested-navigation button[aria-current] {
+  color: var(--bs-body-color);
+  font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+  .nested-open {
+    flex-basis: 100%;
+  }
+
+  .nested-form-header > .repeater-delete-btn {
+    margin-left: auto;
+  }
 }
 
 .repeater-delete-btn,
@@ -268,14 +359,6 @@ footer.bg-dark {
   background-color: #dc3545;
   color: #fff;
   border-color: #dc3545;
-}
-
-.nested-form-header .toggle-btn.collapsed {
-  transform: rotate(0deg);
-}
-
-.nested-form-header .toggle-btn:not(.collapsed) {
-  transform: rotate(90deg);
 }
 
 [data-repeater-list],
@@ -434,18 +517,6 @@ footer.bg-dark {
 .linked-resource-content {
   min-width: 0;
   max-width: calc(100% - 7em); /* Limit width to prevent overlap with button */
-}
-
-/* Make the collapse button square */
-.nested-form-header > .toggle-btn.collapse-btn {
-  font-size: 1rem;
-  border-radius: 0.844em; /* Keep it slightly rounded */
-  width: 1.8rem; /* Set fixed width */
-  height: 1.8rem; /* Set fixed height (equal to width) */
-  padding: 1rem; /* Remove padding, override Bootstrap */
-  display: inline-flex; /* Enable flex, override Bootstrap */
-  align-items: center; /* Center icon vertically, override Bootstrap */
-  justify-content: center; /* Center icon horizontally, override Bootstrap */
 }
 
 span.text-danger[data-bs-toggle="tooltip"] {

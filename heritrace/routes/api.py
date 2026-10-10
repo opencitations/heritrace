@@ -29,6 +29,7 @@ from heritrace.extensions import (
 )
 from heritrace.services.resource_lock_manager import LockStatus
 from heritrace.utils.datatypes import DATATYPE_MAPPING
+from heritrace.utils.draft_labels import draft_label
 from heritrace.utils.primary_source_utils import save_user_default_primary_source
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.shacl_validation import validate_new_triple
@@ -929,17 +930,6 @@ def get_graph_uri_from_context(graph_context: Graph | URIRef) -> URIRef:
     return cast("URIRef", graph_context)
 
 
-def determine_datatype(value: str, datatype_uris: list[str]) -> URIRef:
-    for datatype_uri in datatype_uris:
-        validation_func = next(
-            (d[1] for d in DATATYPE_MAPPING if str(d[0]) == str(datatype_uri)), None
-        )
-        if validation_func and validation_func(value):
-            return URIRef(datatype_uri)
-    # If none match, default to XSD.string
-    return XSD.string
-
-
 class CreateEntityData(TypedDict, total=False):
     entity_type: str
     # TODO(arcangelo): tighten this type after normalizing
@@ -1559,3 +1549,23 @@ def render_nested_form_html() -> str | tuple[Response, int]:
         return jsonify(
             {"status": "error", "message": f"Failed to render nested form: {e!s}"}
         ), 500
+
+
+@api_bp.route("/draft-labels", methods=["POST"])
+@login_required
+def preview_draft_labels() -> Response | tuple[Response, int]:
+    data = request.get_json()
+    if not isinstance(data, dict) or not isinstance(data.get("entries"), list):
+        return jsonify({"error": "Expected a list of draft entries"}), 400
+    for entry in data["entries"]:
+        if not isinstance(entry, dict) or not all(
+            key in entry
+            for key in ("parent_class", "parent_shape", "predicate", "entity")
+        ):
+            return jsonify({"error": "Invalid draft entry"}), 400
+        entity = entry["entity"]
+        if not isinstance(entity, dict) or not all(
+            key in entity for key in ("entity_type", "entity_shape", "properties")
+        ):
+            return jsonify({"error": "Invalid draft entity"}), 400
+    return jsonify({"labels": [draft_label(entry) for entry in data["entries"]]})

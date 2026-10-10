@@ -68,49 +68,46 @@
                          data-class="{{ shape_info.entityType }}"
                          {% if depth > 0 %}data-lazy-form-placeholder="true"{% endif %}>
                         {% if depth == 0 %}
-                            {{ render_form_field(shape_info.entityType, prop, shape_info, form_fields, depth, max_depth=max_depth, is_template=is_template) }}
+                            {{ render_form_field(entity_type, prop, shape_info, form_fields, depth, max_depth=max_depth, is_template=is_template) }}
                         {% else %}
                             <!-- Form will be loaded dynamically when selected -->
                         {% endif %}
                     </div>
                 {% endfor %}
             </div>
-        {% elif details.intermediateRelation %}
+        {% elif details.intermediateRelation or details.nestedShape %}
+            {% set nested_entity_type = details.intermediateRelation.targetEntityType if details.intermediateRelation else details.nestedShape[0].entityType %}
             <div class="d-flex flex-column newEntityPropertiesContainer w-100">
-                <div class="d-flex flex-row justify-content-between nested-form-header mb-4">
-                    <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed collapse-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
-                        <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
+                <div class="nested-form-header">
+                    <button class="nested-open" type="button" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
+                        <span class="visually-hidden">{{ _('Open %(name)s', name=details.displayName) }}: </span>
+                        <span class="nested-entity-label">{{ _('Fill in the details') }}</span>
+                        <i class="bi bi-chevron-right" aria-hidden="true"></i>
                     </button>
+                    <span class="nested-preview-error text-danger small" role="status" hidden>{{ _('Could not update the entity label') }}</span>
                     {% if not details.min > 0 %}
                         <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
                             <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
                         </button>
                     {% endif %}
                 </div>
-                <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container collapse" data-object-class="{{ details.intermediateRelation.targetEntityType }}">
-                    {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}
-                        {% for inter_details in inter_details_list %}
-                            {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, form_fields, depth + 1, max_depth, is_template) }}
+                <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container"
+                     data-object-class="{{ nested_entity_type }}"
+                     data-entity-shape="{{ (details.intermediateRelation.targetShape if details.intermediateRelation else details.nodeShape) or '' }}"
+                     data-parent-class="{{ entity_type }}" data-parent-shape="{{ details.subjectShape or '' }}"
+                     data-navigation-label="{{ _('Entity path') }}"
+                     data-empty-label="{{ _('Fill in the details') }}">
+                    {% if details.intermediateRelation %}
+                        {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}
+                            {% for inter_details in inter_details_list %}
+                                {{ render_form_field(details.intermediateRelation.targetEntityType, inter_prop, inter_details, form_fields, depth + 1, max_depth, is_template) }}
+                            {% endfor %}
                         {% endfor %}
-                    {% endfor %}
-                </div>
-            </div>
-        {% elif details.nestedShape %}
-            <div class="d-flex flex-column newEntityPropertiesContainer w-100">
-                <div class="d-flex flex-row justify-content-between nested-form-header mb-4">
-                    <button class="btn btn-outline-secondary btn-sm toggle-btn collapsed collapse-btn" type="button" data-bs-toggle="collapse" data-bs-target="#{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" aria-expanded="false" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
-                        <span id="{{ unique_id_base }}_toggle_icon_{{ index if index is not none else 'template' }}" class="bi bi-chevron-right"></span>
-                    </button>
-                    {% if not details.min > 0 %}
-                        <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
-                            <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
-                        </button>
+                    {% else %}
+                        {% for nested_details in details.nestedShape %}
+                            {{ render_form_field(nested_details.entityType, nested_details.uri, nested_details, form_fields, depth + 1, max_depth, is_template=is_template) }}
+                        {% endfor %}
                     {% endif %}
-                </div>
-                <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container collapse" data-object-class="{{ details.objectClass }}">
-                    {% for nested_details in details.nestedShape %}
-                        {{ render_form_field(nested_details.entityType, nested_details.uri, nested_details, form_fields, depth + 1, max_depth, is_template=is_template) }}
-                    {% endfor %}
                 </div>
             </div>
         {% elif details.hasValue %}
@@ -139,11 +136,13 @@
         {% elif details.optionalValues and details.optionalValues|length %}
             <div class="d-flex flex-row justify-content-between align-items-start w-100">
                 <div class="newEntityPropertyContainer w-75">
-                    <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}">
+                    <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}" data-predicate-label="{{ details.displayName }}">
+                        <option value="">{{ _('Select an option') }}</option>
                         {% for val in details.optionalValues %}
                             <option value="{{ val }}">{{ val | human_readable_predicate((details.subjectClass, details.subjectShape)) }}</option>
                         {% endfor %}
                     </select>
+                    <div class="invalid-feedback"></div>
                 </div>
                 {% if not details.min > 0 %}
                     <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">

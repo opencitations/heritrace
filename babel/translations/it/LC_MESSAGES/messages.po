@@ -1331,3 +1331,21 @@ msgstr "Modifiche salvate"
 
 msgid "The primary source is optional. Click Save changes to finish saving."
 msgstr "La fonte primaria è facoltativa. Premi Salva modifiche per completare il salvataggio."
+
+
+#: heritrace/templates/macros.jinja
+#, python-format
+msgid "Open %(name)s"
+msgstr "Apri %(name)s"
+
+#: heritrace/templates/macros.jinja
+msgid "Entity path"
+msgstr "Percorso delle entità"
+
+#: heritrace/templates/macros.jinja
+msgid "Could not update the entity label"
+msgstr "Impossibile aggiornare l’etichetta dell’entità"
+
+#: heritrace/templates/macros.jinja
+msgid "Fill in the details"
+msgstr "Compila i dettagli"

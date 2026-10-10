@@ -117,7 +117,9 @@ environment:
 
 Compatible with SPARQL 1.1 triplestores. Tested with **Virtuoso** and **Blazegraph**.
 
-When `DATASET_DB_TEXT_INDEX_ENABLED` is enabled, uses database text indexing to optimize SPARQL queries on literals. Available for Virtuoso and Blazegraph only.
+When `DATASET_DB_TEXT_INDEX_ENABLED` is enabled, searches for existing entities use the text index with Virtuoso or QLever.
+
+For QLever, build or download an index that includes `ql:has-word` triples, generated with `qlever-index --add-has-word-triples`. Searches match words within the selected field and allow a prefix for the last word, so `Arcang` finds `Arcangelo`. With several words, each preceding word must match a complete word in the same value.
 
 ### Triplestore settings
 

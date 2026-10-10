@@ -84,7 +84,7 @@
     {% endif %}
 </div>
 
-<div class="triples mb-5">
+<div class="triples mb-5" data-entity-label="{{ (entity_type, entity_shape) | human_readable_class }}">
     {% if is_deleted %}
         <div class="alert alert-info">
             <i class="bi bi-info-circle-fill me-2"></i>
@@ -892,7 +892,6 @@
 
         $('#saveChangesBtn').click(function() {
             if (saveChangesBar.saving || !saveChangesBar.hasChanges()) return;
-            $('.collapse:not(.show)').collapse('show');
             
             let errors = [];
 

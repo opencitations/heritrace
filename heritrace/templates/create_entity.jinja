@@ -52,7 +52,7 @@
             {{ render_custom_properties_form() }}
         </div>
     {% endif %}
-    <div class="mt-5">
+    <div class="mt-5 nested-global-actions">
         <button id="submitForm" type="button" class="btn btn-outline-primary">
             <i class="bi bi-check-circle me-2"></i>{{ _('Add New Record') }}
         </button>
@@ -97,16 +97,9 @@
             // Clear any existing selection and load new form fields
             initializeForm();
         });
-        $(document).on('click', '.toggle-btn', function(e) {
-            e.stopPropagation();
-            let target = $(this).attr('data-bs-target');
-            $(target).collapse('toggle');
-        });
-
         const customPropertiesManager = new CustomPropertiesManager();
 
         $('#submitForm').click(function(){
-            $('.collapse:not(.show)').collapse('show');
             
             let errors = [];
 
@@ -125,7 +118,7 @@
             } else {
                 let hasProperties = false;
                 $('[data-repeater-list]').each(function() {
-                    if ($(this).find('[data-repeater-item]:visible').length > 0) {
+                    if ($(this).find('[data-repeater-item]').filter(isActiveFormElement).length > 0) {
                         hasProperties = true;
                         return false;
                     }
@@ -154,7 +147,7 @@
                             entity_shape: $('#entity_type option:selected').data('shape'),
                             properties: {}
                         };
-                        let activeGroup = $('.property-group:visible');
+                        let activeGroup = $('.property-group').filter(isActiveFormElement);
                         collectFormData(activeGroup, structuredData.properties, '{{ shacl }}', 0);
                     } else {
                         const customProperties = customPropertiesManager.collectCustomProperties();

@@ -67,10 +67,6 @@ function formatValueForSparql(valueObj) {
 
 function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore, dataset_db_text_index_enabled, connectingPredicate, offset = 0, searchTarget = 'self') {
     let query;
-    // Use Virtuoso text index only if ALL these conditions are true:
-    // 1. Term length >= 4 (Virtuoso requirement), AND
-    // 2. Text index is enabled, AND
-    // 3. Triplestore is virtuoso
     if (dataset_db_text_index_enabled && dataset_db_triplestore === 'virtuoso') {
         query = `
             SELECT DISTINCT ?entity ?scoreValue WHERE {
@@ -91,17 +87,25 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
             LIMIT 5
         `;
     } else {
-        // Use standard REGEX search in all other cases without escaping
+        let searchFilter = `FILTER(REGEX(STR(?searchValue), ${JSON.stringify(term)}, "i"))`;
+        if (dataset_db_text_index_enabled && dataset_db_triplestore === 'qlever') {
+            const words = term.match(/[\p{L}\p{Nd}]+/gu) || [];
+            const hasWord = '<http://qlever.cs.uni-freiburg.de/builtin-functions/has-word>';
+            searchFilter = words.length ? words.map((word, index) => {
+                const literal = JSON.stringify(word.toLowerCase());
+                if (index === words.length - 1) {
+                    return `?searchValue ${hasWord} ?searchWord .
+                        FILTER(STRSTARTS(?searchWord, ${literal}))`;
+                }
+                return `?searchValue ${hasWord} ${literal} .`;
+            }).join('\n') : 'FILTER(false)';
+        }
         query = `
             SELECT DISTINCT ?entity WHERE {
                 ${searchTarget === 'parent' ? `
-                    # For parent search, we optimize the order of triple patterns:
-                    # 1. First filter by the specific predicate and search value (most restrictive)
                     ?nestedEntity <${predicate}> ?searchValue .
-                    FILTER(REGEX(STR(?searchValue), "${term}", "i"))
-                    # 2. Then connect to the parent entity (medium restrictive)
+                    ${searchFilter}
                     ?entity <${connectingPredicate}> ?nestedEntity .
-                    # 3. Finally, filter by entity type (least restrictive)
                     ?entity a <${entityType}> .
                 ` : `
                     ${entityType ? `?entity a <${entityType}> .` : ''}
@@ -109,7 +113,7 @@ function generateSearchQuery(term, entityType, predicate, dataset_db_triplestore
                         `?entity <${predicate}> ?searchValue .` :
                         `?entity ?searchPredicate ?searchValue .`
                     }
-                    FILTER(REGEX(STR(?searchValue), "${term}", "i"))
+                    ${searchFilter}
                 `}
             } 
             ORDER BY ASC(?entity)
@@ -471,6 +475,10 @@ function handleEntitySelection(container, entity) {
         propertiesContainer = propertiesContainer.closest('[data-repeater-item]').parent().closest('.newEntityPropertiesContainer');
     }
     
+    if (propertiesContainer.find('.nested-panel-active').length) {
+        showNestedPanel(propertiesContainer.parent().closest('.nested-form-container')[0] || null);
+    }
+
     // Store only the content that isn't the search results or spinner
     const originalContent = propertiesContainer.children()
         .not('.entity-search-results')
