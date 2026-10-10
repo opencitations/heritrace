@@ -268,12 +268,12 @@ function createEntityDisplay(entity, container, callback) {
 
     // Create a temporary element
     const display = $(`
-        <div class="entity-reference-display d-flex justify-content-between align-items-center border rounded w-75">
-            <div>
+        <div class="entity-reference-display property-row">
+            <div class="border rounded px-3 py-1">
                 <span class="entity-label">...</span>
                 <div class="text-muted small d-none">${entity.entity.value}</div>
             </div>
-            <div class="d-flex gap-2">
+            <div class="property-actions d-flex flex-wrap gap-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm change-entity" title="Clear selection">
                     <i class="bi bi-x-lg"></i>
                 </button>

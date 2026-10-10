@@ -85,8 +85,8 @@ class CustomPropertiesManager {
                     <h6 class="form-label property-title" id="property_title_${propertyId}">${this.translations.customProperty}</h6>
                 </div>
                 
-                <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100" style="position: relative;">
-                    <div class="position-relative w-75">
+                <div class="property-row newEntityPropertyContainer">
+                    <div class="position-relative w-100">
                         <input type="url" class="form-control mb-2" id="custom_property_${propertyId}" name="custom_property_${propertyId}" placeholder="${this.translations.propertyURI}" required>
                         <div class="invalid-feedback mb-2">${this.translations.validUrlError}</div>
                     </div>
@@ -95,15 +95,15 @@ class CustomPropertiesManager {
                     </button>
                 </div>
                 
-                <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100" style="position: relative;">
-                    <div class="position-relative w-75">
+                <div class="property-row newEntityPropertyContainer">
+                    <div class="position-relative w-100">
                         <input type="text" class="form-control custom-value-input mb-2" id="custom_value_${propertyId}" name="custom_value_${propertyId}" placeholder="${this.translations.value}">
                         <div class="invalid-feedback mb-2">${this.translations.validUrlError}</div>
                     </div>
                 </div>
 
-                <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100" style="position: relative;">
-                    <div class="position-relative w-75 mb-2">
+                <div class="property-row newEntityPropertyContainer">
+                    <div class="position-relative w-100 mb-2">
                         <label for="custom_value_type_${propertyId}" class="form-label">${this.translations.valueType}</label>
                         <select class="form-select custom-value-type" id="custom_value_type_${propertyId}" name="custom_value_type_${propertyId}">
                             <option value="literal">${this.translations.literal}</option>
@@ -113,8 +113,8 @@ class CustomPropertiesManager {
                     </div>
                 </div>
 
-                <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100 custom-datatype-section" id="custom_datatype_section_${propertyId}" style="position: relative;">
-                    <div class="position-relative w-75 mt-2">
+                <div class="property-row newEntityPropertyContainer custom-datatype-section" id="custom_datatype_section_${propertyId}">
+                    <div class="position-relative w-100 mt-2">
                         <label for="custom_datatype_${propertyId}" class="form-label">${this.translations.selectDatatype}</label>
                         <select class="form-select" id="custom_datatype_${propertyId}" name="custom_datatype_${propertyId}">
                             ${datatypeOptions}

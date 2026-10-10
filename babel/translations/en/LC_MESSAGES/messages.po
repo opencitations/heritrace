@@ -1010,7 +1010,7 @@ msgid "This will delete this resource and all its data"
 msgstr ""
 
 #: heritrace/templates/entity/about.jinja:820
-msgid "You can still restore it later using the Time Machine"
+msgid "You can still restore it later using the Time Vault"
 msgstr ""
 
 #: heritrace/templates/entity/about.jinja:825

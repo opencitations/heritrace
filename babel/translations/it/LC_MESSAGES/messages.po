@@ -1035,8 +1035,8 @@ msgid "This will delete this resource and all its data"
 msgstr "Questo eliminerà questa risorsa e tutti i suoi dati"
 
 #: heritrace/templates/entity/about.jinja:820
-msgid "You can still restore it later using the Time Machine"
-msgstr "Puoi comunque ripristinarla in seguito utilizzando la macchina del tempo"
+msgid "You can still restore it later using the Time Vault"
+msgstr "Puoi comunque ripristinarla in seguito utilizzando l’Archivio Temporale"
 
 #: heritrace/templates/entity/about.jinja:825
 msgid "Yes, delete it!"

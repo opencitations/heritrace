@@ -39,8 +39,8 @@
             </div>
         </div>
         {% if details.or %}
-            <div class="d-flex flex-row justify-content-between align-items-start w-100">
-                <select class="form-select container-type-selector w-75" 
+            <div class="property-row">
+                <select class="form-select container-type-selector w-100" 
                         id="{{ unique_id_base }}_container_type"
                         name="{{ unique_id_base }}_container_type"
                         data-predicate-uri="{{ details.uri }}"
@@ -78,7 +78,7 @@
         {% elif details.intermediateRelation or details.nestedShape %}
             {% set nested_entity_type = details.intermediateRelation.targetEntityType if details.intermediateRelation else details.nestedShape[0].entityType %}
             <div class="d-flex flex-column newEntityPropertiesContainer w-100">
-                <div class="nested-form-header">
+                <div class="nested-form-header property-row">
                     <button class="nested-open" type="button" aria-controls="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}">
                         <span class="visually-hidden">{{ _('Open %(name)s', name=details.displayName) }}: </span>
                         <span class="nested-entity-label">{{ _('Fill in the details') }}</span>
@@ -112,7 +112,7 @@
             </div>
         {% elif details.hasValue %}
             {# Mandatory value display #}
-            <div class="newEntityPropertyContainer w-100">
+            <div class="property-row newEntityPropertyContainer">
                 <span class="flex-grow-1 d-flex flex-column justify-content-center">
                     <div class="d-flex align-items-center">
                         {% if details.uri == 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' %}
@@ -134,8 +134,8 @@
                     data-mandatory-value="true">
             </div>
         {% elif details.optionalValues and details.optionalValues|length %}
-            <div class="d-flex flex-row justify-content-between align-items-start w-100">
-                <div class="newEntityPropertyContainer w-75">
+            <div class="property-row">
+                <div class="newEntityPropertyContainer w-100">
                     <select class="form-select" id="{{ unique_id_base }}" name="{{ unique_id_base }}" data-predicate-uri="{{ details.uri }}" data-predicate-label="{{ details.displayName }}">
                         <option value="">{{ _('Select an option') }}</option>
                         {% for val in details.optionalValues %}
@@ -154,10 +154,10 @@
             'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
             or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes
             or 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes) %}
-            <div class="d-flex flex-row justify-content-between align-items-start w-100">
+            <div class="property-row">
                 <!-- Date input section -->
                 <div class="date-input-group newEntityPropertyContainer w-100">
-                    <div class="form-floating mb-2 mb-2 w-75 date-type-selector-container">
+                    <div class="form-floating mb-2 mb-2 w-100 date-type-selector-container">
                         <select class="form-select date-type-selector"
                                 id="{{ unique_id_base }}_date_type"
                                 name="{{ unique_id_base }}_date_type"
@@ -173,12 +173,12 @@
                             {% endif %}
                         </select>
                         <label for="{{ unique_id_base }}_date_type">{{ _('Select Date Type') }}</label>
-                        <div class="invalid-feedback w-75"></div>
+                        <div class="invalid-feedback w-100"></div>
                     </div>
 
                     <!-- Date input -->
                     {% if 'http://www.w3.org/2001/XMLSchema#date' in details.datatypes %}
-                        <div class="date-input-container mb-2 w-75 d-none">
+                        <div class="date-input-container mb-2 w-100 d-none">
                             <input type="date" class="form-control date-input"
                                 id="{{ unique_id_base }}_date"
                                 name="{{ unique_id_base }}"
@@ -198,13 +198,13 @@
                                 {% if 'searchTarget' in details %}
                                     data-search-target="{{ details.searchTarget }}"
                                 {% endif %}>
-                            <div class="invalid-feedback w-75"></div>
+                            <div class="invalid-feedback w-100"></div>
                         </div>
                     {% endif %}
 
                     <!-- Month input -->
                     {% if 'http://www.w3.org/2001/XMLSchema#gYearMonth' in details.datatypes %}
-                        <div class="date-input-container mb-2 w-75 d-none">
+                        <div class="date-input-container mb-2 w-100 d-none">
                             <input type="month" class="form-control date-input"
                                 id="{{ unique_id_base }}_month"
                                 name="{{ unique_id_base }}"
@@ -224,13 +224,13 @@
                                 {% if 'searchTarget' in details %}
                                     data-search-target="{{ details.searchTarget }}"
                                 {% endif %}>
-                            <div class="invalid-feedback w-75"></div>
+                            <div class="invalid-feedback w-100"></div>
                         </div>
                     {% endif %}
 
                     <!-- Year input -->
                     {% if 'http://www.w3.org/2001/XMLSchema#gYear' in details.datatypes %}
-                        <div class="date-input-container mb-2 w-75 d-none">
+                        <div class="date-input-container mb-2 w-100 d-none">
                             <input type="number" class="form-control date-input"
                                 id="{{ unique_id_base }}_year"
                                 name="{{ unique_id_base }}"
@@ -251,7 +251,7 @@
                                 {% if 'searchTarget' in details %}
                                     data-search-target="{{ details.searchTarget }}"
                                 {% endif %}>
-                            <div class="invalid-feedback w-75"></div>
+                            <div class="invalid-feedback w-100"></div>
                         </div>
                     {% endif %}
                 </div>
@@ -262,9 +262,9 @@
                 {% endif %}
             </div>
         {% else %}
-            <div class="d-flex flex-row justify-content-between align-items-start newEntityPropertyContainer w-100">
+            <div class="property-row newEntityPropertyContainer">
                 {% if details.inputType == "textarea" %}
-                    <div class="position-relative w-75">
+                    <div class="position-relative w-100">
                         <textarea 
                             class="form-control"
                             id="{{ unique_id_base }}_{{ index if index is not none else 'template' }}"
@@ -296,7 +296,7 @@
                         <div class="invalid-feedback"></div>
                     </div>
                 {% else %}
-                    <div class="position-relative w-75">
+                    <div class="position-relative w-100">
                         <input 
                             type="{{ details.inputType or 'text' }}"
                             class="form-control"
@@ -380,7 +380,7 @@
         data-shape="{{ shape }}"
         data-depth="0"
         data-is-virtual="{{is_virtual}}">
-        <div class="tripleObject flex-grow-1 d-flex flex-row justify-content-between">
+        <div class="tripleObject property-row">
             {% if externalEntity %}
                 {% if isDraggable %}
                     <div class="d-flex flex-column">
@@ -388,7 +388,7 @@
                             <span class="me-2 d-none">☰</span>
                             <h6 class="flex-grow-1 form-label d-none" data-original-text="{{ display_name }}">{{ display_name }}</h6>
                         </div>
-                        <span style="margin-left: .75rem;">
+                        <span style="padding-left: .75rem;">
                             {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
                             <a href="{{url_for('entity.about', subject=externalEntity)}}" 
                             class="draggable-entity-link"
@@ -400,7 +400,7 @@
                         </span>
                     </div>
                 {% else %}
-                    <span style="margin-left: .75rem;">
+                    <span style="padding-left: .75rem;">
                         {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
                         <a href="{{url_for('entity.about', subject=externalEntity)}}"
                            class="draggable-entity-link"
@@ -427,7 +427,7 @@
                             data-skip-collect="true">
                     </div>
                 {% elif shacl and optional_values[triple[1]] %}
-                    <div class="w-75">
+                    <div class="w-100">
                         <select name="new_value" class="form-select editable-select d-none" id="select_{{ unique_id }}">
                             {% for value in optional_values[triple[1]] %}
                                 <option value="{{ value }}" {% if value == object %}selected{% endif %}>
@@ -449,7 +449,7 @@
                     </div>
                 {% elif 'http://www.w3.org/2001/XMLSchema#date' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYearMonth' in datatypes.get(triple[1], []) or 'http://www.w3.org/2001/XMLSchema#gYear' in datatypes.get(triple[1], []) %}
                     <div class="date-input-group" data-original-value="{{ triple[2] }}">
-                        <div class="form-floating mb-2 w-75 date-type-selector-container d-none">
+                        <div class="form-floating mb-2 w-100 date-type-selector-container d-none">
                             <select class="form-control date-type-selector"
                                     id="{{ unique_id }}_date_type"
                                     name="{{ unique_id }}_date_type"
@@ -465,10 +465,10 @@
                                 {% endif %}
                             </select>
                             <label for="{{ unique_id }}_date_type">{{ _('Select Date Type') }}</label>
-                            <div class="invalid-feedback w-75"></div>
+                            <div class="invalid-feedback w-100"></div>
                         </div>
                         
-                        <div class="date-input-container d-none w-75">
+                        <div class="date-input-container d-none w-100">
                             <input type="date" class="form-control editable-field date-input"
                                 data-date-type="date"
                                 data-datatypes="http://www.w3.org/2001/XMLSchema#date"
@@ -485,7 +485,7 @@
                                 {% endif %}
                                 id="new_value_{{ unique_id }}_date">
                         </div>
-                        <div class="date-input-container d-none w-75">
+                        <div class="date-input-container d-none w-100">
                             <input type="month" class="form-control editable-field date-input"
                                 data-datatypes="http://www.w3.org/2001/XMLSchema#gYearMonth"
                                 data-date-type="month"
@@ -501,7 +501,7 @@
                                     data-search-target="{{ details.searchTarget }}"
                                 {% endif %}>
                         </div>
-                        <div class="date-input-container d-none w-75">
+                        <div class="date-input-container d-none w-100">
                             <input type="number" class="form-control editable-field date-input"
                                 data-datatypes="http://www.w3.org/2001/XMLSchema#gYear" 
                                 data-date-type="year"
@@ -527,7 +527,7 @@
                     {% if predicate_details_map.get(key) %}
                         {% set details = predicate_details_map.get(key) %}
                         {% if details.inputType == "textarea" %}
-                            <div class="textarea-input-group w-75">
+                            <div class="textarea-input-group w-100">
                                 <div class="textarea-display-container">
                                     <div class="textarea-display">{{ triple[2] }}</div>
                                 </div>
@@ -542,7 +542,7 @@
                         {% else %}
                             <input 
                                 type="{{ details.inputType or 'text' }}"
-                                class="form-control editable-field w-75"
+                                class="form-control editable-field w-100"
                                 value="{{ triple[2] }}"
                                 readonly
                                 id="new_value_{{ unique_id }}"
@@ -552,16 +552,16 @@
                             >
                         {% endif %}
                     {% else %}
-                        {{ update_form.new_value(class="form-control editable-field w-75", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
+                        {{ update_form.new_value(class="form-control editable-field w-100", value=triple[2], readonly=true, id="new_value_" ~ unique_id) }}
                     {% endif %}
                 {% endif %}
             {% endif %}
 
-            <div class="align-self-start">
-                <div class="d-flex flex-column flex-sm-row">
+            <div class="property-actions">
+                <div class="d-flex flex-wrap gap-2">
                     {% if externalEntity %}
                         {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}                        
-                        <div class="mb-2 mb-sm-0">
+                        <div class="d-flex">
                             <a class="btn btn-sm btn-outline-primary redirection-btn" 
                             data-bs-toggle="tooltip"
                             data-bs-placement="top"
@@ -573,7 +573,7 @@
                     {% endif %}
                     {% if shacl and not (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
                         <div class="d-flex align-items-center">
-                            <button class="btn btn-sm btn-outline-danger delete-button ms-0 ms-sm-2"
+                            <button class="btn btn-sm btn-outline-danger delete-button"
                                     style="display: none;"
                                     data-subject="{{ subject }}" 
                                     data-predicate="{{ triple[1] }}" 
