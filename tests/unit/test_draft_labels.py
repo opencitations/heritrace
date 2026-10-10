@@ -217,3 +217,39 @@ def test_draft_rules_use_field_datatypes(logged_in_client):
         response = logged_in_client.post("/api/draft-labels", json={"entries": [entry]})
     assert response.status_code == 200
     assert response.json == {"labels": ["42"]}
+
+
+@pytest.mark.parametrize(
+    ("predicate", "shape"),
+    [("Citations", "CitationShape"), ("Is Cited By", "ReverseCitationShape")],
+)
+def test_virtual_property_uses_entity_display_rule(logged_in_client, predicate, shape):
+    rules = yaml.safe_load(
+        Path("example_configurations/paratext/display_rules.yaml").read_text()
+    )["rules"]
+    entry = {
+        "parent_class": "http://purl.org/spar/fabio/JournalArticle",
+        "parent_shape": "http://schema.org/JournalArticleShape",
+        "predicate": predicate,
+        "entity": {
+            "entity_type": "http://purl.org/spar/cito/Citation",
+            "entity_shape": "http://schema.org/" + shape,
+            "properties": {
+                "http://purl.org/spar/cito/" + relation: {
+                    "entity_type": "http://purl.org/spar/fabio/Book",
+                    "entity_shape": "http://schema.org/BookShape",
+                    "properties": {"http://purl.org/dc/terms/title": [title]},
+                }
+                for relation, title in [
+                    ("hasCitingEntity", "Source book"),
+                    ("hasCitedEntity", "Target book"),
+                ]
+            },
+        },
+    }
+    with patch(
+        "heritrace.utils.display_rules_utils.get_display_rules", return_value=rules
+    ):
+        response = logged_in_client.post("/api/draft-labels", json={"entries": [entry]})
+    assert response.status_code == 200
+    assert response.json == {"labels": ['Citation from "Source book" to "Target book"']}

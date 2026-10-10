@@ -51,7 +51,7 @@ def relation_display_query(entry: dict) -> str | None:
     if not parent_rule or "displayProperties" not in parent_rule:
         return None
     for prop in parent_rule["displayProperties"]:
-        if prop["property"] != entry["predicate"]:
+        if prop.get("property") != entry["predicate"]:
             continue
         candidates = [prop]
         if "displayRules" in prop:
