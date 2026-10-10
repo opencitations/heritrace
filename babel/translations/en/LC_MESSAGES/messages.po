@@ -1719,3 +1719,17 @@ msgstr "Could not update the entity label"
 #: heritrace/templates/macros.jinja
 msgid "Fill in the details"
 msgstr "Fill in the details"
+
+msgid "Check the following fields"
+msgstr "Check the following fields"
+
+msgid "Errors"
+msgstr "Errors"
+
+#: heritrace/templates/entity/about.jinja
+msgid "Correct the errors to save"
+msgstr ""
+
+#: heritrace/templates/entity/about.jinja
+msgid "Ready to save"
+msgstr ""

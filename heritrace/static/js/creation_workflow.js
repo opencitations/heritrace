@@ -963,27 +963,23 @@ function collectFormData(container, data, shacl, depth) {
     return data;
 }
 
-// Funzione per evidenziare i campi con errori
 function highlightValidationErrors(errors) {
-    // Rimuovi gli stati di errore precedenti
-    $('.is-invalid').removeClass('is-invalid');
-    $('.invalid-feedback').hide();
-
-    errors.forEach(function(error) {
-        if (error.field) {
-            error.field.addClass('is-invalid');
-            error.field.siblings('.invalid-feedback').first().text(error.message).show();
-        }
+    $('[data-validation-error]').each(function() {
+        const field = $(this);
+        field.removeClass('is-invalid').removeAttr('aria-invalid data-validation-error');
+        field.siblings('.invalid-feedback').first().text('').hide();
     });
-}
-
-function validateUrl(url) {
-    var pattern = new RegExp('^(https?:\\/\\/)?' + // protocollo
-        '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|(\\d{1,3}\\.){3}\\d{1,3})' + // nome dominio e estensione
-        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // porta e percorso
-        '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
-        '(\\#[-a-z\\d_]*)?$', 'i'); // frammento
-    return !!pattern.test(url);
+    const messages = new Map();
+    errors.forEach(error => {
+        if (!error.field) return;
+        const field = error.field[0];
+        if (!messages.has(field)) messages.set(field, []);
+        messages.get(field).push(error.message);
+    });
+    messages.forEach((entries, field) => {
+        $(field).addClass('is-invalid').attr({'aria-invalid': 'true', 'data-validation-error': ''});
+        $(field).siblings('.invalid-feedback').first().text(entries.join(' ')).show();
+    });
 }
 
 function convertDate(originalValue, newType) {

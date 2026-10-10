@@ -269,6 +269,33 @@ footer.bg-dark {
   background-color: black !important;
 }
 
+.validation-summary {
+  border: 1px solid var(--bs-danger);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-block: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.validation-errors ul {
+  list-style: none;
+  padding: 0;
+}
+
+.validation-errors ul:last-child {
+  margin-bottom: 0;
+}
+
+.validation-error-link {
+  border: 0;
+  background: none;
+  color: var(--bs-link-color);
+  padding: 0.375rem 0;
+  text-align: start;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
 .nested-form-container {
   display: none;
 }

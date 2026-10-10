@@ -1349,3 +1349,17 @@ msgstr "Impossibile aggiornare l’etichetta dell’entità"
 #: heritrace/templates/macros.jinja
 msgid "Fill in the details"
 msgstr "Compila i dettagli"
+
+msgid "Check the following fields"
+msgstr "Controlla i seguenti campi"
+
+msgid "Errors"
+msgstr "Errori"
+
+#: heritrace/templates/entity/about.jinja
+msgid "Correct the errors to save"
+msgstr "Correggi gli errori per salvare"
+
+#: heritrace/templates/entity/about.jinja
+msgid "Ready to save"
+msgstr "Pronto per salvare"

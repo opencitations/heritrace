@@ -1,40 +1,16 @@
 <script>
-    function getContainerName(input) {
-        let containerName = '';
-        let repeaterList = input.closest('.newEntityPropertiesContainer').closest('[data-repeater-list]');
-        containerName = repeaterList.data('display-name') || $('#entity_type option:selected').text();
-        return containerName;
-    }
-
     // Funzione per validare i campi richiesti
     function validateRequiredFields(errors) {
         $(':input[required]:not([type="hidden"])').filter(isActiveFormElement).each(function() {
             if (!$(this).val()) {
                 let fieldName = $(this).data('predicate-label');
-                let containerName = getContainerName($(this));
                 errors.push({
                     field: $(this),
-                    message: `{{ _("The field") }} "${fieldName}" {{ _("of the") }} ${containerName} {{ _("is required") }}`
+                    fieldName,
+                    message: '{{ _("This field is required") }}'
                 });
             }
         });
-    }
-
-    function validateUrl(url) {
-        var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
-            '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.?)+[a-z]{2,}|(\\d{1,3}\\.){3}\\d{1,3})' + // domain name and extension
-            '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // port and path
-            '(\\?[;&a-z\\d%_.~+=-]*)?' + // query string
-            '(\\#[-a-z\\d_]*)?$', 'i'); // fragment locator
-        return !!pattern.test(url);
-    }
-
-    function validateUrlInput(inputElement) {
-        if (!validateUrl(inputElement.val())) {
-            inputElement.addClass('is-invalid');
-        } else {
-            inputElement.removeClass('is-invalid');
-        }
     }
 
     // Funzione per validare gli URL
@@ -42,11 +18,11 @@
         $('input[type="url"]').filter(isActiveFormElement).each(function() {
             let url = $(this).val();
             let fieldName = $(this).data('predicate-label') ;
-            let containerName = getContainerName($(this));
             if (url && !validateUrl(url)) {
                 errors.push({
                     field: $(this),
-                    message: `{{ _("Please enter a valid URL for") }} "${fieldName}" {{ _("of the") }} ${containerName}`
+                    fieldName,
+                    message: '{{ _("Please enter a valid URL") }}'
                 });
             }
         });
@@ -58,6 +34,7 @@
             let input = $(this);
             let datatypes = input.data('datatypes').split(',');
             let value = input.val();
+            if (!value) return;
             let isValidDatatype = false;
             let expectedFormat = '';
             datatypes.forEach(function(datatype) {
@@ -220,54 +197,32 @@
             });
 
             if (!isValidDatatype) {
-                let fieldName = input.closest('.form-floating').find('label').text() || 
+                let fieldName = input.data('predicate-label') || input.closest('.form-floating').find('label').text() || 
                                 input.attr('placeholder') || 
                                 input.attr('name') || 
                                 '{{ _("This field") }}';
-                let containerName = getContainerName(input);
                 errors.push({
                     field: input,
-                    message: `${fieldName} {{ _("of the") }} ${containerName}: {{ _("Invalid input. Expected") }} ${expectedFormat}.`
+                    fieldName,
+                    message: `{{ _("Invalid input. Expected") }} ${expectedFormat}.`
                 });
             }
         });
     }
 
-    // Funzione per validare le condizioni
     function validateConditions(errors) {
         $('input[data-conditions]').filter(isActiveFormElement).each(function() {
-            let input = $(this);
-            let conditions = input.data('conditions');
-            let value = input.val();
-
-            conditions.forEach(function(conditionObj) {
-                var condition = conditionObj.condition;
-                var pattern = new RegExp(conditionObj.pattern);
-                var message = conditionObj.message;
-
-                var currentList = input.closest('[data-repeater-list]');
-                var dependentField = currentList.siblings().find('[data-repeater-item]').not('.repeater-template').find('[data-predicate-uri="' + condition.path + '"]');
-
-                var dependentValue;
-                if (dependentField.is('select')) {
-                    dependentValue = dependentField.val();
-                } else if (dependentField.is('input')) {
-                    dependentValue = dependentField.val();
-                } else {
-                    var inputOrSelect = dependentField.find('input, select').closest();
-                    dependentValue = inputOrSelect.val();
-                }
-
-                // Controlla se il campo dipendente è disponibile e visibile
-                if (dependentValue === condition.value) {
-                    // Applicare la validazione
-                    if (!pattern.test(value)) {
-                        let containerName = getContainerName(input);
-                        errors.push({
-                            field: input,
-                            message: `In the ${containerName}, ${message} {{ _("in the") }}`
-                        });
-                    }
+            const input = $(this);
+            if (!input.val()) return;
+            const scope = input.closest('.nested-form-container, #entityForm, .triples')[0];
+            input.data('conditions').forEach(({condition, pattern, message}) => {
+                const dependentField = $(scope).find('[data-predicate-uri]').filter(function() {
+                    return this.matches('input, select') && isActiveFormElement.call(this) &&
+                        this.dataset.predicateUri === condition.path &&
+                        this.closest('.nested-form-container, #entityForm, .triples') === scope;
+                });
+                if (dependentField.val() === condition.value && !new RegExp(pattern).test(input.val())) {
+                    errors.push({field: input, message});
                 }
             });
         });
@@ -282,11 +237,6 @@
             
             const allItems = repeaterList.children('[data-repeater-item]').filter(isActiveFormElement);
             
-            // Identify predefined values (hasValue items) that have data-mandatory-value="true"
-            const predefinedItems = allItems.filter(function() {
-                return $(this).find('[data-mandatory-value="true"]').length > 0;
-            });
-            
             // Count only user-added items (excluding predefined values)
             const userAddedItems = allItems.not(function() {
                 return $(this).find('[data-mandatory-value="true"]').length > 0;
@@ -300,7 +250,7 @@
             
             // Get the property name for error messages
             const predicateUri = repeaterList.data('uri');
-            const displayName = repeaterList.data('repeater-list').replace(/_/g, ' ') || 
+            const displayName = repeaterList.data('display-name') || repeaterList.data('repeater-list').replace(/_/g, ' ') || 
                                predicateUri || 
                                '{{ _("Unknown property") }}';
             
@@ -322,90 +272,120 @@
         });
     }
 
-    function displayValidationErrors(errors) {
-        let errorMessages = errors.map(error => error.message);
-        let errorMessage = `            <ul style="list-style-type: none; padding-left: 0;">
-                ${errorMessages.map(error => `
-                    <li style="margin-bottom: 8px; display: flex; align-items: flex-start; text-align: left">
-                        <span style="color: #d32f2f; margin-right: 8px;">&#9888;</span>
-                        <span>${error}</span>
-                    </li>
-                `).join('')}
-            </ul>
-        `;
+    let validationStarted = false;
+    let additionalValidation = () => [];
 
-        Swal.fire({
-            icon: 'error',
-            title: '{{ _("Invalid Submission") }}',
-            html: errorMessage,
-            confirmButtonText: '{{ _("OK") }}',
-        }).then(() => {
-            const field = errors.find(error => error.field)?.field[0];
-            if (field) {
-                showNestedPanel(field.closest('.nested-form-container'));
-                field.scrollIntoView({block: 'center'});
-                field.focus();
-            }
-        });
-
-        highlightValidationErrors(errors);
+    function collectValidationErrors() {
+        const errors = [];
+        validateRequiredFields(errors);
+        validateUrls(errors);
+        validateDatatypes(errors);
+        validateConditions(errors);
+        validateCardinality(errors);
+        return errors.concat(additionalValidation());
     }
 
-    function validateFieldWithConditions(input) {
-        var conditions = input.data('conditions');
-        var inputValue = input.val();
-
-        if (!conditions) {
-            return;
+    function validationPath(field) {
+        const root = document.querySelector('#entityForm, .triples');
+        const path = [document.querySelector('#entity_type option:checked')?.textContent || root.dataset.entityLabel];
+        for (let panel = field?.closest('.nested-form-container'); panel;
+            panel = panel.parentElement.closest('.nested-form-container')) {
+            path.splice(1, 0, nestedItemLabel(panel));
         }
+        return path.join(' › ');
+    }
 
-        var isValid = true;
-        var errorMessage = '';
-        conditions.forEach(function(conditionObj) {
-            var condition = conditionObj.condition;
-            var pattern = new RegExp(conditionObj.pattern);
-            var message = conditionObj.message;
+    function focusValidationSummary() {
+        const summary = document.getElementById('validation-summary');
+        summary.focus({preventScroll: true});
+        summary.scrollIntoView({block: 'start'});
+    }
 
-            var currentList = input.closest('[data-repeater-list]');
-            var dependentField = currentList.siblings().find('[data-repeater-item]').not('.repeater-template').find('[data-predicate-uri="' + condition.path + '"]');
-
-            var dependentValue;
-            if (dependentField.is('select')) {
-                dependentValue = dependentField.val();
-            } else if (dependentField.is('input')) {
-                dependentValue = dependentField.val();
-            } else {
-                var inputOrSelect = dependentField.find('input, select').closest();
-                dependentValue = inputOrSelect.val();
-            }
-
-            if (dependentValue === condition.value) {
-                // Applicare la validazione
-                if (!pattern.test(inputValue)) {
-                    isValid = false;
-                    errorMessage = message;
-                }
-            }
+    function displayValidationErrors(errors, focusSummary = true) {
+        validationStarted = true;
+        const summary = document.getElementById('validation-summary');
+        const contents = summary.querySelector('.validation-errors');
+        const groups = new Map();
+        errors.forEach(error => {
+            const path = validationPath(error.field?.[0]);
+            if (!groups.has(path)) groups.set(path, []);
+            groups.get(path).push(error);
         });
+        contents.replaceChildren();
+        groups.forEach((entries, path) => {
+            const heading = document.createElement('h3');
+            heading.className = 'h6';
+            heading.textContent = path;
+            const list = document.createElement('ul');
+            entries.forEach(error => {
+                const item = document.createElement('li');
+                if (error.field) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'validation-error-link';
+                    button.textContent = error.fieldName ? `${error.fieldName}: ${error.message}` : error.message;
+                    button.addEventListener('click', () => {
+                        const field = error.field[0];
+                        showNestedPanel(field.closest('.nested-form-container'));
+                        if (!field.matches('input, select, textarea, button')) field.tabIndex = -1;
+                        field.focus({preventScroll: true});
+                        field.scrollIntoView({block: 'center'});
+                    });
+                    item.append(button);
+                } else {
+                    item.textContent = error.message;
+                }
+                list.append(item);
+            });
+            contents.append(heading, list);
+        });
+        summary.hidden = errors.length === 0;
+        const shortcut = document.getElementById('validation-summary-link');
+        shortcut.hidden = summary.hidden;
+        shortcut.querySelector('span').textContent = errors.length;
+        const feedback = $('#saveChangesValidation');
+        feedback.prop('hidden', false)
+            .toggleClass('text-danger', errors.length !== 0)
+            .toggleClass('text-success', errors.length === 0)
+            .text(feedback.attr(errors.length ? 'data-errors' : 'data-ready'));
+        highlightValidationErrors(errors);
+        if (focusSummary && errors.length) focusValidationSummary();
+    }
 
-        if (!isValid) {
-            input.addClass('is-invalid');
-            input.siblings('.invalid-feedback').first().text(errorMessage).show();
-        } else {
-            input.removeClass('is-invalid');
-            input.next('.invalid-feedback').first().text('').hide();
-        }
+    function refreshValidationErrors() {
+        if (validationStarted) displayValidationErrors(collectValidationErrors(), false);
+    }
+
+    function resetValidationErrors() {
+        validationStarted = false;
+        document.getElementById('validation-summary').hidden = true;
+        document.getElementById('validation-summary-link').hidden = true;
+        $('#saveChangesValidation').prop('hidden', true).text('');
+        highlightValidationErrors([]);
     }
 
     $(document).ready(function() {
-        $(document).on('change', 'select', function() {
-            $(this).closest('[data-object-class]').find('input[data-conditions]').each(function() {
-                validateFieldWithConditions($(this));
-            });
+        document.getElementById('validation-summary-link').addEventListener('click', focusValidationSummary);
+        $(document).on('input.validation change.validation', '#entityForm :input, .triples :input, .custom-properties-section :input', () => {
+            queueMicrotask(refreshValidationErrors);
         });
-
-        $(document).on('blur', 'input[data-conditions]', function() {
-            validateFieldWithConditions($(this));
+        $(document).on('click', '#editEntityBtn', resetValidationErrors);
+        $(document).on('change', '#entity_type', resetValidationErrors);
+        const observer = new MutationObserver(records => {
+            const changed = records.some(record => {
+                if (record.type === 'attributes') {
+                    return record.target.matches('.container-form, .container-forms, .date-input-container') &&
+                        record.oldValue.split(/\s+/).includes('d-none') !== record.target.classList.contains('d-none');
+                }
+                if (record.target.closest('h6[data-original-text]')) return true;
+                return [...record.addedNodes, ...record.removedNodes].some(node =>
+                    node.nodeType === Node.ELEMENT_NODE &&
+                    (node.matches('[data-repeater-item], .custom-property') || node.querySelector('[data-repeater-item], .custom-property')));
+            });
+            if (changed) refreshValidationErrors();
+        });
+        document.querySelectorAll('#entityForm, .triples, .custom-properties-section').forEach(root => {
+            observer.observe(root, {subtree: true, childList: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true});
         });
     });
 </script>

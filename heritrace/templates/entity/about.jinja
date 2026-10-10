@@ -84,6 +84,7 @@
     {% endif %}
 </div>
 
+{% include 'validation_summary.jinja' %}
 <div class="triples mb-5" data-entity-label="{{ (entity_type, entity_shape) | human_readable_class }}">
     {% if is_deleted %}
         <div class="alert alert-info">
@@ -161,8 +162,14 @@
     data-saving="{{ _('Saving changes…') }}"
     data-saved="{{ _('Changes saved') }}">
     <div class="page-shell page-shell--standard save-changes-bar-content">
-        <p id="saveChangesStatus" class="mb-0" role="status" aria-live="polite" aria-atomic="true"></p>
+        <div>
+            <p id="saveChangesStatus" class="mb-0" role="status" aria-live="polite" aria-atomic="true"></p>
+            <p id="saveChangesValidation" class="mb-0 small" role="status" aria-live="polite" aria-atomic="true" hidden
+                data-errors="{{ _('Correct the errors to save') }}"
+                data-ready="{{ _('Ready to save') }}"></p>
+        </div>
         <div class="save-changes-actions">
+            {% include 'validation_summary_link.jinja' %}
             <button type="button" class="btn btn-outline-secondary" id="cancelChangesBtn">
                 {{ _('Cancel changes') }}
             </button>
@@ -893,13 +900,7 @@
         $('#saveChangesBtn').click(function() {
             if (saveChangesBar.saving || !saveChangesBar.hasChanges()) return;
             
-            let errors = [];
-
-            validateRequiredFields(errors);
-            validateUrls(errors);
-            validateDatatypes(errors);
-            validateConditions(errors);
-            validateCardinality(errors);
+            const errors = collectValidationErrors();
 
             if (errors.length > 0) {
                 displayValidationErrors(errors);                

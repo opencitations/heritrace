@@ -18,7 +18,9 @@
 {% endif %}
 {% endwith %}
 
-<form action="{{ url_for('entity.create_entity') }}" method="post" id="entityForm">
+{% include 'validation_summary.jinja' %}
+
+<form action="{{ url_for('entity.create_entity') }}" method="post" id="entityForm" data-entity-label="{{ _('New Record') }}">
     <input type="hidden" name="structured_data" id="structured_data">
     {% if shacl %}
         <div class="form-floating mb-3">
@@ -53,6 +55,7 @@
         </div>
     {% endif %}
     <div class="mt-5 nested-global-actions">
+        {% include 'validation_summary_link.jinja' %}
         <button id="submitForm" type="button" class="btn btn-outline-primary">
             <i class="bi bi-check-circle me-2"></i>{{ _('Add New Record') }}
         </button>
@@ -99,15 +102,8 @@
         });
         const customPropertiesManager = new CustomPropertiesManager();
 
-        $('#submitForm').click(function(){
-            
-            let errors = [];
-
-            validateRequiredFields(errors);
-            validateUrls(errors);
-            validateDatatypes(errors);
-            validateConditions(errors);
-            validateCardinality(errors);
+        additionalValidation = () => {
+            const errors = [];
 
             if ('{{shacl}}' !== 'True') {
                 if (!customPropertiesManager.hasAtLeastOneProperty()) {
@@ -130,6 +126,12 @@
                     });
                 }
             }
+
+            return errors;
+        };
+
+        $('#submitForm').click(function(){
+            const errors = collectValidationErrors();
 
             if (errors.length > 0) {
                 displayValidationErrors(errors);

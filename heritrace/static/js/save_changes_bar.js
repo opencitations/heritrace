@@ -78,6 +78,7 @@ class SaveChangesBar {
         const state = this.saving ? 'saving' : this.saved ? 'saved' : changed ? 'unsaved' : 'unchanged';
         const message = this.bar.dataset[state];
         if (this.status.textContent !== message) this.status.textContent = message;
+        if (this.saving || this.saved) $('#saveChangesValidation').prop('hidden', true);
         $('#saveChangesBtn')
             .attr('aria-busy', String(this.saving))
             .prop('disabled', this.saving || this.saved || !changed);
