@@ -19,31 +19,53 @@ function nestedItemLabel(panel) {
     return heading.textContent.replace('*', '').trim();
 }
 
+function closeNestedModal() {
+    showNestedPanel(null, nestedNavigation.chain[0].previousElementSibling.querySelector('.nested-open'));
+}
+
 function showNestedPanel(panel, returnFocus = null) {
     const root = panel ? panel.closest('#entityForm, .triples') : nestedNavigation.root;
     if (!root) return;
-    const previous = nestedNavigation.current || root;
-    nestedNavigation.positions.set(previous, window.scrollY);
+    const leftPanels = nestedNavigation.chain.filter(entry => entry.isConnected && !entry.contains(panel)).reverse();
+    const previousModal = document.querySelector('.nested-modal');
+    if (previousModal) {
+        nestedNavigation.positions.set(nestedNavigation.current, previousModal.scrollTop);
+        previousModal.classList.remove('nested-modal');
+        ['role', 'aria-modal', 'aria-label', 'tabindex'].forEach(name => previousModal.removeAttribute(name));
+    }
     document.querySelectorAll('.nested-path, .nested-panel-active').forEach(node => node.classList.remove('nested-path', 'nested-panel-active'));
-    document.querySelectorAll('.nested-navigation').forEach(node => node.remove());
+    document.querySelectorAll('.nested-modal-header, .nested-modal-footer, .nested-modal-backdrop').forEach(node => node.remove());
+    document.body.classList.toggle('nested-modal-open', Boolean(panel));
+    leftPanels.forEach(left => {
+        if (!left.hasAttribute('data-discard-if-untouched')) {
+            left.dispatchEvent(new CustomEvent('nested-panel-left', {bubbles: true}));
+            return;
+        }
+        const item = left.closest('[data-repeater-item]');
+        if (item.contains(returnFocus)) {
+            returnFocus = $(item).closest('[data-repeater-list]').children('[data-repeater-create]').find('button')[0];
+        }
+        removeRepeaterItem(item);
+    });
     nestedNavigation.root = root;
     nestedNavigation.current = panel;
+    nestedNavigation.chain = [];
     if (panel) {
+        const chain = nestedNavigation.chain;
+        for (let parent = panel; parent; parent = parent.parentElement.closest('.nested-form-container')) chain.unshift(parent);
+        const modal = chain[0];
+        modal.classList.add('nested-modal');
         panel.classList.add('nested-panel-active');
-        for (let ancestor = panel.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        for (let ancestor = panel.parentElement; modal.contains(ancestor); ancestor = ancestor.parentElement) {
             ancestor.classList.add('nested-path');
-            if (ancestor === root) break;
         }
         const nav = document.createElement('nav');
         nav.className = 'nested-navigation';
         nav.setAttribute('aria-label', panel.dataset.navigationLabel);
-        const chain = [];
-        for (let parent = panel; parent; parent = parent.parentElement.closest('.nested-form-container')) chain.unshift(parent);
-        nestedNavigation.chain = chain;
         const rootButton = document.createElement('button');
         rootButton.type = 'button';
         rootButton.textContent = document.querySelector('#entity_type option:checked')?.textContent || root.dataset.entityLabel;
-        rootButton.addEventListener('click', () => showNestedPanel(null, chain[0].previousElementSibling.querySelector('.nested-open')));
+        rootButton.addEventListener('click', closeNestedModal);
         nav.append(rootButton);
         chain.forEach((entry, index) => {
             const separator = document.createElement('span');
@@ -60,15 +82,56 @@ function showNestedPanel(panel, returnFocus = null) {
             }
             nav.append(separator, button);
         });
-        root.prepend(nav);
-        panel.setAttribute('tabindex', '-1');
-        panel.setAttribute('role', 'group');
-        panel.setAttribute('aria-label', nestedItemLabel(panel));
-        panel.focus({preventScroll: true});
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close';
+        closeButton.setAttribute('aria-label', modal.dataset.closeLabel);
+        closeButton.addEventListener('click', closeNestedModal);
+        const header = document.createElement('div');
+        header.className = 'nested-modal-header';
+        header.append(nav, closeButton);
+        const doneButton = document.createElement('button');
+        doneButton.type = 'button';
+        doneButton.className = 'btn btn-primary';
+        doneButton.textContent = modal.dataset.doneLabel;
+        doneButton.addEventListener('click', closeNestedModal);
+        const footer = document.createElement('div');
+        footer.className = 'nested-modal-footer';
+        footer.append(doneButton);
+        const backdrop = document.createElement('div');
+        backdrop.className = 'nested-modal-backdrop';
+        modal.prepend(header);
+        modal.append(footer);
+        modal.after(backdrop);
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-label', nestedItemLabel(panel));
+        modal.setAttribute('tabindex', '-1');
+        modal.scrollTop = nestedNavigation.positions.get(panel) || 0;
+        modal.focus({preventScroll: true});
     }
     returnFocus?.focus({preventScroll: true});
-    window.scrollTo(0, nestedNavigation.positions.get(panel || root) || 0);
     updateNestedPreviews();
+}
+
+function trapNestedModalFocus(event) {
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        closeNestedModal();
+        return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(this.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+        .filter(element => !element.disabled && element.getClientRects().length);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === this)) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+    }
 }
 
 function nestedDetailsComplete(panel) {
@@ -160,6 +223,10 @@ $(function() {
     $(document).on('click', '.nested-open', function() {
         showNestedPanel(this.closest('.nested-form-header').nextElementSibling);
     });
+    $(document).on('keydown', '.nested-modal', trapNestedModalFocus);
+    $(document).on('input change', '[data-discard-if-untouched] :input', function(event) {
+        if (event.originalEvent?.isTrusted) $(this).parents('[data-discard-if-untouched]').removeAttr('data-discard-if-untouched');
+    });
     $(document).on('input.nestedPanel change.nestedPanel', '[data-repeater-item] :input', schedulePreviews);
     const observer = new MutationObserver(records => {
         if (records.some(record => {
@@ -241,6 +308,14 @@ function ensurePropertyArray(data, propertyUri) {
         data[propertyUri] = [];
     }
     return data[propertyUri];
+}
+
+function removeRepeaterItem(item) {
+    const $list = $(item).closest('[data-repeater-list]');
+    item.remove();
+    updateButtons($list);
+    updateOrderedElementsNumbering();
+    setRequiredForActiveFields($list);
 }
 
 function updateButtons(list, recursive = true) {
@@ -1026,7 +1101,7 @@ $(document).ready(function() {
 
     $(document)
     .off('click.repeater', '[data-repeater-create]')
-    .on('click.repeater', '[data-repeater-create]', function() {
+    .on('click.repeater', '[data-repeater-create]', function(event) {
         const $list = $(this).closest('[data-repeater-list]');
         const maxItems = parseInt($list.data('max-items')) || Infinity;
         const currentItems = $list.children('[data-repeater-item]').not('.repeater-template').length;
@@ -1066,16 +1141,18 @@ $(document).ready(function() {
     
         // Inizializza i tooltip una sola volta per il nuovo item
         $newItem.find('[data-bs-toggle="tooltip"]').tooltip();
+
+        const nestedPanel = $newItem.find('.nested-form-container')[0];
+        if (event.originalEvent?.isTrusted && nestedPanel?.closest('[data-repeater-item]') === $newItem[0]) {
+            nestedPanel.setAttribute('data-discard-if-untouched', '');
+            showNestedPanel(nestedPanel);
+        }
     });
 
     $(document)
         .off('click.repeaterDelete', '[data-repeater-delete]')
         .on('click.repeaterDelete', '[data-repeater-delete]', function() {
-        const $list = $(this).closest('[data-repeater-list]');
-        $(this).closest('[data-repeater-item]').remove();
-        updateButtons($list);
-        updateOrderedElementsNumbering();
-        setRequiredForActiveFields($list);
+        removeRepeaterItem(this.closest('[data-repeater-item]'));
     });
 
     $(document).on('change', '.container-type-selector', async function() {

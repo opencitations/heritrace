@@ -96,6 +96,8 @@
                      data-entity-shape="{{ (details.intermediateRelation.targetShape if details.intermediateRelation else details.nodeShape) or '' }}"
                      data-parent-class="{{ entity_type }}" data-parent-shape="{{ details.subjectShape or '' }}"
                      data-navigation-label="{{ _('Entity path') }}"
+                     data-close-label="{{ _('Close') }}"
+                     data-done-label="{{ _('Done') }}"
                      data-empty-label="{{ _('Fill in the details') }}">
                     {% if details.intermediateRelation %}
                         {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}

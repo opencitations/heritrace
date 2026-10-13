@@ -7,7 +7,8 @@
                 errors.push({
                     field: $(this),
                     fieldName,
-                    message: '{{ _("This field is required") }}'
+                    message: '{{ _("This field is required") }}',
+                    required: true
                 });
             }
         });
@@ -273,6 +274,7 @@
     }
 
     let validationStarted = false;
+    let checkedFields = new WeakMap();
     let additionalValidation = () => [];
 
     function collectValidationErrors() {
@@ -353,11 +355,19 @@
     }
 
     function refreshValidationErrors() {
-        if (validationStarted) displayValidationErrors(collectValidationErrors(), false);
+        if (validationStarted) {
+            displayValidationErrors(collectValidationErrors(), false);
+            return;
+        }
+        highlightValidationErrors(collectValidationErrors().filter(error => {
+            const check = error.field && checkedFields.get(error.field[0]);
+            return check === 'all' || (check === 'format' && !error.required);
+        }));
     }
 
     function resetValidationErrors() {
         validationStarted = false;
+        checkedFields = new WeakMap();
         document.getElementById('validation-summary').hidden = true;
         document.getElementById('validation-summary-link').hidden = true;
         $('#saveChangesValidation').prop('hidden', true).text('');
@@ -368,6 +378,14 @@
         document.getElementById('validation-summary-link').addEventListener('click', focusValidationSummary);
         $(document).on('input.validation change.validation', '#entityForm :input, .triples :input, .custom-properties-section :input', () => {
             queueMicrotask(refreshValidationErrors);
+        });
+        $(document).on('focusout.validation', '#entityForm :input, .triples :input, .custom-properties-section :input', function() {
+            if (!checkedFields.has(this)) checkedFields.set(this, 'format');
+            refreshValidationErrors();
+        });
+        document.addEventListener('nested-panel-left', event => {
+            event.target.querySelectorAll('input, select, textarea').forEach(field => checkedFields.set(field, 'all'));
+            refreshValidationErrors();
         });
         $(document).on('click', '#editEntityBtn', resetValidationErrors);
         $(document).on('change', '#entity_type', resetValidationErrors);

@@ -1350,6 +1350,14 @@ msgstr "Impossibile aggiornare l’etichetta dell’entità"
 msgid "Fill in the details"
 msgstr "Compila i dettagli"
 
+#: heritrace/templates/macros.jinja
+msgid "Close"
+msgstr "Chiudi"
+
+#: heritrace/templates/macros.jinja
+msgid "Done"
+msgstr "Fatto"
+
 msgid "Check the following fields"
 msgstr "Controlla i seguenti campi"
 

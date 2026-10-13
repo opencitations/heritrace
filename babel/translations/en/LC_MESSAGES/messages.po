@@ -1720,6 +1720,14 @@ msgstr "Could not update the entity label"
 msgid "Fill in the details"
 msgstr "Fill in the details"
 
+#: heritrace/templates/macros.jinja
+msgid "Close"
+msgstr "Close"
+
+#: heritrace/templates/macros.jinja
+msgid "Done"
+msgstr "Done"
+
 msgid "Check the following fields"
 msgstr "Check the following fields"
 

@@ -304,7 +304,7 @@ footer.bg-dark {
   display: block;
 }
 
-.nested-path > :not(.nested-path):not(.nested-panel-active):not(.nested-navigation):not(.nested-global-actions) {
+.nested-path > :not(.nested-path):not(.nested-panel-active):not(.nested-modal-header):not(.nested-modal-footer) {
   display: none !important;
 }
 
@@ -313,6 +313,82 @@ footer.bg-dark {
   padding: 0 !important;
   width: 100% !important;
   border: 0 !important;
+}
+
+.nested-modal-open {
+  overflow: hidden;
+}
+
+.nested-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgb(0 0 0 / 50%);
+}
+
+.nested-form-container.nested-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  width: min(800px, 100% - 2rem) !important;
+  height: fit-content;
+  max-height: calc(100% - 3.5rem);
+  margin: auto !important;
+  padding: 0 1.5rem !important;
+  overflow-y: auto;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color) !important;
+  border-radius: 0.5rem;
+}
+
+.nested-modal:focus {
+  outline: none;
+}
+
+.nested-modal-header,
+.nested-modal-footer {
+  position: sticky;
+  z-index: 2;
+  display: flex;
+  gap: 1rem;
+  padding-block: 1rem;
+  background: var(--bs-body-bg);
+}
+
+.nested-modal-header {
+  top: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.nested-modal-header .btn-close {
+  margin-top: 0.4rem;
+}
+
+.nested-modal-footer {
+  bottom: 0;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+@media (max-width: 575.98px) {
+  .nested-form-container.nested-modal {
+    display: flex;
+    flex-direction: column;
+    width: 100% !important;
+    height: 100%;
+    max-height: none;
+    padding: 0 1rem !important;
+    border: 0 !important;
+    border-radius: 0;
+  }
+
+  .nested-modal-footer {
+    margin-top: auto;
+  }
 }
 
 .nested-form-header {
@@ -362,7 +438,7 @@ footer.bg-dark {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  min-width: 0;
 }
 
 .nested-navigation button {
@@ -430,7 +506,8 @@ footer.bg-dark {
   margin-right: 0.25rem;
 }
 
-.is-invalid {
+.is-invalid,
+.nested-form-header:has(+ .nested-form-container [aria-invalid="true"]) .nested-open {
   border-color: #dc3545;
 }
 
