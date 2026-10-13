@@ -105,9 +105,6 @@
             <div class="property-group" data-uri="{{entity_type}}">
                 {% if data['triples'] or predicate in can_be_added %}
 
-                    {%if data['triples'] %}
-                        <h6 class="item-label">{{ display_name }}</h6>
-                    {% endif %}
                     {% set object_class = details.objectClass if has_details and details.objectClass else '' %}
 
                     <div class="predicate-ul" 
@@ -125,7 +122,7 @@
                         {% endif %}
                         {% for triple_data in data['triples'] %}
                             {% set unique_counter.value = unique_counter.value + 1 %}
-                            {{ render_triple(triple=triple_data['triple'], subject=subject, externalEntity=triple_data['external_entity'], isDraggable=isDraggable, object=triple_data['object'], orderedBy=data['ordered_by'], unique_id=unique_counter.value, grouped_triples_data=data, display_name=display_name, object_class=object_class) }}
+                            {{ render_triple(triple=triple_data['triple'], subject=subject, externalEntity=triple_data['external_entity'], isDraggable=isDraggable, object=triple_data['object'], orderedBy=data['ordered_by'], unique_id=unique_counter.value, grouped_triples_data=data, display_name=display_name) }}
                         {% endfor %}
 
                         {% if predicate in can_be_added and has_details %}
@@ -800,7 +797,7 @@
             }
             
             const undoButton = $('<button>')
-                .addClass('btn btn-sm btn-outline-primary undo-delete-button ms-0 ms-sm-2')
+                .addClass('btn btn-sm btn-outline-primary undo-delete-button')
                 .attr('title', '{{ _("Undo delete") }}')
                 .html('<i class="bi bi-arrow-counterclockwise me-1"></i> {{ _("Revert") }}')
                 .insertAfter($(this));

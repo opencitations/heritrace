@@ -266,9 +266,6 @@ function addLoadingSpinner(input) {
 function createEntityDisplay(entity, container, originalContent, callback) {
     const objectClass = findObjectClass(container);
     const labels = originalContent.filter('.nested-form-container').data();
-    const deleteAttributes = originalContent.filter('.nested-form-header').children('[data-repeater-delete]').length
-        ? 'class="btn btn-sm btn-outline-danger repeater-delete-btn" data-repeater-delete'
-        : 'class="btn btn-sm btn-outline-danger change-entity"';
 
     // Create a temporary element
     const display = $(`
@@ -282,7 +279,7 @@ function createEntityDisplay(entity, container, originalContent, callback) {
                     <a href="/about/${entity.entity.value}" class="btn btn-sm btn-outline-primary redirection-btn" target="_blank">
                         <i class="bi bi-arrow-right-square me-1"></i> ${labels.visitLabel}
                     </a>
-                    <button type="button" ${deleteAttributes}>
+                    <button type="button" class="btn btn-sm btn-outline-danger change-entity">
                         <i class="bi bi-trash me-1"></i> ${labels.deleteLabel}
                     </button>
                 </div>
@@ -520,13 +517,12 @@ function handleEntitySelection(container, entity) {
         propertiesContainer.append(hiddenInput).append(display);
         const item = propertiesContainer.closest('[data-repeater-item]');
         const containerForm = item.parent('[data-repeater-list]').parent('.container-form');
-        if (containerForm.length) {
-            if (containerForm.closest('[data-repeater-item]').children('.property-row').children('[data-repeater-delete]').length) {
-                display.find('button').remove();
-            }
-        } else {
-            display.children('.entity-reference-actions').appendTo(item.children('.repeater-item-heading'));
+        const headingItem = containerForm.length ? containerForm.closest('[data-repeater-item]') : item;
+        const actions = headingItem.children('.repeater-item-heading').children('.property-actions');
+        if (actions.children('[data-repeater-delete]').length) {
+            display.find('button').remove();
         }
+        display.children('.entity-reference-actions').data('propertiesContainer', propertiesContainer).prependTo(actions);
         display.children()[0].focus();
     });
 
@@ -782,6 +778,20 @@ function enhanceInputWithSearch(input) {
 $(document).ready(function() {
     $('head').append(style);
 
+    $(document).on('change', '.container-type-selector', function() {
+        const item = $(this).closest('[data-repeater-item]');
+        const actions = item.children('.repeater-item-heading').children('.property-actions');
+        actions.children('.entity-reference-actions').each(function() {
+            $(this).appendTo($(this).data('propertiesContainer').children('.entity-reference-display'));
+        });
+        const shape = $(this).val();
+        item.children('.container-forms').children('.container-form').filter(function() {
+            return $(this).data('shape') === shape;
+        }).children('[data-repeater-list]').children('[data-repeater-item]')
+            .children('.newEntityPropertiesContainer').children('.entity-reference-display')
+            .children('.entity-reference-actions').prependTo(actions);
+    });
+
     // Close dropdowns when clicking outside
     $(document).on('mousedown', function(e) {
         if (!e.isTrusted) return;
@@ -794,7 +804,7 @@ $(document).ready(function() {
     // Function to handle changing a selected entity
     $(document).on('click', '.change-entity', function(e) {
         e.preventDefault();
-        const propertiesContainer = $(this).closest('[data-repeater-item]').children('.newEntityPropertiesContainer');
+        const propertiesContainer = $(this).closest('.entity-reference-actions').data('propertiesContainer');
         const display = propertiesContainer.children('.entity-reference-display');
         const hiddenInput = propertiesContainer.find('input[data-entity-reference="true"]');
 

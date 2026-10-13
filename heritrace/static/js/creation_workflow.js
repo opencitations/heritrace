@@ -333,7 +333,7 @@ function updateButtons(list, recursive = true) {
 
     // Gestione dei pulsanti di cancellazione
     items.each(function(index) {
-        const deleteBtn = $(this).find('> .repeater-delete-btn');
+        const deleteBtn = $(this).children('.repeater-item-heading').find('[data-repeater-delete]');
         if (index < minItems) {
             deleteBtn.hide();
         } else {
@@ -347,7 +347,7 @@ function updateButtons(list, recursive = true) {
             addButton.show();
         } else {
             addButton.hide();
-            items.find('> .repeater-delete-btn').show();
+            items.children('.repeater-item-heading').find('[data-repeater-delete]').show();
         }
     }
 

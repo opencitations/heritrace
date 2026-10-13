@@ -1,5 +1,30 @@
 {% set namespace_render_form_field = namespace(counter=0) %}
 
+{% macro render_property_heading(label, ordered=false, required=false, mandatory=false, depth=0, existing=false) %}
+    <div class="repeater-item-heading d-flex align-items-baseline w-100 mb-2">
+        {% if ordered %}
+            <span class="drag-handle me-2" style="cursor: move;"><span{% if existing %} class="d-none"{% endif %}>☰</span></span>
+        {% endif %}
+        <div class="d-flex align-items-start flex-grow-1">
+            <h6 class="{% if depth == 0 %}form-label{% endif %}" data-original-text="{{ label }}">
+                {{ label }}
+                {% if required %}
+                    <span class="text-danger ms-1" data-bs-toggle="tooltip" data-bs-placement="top"
+                          title="{{ _('This field is required') }}">*</span>
+                {% endif %}
+            </h6>
+            {% if mandatory %}
+                <i class="bi bi-question-circle-fill ms-2 text-info mandatory-value-info"
+                   data-bs-toggle="tooltip" data-bs-placement="right"
+                   title="{{ _('This property has a mandatory value that cannot be modified') }}"></i>
+            {% endif %}
+        </div>
+        <div class="property-actions d-flex gap-2 ms-auto">
+            {{ caller() }}
+        </div>
+    </div>
+{% endmacro %}
+
 {% macro render_repeater_item(entity_type, prop, details, form_fields, depth, unique_id_base, index=None, is_template=False, max_depth=5) %}
     <div data-repeater-item 
         class="input-group mb-3 mt-3 {% if is_template %}d-none repeater-template{% endif %} {% if details.orderedBy %}draggable{% endif %}" 
@@ -16,28 +41,13 @@
         {% if details.additionalProperties %}
             data-additional-properties='{{ details.additionalProperties | tojson }}'
         {% endif %}>
-        <div class="repeater-item-heading d-flex align-items-baseline w-100 mb-2">
-            {% if details.orderedBy %}
-                <span class="drag-handle me-2" style="cursor: move;">☰</span>
+        {% call render_property_heading(details.displayName, ordered=details.orderedBy, required=details.min and details.min > 0 and not details.hasValue, mandatory=details.hasValue, depth=depth) %}
+            {% if not details.min > 0 and not details.hasValue %}
+                <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
+                    <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
+                </button>
             {% endif %}
-            <div class="d-flex align-items-start flex-grow-1">
-                <h6 class="{% if depth == 0 %}form-label{% endif %}" data-original-text="{{ details.displayName }}">
-                    {{ details.displayName }}
-                    {% if details.min and details.min > 0 and not details.hasValue %}
-                        <span class="text-danger ms-1" 
-                              data-bs-toggle="tooltip" 
-                              data-bs-placement="top"
-                              title="{{ _('This field is required') }}">*</span>
-                    {% endif %}
-                </h6>
-                {% if details.hasValue %}
-                    <i class="bi bi-question-circle-fill ms-2 text-info mandatory-value-info" 
-                       data-bs-toggle="tooltip" 
-                       data-bs-placement="right"
-                       title="{{ _('This property has a mandatory value that cannot be modified') }}"></i>
-                {% endif %}
-            </div>
-        </div>
+        {% endcall %}
         {% if details.or %}
             <div class="property-row">
                 <select class="form-select container-type-selector w-100" 
@@ -54,12 +64,6 @@
                         </option>
                     {% endfor %}
                 </select>
-
-                {% if not details.min > 0 %}
-                    <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
-                        <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
-                    </button>
-                {% endif %}
             </div>
             <div class="container-forms d-none w-100" {% if depth > 0 %}data-lazy-load="true" data-depth="{{ depth }}" data-predicate-uri="{{ details.uri }}"{% endif %}>
                 {% for shape_info in details.or %}
@@ -85,11 +89,6 @@
                         <i class="bi bi-chevron-right" aria-hidden="true"></i>
                     </button>
                     <span class="nested-preview-error text-danger small" role="status" hidden>{{ _('Could not update the entity label') }}</span>
-                    {% if not details.min > 0 %}
-                        <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
-                            <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
-                        </button>
-                    {% endif %}
                 </div>
                 <div id="{{ unique_id_base }}_nested_form_{{ index if index is not none else 'template' }}" class="nested-form-container"
                      data-object-class="{{ nested_entity_type }}"
@@ -148,11 +147,6 @@
                     </select>
                     <div class="invalid-feedback"></div>
                 </div>
-                {% if not details.min > 0 %}
-                    <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
-                        <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
-                    </button>
-                {% endif %}
             </div>
         {% elif details.datatypes and (
             'http://www.w3.org/2001/XMLSchema#date' in details.datatypes
@@ -259,11 +253,6 @@
                         </div>
                     {% endif %}
                 </div>
-                {% if not details.min > 0 %}
-                    <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
-                        <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
-                    </button>
-                {% endif %}
             </div>
         {% else %}
             <div class="property-row newEntityPropertyContainer">
@@ -335,11 +324,6 @@
                         <div class="invalid-feedback"></div>
                     </div>
                 {% endif %}
-                {% if not details.min > 0 %}
-                    <button data-repeater-delete type="button" class="btn btn-sm repeater-delete-btn btn-outline-danger">
-                        <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
-                    </button>
-                {% endif %}
             </div>
         {% endif %}
     </div>
@@ -371,10 +355,8 @@
     {% endif %}
 {% endmacro %}
 
-{% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data, display_name, object_class) %}
+{% macro render_triple(triple, subject, externalEntity, isDraggable, object, orderedBy, unique_id, grouped_triples_data, display_name) %}
     {% set shape = grouped_triples_data.get('objectShape') %}
-    {% set intermediate_relation = grouped_triples_data.get('intermediateRelation', {}) %}
-    {% set target_entity_type = intermediate_relation.get('targetEntityType') if intermediate_relation else None %}
     {% set is_virtual = grouped_triples_data.get('is_virtual', False) %}
     <div data-repeater-item class="input-group d-flex align-items-center property-value {{ 'draggable' if isDraggable else '' }}" 
         data-subject-id="{{ subject }}" 
@@ -384,37 +366,35 @@
         data-shape="{{ shape }}"
         data-depth="0"
         data-is-virtual="{{is_virtual}}">
+        {% call render_property_heading(display_name, ordered=isDraggable, existing=true) %}
+            {% if externalEntity %}
+                <a class="btn btn-sm btn-outline-primary redirection-btn"
+                   data-bs-toggle="tooltip" data-bs-placement="top"
+                   title="{{ _('Redirection to the entity %(entity)s', entity=triple[2]) }}"
+                   href="{{ url_for('entity.about', subject=externalEntity) }}">
+                    <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
+                </a>
+            {% endif %}
+            {% if shacl and not (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
+                <button class="btn btn-sm btn-outline-danger delete-button"
+                        style="display: none;"
+                        data-subject="{{ subject }}"
+                        data-predicate="{{ triple[1] }}"
+                        data-object="{{ triple[2] }}">
+                    <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
+                </button>
+            {% endif %}
+        {% endcall %}
         <div class="tripleObject property-row">
             {% if externalEntity %}
-                {% if isDraggable %}
-                    <div class="d-flex flex-column">
-                        <div class="d-flex align-items-baseline w-100 drag-handle">
-                            <span class="me-2 d-none">☰</span>
-                            <h6 class="flex-grow-1 form-label d-none" data-original-text="{{ display_name }}">{{ display_name }}</h6>
-                        </div>
-                        <span style="padding-left: .75rem;">
-                            {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                            <a href="{{url_for('entity.about', subject=externalEntity)}}" 
-                            class="draggable-entity-link"
-                            data-bs-toggle="tooltip" 
-                            data-bs-placement="top" 
-                            title="{{_('Redirection to the entity %(entity)s', entity=triple[2])}}">
-                                {{ triple[2] }}
-                            </a>
-                        </span>
-                    </div>
-                {% else %}
-                    <span style="padding-left: .75rem;">
-                        {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}
-                        <a href="{{url_for('entity.about', subject=externalEntity)}}"
-                           class="draggable-entity-link"
-                           data-bs-toggle="tooltip" 
-                           data-bs-placement="top" 
-                           title="{{_('Redirection to the entity %(entity)s', entity=triple[2])}}">
-                            {{ triple[2] }}
-                        </a>
-                    </span>
-                {% endif %}
+                <span style="padding-left: .75rem;">
+                    <a href="{{ url_for('entity.about', subject=externalEntity) }}"
+                       class="draggable-entity-link"
+                       data-bs-toggle="tooltip" data-bs-placement="top"
+                       title="{{ _('Redirection to the entity %(entity)s', entity=triple[2]) }}">
+                        {{ triple[2] }}
+                    </a>
+                </span>
             {% else %}
                 {% if shacl and triple[1] in mandatory_values and object in mandatory_values[triple[1]] %}
                     <div class="d-flex align-items-baseline">
@@ -561,33 +541,6 @@
                 {% endif %}
             {% endif %}
 
-            <div class="property-actions">
-                <div class="d-flex flex-wrap gap-2">
-                    {% if externalEntity %}
-                        {% set entity_classes = [target_entity_type if target_entity_type else object_class] %}                        
-                        <div class="d-flex">
-                            <a class="btn btn-sm btn-outline-primary redirection-btn" 
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="{{_('Redirection to the entity %(entity)s', entity=triple[2])}}"
-                            href="{{ url_for('entity.about', subject=externalEntity) }}">
-                                <i class="bi bi-arrow-right-square me-1"></i> {{ _('Visit') }}
-                            </a>
-                        </div>
-                    {% endif %}
-                    {% if shacl and not (triple[1] not in can_be_deleted or (triple[1] in mandatory_values and triple[2] in mandatory_values[triple[1]])) %}
-                        <div class="d-flex align-items-center">
-                            <button class="btn btn-sm btn-outline-danger delete-button"
-                                    style="display: none;"
-                                    data-subject="{{ subject }}" 
-                                    data-predicate="{{ triple[1] }}" 
-                                    data-object="{{ triple[2] }}">
-                            <i class="bi bi-trash me-1"></i> {{ _('Delete') }}
-                            </button>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
         </div>
     </div>
 {% endmacro %}
