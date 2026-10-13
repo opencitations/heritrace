@@ -263,24 +263,29 @@ function addLoadingSpinner(input) {
 }
 
 // Function to create the display of a selected entity
-function createEntityDisplay(entity, container, callback) {
+function createEntityDisplay(entity, container, originalContent, callback) {
     const objectClass = findObjectClass(container);
+    const labels = originalContent.filter('.nested-form-container').data();
+    const deleteAttributes = originalContent.filter('.nested-form-header').children('[data-repeater-delete]').length
+        ? 'class="btn btn-sm btn-outline-danger repeater-delete-btn" data-repeater-delete'
+        : 'class="btn btn-sm btn-outline-danger change-entity"';
 
     // Create a temporary element
     const display = $(`
         <div class="entity-reference-display property-row">
-            <div class="border rounded px-3 py-1">
+            <div class="border rounded px-3 py-1" tabindex="-1">
                 <span class="entity-label">...</span>
                 <div class="text-muted small d-none">${entity.entity.value}</div>
             </div>
-            <div class="property-actions d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-outline-secondary btn-sm change-entity" title="Clear selection">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-                <a href="/about/${entity.entity.value}" 
-                   class="btn btn-outline-primary btn-sm redirection-btn" target="_blank">
-                    <i class="bi bi-box-arrow-up-right"></i>
-                </a>
+            <div class="property-actions entity-reference-actions ms-auto">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/about/${entity.entity.value}" class="btn btn-sm btn-outline-primary redirection-btn" target="_blank">
+                        <i class="bi bi-arrow-right-square me-1"></i> ${labels.visitLabel}
+                    </a>
+                    <button type="button" ${deleteAttributes}>
+                        <i class="bi bi-trash me-1"></i> ${labels.deleteLabel}
+                    </button>
+                </div>
             </div>
         </div>
     `);
@@ -504,7 +509,7 @@ function handleEntitySelection(container, entity) {
         .attr('data-predicate-label', input.data('predicate-label')); // Copy predicate label from original input
 
     // Create the display for the selected entity
-    createEntityDisplay(entity, propertiesContainer, function(display) {
+    createEntityDisplay(entity, propertiesContainer, originalContent, function(display) {
         // Clear any existing content first except search-related elements
         propertiesContainer.children()
             .not('.entity-search-results')
@@ -513,6 +518,16 @@ function handleEntitySelection(container, entity) {
 
         // Append the hidden input and display to the container
         propertiesContainer.append(hiddenInput).append(display);
+        const item = propertiesContainer.closest('[data-repeater-item]');
+        const containerForm = item.parent('[data-repeater-list]').parent('.container-form');
+        if (containerForm.length) {
+            if (containerForm.closest('[data-repeater-item]').children('.property-row').children('[data-repeater-delete]').length) {
+                display.find('button').remove();
+            }
+        } else {
+            display.children('.entity-reference-actions').appendTo(item.children('.repeater-item-heading'));
+        }
+        display.children()[0].focus();
     });
 
     // Hide the search results dropdown and spinner
@@ -779,14 +794,15 @@ $(document).ready(function() {
     // Function to handle changing a selected entity
     $(document).on('click', '.change-entity', function(e) {
         e.preventDefault();
-        const propertiesContainer = $(this).closest('.newEntityPropertiesContainer');
-        const display = $(this).closest('.entity-reference-display');
+        const propertiesContainer = $(this).closest('[data-repeater-item]').children('.newEntityPropertiesContainer');
+        const display = propertiesContainer.children('.entity-reference-display');
         const hiddenInput = propertiesContainer.find('input[data-entity-reference="true"]');
-        
+
         // Store the depth before removal to ensure it's preserved
         const originalDepth = hiddenInput.data('depth');
 
         // Remove the display and hidden input
+        $(this).closest('.entity-reference-actions').remove();
         display.remove();
         hiddenInput.remove();
 

@@ -345,6 +345,11 @@ footer.bg-dark {
   outline: none;
 }
 
+.nested-modal .entity-search-results {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
 .nested-modal-header,
 .nested-modal-footer {
   position: sticky;

@@ -2814,7 +2814,7 @@ rules:
                     IF(BOUND(?familyName) && BOUND(?givenName), 
                         CONCAT(?givenName, " ", ?familyName),
                         IF(BOUND(?familyName), ?familyName, 
-                            IF(BOUND(?givenName), ?givenName, "Unnamed Agent")
+                            IF(BOUND(?givenName), ?givenName, "")
                         )
                     )
                 ) AS ?agentName
@@ -2832,9 +2832,15 @@ rules:
         
         BIND(STR([[uri]]) AS ?uriString)
         BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-        BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
-                CONCAT(?agentName, " [omid:", ?omid, " ", ?identifiers, "]"),
-                CONCAT(?agentName, " [omid:", ?omid, "]")
+        BIND(IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT("omid:", ?omid), "") AS ?omidString)
+        BIND(COALESCE(?identifiers, "") AS ?identifierList)
+        BIND(IF(STRLEN(?omidString) > 0 && STRLEN(?identifierList) > 0,
+                CONCAT(?omidString, " ", ?identifierList),
+                CONCAT(?omidString, ?identifierList)
+            ) AS ?idList)
+        BIND(IF(STRLEN(?idList) > 0,
+                IF(STRLEN(?agentName) > 0, CONCAT(?agentName, " [", ?idList, "]"), CONCAT("[", ?idList, "]")),
+                IF(STRLEN(?agentName) > 0, ?agentName, ?uriString)
             ) AS ?display)
       }
     displayProperties:

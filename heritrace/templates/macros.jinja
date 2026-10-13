@@ -16,7 +16,7 @@
         {% if details.additionalProperties %}
             data-additional-properties='{{ details.additionalProperties | tojson }}'
         {% endif %}>
-        <div class="d-flex align-items-baseline w-100 mb-2">
+        <div class="repeater-item-heading d-flex align-items-baseline w-100 mb-2">
             {% if details.orderedBy %}
                 <span class="drag-handle me-2" style="cursor: move;">☰</span>
             {% endif %}
@@ -98,6 +98,8 @@
                      data-navigation-label="{{ _('Entity path') }}"
                      data-close-label="{{ _('Close') }}"
                      data-done-label="{{ _('Done') }}"
+                     data-visit-label="{{ _('Visit') }}"
+                     data-delete-label="{{ _('Delete') }}"
                      data-empty-label="{{ _('Fill in the details') }}">
                     {% if details.intermediateRelation %}
                         {% for inter_prop, inter_details_list in details.intermediateRelation.properties.items() %}

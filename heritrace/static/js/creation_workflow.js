@@ -195,12 +195,12 @@ async function updateNestedPreviews() {
             });
             if (!response.ok) throw new Error('Draft labels: HTTP ' + response.status);
             const result = await response.json();
-            if (revision !== nestedNavigation.revision) return;
+            if (revision !== nestedNavigation.revision || !entry.panel.isConnected) return;
             entry.label.textContent = result.labels[0] || nestedFallback(entry.panel) || entry.panel.dataset.emptyLabel;
             nestedPreviewCache.set(entry.panel, entry.fingerprint);
             entry.panel.previousElementSibling.querySelector('.nested-preview-error').hidden = true;
         } catch (error) {
-            if (revision !== nestedNavigation.revision) return;
+            if (revision !== nestedNavigation.revision || !entry.panel.isConnected) return;
             entry.panel.previousElementSibling.querySelector('.nested-preview-error').hidden = false;
             console.error(error);
         }
