@@ -13,6 +13,7 @@ SPDX-License-Identifier: ISC
 [![Coverage](https://opencitations.github.io/heritrace/coverage/coverage-badge.svg)](https://opencitations.github.io/heritrace/coverage/)
 [![Pyright](https://github.com/opencitations/heritrace/actions/workflows/pyright.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/pyright.yml)
 [![Ruff](https://github.com/opencitations/heritrace/actions/workflows/ruff.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/ruff.yml)
+[![Flutter](https://github.com/opencitations/heritrace/actions/workflows/flutter.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/flutter.yml)
 [![License](https://img.shields.io/badge/license-ISC-green)](https://github.com/opencitations/heritrace)
 [![REUSE](https://github.com/opencitations/heritrace/actions/workflows/reuse.yml/badge.svg)](https://github.com/opencitations/heritrace/actions/workflows/reuse.yml)
 

@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: ISC
 
 from flask import Blueprint, Response, current_app, jsonify, request
-from flask_babel import gettext
 from flask_login import login_required
 from SPARQLWrapper import JSON
 from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
@@ -270,19 +269,19 @@ def get_linked_resources_api() -> Response | tuple[Response, int]:
         offset = int(request.args.get("offset", 0))
     except ValueError:
         return jsonify(
-            {"status": "error", "message": gettext("Invalid limit or offset parameter")}
+            {"status": "error", "message": "Invalid limit or offset parameter"}
         ), 400
 
     if not subject_uri:
         return jsonify(
-            {"status": "error", "message": gettext("Missing subject_uri parameter")}
+            {"status": "error", "message": "Missing subject_uri parameter"}
         ), 400
 
     if limit <= 0 or offset < 0:
         return jsonify(
             {
                 "status": "error",
-                "message": gettext("Limit must be positive and offset non-negative"),
+                "message": "Limit must be positive and offset non-negative",
             }
         ), 400
 
@@ -295,7 +294,7 @@ def get_linked_resources_api() -> Response | tuple[Response, int]:
             "Error fetching inverse references for %s", subject_uri
         )
         return jsonify(
-            {"status": "error", "message": gettext("Error loading linked resources.")}
+            {"status": "error", "message": "Error loading linked resources."}
         ), 502
 
     return jsonify({"status": "success", "results": references, "has_more": has_more})

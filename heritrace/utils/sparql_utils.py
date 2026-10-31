@@ -1012,7 +1012,7 @@ def process_deleted_entities(bindings: list[dict]) -> list[dict[str, str]]:
                 "uri": entity_uri,
                 "deletionTime": binding["deletionTime"]["value"],
                 "deletedBy": custom_filter.format_agent_reference(
-                    binding["agent"]["value"] if "agent" in binding else ""
+                    binding["agent"]["value"] if "agent" in binding else None
                 ),
                 "lastValidSnapshotTime": binding["lastValidSnapshotTime"]["value"],
                 "type": custom_filter.human_readable_predicate(

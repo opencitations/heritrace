@@ -12,8 +12,17 @@ from typing import cast
 from urllib.parse import urlparse, urlunparse
 
 import yaml
-from flask import Flask, current_app, g, redirect, session, url_for
-from flask_babel import Babel
+from flask import (
+    Flask,
+    Response,
+    current_app,
+    g,
+    jsonify,
+    redirect,
+    request,
+    session,
+    url_for,
+)
 from flask_login import LoginManager
 from flask_login.signals import user_loaded_from_cookie
 from rdflib import Graph
@@ -22,13 +31,14 @@ from redis import Redis
 from redis.exceptions import RedisError
 from SPARQLWrapper import JSON
 from time_agnostic_library.support import generate_config_file
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from heritrace.counter_handler import CounterInitializationPolicy
 from heritrace.models import User
 from heritrace.services.resource_lock_manager import ResourceLockManager
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings, select_results
 from heritrace.uri_generator.uri_generator import CounterBasedURIGenerator
-from heritrace.utils.filters import Filter, split_namespace
+from heritrace.utils.filters import Filter
 
 
 @dataclass(frozen=True)
@@ -51,19 +61,9 @@ def get_app_state() -> AppState:
     return current_app.extensions["heritrace"]
 
 
-def init_extensions(
-    app: Flask, babel: Babel, login_manager: LoginManager, redis: Redis
-) -> None:
+def init_extensions(app: Flask, login_manager: LoginManager, redis: Redis) -> None:
     from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
         uses_inverse_relations,
-    )
-
-    babel.init_app(
-        app=app,
-        locale_selector=lambda: session.get("lang", "en"),
-        default_translation_directories=str(
-            Path(__file__).resolve().parent.parent / "babel" / "translations"
-        ),
     )
 
     init_login_manager(app, login_manager)
@@ -99,7 +99,7 @@ def init_extensions(
         shacl_graph,
         classes_with_multiple_shapes,
     ) = initialize_global_variables(app)
-    custom_filter = init_filters(app, display_rules, dataset_endpoint)
+    custom_filter = init_filters(display_rules, dataset_endpoint)
     init_request_handlers(app, redis)
 
     app.extensions["heritrace"] = AppState(
@@ -120,10 +120,16 @@ def init_extensions(
     app.extensions["redis_client"] = redis
 
 
+def unauthorized() -> WerkzeugResponse | tuple[Response, int]:
+    if request.path.startswith("/api/"):
+        return jsonify({"status": "error", "message": "Authentication required"}), 401
+    return redirect(url_for("auth.login"))
+
+
 def init_login_manager(app: Flask, login_manager: LoginManager) -> None:
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"  # type: ignore[reportAttributeAccessIssue]
-    login_manager.unauthorized_handler(lambda: redirect(url_for("auth.login")))
+    login_manager.unauthorized_handler(unauthorized)
 
     @login_manager.user_loader
     def load_user(user_id: str) -> User:
@@ -427,31 +433,11 @@ def init_sparql_services(
     )
 
 
-def init_filters(
-    app: Flask, display_rules: list[dict], dataset_endpoint: str
-) -> Filter:
+def init_filters(display_rules: list[dict], dataset_endpoint: str) -> Filter:
     with (Path(__file__).parent / "utils" / "context.json").open() as config_file:
         context = json.load(config_file)["@context"]
 
-    custom_filter = Filter(context, display_rules or None, dataset_endpoint)
-
-    app.jinja_env.filters["human_readable_predicate"] = (
-        custom_filter.human_readable_predicate
-    )
-    app.jinja_env.filters["human_readable_class"] = custom_filter.human_readable_class
-    app.jinja_env.filters["human_readable_entity"] = custom_filter.human_readable_entity
-    app.jinja_env.filters["human_readable_primary_source"] = (
-        custom_filter.human_readable_primary_source
-    )
-    app.jinja_env.filters["format_datetime"] = custom_filter.human_readable_datetime
-    app.jinja_env.filters["split_ns"] = split_namespace
-    app.jinja_env.filters["format_source_reference"] = (
-        custom_filter.format_source_reference
-    )
-    app.jinja_env.filters["format_agent_reference"] = (
-        custom_filter.format_agent_reference
-    )
-    return custom_filter
+    return Filter(context, display_rules or None, dataset_endpoint)
 
 
 def init_request_handlers(app: Flask, redis: Redis) -> None:

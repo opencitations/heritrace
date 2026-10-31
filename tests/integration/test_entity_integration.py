@@ -18,7 +18,6 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from bs4 import BeautifulSoup
 from flask import Flask
 from flask.testing import FlaskClient
 from rdflib import RDF, XSD, Dataset, Literal, URIRef
@@ -36,13 +35,13 @@ from heritrace.routes.entity import (
     EntityRenderContext,
     compute_graph_differences,
     determine_datatype,
-    format_triple_modification,
     generate_unique_uri,
     get_entities_to_restore,
+    modification_entry,
     validate_entity_data,
 )
 from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
-from heritrace.utils.filters import Filter, split_namespace
+from heritrace.utils.filters import Filter
 from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
 
 
@@ -301,9 +300,10 @@ def test_restore_version_scoped_to_restored_entity(
         tx1_timestamp = _first_snapshot_timestamp(agent)
 
     restore_response = logged_in_client.post(
-        f"/restore-version/{agent}/{tx1_timestamp}"
+        f"/api/entity-restore/{agent}/{tx1_timestamp}"
     )
-    assert restore_response.status_code == 302
+    assert restore_response.status_code == 200
+    assert restore_response.get_json() == {"status": "success"}
 
     with app.app_context():
         assert _predicate_object_pairs(agent) == {
@@ -373,9 +373,10 @@ def test_restore_version_resurrects_deleted_entity_with_incoming_link(
         tx1_timestamp = _first_snapshot_timestamp(agent)
 
     restore_response = logged_in_client.post(
-        f"/restore-version/{agent}/{tx1_timestamp}"
+        f"/api/entity-restore/{agent}/{tx1_timestamp}"
     )
-    assert restore_response.status_code == 302
+    assert restore_response.status_code == 200
+    assert restore_response.get_json() == {"status": "success"}
 
     with app.app_context():
         assert _predicate_object_pairs(agent) == {
@@ -394,26 +395,36 @@ def test_restore_version_resurrects_deleted_entity_with_incoming_link(
 def test_entity_history(
     logged_in_client: FlaskClient, test_entity: URIRef, app: Flask
 ) -> None:
-    """Test the entity history route."""
-    # Get the history page for the test entity
-    response = logged_in_client.get(f"/entity-history/{test_entity}")
+    response = logged_in_client.get(f"/api/entity-history/{test_entity}")
 
-    # Check that the response is successful
     assert response.status_code == 200
-
-    # Check that the entity URI is in the response
-    assert str(test_entity) in response.data.decode()
-
-    # Check for timeline elements
-    assert "timelineData" in response.data.decode()
+    payload = response.get_json()
+    assert payload["entity_uri"] == str(test_entity)
+    assert len(payload["snapshots"]) == 1
+    snapshot = payload["snapshots"][0]
+    assert snapshot["index"] == 1
+    assert snapshot["can_restore"] is False
+    assert snapshot["end_timestamp"] is None
+    assert snapshot["responsible_agent"] == {
+        "kind": "url",
+        "url": "https://orcid.org/0000-0000-0000-0000",
+        "label": "https://orcid.org/0000-0000-0000-0000",
+        "orcid_id": None,
+    }
+    assert snapshot["primary_source"] == {
+        "kind": "url",
+        "url": app.config["PRIMARY_SOURCE"],
+        "label": app.config["PRIMARY_SOURCE"],
+        "extra": None,
+        "entity_uri": None,
+        "timestamp": None,
+    }
 
 
 def test_entity_version(
     logged_in_client: FlaskClient, test_entity: URIRef, app: Flask
 ) -> None:
-    """Test the entity version route."""
     with app.app_context():
-        # Get the provenance data to find a valid timestamp
         change_tracking_config = get_change_tracking_config()
         agnostic_entity = AgnosticEntity(
             res=str(test_entity),
@@ -423,59 +434,44 @@ def test_entity_version(
             include_reverse_relations=False,
         )
         _, provenance = agnostic_entity.get_history(include_prov_metadata=True)
-
-        # Get the first timestamp
         timestamp = next(iter(provenance[str(test_entity)].values()))["generatedAtTime"]
 
-    # Get the version page for the test entity
-    response = logged_in_client.get(f"/entity-version/{test_entity}/{timestamp}")
+    response = logged_in_client.get(f"/api/entity-version/{test_entity}/{timestamp}")
 
-    # Check that the response is successful
     assert response.status_code == 200
-
-    # Get the response content
-    response_content = response.data.decode()
-
-    # Check that the entity URI is in the response
-    assert str(test_entity) in response_content
-
-    # Check for essential HTML structure elements
-    assert "<!DOCTYPE html>" in response_content
-    assert "<html>" in response_content
-    assert "<head>" in response_content
-    assert "<body>" in response_content
-
-    # Check for version-specific elements that should be present
-    assert "Version" in response_content
-
-    # Check for metadata elements that should be present in the version page
-    assert "Generation time:" in response_content
-    assert "December 31, 2023" in response_content  # Part of the formatted timestamp
-    assert "Attributed to:" in response_content
-    assert "Primary source:" in response_content
-
-    # Check for navigation elements
-    assert "Time Machine" in response_content
-    assert "entity-history" in response_content
-
-    # Check for the deletion snapshot message
-    assert "This is a deletion snapshot" in response_content
-
-    # Check for the footer with the HERITRACE logo
-    assert '<img src="/static/images/logo.png"' in response_content
-    assert 'alt="HERITRACE Logo"' in response_content
+    payload = response.get_json()
+    assert payload["entity_uri"] == str(test_entity)
+    assert payload["timestamp"] == timestamp
+    assert payload["metadata"]["generated_at"] == timestamp
+    assert payload["metadata"]["attributed_to"]["kind"] == "url"
+    assert payload["metadata"]["primary_source"]["kind"] == "url"
+    assert payload["version_number"] == 1
+    assert set(payload) == {
+        "entity_uri",
+        "entity_label",
+        "type",
+        "shape",
+        "version_number",
+        "timestamp",
+        "prev_timestamp",
+        "next_timestamp",
+        "is_deletion_snapshot",
+        "metadata",
+        "modifications",
+        "groups",
+    }
 
 
-def test_create_entity_get(logged_in_client: FlaskClient) -> None:
-    """Test the GET method for the create entity route."""
-    # Get the create entity page
-    response = logged_in_client.get("/create-entity")
+def test_entity_types(logged_in_client: FlaskClient) -> None:
+    response = logged_in_client.get("/api/entity-types")
 
-    # Check that the response is successful
     assert response.status_code == 200
-
-    # Check for form elements
-    assert "entityForm" in response.data.decode()
+    types = response.get_json()["types"]
+    assert {
+        "class": "http://purl.org/spar/fabio/JournalArticle",
+        "shape": "http://schema.org/JournalArticleShape",
+        "label": "Journal Article",
+    } in types
 
 
 @patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
@@ -519,18 +515,16 @@ def test_create_entity_post(
     }
 
     response = logged_in_client.post(
-        "/create-entity",
-        data={"structured_data": json.dumps(entity_data)},
-        content_type="application/x-www-form-urlencoded",
+        "/api/entity", json={"structured_data": entity_data}
     )
 
     assert response.status_code == 200, (
         f"Expected status code 200, got {response.status_code}"
     )
 
-    response_data = json.loads(response.data)
-    assert "redirect_url" in response_data
+    response_data = response.get_json()
     assert response_data["status"] == "success"
+    assert response_data["uri"].startswith("https://w3id.org/oc/meta/br/")
 
 
 def test_create_entity_post_validation_error(
@@ -547,13 +541,11 @@ def test_create_entity_post_validation_error(
     }
 
     response = logged_in_client.post(
-        "/create-entity",
-        data={"structured_data": json.dumps(entity_data)},
-        content_type="application/x-www-form-urlencoded",
+        "/api/entity", json={"structured_data": entity_data}
     )
 
     assert response.status_code == 400
-    response_data = json.loads(response.data)
+    response_data = response.get_json()
     assert response_data["status"] == "error"
     assert "errors" in response_data
     assert len(response_data["errors"]) > 0
@@ -651,10 +643,10 @@ def test_restore_version(
         ], "Description should be present in modified graph"
 
     restore_response = logged_in_client.post(
-        f"/restore-version/{test_entity}/{original_timestamp}"
+        f"/api/entity-restore/{test_entity}/{original_timestamp}"
     )
-    assert restore_response.status_code == 302
-    assert f"/about/{test_entity}" in restore_response.location
+    assert restore_response.status_code == 200
+    assert restore_response.get_json() == {"status": "success"}
 
     with app.app_context():
         restored_graph = fetch_data_graph_for_subject(test_entity)
@@ -1065,220 +1057,114 @@ def test_create_nested_entity(logged_in_client: FlaskClient, app: Flask) -> None
 
     # Post the entity data
     response = logged_in_client.post(
-        "/create-entity",
-        data={"structured_data": json.dumps(entity_data)},
-        content_type="application/x-www-form-urlencoded",
+        "/api/entity", json={"structured_data": entity_data}
     )
 
     assert response.status_code == 200, (
         f"Expected status code 200, got {response.status_code}"
     )
 
-    response_data = json.loads(response.data)
-    assert "redirect_url" in response_data
+    response_data = response.get_json()
     assert response_data["status"] == "success"
-    redirect_url = response_data["redirect_url"]
-    response = logged_in_client.get(redirect_url)
-    assert response.status_code == 200, (
-        f"Failed to load entity page: {response.status_code}"
+    response = logged_in_client.get(f"/api/entity/{response_data['uri']}")
+    assert response.status_code == 200
+
+    view = response.get_json()
+    assert view["label"] == "Test Author (2023). Article with Authors."
+    assert view["type"] == "http://purl.org/spar/fabio/JournalArticle"
+    assert view["is_deleted"] is False
+    author_group = next(
+        group for group in view["groups"] if group["display_name"] == "Author"
     )
+    assert author_group["property"] == "http://purl.org/spar/pro/isDocumentContextFor"
+    assert author_group["ordered_by"] == "https://w3id.org/oc/ontology/hasNext"
+    assert author_group["is_draggable"] is True
+    assert author_group["object_shape"] == "http://schema.org/AuthorShape"
+    assert author_group["field"]["displayName"] == "Author"
+    assert "http://purl.org/spar/pro/isDocumentContextFor" in view["can_be_added"]
 
-    content = response.data.decode()
-    assert "Article with Authors" in content
-    assert "Test Author" in content
-    assert "author" in content.lower()
 
-
-def test_format_triple_modification(app: Flask) -> None:
-    """Test the format_triple_modification function using a real Filter instance."""
-
-    # Create a custom filter class that doesn't rely on url_for
-    class TestFilter(Filter):
-        def human_readable_predicate(
-            self, predicate_uri, _entity_key, *, is_link=False, object_shape_uri=None
-        ):
-            # Override to avoid using url_for
-            # Special handling for the title predicate in the test
-            if str(predicate_uri) == "http://purl.org/dc/terms/title":
-                return "title"
-
-            # entity_key is now a tuple (class_uri, shape_uri)
-            url = predicate_uri  # Use the predicate_uri directly
-            first_part, last_part = split_namespace(url)
-            if first_part in self.context:
-                if last_part.islower():
-                    return last_part
-                words = []
-                word = ""
-                for char in last_part:
-                    if char.isupper() and word:
-                        words.append(word)
-                        word = char
-                    else:
-                        word += char
-                words.append(word)
-                return " ".join(words).lower()
-            if is_link:
-                return f"<a href='/about/{url}'>{url}</a>"
-            return url
-
-        def human_readable_entity(self, uri, entity_key, graph=None):
-            # For testing purposes, return the original URI
-            # This ensures the original URI is visible in the test output
-            if str(uri).startswith("http://example.org/role"):
-                return str(uri)  # Return original URI
-            return super().human_readable_entity(uri, entity_key, graph)
-
-    # Run the test within an application context
-    with app.app_context(), app.test_request_context():
-        # Load context from configuration
+def test_modification_entry(app: Flask) -> None:
+    with app.app_context():
         context_path = (
             Path(__file__).parent.parent.parent / "heritrace" / "utils" / "context.json"
         )
         with context_path.open() as config_file:
             context = json.load(config_file)["@context"]
 
-        # Load display rules from configuration
-        display_rules = None
         display_rules_path = (
             Path(__file__).parent.parent.parent / "tests" / "display_rules.yaml"
         )
-        if display_rules_path.exists():
-            with display_rules_path.open() as f:
-                yaml_content = yaml.safe_load(f)
-                display_rules = yaml_content.get("rules", [])
+        with display_rules_path.open() as f:
+            display_rules = yaml.safe_load(f)["rules"]
 
-        # Create a real filter instance with our custom class
-        real_filter = TestFilter(context, display_rules, "http://example.org/sparql")
-
-        # Test case 1: Simple string literal
+        real_filter = Filter(context, display_rules, "http://example.org/sparql")
         subject = URIRef("http://example.org/entity/1")
-        predicate = URIRef("http://purl.org/dc/terms/title")
-        object_value = Literal("Test Title", datatype=XSD.string)
-        triple = (subject, predicate, object_value)
 
-        def _make_ctx(
-            snapshot=None,
-            shapes_cache=None,
-            classes_cache=None,
-        ):
+        def _make_ctx(classes_cache=None):
             return EntityRenderContext(
                 entity_uri=str(subject),
-                entity_shape="http://purl.org/spar/fabio/JournalArticleShape",
+                entity_shape="http://schema.org/JournalArticleShape",
                 highest_priority_class="http://purl.org/spar/fabio/JournalArticle",
-                relevant_snapshot=snapshot,
+                relevant_snapshot=None,
                 predicate_ordering_cache={},
                 entity_position_cache={},
-                object_shapes_cache=shapes_cache or {},
+                object_shapes_cache={},
                 object_classes_cache=classes_cache or {},
                 custom_filter=real_filter,
             )
 
-        result = format_triple_modification(triple, _make_ctx())
-
-        # Parse the HTML result - use 'html.parser' and wrap in a root element
-        soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
-
-        # Find the li element
-        li_element = soup.find("li")
-        assert li_element is not None
-        assert "d-flex" in li_element["class"]
-        assert "align-items-center" in li_element["class"]
-
-        # Check the span structure
-        main_span = li_element.find("span")
-        assert main_span is not None
-        assert "flex-grow-1" in main_span["class"]
-        assert "d-flex" in main_span["class"]
-        assert "flex-column" in main_span["class"]
-        assert "justify-content-center" in main_span["class"]
-        assert "ms-3" in main_span["class"]
-        assert "mb-2" in main_span["class"]
-        assert "w-100" in main_span["class"]
-
-        # Check the predicate label
-        strong = main_span.find("strong")
-        assert strong is not None
-        assert strong.text.lower() == "title"
-
-        # Check the object value
-        object_span = main_span.find("span", class_="object-value")
-        assert object_span is not None
-        assert "word-wrap" in object_span["class"]
-        assert object_span.text == "Test Title"
-
-        # Test case 2: Date literal
-        predicate = URIRef(
-            "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
+        title = (
+            subject,
+            URIRef("http://purl.org/dc/terms/title"),
+            Literal("Test Title", datatype=XSD.string),
         )
-        object_value = Literal("2023-01-01", datatype=XSD.date)
-        triple = (subject, predicate, object_value)
+        assert modification_entry(title, _make_ctx()) == {
+            "predicate": "http://purl.org/dc/terms/title",
+            "predicate_label": "Title",
+            "object": "Test Title",
+            "object_label": "Test Title",
+            "position": None,
+        }
 
-        result = format_triple_modification(triple, _make_ctx())
+        date = (
+            subject,
+            URIRef("http://prismstandard.org/namespaces/basic/2.0/publicationDate"),
+            Literal("2023-01-01", datatype=XSD.date),
+        )
+        assert modification_entry(date, _make_ctx()) == {
+            "predicate": "http://prismstandard.org/namespaces/basic/2.0/publicationDate",
+            "predicate_label": "Publication Date",
+            "object": "2023-01-01",
+            "object_label": "2023-01-01",
+            "position": None,
+        }
 
-        # Parse the HTML result
-        soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
-        li_element = soup.find("li")
-        assert li_element is not None
+        role = (
+            subject,
+            URIRef("http://purl.org/spar/pro/isDocumentContextFor"),
+            URIRef("http://example.org/role/1"),
+        )
+        assert modification_entry(role, _make_ctx()) == {
+            "predicate": "http://purl.org/spar/pro/isDocumentContextFor",
+            "predicate_label": "Author",
+            "object": "http://example.org/role/1",
+            "object_label": "http://example.org/role/1",
+            "position": None,
+        }
 
-        # Check the predicate label (should be publication date or similar)
-        strong = li_element.find("strong")
-        assert strong is not None
-        assert "publication" in strong.text.lower()
-        assert "date" in strong.text.lower()
-
-        # Check the object value
-        object_span = li_element.find("span", class_="object-value")
-        assert object_span is not None
-        assert object_span.text == "2023-01-01"
-
-        # Test case 3: URI object
-        predicate = URIRef("http://purl.org/spar/pro/isDocumentContextFor")
-        object_value = URIRef("http://example.org/role/1")
-        triple = (subject, predicate, object_value)
-
-        result = format_triple_modification(triple, _make_ctx())
-
-        # Parse the HTML result
-        soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
-        li_element = soup.find("li")
-        assert li_element is not None
-
-        # Check the predicate label
-        strong = li_element.find("strong")
-        assert strong is not None
-        predicate_text = strong.text.lower()
-        assert predicate_text == "is document context for"
-
-        # Check the object value (should be a link)
-        object_span = li_element.find("span", class_="object-value")
-        assert object_span is not None
-
-        assert str(object_value) in object_span.text
-
-        # Test case 4: RDF type predicate
-        predicate = RDF.type
-        object_value = URIRef("http://purl.org/spar/fabio/JournalArticle")
-        triple = (subject, predicate, object_value)
-
-        result = format_triple_modification(triple, _make_ctx())
-
-        # Parse the HTML result
-        soup = BeautifulSoup(f"<div>{result}</div>", "html.parser")
-        li_element = soup.find("li")
-        assert li_element is not None
-
-        # Check the predicate label
-        strong = li_element.find("strong")
-        assert strong is not None
-        assert "type" in strong.text.lower()
-
-        # Check the object value
-        object_span = li_element.find("span", class_="object-value")
-        assert object_span is not None
-        object_text = object_span.text.lower()
-        assert "journal" in object_text
-        assert "article" in object_text
+        rdf_type = (
+            subject,
+            RDF.type,
+            URIRef("http://purl.org/spar/fabio/JournalArticle"),
+        )
+        assert modification_entry(rdf_type, _make_ctx()) == {
+            "predicate": str(RDF.type),
+            "predicate_label": "Type",
+            "object": "http://purl.org/spar/fabio/JournalArticle",
+            "object_label": "Journal Article",
+            "position": None,
+        }
 
 
 def test_entity_version_invalid_timestamp(
@@ -1286,7 +1172,9 @@ def test_entity_version_invalid_timestamp(
 ) -> None:
     """Test the entity version route with an invalid timestamp."""
     # Get the version page with an invalid timestamp
-    response = logged_in_client.get(f"/entity-version/{test_entity}/invalid-timestamp")
+    response = logged_in_client.get(
+        f"/api/entity-version/{test_entity}/invalid-timestamp"
+    )
 
     # Should return 404 for invalid timestamp
     assert response.status_code == 404
@@ -1298,7 +1186,7 @@ def test_restore_version_invalid_timestamp(
     """Test the restore version route with an invalid timestamp."""
     # Post to restore with an invalid timestamp
     response = logged_in_client.post(
-        f"/restore-version/{test_entity}/invalid-timestamp"
+        f"/api/entity-restore/{test_entity}/invalid-timestamp"
     )
 
     # Should return 404 for invalid timestamp

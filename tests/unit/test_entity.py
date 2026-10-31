@@ -22,8 +22,8 @@ from heritrace.routes.entity import (
     compute_graph_differences,
     determine_object_class_and_shape,
     find_appropriate_snapshot,
-    format_triple_modification,
     get_deleted_entity_context_info,
+    modification_entry,
     prepare_entity_snapshots,
     process_entity_value,
     process_modification_data,
@@ -402,52 +402,40 @@ def test_validate_modification_max_count(
     assert "Maximum count" in error
 
 
-def test_format_triple_modification_with_relevant_snapshot() -> None:
-    """Test format_triple_modification with a relevant snapshot for deletions."""
+def test_modification_entry_with_relevant_snapshot() -> None:
     mock_filter = MagicMock(spec=Filter)
     mock_filter.human_readable_predicate.return_value = "Human Readable Predicate"
 
-    # Create test data
     entity_uri = "http://example.org/entity/123"
     triple = (
         URIRef(entity_uri),
         URIRef("http://example.org/predicate"),
         Literal("Test Value"),
     )
-
-    # Create history with timestamps
-
-    # Create snapshots
-    snapshot1 = Graph()
-    snapshot2 = Graph()
-
-    # Add data to snapshots
-    snapshot1.add(
-        (URIRef(entity_uri), URIRef("http://example.org/name"), Literal("Old Name"))
-    )
-    snapshot2.add(
+    snapshot = Graph()
+    snapshot.add(
         (URIRef(entity_uri), URIRef("http://example.org/name"), Literal("New Name"))
     )
 
-    # Create history dictionary
-
     ctx = EntityRenderContext(
-        entity_uri="http://example.org/entity/123",
+        entity_uri=entity_uri,
         entity_shape="http://example.org/PersonShape",
         highest_priority_class="http://example.org/Person",
-        relevant_snapshot=snapshot2,
+        relevant_snapshot=snapshot,
         predicate_ordering_cache={},
         entity_position_cache={},
         object_shapes_cache={},
         object_classes_cache={},
         custom_filter=mock_filter,
     )
-    result = format_triple_modification(triple, ctx)
 
-    # Verify results
-    assert "<li class='d-flex align-items-center'>" in result
-    assert "Human Readable Predicate" in result
-    assert "Test Value" in result
+    assert modification_entry(triple, ctx) == {
+        "predicate": "http://example.org/predicate",
+        "predicate_label": "Human Readable Predicate",
+        "object": "Test Value",
+        "object_label": "Test Value",
+        "position": None,
+    }
 
 
 def test_process_modification_data_no_modifications() -> None:
@@ -651,34 +639,6 @@ def test_restore_version_deleted_entity() -> None:
         editor.g_set.entity_index[URIRef(entity_uri)]["source"]
         == "http://example.org/source"
     )
-
-
-@patch("heritrace.routes.entity._restoration.flash")
-@patch("heritrace.routes.entity._restoration.gettext")
-def test_restore_version_exception(mock_gettext, mock_flash) -> None:
-    """Test restore_version with an exception during save."""
-    # Setup mocks
-    mock_gettext.return_value = "Error message"
-
-    # Create test data
-    editor = MagicMock()
-    editor.save.side_effect = RuntimeError("Test error")
-
-    # Simulate the code path
-    try:
-        editor.save()
-        mock_flash("Version restored successfully", "success")
-    except RuntimeError as e:
-        mock_flash(
-            mock_gettext(
-                "An error occurred while restoring the version: %(error)s", error=str(e)
-            ),
-            "error",
-        )
-
-    # Verify results
-    mock_flash.assert_called_once()
-    assert "error" in mock_flash.call_args[0][1]
 
 
 def test_find_appropriate_snapshot_skip_deletion() -> None:
@@ -904,9 +864,9 @@ def test_compute_graph_differences_non_quadstore(mock_get_dataset_is_quadstore) 
 # ===== Tests for determine_object_class_and_shape =====
 
 
-@patch("heritrace.routes.entity._rendering.determine_shape_for_entity_triples")
-@patch("heritrace.routes.entity._rendering.get_highest_priority_class")
-@patch("heritrace.routes.entity._rendering.is_valid_url")
+@patch("heritrace.routes.entity._modifications.determine_shape_for_entity_triples")
+@patch("heritrace.routes.entity._modifications.get_highest_priority_class")
+@patch("heritrace.routes.entity._modifications.is_valid_url")
 def test_determine_object_class_and_shape_valid_uri(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -935,7 +895,7 @@ def test_determine_object_class_and_shape_valid_uri(
     mock_determine_shape.assert_called_once()
 
 
-@patch("heritrace.routes.entity._rendering.is_valid_url")
+@patch("heritrace.routes.entity._modifications.is_valid_url")
 def test_determine_object_class_and_shape_invalid_url(mock_is_valid_url) -> None:
     """Test determine_object_class_and_shape with invalid URL."""
     # Setup mocks
@@ -954,7 +914,7 @@ def test_determine_object_class_and_shape_invalid_url(mock_is_valid_url) -> None
     mock_is_valid_url.assert_called_once_with("not-a-url")
 
 
-@patch("heritrace.routes.entity._rendering.is_valid_url")
+@patch("heritrace.routes.entity._modifications.is_valid_url")
 def test_determine_object_class_and_shape_no_graph(mock_is_valid_url) -> None:
     """Test determine_object_class_and_shape with no graph provided."""
     # Setup mocks
@@ -970,9 +930,9 @@ def test_determine_object_class_and_shape_no_graph(mock_is_valid_url) -> None:
     assert object_shape is None
 
 
-@patch("heritrace.routes.entity._rendering.determine_shape_for_entity_triples")
-@patch("heritrace.routes.entity._rendering.get_highest_priority_class")
-@patch("heritrace.routes.entity._rendering.is_valid_url")
+@patch("heritrace.routes.entity._modifications.determine_shape_for_entity_triples")
+@patch("heritrace.routes.entity._modifications.get_highest_priority_class")
+@patch("heritrace.routes.entity._modifications.is_valid_url")
 def test_determine_object_class_and_shape_no_triples(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -995,9 +955,9 @@ def test_determine_object_class_and_shape_no_triples(
     mock_determine_shape.assert_not_called()
 
 
-@patch("heritrace.routes.entity._rendering.determine_shape_for_entity_triples")
-@patch("heritrace.routes.entity._rendering.get_highest_priority_class")
-@patch("heritrace.routes.entity._rendering.is_valid_url")
+@patch("heritrace.routes.entity._modifications.determine_shape_for_entity_triples")
+@patch("heritrace.routes.entity._modifications.get_highest_priority_class")
+@patch("heritrace.routes.entity._modifications.is_valid_url")
 def test_determine_object_class_and_shape_no_classes(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:
@@ -1026,9 +986,9 @@ def test_determine_object_class_and_shape_no_classes(
     mock_determine_shape.assert_called_once()
 
 
-@patch("heritrace.routes.entity._rendering.determine_shape_for_entity_triples")
-@patch("heritrace.routes.entity._rendering.get_highest_priority_class")
-@patch("heritrace.routes.entity._rendering.is_valid_url")
+@patch("heritrace.routes.entity._modifications.determine_shape_for_entity_triples")
+@patch("heritrace.routes.entity._modifications.get_highest_priority_class")
+@patch("heritrace.routes.entity._modifications.is_valid_url")
 def test_determine_object_class_and_shape_multiple_classes(
     mock_is_valid_url, mock_get_highest_priority, mock_determine_shape
 ) -> None:

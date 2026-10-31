@@ -12,10 +12,8 @@ from flask import (
     current_app,
     g,
     jsonify,
-    render_template_string,
     request,
 )
-from flask_babel import gettext
 from flask_login import current_user, login_required
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 
@@ -26,12 +24,16 @@ from heritrace.extensions import (
     get_dataset_endpoint,
     get_form_fields,
     get_provenance_endpoint,
+    get_shacl_graph,
 )
-from heritrace.services.resource_lock_manager import LockStatus
-from heritrace.utils.datatypes import DATATYPE_MAPPING
+from heritrace.services.resource_lock_manager import LockInfo, LockStatus
+from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
 from heritrace.utils.draft_labels import draft_label
-from heritrace.utils.primary_source_utils import save_user_default_primary_source
-from heritrace.utils.shacl_utils import determine_shape_for_classes
+from heritrace.utils.filters import Filter
+from heritrace.utils.primary_source_utils import (
+    get_user_default_primary_source,
+    save_user_default_primary_source,
+)
 from heritrace.utils.shacl_validation import validate_new_triple
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
@@ -59,6 +61,36 @@ class ChangeOperation:
 
 
 api_bp = Blueprint("api", __name__)
+
+
+@api_bp.route("/me")
+def me() -> Response:
+    user = (
+        {
+            "id": current_user.id,
+            "name": current_user.name,
+            "orcid": current_user.orcid,
+        }
+        if current_user.is_authenticated
+        else None
+    )
+    return jsonify(
+        {
+            "user": user,
+            "default_primary_source": get_user_default_primary_source(
+                current_user.orcid
+            )
+            if user
+            else None,
+            "config": {
+                "app_title": current_app.config["APP_TITLE"],
+                "app_subtitle": current_app.config["APP_SUBTITLE"],
+                "allowed_per_page": current_app.config["CATALOGUE_ALLOWED_PER_PAGE"],
+                "shacl": bool(len(get_shacl_graph())),
+                "datatype_options": get_datatype_options(),
+            },
+        }
+    )
 
 
 @api_bp.route("/catalogue")
@@ -153,6 +185,17 @@ def get_deleted_entities_api() -> Response:
     )
 
 
+def _locked_response(lock_info: LockInfo) -> dict[str, str]:
+    return {
+        "status": "locked",
+        "title": "Resource Locked",
+        "message": (
+            "This resource is currently being edited by"
+            f" {lock_info.user_name} [{lock_info.user_id}]"
+        ),
+    }
+
+
 @api_bp.route("/check-lock", methods=["POST"])
 @login_required
 def check_lock() -> Response | tuple[Response, int]:
@@ -163,34 +206,21 @@ def check_lock() -> Response | tuple[Response, int]:
 
         if not resource_uri:
             return (
-                jsonify(
-                    {"status": "error", "message": gettext("No resource URI provided")}
-                ),
+                jsonify({"status": "error", "message": "No resource URI provided"}),
                 400,
             )
 
         status, lock_info = g.resource_lock_manager.check_lock_status(resource_uri)
 
         if status == LockStatus.LOCKED:
-            return jsonify(
-                {
-                    "status": "locked",
-                    "title": gettext("Resource Locked"),
-                    "message": gettext(
-                        "This resource is currently being"
-                        " edited by %(user)s [%(orcid)s]",
-                        user=lock_info.user_name,
-                        orcid=lock_info.user_id,
-                    ),
-                }
-            )
+            return jsonify(_locked_response(lock_info))
         if status == LockStatus.ERROR:
             return (
                 jsonify(
                     {
                         "status": "error",
-                        "title": gettext("Error"),
-                        "message": gettext("An error occurred while checking the lock"),
+                        "title": "Error",
+                        "message": "An error occurred while checking the lock",
                     }
                 ),
                 500,
@@ -203,8 +233,8 @@ def check_lock() -> Response | tuple[Response, int]:
             jsonify(
                 {
                     "status": "error",
-                    "title": gettext("Error"),
-                    "message": gettext("An unexpected error occurred"),
+                    "title": "Error",
+                    "message": "An unexpected error occurred",
                 }
             ),
             500,
@@ -222,31 +252,14 @@ def acquire_lock() -> Response | tuple[Response, int]:
 
         if not resource_uri:
             return (
-                jsonify(
-                    {"status": "error", "message": gettext("No resource URI provided")}
-                ),
+                jsonify({"status": "error", "message": "No resource URI provided"}),
                 400,
             )
 
         # First check if the resource or any related resource is locked by another user
         status, lock_info = g.resource_lock_manager.check_lock_status(resource_uri)
         if status == LockStatus.LOCKED:
-            return (
-                jsonify(
-                    {
-                        "status": "locked",
-                        "title": gettext("Resource Locked"),
-                        "message": gettext(
-                            "This resource is currently"
-                            " being edited by"
-                            " %(user)s [%(orcid)s]",
-                            user=lock_info.user_name,
-                            orcid=lock_info.user_id,
-                        ),
-                    }
-                ),
-                200,
-            )
+            return jsonify(_locked_response(lock_info)), 200
 
         # Use the provided linked_resources
         success = g.resource_lock_manager.acquire_lock(resource_uri, linked_resources)
@@ -258,7 +271,7 @@ def acquire_lock() -> Response | tuple[Response, int]:
             jsonify(
                 {
                     "status": "error",
-                    "message": gettext("Resource is locked by another user"),
+                    "message": "Resource is locked by another user",
                 }
             ),
             423,
@@ -267,9 +280,7 @@ def acquire_lock() -> Response | tuple[Response, int]:
     except Exception:
         current_app.logger.exception("Error in acquire_lock")
         return (
-            jsonify(
-                {"status": "error", "message": gettext("An unexpected error occurred")}
-            ),
+            jsonify({"status": "error", "message": "An unexpected error occurred"}),
             500,
         )
 
@@ -284,9 +295,7 @@ def release_lock() -> Response | tuple[Response, int]:
 
         if not resource_uri:
             return (
-                jsonify(
-                    {"status": "error", "message": gettext("No resource URI provided")}
-                ),
+                jsonify({"status": "error", "message": "No resource URI provided"}),
                 400,
             )
 
@@ -296,16 +305,14 @@ def release_lock() -> Response | tuple[Response, int]:
             return jsonify({"status": "success"})
 
         return (
-            jsonify({"status": "error", "message": gettext("Unable to release lock")}),
+            jsonify({"status": "error", "message": "Unable to release lock"}),
             400,
         )
 
     except Exception:
         current_app.logger.exception("Error in release_lock")
         return (
-            jsonify(
-                {"status": "error", "message": gettext("An unexpected error occurred")}
-            ),
+            jsonify({"status": "error", "message": "An unexpected error occurred"}),
             500,
         )
 
@@ -320,9 +327,7 @@ def renew_lock() -> Response | tuple[Response, int]:
 
         if not resource_uri:
             return (
-                jsonify(
-                    {"status": "error", "message": gettext("No resource URI provided")}
-                ),
+                jsonify({"status": "error", "message": "No resource URI provided"}),
                 400,
             )
 
@@ -334,16 +339,14 @@ def renew_lock() -> Response | tuple[Response, int]:
             return jsonify({"status": "success"})
 
         return (
-            jsonify({"status": "error", "message": gettext("Unable to renew lock")}),
+            jsonify({"status": "error", "message": "Unable to renew lock"}),
             423,
         )
 
     except Exception:
         current_app.logger.exception("Error in renew_lock")
         return (
-            jsonify(
-                {"status": "error", "message": gettext("An unexpected error occurred")}
-            ),
+            jsonify({"status": "error", "message": "An unexpected error occurred"}),
             500,
         )
 
@@ -354,7 +357,7 @@ def validate_literal() -> tuple[Response, int]:
     """Validate a literal value and suggest appropriate datatypes."""
     value = request.json.get("value")
     if not value:
-        return jsonify({"error": gettext("Value is required.")}), 400
+        return jsonify({"error": "Value is required."}), 400
 
     matching_datatypes = []
     for datatype, validation_func, _ in DATATYPE_MAPPING:
@@ -362,7 +365,7 @@ def validate_literal() -> tuple[Response, int]:
             matching_datatypes.append(str(datatype))
 
     if not matching_datatypes:
-        return jsonify({"error": gettext("No matching datatypes found.")}), 400
+        return jsonify({"error": "No matching datatypes found."}), 400
 
     return jsonify({"valid_datatypes": matching_datatypes}), 200
 
@@ -457,10 +460,8 @@ def check_orphans() -> Response | tuple[Response, int]:
                     {
                         "status": "error",
                         "error_type": "validation",
-                        "message": gettext(
-                            "Invalid request: 'changes' and"
-                            " 'entity_type' are required fields"
-                        ),
+                        "message": "Invalid request: 'changes' and"
+                        " 'entity_type' are required fields",
                     }
                 ),
                 400,
@@ -511,9 +512,7 @@ def check_orphans() -> Response | tuple[Response, int]:
                 {
                     "status": "error",
                     "error_type": "validation",
-                    "message": gettext(
-                        "An error occurred while checking for orphaned entities"
-                    ),
+                    "message": "An error occurred while checking for orphaned entities",
                 }
             ),
             400,
@@ -526,9 +525,7 @@ def check_orphans() -> Response | tuple[Response, int]:
                 {
                     "status": "error",
                     "error_type": "system",
-                    "message": gettext(
-                        "An error occurred while checking for orphaned entities"
-                    ),
+                    "message": "An error occurred while checking for orphaned entities",
                 }
             ),
             500,
@@ -813,9 +810,7 @@ def _save_and_respond(editor: Editor) -> tuple[Response, int]:
             {
                 "status": "error",
                 "error_type": "database",
-                "message": gettext("Failed to save changes to the database: {}").format(
-                    str(save_error)
-                ),
+                "message": f"Failed to save changes to the database: {save_error!s}",
             }
         ), 500
 
@@ -823,7 +818,7 @@ def _save_and_respond(editor: Editor) -> tuple[Response, int]:
         jsonify(
             {
                 "status": "success",
-                "message": gettext("Changes applied successfully"),
+                "message": "Changes applied successfully",
             }
         ),
         200,
@@ -917,7 +912,7 @@ def apply_changes() -> tuple[Response, int]:
                 {
                     "status": "error",
                     "error_type": "system",
-                    "message": gettext("An error occurred while applying changes"),
+                    "message": "An error occurred while applying changes",
                 }
             ),
             500,
@@ -1219,22 +1214,48 @@ def order_logic(
     return op.editor
 
 
-@api_bp.route("/human-readable-entity", methods=["POST"])
-@login_required
-def get_human_readable_entity() -> str | tuple[Response, int]:
-    custom_filter = get_custom_filter()
-
-    # Check if required parameters are present
-    if "uri" not in request.form or "entity_class" not in request.form:
-        return jsonify(
-            {"status": "error", "message": "Missing required parameters"}
-        ), 400
-
-    uri = request.form["uri"]
-    entity_class = request.form["entity_class"]
-    shape = determine_shape_for_classes([entity_class])
-    filter_instance = custom_filter
-    return filter_instance.human_readable_entity(uri, (entity_class, shape))
+def _field_with_labels(details: dict, custom_filter: Filter) -> dict:
+    """Copy a form field adding the labels the client shows for fixed values."""
+    field = dict(details)
+    entity_key = (field.get("subjectClass"), field.get("subjectShape"))
+    has_value = field.get("hasValue")
+    if has_value:
+        field["hasValueLabel"] = (
+            custom_filter.human_readable_class((has_value, None))
+            if field.get("uri") == str(RDF.type)
+            else custom_filter.human_readable_predicate(has_value, entity_key)
+        )
+    if field.get("optionalValues"):
+        field["optionalValueLabels"] = {
+            value: custom_filter.human_readable_predicate(value, entity_key)
+            for value in field["optionalValues"]
+        }
+    if field.get("nestedShape"):
+        field["nestedShape"] = [
+            _field_with_labels(nested, custom_filter) for nested in field["nestedShape"]
+        ]
+    if field.get("or"):
+        field["or"] = [
+            {
+                "displayName": custom_filter.human_readable_class(
+                    (option.get("entityType"), option.get("nodeShape"))
+                ),
+                **_field_with_labels(option, custom_filter),
+            }
+            for option in field["or"]
+        ]
+    relation = field.get("intermediateRelation")
+    if relation and relation.get("properties"):
+        field["intermediateRelation"] = {
+            **relation,
+            "properties": {
+                prop: [
+                    _field_with_labels(nested, custom_filter) for nested in nested_list
+                ]
+                for prop, nested_list in relation["properties"].items()
+            },
+        }
+    return field
 
 
 @api_bp.route("/form-fields", methods=["GET"])
@@ -1289,11 +1310,17 @@ def get_form_fields_for_entity() -> Response | tuple[Response, int]:
             ), 404
 
         entity_form_fields = all_form_fields[entity_key]
-
-        # Convert OrderedDict to list of [property, details] pairs to preserve order
-        ordered_properties = []
-        for prop, details_list in entity_form_fields.items():
-            ordered_properties.append([prop, details_list])
+        custom_filter = get_custom_filter()
+        ordered_properties = [
+            [
+                prop,
+                [
+                    _field_with_labels(details, custom_filter)
+                    for details in details_list
+                ],
+            ]
+            for prop, details_list in entity_form_fields.items()
+        ]
 
         return jsonify(
             {
@@ -1312,242 +1339,6 @@ def get_form_fields_for_entity() -> Response | tuple[Response, int]:
 
         return jsonify(
             {"status": "error", "message": f"Failed to load form fields: {e!s}"}
-        ), 500
-
-
-@api_bp.route("/render-form-fields", methods=["POST"])
-@login_required
-def render_form_fields_html() -> str | tuple[Response, int]:
-    """
-    Render form fields as HTML for dynamic loading.
-
-    Expects JSON payload with:
-    - entity_key: [entity_class, entity_shape] array
-
-    Returns:
-        HTML string of the rendered form fields
-    """
-    try:
-        data = request.get_json()
-
-        if not data or "entity_key" not in data:
-            return jsonify(
-                {"status": "error", "message": "Missing required field: entity_key"}
-            ), 400
-
-        entity_key = data["entity_key"]  # This is [entity_class, entity_shape] array
-        entity_class, entity_shape = entity_key
-
-        all_form_fields = get_form_fields()
-
-        if not all_form_fields:
-            return jsonify(
-                {"status": "error", "message": "Form fields not initialized"}
-            ), 500
-
-        tuple_key = (entity_class, entity_shape)
-        if tuple_key not in all_form_fields:
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": (
-                        f"No form fields found for entity"
-                        f" {entity_class} with shape"
-                        f" {entity_shape}"
-                    ),
-                }
-            ), 404
-
-        entity_form_fields = all_form_fields[tuple_key]
-
-        form_fields_array = [
-            [prop, details_list] for prop, details_list in entity_form_fields.items()
-        ]
-
-        template_string = """
-        {% from 'macros.jinja' import render_form_field with context %}
-
-        {% set entity_type = entity_class %}
-        {% set entity_shape = entity_shape %}
-        {% set group_id = ((entity_type, entity_shape) | human_readable_class +
-        "_group") | replace(" ", "_") %}
-        <div class="property-group mb-3" id="{{ group_id }}" data-uri="{{ entity_type
-        }}" data-shape="{{ entity_shape }}">
-            {% for prop_data in ordered_form_fields %}
-                {% set prop = prop_data[0] %}
-                {% set details_list = prop_data[1] %}
-                {% for details in details_list %}
-                    {{ render_form_field(entity_type, prop, details, all_form_fields) }}
-                {% endfor %}
-            {% endfor %}
-        </div>
-        """
-
-        return render_template_string(
-            template_string,
-            entity_class=entity_class,
-            entity_shape=entity_shape,
-            ordered_form_fields=form_fields_array,
-            all_form_fields=all_form_fields,
-        )
-
-    except Exception as e:
-        current_app.logger.exception("Error rendering form fields HTML")
-
-        return jsonify(
-            {"status": "error", "message": f"Failed to render form fields: {e!s}"}
-        ), 500
-
-
-def _validate_nested_form_request() -> (
-    tuple[str, str, str, str, str, int, bool, dict] | tuple[Response, int]
-):
-    data = request.get_json()
-
-    required_fields = [
-        "parent_entity_class",
-        "parent_entity_shape",
-        "entity_class",
-        "entity_shape",
-        "predicate_uri",
-        "depth",
-    ]
-
-    if not data:
-        return jsonify({"status": "error", "message": "No JSON data provided"}), 400
-
-    missing_fields = [field for field in required_fields if field not in data]
-    if missing_fields:
-        return jsonify(
-            {
-                "status": "error",
-                "message": f"Missing required fields: {', '.join(required_fields)}",
-            }
-        ), 400
-
-    parent_entity_class = data["parent_entity_class"]
-    parent_entity_shape = data["parent_entity_shape"]
-    entity_class = data["entity_class"]
-    entity_shape = data["entity_shape"]
-    predicate_uri = data["predicate_uri"]
-    depth = int(data["depth"])
-    is_template = data.get("is_template", False)
-
-    all_form_fields = get_form_fields()
-
-    if not all_form_fields:
-        return jsonify(
-            {"status": "error", "message": "Form fields not initialized"}
-        ), 500
-
-    parent_entity_key = (parent_entity_class, parent_entity_shape)
-    if parent_entity_key not in all_form_fields:
-        return jsonify(
-            {
-                "status": "error",
-                "message": (
-                    "No form fields found for parent"
-                    f" entity {parent_entity_class}"
-                    f" with shape {parent_entity_shape}"
-                ),
-            }
-        ), 404
-
-    parent_fields = all_form_fields[parent_entity_key]
-    if predicate_uri not in parent_fields:
-        return jsonify(
-            {
-                "status": "error",
-                "message": (
-                    "No field definition found for"
-                    f" predicate {predicate_uri}"
-                    " in parent entity"
-                ),
-            }
-        ), 404
-
-    return (
-        parent_entity_class,
-        parent_entity_shape,
-        entity_class,
-        entity_shape,
-        predicate_uri,
-        depth,
-        is_template,
-        all_form_fields,
-    )
-
-
-@api_bp.route("/render-nested-form", methods=["POST"])
-@login_required
-def render_nested_form_html() -> str | tuple[Response, int]:
-    try:
-        validated = _validate_nested_form_request()
-        if isinstance(validated[0], Response):
-            return validated  # type: ignore[return-value]
-
-        (
-            parent_entity_class,
-            parent_entity_shape,
-            entity_class,
-            entity_shape,
-            predicate_uri,
-            depth,
-            is_template,
-            all_form_fields,
-        ) = cast("tuple[str, str, str, str, str, int, bool, dict]", validated)
-
-        parent_entity_key = (parent_entity_class, parent_entity_shape)
-        parent_fields = all_form_fields[parent_entity_key]
-        field_details_list = parent_fields[predicate_uri]
-
-        target_details = None
-        for details in field_details_list:
-            if details.get("or"):
-                for shape_info in details["or"]:
-                    if (
-                        shape_info.get("entityType") == entity_class
-                        and shape_info.get("nodeShape") == entity_shape
-                    ):
-                        target_details = shape_info
-                        break
-                if target_details:
-                    break
-
-        if not target_details:
-            return jsonify(
-                {
-                    "status": "error",
-                    "message": (
-                        "No matching shape info found for"
-                        f" {entity_class}/{entity_shape}"
-                        f" in parent predicate"
-                        f" {predicate_uri}"
-                    ),
-                }
-            ), 404
-
-        template_string = """
-        {% from 'macros.jinja' import render_form_field with context %}
-        {{ render_form_field(parent_entity_class, predicate_uri, shape_info,
-        all_form_fields, depth, is_template=is_template) }}
-        """
-
-        return render_template_string(
-            template_string,
-            parent_entity_class=parent_entity_class,
-            predicate_uri=predicate_uri,
-            shape_info=target_details,
-            all_form_fields=all_form_fields,
-            depth=depth,
-            is_template=is_template,
-        )
-
-    except Exception as e:
-        current_app.logger.exception("Error rendering nested form HTML")
-
-        return jsonify(
-            {"status": "error", "message": f"Failed to render nested form: {e!s}"}
         ), 500
 
 

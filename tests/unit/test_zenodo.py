@@ -12,10 +12,10 @@ from heritrace.apis.zenodo import (
     extract_zenodo_id,
     format_apa_date,
     format_authors_apa,
-    format_zenodo_source,
     get_zenodo_data,
     is_zenodo_url,
     make_request_with_retry,
+    zenodo_source,
 )
 
 
@@ -178,79 +178,45 @@ class TestZenodoFormattingFunctions:
         result_two = format_authors_apa(authors_two)
         assert result_two == "Smith, J. & Doe, A."
 
-    def test_format_zenodo_source_real(self) -> None:
-        """Test the format_zenodo_source function with a real Zenodo URL."""
-        # Using a known stable Zenodo record
+    def test_zenodo_source_real(self) -> None:
         url = "https://doi.org/10.5281/zenodo.7406075"
 
-        html = format_zenodo_source(url)
+        result = zenodo_source(url)
 
-        # Verify we got valid HTML back
-        assert html is not None
-        assert '<a href="' in html
-        assert 'class="zenodo-attribution"' in html
-        assert '<img src="/static/images/zenodo-logo.png"' in html
+        assert result["kind"] == "zenodo"
+        assert result["url"] == url
+        assert "10.5281/zenodo.7406075" in result["label"]
 
-        # Verify the DOI is in the HTML
-        assert "10.5281/zenodo.7406075" in html
-
-    def test_format_zenodo_source_invalid(self) -> None:
-        """Test the format_zenodo_source function with an invalid URL."""
-        # Using a non-Zenodo URL
+    def test_zenodo_source_invalid(self) -> None:
         url = "https://example.com"
+        assert zenodo_source(url) == {
+            "kind": "url",
+            "url": url,
+            "label": url,
+            "extra": None,
+            "entity_uri": None,
+            "timestamp": None,
+        }
 
-        html = format_zenodo_source(url)
-
-        # Should just return a simple link
-        assert html == f'<a href="{url}" target="_blank">{url}</a>'
-
-    def test_format_zenodo_source_with_invalid_record_id(self) -> None:
-        """
-        Test the format_zenodo_source function with a valid Zenodo URL but invalid
-        record ID.
-        """
-        # Using a Zenodo URL with an invalid record ID
+    def test_zenodo_source_with_invalid_record_id(self) -> None:
         url = "https://doi.org/10.5281/zenodo.999999999999"
+        assert zenodo_source(url) == {
+            "kind": "url",
+            "url": url,
+            "label": url,
+            "extra": None,
+            "entity_uri": None,
+            "timestamp": None,
+        }
 
-        html = format_zenodo_source(url)
-
-        # Should just return a simple link
-        assert html == f'<a href="{url}" target="_blank">{url}</a>'
-
-    def test_format_zenodo_source_with_complete_metadata(self) -> None:
-        """
-        Test the format_zenodo_source function with a record that has complete metadata.
-        """
-        # Using a record with rich metadata
-        # A record with more complete metadata
-        url = "https://doi.org/10.5281/zenodo.3233486"
-
-        html = format_zenodo_source(url)
-
-        # Verify we got valid HTML back with extra metadata
-        assert html is not None
-        assert '<a href="' in html
-        assert 'class="zenodo-attribution"' in html
-        assert '<div class="text-muted small mt-1">' in html
-
-        # Verify the DOI is in the HTML
-        assert "10.5281/zenodo.3233486" in html
-
-    def test_format_zenodo_source_with_minimal_metadata(self) -> None:
-        """
-        Test the format_zenodo_source function with a record that has minimal metadata.
-        """
-        # Mock a record with minimal metadata
+    def test_zenodo_source_with_minimal_metadata(self) -> None:
         record_id = "7406075"
-
-        # Create a patch for get_zenodo_data to return minimal data
         minimal_data = {
             "title": "Test Dataset",
             "authors": [{"name": "Test Author"}],
             "doi": "10.5281/zenodo.7406075",
             "publication_date": "2023",
             "record_id": record_id,
-            # Add required fields with empty values to avoid KeyError
             "type": "",
             "subtype": "",
             "journal": "",
@@ -272,27 +238,20 @@ class TestZenodoFormattingFunctions:
 
         with patch("heritrace.apis.zenodo.get_zenodo_data", return_value=minimal_data):
             url = f"https://doi.org/10.5281/zenodo.{record_id}"
-            html = format_zenodo_source(url)
+            assert zenodo_source(url) == {
+                "kind": "zenodo",
+                "url": url,
+                "label": (
+                    "Test Author (2023). Test Dataset."
+                    " https://doi.org/10.5281/zenodo.7406075"
+                ),
+                "extra": None,
+                "entity_uri": None,
+                "timestamp": None,
+            }
 
-            # Verify we got valid HTML back
-            assert html is not None
-            assert '<a href="' in html
-            assert 'class="zenodo-attribution"' in html
-            assert "Test Dataset" in html
-            assert "Test Author" in html
-            assert "2023" in html
-
-            # Verify there's no extra metadata section (since all fields are empty)
-            assert '<div class="text-muted small mt-1">' not in html
-
-    def test_format_zenodo_source_with_rich_metadata(self) -> None:
-        """
-        Test the format_zenodo_source function with a record that has rich metadata.
-        """
-        # Mock a record with rich metadata
+    def test_zenodo_source_with_rich_metadata(self) -> None:
         record_id = "7406075"
-
-        # Create a patch for get_zenodo_data to return rich data
         rich_data = {
             "title": "Test Dataset",
             "authors": [
@@ -326,32 +285,24 @@ class TestZenodoFormattingFunctions:
 
         with patch("heritrace.apis.zenodo.get_zenodo_data", return_value=rich_data):
             url = f"https://doi.org/10.5281/zenodo.{record_id}"
-            html = format_zenodo_source(url)
+            assert zenodo_source(url) == {
+                "kind": "zenodo",
+                "url": url,
+                "label": (
+                    "Test Author (2023, January 15). Test Dataset [Data set]."
+                    " Test Journal, 1, (2), , 3-4. Test Publisher. Version 1.0."
+                    " https://doi.org/10.5281/zenodo.7406075"
+                ),
+                "extra": (
+                    "Type: dataset (survey) | Keywords: test, dataset"
+                    " | Language: en | Access: open"
+                ),
+                "entity_uri": None,
+                "timestamp": None,
+            }
 
-            # Verify we got valid HTML back with rich metadata
-            assert html is not None
-            assert '<a href="' in html
-            assert 'class="zenodo-attribution"' in html
-            assert "Test Dataset" in html
-            assert "Test Author" in html
-            assert "2023, January 15" in html
-            assert "Test Journal" in html
-            assert "Test Publisher" in html
-            assert "Version 1.0" in html
-
-            # Verify the extra metadata section
-            assert '<div class="text-muted small mt-1">' in html
-            assert "Type: dataset (survey)" in html
-            assert "Keywords: test, dataset" in html
-            assert "Language: en" in html
-            assert "Access: open" in html
-
-    def test_format_zenodo_source_with_conference_data(self) -> None:
-        """Test the format_zenodo_source function with conference data."""
-        # Mock a record with conference data
+    def test_zenodo_source_with_conference_data(self) -> None:
         record_id = "7406075"
-
-        # Create a patch for get_zenodo_data to return data with conference info
         conference_data = {
             "title": "Test Conference Paper",
             "authors": [{"name": "Test Author"}],
@@ -381,81 +332,19 @@ class TestZenodoFormattingFunctions:
             "heritrace.apis.zenodo.get_zenodo_data", return_value=conference_data
         ):
             url = f"https://doi.org/10.5281/zenodo.{record_id}"
-            html = format_zenodo_source(url)
+            result = zenodo_source(url)
+            assert result["label"] == (
+                "Test Author (2023, January 15). Test Conference Paper."
+                " In Test Conference (Test Place). Test Publisher. Version 1.0."
+                " https://doi.org/10.5281/zenodo.7406075"
+            )
+            assert result["extra"] == (
+                "Type: publication (conferencepaper) | Keywords: test, conference"
+                " | Language: en | Access: open"
+            )
 
-            # Verify we got valid HTML back with conference info
-            assert html is not None
-            assert '<a href="' in html
-            assert 'class="zenodo-attribution"' in html
-            assert "Test Conference Paper" in html
-            assert "Test Author" in html
-            assert "2023, January 15" in html
-            assert "In Test Conference" in html
-            assert "(Test Place)" in html
-            assert "Test Publisher" in html
-
-            # Verify the extra metadata section
-            assert '<div class="text-muted small mt-1">' in html
-            assert "Type: publication (conferencepaper)" in html
-
-    def test_format_zenodo_source_with_journal_data(self) -> None:
-        """Test the format_zenodo_source function with journal data."""
-        # Mock a record with journal data
+    def test_zenodo_source_with_software_data(self) -> None:
         record_id = "7406075"
-
-        # Create a patch for get_zenodo_data to return data with journal info
-        journal_data = {
-            "title": "Test Journal Article",
-            "authors": [{"name": "Test Author"}],
-            "doi": "10.5281/zenodo.7406075",
-            "publication_date": "2023-01-15",
-            "record_id": record_id,
-            "type": "publication",
-            "subtype": "article",
-            "journal": "Test Journal",
-            "journal_volume": "10",
-            "journal_issue": "2",
-            "journal_pages": "100-120",
-            "conference": "",
-            "conference_place": "",
-            "conference_acronym": "",
-            "conference_date": "",
-            "publisher": "Test Publisher",
-            "keywords": ["test", "journal"],
-            "description": "Test Description",
-            "access_right": "open",
-            "language": "en",
-            "notes": "Test Notes",
-            "version": "1.0",
-        }
-
-        with patch("heritrace.apis.zenodo.get_zenodo_data", return_value=journal_data):
-            url = f"https://doi.org/10.5281/zenodo.{record_id}"
-            html = format_zenodo_source(url)
-
-            # Verify we got valid HTML back with journal info
-            assert html is not None
-            assert '<a href="' in html
-            assert 'class="zenodo-attribution"' in html
-            assert "Test Journal Article" in html
-            assert "Test Author" in html
-            assert "2023, January 15" in html
-            assert "Test Journal" in html
-            assert "10" in html
-            assert "(2)" in html
-            assert ", 100-120" in html
-            assert "Test Publisher" in html
-
-            # Verify the extra metadata section
-            assert '<div class="text-muted small mt-1">' in html
-            assert "Type: publication (article)" in html
-
-    def test_format_zenodo_source_with_software_data(self) -> None:
-        """Test the format_zenodo_source function with software data."""
-        # Mock a record with software data
-        record_id = "7406075"
-
-        # Create a patch for get_zenodo_data to return data with software info
         software_data = {
             "title": "Test Software",
             "authors": [{"name": "Test Author"}],
@@ -483,20 +372,15 @@ class TestZenodoFormattingFunctions:
 
         with patch("heritrace.apis.zenodo.get_zenodo_data", return_value=software_data):
             url = f"https://doi.org/10.5281/zenodo.{record_id}"
-            html = format_zenodo_source(url)
-
-            # Verify we got valid HTML back with software info
-            assert html is not None
-            assert '<a href="' in html
-            assert 'class="zenodo-attribution"' in html
-            assert "Test Software [Computer software]" in html
-            assert "Test Author" in html
-            assert "2023, January 15" in html
-            assert "Test Publisher" in html
-
-            # Verify the extra metadata section
-            assert '<div class="text-muted small mt-1">' in html
-            assert "Type: software" in html
+            result = zenodo_source(url)
+            assert result["label"] == (
+                "Test Author (2023, January 15). Test Software [Computer software]."
+                " Test Publisher. Version 1.0. https://doi.org/10.5281/zenodo.7406075"
+            )
+            assert result["extra"] == (
+                "Type: software | Keywords: test, software | Language: en"
+                " | Access: open"
+            )
 
 
 class TestZenodoErrorHandling:

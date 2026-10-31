@@ -10,6 +10,8 @@ import requests
 from flask import current_app
 from rdflib import URIRef
 
+from heritrace.utils.references import AgentRef, url_agent
+
 _ORCID_ID_LENGTH = 19
 _ORCID_HYPHEN_COUNT = 3
 
@@ -108,33 +110,18 @@ def get_responsible_agent_uri(user_identifier: str) -> URIRef:
     return URIRef(user_identifier)
 
 
-def format_orcid_attribution(url: str) -> str:
-    """
-    Format ORCID attribution for display.
-
-    Args:
-        url (str): The ORCID URL
-
-    Returns:
-        str: Formatted HTML for displaying ORCID attribution
-    """
-
+def orcid_agent(url: str) -> AgentRef:
     orcid_id = extract_orcid_id(url)
     if not orcid_id:
-        return f'<a href="{url}" target="_blank">{url}</a>'
+        return url_agent(url)
 
     researcher_data = get_orcid_data(orcid_id)
     if not researcher_data:
-        return f'<a href="{url}" target="_blank">{url}</a>'
+        return url_agent(url)
 
-    name = researcher_data["name"] or url
-
-    html = f'<a href="{url}" target="_blank" class="orcid-attribution">'
-    html += (
-        '<img src="/static/images/orcid-logo.png"'
-        ' alt="ORCID iD" class="orcid-icon mx-1 mb-1"'
-        ' style="width: 16px; height: 16px;">'
-    )
-    html += f"{name} [orcid:{orcid_id}]</a>"
-
-    return html
+    return {
+        "kind": "orcid",
+        "url": url,
+        "label": researcher_data["name"] or url,
+        "orcid_id": orcid_id,
+    }

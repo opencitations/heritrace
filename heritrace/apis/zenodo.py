@@ -13,6 +13,8 @@ import requests
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import RequestException, Timeout
 
+from heritrace.utils.references import SourceRef, url_source
+
 
 class ZenodoRecord(TypedDict):
     title: str
@@ -304,31 +306,21 @@ def _build_extra_info(
     return extra_info
 
 
-def format_zenodo_source(url: str) -> str:
-    """Format Zenodo source for display with full APA citation."""
-
+def zenodo_source(url: str) -> SourceRef:
     record_id = extract_zenodo_id(url)
     if not record_id:
-        return f'<a href="{url}" target="_blank">{url}</a>'
+        return url_source(url)
 
     record_data = get_zenodo_data(record_id)
     if not record_data:
-        return f'<a href="{url}" target="_blank">{url}</a>'
-
-    citation_parts = _build_citation_parts(record_data)
-
-    html = f'<a href="{url}" target="_blank" class="zenodo-attribution">'
-    html += (
-        '<img src="/static/images/zenodo-logo.png"'
-        ' alt="Zenodo" class="zenodo-icon mb-1 mx-1"'
-        ' style="width: 50px; height: 25px;'
-        ' margin-bottom: .3rem !important">'
-    )
-    html += ". ".join(citation_parts)
-    html += "</a>"
+        return url_source(url)
 
     extra_info = _build_extra_info(record_data)
-    if extra_info:
-        html += f'<div class="text-muted small mt-1">{" | ".join(extra_info)}</div>'
-
-    return html
+    return {
+        "kind": "zenodo",
+        "url": url,
+        "label": ". ".join(_build_citation_parts(record_data)),
+        "extra": " | ".join(extra_info) if extra_info else None,
+        "entity_uri": None,
+        "timestamp": None,
+    }

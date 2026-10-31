@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2024-2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2024-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -6,24 +6,33 @@ from __future__ import annotations
 
 import threading
 from typing import TYPE_CHECKING
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 
-from dateutil import parser as dateutil_parser
-from flask import url_for
-from flask_babel import format_datetime, gettext, lazy_gettext
 from SPARQLWrapper import JSON
 
-from heritrace.apis.orcid import format_orcid_attribution, is_orcid_url
-from heritrace.apis.zenodo import format_zenodo_source, is_zenodo_url
+from heritrace.apis.orcid import is_orcid_url, orcid_agent
+from heritrace.apis.zenodo import is_zenodo_url, zenodo_source
 from heritrace.sparql import (
     SPARQLWrapperWithRetry,
     get_sparql_bindings,
     select_results,
 )
+from heritrace.utils.references import (
+    AgentRef,
+    SourceRef,
+    text_agent,
+    text_source,
+    unknown_agent,
+    unknown_source,
+    url_agent,
+    url_source,
+)
 from heritrace.utils.uri_utils import is_valid_url
 
 if TYPE_CHECKING:
     from rdflib import Dataset, Graph, URIRef
+
+VERSION_SOURCE_MARKER = "/prov/se/"
 
 
 class Filter:
@@ -71,7 +80,6 @@ class Filter:
         predicate_uri: str,
         entity_key: tuple[str | None, str | None],
         *,
-        is_link: bool = False,
         object_shape_uri: str | None = None,
     ) -> str:
         from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
@@ -91,27 +99,11 @@ class Filter:
         first_part, _ = split_namespace(predicate_uri)
         if first_part in self.context:
             return format_uri_as_readable(predicate_uri)
-        if is_valid_url(predicate_uri) and is_link:
-            href = url_for("entity.about", subject=quote(predicate_uri))
-            alt = gettext(
-                "Link to the entity %(entity)s",
-                entity=predicate_uri,
-            )
-            return f"<a href='{href}' alt='{alt}'>{predicate_uri}</a>"
         return str(predicate_uri)
 
     def human_readable_class(
         self, entity_key: tuple[str | None, str | None] | None
     ) -> str:
-        """
-        Converts a class URI to human-readable format.
-
-        Args:
-            entity_key (tuple): A tuple containing (class_uri, shape_uri)
-
-        Returns:
-            str: Human-readable representation of the class
-        """
         from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
             find_matching_rule,
         )
@@ -187,92 +179,36 @@ class Filter:
         msg = f"fetchUriDisplay returned no result for {uri_string}"
         raise ValueError(msg)
 
-    def human_readable_datetime(self, dt_str: str) -> str:
-        dt = dateutil_parser.parse(dt_str)
-        return format_datetime(dt, format="long")
-
-    def human_readable_primary_source(self, primary_source: str | None) -> str:
-        if primary_source is None:
-            return str(lazy_gettext("Unknown"))
-        if "/prov/se" in primary_source:
-            version_url = f"/entity-version/{primary_source.replace('/prov/se', '')}"
-            return (
-                f"<a href='{version_url}'"
-                f" alt='{lazy_gettext('Link to the primary source description')}'>"
-                + lazy_gettext("Version")
-                + " "
-                + primary_source.split("/prov/se/")[-1]
-                + "</a>"
-            )
-        if is_valid_url(primary_source):
-            alt = lazy_gettext("Link to the primary source description")
-            return (
-                f"<a href='{primary_source}'"
-                f" alt='{alt}"
-                f" target='_blank'>"
-                f"{primary_source}</a>"
-            )
-        return primary_source
-
-    def format_source_reference(self, url: str) -> str:
-        """
-        Format a source reference for display, handling various URL types including
-        Zenodo DOIs and generic URLs.
-
-        Args:
-            url (str): The source URL or identifier to format
-            human_readable_primary_source (callable): Function to handle generic/unknown
-            source types
-
-        Returns:
-            str: Formatted HTML string representing the source
-        """
+    def format_source_reference(self, url: str | None) -> SourceRef:
         if not url:
-            return "Unknown"
-
-        # First check if it's a Zenodo DOI since this is more specific than a generic
-        # URL
+            return unknown_source()
         if is_zenodo_url(url):
-            return format_zenodo_source(url)
-
-        # If not Zenodo, use the provided generic handler
-        return self.human_readable_primary_source(url)
-
-    def format_agent_reference(self, url: str) -> str:
-        """
-        Format an agent reference for display, handling various URL types including
-        ORCID and others.
-
-        Args:
-            url (str): The agent URL or identifier to format
-
-        Returns:
-            str: Formatted HTML string representing the agent
-        """
-        if not url:
-            return "Unknown"
-
-        if is_orcid_url(url):
-            return format_orcid_attribution(url)
-
-        # For now, just return a simple linked version for other URLs
+            return zenodo_source(url)
+        if VERSION_SOURCE_MARKER in url:
+            entity_uri, timestamp = url.split(VERSION_SOURCE_MARKER, 1)
+            return {
+                "kind": "version",
+                "url": url,
+                "label": f"Version {timestamp}",
+                "extra": None,
+                "entity_uri": entity_uri,
+                "timestamp": timestamp,
+            }
         if is_valid_url(url):
-            return f'<a href="{url}" target="_blank">{url}</a>'
+            return url_source(url)
+        return text_source(url)
 
-        # If it's not a URL at all, just return the raw value
-        return url
+    def format_agent_reference(self, url: str | None) -> AgentRef:
+        if not url:
+            return unknown_agent()
+        if is_orcid_url(url):
+            return orcid_agent(url)
+        if is_valid_url(url):
+            return url_agent(url)
+        return text_agent(url)
 
 
 def split_namespace(uri: str) -> tuple[str, str]:
-    """
-    Split a URI into namespace and local part.
-
-    Args:
-        uri: The URI to split
-
-    Returns:
-        Tuple of (namespace, local_part)
-    """
     parsed = urlparse(uri)
     if parsed.fragment:
         first_part = parsed.scheme + "://" + parsed.netloc + parsed.path + "#"
@@ -290,20 +226,10 @@ def split_namespace(uri: str) -> tuple[str, str]:
 
 
 def format_uri_as_readable(uri: str) -> str:
-    """
-    Format a URI as human-readable text by extracting and formatting the local part.
-
-    Args:
-        uri: The URI to format
-
-    Returns:
-        Human-readable string
-    """
     _, last_part = split_namespace(uri)
 
     if last_part.islower():
         return last_part
-    # Convert CamelCase to space-separated words
     words = []
     word = ""
     for char in last_part:

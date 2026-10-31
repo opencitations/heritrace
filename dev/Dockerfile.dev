@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
-FROM nikolaik/python-nodejs:python3.13-nodejs24@sha256:816f2ee9723a90b2ab737933ae8ab6e35e00b897efdc750e8371f2a47c5b5fa5
+FROM python:3.13@sha256:6a9220edda062e9223ea0784740a535987299420b96fbfd520b89bbd3e772485
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y lsb-release curl gpg && \
     apt-get install -y redis-server redis-tools && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /app/heritrace /app/babel
+RUN mkdir -p /app/heritrace
 
 COPY --from=ghcr.io/astral-sh/uv:0.9.8@sha256:08f409e1d53e77dfb5b65c788491f8ca70fe1d2d459f41c89afa2fcbef998abe /uv /uvx /bin/
 
@@ -25,9 +25,6 @@ COPY config.py ./config.py
 COPY dev/generate_ssl_cert.py ./generate_ssl_cert.py
 
 RUN uv sync --locked
-
-COPY package.json package-lock.json ./
-RUN npm ci
 
 RUN mkdir -p /data
 
@@ -82,4 +79,4 @@ ENV FLASK_APP=app.py
 
 EXPOSE 5000
 
-CMD ["/app/start-dev.sh", "sh", "-c", "/bin/uv sync --locked && npm run build && /app/.venv/bin/gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-$(python -c 'import os; print(os.cpu_count() * 2 + 1)')} --timeout ${GUNICORN_TIMEOUT:-120} --certfile /app/ssl/cert.pem --keyfile /app/ssl/key.pem --reload app:app"]
+CMD ["/app/start-dev.sh", "sh", "-c", "/bin/uv sync --locked && /app/.venv/bin/gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-$(python -c 'import os; print(os.cpu_count() * 2 + 1)')} --timeout ${GUNICORN_TIMEOUT:-120} --certfile /app/ssl/cert.pem --keyfile /app/ssl/key.pem --reload app:app"]

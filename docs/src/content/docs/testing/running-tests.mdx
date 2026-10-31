@@ -9,7 +9,7 @@ description: Execute automated tests and ensure code quality in HERITRACE
 
 import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
 
-HERITRACE uses pytest for testing. This guide covers running tests locally and understanding the testing infrastructure.
+HERITRACE uses pytest for the backend and `flutter test` for the client. This guide covers running tests locally and understanding the testing infrastructure.
 
 ## Test overview
 
@@ -17,6 +17,7 @@ HERITRACE uses pytest for testing. This guide covers running tests locally and u
 
 - **Unit tests**: Test individual functions and classes
 - **Integration tests**: Test component interactions and database operations
+- **Client tests**: Widget and unit tests in `frontend/test/`
 
 ## Setting up test environment
 
@@ -167,3 +168,15 @@ def client(app):
 ```
 
 Test databases are stopped automatically when the pytest session ends.
+
+## Client tests
+
+The Flutter client has its own checks. Run them from `frontend/`:
+
+```bash
+dart run slang
+flutter analyze
+flutter test
+```
+
+`dart run slang` generates the translation classes from `lib/i18n/*.i18n.yaml`; the generated files are not tracked by git, so run it before analysis and tests.

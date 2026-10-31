@@ -5,24 +5,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import validators
-from flask import (
-    Blueprint,
-    Response,
-    current_app,
-    flash,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    url_for,
-)
-from flask_babel import gettext
+from flask import Blueprint, Response, current_app, jsonify, request
 from flask_login import current_user, login_required
-from markupsafe import Markup
-from rdflib import URIRef
+from rdflib import RDF, URIRef
 from SPARQLWrapper import JSON
 
 from heritrace.apis.orcid import get_responsible_agent_uri
@@ -41,15 +29,11 @@ from heritrace.utils.display_rules_utils import (
     get_similarity_properties,
 )
 from heritrace.utils.primary_source_utils import (
-    get_user_default_primary_source,
     save_user_default_primary_source,
 )
 from heritrace.utils.shacl_utils import determine_shape_for_classes
 from heritrace.utils.sparql_utils import get_entity_types, import_entity_graph
 from heritrace.utils.virtuoso_utils import is_virtuoso
-
-if TYPE_CHECKING:
-    from werkzeug.wrappers import Response as WerkzeugResponse
 
 merge_bp = Blueprint("merge", __name__)
 
@@ -128,80 +112,79 @@ def get_entity_details(
         return grouped_properties, entity_types
 
 
-@merge_bp.route("/execute-merge", methods=["POST"])
-@login_required
-def execute_merge() -> WerkzeugResponse:
-    """
-    Handles the actual merging of two entities using the Editor class
-    to ensure provenance and data model agnosticism.
-    Entity 1 (keep) absorbs Entity 2 (delete).
-    """
-    entity1_uri_str = request.form.get("entity1_uri")
-    entity2_uri_str = request.form.get("entity2_uri")
-    primary_source = request.form.get("primary_source")
-    save_default_source = request.form.get("save_default_source") == "true"
+def _entity_summary(entity_uri: URIRef, entity_types: list[str]) -> dict:
+    custom_filter = get_custom_filter()
+    entity_type = get_highest_priority_class(entity_types)
+    entity_shape = determine_shape_for_classes(entity_types)
+    label = (
+        custom_filter.human_readable_entity(entity_uri, (entity_type, entity_shape))
+        if entity_type
+        else str(entity_uri)
+    )
+    return {
+        "uri": str(entity_uri),
+        "label": label,
+        "type": entity_type,
+        "type_label": custom_filter.human_readable_class((entity_type, entity_shape)),
+        "shape": entity_shape,
+    }
 
-    # TODO(arcangelo): Implement CSRF validation
-    # if using Flask-WTF
+
+def _serialize_properties(
+    grouped_properties: dict[str, list[dict[str, Any]]], entity_key: tuple
+) -> list[dict]:
+    custom_filter = get_custom_filter()
+    return [
+        {
+            "predicate": predicate,
+            "label": custom_filter.human_readable_predicate(predicate, entity_key),
+            "values": values,
+        }
+        for predicate, values in grouped_properties.items()
+        if predicate != str(RDF.type)
+    ]
+
+
+@merge_bp.route("", methods=["POST"])
+@login_required
+def execute_merge() -> Response | tuple[Response, int]:
+    """Merge two entities: entity 1 (keep) absorbs entity 2 (delete)."""
+    data = request.get_json()
+    entity1_uri_str = data.get("entity1_uri")
+    entity2_uri_str = data.get("entity2_uri")
+    primary_source = data.get("primary_source") or None
+    save_default_source = bool(data.get("save_default_source"))
 
     if not entity1_uri_str or not entity2_uri_str:
-        flash(gettext("Missing entity URIs for merge."), "danger")
-        return redirect(url_for("main.catalogue"))
+        return jsonify(
+            {"status": "error", "message": "Missing entity URIs for merge."}
+        ), 400
 
     entity1_uri = URIRef(entity1_uri_str)
     entity2_uri = URIRef(entity2_uri_str)
 
     if primary_source and not validators.url(primary_source):  # type: ignore[arg-type]
-        flash(gettext("Invalid primary source URL provided."), "danger")
-        return redirect(
-            url_for(
-                ".compare_and_merge", subject=entity1_uri, other_subject=entity2_uri
-            )
-        )
+        return jsonify(
+            {"status": "error", "message": "Invalid primary source URL provided."}
+        ), 400
 
-    if save_default_source and primary_source and validators.url(primary_source):  # type: ignore[arg-type]
+    if save_default_source and primary_source:
         save_user_default_primary_source(current_user.orcid, primary_source)
 
     try:
-        custom_filter = get_custom_filter()
-
         _, entity1_types = get_entity_details(entity1_uri)
         _, entity2_types = get_entity_details(entity2_uri)
-
-        entity1_type = get_highest_priority_class(entity1_types)
-        entity2_type = get_highest_priority_class(entity2_types)
-        entity1_shape = determine_shape_for_classes(entity1_types)
-        entity2_shape = determine_shape_for_classes(entity2_types)
-        entity1_label = (
-            custom_filter.human_readable_entity(
-                entity1_uri, (entity1_type, entity1_shape)
-            )
-            if entity1_type
-            else entity1_uri
-        )
-        entity2_label = (
-            custom_filter.human_readable_entity(
-                entity2_uri, (entity2_type, entity2_shape)
-            )
-            if entity2_type
-            else entity2_uri
-        )
-
-        counter_handler = get_counter_handler()
-        resp_agent = get_responsible_agent_uri(current_user.orcid)
-
-        dataset_endpoint = get_dataset_endpoint()
-        provenance_endpoint = get_provenance_endpoint()
-        dataset_is_quadstore = get_dataset_is_quadstore()
+        kept = _entity_summary(entity1_uri, entity1_types)
+        deleted = _entity_summary(entity2_uri, entity2_types)
 
         editor = Editor(
             EndpointConfig(
-                dataset=dataset_endpoint,
-                provenance=provenance_endpoint,
-                is_quadstore=dataset_is_quadstore,
+                dataset=get_dataset_endpoint(),
+                provenance=get_provenance_endpoint(),
+                is_quadstore=get_dataset_is_quadstore(),
             ),
-            counter_handler,
-            resp_agent,
+            get_counter_handler(),
+            get_responsible_agent_uri(current_user.orcid),
             URIRef(current_app.config["PRIMARY_SOURCE"]),
             current_app.config["DATASET_GENERATION_TIME"],
             save_plugin=current_app.config.get("SAVE_PLUGIN"),
@@ -214,69 +197,42 @@ def execute_merge() -> WerkzeugResponse:
             delete_entity_uri=entity2_uri,
             primary_source=URIRef(primary_source) if primary_source else None,
         )
-
-        entity1_url = url_for("entity.about", subject=entity1_uri)
-        entity2_url = url_for("entity.about", subject=entity2_uri)
-        flash_message_html = gettext(
-            "Entities merged successfully. "
-            "<a href='%(entity2_url)s' target='_blank'>%(entity2)s</a> "
-            "has been deleted and its references now point to "
-            "<a href='%(entity1_url)s' target='_blank'>%(entity1)s</a>.",
-            entity1=entity1_label,
-            entity2=entity2_label,
-            entity1_url=entity1_url,
-            entity2_url=entity2_url,
-        )
-
-        flash(Markup(flash_message_html), "success")  # noqa: S704
-
-        return redirect(url_for("entity.about", subject=entity1_uri))
-
     except ValueError as ve:
         current_app.logger.warning("Merge attempt failed: %s", ve)
-        flash(str(ve), "warning")
-        return redirect(
-            url_for(
-                ".compare_and_merge", subject=entity1_uri, other_subject=entity2_uri
-            )
-        )
-
+        return jsonify({"status": "error", "message": str(ve)}), 400
     except Exception:
         current_app.logger.exception(
             "Error executing Editor merge for <%s> and <%s>",
             entity1_uri,
             entity2_uri,
         )
-        flash(
-            gettext(
-                "An error occurred during the merge"
-                " operation. Please check the logs."
-                " No changes were made."
-            ),
-            "danger",
-        )
-        return redirect(
-            url_for(
-                ".compare_and_merge", subject=entity1_uri, other_subject=entity2_uri
-            )
-        )
+        return jsonify(
+            {
+                "status": "error",
+                "message": (
+                    "An error occurred during the merge operation."
+                    " Please check the logs. No changes were made."
+                ),
+            }
+        ), 500
+
+    return jsonify({"status": "success", "kept": kept, "deleted": deleted})
 
 
-@merge_bp.route("/compare-and-merge")
+@merge_bp.route("/compare")
 @login_required
-def compare_and_merge() -> str | WerkzeugResponse:
-    """
-    Route to display details of two entities side-by-side for merge confirmation.
-    """
+def compare_and_merge() -> Response | tuple[Response, int]:
+    """Details of two entities side by side for merge confirmation."""
     entity1_uri_str = request.args.get("subject")
     entity2_uri_str = request.args.get("other_subject")
-    custom_filter = get_custom_filter()
 
     if not entity1_uri_str or not entity2_uri_str:
-        flash(
-            gettext("Two entities must be selected for merging/comparison."), "warning"
-        )
-        return redirect(url_for("main.catalogue"))
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Two entities must be selected for merging/comparison.",
+            }
+        ), 400
 
     entity1_uri = URIRef(entity1_uri_str)
     entity2_uri = URIRef(entity2_uri_str)
@@ -285,52 +241,23 @@ def compare_and_merge() -> str | WerkzeugResponse:
     entity2_props, entity2_types = get_entity_details(entity2_uri)
 
     if entity1_props is None or entity2_props is None:
-        flash(
-            gettext("Could not retrieve details for one or both entities. Check logs."),
-            "danger",
-        )
-        return redirect(url_for("main.catalogue"))
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Could not retrieve details for one or both entities.",
+            }
+        ), 502
 
-    entity1_type = get_highest_priority_class(entity1_types)
-    entity2_type = get_highest_priority_class(entity2_types)
-    entity1_shape = determine_shape_for_classes(entity1_types)
-    entity2_shape = determine_shape_for_classes(entity2_types)
-    entity1_label = (
-        custom_filter.human_readable_entity(entity1_uri, (entity1_type, entity1_shape))
-        if entity1_type
-        else entity1_uri
+    entity1 = _entity_summary(entity1_uri, entity1_types)
+    entity2 = _entity_summary(entity2_uri, entity2_types)
+    entity1["properties"] = _serialize_properties(
+        entity1_props, (entity1["type"], entity1["shape"])
     )
-    entity2_label = (
-        custom_filter.human_readable_entity(entity2_uri, (entity2_type, entity2_shape))
-        if entity2_type
-        else entity2_uri
+    entity2["properties"] = _serialize_properties(
+        entity2_props, (entity2["type"], entity2["shape"])
     )
 
-    entity1_data = {
-        "uri": entity1_uri,
-        "label": entity1_label,
-        "type_label": custom_filter.human_readable_class((entity1_type, entity1_shape)),
-        "type": entity1_type,
-        "shape": entity1_shape,
-        "properties": entity1_props,
-    }
-    entity2_data = {
-        "uri": entity2_uri,
-        "label": entity2_label,
-        "type_label": custom_filter.human_readable_class((entity2_type, entity2_shape)),
-        "type": entity2_type,
-        "shape": entity2_shape,
-        "properties": entity2_props,
-    }
-
-    default_primary_source = get_user_default_primary_source(current_user.orcid)
-
-    return render_template(
-        "entity/merge_confirm.jinja",
-        entity1=entity1_data,
-        entity2=entity2_data,
-        default_primary_source=default_primary_source,
-    )
+    return jsonify({"entity1": entity1, "entity2": entity2})
 
 
 def _format_rdf_term(node: dict[str, str]) -> str | None:
@@ -517,7 +444,7 @@ def _transform_results(
     return transformed
 
 
-@merge_bp.route("/find_similar", methods=["GET"])
+@merge_bp.route("/similar", methods=["GET"])
 @login_required
 def find_similar_resources() -> Response | tuple[Response, int]:  # noqa: PLR0911
     subject_uri = request.args.get("subject_uri")
@@ -528,16 +455,14 @@ def find_similar_resources() -> Response | tuple[Response, int]:  # noqa: PLR091
         offset = int(request.args.get("offset", 0))
     except ValueError:
         return jsonify(
-            {"status": "error", "message": gettext("Invalid limit or offset parameter")}
+            {"status": "error", "message": "Invalid limit or offset parameter"}
         ), 400
 
     if not subject_uri or not entity_type:
         return jsonify(
             {
                 "status": "error",
-                "message": gettext(
-                    "Missing required parameters (subject_uri, entity_type)"
-                ),
+                "message": "Missing required parameters (subject_uri, entity_type)",
             }
         ), 400
 
@@ -545,7 +470,7 @@ def find_similar_resources() -> Response | tuple[Response, int]:  # noqa: PLR091
         return jsonify(
             {
                 "status": "error",
-                "message": gettext("Limit must be positive and offset non-negative"),
+                "message": "Limit must be positive and offset non-negative",
             }
         ), 400
 
@@ -586,6 +511,6 @@ def find_similar_resources() -> Response | tuple[Response, int]:  # noqa: PLR091
         return jsonify(
             {
                 "status": "error",
-                "message": gettext("An error occurred while finding similar resources"),
+                "message": "An error occurred while finding similar resources",
             }
         ), 500

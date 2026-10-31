@@ -11,8 +11,6 @@ _BYTE_MIN = -128
 _BYTE_MAX = 127
 _SHORT_MIN = -32_768
 _SHORT_MAX = 32_767
-_INT_MIN = -2_147_483_648
-_INT_MAX = 2_147_483_647
 _UNSIGNED_BYTE_MAX = 255
 _UNSIGNED_SHORT_MAX = 65_535
 _UNSIGNED_INT_MAX = 4_294_967_295
@@ -104,7 +102,7 @@ def validate_long(value: str) -> bool:
     except (ValueError, TypeError):
         return False
     else:
-        return _INT_MIN <= val <= _INT_MAX
+        return _LONG_MIN <= val <= _LONG_MAX
 
 
 def validate_unsigned_byte(value: str) -> bool:
@@ -131,7 +129,7 @@ def validate_unsigned_long(value: str) -> bool:
     except (ValueError, TypeError):
         return False
     else:
-        return 0 <= val <= _UNSIGNED_INT_MAX
+        return 0 <= val <= _UNSIGNED_LONG_MAX
 
 
 def validate_unsigned_int(value: str) -> bool:

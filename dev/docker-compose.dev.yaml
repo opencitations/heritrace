@@ -18,6 +18,7 @@ services:
         exec qlever-server -i "$$(basename /source/*.meta-data.json .meta-data.json)"
         -p 7101 -j 8 -m 30G -c 8G -e 2G -s 300s
         --persist-updates --no-access-check --no-metrics-log --no-resource-usage-log
+        --log-level WARN
     ports:
       - "127.0.0.1:7101:7101"
     volumes:
@@ -27,7 +28,7 @@ services:
   provenance:
     <<: *qlever
     entrypoint: [qlever-server]
-    command: [-i, meta-provenance, -p, "7103", -j, "4", -m, 2G, -c, 256M, -e, 64M, --persist-updates, --no-access-check, --no-metrics-log, --no-resource-usage-log]
+    command: [-i, meta-provenance, -p, "7103", -j, "4", -m, 2G, -c, 256M, -e, 64M, --persist-updates, --no-access-check, --no-metrics-log, --no-resource-usage-log, --log-level, WARN]
     ports:
       - "127.0.0.1:7103:7103"
     volumes:
@@ -44,6 +45,9 @@ services:
     environment:
       - DATASET_DB_URL=http://meta:7101
       - PROVENANCE_DB_URL=http://provenance:7103
+      - FRONTEND_ORIGIN=https://127.0.0.1:5100
+      - HOST_UID=${HOST_UID:-1000}
+      - HOST_GID=${HOST_GID:-1000}
     depends_on:
       - meta
       - provenance
@@ -55,6 +59,5 @@ services:
       - ../pyproject.toml:/app/pyproject.toml
       - ../uv.lock:/app/uv.lock
       - ../example_configurations:/app/example_configurations
-      - ../babel:/app/babel
-      - ../webpack.config.js:/app/webpack.config.js
+      - ./ssl:/app/ssl
       - ../redis-data:/data

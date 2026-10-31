@@ -8,9 +8,9 @@ import responses
 
 from heritrace.apis.orcid import (
     extract_orcid_id,
-    format_orcid_attribution,
     get_orcid_data,
     is_orcid_url,
+    orcid_agent,
 )
 
 
@@ -100,26 +100,34 @@ def test_get_orcid_data_success(app) -> None:
         assert result["orcid"] == orcid_id
 
 
-def test_format_orcid_attribution_invalid_url() -> None:
+def test_orcid_agent_invalid_url() -> None:
     url = "https://example.com"
-    result = format_orcid_attribution(url)
-    assert result == f'<a href="{url}" target="_blank">{url}</a>'
+    assert orcid_agent(url) == {
+        "kind": "url",
+        "url": url,
+        "label": url,
+        "orcid_id": None,
+    }
 
 
 @responses.activate
-def test_format_orcid_attribution_no_data(app) -> None:
+def test_orcid_agent_no_data(app) -> None:
     orcid_id = "0000-0002-1825-0097"
     url = f"https://orcid.org/{orcid_id}"
     responses.add(
         responses.GET, f"https://pub.orcid.org/v3.0/{orcid_id}/person", status=404
     )
     with app.app_context():
-        result = format_orcid_attribution(url)
-        assert result == f'<a href="{url}" target="_blank">{url}</a>'
+        assert orcid_agent(url) == {
+            "kind": "url",
+            "url": url,
+            "label": url,
+            "orcid_id": None,
+        }
 
 
 @responses.activate
-def test_format_orcid_attribution_success(app) -> None:
+def test_orcid_agent_success(app) -> None:
     orcid_id = "0000-0002-1825-0097"
     url = f"https://orcid.org/{orcid_id}"
     mock_response = {
@@ -133,14 +141,9 @@ def test_format_orcid_attribution_success(app) -> None:
         status=200,
     )
     with app.app_context():
-        result = format_orcid_attribution(url)
-        expected = (
-            f'<a href="{url}" target="_blank"'
-            ' class="orcid-attribution">'
-            '<img src="/static/images/orcid-logo.png"'
-            ' alt="ORCID iD"'
-            ' class="orcid-icon mx-1 mb-1"'
-            ' style="width: 16px; height: 16px;">'
-            f"John Doe [orcid:{orcid_id}]</a>"
-        )
-        assert result == expected
+        assert orcid_agent(url) == {
+            "kind": "orcid",
+            "url": url,
+            "label": "John Doe",
+            "orcid_id": orcid_id,
+        }

@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 import yaml
 from flask import Flask, g
-from flask_babel import Babel
 from flask_login import LoginManager
 from flask_login.signals import user_loaded_from_cookie
 from rdflib import Graph
@@ -56,11 +55,6 @@ def mock_redis():
 
 
 @pytest.fixture
-def babel():
-    return Babel()
-
-
-@pytest.fixture
 def login_manager():
     return LoginManager()
 
@@ -90,7 +84,7 @@ def lightweight_app():
     return app
 
 
-def test_init_extensions(lightweight_app, babel, login_manager, mock_redis) -> None:
+def test_init_extensions(lightweight_app, login_manager, mock_redis) -> None:
     with (
         lightweight_app.app_context(),
         patch("heritrace.extensions.init_sparql_services") as mock_sparql,
@@ -108,39 +102,14 @@ def test_init_extensions(lightweight_app, babel, login_manager, mock_redis) -> N
             MagicMock(),
             {},
         )
-        init_extensions(lightweight_app, babel, login_manager, mock_redis)
+        init_extensions(lightweight_app, login_manager, mock_redis)
 
         assert lightweight_app.extensions["redis_client"] is mock_redis
         assert isinstance(lightweight_app.extensions["heritrace"], AppState)
 
 
-def test_babel_initialization(
-    lightweight_app, babel, login_manager, mock_redis
-) -> None:
-    with (
-        lightweight_app.app_context(),
-        patch("heritrace.extensions.init_sparql_services") as mock_sparql,
-        patch("heritrace.extensions.initialize_counter_handler"),
-        patch(
-            "heritrace.extensions.initialize_global_variables",
-            return_value=([], {}, False, Graph(), set()),
-        ),
-        patch("heritrace.extensions.init_filters", return_value=MagicMock()),
-    ):
-        mock_sparql.return_value = (
-            "http://ds",
-            "http://prov",
-            MagicMock(),
-            MagicMock(),
-            {},
-        )
-        init_extensions(lightweight_app, babel, login_manager, mock_redis)
-
-        assert hasattr(babel, "domain")
-
-
 def test_login_manager_initialization(
-    lightweight_app, babel, login_manager, mock_redis
+    lightweight_app, login_manager, mock_redis
 ) -> None:
     with (
         lightweight_app.app_context(),
@@ -159,7 +128,7 @@ def test_login_manager_initialization(
             MagicMock(),
             {},
         )
-        init_extensions(lightweight_app, babel, login_manager, mock_redis)
+        init_extensions(lightweight_app, login_manager, mock_redis)
 
         assert hasattr(login_manager, "login_view")
         assert hasattr(login_manager, "login_message")

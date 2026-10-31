@@ -2,7 +2,30 @@
 #
 # SPDX-License-Identifier: ISC
 
-FROM nikolaik/python-nodejs:python3.13-nodejs24-slim@sha256:7747dad819e83f44290053a89bf47968996b8c35b7a2a89a737434aa1407f09e
+FROM --platform=linux/amd64 debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 AS frontend
+
+ARG FLUTTER_VERSION=3.47.7
+ARG FLUTTER_SHA256=af7455f540df951184c7953fbe3cf884766e7541dacf8571f9f582db03dd6230
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl git unzip xz-utils && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL -o /tmp/flutter.tar.xz \
+    "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" && \
+    echo "${FLUTTER_SHA256}  /tmp/flutter.tar.xz" | sha256sum -c - && \
+    mkdir -p /opt && tar -xJf /tmp/flutter.tar.xz -C /opt && rm /tmp/flutter.tar.xz
+
+ENV PATH="/opt/flutter/bin:${PATH}"
+RUN git config --global --add safe.directory /opt/flutter && flutter config --no-analytics --enable-web
+
+WORKDIR /src
+COPY frontend/pubspec.yaml frontend/pubspec.lock ./
+RUN flutter pub get --enforce-lockfile
+COPY frontend ./
+RUN dart run slang && flutter build web --release
+
+FROM python:3.13-slim@sha256:2d44738ebf4ce5f63b9d9ea871e9c7cfdc0426f7b0c97cac915fd88ded1d86bb
 
 WORKDIR /app
 
@@ -14,8 +37,6 @@ RUN apt-get update && apt-get install -y lsb-release curl gpg && \
     apt-get install -y redis-server redis-tools && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /app/heritrace /app/babel
-
 COPY --from=ghcr.io/astral-sh/uv:0.9.8@sha256:08f409e1d53e77dfb5b65c788491f8ca70fe1d2d459f41c89afa2fcbef998abe /uv /uvx /bin/
 
 COPY pyproject.toml uv.lock README.md ./
@@ -25,17 +46,11 @@ COPY default_components ./default_components
 COPY config.py ./config.py
 COPY example_configurations/opencitations_meta/shacl.ttl ./shacl.ttl
 COPY example_configurations/opencitations_meta/display_rules.yaml ./display_rules.yaml
-COPY babel ./babel
 
 RUN uv sync --locked --no-dev
 
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY webpack.config.js ./
 COPY app.py ./
-
-RUN npm run build
+COPY --from=frontend /src/build/web ./frontend/build/web
 
 RUN mkdir -p /data
 

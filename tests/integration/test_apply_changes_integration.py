@@ -133,9 +133,15 @@ def test_reorder_backfills_provenance_for_all_chained_authors(
     for ra in data["ras"]:
         assert _provenance_generation_times(ra) == [backdated_time]
 
-    history_response = logged_in_client.get(f"/entity-history/{data['br']}")
+    history_response = logged_in_client.get(f"/api/entity-history/{data['br']}")
     assert history_response.status_code == 200
-    history_page = history_response.data.decode()
+    object_labels = {
+        entry["object_label"]
+        for snapshot in history_response.get_json()["snapshots"]
+        if snapshot["modifications"]
+        for entries in snapshot["modifications"].values()
+        for entry in entries
+    }
     for i in range(1, AUTHOR_COUNT + 1):
-        assert f"Given{i} Family{i}x{data['test_id']}" in history_page
-        assert f"ra/test{data['test_id']}n{i}<" not in history_page
+        assert f"author: Given{i} Family{i}x{data['test_id']}" in object_labels
+        assert f"ra/test{data['test_id']}n{i}" not in object_labels

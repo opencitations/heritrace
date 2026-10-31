@@ -15,6 +15,7 @@ This guide explains how to set up HERITRACE for local development from source co
 - Git
 - GNU Make
 - 7-Zip
+- The Flutter SDK, at the version pinned in `frontend/pubspec.yaml`
 - About 175 GB of free disk space for the first download of the OpenCitations Meta database
 - Modern web browser
 
@@ -35,7 +36,7 @@ Copy the example environment file and edit it with your settings:
 cp .env.example .env
 ```
 
-The default configuration runs in demo mode (`FLASK_ENV=demo`), which bypasses ORCID authentication. To enable ORCID login, set `FLASK_ENV=development` and configure `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, and `ORCID_SAFELIST` in `.env`.
+`make dev` signs users in with ORCID. Set `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, and `ORCID_SAFELIST` in `.env`, and register `https://127.0.0.1:5000/auth/callback` as a redirect URI of your ORCID application.
 
 ### 3. Start development environment
 
@@ -48,20 +49,27 @@ Development runs on the full [OpenCitations Meta](https://doi.org/10.5281/zenodo
 Then `make dev` starts:
 - QLever with the Meta data on `localhost:7101`
 - QLever with the provenance on `localhost:7103`, starting from an empty index
-- the application on `https://localhost:5000`, with an internal Redis
+- the backend on `https://127.0.0.1:5000`, with an internal Redis
+
+### 4. Start the client
+
+In a second terminal:
+
+```bash
+make frontend-dev
+```
+
+This runs the Flutter client with hot reload on `https://127.0.0.1:5100`, with the same self-signed certificate as the backend, and opens it in Chrome.
 
 ## Development features
 
 ### Demo mode
-`make demo` starts the same environment as `make dev` with `FLASK_ENV=demo`, which bypasses ORCID authentication. You can also set `FLASK_ENV=demo` in `.env` to use demo mode with `make dev`.
+`make demo` starts the same environment as `make dev` with `FLASK_ENV=demo`, which bypasses ORCID authentication.
 
 ### Hot reload
 Gunicorn runs with `--reload`, so changes to Python files automatically restart the workers. Watched paths include:
 - Python source files in `heritrace/`
 - `app.py`, `config.py`
 
-### Volume mounts
-The following directories are mounted for live editing:
-- `./heritrace` → Application source code
-- `./default_components` → Optional URI generator, counter handler, and save plugin implementations
-- SHACL schema and display rules from `example_configurations/`
+### Client changes
+The client lives in `frontend/`. With `make frontend-dev` running, press `r` in its terminal to hot reload after editing Dart code. After editing the strings in `frontend/lib/i18n/`, run `dart run slang` in `frontend/` first. `make frontend` produces the release build that Flask serves in production.

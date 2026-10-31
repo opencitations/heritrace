@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: ISC
 
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -80,7 +79,7 @@ def test_create_entity_with_shacl(
     }
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert response.status_code == 200
@@ -93,52 +92,6 @@ def test_create_entity_with_shacl(
     assert (
         mock_editor_instance.create.call_count >= 3
     )  # At least 3 create calls expected
-
-
-@patch(
-    "heritrace.routes.entity._creation.get_user_default_primary_source",
-    return_value=None,
-)
-@patch("heritrace.routes.entity._creation.get_form_fields", return_value={})
-def test_create_entity_renders_empty_primary_source_dialog_without_preview(
-    _mock_form_fields,
-    _mock_user_source,
-    logged_in_client,
-    app,
-) -> None:
-    response = logged_in_client.get(url_for("entity.create_entity"))
-
-    assert response.status_code == 200
-    assert response.data.count(b"defaultPrimarySource: null") == 1
-    assert response.data.count(app.config["PRIMARY_SOURCE"].encode()) == 0
-    assert response.data.count(b'id="primary-source-preview"') == 0
-    assert response.data.count(b"/api/format-source") == 0
-    assert response.data.count(b"No primary source will be recorded") == 0
-    assert response.data.count(b"Source (optional):") == 0
-    expected_prompt = (
-        b"Enter the URL of the primary source for this operation, or leave the "
-        b"field blank to record no source."
-    )
-    assert response.data.count(expected_prompt) == 1
-
-
-@patch(
-    "heritrace.routes.entity._creation.get_user_default_primary_source",
-    return_value="https://saved.example/source",
-)
-@patch("heritrace.routes.entity._creation.get_form_fields", return_value={})
-def test_create_entity_prefills_user_primary_source(
-    _mock_form_fields,
-    _mock_user_source,
-    logged_in_client,
-) -> None:
-    response = logged_in_client.get(url_for("entity.create_entity"))
-
-    assert response.status_code == 200
-    assert (
-        response.data.count(b'defaultPrimarySource: "https://saved.example/source"')
-        == 1
-    )
 
 
 @patch("heritrace.routes.entity._creation.Editor")
@@ -167,7 +120,7 @@ def test_create_entity_without_shacl(
     }
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert response.status_code == 200
@@ -232,7 +185,7 @@ def test_create_entity_with_ordered_properties(
     }
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert response.status_code == 200
@@ -294,7 +247,7 @@ def test_create_entity_with_shape_matching(
     }
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert response.status_code == 200
@@ -306,7 +259,7 @@ def test_create_entity_with_shape_matching(
     )
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert (
@@ -344,7 +297,7 @@ def test_create_entity_validation_error(
     data = {"entity_type": "http://example.org/Person", "properties": {}}
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert response.status_code == 400
@@ -383,7 +336,7 @@ def test_create_entity_editor_exception(
     }
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert response.status_code == 500
@@ -440,7 +393,7 @@ def test_create_entity_with_direct_uri_reference(
     }
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert response.status_code == 200
@@ -515,7 +468,7 @@ def test_create_entity_with_single_value_properties(
     }
 
     response = logged_in_client.post(
-        url_for("entity.create_entity"), data={"structured_data": json.dumps(data)}
+        url_for("entity.create_entity"), json={"structured_data": data}
     )
 
     assert response.status_code == 200
@@ -549,11 +502,10 @@ def test_create_entity_with_single_value_properties(
     )
 
 
-@patch("heritrace.routes.entity._creation.gettext")
 @patch("heritrace.routes.entity._creation.Editor")
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_invalid_primary_source(
-    mock_get_form_fields, mock_editor, mock_gettext, logged_in_client, app
+    mock_get_form_fields, mock_editor, logged_in_client, app
 ) -> None:
     """Test entity creation with an invalid primary source URL"""
     mock_get_form_fields.return_value = {}  # No SHACL validation needed for this test
@@ -561,9 +513,6 @@ def test_create_entity_invalid_primary_source(
     app.config[
         "URI_GENERATOR"
     ].generate_uri.return_value = "http://example.org/test/123"
-    mock_gettext.return_value = (
-        "Invalid primary source URL provided"  # Mock translation
-    )
 
     data = {
         "properties": {
@@ -575,10 +524,10 @@ def test_create_entity_invalid_primary_source(
 
     response = logged_in_client.post(
         url_for("entity.create_entity"),
-        data={
-            "structured_data": json.dumps(data),
-            "primary_source": "not-a-valid-url",  # Invalid URL
-            "save_default_source": "false",
+        json={
+            "structured_data": data,
+            "primary_source": "not-a-valid-url",
+            "save_default_source": False,
         },
     )
 
@@ -625,10 +574,10 @@ def test_create_entity_save_default_primary_source(
 
         response = logged_in_client.post(
             url_for("entity.create_entity"),
-            data={
-                "structured_data": json.dumps(data),
+            json={
+                "structured_data": data,
                 "primary_source": primary_source_url,
-                "save_default_source": "true",  # Set to save as default
+                "save_default_source": True,
             },
         )
 

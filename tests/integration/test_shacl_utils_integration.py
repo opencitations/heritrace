@@ -1851,7 +1851,6 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
 
         mock_custom_filter = Mock()
         mock_custom_filter.human_readable_predicate.return_value = "readable_value"
-        mock_error_message = "Invalid datatype error message"
 
         with (
             patch(
@@ -1872,10 +1871,6 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
                 "heritrace.utils.shacl_validation.convert_to_matching_literal",
                 return_value=None,
             ),
-            patch(
-                "heritrace.utils.shacl_validation.gettext",
-                return_value=mock_error_message,
-            ),
         ):
             valid_value, _old_value, error = validate_new_triple(
                 URIRef("http://example.org/person/1"),
@@ -1886,7 +1881,10 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
             )
 
             assert valid_value is None
-            assert error == mock_error_message
+            assert error == (
+                "'readable_value' is not a valid value. The 'readable_value'"
+                " property requires values of type 'Integer'"
+            )
 
 
 def test_validate_new_triple_with_invalid_url() -> None:
@@ -1947,7 +1945,6 @@ def test_validate_new_triple_with_invalid_url() -> None:
             ),
             patch("rdflib.graph.Graph.query", return_value=mock_results),
             patch("validators.url", return_value=False),
-            patch("flask_babel.gettext", return_value="Invalid URL error message"),
         ):
             valid_value, _old_value, _error = validate_new_triple(
                 URIRef("http://example.org/person/1"),

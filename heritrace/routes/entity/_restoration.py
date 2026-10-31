@@ -6,16 +6,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from flask import abort, current_app, flash, redirect, url_for
-from flask_babel import gettext
+from flask import Response, abort, current_app, jsonify
 from flask_login import current_user, login_required
 from rdflib import Dataset, Graph, Literal, URIRef
 from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 if TYPE_CHECKING:
     from datetime import datetime
-
-    from werkzeug.wrappers import Response
 
 from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor, EditorError, EndpointConfig
@@ -153,13 +150,26 @@ def _build_restored_states(
     return restored_n3_state, revert_floors
 
 
-@entity_bp.route("/restore-version/<path:entity_uri>/<timestamp>", methods=["POST"])
+@entity_bp.route("/entity-restore/<path:entity_uri>/<timestamp>", methods=["POST"])
 @login_required
-def restore_version(entity_uri: str, timestamp: str) -> Response:
-    entity_uri_ref = URIRef(entity_uri)
+def restore_version(entity_uri: str, timestamp: str) -> Response | tuple[Response, int]:
     timestamp_dt = convert_to_datetime(timestamp)
     if timestamp_dt is None:
         abort(404)
+    try:
+        restore_entity_version(entity_uri, timestamp_dt)
+    except (EditorError, OSError) as e:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"An error occurred while restoring the version: {e}",
+            }
+        ), 500
+    return jsonify({"status": "success"})
+
+
+def restore_entity_version(entity_uri: str, timestamp_dt: datetime) -> None:
+    entity_uri_ref = URIRef(entity_uri)
     change_tracking_config = get_change_tracking_config()
 
     agnostic_entity = AgnosticEntity(
@@ -243,18 +253,7 @@ def restore_version(entity_uri: str, timestamp: str) -> Response:
         source = entity_snapshots[entity_uri]["source"]
         editor.g_set.entity_index[entity_uri_ref]["source"] = source
 
-    try:
-        editor.save()
-        flash(gettext("Version restored successfully"), "success")
-    except (EditorError, OSError) as e:
-        flash(
-            gettext(
-                "An error occurred while restoring the version: %(error)s", error=str(e)
-            ),
-            "error",
-        )
-
-    return redirect(url_for("entity.about", subject=entity_uri))
+    editor.save()
 
 
 def compute_graph_differences(

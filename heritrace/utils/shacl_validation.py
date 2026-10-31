@@ -9,7 +9,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from flask_babel import gettext
 from rdflib import RDF, XSD, Dataset, Graph, Literal, URIRef
 from rdflib.plugins.sparql import prepareQuery
 
@@ -69,9 +68,10 @@ def _build_cardinality_metadata(
                     can_be_deleted.add(predicate)
 
             if "optionalValues" in ranges:
-                optional_values.setdefault(str(predicate), []).extend(
-                    ranges["optionalValues"]
-                )
+                values = optional_values.setdefault(str(predicate), [])
+                for value in ranges["optionalValues"]:
+                    if value not in values:
+                        values.append(value)
     return can_be_added, can_be_deleted, mandatory_values, optional_values
 
 
@@ -312,33 +312,22 @@ def _validate_cardinality(
     else:
         new_count = current_count
 
+    predicate_label = ctx.custom_filter.human_readable_predicate(
+        str(ctx.predicate), ctx.entity_key
+    )
     if max_count is not None and new_count > max_count:
-        value = gettext("value") if max_count == 1 else gettext("values")
+        value = "value" if max_count == 1 else "values"
         return (
             None,
             ctx.old_value,
-            gettext(
-                "The property %(predicate)s allows at most %(max_count)s %(value)s",
-                predicate=ctx.custom_filter.human_readable_predicate(
-                    str(ctx.predicate), ctx.entity_key
-                ),
-                max_count=max_count,
-                value=value,
-            ),
+            f"The property {predicate_label} allows at most {max_count} {value}",
         )
     if min_count is not None and new_count < min_count:
-        value = gettext("value") if min_count == 1 else gettext("values")
+        value = "value" if min_count == 1 else "values"
         return (
             None,
             ctx.old_value,
-            gettext(
-                "The property %(predicate)s requires at least %(min_count)s %(value)s",
-                predicate=ctx.custom_filter.human_readable_predicate(
-                    str(ctx.predicate), ctx.entity_key
-                ),
-                min_count=min_count,
-                value=value,
-            ),
+            f"The property {predicate_label} requires at least {min_count} {value}",
         )
     return None
 
@@ -380,6 +369,21 @@ def _validate_pattern_constraints(
     return None
 
 
+def _type_error(
+    new_value: str | URIRef | None, ctx: ValidationContext, type_labels: str
+) -> str:
+    value_label = ctx.custom_filter.human_readable_predicate(
+        str(new_value), ctx.entity_key
+    )
+    predicate_label = ctx.custom_filter.human_readable_predicate(
+        str(ctx.predicate), ctx.entity_key
+    )
+    return (
+        f"'{value_label}' is not a valid value. The '{predicate_label}' property"
+        f" requires values of type {type_labels}"
+    )
+
+
 def _validate_class_constraint(
     new_value: str | URIRef | None,
     ctx: ValidationContext,
@@ -389,29 +393,11 @@ def _validate_class_constraint(
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
     shape_str = str(current_shape or "")
     class_labels = ", ".join(
-        f"<code>{ctx.custom_filter.human_readable_class((c, shape_str))}</code>"
-        for c in classes
+        f"'{ctx.custom_filter.human_readable_class((c, shape_str))}'" for c in classes
     )
 
     def _class_error() -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
-        return (
-            None,
-            ctx.old_value,
-            gettext(
-                "<code>%(new_value)s</code> is not a"
-                " valid value. The"
-                " <code>%(property)s</code>"
-                " property requires values"
-                " of type %(o_types)s",
-                new_value=ctx.custom_filter.human_readable_predicate(
-                    str(new_value), ctx.entity_key
-                ),
-                property=ctx.custom_filter.human_readable_predicate(
-                    str(ctx.predicate), ctx.entity_key
-                ),
-                o_types=class_labels,
-            ),
-        )
+        return None, ctx.old_value, _type_error(new_value, ctx, class_labels)
 
     if not is_valid_url(str(new_value) if new_value is not None else None):
         return _class_error()
@@ -430,25 +416,8 @@ def _validate_datatype_constraint(
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str]:
     valid_value = convert_to_matching_literal(new_value, datatypes)
     if valid_value is None:
-        datatype_labels = [get_datatype_label(dt) for dt in datatypes]
-        return (
-            None,
-            ctx.old_value,
-            gettext(
-                "<code>%(new_value)s</code> is not a"
-                " valid value. The"
-                " <code>%(property)s</code>"
-                " property requires values"
-                " of type %(o_types)s",
-                new_value=ctx.custom_filter.human_readable_predicate(
-                    str(new_value), ctx.entity_key
-                ),
-                property=ctx.custom_filter.human_readable_predicate(
-                    str(ctx.predicate), ctx.entity_key
-                ),
-                o_types=", ".join(f"<code>{label}</code>" for label in datatype_labels),
-            ),
-        )
+        datatype_labels = ", ".join(f"'{get_datatype_label(dt)}'" for dt in datatypes)
+        return None, ctx.old_value, _type_error(new_value, ctx, datatype_labels)
     return valid_value, ctx.old_value, ""
 
 
@@ -517,28 +486,21 @@ def _validate_optional_values(
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str] | None:
     if not optional_values or new_value in optional_values:
         return None
-    optional_value_labels = [
-        ctx.custom_filter.human_readable_predicate(value, ctx.entity_key)
+    optional_value_labels = ", ".join(
+        f"'{ctx.custom_filter.human_readable_predicate(value, ctx.entity_key)}'"
         for value in optional_values
-    ]
+    )
+    value_label = ctx.custom_filter.human_readable_predicate(
+        str(new_value), ctx.entity_key
+    )
+    predicate_label = ctx.custom_filter.human_readable_predicate(
+        str(ctx.predicate), ctx.entity_key
+    )
     return (
         None,
         ctx.old_value,
-        gettext(
-            "<code>%(new_value)s</code> is not a valid"
-            " value. The <code>%(property)s</code>"
-            " property requires one of the following"
-            " values: %(o_values)s",
-            new_value=ctx.custom_filter.human_readable_predicate(
-                str(new_value), ctx.entity_key
-            ),
-            property=ctx.custom_filter.human_readable_predicate(
-                str(ctx.predicate), ctx.entity_key
-            ),
-            o_values=", ".join(
-                f"<code>{label}</code>" for label in optional_value_labels
-            ),
-        ),
+        f"'{value_label}' is not a valid value. The '{predicate_label}' property"
+        f" requires one of the following values: {optional_value_labels}",
     )
 
 
@@ -579,7 +541,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
 
     if not property_exists:
         if not s_types:
-            return (None, old_value, gettext("No entity type specified"))
+            return (None, old_value, "No entity type specified")
         return _coerce_value_without_shacl(new_value, old_value, XSD.string)
 
     datatypes, classes, optional_values, max_count, min_count = (

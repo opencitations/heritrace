@@ -18,6 +18,7 @@ test_meta_uri_generator = MetaURIGenerator(test_counter_handler)
 
 test_shacl_path = BASE_DIR / "tests" / "shacl.ttl"
 test_display_rules_path = BASE_DIR / "tests" / "display_rules.yaml"
+test_frontend_build_dir = BASE_DIR / "tests" / "frontend_build"
 
 
 class TestConfig:
@@ -27,7 +28,9 @@ class TestConfig:
     APP_SUBTITLE = "Bibliographical database - Test Environment"
 
     SECRET_KEY = "test-secret-key-for-testing-only"
-    WTF_CSRF_ENABLED = False
+    SESSION_COOKIE_SAMESITE = "Lax"
+    FRONTEND_BUILD_DIR = test_frontend_build_dir
+    FRONTEND_ORIGIN = ""
     SERVER_NAME = "localhost:5000"
     APPLICATION_ROOT = "/"
     PREFERRED_URL_SCHEME = "http"

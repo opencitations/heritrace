@@ -117,6 +117,4 @@ services:
       - ../uv.lock:/app/uv.lock
       - ../example_configurations/opencitations_meta/shacl.ttl:/app/shacl.ttl
       - ../example_configurations/opencitations_meta/display_rules.yaml:/app/display_rules.yaml
-      - ../babel:/app/babel
-      - ../webpack.config.js:/app/webpack.config.js
       - ../rdf:/app/rdf

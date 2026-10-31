@@ -5,8 +5,7 @@
 import re
 from datetime import datetime
 
-from flask import abort, render_template
-from flask_babel import gettext
+from flask import Response, abort, jsonify
 from flask_login import login_required
 from rdflib import RDF, Graph, Literal, URIRef
 from SPARQLWrapper import JSON
@@ -20,7 +19,7 @@ from heritrace.extensions import (
     get_provenance_sparql,
 )
 from heritrace.routes.entity._blueprint import entity_bp
-from heritrace.routes.entity._rendering import generate_modification_text
+from heritrace.routes.entity._modifications import Modifications, build_modifications
 from heritrace.routes.entity._types import _DATETIME_MIN_UTC, HistoryContext
 from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.converters import convert_to_datetime
@@ -39,9 +38,23 @@ from heritrace.utils.sparql_utils import (
 from heritrace.utils.uri_utils import is_valid_url
 
 
+def _snapshot_modifications(
+    metadata: dict,
+    ctx: HistoryContext,
+    snapshot_graph: Graph,
+    timestamp: str,
+) -> Modifications | None:
+    update_query = metadata.get("hasUpdateQuery")
+    if not update_query:
+        return None
+    return build_modifications(
+        parse_sparql_update(update_query), ctx, snapshot_graph, timestamp
+    )
+
+
 @entity_bp.route("/entity-history/<path:entity_uri>")
 @login_required
-def entity_history(entity_uri: str) -> str:
+def entity_history(entity_uri: str) -> Response:
     entity_uri_ref = URIRef(entity_uri)
     custom_filter = get_custom_filter()
     change_tracking_config = get_change_tracking_config()
@@ -55,6 +68,9 @@ def entity_history(entity_uri: str) -> str:
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
     history = convert_to_rdflib_graphs(history, is_quadstore=get_dataset_is_quadstore())
+
+    if entity_uri not in provenance:
+        abort(404)
 
     sorted_metadata = sorted(
         provenance[entity_uri].items(),
@@ -89,109 +105,25 @@ def entity_history(entity_uri: str) -> str:
         list(get_triples_from_graph(context_snapshot, (entity_uri_ref, None, None)))
     )
 
-    events = []
+    history_ctx = HistoryContext(
+        entity_uri=entity_uri,
+        highest_priority_class=highest_priority_class,
+        entity_shape=snapshot_entity_shape,
+        history=history,
+        sorted_timestamps=sorted_timestamps,
+        custom_filter=custom_filter,
+    )
+
+    snapshots = []
     for i, (_snapshot_uri, metadata) in enumerate(sorted_metadata):
         date = convert_to_datetime(metadata["generatedAtTime"])
         if date is None:
             msg = "date must not be None"
             raise AssertionError(msg)
-        snapshot_graph = history[entity_uri][date.isoformat()]
+        timestamp = date.isoformat()
+        snapshot_graph = history[entity_uri][timestamp]
 
-        responsible_agent = custom_filter.format_agent_reference(
-            metadata["wasAttributedTo"]
-        )
-        primary_source = custom_filter.format_source_reference(
-            metadata["hadPrimarySource"]
-        )
-
-        history_ctx = HistoryContext(
-            entity_uri=entity_uri,
-            highest_priority_class=highest_priority_class,
-            entity_shape=snapshot_entity_shape,
-            history=history,
-            sorted_timestamps=sorted_timestamps,
-            custom_filter=custom_filter,
-        )
-
-        description = _format_snapshot_description(
-            metadata,
-            history_ctx,
-            context_snapshot,
-            i,
-        )
-        modifications = metadata.get("hasUpdateQuery", "")
-        modification_text = ""
-        if modifications:
-            parsed_modifications = parse_sparql_update(modifications)
-            modification_text = generate_modification_text(
-                parsed_modifications,
-                history_ctx,
-                snapshot_graph,
-                date.isoformat(),
-            )
-
-        can_restore = len(sorted_metadata) > 1 and i + 1 < len(sorted_metadata)
-        restore_button = ""
-        if can_restore:
-            restore_label = gettext("Restore")
-            restore_action = (
-                f"/restore-version/{entity_uri}/{metadata['generatedAtTime']}"
-            )
-            restore_button = f"""
-                <form action='{restore_action}'
-                method='post'
-                class='d-inline restore-form'>
-                    <button type='submit'
-                    class='btn btn-success restore-btn'>
-                        <i class='bi
-                        bi-arrow-counterclockwise
-                        me-1'></i>{restore_label}
-                    </button>
-                </form>
-            """
-
-        event = {
-            "start_date": {
-                "year": date.year,
-                "month": date.month,
-                "day": date.day,
-                "hour": date.hour,
-                "minute": date.minute,
-                "second": date.second,
-            },
-            "text": {
-                "headline": gettext("Snapshot") + " " + str(i + 1),
-                "text": (
-                    f"<p><strong>"
-                    f"{gettext('Responsible agent')}"
-                    f":</strong>"
-                    f" {responsible_agent}</p>"
-                    f"<p><strong>"
-                    f"{gettext('Primary source')}"
-                    f":</strong>"
-                    f" {primary_source}</p>"
-                    f"<p><strong>"
-                    f"{gettext('Description')}"
-                    f":</strong>"
-                    f" {description}</p>"
-                    f'<div class="modifications mb-3">'
-                    f"{modification_text}"
-                    f"</div>"
-                    f'<div class="d-flex gap-2 mt-2">'
-                    f"<a href='/entity-version/"
-                    f"{entity_uri}/"
-                    f"{metadata['generatedAtTime']}'"
-                    f" class='btn btn-outline-primary"
-                    f" view-version'"
-                    f" target='_self'>"
-                    f"{gettext('View version')}</a>"
-                    f"{restore_button}"
-                    f"</div>"
-                ),
-            },
-            "autolink": False,
-        }
-
+        end_timestamp = None
         if i + 1 < len(sorted_metadata):
             next_date = convert_to_datetime(
                 sorted_metadata[i + 1][1]["generatedAtTime"]
@@ -199,30 +131,43 @@ def entity_history(entity_uri: str) -> str:
             if next_date is None:
                 msg = "next_date must not be None"
                 raise AssertionError(msg)
-            event["end_date"] = {
-                "year": next_date.year,
-                "month": next_date.month,
-                "day": next_date.day,
-                "hour": next_date.hour,
-                "minute": next_date.minute,
-                "second": next_date.second,
-            }
+            end_timestamp = next_date.isoformat()
 
-        events.append(event)
+        snapshots.append(
+            {
+                "index": i + 1,
+                "timestamp": timestamp,
+                "end_timestamp": end_timestamp,
+                "responsible_agent": custom_filter.format_agent_reference(
+                    metadata["wasAttributedTo"]
+                ),
+                "primary_source": custom_filter.format_source_reference(
+                    metadata["hadPrimarySource"]
+                ),
+                "description": _format_snapshot_description(
+                    metadata, history_ctx, context_snapshot, i
+                ),
+                "modifications": _snapshot_modifications(
+                    metadata, history_ctx, snapshot_graph, timestamp
+                ),
+                "can_restore": len(sorted_metadata) > 1
+                and i + 1 < len(sorted_metadata),
+            }
+        )
 
     entity_label = custom_filter.human_readable_entity(
         entity_uri, (highest_priority_class, snapshot_entity_shape), context_snapshot
     )
 
-    timeline_data = {
-        "entityUri": entity_uri,
-        "entityLabel": entity_label,
-        "entityClasses": list(entity_classes),
-        "entityShape": snapshot_entity_shape,
-        "events": events,
-    }
-
-    return render_template("entity/history.jinja", timeline_data=timeline_data)
+    return jsonify(
+        {
+            "entity_uri": entity_uri,
+            "entity_label": entity_label,
+            "entity_classes": list(entity_classes),
+            "entity_shape": snapshot_entity_shape,
+            "snapshots": snapshots,
+        }
+    )
 
 
 def _format_snapshot_description(
@@ -239,8 +184,7 @@ def _format_snapshot_description(
 
     if is_merge_snapshot:
         match = re.search(
-            r"merged with ['\u2018\u2019]?([^'\u2018\u2019<>\s]+)"
-            r"['\u2018\u2019]?",
+            "merged with ['\u2018\u2019]?([^'\u2018\u2019<>\\s]+)['\u2018\u2019]?",
             description,
         )
         if match:
@@ -380,17 +324,10 @@ def _prepare_modifications(
     context_version: Graph,
     closest_timestamp: str,
     sorted_timestamps: list[str],
-) -> tuple[str, dict]:
-    modifications = ""
-    if closest_metadata.get("hasUpdateQuery"):
-        sparql_query = closest_metadata["hasUpdateQuery"]
-        parsed_modifications = parse_sparql_update(sparql_query)
-        modifications = generate_modification_text(
-            parsed_modifications,
-            ctx,
-            context_version,
-            closest_timestamp,
-        )
+) -> tuple[Modifications | None, dict]:
+    modifications = _snapshot_modifications(
+        closest_metadata, ctx, context_version, closest_timestamp
+    )
 
     try:
         current_index = sorted_timestamps.index(closest_timestamp)
@@ -411,7 +348,7 @@ def _prepare_modifications(
 
 @entity_bp.route("/entity-version/<path:entity_uri>/<timestamp>")
 @login_required
-def entity_version(entity_uri: str, timestamp: str) -> str:
+def entity_version(entity_uri: str, timestamp: str) -> Response:
     entity_uri_ref = URIRef(entity_uri)
     custom_filter = get_custom_filter()
     change_tracking_config = get_change_tracking_config()
@@ -533,19 +470,42 @@ def entity_version(entity_uri: str, timestamp: str) -> str:
         sorted_timestamps,
     )
 
-    closest_timestamp = closest_metadata["generatedAtTime"]
+    groups = [
+        {
+            "display_name": display_name,
+            "values": [
+                str(triple_data["triple"][2]) for triple_data in data["triples"]
+            ],
+        }
+        for display_name, data in grouped_triples.items()
+        if data["triples"]
+    ]
 
-    return render_template(
-        "entity/version.jinja",
-        subject=entity_uri,
-        entity_type=highest_priority_class,
-        entity_shape=entity_shape,
-        metadata={closest_timestamp: closest_metadata},
-        timestamp=closest_timestamp,
-        next_snapshot_timestamp=next_snapshot_timestamp,
-        prev_snapshot_timestamp=prev_snapshot_timestamp,
-        modifications=modifications,
-        grouped_triples=grouped_triples,
-        version_number=version_number,
-        version=context_version,
+    return jsonify(
+        {
+            "entity_uri": entity_uri,
+            "entity_label": custom_filter.human_readable_entity(
+                entity_uri, (highest_priority_class, entity_shape), context_version
+            ),
+            "type": highest_priority_class,
+            "shape": entity_shape,
+            "version_number": version_number,
+            "timestamp": closest_metadata["generatedAtTime"],
+            "prev_timestamp": prev_snapshot_timestamp,
+            "next_timestamp": next_snapshot_timestamp,
+            "is_deletion_snapshot": bool(is_deletion_snapshot),
+            "metadata": {
+                "generated_at": closest_metadata["generatedAtTime"],
+                "invalidated_at": closest_metadata.get("invalidatedAtTime"),
+                "attributed_to": custom_filter.format_agent_reference(
+                    closest_metadata["wasAttributedTo"]
+                ),
+                "primary_source": custom_filter.format_source_reference(
+                    closest_metadata.get("hadPrimarySource")
+                ),
+                "description": closest_metadata.get("description"),
+            },
+            "modifications": modifications,
+            "groups": groups,
+        }
     )

@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: ISC
 
 from unittest.mock import MagicMock, call, patch
-from urllib.parse import parse_qs, urlparse
 
 import pytest
 from flask import url_for
@@ -179,6 +178,19 @@ def merge_test_data():
     }
 
 
+def _filter_with_labels(merge_test_data: dict) -> MagicMock:
+    mock_filter_instance = MagicMock()
+    mock_filter_instance.human_readable_entity.side_effect = [
+        merge_test_data["entity1_label"],
+        merge_test_data["entity2_label"],
+    ]
+    mock_filter_instance.human_readable_class.side_effect = ["Keep Type", "Delete Type"]
+    mock_filter_instance.human_readable_predicate.side_effect = (
+        lambda predicate, *_a, **_k: predicate
+    )
+    return mock_filter_instance
+
+
 @patch("heritrace.routes.merge.get_custom_filter")
 @patch("heritrace.routes.merge.get_entity_details")
 @patch("heritrace.routes.merge.Editor")
@@ -193,7 +205,7 @@ def merge_test_data():
 )
 @patch("heritrace.routes.merge.get_dataset_is_quadstore", return_value=False)
 @patch("flask_login.utils._get_user")
-def test_execute_merge_success_flash(
+def test_execute_merge_success(
     mock_current_user,
     _mock_quadstore,
     _mock_prov,
@@ -207,45 +219,41 @@ def test_execute_merge_success_flash(
     mock_user,
     merge_test_data,
 ) -> None:
-    """Test flash message for successful execution of the merge."""
     mock_current_user.return_value = mock_user
     mock_get_details.side_effect = [
         (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
         (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
     ]
-    mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
-        merge_test_data["entity1_label"],
-        merge_test_data["entity2_label"],
-    ]
-    mock_get_filter.return_value = mock_filter_instance
+    mock_get_filter.return_value = _filter_with_labels(merge_test_data)
     mock_editor_instance = MagicMock()
     mock_editor_cls.return_value = mock_editor_instance
 
-    with client.session_transaction() as session:
-        session["_user_id"] = mock_user.orcid
-
     response = client.post(
         url_for("merge.execute_merge"),
-        data={
+        json={
             "entity1_uri": merge_test_data["entity1_uri"],
             "entity2_uri": merge_test_data["entity2_uri"],
         },
-        follow_redirects=False,
     )
 
-    assert response.status_code == 302
-    with client.session_transaction() as session:
-        flashes = session.get("_flashes", [])
-        assert len(flashes) == 1
-        assert flashes[0][0] == "success"
-        assert merge_test_data["entity1_label"] in str(flashes[0][1])
-        assert merge_test_data["entity2_label"] in str(flashes[0][1])
-
-    expected_path = urlparse(
-        url_for("entity.about", subject=merge_test_data["entity1_uri"])
-    ).path
-    assert urlparse(response.location).path == expected_path
+    assert response.status_code == 200
+    assert response.get_json() == {
+        "status": "success",
+        "kept": {
+            "uri": merge_test_data["entity1_uri"],
+            "label": merge_test_data["entity1_label"],
+            "type": merge_test_data["entity1_types"][0],
+            "type_label": "Keep Type",
+            "shape": None,
+        },
+        "deleted": {
+            "uri": merge_test_data["entity2_uri"],
+            "label": merge_test_data["entity2_label"],
+            "type": merge_test_data["entity2_types"][0],
+            "type_label": "Delete Type",
+            "shape": None,
+        },
+    }
     mock_editor_cls.assert_called_once_with(
         EndpointConfig(
             dataset="http://db/ds_merge_flash",
@@ -273,36 +281,22 @@ def test_execute_merge_success_flash(
 def test_execute_merge_invalid_primary_source(
     mock_current_user, client, mock_user, merge_test_data
 ) -> None:
-    """Test merge with invalid primary source URL."""
     mock_current_user.return_value = mock_user
-    invalid_url = "not-a-valid-url"
-
-    with client.session_transaction() as session:
-        session["_user_id"] = mock_user.orcid
 
     response = client.post(
         url_for("merge.execute_merge"),
-        data={
+        json={
             "entity1_uri": merge_test_data["entity1_uri"],
             "entity2_uri": merge_test_data["entity2_uri"],
-            "primary_source": invalid_url,
+            "primary_source": "not-a-valid-url",
         },
-        follow_redirects=False,
     )
 
-    assert response.status_code == 302
-
-    # Should redirect back to compare_and_merge with both entity URIs
-    assert "compare-and-merge" in response.location.lower()
-    query = parse_qs(urlparse(response.location).query)
-    assert query.get("subject") == [merge_test_data["entity1_uri"]]
-    assert query.get("other_subject") == [merge_test_data["entity2_uri"]]
-
-    with client.session_transaction() as session:
-        flashes = session.get("_flashes", [])
-        assert len(flashes) == 1
-        assert flashes[0][0] == "danger"
-        assert "invalid" in flashes[0][1].lower()
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "status": "error",
+        "message": "Invalid primary source URL provided.",
+    }
 
 
 @patch("heritrace.routes.merge.save_user_default_primary_source")
@@ -334,39 +328,29 @@ def test_execute_merge_save_default_source(
     mock_user,
     merge_test_data,
 ) -> None:
-    """Test that default source is saved when checkbox is checked."""
     mock_current_user.return_value = mock_user
     mock_get_details.side_effect = [
         (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
         (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
     ]
-    mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
-        merge_test_data["entity1_label"],
-        merge_test_data["entity2_label"],
-    ]
-    mock_get_filter.return_value = mock_filter_instance
+    mock_get_filter.return_value = _filter_with_labels(merge_test_data)
     mock_editor_instance = MagicMock()
     mock_editor_cls.return_value = mock_editor_instance
 
     primary_source = "https://example.com/valid-source"
 
-    with client.session_transaction() as session:
-        session["_user_id"] = mock_user.orcid
-
-    client.post(
+    response = client.post(
         url_for("merge.execute_merge"),
-        data={
+        json={
             "entity1_uri": merge_test_data["entity1_uri"],
             "entity2_uri": merge_test_data["entity2_uri"],
             "primary_source": primary_source,
-            "save_default_source": "true",
+            "save_default_source": True,
         },
-        follow_redirects=False,
     )
 
+    assert response.status_code == 200
     mock_save_source.assert_called_once_with(mock_user.orcid, primary_source)
-
     mock_editor_instance.merge.assert_called_once_with(
         keep_entity_uri=URIRef(merge_test_data["entity1_uri"]),
         delete_entity_uri=URIRef(merge_test_data["entity2_uri"]),
@@ -376,25 +360,15 @@ def test_execute_merge_save_default_source(
 
 @patch("flask_login.utils._get_user")
 def test_execute_merge_missing_uris(mock_current_user, client, mock_user) -> None:
-    """Test merge attempt with missing URIs."""
     mock_current_user.return_value = mock_user
 
-    with client.session_transaction() as session:
-        session["_user_id"] = mock_user.orcid
+    response = client.post(url_for("merge.execute_merge"), json={})
 
-    response = client.post(
-        url_for("merge.execute_merge"), data={}, follow_redirects=False
-    )
-
-    assert response.status_code == 302
-    with client.session_transaction() as session:
-        flashes = session.get("_flashes", [])
-        assert len(flashes) == 1
-        assert flashes[0][0] == "danger"
-        assert "Missing entity URIs" in flashes[0][1]
-
-    expected_path = urlparse(url_for("main.catalogue")).path
-    assert urlparse(response.location).path == expected_path
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "status": "error",
+        "message": "Missing entity URIs for merge.",
+    }
 
 
 @patch("heritrace.routes.merge.get_custom_filter")
@@ -410,98 +384,29 @@ def test_execute_merge_editor_value_error(
     mock_user,
     merge_test_data,
 ) -> None:
-    """Test merge when Editor.merge raises ValueError."""
     mock_current_user.return_value = mock_user
     mock_get_details.side_effect = [
         (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
         (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
     ]
-    mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
-        merge_test_data["entity1_label"],
-        merge_test_data["entity2_label"],
-    ]
-    mock_get_filter.return_value = mock_filter_instance
+    mock_get_filter.return_value = _filter_with_labels(merge_test_data)
     mock_editor_instance = MagicMock()
     mock_editor_instance.merge.side_effect = ValueError("Test Editor Value Error")
     mock_editor_cls.return_value = mock_editor_instance
 
     response = client.post(
         url_for("merge.execute_merge"),
-        data={
+        json={
             "entity1_uri": merge_test_data["entity1_uri"],
             "entity2_uri": merge_test_data["entity2_uri"],
         },
-        follow_redirects=False,
     )
 
-    assert response.status_code == 302
-    expected_path = urlparse(
-        url_for(
-            "merge.compare_and_merge",
-            subject=merge_test_data["entity1_uri"],
-            other_subject=merge_test_data["entity2_uri"],
-        )
-    ).path
-    assert urlparse(response.location).path == expected_path
-
-
-@patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_entity_details")
-@patch("heritrace.routes.merge.Editor")
-@patch("flask_login.utils._get_user")
-def test_execute_merge_editor_value_error_flash(
-    mock_current_user,
-    mock_editor_cls,
-    mock_get_details,
-    mock_get_filter,
-    client,
-    mock_user,
-    merge_test_data,
-) -> None:
-    """Test flash message for merge ValueError."""
-    mock_current_user.return_value = mock_user
-    mock_get_details.side_effect = [
-        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
-        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
-    ]
-    mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
-        merge_test_data["entity1_label"],
-        merge_test_data["entity2_label"],
-    ]
-    mock_get_filter.return_value = mock_filter_instance
-    mock_editor_instance = MagicMock()
-    mock_editor_instance.merge.side_effect = ValueError("Test Value Error Flash")
-    mock_editor_cls.return_value = mock_editor_instance
-
-    with client.session_transaction() as session:
-        session["_user_id"] = mock_user.orcid
-
-    response = client.post(
-        url_for("merge.execute_merge"),
-        data={
-            "entity1_uri": merge_test_data["entity1_uri"],
-            "entity2_uri": merge_test_data["entity2_uri"],
-        },
-        follow_redirects=False,
-    )
-
-    assert response.status_code == 302
-    with client.session_transaction() as session:
-        flashes = session.get("_flashes", [])
-        assert len(flashes) == 1
-        assert flashes[0][0] == "warning"
-        assert "Test Value Error Flash" in flashes[0][1]
-
-    expected_path = urlparse(
-        url_for(
-            "merge.compare_and_merge",
-            subject=merge_test_data["entity1_uri"],
-            other_subject=merge_test_data["entity2_uri"],
-        )
-    ).path
-    assert urlparse(response.location).path == expected_path
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "status": "error",
+        "message": "Test Editor Value Error",
+    }
 
 
 @patch("heritrace.routes.merge.get_custom_filter")
@@ -517,98 +422,32 @@ def test_execute_merge_general_exception(
     mock_user,
     merge_test_data,
 ) -> None:
-    """Test merge when a general exception occurs."""
     mock_current_user.return_value = mock_user
     mock_get_details.side_effect = [
         (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
         (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
     ]
-    mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
-        merge_test_data["entity1_label"],
-        merge_test_data["entity2_label"],
-    ]
-    mock_get_filter.return_value = mock_filter_instance
+    mock_get_filter.return_value = _filter_with_labels(merge_test_data)
     mock_editor_instance = MagicMock()
     mock_editor_instance.merge.side_effect = Exception("Something went wrong general")
     mock_editor_cls.return_value = mock_editor_instance
 
     response = client.post(
         url_for("merge.execute_merge"),
-        data={
+        json={
             "entity1_uri": merge_test_data["entity1_uri"],
             "entity2_uri": merge_test_data["entity2_uri"],
         },
-        follow_redirects=False,
     )
 
-    assert response.status_code == 302
-    expected_path = urlparse(
-        url_for(
-            "merge.compare_and_merge",
-            subject=merge_test_data["entity1_uri"],
-            other_subject=merge_test_data["entity2_uri"],
-        )
-    ).path
-    assert urlparse(response.location).path == expected_path
-
-
-@patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_entity_details")
-@patch("heritrace.routes.merge.Editor")
-@patch("flask_login.utils._get_user")
-def test_execute_merge_general_exception_flash(
-    mock_current_user,
-    mock_editor_cls,
-    mock_get_details,
-    mock_get_filter,
-    client,
-    mock_user,
-    merge_test_data,
-) -> None:
-    """Test flash message for general merge exception."""
-    mock_current_user.return_value = mock_user
-    mock_get_details.side_effect = [
-        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
-        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
-    ]
-    mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
-        merge_test_data["entity1_label"],
-        merge_test_data["entity2_label"],
-    ]
-    mock_get_filter.return_value = mock_filter_instance
-    mock_editor_instance = MagicMock()
-    mock_editor_instance.merge.side_effect = Exception("General Error Test Flash")
-    mock_editor_cls.return_value = mock_editor_instance
-
-    with client.session_transaction() as session:
-        session["_user_id"] = mock_user.orcid
-
-    response = client.post(
-        url_for("merge.execute_merge"),
-        data={
-            "entity1_uri": merge_test_data["entity1_uri"],
-            "entity2_uri": merge_test_data["entity2_uri"],
-        },
-        follow_redirects=False,
-    )
-
-    assert response.status_code == 302
-    with client.session_transaction() as session:
-        flashes = session.get("_flashes", [])
-        assert len(flashes) == 1
-        assert flashes[0][0] == "danger"
-        assert "An error occurred during the merge operation" in flashes[0][1]
-
-    expected_path = urlparse(
-        url_for(
-            "merge.compare_and_merge",
-            subject=merge_test_data["entity1_uri"],
-            other_subject=merge_test_data["entity2_uri"],
-        )
-    ).path
-    assert urlparse(response.location).path == expected_path
+    assert response.status_code == 500
+    assert response.get_json() == {
+        "status": "error",
+        "message": (
+            "An error occurred during the merge operation."
+            " Please check the logs. No changes were made."
+        ),
+    }
 
 
 @patch("heritrace.utils.sparql_utils.get_sparql")
@@ -624,18 +463,12 @@ def test_compare_and_merge_success(
     mock_user,
     merge_test_data,
 ) -> None:
-    """Test successfully rendering the comparison page."""
     mock_current_user.return_value = mock_user
     mock_get_details.side_effect = [
         (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
         (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
     ]
-    mock_filter_instance = MagicMock()
-    mock_filter_instance.human_readable_entity.side_effect = [
-        merge_test_data["entity1_label"],
-        merge_test_data["entity2_label"],
-    ]
-    mock_get_filter.return_value = mock_filter_instance
+    mock_get_filter.return_value = _filter_with_labels(merge_test_data)
 
     response = client.get(
         url_for(
@@ -646,9 +479,40 @@ def test_compare_and_merge_success(
     )
 
     assert response.status_code == 200
-    assert merge_test_data["entity1_label"].encode() in response.data
-    assert merge_test_data["entity2_label"].encode() in response.data
-    assert b"Confirm Entity Merge" in response.data
+    assert response.get_json() == {
+        "entity1": {
+            "uri": merge_test_data["entity1_uri"],
+            "label": merge_test_data["entity1_label"],
+            "type": merge_test_data["entity1_types"][0],
+            "type_label": "Keep Type",
+            "shape": None,
+            "properties": [
+                {
+                    "predicate": "http://merge.test/propA",
+                    "label": "http://merge.test/propA",
+                    "values": merge_test_data["entity1_props"][
+                        "http://merge.test/propA"
+                    ],
+                }
+            ],
+        },
+        "entity2": {
+            "uri": merge_test_data["entity2_uri"],
+            "label": merge_test_data["entity2_label"],
+            "type": merge_test_data["entity2_types"][0],
+            "type_label": "Delete Type",
+            "shape": None,
+            "properties": [
+                {
+                    "predicate": "http://merge.test/propB",
+                    "label": "http://merge.test/propB",
+                    "values": merge_test_data["entity2_props"][
+                        "http://merge.test/propB"
+                    ],
+                }
+            ],
+        },
+    }
     mock_get_details.assert_any_call(URIRef(merge_test_data["entity1_uri"]))
     mock_get_details.assert_any_call(URIRef(merge_test_data["entity2_uri"]))
 
@@ -657,26 +521,17 @@ def test_compare_and_merge_success(
 def test_compare_and_merge_missing_uris(
     mock_current_user, client, mock_user, merge_test_data
 ) -> None:
-    """Test compare page access with missing URIs."""
     mock_current_user.return_value = mock_user
 
-    with client.session_transaction() as session:
-        session["_user_id"] = mock_user.orcid
-
     response = client.get(
-        url_for("merge.compare_and_merge", subject=merge_test_data["entity1_uri"]),
-        follow_redirects=False,
+        url_for("merge.compare_and_merge", subject=merge_test_data["entity1_uri"])
     )
 
-    assert response.status_code == 302
-    with client.session_transaction() as session:
-        flashes = session.get("_flashes", [])
-        assert len(flashes) == 1
-        assert flashes[0][0] == "warning"
-        assert "Two entities must be selected" in flashes[0][1]
-
-    expected_path = urlparse(url_for("main.catalogue")).path
-    assert urlparse(response.location).path == expected_path
+    assert response.status_code == 400
+    assert response.get_json() == {
+        "status": "error",
+        "message": "Two entities must be selected for merging/comparison.",
+    }
 
 
 @patch("heritrace.routes.merge.get_entity_details", return_value=(None, []))
@@ -684,30 +539,21 @@ def test_compare_and_merge_missing_uris(
 def test_compare_and_merge_fetch_error(
     mock_current_user, _mock_get_details, client, mock_user, merge_test_data
 ) -> None:
-    """Test compare page when fetching entity details fails."""
     mock_current_user.return_value = mock_user
-
-    with client.session_transaction() as session:
-        session["_user_id"] = mock_user.orcid
 
     response = client.get(
         url_for(
             "merge.compare_and_merge",
             subject=merge_test_data["entity1_uri"],
             other_subject=merge_test_data["entity2_uri"],
-        ),
-        follow_redirects=False,
+        )
     )
 
-    assert response.status_code == 302
-    with client.session_transaction() as session:
-        flashes = session.get("_flashes", [])
-        assert len(flashes) == 1
-        assert flashes[0][0] == "danger"
-        assert "Could not retrieve details" in flashes[0][1]
-
-    expected_path = urlparse(url_for("main.catalogue")).path
-    assert urlparse(response.location).path == expected_path
+    assert response.status_code == 502
+    assert response.get_json() == {
+        "status": "error",
+        "message": "Could not retrieve details for one or both entities.",
+    }
 
 
 @pytest.fixture

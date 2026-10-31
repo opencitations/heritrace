@@ -2174,7 +2174,7 @@ class TestProcessDeletedEntities:
 
         entities = process_deleted_entities(bindings)
 
-        mock_custom_filter.format_agent_reference.assert_called_once_with("")
+        mock_custom_filter.format_agent_reference.assert_called_once_with(None)
         assert len(entities) == 1
 
     def test_skips_entities_without_a_priority_class(

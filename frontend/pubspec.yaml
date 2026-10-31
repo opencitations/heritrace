@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+name: heritrace
+description: "HERITRACE web client."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.5
+  flutter: 3.47.7
+
+dependencies:
+  dio: ^5.11.1
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.4.3
+  flutter_web_plugins:
+    sdk: flutter
+  go_router: ^18.1.2
+  intl: ^0.20.3
+  slang: ^4.19.2
+  slang_flutter: ^4.19.0
+  url_launcher: ^6.3.3
+  web: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  slang_build_runner: ^4.19.0
+  build_runner: ^2.16.2
+  riverpod: ^3.4.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

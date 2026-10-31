@@ -1,0 +1,187 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+appTitle: HERITRACE
+nav:
+  catalogue: Catalogue
+  newRecord: New record
+  timeVault: Time vault
+  login: Login
+  logout: Logout
+actions:
+  ok: OK
+  cancel: Cancel
+  retry: Retry
+  save: Save
+  delete: Delete
+  close: Close
+  done: Done
+  add: Add
+  change: Change
+  visit: Visit
+  loadMore: Load more
+errors:
+  title: Something went wrong
+  network: The server could not be reached. Check your connection and try again.
+notFound:
+  title: Page not found
+  message: The page you are looking for does not exist.
+  backToCatalogue: Go to the catalogue
+landing:
+  goToCatalogue: Go to the catalogue
+  loginFailed: An error occurred during authentication. Please try again.
+  loginNotAuthorized: Your ORCID is not authorized to access this application.
+catalogue:
+  title: Catalogue
+  timeVaultTitle: Time vault
+  categories: Categories
+  noClasses: No entity types are available in the dataset.
+  noEntities: No entities found.
+  sortBy: Sort by
+  sortAscending: Sort ascending
+  sortDescending: Sort descending
+  perPage: Per page
+  pageOf: Page $current of $total
+  firstPage: First page
+  previousPage: Previous page
+  nextPage: Next page
+  lastPage: Last page
+timeVault:
+  deletedOn: Deleted on $time
+  deletedBy: "Deleted by"
+  viewLastVersion: View last version
+  restore: Restore
+  restoreTitle: Restore entity
+  restoreMessage: Restore "$label" to its last valid version?
+  restoring: Restoring the entity. Please wait...
+form:
+  required: This field is required
+  mandatoryValue: This property has a mandatory value that cannot be modified
+  addItem: Add $name
+  addProperty: Add property
+  selectOption: Select an option
+  fillInDetails: Fill in the details
+  draftLabelFailed: Could not update the entity label
+  dateTypeDate: Date
+  dateTypeMonth: Year and month
+  dateTypeYear: Year
+  pickDate: Pick a date
+  similarEntities: Found $count entities similar to the one you are creating
+  createNewEntity: Create new entity
+  moreResults: Ask for more results
+  view: View
+  customProperty: Custom property
+  propertyUri: Property URI
+  invalidPropertyUri: Please enter a valid URL for the property URI
+  value: Value
+  invalidUrl: Please enter a valid URL
+  valueType: Value type
+  literal: Literal
+  uri: URI
+  datatype: Datatype
+  noValidDatatypes: No valid datatypes for this value
+  errorsTitle: "Errors ($count)"
+  invalidInput: Invalid input. Expected $expected.
+  tooMany: The property "$name" has too many values ($count). Maximum allowed is $max.
+  tooFew: The property "$name" has too few values ($count). Minimum required is $min.
+  atLeastOneProperty: Please fill out at least one property
+  atLeastOneCustomProperty: Please provide at least one property with a value
+primarySource:
+  title: Enter primary source
+  description: Enter the URL of the primary source for this operation, or leave the field blank to record no source.
+  hint: Enter the URL
+  saveAsDefault: Save this URL as my default primary source
+  confirm: Confirm
+  invalidUrl: Please enter a valid URL or leave blank.
+create:
+  title: New record
+  selectType: Select an entity type
+  submit: Add new record
+  validating: Validating data. Please wait...
+  validationErrors: Validation errors
+entity:
+  edit: Edit resource
+  cancelEditing: Cancel editing
+  delete: Delete resource
+  timeMachine: Time machine
+  merge: Merge
+  revert: Revert
+  deletedBanner: This entity has been deleted. You can view its history using the time machine above.
+  noInformation: There is no information related to this resource in the dataset.
+  linkedResources: Resources referencing this
+  noLinkedResources: No resources reference this resource.
+  similarResources: Similar resources
+  noSimilarResources: No potentially similar resources found.
+  unsavedTitle: Unsaved changes
+  unsavedMessage: You have unsaved changes. Are you sure you want to exit edit mode?
+  discardChanges: Yes, discard changes
+  noChangesTitle: No changes detected
+  noChangesMessage: It looks like you have not made any changes yet. Try updating a field first.
+  saveChanges: Save changes
+  primarySourceDescription: The primary source is optional. Click Save changes to finish saving.
+  applying: Applying changes to the entity. Please wait...
+  checkingDependencies: Checking for affected entities. Please wait...
+  deleteTitle: Are you sure?
+  deleteMessage: This will delete this resource and all its data. You can still restore it later using the time vault.
+  deleteConfirm: Yes, delete it
+  saving: Saving changes...
+  unsaved: Unsaved changes
+  saved: Changes saved
+  unchanged: No changes
+  readyToSave: Ready to save
+  correctErrors: Correct the errors to save
+lock:
+  lockedTitle: Resource locked
+  lockedMessage: This resource is currently being edited by another user.
+  lostTitle: Lock lost
+  lostMessage: Your editing session has expired. Any changes will be lost.
+orphans:
+  title: Warning
+  orphansIntro: "The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):"
+  proxiesIntro: "The following intermediate relationships (proxies) will also be removed:"
+  question: Would you like to delete all these entities now?
+  delete: Yes, delete affected entities
+  keep: No, keep affected entities
+history:
+  breadcrumb: History
+  title: Version history for $label
+  snapshot: Snapshot $index
+  since: From $start
+  between: From $start to $end
+  responsibleAgent: Responsible agent
+  primarySource: Primary source
+  description: Description
+  modifications: Modifications
+  additions: Additions
+  deletions: Deletions
+  viewVersion: View version
+  restore: Restore
+  restoring: Restoring this version. Please wait...
+version:
+  breadcrumb: Version $number
+  title: Version $number of $label
+  restore: Restore this version
+  previous: Previous version
+  next: Next version
+  metadata: Metadata of snapshot $number
+  generationTime: Generation time
+  invalidationTime: Invalidation time
+  deletionSnapshot: This is a deletion snapshot. The entity was deleted at this point in time.
+merge:
+  title: Confirm entity merge
+  missingEntities: Two entities must be selected for merging.
+  mergeInto: Merge into
+  deleteCard: Entity 2 (merge and delete)
+  keepCard: Entity 1 (keep)
+  properties: Properties
+  noProperties: No properties found for this entity.
+  viewDetails: View details
+  propertiesTitle: "Properties:"
+  propertiesText: All properties from entity 2 will be added to entity 1.
+  referencesTitle: "References:"
+  referencesText: Links pointing to entity 2 will be updated to point to entity 1.
+  deletionTitle: "Deletion:"
+  deletionText: Entity 2 will be deleted after the merge.
+  confirm: Confirm merge
+  merging: Merging the entities. Please wait...

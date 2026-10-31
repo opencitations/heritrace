@@ -3,9 +3,13 @@ __pycache__/
 .venv/
 .ruff_cache/
 
-# JavaScript
-node_modules/
-heritrace/static/dist/
+# Flutter
+frontend/build/
+frontend/.dart_tool/
+frontend/lib/i18n/*.g.dart
+frontend/lib/i18n/_missing_translations.yaml
+frontend/lib/i18n/_unused_translations.yaml
+frontend/.flutter-plugins-dependencies
 
 # Local configuration
 .env
@@ -39,8 +43,9 @@ htmlcov/
 pytest-report.xml
 coverage.xml
 
-# Development databases
+# Development databases and certificates
 dev/data/
+dev/ssl/
 
 # User testing demos started by make
 .user-test/

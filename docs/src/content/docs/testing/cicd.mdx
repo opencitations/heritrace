@@ -18,10 +18,11 @@ HERITRACE uses separate GitHub Actions workflows so that each check has its own 
 - **Pyright** (`.github/workflows/pyright.yml`) checks Python types.
 - **Ruff** (`.github/workflows/ruff.yml`) checks linting and formatting.
 - **REUSE compliance** (`.github/workflows/reuse.yml`) checks licensing metadata.
-- **Release** (`.github/workflows/release.yml`) creates the release and publishes container images after all four checks succeed.
+- **Flutter** (`.github/workflows/flutter.yml`) generates the translations, checks formatting, analyzes, tests and builds the web client.
+- **Release** (`.github/workflows/release.yml`) creates the release and publishes container images after all five checks succeed.
 - **Software citation** (`.github/workflows/software-citation.yml`) updates citation metadata after a successful release.
 
-The first four workflows run independently on every push and on pull requests to `main`. On `main`, `Release` starts when `Run tests` completes. It proceeds only when that workflow succeeds, the commit message contains `[release]`, and the Pyright, Ruff, and REUSE push runs for the same commit also succeed.
+The first five workflows run independently on every push and on pull requests to `main`. On `main`, `Release` starts when `Run tests` completes. It proceeds only when that workflow succeeds, the commit message contains `[release]`, and the Pyright, Ruff, REUSE and Flutter push runs for the same commit also succeed.
 
 ### Testing workflow steps
 
@@ -44,7 +45,7 @@ The release workflow automates the creation of releases and publication of Docke
 ### Release workflow steps
 
 1. **Semantic Release**: Uses semantic-release to automatically create GitHub releases based on conventional commit messages
-2. **Docker Image Building**: Builds multi-platform Docker images (AMD64 and ARM64)
+2. **Docker Image Building**: Builds multi-platform Docker images (AMD64 and ARM64). The first stage builds the Flutter Web client; the final image holds the Python backend and the built client
 3. **Docker Hub Publishing**: Publishes images to Docker Hub under the configured username
 4. **GitHub Container Registry**: Publishes images to GitHub Container Registry (`ghcr.io`)
 

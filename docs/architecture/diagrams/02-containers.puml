@@ -14,7 +14,9 @@ Person(user, "GLAM domain expert")
 Person(admin, "Administrator")
 
 System_Boundary(heritrace, "HERITRACE system") {
-    Container(web_app, "Web application", "Python/Flask", "Manages semantic data\nwith SHACL validation,\nprovenance, and change tracking")
+    Container(client, "Web client", "Flutter Web", "Forms, catalogue, history\nand merge screens\nrunning in the browser")
+
+    Container(web_app, "API server", "Python/Flask", "Manages semantic data\nwith SHACL validation,\nprovenance, and change tracking")
 
     ContainerDb(triplestore_data, "Semantic datastore", "RDF quadstore", "Stores cultural heritage\nentities as RDF triples")
 
@@ -25,7 +27,8 @@ System_Boundary(heritrace, "HERITRACE system") {
 
 System_Ext(orcid, "ORCID")
 
-Rel(user, web_app, "Edits metadata", "HTTPS")
+Rel(user, client, "Edits metadata", "HTTPS")
+Rel(client, web_app, "Calls the JSON API", "HTTPS")
 Rel(admin, web_app, "Configures via\nfiles and environment", "File system")
 
 Rel(web_app, triplestore_data, "Reads/writes entities", "SPARQL")

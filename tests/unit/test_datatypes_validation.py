@@ -161,13 +161,13 @@ class TestValidateShort:
 
 class TestValidateLong:
     def test_valid_long(self) -> None:
-        assert validate_long("2147483647") is True
-        assert validate_long("-2147483648") is True
+        assert validate_long("9223372036854775807") is True
+        assert validate_long("-9223372036854775808") is True
         assert validate_long("0") is True
 
     def test_invalid_long(self) -> None:
-        assert validate_long("2147483648") is False
-        assert validate_long("-2147483649") is False
+        assert validate_long("9223372036854775808") is False
+        assert validate_long("-9223372036854775809") is False
         assert validate_long("abc") is False
 
 
@@ -195,11 +195,11 @@ class TestValidateUnsignedShort:
 
 class TestValidateUnsignedLong:
     def test_valid_unsigned_long(self) -> None:
-        assert validate_unsigned_long("4294967295") is True
+        assert validate_unsigned_long("18446744073709551615") is True
         assert validate_unsigned_long("0") is True
 
     def test_invalid_unsigned_long(self) -> None:
-        assert validate_unsigned_long("4294967296") is False
+        assert validate_unsigned_long("18446744073709551616") is False
         assert validate_unsigned_long("-1") is False
         assert validate_unsigned_long("abc") is False
 

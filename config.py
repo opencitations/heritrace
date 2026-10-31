@@ -77,6 +77,9 @@ class Config:
     APP_TITLE = os.environ["APP_TITLE"]
     APP_SUBTITLE = os.environ["APP_SUBTITLE"]
     SECRET_KEY = os.environ["SECRET_KEY"]
+    SESSION_COOKIE_SAMESITE = "Lax"
+    FRONTEND_BUILD_DIR = _BASE_DIR / "frontend" / "build" / "web"
+    FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "")
     CACHE_VALIDITY_DAYS = int(os.environ["CACHE_VALIDITY_DAYS"])
 
     # If REDIS_URL is not set, the application uses an internal Redis instance

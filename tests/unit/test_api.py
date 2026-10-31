@@ -51,9 +51,8 @@ def api_client(
 
 
 def test_catalogue_api_unauthenticated(client: FlaskClient) -> None:
-    """Test that the catalogue API endpoint redirects when not authenticated."""
     response = client.get("/api/catalogue")
-    assert response.status_code == 302  # Redirect to login page
+    assert response.status_code == 401
 
 
 def test_catalogue_api(api_client: FlaskClient) -> None:
@@ -1193,48 +1192,6 @@ def test_check_orphans_validation_error(
     assert data["status"] == "error"
     assert data["error_type"] == "validation"
     assert "An error occurred while checking for orphaned entities" in data["message"]
-
-
-@patch("heritrace.routes.api.get_custom_filter")
-def test_get_human_readable_entity(
-    mock_get_custom_filter, api_client: FlaskClient
-) -> None:
-    """Test the get_human_readable_entity endpoint."""
-    # Create a mock filter
-    mock_filter = MagicMock()
-    mock_get_custom_filter.return_value = mock_filter
-
-    # Configure the mock to return a human-readable entity
-    mock_filter.human_readable_entity.return_value = "Human Readable Entity Title"
-
-    # Make the request
-    response = api_client.post(
-        "/api/human-readable-entity",
-        data={
-            "uri": "http://example.org/entity/1",
-            "entity_class": "http://example.org/EntityClass",
-        },
-    )
-
-    # Check the response
-    assert response.status_code == 200
-    assert response.data.decode("utf-8") == "Human Readable Entity Title"
-
-    # Verify the mock was called correctly
-    mock_filter.human_readable_entity.assert_called_once_with(
-        "http://example.org/entity/1", ("http://example.org/EntityClass", None)
-    )
-
-
-def test_get_human_readable_entity_missing_params(api_client: FlaskClient) -> None:
-    """Test the get_human_readable_entity endpoint with missing parameters."""
-    # Make the request without required parameters
-    response = api_client.post("/api/human-readable-entity", data={})
-
-    # Check the response
-    assert response.status_code == 400
-    data = json.loads(response.data)
-    assert data["status"] == "error"
 
 
 @patch("heritrace.routes.api.validate_new_triple")
@@ -2415,6 +2372,69 @@ def test_get_form_fields_for_entity_success(
     assert len(data["form_fields"]) == 2
 
 
+@patch("heritrace.routes.api.get_custom_filter")
+@patch("heritrace.routes.api.get_form_fields")
+def test_get_form_fields_adds_labels_for_fixed_values(
+    mock_get_form_fields, mock_get_custom_filter, api_client: FlaskClient
+) -> None:
+    custom_filter = MagicMock()
+    custom_filter.human_readable_class.side_effect = lambda key: f"class:{key[0]}"
+    custom_filter.human_readable_predicate.side_effect = lambda value, _key: (
+        f"label:{value}"
+    )
+    mock_get_custom_filter.return_value = custom_filter
+    rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    mock_get_form_fields.return_value = {
+        ("http://example.org/class", "http://example.org/shape"): OrderedDict(
+            {
+                rdf_type: [
+                    {
+                        "uri": rdf_type,
+                        "hasValue": "http://example.org/class",
+                        "subjectClass": "http://example.org/class",
+                        "subjectShape": "http://example.org/shape",
+                    }
+                ],
+                "http://example.org/role": [
+                    {
+                        "uri": "http://example.org/role",
+                        "optionalValues": ["http://example.org/author"],
+                        "or": [
+                            {
+                                "entityType": "http://example.org/Nested",
+                                "nodeShape": "http://example.org/NestedShape",
+                                "nestedShape": [
+                                    {
+                                        "uri": "http://example.org/status",
+                                        "hasValue": "http://example.org/active",
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+    }
+
+    response = api_client.get(
+        "/api/form-fields?entity_class=http://example.org/class&entity_shape=http://example.org/shape"
+    )
+
+    assert response.status_code == 200
+    form_fields = response.get_json()["form_fields"]
+    assert form_fields[0][1][0]["hasValueLabel"] == "class:http://example.org/class"
+    role_field = form_fields[1][1][0]
+    assert role_field["optionalValueLabels"] == {
+        "http://example.org/author": "label:http://example.org/author"
+    }
+    option = role_field["or"][0]
+    assert option["displayName"] == "class:http://example.org/Nested"
+    assert option["nestedShape"][0]["hasValueLabel"] == (
+        "label:http://example.org/active"
+    )
+
+
 @patch("heritrace.routes.api.get_form_fields")
 def test_get_form_fields_for_entity_missing_params(
     mock_get_form_fields, api_client: FlaskClient
@@ -2480,315 +2500,6 @@ def test_get_form_fields_for_entity_exception(
     data = json.loads(response.data)
     assert data["status"] == "error"
     assert "Failed to load form fields" in data["message"]
-
-
-@patch("heritrace.routes.api.get_form_fields")
-@patch("heritrace.routes.api.render_template_string")
-def test_render_form_fields_html_success(
-    mock_render, mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_form_fields_html endpoint success path."""
-    mock_form_fields = OrderedDict(
-        {
-            ("http://example.org/class", "http://example.org/shape"): OrderedDict(
-                {"http://example.org/property1": [{"type": "literal"}]}
-            )
-        }
-    )
-    mock_get_form_fields.return_value = mock_form_fields
-    mock_render.return_value = "<div>Form HTML</div>"
-
-    response = api_client.post(
-        "/api/render-form-fields",
-        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]},
-    )
-
-    assert response.status_code == 200
-    assert b"Form HTML" in response.data
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_form_fields_html_missing_data(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_form_fields_html with missing data."""
-    response = api_client.post("/api/render-form-fields", json={})
-
-    assert response.status_code == 400
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-    assert "Missing required field" in data["message"]
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_form_fields_html_not_initialized(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_form_fields_html when form fields not initialized."""
-    mock_get_form_fields.return_value = None
-
-    response = api_client.post(
-        "/api/render-form-fields",
-        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]},
-    )
-
-    assert response.status_code == 500
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_form_fields_html_not_found(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_form_fields_html when entity not found."""
-    mock_form_fields = OrderedDict(
-        {("http://example.org/other", "http://example.org/shape"): OrderedDict()}
-    )
-    mock_get_form_fields.return_value = mock_form_fields
-
-    response = api_client.post(
-        "/api/render-form-fields",
-        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]},
-    )
-
-    assert response.status_code == 404
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_form_fields_html_exception(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_form_fields_html when an exception occurs."""
-    mock_get_form_fields.side_effect = Exception("Test error")
-
-    response = api_client.post(
-        "/api/render-form-fields",
-        json={"entity_key": ["http://example.org/class", "http://example.org/shape"]},
-    )
-
-    assert response.status_code == 500
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-
-
-@patch("heritrace.routes.api.get_form_fields")
-@patch("heritrace.routes.api.render_template_string")
-def test_render_nested_form_html_success(
-    mock_render, mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_nested_form_html endpoint success path."""
-    mock_form_fields = OrderedDict(
-        {
-            (
-                "http://example.org/parent",
-                "http://example.org/parent_shape",
-            ): OrderedDict(
-                {
-                    "http://example.org/predicate": [
-                        {
-                            "or": [
-                                {
-                                    "entityType": "http://example.org/child",
-                                    "nodeShape": "http://example.org/child_shape",
-                                }
-                            ]
-                        }
-                    ]
-                }
-            )
-        }
-    )
-    mock_get_form_fields.return_value = mock_form_fields
-    mock_render.return_value = "<div>Nested Form HTML</div>"
-
-    response = api_client.post(
-        "/api/render-nested-form",
-        json={
-            "parent_entity_class": "http://example.org/parent",
-            "parent_entity_shape": "http://example.org/parent_shape",
-            "entity_class": "http://example.org/child",
-            "entity_shape": "http://example.org/child_shape",
-            "predicate_uri": "http://example.org/predicate",
-            "depth": 2,
-        },
-    )
-
-    assert response.status_code == 200
-    assert b"Nested Form HTML" in response.data
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_missing_fields(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_nested_form_html with missing required fields."""
-    response = api_client.post(
-        "/api/render-nested-form",
-        json={"parent_entity_class": "http://example.org/parent"},
-    )
-
-    assert response.status_code == 400
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-    assert "Missing required fields" in data["message"]
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_not_initialized(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_nested_form_html when form fields not initialized."""
-    mock_get_form_fields.return_value = None
-
-    response = api_client.post(
-        "/api/render-nested-form",
-        json={
-            "parent_entity_class": "http://example.org/parent",
-            "parent_entity_shape": "http://example.org/parent_shape",
-            "entity_class": "http://example.org/child",
-            "entity_shape": "http://example.org/child_shape",
-            "predicate_uri": "http://example.org/predicate",
-            "depth": 2,
-        },
-    )
-
-    assert response.status_code == 500
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_parent_not_found(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_nested_form_html when parent entity not found."""
-    mock_form_fields = OrderedDict(
-        {("http://example.org/other", "http://example.org/shape"): OrderedDict()}
-    )
-    mock_get_form_fields.return_value = mock_form_fields
-
-    response = api_client.post(
-        "/api/render-nested-form",
-        json={
-            "parent_entity_class": "http://example.org/parent",
-            "parent_entity_shape": "http://example.org/parent_shape",
-            "entity_class": "http://example.org/child",
-            "entity_shape": "http://example.org/child_shape",
-            "predicate_uri": "http://example.org/predicate",
-            "depth": 2,
-        },
-    )
-
-    assert response.status_code == 404
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_predicate_not_found(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_nested_form_html when predicate not found."""
-    mock_form_fields = OrderedDict(
-        {
-            (
-                "http://example.org/parent",
-                "http://example.org/parent_shape",
-            ): OrderedDict({"http://example.org/other_predicate": [{}]})
-        }
-    )
-    mock_get_form_fields.return_value = mock_form_fields
-
-    response = api_client.post(
-        "/api/render-nested-form",
-        json={
-            "parent_entity_class": "http://example.org/parent",
-            "parent_entity_shape": "http://example.org/parent_shape",
-            "entity_class": "http://example.org/child",
-            "entity_shape": "http://example.org/child_shape",
-            "predicate_uri": "http://example.org/predicate",
-            "depth": 2,
-        },
-    )
-
-    assert response.status_code == 404
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_shape_info_not_found(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_nested_form_html when shape info not found."""
-    mock_form_fields = OrderedDict(
-        {
-            (
-                "http://example.org/parent",
-                "http://example.org/parent_shape",
-            ): OrderedDict(
-                {
-                    "http://example.org/predicate": [
-                        {
-                            "or": [
-                                {
-                                    "entityType": "http://example.org/other_child",
-                                    "nodeShape": "http://example.org/other_shape",
-                                }
-                            ]
-                        }
-                    ]
-                }
-            )
-        }
-    )
-    mock_get_form_fields.return_value = mock_form_fields
-
-    response = api_client.post(
-        "/api/render-nested-form",
-        json={
-            "parent_entity_class": "http://example.org/parent",
-            "parent_entity_shape": "http://example.org/parent_shape",
-            "entity_class": "http://example.org/child",
-            "entity_shape": "http://example.org/child_shape",
-            "predicate_uri": "http://example.org/predicate",
-            "depth": 2,
-        },
-    )
-
-    assert response.status_code == 404
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-
-
-@patch("heritrace.routes.api.get_form_fields")
-def test_render_nested_form_html_exception(
-    mock_get_form_fields, api_client: FlaskClient
-) -> None:
-    """Test render_nested_form_html when an exception occurs."""
-    mock_get_form_fields.side_effect = Exception("Test error")
-
-    response = api_client.post(
-        "/api/render-nested-form",
-        json={
-            "parent_entity_class": "http://example.org/parent",
-            "parent_entity_shape": "http://example.org/parent_shape",
-            "entity_class": "http://example.org/child",
-            "entity_shape": "http://example.org/child_shape",
-            "predicate_uri": "http://example.org/predicate",
-            "depth": 2,
-        },
-    )
-
-    assert response.status_code == 500
-    data = json.loads(response.data)
-    assert data["status"] == "error"
-
-
-# Tests for apply_changes endpoint
 
 
 def test_apply_changes_no_data(api_client: FlaskClient) -> None:

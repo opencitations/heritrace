@@ -20,11 +20,10 @@ env/
 venv/
 ENV/
 
-# Node.js
-node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+# Flutter
+frontend/build/
+frontend/.dart_tool/
+frontend/lib/i18n/*.g.dart
 
 # Databases (if they should be created fresh or mounted as volumes)
 database/

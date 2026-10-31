@@ -4,6 +4,7 @@
 
 import datetime
 import ipaddress
+import os
 from pathlib import Path
 
 from cryptography import x509
@@ -60,3 +61,6 @@ if not (cert_file.exists() and key_file.exists()):
 
     with cert_file.open("wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
+
+for path in (cert_dir, cert_file, key_file):
+    os.chown(path, int(os.environ["HOST_UID"]), int(os.environ["HOST_GID"]))

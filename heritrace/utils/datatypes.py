@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: ISC
 
-from flask_babel import gettext
 from rdflib import XSD, URIRef
 
 from heritrace.utils.datatypes_validation import (
@@ -56,57 +55,57 @@ from heritrace.utils.datatypes_validation import (
 
 def get_datatype_options() -> list[dict[str, str]]:
     return [
-        {"label": gettext("Text (string)"), "uri": str(XSD.string)},
-        {"label": gettext("Web address (URL)"), "uri": str(XSD.anyURI)},
-        {"label": gettext("Whole number (integer)"), "uri": str(XSD.integer)},
-        {"label": gettext("True or False (boolean)"), "uri": str(XSD.boolean)},
-        {"label": gettext("Date (YYYY-MM-DD)"), "uri": str(XSD.date)},
-        {"label": gettext("Decimal number"), "uri": str(XSD.decimal)},
+        {"label": "Text (string)", "uri": str(XSD.string)},
+        {"label": "Web address (URL)", "uri": str(XSD.anyURI)},
+        {"label": "Whole number (integer)", "uri": str(XSD.integer)},
+        {"label": "True or False (boolean)", "uri": str(XSD.boolean)},
+        {"label": "Date (YYYY-MM-DD)", "uri": str(XSD.date)},
+        {"label": "Decimal number", "uri": str(XSD.decimal)},
         {
-            "label": gettext("Date and Time (YYYY-MM-DDThh:mm:ss)"),
+            "label": "Date and Time (YYYY-MM-DDThh:mm:ss)",
             "uri": str(XSD.dateTime),
         },
-        {"label": gettext("Year (YYYY)"), "uri": str(XSD.gYear)},
-        {"label": gettext("Floating point number"), "uri": str(XSD.float)},
-        {"label": gettext("Time (hh:mm:ss)"), "uri": str(XSD.time)},
+        {"label": "Year (YYYY)", "uri": str(XSD.gYear)},
+        {"label": "Floating point number", "uri": str(XSD.float)},
+        {"label": "Time (hh:mm:ss)", "uri": str(XSD.time)},
         {
-            "label": gettext("Normalized text (no line breaks)"),
+            "label": "Normalized text (no line breaks)",
             "uri": str(XSD.normalizedString),
         },
-        {"label": gettext("Language code (e.g., en, it)"), "uri": str(XSD.language)},
+        {"label": "Language code (e.g., en, it)", "uri": str(XSD.language)},
         {
-            "label": gettext("Double precision floating point number"),
+            "label": "Double precision floating point number",
             "uri": str(XSD.double),
         },
-        {"label": gettext("Tokenized text (single word)"), "uri": str(XSD.token)},
+        {"label": "Tokenized text (single word)", "uri": str(XSD.token)},
         {
-            "label": gettext("Non-negative integer (0 or positive)"),
+            "label": "Non-negative integer (0 or positive)",
             "uri": str(XSD.nonNegativeInteger),
         },
         {
-            "label": gettext("Positive integer (greater than 0)"),
+            "label": "Positive integer (greater than 0)",
             "uri": str(XSD.positiveInteger),
         },
         {
-            "label": gettext("Non-positive integer (0 or negative)"),
+            "label": "Non-positive integer (0 or negative)",
             "uri": str(XSD.nonPositiveInteger),
         },
-        {"label": gettext("Negative integer"), "uri": str(XSD.negativeInteger)},
-        {"label": gettext("Long integer"), "uri": str(XSD.long)},
-        {"label": gettext("Short integer"), "uri": str(XSD.short)},
-        {"label": gettext("Byte-sized integer"), "uri": str(XSD.byte)},
-        {"label": gettext("Unsigned integer"), "uri": str(XSD.unsignedInt)},
-        {"label": gettext("Unsigned long integer"), "uri": str(XSD.unsignedLong)},
-        {"label": gettext("Unsigned short integer"), "uri": str(XSD.unsignedShort)},
-        {"label": gettext("Unsigned byte"), "uri": str(XSD.unsignedByte)},
-        {"label": gettext("Month (MM)"), "uri": str(XSD.gMonth)},
-        {"label": gettext("Day of the month (DD)"), "uri": str(XSD.gDay)},
+        {"label": "Negative integer", "uri": str(XSD.negativeInteger)},
+        {"label": "Long integer", "uri": str(XSD.long)},
+        {"label": "Short integer", "uri": str(XSD.short)},
+        {"label": "Byte-sized integer", "uri": str(XSD.byte)},
+        {"label": "Unsigned integer", "uri": str(XSD.unsignedInt)},
+        {"label": "Unsigned long integer", "uri": str(XSD.unsignedLong)},
+        {"label": "Unsigned short integer", "uri": str(XSD.unsignedShort)},
+        {"label": "Unsigned byte", "uri": str(XSD.unsignedByte)},
+        {"label": "Month (MM)", "uri": str(XSD.gMonth)},
+        {"label": "Day of the month (DD)", "uri": str(XSD.gDay)},
         {
-            "label": gettext("Duration (e.g., P1Y2M3DT4H5M6S)"),
+            "label": "Duration (e.g., P1Y2M3DT4H5M6S)",
             "uri": str(XSD.duration),
         },
-        {"label": gettext("Hexadecimal binary"), "uri": str(XSD.hexBinary)},
-        {"label": gettext("Base64 encoded binary"), "uri": str(XSD.base64Binary)},
+        {"label": "Hexadecimal binary", "uri": str(XSD.hexBinary)},
+        {"label": "Base64 encoded binary", "uri": str(XSD.base64Binary)},
     ]
 
 

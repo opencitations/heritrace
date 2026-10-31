@@ -154,243 +154,110 @@ def test_get_fetch_uri_display_graph_unbound_result(mock_filter) -> None:
         mock_filter.get_fetch_uri_display(uri, rule, Graph())
 
 
-def test_human_readable_primary_source_none(mock_filter) -> None:
-    """Test human_readable_primary_source when primary_source is None."""
-    # Setup
-    primary_source = None
-
-    # Execute
-    with patch(
-        "heritrace.utils.filters.lazy_gettext", return_value="Unknown"
-    ) as mock_lazy_gettext:
-        result = mock_filter.human_readable_primary_source(primary_source)
-
-    # Verify
-    assert result == "Unknown"
-    mock_lazy_gettext.assert_called_once_with("Unknown")
-
-
-def test_human_readable_primary_source_with_prov_se(mock_filter) -> None:
-    """Test human_readable_primary_source when primary_source contains '/prov/se'."""
-    # Setup
-    primary_source = "http://example.org/prov/se/123"
-    expected_version_url = "/entity-version/http://example.org/123"
-
-    # Execute
-    with patch(
-        "heritrace.utils.filters.lazy_gettext", side_effect=lambda x: x
-    ) as mock_lazy_gettext:
-        result = mock_filter.human_readable_primary_source(primary_source)
-
-    # Verify
-    assert "Version 123" in result
-    assert expected_version_url in result
-    assert "Link to the primary source description" in result
-    # Check that lazy_gettext was called twice
-    assert mock_lazy_gettext.call_count == 2
-
-
-def test_human_readable_primary_source_valid_url(mock_filter) -> None:
-    """Test human_readable_primary_source when primary_source is a valid URL."""
-    # Setup
-    primary_source = "http://example.org/resource/123"
-
-    # Execute
-    with (
-        patch(
-            "heritrace.utils.filters.is_valid_url", return_value=True
-        ) as mock_validators,
-        patch(
-            "heritrace.utils.filters.lazy_gettext",
-            return_value="Link to the primary source description",
-        ) as mock_lazy_gettext,
-    ):
-        result = mock_filter.human_readable_primary_source(primary_source)
-
-    # Verify
-    assert primary_source in result
-    assert "alt='Link to the primary source description target='_blank'" in result
-    assert "href" in result
-    mock_validators.assert_called_once_with(primary_source)
-    mock_lazy_gettext.assert_called_once_with("Link to the primary source description")
-
-
-def test_human_readable_primary_source_invalid_url(mock_filter) -> None:
-    """Test human_readable_primary_source when primary_source is not a valid URL."""
-    # Setup
-    primary_source = "not a valid url"
-
-    # Execute
-    with patch(
-        "heritrace.utils.filters.is_valid_url", return_value=False
-    ) as mock_validators:
-        result = mock_filter.human_readable_primary_source(primary_source)
-
-    # Verify
-    assert result == primary_source
-    mock_validators.assert_called_once_with(primary_source)
-
-
 def test_format_source_reference_none(mock_filter) -> None:
-    """Test format_source_reference when url is None."""
-    # Setup
-    url = None
-
-    # Execute
-    result = mock_filter.format_source_reference(url)
-
-    # Verify
-    assert result == "Unknown"
-
-
-def test_format_source_reference_empty(mock_filter) -> None:
-    """Test format_source_reference when url is empty string."""
-    # Setup
-    url = ""
-
-    # Execute
-    result = mock_filter.format_source_reference(url)
-
-    # Verify
-    assert result == "Unknown"
+    assert mock_filter.format_source_reference(None) == {
+        "kind": "unknown",
+        "url": None,
+        "label": "Unknown",
+        "extra": None,
+        "entity_uri": None,
+        "timestamp": None,
+    }
 
 
-def test_format_source_reference_zenodo_url(mock_filter) -> None:
-    """Test format_source_reference when url is a Zenodo URL."""
-    # Setup
-    url = "https://zenodo.org/record/12345"
-
-    # Execute
-    with (
-        patch(
-            "heritrace.utils.filters.is_zenodo_url", return_value=True
-        ) as mock_is_zenodo,
-        patch(
-            "heritrace.utils.filters.format_zenodo_source",
-            return_value="Formatted Zenodo Source",
-        ) as mock_format_zenodo,
-    ):
-        result = mock_filter.format_source_reference(url)
-
-    # Verify
-    assert result == "Formatted Zenodo Source"
-    mock_is_zenodo.assert_called_once_with(url)
-    mock_format_zenodo.assert_called_once_with(url)
+def test_format_source_reference_version(mock_filter) -> None:
+    result = mock_filter.format_source_reference("http://example.org/br/1/prov/se/3")
+    assert result == {
+        "kind": "version",
+        "url": "http://example.org/br/1/prov/se/3",
+        "label": "Version 3",
+        "extra": None,
+        "entity_uri": "http://example.org/br/1",
+        "timestamp": "3",
+    }
 
 
 def test_format_source_reference_generic_url(mock_filter) -> None:
-    """Test format_source_reference when url is a generic URL."""
-    # Setup
     url = "http://example.org/resource/123"
+    assert mock_filter.format_source_reference(url) == {
+        "kind": "url",
+        "url": url,
+        "label": url,
+        "extra": None,
+        "entity_uri": None,
+        "timestamp": None,
+    }
 
-    # Execute
-    with (
-        patch(
-            "heritrace.utils.filters.is_zenodo_url", return_value=False
-        ) as mock_is_zenodo,
-        patch.object(
-            mock_filter,
-            "human_readable_primary_source",
-            return_value="Formatted Generic Source",
-        ) as mock_human_readable,
-    ):
-        result = mock_filter.format_source_reference(url)
 
-    # Verify
-    assert result == "Formatted Generic Source"
-    mock_is_zenodo.assert_called_once_with(url)
-    mock_human_readable.assert_called_once_with(url)
+def test_format_source_reference_text(mock_filter) -> None:
+    assert mock_filter.format_source_reference("not a valid url") == {
+        "kind": "text",
+        "url": None,
+        "label": "not a valid url",
+        "extra": None,
+        "entity_uri": None,
+        "timestamp": None,
+    }
+
+
+def test_format_source_reference_zenodo_url(mock_filter) -> None:
+    url = "https://zenodo.org/record/12345"
+    zenodo_ref = {
+        "kind": "zenodo",
+        "url": url,
+        "label": "Citation",
+        "extra": None,
+        "entity_uri": None,
+        "timestamp": None,
+    }
+    with patch(
+        "heritrace.utils.filters.zenodo_source", return_value=zenodo_ref
+    ) as mock_zenodo:
+        assert mock_filter.format_source_reference(url) == zenodo_ref
+    mock_zenodo.assert_called_once_with(url)
 
 
 def test_format_agent_reference_none(mock_filter) -> None:
-    """Test format_agent_reference when url is None."""
-    # Setup
-    url = None
-
-    # Execute
-    result = mock_filter.format_agent_reference(url)
-
-    # Verify
-    assert result == "Unknown"
-
-
-def test_format_agent_reference_empty(mock_filter) -> None:
-    """Test format_agent_reference when url is empty string."""
-    # Setup
-    url = ""
-
-    # Execute
-    result = mock_filter.format_agent_reference(url)
-
-    # Verify
-    assert result == "Unknown"
+    assert mock_filter.format_agent_reference(None) == {
+        "kind": "unknown",
+        "url": None,
+        "label": "Unknown",
+        "orcid_id": None,
+    }
 
 
 def test_format_agent_reference_orcid_url(mock_filter) -> None:
-    """Test format_agent_reference when url is an ORCID URL."""
-    # Setup
     url = "https://orcid.org/0000-0001-2345-6789"
-
-    # Execute
-    with (
-        patch(
-            "heritrace.utils.filters.is_orcid_url", return_value=True
-        ) as mock_is_orcid,
-        patch(
-            "heritrace.utils.filters.format_orcid_attribution",
-            return_value="Formatted ORCID Attribution",
-        ) as mock_format_orcid,
-    ):
-        result = mock_filter.format_agent_reference(url)
-
-    # Verify
-    assert result == "Formatted ORCID Attribution"
-    mock_is_orcid.assert_called_once_with(url)
-    mock_format_orcid.assert_called_once_with(url)
+    orcid_ref = {
+        "kind": "orcid",
+        "url": url,
+        "label": "Jane Doe",
+        "orcid_id": "0000-0001-2345-6789",
+    }
+    with patch(
+        "heritrace.utils.filters.orcid_agent", return_value=orcid_ref
+    ) as mock_orcid:
+        assert mock_filter.format_agent_reference(url) == orcid_ref
+    mock_orcid.assert_called_once_with(url)
 
 
 def test_format_agent_reference_generic_url(mock_filter) -> None:
-    """Test format_agent_reference when url is a generic URL."""
-    # Setup
     url = "http://example.org/person/123"
-
-    # Execute
-    with (
-        patch(
-            "heritrace.utils.filters.is_orcid_url", return_value=False
-        ) as mock_is_orcid,
-        patch(
-            "heritrace.utils.filters.is_valid_url", return_value=True
-        ) as mock_validators,
-    ):
-        result = mock_filter.format_agent_reference(url)
-
-    # Verify
-    assert f'<a href="{url}" target="_blank">{url}</a>' == result
-    mock_is_orcid.assert_called_once_with(url)
-    mock_validators.assert_called_once_with(url)
+    assert mock_filter.format_agent_reference(url) == {
+        "kind": "url",
+        "url": url,
+        "label": url,
+        "orcid_id": None,
+    }
 
 
-def test_format_agent_reference_not_url(mock_filter) -> None:
-    """Test format_agent_reference when url is not a valid URL."""
-    # Setup
-    url = "not a valid url"
-
-    # Execute
-    with (
-        patch(
-            "heritrace.utils.filters.is_orcid_url", return_value=False
-        ) as mock_is_orcid,
-        patch(
-            "heritrace.utils.filters.is_valid_url", return_value=False
-        ) as mock_validators,
-    ):
-        result = mock_filter.format_agent_reference(url)
-
-    # Verify
-    assert result == url
-    mock_is_orcid.assert_called_once_with(url)
-    mock_validators.assert_called_once_with(url)
+def test_format_agent_reference_text(mock_filter) -> None:
+    assert mock_filter.format_agent_reference("not a valid url") == {
+        "kind": "text",
+        "url": None,
+        "label": "not a valid url",
+        "orcid_id": None,
+    }
 
 
 def test_human_readable_entity_with_display_name(mock_filter) -> None:

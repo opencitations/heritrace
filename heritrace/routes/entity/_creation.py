@@ -2,33 +2,28 @@
 #
 # SPDX-License-Identifier: ISC
 
-import json
 from dataclasses import dataclass
 
-from flask import current_app, flash, jsonify, render_template, request, url_for
-from flask_babel import gettext
+from flask import Response, current_app, jsonify, request
 from flask_login import current_user, login_required
 from rdflib import RDF, XSD, Literal, URIRef
-from werkzeug.wrappers import Response
 
 from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor, EditorError, EndpointConfig
 from heritrace.extensions import (
+    get_custom_filter,
     get_dataset_endpoint,
     get_form_fields,
     get_provenance_endpoint,
 )
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._validation import validate_entity_data
-from heritrace.utils.datatypes import determine_datatype, get_datatype_options
+from heritrace.utils.datatypes import determine_datatype
 from heritrace.utils.display_rules_utils import (
     get_class_priority,
     is_entity_type_visible,
 )
-from heritrace.utils.primary_source_utils import (
-    get_user_default_primary_source,
-    save_user_default_primary_source,
-)
+from heritrace.utils.primary_source_utils import save_user_default_primary_source
 from heritrace.utils.shacl_utils import find_matching_form_field
 from heritrace.utils.sparql_utils import import_referenced_entities
 from heritrace.utils.uri_utils import generate_unique_uri, is_valid_url
@@ -185,7 +180,7 @@ def _handle_create_entity_post(
         return jsonify(
             {
                 "status": "error",
-                "errors": [gettext("Invalid primary source URL provided")],
+                "errors": ["Invalid primary source URL provided"],
             }
         ), 400
 
@@ -193,9 +188,7 @@ def _handle_create_entity_post(
         save_user_default_primary_source(current_user.orcid, primary_source)
 
     if not structured_data.get("entity_type"):
-        return jsonify(
-            {"status": "error", "errors": [gettext("Entity type is required")]}
-        ), 400
+        return jsonify({"status": "error", "errors": ["Entity type is required"]}), 400
 
     cleaned_structured_data, entity_type = _prepare_entity_creation_data(
         structured_data
@@ -250,61 +243,43 @@ def _handle_create_entity_post(
             editor, structured_data, entity_uri, default_graph_uri
         )
     except (EditorError, OSError) as e:
-        error_message = gettext(
-            "An error occurred while creating the entity: %(error)s", error=str(e)
-        )
+        error_message = f"An error occurred while creating the entity: {e}"
         return jsonify({"status": "error", "errors": [error_message]}), 500
-    else:
-        response = jsonify(
-            {
-                "status": "success",
-                "redirect_url": url_for("entity.about", subject=str(entity_uri)),
-            }
-        )
-        flash(gettext("Entity created successfully"), "success")
-        return response, 200
+    return jsonify({"status": "success", "uri": str(entity_uri)}), 200
 
 
-@entity_bp.route("/create-entity", methods=["GET", "POST"])
+@entity_bp.route("/entity", methods=["POST"])
 @login_required
-def create_entity() -> str | tuple[Response, int]:
-    form_fields = get_form_fields()
+def create_entity() -> tuple[Response, int]:
+    data = request.get_json()
+    return _handle_create_entity_post(
+        get_form_fields(),
+        data["structured_data"],
+        data.get("primary_source") or None,
+        save_default_source=bool(data.get("save_default_source")),
+    )
 
-    default_primary_source = get_user_default_primary_source(current_user.orcid)
 
-    entity_class_shape_pairs = sorted(
-        [
-            entity_key
-            for entity_key in form_fields
-            if is_entity_type_visible(entity_key)
-        ],
+@entity_bp.route("/entity-types")
+@login_required
+def entity_types() -> Response:
+    custom_filter = get_custom_filter()
+    visible_keys = sorted(
+        (key for key in get_form_fields() if is_entity_type_visible(key)),
         key=get_class_priority,
         reverse=True,
     )
-
-    datatype_options = get_datatype_options()
-
-    if request.method == "POST":
-        structured_data = json.loads(request.form.get("structured_data", "{}"))
-        primary_source = request.form.get("primary_source") or None
-        save_default_source = request.form.get("save_default_source") == "true"
-        return _handle_create_entity_post(
-            form_fields,
-            structured_data,
-            primary_source,
-            save_default_source=save_default_source,
-        )
-
-    return render_template(
-        "create_entity.jinja",
-        datatype_options=datatype_options,
-        dataset_db_triplestore=current_app.config["DATASET_DB_TRIPLESTORE"],
-        dataset_db_text_index_enabled=current_app.config[
-            "DATASET_DB_TEXT_INDEX_ENABLED"
-        ],
-        default_primary_source=default_primary_source,
-        shacl=bool(form_fields),
-        entity_class_shape_pairs=entity_class_shape_pairs,
+    return jsonify(
+        {
+            "types": [
+                {
+                    "class": entity_class,
+                    "shape": shape,
+                    "label": custom_filter.human_readable_class((entity_class, shape)),
+                }
+                for entity_class, shape in visible_keys
+            ]
+        }
     )
 
 
