@@ -2,7 +2,37 @@
 #
 # SPDX-License-Identifier: ISC
 
+x-qlever: &qlever
+  image: adfreiburg/qlever:0.6.0@sha256:37d5ede193f1bffb6aebf734d15d2a4c2a3228ee102858b0c6c2e65c149a78ec
+  user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  working_dir: /index
+
 services:
+  meta:
+    <<: *qlever
+    entrypoint: [sh, -c]
+    # The downloaded index stays read-only; local updates go to meta-updates.
+    command:
+      - >-
+        ln -sf /source/* . &&
+        exec qlever-server -i "$$(basename /source/*.meta-data.json .meta-data.json)"
+        -p 7101 -j 8 -m 30G -c 8G -e 2G -s 300s
+        --persist-updates --no-access-check --no-metrics-log --no-resource-usage-log
+    ports:
+      - "127.0.0.1:7101:7101"
+    volumes:
+      - ./data/meta:/source:ro
+      - ./data/meta-updates:/index
+
+  provenance:
+    <<: *qlever
+    entrypoint: [qlever-server]
+    command: [-i, meta-provenance, -p, "7103", -j, "4", -m, 2G, -c, 256M, -e, 64M, --persist-updates, --no-access-check, --no-metrics-log, --no-resource-usage-log]
+    ports:
+      - "127.0.0.1:7103:7103"
+    volumes:
+      - ./data/provenance:/index
+
   web:
     build:
       context: ..
@@ -11,6 +41,12 @@ services:
       - "5000:5000"
       - "6381:6379"
     env_file: ../.env
+    environment:
+      - DATASET_DB_URL=http://meta:7101
+      - PROVENANCE_DB_URL=http://provenance:7103
+    depends_on:
+      - meta
+      - provenance
     volumes:
       - ../heritrace:/app/heritrace
       - ../app.py:/app/app.py
@@ -18,16 +54,7 @@ services:
       - ../default_components:/app/default_components
       - ../pyproject.toml:/app/pyproject.toml
       - ../uv.lock:/app/uv.lock
-      - ../example_configurations/opencitations_meta/shacl.ttl:/app/shacl.ttl
-      - ../example_configurations/opencitations_meta/display_rules.yaml:/app/display_rules.yaml
+      - ../example_configurations:/app/example_configurations
       - ../babel:/app/babel
       - ../webpack.config.js:/app/webpack.config.js
       - ../redis-data:/data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - heritrace-network
-
-networks:
-  heritrace-network:
-    driver: bridge

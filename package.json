@@ -6,7 +6,6 @@
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch",
     "flask": "uv run --env-file .env python app.py",
-    "dev": "concurrently \"npm run watch\" \"npm run flask\"",
     "start": "npm run build && npm run flask"
   },
   "repository": {
@@ -29,7 +28,6 @@
     "@babel/preset-env": "^8.0.2",
     "@babel/preset-react": "^8.0.1",
     "babel-loader": "^10.1.1",
-    "concurrently": "^10.0.3",
     "webpack": "5.108",
     "webpack-cli": "^7.2.1",
     "webpack-dev-server": "^6.0.0"

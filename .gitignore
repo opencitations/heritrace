@@ -38,3 +38,9 @@ htmlcov/
 .pytest_cache/
 pytest-report.xml
 coverage.xml
+
+# Development databases
+dev/data/
+
+# User testing demos started by make
+.user-test/

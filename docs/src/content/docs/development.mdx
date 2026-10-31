@@ -13,6 +13,9 @@ This guide explains how to set up HERITRACE for local development from source co
 
 - Docker and Docker Compose
 - Git
+- GNU Make
+- 7-Zip
+- About 175 GB of free disk space for the first download of the OpenCitations Meta database
 - Modern web browser
 
 ## Development environment setup
@@ -34,41 +37,23 @@ cp .env.example .env
 
 The default configuration runs in demo mode (`FLASK_ENV=demo`), which bypasses ORCID authentication. To enable ORCID login, set `FLASK_ENV=development` and configure `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, and `ORCID_SAFELIST` in `.env`.
 
-### 3. Start databases
-
-Start the required databases (if not already running):
+### 3. Start development environment
 
 ```bash
-# Linux/macOS
-./dev/start-databases.sh
-
-# Windows
-.\dev\Start-Databases.ps1
+make dev
 ```
 
-This will start:
-- Virtuoso triplestore for main data (port 8890)
-- Virtuoso triplestore for provenance data (port 8891)
+Development runs on the full [OpenCitations Meta](https://doi.org/10.5281/zenodo.23063958) database, so that performance problems show up at production scale. On the first run, `make dev` downloads the QLever index from Zenodo into `dev/data/meta`. The download is 56.6 GB, and the extracted index takes about 116 GB. Later runs reuse the local copy.
 
-### 4. Start development environment
-
-```bash
-docker compose -f dev/docker-compose.dev.yaml up --build
-```
-
-The development environment will:
-- Build the application with development dependencies
-- Mount source code for live editing
-- Serve the application with Gunicorn (`--reload` for automatic restarts on code changes)
-- Generate a self-signed SSL certificate on first startup
-- Start the application on `https://localhost:5000`
+Then `make dev` starts:
+- QLever with the Meta data on `localhost:7101`
+- QLever with the provenance on `localhost:7103`, starting from an empty index
+- the application on `https://localhost:5000`, with an internal Redis
 
 ## Development features
 
 ### Demo mode
-Setting `FLASK_ENV=demo` in `.env`:
-- Bypasses ORCID authentication
-- Allows immediate access without ORCID configuration
+`make demo` starts the same environment as `make dev` with `FLASK_ENV=demo`, which bypasses ORCID authentication. You can also set `FLASK_ENV=demo` in `.env` to use demo mode with `make dev`.
 
 ### Hot reload
 Gunicorn runs with `--reload`, so changes to Python files automatically restart the workers. Watched paths include:
@@ -80,33 +65,3 @@ The following directories are mounted for live editing:
 - `./heritrace` → Application source code
 - `./default_components` → Optional URI generator, counter handler, and save plugin implementations
 - SHACL schema and display rules from `example_configurations/`
-## Development commands
-
-### Application management
-```bash
-# Start development environment
-docker compose -f dev/docker-compose.dev.yaml up --build
-
-# Start without rebuilding
-docker compose -f dev/docker-compose.dev.yaml up
-
-# View application logs
-docker compose -f dev/docker-compose.dev.yaml logs web
-
-# Stop development environment
-docker compose -f dev/docker-compose.dev.yaml down
-
-# Restart just the web service
-docker compose -f dev/docker-compose.dev.yaml restart web
-```
-
-### Database management
-```bash
-# Start databases
-./dev/start-databases.sh  # Linux/macOS
-.\dev\Start-Databases.ps1  # Windows
-
-# Stop databases
-./dev/stop-databases.sh  # Linux/macOS
-.\dev\Stop-Databases.ps1  # Windows
-```

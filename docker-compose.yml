@@ -5,7 +5,7 @@
 
 services:
   dataset-db:
-    image: arcangelo7/heritrace-demo-dataset:1.0.0
+    image: arcangelo7/heritrace-iswc2026-database:1.0.0
     restart: unless-stopped
     environment:
       - DBA_PASSWORD=dba
@@ -22,7 +22,7 @@ services:
       - heritrace-network
 
   provenance-db:
-    image: arcangelo7/heritrace-demo-dataset:1.0.0
+    image: arcangelo7/heritrace-iswc2026-database:1.0.0
     restart: unless-stopped
     environment:
       - DBA_PASSWORD=dba
@@ -77,12 +77,12 @@ services:
       - ORCID_SAFELIST=0000-0000-0000-0000,0000-0000-0000-0001  # Comma-separated ORCID IDs
 
       # Provenance settings
-      - DATASET_GENERATION_TIME=2024-01-01T00:00:00+00:00
-      - PRIMARY_SOURCE=https://example.org
+      - DATASET_GENERATION_TIME=2023-06-28T13:00:48+00:00
+      - PRIMARY_SOURCE=https://doi.org/10.6084/m9.figshare.21747536.v4
 
       # Base namespace for the default IRI generator (used only when the component
       # classes below are left unset)
-      - BASE_IRI=https://example.org
+      - BASE_IRI=https://w3id.org/oc/meta/demo
 
       # Entity handling strategies (Options: ASK, DELETE, KEEP)
       - ORPHAN_HANDLING_STRATEGY=ASK

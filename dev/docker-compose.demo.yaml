@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+services:
+  web:
+    environment:
+      - FLASK_ENV=demo
