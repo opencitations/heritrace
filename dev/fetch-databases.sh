@@ -6,15 +6,23 @@
 
 set -euo pipefail
 
+DATASET="$1"
 FILES_URL="https://zenodo.org/api/records/23063958/files"
 ARCHIVE="oc_meta_data_2026_09_22.7z"
 IMAGE="adfreiburg/qlever:0.6.0@sha256:37d5ede193f1bffb6aebf734d15d2a4c2a3228ee102858b0c6c2e65c149a78ec"
-DATA_DIR="$(cd "$(dirname "$0")" && pwd)/data"
+DEV_DIR="$(cd "$(dirname "$0")" && pwd)"
+DATA_DIR="$DEV_DIR/data/$DATASET"
 DOWNLOAD_DIR="$DATA_DIR/download"
 
-mkdir -p "$DATA_DIR/meta-updates" "$DATA_DIR/provenance"
+build_index() {
+    local dir="$1"
+    shift
+    docker run --rm -i -u "$(id -u):$(id -g)" \
+        -v "$dir:/index" -w /index \
+        --entrypoint qlever-index "$IMAGE" "$@"
+}
 
-if ! compgen -G "$DATA_DIR/meta/*.meta-data.json" > /dev/null; then
+fetch_big() {
     mkdir -p "$DOWNLOAD_DIR"
     while read -r md5 part; do
         file="$DOWNLOAD_DIR/$ARCHIVE.$part"
@@ -36,11 +44,23 @@ EOF
     index_file=$(find "$DOWNLOAD_DIR/extracted" -name '*.meta-data.json' | head -n 1)
     mv "$(dirname "$index_file")" "$DATA_DIR/meta"
     rm -rf "$DOWNLOAD_DIR"
+}
+
+build_small() {
+    mkdir -p "$DATA_DIR/meta"
+    build_index "$DATA_DIR/meta" -i meta-small -F nq -f - --add-has-word-triples \
+        < "$DEV_DIR/../demo/iswc2026/data/dataset.nq"
+}
+
+mkdir -p "$DATA_DIR/meta-updates" "$DATA_DIR/provenance" "$DATA_DIR/redis"
+
+if ! compgen -G "$DATA_DIR/meta/*.meta-data.json" > /dev/null; then
+    case "$DATASET" in
+        big) fetch_big ;;
+        small) build_small ;;
+    esac
 fi
 
 if [ ! -f "$DATA_DIR/provenance/meta-provenance.meta-data.json" ]; then
-    docker run --rm -i -u "$(id -u):$(id -g)" \
-        -v "$DATA_DIR/provenance:/index" -w /index \
-        --entrypoint qlever-index "$IMAGE" \
-        -i meta-provenance -F nq -f - < /dev/null
+    build_index "$DATA_DIR/provenance" -i meta-provenance -F nq -f - < /dev/null
 fi

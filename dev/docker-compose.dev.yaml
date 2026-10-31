@@ -22,8 +22,8 @@ services:
     ports:
       - "127.0.0.1:7101:7101"
     volumes:
-      - ./data/meta:/source:ro
-      - ./data/meta-updates:/index
+      - ./data/${DEV_DATASET:?}/meta:/source:ro
+      - ./data/${DEV_DATASET:?}/meta-updates:/index
 
   provenance:
     <<: *qlever
@@ -32,14 +32,14 @@ services:
     ports:
       - "127.0.0.1:7103:7103"
     volumes:
-      - ./data/provenance:/index
+      - ./data/${DEV_DATASET:?}/provenance:/index
 
   web:
     build:
       context: ..
       dockerfile: dev/Dockerfile.dev
     ports:
-      - "5000:5000"
+      - "5001:5000"
       - "6381:6379"
     env_file: ../.env
     environment:
@@ -60,4 +60,4 @@ services:
       - ../uv.lock:/app/uv.lock
       - ../example_configurations:/app/example_configurations
       - ./ssl:/app/ssl
-      - ../redis-data:/data
+      - ./data/${DEV_DATASET:?}/redis:/data

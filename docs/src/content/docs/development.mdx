@@ -14,9 +14,8 @@ This guide explains how to set up HERITRACE for local development from source co
 - Docker and Docker Compose
 - Git
 - GNU Make
-- 7-Zip
 - The Flutter SDK, at the version pinned in `frontend/pubspec.yaml`
-- About 175 GB of free disk space for the first download of the OpenCitations Meta database
+- For the full dataset only: 7-Zip, about 175 GB of free disk space for the first download, and Docker with at least 30 GB of memory
 - Modern web browser
 
 ## Development environment setup
@@ -30,26 +29,30 @@ cd heritrace
 
 ### 2. Configure environment
 
-Copy the example environment file and edit it with your settings:
+The first `make` run copies `.env.example` to `.env` if `.env` is missing. Edit `.env` with your settings.
 
-```bash
-cp .env.example .env
-```
-
-`make dev` signs users in with ORCID. Set `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, and `ORCID_SAFELIST` in `.env`, and register `https://127.0.0.1:5000/auth/callback` as a redirect URI of your ORCID application.
+`make dev-small` and `make dev-big` sign users in with ORCID. Set `ORCID_CLIENT_ID`, `ORCID_CLIENT_SECRET`, and `ORCID_SAFELIST` in `.env`, and register `https://127.0.0.1:5001/auth/callback` as a redirect URI of your ORCID application.
 
 ### 3. Start development environment
 
+Choose one of two datasets:
+
 ```bash
-make dev
+make dev-small
 ```
 
-Development runs on the full [OpenCitations Meta](https://doi.org/10.5281/zenodo.23063958) database, so that performance problems show up at production scale. On the first run, `make dev` downloads the QLever index from Zenodo into `dev/data/meta`. The download is 56.6 GB, and the extracted index takes about 116 GB. Later runs reuse the local copy.
+```bash
+make dev-big
+```
 
-Then `make dev` starts:
-- QLever with the Meta data on `localhost:7101`
+`make dev-small` uses the 173 OpenCitations Meta statements of the ISWC 2026 demo, found in `demo/iswc2026/data/dataset.nq`.
+
+`make dev-big` uses the full [OpenCitations Meta](https://doi.org/10.5281/zenodo.23063958) database, so that performance problems show up at production scale. On the first run, it downloads the QLever index from Zenodo. The download is 56.6 GB, and the extracted index takes about 116 GB. Later runs reuse the local copy.
+
+Both commands start:
+- QLever with the chosen Meta data on `localhost:7101`
 - QLever with the provenance on `localhost:7103`, starting from an empty index
-- the backend on `https://127.0.0.1:5000`, with an internal Redis
+- the backend on `https://127.0.0.1:5001`, with an internal Redis
 
 ### 4. Start the client
 
@@ -64,7 +67,7 @@ This runs the Flutter client with hot reload on `https://127.0.0.1:5100`, with t
 ## Development features
 
 ### Demo mode
-`make demo` starts the same environment as `make dev` with `FLASK_ENV=demo`, which bypasses ORCID authentication.
+`make demo-small` and `make demo-big` start the same environments as `make dev-small` and `make dev-big` with `FLASK_ENV=demo`, which bypasses ORCID authentication.
 
 ### Hot reload
 Gunicorn runs with `--reload`, so changes to Python files automatically restart the workers. Watched paths include:
