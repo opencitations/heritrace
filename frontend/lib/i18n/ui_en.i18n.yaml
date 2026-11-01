@@ -13,7 +13,6 @@ nav:
   appearanceSystem: Match system
   appearanceLight: Light
   appearanceDark: Dark
-  languageSystem: System language
   languageName: English
 actions:
   ok: OK

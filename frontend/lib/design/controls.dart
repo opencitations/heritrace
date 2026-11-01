@@ -555,11 +555,16 @@ class AppListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tile = CupertinoListTile(
-      padding: const EdgeInsetsDirectional.fromSTEB(_tileTextInset, 10, 14, 10),
+      padding: const EdgeInsetsDirectional.fromSTEB(_tileTextInset, 14, 14, 14),
       title: title,
       subtitle: subtitle,
       additionalInfo: additionalInfo,
-      trailing: trailing,
+      trailing: trailing == null
+          ? null
+          : Padding(
+              padding: const EdgeInsetsDirectional.only(start: 16),
+              child: trailing,
+            ),
       onTap: onTap,
     );
     return onTap == null ? tile : SelectionContainer.disabled(child: tile);

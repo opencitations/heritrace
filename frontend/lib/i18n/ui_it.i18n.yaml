@@ -13,7 +13,6 @@ nav:
   appearanceSystem: Come il sistema
   appearanceLight: Chiaro
   appearanceDark: Scuro
-  languageSystem: Lingua del sistema
   languageName: Italiano
 actions:
   ok: OK

@@ -196,7 +196,7 @@ class _AccountMenu extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final currentAppearance = ref.watch(appearanceProvider);
-    final currentLanguage = ref.watch(languageProvider);
+    final currentLanguage = TranslationProvider.of(context).locale;
     final appearances = [
       (
         value: Appearance.system,
@@ -214,11 +214,6 @@ class _AccountMenu extends ConsumerWidget {
         icon: CupertinoIcons.moon,
       ),
     ];
-    final languages = [
-      (value: null, label: t.ui.nav.languageSystem),
-      for (final locale in AppLocale.values)
-        (value: locale, label: locale.buildSync().ui.nav.languageName),
-    ];
     return SelectionContainer.disabled(
       child: CupertinoMenuAnchor(
         menuChildren: [
@@ -234,19 +229,18 @@ class _AccountMenu extends ConsumerWidget {
               child: Text(appearance.label),
             ),
           const CupertinoMenuDivider(),
-          for (final language in languages)
+          for (final language in AppLocale.values)
             CupertinoMenuItem(
-              onPressed: () =>
-                  ref.read(languageProvider.notifier).select(language.value),
-              trailing: language.value == currentLanguage
+              onPressed: () => selectLanguage(language),
+              trailing: language == currentLanguage
                   ? const Icon(CupertinoIcons.check_mark, size: 18)
                   : null,
-              child: Text(language.label),
+              child: Text(language.buildSync().ui.nav.languageName),
             ),
           const CupertinoMenuDivider(),
           CupertinoMenuItem(
             onPressed: onLogout,
-            trailing: const Icon(CupertinoIcons.square_arrow_left),
+            leading: const Icon(CupertinoIcons.square_arrow_left),
             child: Text(t.ui.nav.logout),
           ),
         ],
