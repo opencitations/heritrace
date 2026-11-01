@@ -8,6 +8,7 @@ import threading
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
+from rdflib import RDF
 from SPARQLWrapper import JSON
 
 from heritrace.apis.orcid import is_orcid_url, orcid_agent
@@ -240,3 +241,47 @@ def format_uri_as_readable(uri: str) -> str:
             word += char
     words.append(word)
     return " ".join(words).lower()
+
+
+def field_with_labels(details: dict, custom_filter: Filter) -> dict:
+    """Copy a form field adding the labels the client shows for fixed values."""
+    field = dict(details)
+    entity_key = (field.get("subjectClass"), field.get("subjectShape"))
+    has_value = field.get("hasValue")
+    if has_value:
+        field["hasValueLabel"] = (
+            custom_filter.human_readable_class((has_value, None))
+            if field.get("uri") == str(RDF.type)
+            else custom_filter.human_readable_predicate(has_value, entity_key)
+        )
+    if field.get("optionalValues"):
+        field["optionalValueLabels"] = {
+            value: custom_filter.human_readable_predicate(value, entity_key)
+            for value in field["optionalValues"]
+        }
+    if field.get("nestedShape"):
+        field["nestedShape"] = [
+            field_with_labels(nested, custom_filter) for nested in field["nestedShape"]
+        ]
+    if field.get("or"):
+        field["or"] = [
+            {
+                "displayName": custom_filter.human_readable_class(
+                    (option.get("entityType"), option.get("nodeShape"))
+                ),
+                **field_with_labels(option, custom_filter),
+            }
+            for option in field["or"]
+        ]
+    relation = field.get("intermediateRelation")
+    if relation and relation.get("properties"):
+        field["intermediateRelation"] = {
+            **relation,
+            "properties": {
+                prop: [
+                    field_with_labels(nested, custom_filter) for nested in nested_list
+                ]
+                for prop, nested_list in relation["properties"].items()
+            },
+        }
+    return field

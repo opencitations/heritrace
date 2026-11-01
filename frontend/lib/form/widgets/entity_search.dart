@@ -52,7 +52,7 @@ class EntitySearchField extends ConsumerStatefulWidget {
 class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
   Timer? _debounce;
   String _term = '';
-  List<SearchResult> _results = [];
+  List<SearchResult>? _results;
   bool _hasMore = false;
   bool _loading = false;
   ({Object error, int offset})? _failure;
@@ -68,10 +68,18 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
   bool get _parentTarget =>
       widget.item.def.searchTarget == 'parent' && _node.depth >= 1;
 
+  NestedItem? get _target => _parentTarget
+      ? _node.parentItem?.group.owner.parentItem
+      : _node.parentItem;
+
   @override
   void initState() {
     super.initState();
     widget.item.addListener(_onChanged);
+    _term = widget.item.value.trim();
+    if (_target?.isExisting == true) {
+      _scheduleSearch();
+    }
   }
 
   @override
@@ -89,14 +97,18 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
     _term = term;
     _debounce?.cancel();
     setState(() {
-      _results = [];
+      _results = null;
       _hasMore = false;
       _loading = false;
       _failure = null;
       _dismissed = false;
       _offset = 0;
     });
-    if (term.length < widget.item.def.minCharsForSearch) {
+    _scheduleSearch();
+  }
+
+  void _scheduleSearch() {
+    if (_term.length < widget.item.def.minCharsForSearch) {
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 300), () => _search(0));
@@ -126,7 +138,7 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
         return;
       }
       setState(() {
-        _results = offset == 0 ? page.results : [..._results, ...page.results];
+        _results = offset == 0 ? page.results : [..._results!, ...page.results];
         _hasMore = page.hasMore;
         _offset = offset;
         _loading = false;
@@ -142,10 +154,7 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
   }
 
   void _select(SearchResult result) {
-    final node = _node;
-    final target = _parentTarget
-        ? node.parentItem?.group.owner.parentItem
-        : node.parentItem;
+    final target = _target;
     target?.selectExisting(result.uri, result.label);
     if (target != null) {
       Navigator.of(context).popUntil((route) {
@@ -158,8 +167,9 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
+    final results = _results;
     final showResults =
-        !_dismissed && (_loading || _failure != null || _results.isNotEmpty);
+        !_dismissed && (_loading || _failure != null || results != null);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -169,45 +179,52 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
             padding: const EdgeInsets.only(top: appInputSpacing / 2),
             child: AppSection(
               children: [
-                if (_suggestionsOnly)
-                  CupertinoListTile(
-                    leading: const Icon(
-                      CupertinoIcons.info_circle,
-                      color: AppColors.primary,
+                if (results != null) ...[
+                  if (results.isEmpty)
+                    CupertinoListTile(
+                      leading: const Icon(
+                        CupertinoIcons.search,
+                        color: AppColors.secondaryText,
+                      ),
+                      title: Text(t.ui.form.noMatchingEntities),
+                    )
+                  else if (_suggestionsOnly)
+                    CupertinoListTile(
+                      leading: const Icon(
+                        CupertinoIcons.info_circle,
+                        color: AppColors.primary,
+                      ),
+                      title: Text(
+                        t.ui.form.similarEntities(count: results.length),
+                      ),
+                      trailing: AppIconButton(
+                        label: t.ui.actions.close,
+                        onPressed: () => setState(() => _dismissed = true),
+                        icon: CupertinoIcons.xmark,
+                      ),
+                    )
+                  else
+                    SelectionContainer.disabled(
+                      child: CupertinoListTile(
+                        leading: const Icon(CupertinoIcons.add_circled),
+                        title: Text(t.ui.form.createNewEntity),
+                        onTap: () {
+                          _target?.clearExisting();
+                          setState(() => _dismissed = true);
+                        },
+                      ),
                     ),
-                    title: Text(
-                      t.ui.form.similarEntities(count: _results.length),
+                  for (final result in results)
+                    AppListTile(
+                      title: TileText(result.label),
+                      trailing: _suggestionsOnly
+                          ? const CupertinoListTileChevron()
+                          : null,
+                      onTap: _suggestionsOnly
+                          ? () => openExternal(entityPath(result.uri))
+                          : () => _select(result),
                     ),
-                    trailing: AppIconButton(
-                      label: t.ui.actions.close,
-                      onPressed: () => setState(() => _dismissed = true),
-                      icon: CupertinoIcons.xmark,
-                    ),
-                  )
-                else
-                  SelectionContainer.disabled(
-                    child: CupertinoListTile(
-                      leading: const Icon(CupertinoIcons.add_circled),
-                      title: Text(t.ui.form.createNewEntity),
-                      onTap: () => setState(() => _dismissed = true),
-                    ),
-                  ),
-                for (final result in _results)
-                  AppListTile(
-                    title: TileText(result.label),
-                    subtitle: Text(result.uri),
-                    trailing: _suggestionsOnly
-                        ? CupertinoButton(
-                            sizeStyle: CupertinoButtonSize.small,
-                            onPressed: () =>
-                                openExternal(entityPath(result.uri)),
-                            child: SelectionContainer.disabled(
-                              child: Text(t.ui.form.view),
-                            ),
-                          )
-                        : const CupertinoListTileChevron(),
-                    onTap: _suggestionsOnly ? null : () => _select(result),
-                  ),
+                ],
                 if (_loading)
                   const Padding(
                     padding: EdgeInsets.all(appInputSpacing),

@@ -241,12 +241,7 @@ class _MergeCard extends StatelessWidget {
             for (final (index, value) in property.values.indexed)
               Padding(
                 padding: listItemSpacing(index),
-                child: value.isUri
-                    ? LinkText(
-                        label: value.readableLabel,
-                        onTap: () => openExternal(entityPath(value.value)),
-                      )
-                    : Text(value.readableLabel),
+                child: Text(value.readableLabel),
               ),
           ],
           const SizedBox(height: appInputSpacing),

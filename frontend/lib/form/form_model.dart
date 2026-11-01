@@ -255,15 +255,21 @@ String convertDate(String original, DateType type) {
 }
 
 /// A nested entity, filled in through the nested dialog. Selecting an existing
-/// entity from the search results replaces the child form with a reference.
+/// entity from the search results replaces the child form with a reference
+/// until the child form changes.
 class NestedItem extends FormItem {
   NestedItem({required super.def, required super.depth});
 
   late EntityNode child;
   String? existingUri;
   String? existingLabel;
-  String? draftLabel;
-  bool draftLabelFailed = false;
+
+  /// Kept apart from the item's own notifications so that a label update does
+  /// not count as an edit of the enclosing entity.
+  final draftLabel = ValueNotifier<({String? label, bool failed})>((
+    label: null,
+    failed: false,
+  ));
   bool discardIfUntouched = false;
 
   bool get isExisting => existingUri != null;
@@ -284,13 +290,7 @@ class NestedItem extends FormItem {
 
   void _onChildChanged() {
     touched = true;
-    notifyListeners();
-  }
-
-  void setDraftLabel(String? label, {required bool failed}) {
-    draftLabel = label;
-    draftLabelFailed = failed;
-    notifyListeners();
+    clearExisting();
   }
 
   void selectExisting(String uri, String label) {
@@ -303,14 +303,13 @@ class NestedItem extends FormItem {
   void clearExisting() {
     existingUri = null;
     existingLabel = null;
-    child.dispose();
-    child = buildChild();
     notifyListeners();
   }
 
   @override
   void dispose() {
     child.dispose();
+    draftLabel.dispose();
     super.dispose();
   }
 }

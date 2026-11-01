@@ -123,13 +123,11 @@ class LinkedResourceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Translations.of(context);
     return AppListTile(
       title: TileText(resource.label),
       subtitle: TileText(
         [?resource.typeLabel, resource.predicateLabel].join(' · '),
       ),
-      additionalInfo: Text(t.ui.actions.visit),
       trailing: const CupertinoListTileChevron(),
       onTap: () => context.go(entityPath(resource.subject)),
     );
@@ -148,15 +146,10 @@ class SimilarResourceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Translations.of(context);
     return AppListTile(
       title: TileText(resource.label),
-      trailing: AppButton(
-        variant: AppButtonVariant.tinted,
-        onPressed: () => context.go(mergeComparePath(subject, resource.uri)),
-        icon: CupertinoIcons.arrow_merge,
-        label: t.ui.entity.merge,
-      ),
+      trailing: const CupertinoListTileChevron(),
+      onTap: () => context.go(mergeComparePath(subject, resource.uri)),
     );
   }
 }

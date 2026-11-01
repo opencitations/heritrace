@@ -30,7 +30,7 @@ from heritrace.extensions import (
 from heritrace.services.resource_lock_manager import LockInfo, LockStatus
 from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
 from heritrace.utils.draft_labels import draft_label
-from heritrace.utils.filters import Filter
+from heritrace.utils.filters import field_with_labels
 from heritrace.utils.primary_source_utils import (
     get_user_default_primary_source,
     save_user_default_primary_source,
@@ -1216,50 +1216,6 @@ def order_logic(
     return op.editor
 
 
-def _field_with_labels(details: dict, custom_filter: Filter) -> dict:
-    """Copy a form field adding the labels the client shows for fixed values."""
-    field = dict(details)
-    entity_key = (field.get("subjectClass"), field.get("subjectShape"))
-    has_value = field.get("hasValue")
-    if has_value:
-        field["hasValueLabel"] = (
-            custom_filter.human_readable_class((has_value, None))
-            if field.get("uri") == str(RDF.type)
-            else custom_filter.human_readable_predicate(has_value, entity_key)
-        )
-    if field.get("optionalValues"):
-        field["optionalValueLabels"] = {
-            value: custom_filter.human_readable_predicate(value, entity_key)
-            for value in field["optionalValues"]
-        }
-    if field.get("nestedShape"):
-        field["nestedShape"] = [
-            _field_with_labels(nested, custom_filter) for nested in field["nestedShape"]
-        ]
-    if field.get("or"):
-        field["or"] = [
-            {
-                "displayName": custom_filter.human_readable_class(
-                    (option.get("entityType"), option.get("nodeShape"))
-                ),
-                **_field_with_labels(option, custom_filter),
-            }
-            for option in field["or"]
-        ]
-    relation = field.get("intermediateRelation")
-    if relation and relation.get("properties"):
-        field["intermediateRelation"] = {
-            **relation,
-            "properties": {
-                prop: [
-                    _field_with_labels(nested, custom_filter) for nested in nested_list
-                ]
-                for prop, nested_list in relation["properties"].items()
-            },
-        }
-    return field
-
-
 @api_bp.route("/form-fields", methods=["GET"])
 @login_required
 def get_form_fields_for_entity() -> Response | tuple[Response, int]:
@@ -1316,10 +1272,7 @@ def get_form_fields_for_entity() -> Response | tuple[Response, int]:
         ordered_properties = [
             [
                 prop,
-                [
-                    _field_with_labels(details, custom_filter)
-                    for details in details_list
-                ],
+                [field_with_labels(details, custom_filter) for details in details_list],
             ]
             for prop, details_list in entity_form_fields.items()
         ]

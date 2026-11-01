@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
 
 import validators
 from flask import Blueprint, Response, current_app, jsonify, request
@@ -23,6 +22,7 @@ from heritrace.extensions import (
     get_sparql,
     record_dataset_change,
 )
+from heritrace.routes.entity import build_entity_view
 from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.display_rules_utils import (
     get_highest_priority_class,
@@ -36,80 +36,6 @@ from heritrace.utils.sparql_utils import get_entity_types, import_entity_graph
 from heritrace.utils.virtuoso_utils import is_virtuoso
 
 merge_bp = Blueprint("merge", __name__)
-
-
-def get_entity_details(
-    entity_uri: URIRef,
-) -> tuple[dict[str, list[dict[str, Any]]] | None, list[str]]:
-    """
-    Fetches all properties (predicates and objects) for a given entity URI,
-    grouped by predicate, along with its types.
-
-    Args:
-        entity_uri: The URI of the entity to fetch details for.
-
-    Returns:
-        A tuple containing:
-        - A dictionary where keys are predicate URIs and values are lists of
-          object dictionaries (containing 'value', 'type', 'lang', 'datatype').
-          Returns None if an error occurs.
-        - A list of entity type URIs. Returns an empty list if an error occurs
-          or no types are found.
-    """
-    sparql = get_sparql()
-    custom_filter = get_custom_filter()
-    grouped_properties: dict[str, list[dict[str, Any]]] = {}
-    entity_types: list[str] = []
-
-    try:
-        entity_types = get_entity_types(entity_uri)
-        if not entity_types:
-            current_app.logger.warning("No types found for entity: %s", entity_uri)
-
-        query = f"""
-        SELECT DISTINCT ?p ?o WHERE {{
-            <{entity_uri}> ?p ?o .
-        }}
-        """
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
-        results = sparql.query().convert()
-
-        bindings = get_sparql_bindings(results)
-        for binding in bindings:
-            predicate = binding["p"]["value"]
-            obj_node = binding["o"]
-            obj_details = {
-                "value": obj_node["value"],
-                "type": obj_node["type"],
-                "lang": obj_node.get("xml:lang"),
-                "datatype": obj_node.get("datatype"),
-                "readable_label": None,
-            }
-            if obj_details["type"] == "uri":
-                obj_types = get_entity_types(URIRef(obj_details["value"]))
-                obj_type = get_highest_priority_class(obj_types)
-                if obj_type:
-                    obj_details["readable_label"] = custom_filter.human_readable_entity(
-                        obj_details["value"], (obj_type, None)
-                    )
-                else:
-                    obj_details["readable_label"] = obj_details["value"]
-            else:
-                obj_details["readable_label"] = obj_details["value"]
-
-            if predicate not in grouped_properties:
-                grouped_properties[predicate] = []
-            grouped_properties[predicate].append(obj_details)
-
-    except Exception:
-        current_app.logger.exception(
-            "Error fetching details for %s",
-            entity_uri,
-        )
-        return None, []
-    else:
-        return grouped_properties, entity_types
 
 
 def _entity_summary(entity_uri: URIRef, entity_types: list[str]) -> dict:
@@ -130,19 +56,32 @@ def _entity_summary(entity_uri: URIRef, entity_types: list[str]) -> dict:
     }
 
 
-def _serialize_properties(
-    grouped_properties: dict[str, list[dict[str, Any]]], entity_key: tuple
-) -> list[dict]:
-    custom_filter = get_custom_filter()
-    return [
-        {
-            "predicate": predicate,
-            "label": custom_filter.human_readable_predicate(predicate, entity_key),
-            "values": values,
-        }
-        for predicate, values in grouped_properties.items()
-        if predicate != str(RDF.type)
-    ]
+def _comparison_entity(entity_uri: str) -> dict:
+    view = build_entity_view(entity_uri)
+    predicates_with_options = {
+        predicate for predicate, options in view["optional_values"].items() if options
+    }
+    return {
+        "uri": view["uri"],
+        "label": view["label"],
+        "type_label": view["type_label"],
+        "properties": [
+            {
+                "predicate": group["property"],
+                "label": group["display_name"],
+                "values": [
+                    {
+                        "readable_label": triple["label"]
+                        if group["property"] in predicates_with_options
+                        else triple["value"]
+                    }
+                    for triple in group["triples"]
+                ],
+            }
+            for group in view["groups"]
+            if group["triples"] and group["property"] != str(RDF.type)
+        ],
+    }
 
 
 @merge_bp.route("", methods=["POST"])
@@ -172,8 +111,8 @@ def execute_merge() -> Response | tuple[Response, int]:
         save_user_default_primary_source(current_user.orcid, primary_source)
 
     try:
-        _, entity1_types = get_entity_details(entity1_uri)
-        _, entity2_types = get_entity_details(entity2_uri)
+        entity1_types = get_entity_types(entity1_uri)
+        entity2_types = get_entity_types(entity2_uri)
         kept = _entity_summary(entity1_uri, entity1_types)
         deleted = _entity_summary(entity2_uri, entity2_types)
 
@@ -235,30 +174,12 @@ def compare_and_merge() -> Response | tuple[Response, int]:
             }
         ), 400
 
-    entity1_uri = URIRef(entity1_uri_str)
-    entity2_uri = URIRef(entity2_uri_str)
-
-    entity1_props, entity1_types = get_entity_details(entity1_uri)
-    entity2_props, entity2_types = get_entity_details(entity2_uri)
-
-    if entity1_props is None or entity2_props is None:
-        return jsonify(
-            {
-                "status": "error",
-                "message": "Could not retrieve details for one or both entities.",
-            }
-        ), 502
-
-    entity1 = _entity_summary(entity1_uri, entity1_types)
-    entity2 = _entity_summary(entity2_uri, entity2_types)
-    entity1["properties"] = _serialize_properties(
-        entity1_props, (entity1["type"], entity1["shape"])
+    return jsonify(
+        {
+            "entity1": _comparison_entity(entity1_uri_str),
+            "entity2": _comparison_entity(entity2_uri_str),
+        }
     )
-    entity2["properties"] = _serialize_properties(
-        entity2_props, (entity2["type"], entity2["shape"])
-    )
-
-    return jsonify({"entity1": entity1, "entity2": entity2})
 
 
 def _format_rdf_term(node: dict[str, str]) -> str | None:

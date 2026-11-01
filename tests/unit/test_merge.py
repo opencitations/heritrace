@@ -9,34 +9,7 @@ from flask import url_for
 from rdflib import URIRef
 
 from heritrace.editor import EndpointConfig
-from heritrace.routes.merge import get_entity_details, merge_bp
-
-ENTITY1_URI = "http://example.org/entity1"
-ENTITY2_URI = "http://example.org/entity2"
-ENTITY1_LABEL = "Entity One Label"
-ENTITY2_LABEL = "Entity Two Label"
-ENTITY1_TYPES = ["http://example.org/TypeA"]
-ENTITY2_TYPES = ["http://example.org/TypeB"]
-USER_ORCID = "0000-0001-2345-6789"
-RESP_AGENT_URI = URIRef(f"https://orcid.org/{USER_ORCID}")
-
-MOCK_ENTITY1_PROPS = {
-    "http://example.org/prop1": [
-        {"value": "Value 1", "type": "literal", "readable_label": "Value 1"}
-    ],
-    "http://example.org/prop2": [
-        {
-            "value": "http://example.org/obj1",
-            "type": "uri",
-            "readable_label": "Object One",
-        }
-    ],
-}
-MOCK_ENTITY2_PROPS = {
-    "http://example.org/prop3": [
-        {"value": "Value 3", "type": "literal", "readable_label": "Value 3"}
-    ],
-}
+from heritrace.routes.merge import merge_bp
 
 
 @pytest.fixture
@@ -62,96 +35,6 @@ def mock_import_entity_graph():
         yield mock
 
 
-@patch("heritrace.routes.merge.get_sparql")
-@patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_entity_types")
-def test_get_entity_details_success(
-    mock_get_entity_types, mock_get_custom_filter, mock_get_sparql, app
-) -> None:
-    """Test get_entity_details successfully fetches properties and types."""
-    entity1_uri = URIRef("http://test.com/entityDetailSuccess")
-    entity1_types = ["http://test.com/TypeA"]
-    obj_uri = "http://obj.uri/detail"
-    obj_type = ["http://test.com/ObjectType"]
-    prop1 = "http://test.com/prop1"
-    prop2 = "http://test.com/prop2"
-    literal_val = "Literal Val"
-    readable_obj_label = "Readable Object Label"
-
-    mock_sparql_instance = MagicMock()
-    mock_sparql_instance.query().convert.return_value = {
-        "results": {
-            "bindings": [
-                {"p": {"value": prop1}, "o": {"value": literal_val, "type": "literal"}},
-                {"p": {"value": prop2}, "o": {"value": obj_uri, "type": "uri"}},
-            ]
-        }
-    }
-    mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_entity_types.side_effect = [entity1_types, obj_type]
-    mock_custom_filter_instance = MagicMock()
-    mock_custom_filter_instance.human_readable_entity.return_value = readable_obj_label
-    mock_get_custom_filter.return_value = mock_custom_filter_instance
-
-    with app.app_context():
-        props, types = get_entity_details(entity1_uri)
-
-    assert types == entity1_types
-    assert props is not None
-    assert prop1 in props
-    assert props[prop1][0]["value"] == literal_val
-    assert props[prop1][0]["readable_label"] == literal_val
-    assert prop2 in props
-    assert props[prop2][0]["value"] == obj_uri
-    assert props[prop2][0]["readable_label"] == readable_obj_label
-    assert mock_get_entity_types.call_count == 2
-    mock_get_entity_types.assert_any_call(entity1_uri)
-    mock_get_entity_types.assert_any_call(URIRef(obj_uri))
-    mock_custom_filter_instance.human_readable_entity.assert_called_once_with(
-        obj_uri, (obj_type[0], None)
-    )
-
-
-@patch("heritrace.routes.merge.get_sparql")
-@patch("heritrace.routes.merge.get_entity_types", return_value=[])
-def test_get_entity_details_no_types(
-    mock_get_entity_types, mock_get_sparql, app
-) -> None:
-    """Test get_entity_details when no types are found for the entity."""
-    entity1_uri = URIRef("http://test.com/entityDetailNoTypes")
-    mock_sparql_instance = MagicMock()
-    mock_sparql_instance.query().convert.return_value = {"results": {"bindings": []}}
-    mock_get_sparql.return_value = mock_sparql_instance
-
-    with app.app_context():
-        props, types = get_entity_details(entity1_uri)
-
-    assert types == []
-    assert props == {}
-    mock_get_entity_types.assert_called_once_with(entity1_uri)
-
-
-@patch("heritrace.routes.merge.get_sparql")
-@patch("heritrace.routes.merge.get_entity_types")
-def test_get_entity_details_sparql_error(
-    mock_get_entity_types, mock_get_sparql, app
-) -> None:
-    """Test get_entity_details handles SPARQL query errors."""
-    entity1_uri = URIRef("http://test.com/entityDetailSparqlError")
-    entity1_types = ["http://test.com/TypeAOnError"]
-
-    mock_sparql_instance = MagicMock()
-    mock_sparql_instance.query.side_effect = Exception("SPARQL Error")
-    mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_entity_types.return_value = entity1_types
-
-    with app.app_context():
-        props, types = get_entity_details(entity1_uri)
-
-    assert props is None
-    assert types == []
-
-
 @pytest.fixture
 def merge_test_data():
     """Provides common data for merge execution tests."""
@@ -165,16 +48,6 @@ def merge_test_data():
         "entity2_types": ["http://merge.test/TypeDelete"],
         "user_orcid": user_orcid,
         "resp_agent_uri": URIRef(f"https://orcid.org/{user_orcid}"),
-        "entity1_props": {
-            "http://merge.test/propA": [
-                {"value": "Value A", "type": "literal", "readable_label": "Value A"}
-            ],
-        },
-        "entity2_props": {
-            "http://merge.test/propB": [
-                {"value": "Value B", "type": "literal", "readable_label": "Value B"}
-            ],
-        },
     }
 
 
@@ -185,14 +58,11 @@ def _filter_with_labels(merge_test_data: dict) -> MagicMock:
         merge_test_data["entity2_label"],
     ]
     mock_filter_instance.human_readable_class.side_effect = ["Keep Type", "Delete Type"]
-    mock_filter_instance.human_readable_predicate.side_effect = (
-        lambda predicate, *_a, **_k: predicate
-    )
     return mock_filter_instance
 
 
 @patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_entity_details")
+@patch("heritrace.routes.merge.get_entity_types")
 @patch("heritrace.routes.merge.Editor")
 @patch(
     "heritrace.routes.merge.get_dataset_endpoint",
@@ -210,7 +80,7 @@ def test_execute_merge_success(
     _mock_prov,
     _mock_ds,
     mock_editor_cls,
-    mock_get_details,
+    mock_get_types,
     mock_get_filter,
     mock_import_entity_graph,
     client,
@@ -218,9 +88,9 @@ def test_execute_merge_success(
     merge_test_data,
 ) -> None:
     mock_current_user.return_value = mock_user
-    mock_get_details.side_effect = [
-        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
-        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
+    mock_get_types.side_effect = [
+        merge_test_data["entity1_types"],
+        merge_test_data["entity2_types"],
     ]
     mock_get_filter.return_value = _filter_with_labels(merge_test_data)
     mock_editor_instance = MagicMock()
@@ -299,7 +169,7 @@ def test_execute_merge_invalid_primary_source(
 
 @patch("heritrace.routes.merge.save_user_default_primary_source")
 @patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_entity_details")
+@patch("heritrace.routes.merge.get_entity_types")
 @patch("heritrace.routes.merge.Editor")
 @patch(
     "heritrace.routes.merge.get_dataset_endpoint",
@@ -317,7 +187,7 @@ def test_execute_merge_save_default_source(
     _mock_prov,
     _mock_ds,
     mock_editor_cls,
-    mock_get_details,
+    mock_get_types,
     mock_get_filter,
     mock_save_source,
     client,
@@ -325,9 +195,9 @@ def test_execute_merge_save_default_source(
     merge_test_data,
 ) -> None:
     mock_current_user.return_value = mock_user
-    mock_get_details.side_effect = [
-        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
-        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
+    mock_get_types.side_effect = [
+        merge_test_data["entity1_types"],
+        merge_test_data["entity2_types"],
     ]
     mock_get_filter.return_value = _filter_with_labels(merge_test_data)
     mock_editor_instance = MagicMock()
@@ -368,22 +238,22 @@ def test_execute_merge_missing_uris(mock_current_user, client, mock_user) -> Non
 
 
 @patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_entity_details")
+@patch("heritrace.routes.merge.get_entity_types")
 @patch("heritrace.routes.merge.Editor")
 @patch("flask_login.utils._get_user")
 def test_execute_merge_editor_value_error(
     mock_current_user,
     mock_editor_cls,
-    mock_get_details,
+    mock_get_types,
     mock_get_filter,
     client,
     mock_user,
     merge_test_data,
 ) -> None:
     mock_current_user.return_value = mock_user
-    mock_get_details.side_effect = [
-        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
-        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
+    mock_get_types.side_effect = [
+        merge_test_data["entity1_types"],
+        merge_test_data["entity2_types"],
     ]
     mock_get_filter.return_value = _filter_with_labels(merge_test_data)
     mock_editor_instance = MagicMock()
@@ -406,22 +276,22 @@ def test_execute_merge_editor_value_error(
 
 
 @patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_entity_details")
+@patch("heritrace.routes.merge.get_entity_types")
 @patch("heritrace.routes.merge.Editor")
 @patch("flask_login.utils._get_user")
 def test_execute_merge_general_exception(
     mock_current_user,
     mock_editor_cls,
-    mock_get_details,
+    mock_get_types,
     mock_get_filter,
     client,
     mock_user,
     merge_test_data,
 ) -> None:
     mock_current_user.return_value = mock_user
-    mock_get_details.side_effect = [
-        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
-        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
+    mock_get_types.side_effect = [
+        merge_test_data["entity1_types"],
+        merge_test_data["entity2_types"],
     ]
     mock_get_filter.return_value = _filter_with_labels(merge_test_data)
     mock_editor_instance = MagicMock()
@@ -446,25 +316,76 @@ def test_execute_merge_general_exception(
     }
 
 
-@patch("heritrace.utils.sparql_utils.get_sparql")
-@patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_entity_details")
+def _entity_view(uri: str, label: str, type_label: str, groups: list) -> dict:
+    return {
+        "uri": uri,
+        "label": label,
+        "type_label": type_label,
+        "optional_values": {
+            "http://merge.test/status": [
+                {"value": "http://merge.test/open", "label": "Open"}
+            ],
+            "http://merge.test/title": [],
+        },
+        "groups": groups,
+    }
+
+
+def _group(predicate: str, display_name: str, triples: list[tuple]) -> dict:
+    return {
+        "property": predicate,
+        "display_name": display_name,
+        "triples": [{"value": value, "label": label} for value, label in triples],
+    }
+
+
+@patch("heritrace.routes.merge.build_entity_view")
 @patch("flask_login.utils._get_user")
 def test_compare_and_merge_success(
     mock_current_user,
-    mock_get_details,
-    mock_get_filter,
-    _mock_sparql,
+    mock_build_view,
     client,
     mock_user,
     merge_test_data,
 ) -> None:
     mock_current_user.return_value = mock_user
-    mock_get_details.side_effect = [
-        (merge_test_data["entity1_props"], merge_test_data["entity1_types"]),
-        (merge_test_data["entity2_props"], merge_test_data["entity2_types"]),
+    rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    mock_build_view.side_effect = [
+        _entity_view(
+            merge_test_data["entity1_uri"],
+            merge_test_data["entity1_label"],
+            "Keep Type",
+            [
+                _group(rdf_type, "Type", [("Keep Type", "Keep Type")]),
+                _group(
+                    "http://merge.test/author",
+                    "Author",
+                    [
+                        ("Doe, Jane [id:1]", "http://merge.test/ar/1"),
+                        ("Roe, Ann [id:2]", "http://merge.test/ar/2"),
+                    ],
+                ),
+                _group("http://merge.test/editor", "Editor", []),
+            ],
+        ),
+        _entity_view(
+            merge_test_data["entity2_uri"],
+            merge_test_data["entity2_label"],
+            "Delete Type",
+            [
+                _group(
+                    "http://merge.test/status",
+                    "Status",
+                    [("http://merge.test/open", "Open")],
+                ),
+                _group(
+                    "http://merge.test/title",
+                    "Title",
+                    [("A title", "http://merge.test/title-label")],
+                ),
+            ],
+        ),
     ]
-    mock_get_filter.return_value = _filter_with_labels(merge_test_data)
 
     response = client.get(
         url_for(
@@ -479,15 +400,14 @@ def test_compare_and_merge_success(
         "entity1": {
             "uri": merge_test_data["entity1_uri"],
             "label": merge_test_data["entity1_label"],
-            "type": merge_test_data["entity1_types"][0],
             "type_label": "Keep Type",
-            "shape": None,
             "properties": [
                 {
-                    "predicate": "http://merge.test/propA",
-                    "label": "http://merge.test/propA",
-                    "values": merge_test_data["entity1_props"][
-                        "http://merge.test/propA"
+                    "predicate": "http://merge.test/author",
+                    "label": "Author",
+                    "values": [
+                        {"readable_label": "Doe, Jane [id:1]"},
+                        {"readable_label": "Roe, Ann [id:2]"},
                     ],
                 }
             ],
@@ -495,22 +415,25 @@ def test_compare_and_merge_success(
         "entity2": {
             "uri": merge_test_data["entity2_uri"],
             "label": merge_test_data["entity2_label"],
-            "type": merge_test_data["entity2_types"][0],
             "type_label": "Delete Type",
-            "shape": None,
             "properties": [
                 {
-                    "predicate": "http://merge.test/propB",
-                    "label": "http://merge.test/propB",
-                    "values": merge_test_data["entity2_props"][
-                        "http://merge.test/propB"
-                    ],
-                }
+                    "predicate": "http://merge.test/status",
+                    "label": "Status",
+                    "values": [{"readable_label": "Open"}],
+                },
+                {
+                    "predicate": "http://merge.test/title",
+                    "label": "Title",
+                    "values": [{"readable_label": "A title"}],
+                },
             ],
         },
     }
-    mock_get_details.assert_any_call(URIRef(merge_test_data["entity1_uri"]))
-    mock_get_details.assert_any_call(URIRef(merge_test_data["entity2_uri"]))
+    assert mock_build_view.call_args_list == [
+        call(merge_test_data["entity1_uri"]),
+        call(merge_test_data["entity2_uri"]),
+    ]
 
 
 @patch("flask_login.utils._get_user")
@@ -527,28 +450,6 @@ def test_compare_and_merge_missing_uris(
     assert response.get_json() == {
         "status": "error",
         "message": "Two entities must be selected for merging/comparison.",
-    }
-
-
-@patch("heritrace.routes.merge.get_entity_details", return_value=(None, []))
-@patch("flask_login.utils._get_user")
-def test_compare_and_merge_fetch_error(
-    mock_current_user, _mock_get_details, client, mock_user, merge_test_data
-) -> None:
-    mock_current_user.return_value = mock_user
-
-    response = client.get(
-        url_for(
-            "merge.compare_and_merge",
-            subject=merge_test_data["entity1_uri"],
-            other_subject=merge_test_data["entity2_uri"],
-        )
-    )
-
-    assert response.status_code == 502
-    assert response.get_json() == {
-        "status": "error",
-        "message": "Could not retrieve details for one or both entities.",
     }
 
 

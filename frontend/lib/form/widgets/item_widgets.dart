@@ -4,12 +4,10 @@
 
 import 'package:flutter/cupertino.dart';
 
-import '../../common/reference_views.dart';
 import '../../design/app_theme.dart';
 import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
-import '../../navigation/app_paths.dart';
 import '../field_def.dart';
 import '../form_model.dart';
 import '../form_scope.dart';
@@ -354,18 +352,9 @@ class NestedTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     return ListenableBuilder(
-      listenable: item,
+      listenable: Listenable.merge([item, item.draftLabel]),
       builder: (context, _) {
-        if (item.isExisting) {
-          return Container(
-            padding: const EdgeInsets.all(appInputSpacing),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.separator),
-              borderRadius: BorderRadius.circular(appRadius),
-            ),
-            child: Text(item.existingLabel!),
-          );
-        }
+        final draft = item.draftLabel.value;
         final scope = FormScope.of(context);
         final hasErrors =
             scope.validationStarted &&
@@ -392,7 +381,9 @@ class NestedTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          item.draftLabel ?? t.ui.form.fillInDetails,
+                          item.existingLabel ??
+                              draft.label ??
+                              t.ui.form.fillInDetails,
                           style: TextStyle(
                             color: hasErrors
                                 ? AppColors.error
@@ -410,7 +401,7 @@ class NestedTile extends StatelessWidget {
                 ),
               ),
             ),
-            if (item.draftLabelFailed)
+            if (draft.failed)
               Text(
                 t.ui.form.draftLabelFailed,
                 style: AppTextStyles.of(context).caption
@@ -431,34 +422,6 @@ class NestedTile extends StatelessWidget {
       node = node.parentItem?.group.owner;
     }
     return false;
-  }
-}
-
-class ExistingEntityActions extends StatelessWidget {
-  const ExistingEntityActions({required this.item, super.key});
-
-  final NestedItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Translations.of(context);
-    return Wrap(
-      spacing: appInputSpacing / 2,
-      children: [
-        AppButton(
-          variant: AppButtonVariant.tinted,
-          onPressed: () => openExternal(entityPath(item.existingUri!)),
-          icon: CupertinoIcons.arrow_up_right_square,
-          label: t.ui.actions.visit,
-        ),
-        AppButton(
-          variant: AppButtonVariant.tinted,
-          onPressed: item.clearExisting,
-          icon: CupertinoIcons.pencil,
-          label: t.ui.actions.change,
-        ),
-      ],
-    );
   }
 }
 

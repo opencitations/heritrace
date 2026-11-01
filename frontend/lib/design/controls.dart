@@ -272,6 +272,47 @@ class AppMenuButton<T> extends StatelessWidget {
   }
 }
 
+/// Where tile text starts; section dividers start at the same offset.
+const double _tileTextInset = 20;
+
+/// An action at the end of a row: a labelled button with a leading gap, or
+/// only its icon on compact screens.
+class RowAction extends StatelessWidget {
+  const RowAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.destructive = false,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.sizeOf(context).width < appCompactWidth) {
+      return AppIconButton(
+        label: label,
+        color: destructive ? AppColors.error : null,
+        onPressed: onPressed,
+        icon: icon,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(left: appInputSpacing),
+      child: AppButton(
+        destructive: destructive,
+        onPressed: onPressed,
+        icon: icon,
+        label: label,
+      ),
+    );
+  }
+}
+
 /// A rounded white group on the grey page background, as in iOS Settings.
 class AppSection extends StatelessWidget {
   const AppSection({required this.children, super.key});
@@ -282,7 +323,8 @@ class AppSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoListSection.insetGrouped(
       margin: EdgeInsets.zero,
-      hasLeading: false,
+      dividerMargin: _tileTextInset,
+      additionalDividerMargin: 0,
       children: children,
     );
   }
@@ -441,7 +483,7 @@ class AppListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tile = CupertinoListTile(
-      padding: const EdgeInsetsDirectional.fromSTEB(20, 10, 14, 10),
+      padding: const EdgeInsetsDirectional.fromSTEB(_tileTextInset, 10, 14, 10),
       title: title,
       subtitle: subtitle,
       additionalInfo: additionalInfo,

@@ -122,6 +122,38 @@ void main() {
     });
   });
 
+  test('editing the nested form discards the selected entity', () {
+    final authorItem = group(root, documentContext).addItem() as NestedItem;
+    final nameItem = group(authorItem.child, name).addItem() as LiteralItem;
+    nameItem.setValue('Jane');
+    authorItem.selectExisting('https://w3id.org/oc/meta/ra/1', 'Jane Doe');
+
+    nameItem.setValue('Jane Roe');
+
+    expect(authorItem.isExisting, false);
+    final collected =
+        collectProperties(root)[documentContext]!.single
+            as Map<String, Object?>;
+    expect((collected['properties']! as Map)[heldBy], {
+      'entity_type': agent,
+      'entity_shape': agentShape,
+      'properties': {
+        name: ['Jane Roe'],
+      },
+    });
+  });
+
+  test('a draft label inside the nested form keeps the selected entity', () {
+    final authorItem = group(root, documentContext).addItem() as NestedItem;
+    final identifierItem =
+        group(authorItem.child, identifier).addItem() as NestedItem;
+    authorItem.selectExisting('https://w3id.org/oc/meta/ra/1', 'Jane Doe');
+
+    identifierItem.draftLabel.value = (label: 'ORCID', failed: false);
+
+    expect(authorItem.isExisting, true);
+  });
+
   test('the draft entity mirrors the collected nested value', () {
     final authorItem = group(root, documentContext).addItem() as NestedItem;
     (group(authorItem.child, name).addItem() as LiteralItem).setValue('Jane');

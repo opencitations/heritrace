@@ -9,23 +9,12 @@ import '../api/api_client.dart';
 import '../api/api_exception.dart';
 
 class MergeValue {
-  const MergeValue({
-    required this.value,
-    required this.type,
-    required this.readableLabel,
-  });
+  const MergeValue({required this.readableLabel});
 
-  factory MergeValue.fromJson(Map<String, dynamic> json) => MergeValue(
-    value: json['value'] as String,
-    type: json['type'] as String,
-    readableLabel: json['readable_label'] as String,
-  );
+  factory MergeValue.fromJson(Map<String, dynamic> json) =>
+      MergeValue(readableLabel: json['readable_label'] as String);
 
-  final String value;
-  final String type;
   final String readableLabel;
-
-  bool get isUri => type == 'uri';
 }
 
 class MergeProperty {

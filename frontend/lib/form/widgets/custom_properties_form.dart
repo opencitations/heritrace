@@ -150,7 +150,7 @@ class _CustomPropertyRowState extends ConsumerState<_CustomPropertyRow> {
             Expanded(
               child: Text(title, style: AppTextStyles.of(context).heading),
             ),
-            AppButton(
+            RowAction(
               destructive: true,
               onPressed: widget.onRemove,
               icon: CupertinoIcons.delete,

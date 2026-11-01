@@ -5,7 +5,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
-import '../common/reference_views.dart';
 import '../design/app_theme.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
@@ -112,75 +111,64 @@ class ExistingValueWidget extends StatelessWidget {
         view.shacl &&
         view.canBeDeleted.contains(triple.predicate) &&
         !triple.isMandatory;
-    final compact = MediaQuery.sizeOf(context).width < appCompactWidth;
-    Widget action({
-      required IconData icon,
-      required String label,
-      required VoidCallback onPressed,
-      bool destructive = false,
-    }) => compact
-        ? AppIconButton(
-            label: label,
-            color: destructive ? AppColors.error : null,
-            onPressed: onPressed,
-            icon: icon,
-          )
-        : Padding(
-            padding: const EdgeInsets.only(left: appInputSpacing),
-            child: AppButton(
-              destructive: destructive,
-              onPressed: onPressed,
-              icon: icon,
-              label: label,
-            ),
-          );
+    final linked = !editing && triple.externalEntity != null;
     return ListenableBuilder(
       listenable: value,
       builder: (context, _) {
         final deleted = value.markedForDeletion;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (dragHandle != null) ...[
-              dragHandle!,
-              const SizedBox(width: appInputSpacing / 2),
-            ],
-            if (index != null) ...[
-              Text('${index! + 1}.'),
-              const SizedBox(width: appInputSpacing / 2),
-            ],
-            Expanded(
-              child: DefaultTextStyle.merge(
-                style: deleted
-                    ? const TextStyle(decoration: TextDecoration.lineThrough)
-                    : const TextStyle(),
-                child: _ValueBody(
-                  value: value,
-                  view: view,
-                  editable: editing && !deleted,
+        final row = ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: kCupertinoButtonMinSize[CupertinoButtonSize.medium]!,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (dragHandle != null) ...[
+                dragHandle!,
+                const SizedBox(width: appInputSpacing / 2),
+              ],
+              if (index != null) ...[
+                Text('${index! + 1}.'),
+                const SizedBox(width: appInputSpacing / 2),
+              ],
+              Expanded(
+                child: DefaultTextStyle.merge(
+                  style: deleted
+                      ? const TextStyle(decoration: TextDecoration.lineThrough)
+                      : const TextStyle(),
+                  child: _ValueBody(
+                    value: value,
+                    view: view,
+                    editable: editing && !deleted,
+                  ),
                 ),
               ),
-            ),
-            if (triple.externalEntity != null)
-              action(
-                icon: CupertinoIcons.arrow_right,
-                label: t.ui.actions.visit,
-                onPressed: () => context.go(entityPath(triple.externalEntity!)),
-              ),
-            if (deletable && !deleted)
-              action(
-                icon: CupertinoIcons.delete,
-                label: t.ui.actions.delete,
-                onPressed: value.markForDeletion,
-                destructive: true,
-              ),
-            if (deletable && deleted)
-              action(
-                icon: CupertinoIcons.arrow_uturn_left,
-                label: t.ui.entity.revert,
-                onPressed: value.undoDeletion,
-              ),
-          ],
+              if (linked) const CupertinoListTileChevron(),
+              if (deletable && !deleted)
+                RowAction(
+                  icon: CupertinoIcons.delete,
+                  label: t.ui.actions.delete,
+                  onPressed: value.markForDeletion,
+                  destructive: true,
+                ),
+              if (deletable && deleted)
+                RowAction(
+                  icon: CupertinoIcons.arrow_uturn_left,
+                  label: t.ui.entity.revert,
+                  onPressed: value.undoDeletion,
+                ),
+            ],
+          ),
+        );
+        if (!linked) {
+          return row;
+        }
+        return SelectionContainer.disabled(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => context.go(entityPath(triple.externalEntity!)),
+            child: MouseRegion(cursor: SystemMouseCursors.click, child: row),
+          ),
         );
       },
     );
@@ -202,10 +190,7 @@ class _ValueBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final triple = value.triple;
     if (triple.externalEntity != null) {
-      return LinkText(
-        label: triple.value,
-        onTap: () => context.go(entityPath(triple.externalEntity!)),
-      );
+      return Text(triple.value);
     }
     if (triple.isMandatory) {
       return MandatoryValueText(triple.value);

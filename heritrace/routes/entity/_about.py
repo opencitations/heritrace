@@ -19,6 +19,7 @@ from heritrace.utils.display_rules_utils import (
     get_grouped_triples,
     get_highest_priority_class,
 )
+from heritrace.utils.filters import field_with_labels
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 from heritrace.utils.shacl_validation import get_valid_predicates
 from heritrace.utils.sparql_utils import (
@@ -158,7 +159,7 @@ def _field_for_group(
         get_form_fields().get((entity_type, subject_shape), {}).get(predicate, [])
     ):
         if details.get("nodeShape") == object_shape:
-            return details
+            return field_with_labels(details, get_custom_filter())
     return None
 
 

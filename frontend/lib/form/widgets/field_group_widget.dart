@@ -131,11 +131,8 @@ class _ItemCard extends StatelessWidget {
                 required: def.isRequired,
               ),
             ),
-            if (item is NestedItem && (item as NestedItem).isExisting) ...[
-              ExistingEntityActions(item: item as NestedItem),
-            ],
             if (group.canDelete(item))
-              AppButton(
+              RowAction(
                 destructive: true,
                 onPressed: () => group.removeItem(item),
                 icon: CupertinoIcons.delete,

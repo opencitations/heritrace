@@ -100,7 +100,7 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
     final entity = nestedDetailsComplete(item) ? draftEntity(item) : null;
     if (entity == null) {
       _fingerprint = null;
-      item.setDraftLabel(null, failed: false);
+      item.draftLabel.value = (label: null, failed: false);
       return;
     }
     final entry = {
@@ -119,12 +119,18 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
         return;
       }
       _fingerprint = fingerprint;
-      item.setDraftLabel(label ?? nestedFallbackLabel(item), failed: false);
+      item.draftLabel.value = (
+        label: label ?? nestedFallbackLabel(item),
+        failed: false,
+      );
     } on Exception {
       if (revision != _revision || !mounted) {
         return;
       }
-      item.setDraftLabel(item.draftLabel, failed: true);
+      item.draftLabel.value = (
+        label: item.draftLabel.value.label,
+        failed: true,
+      );
     }
   }
 
