@@ -11,7 +11,7 @@ import 'catalogue_models.dart';
 
 class CatalogueQuery {
   const CatalogueQuery({
-    required this.timeVault,
+    required this.recycleBin,
     this.entityClass,
     this.shape,
     this.page,
@@ -20,17 +20,17 @@ class CatalogueQuery {
   });
 
   factory CatalogueQuery.fromParams({
-    required bool timeVault,
+    required bool recycleBin,
     required Map<String, String> params,
   }) => CatalogueQuery(
-    timeVault: timeVault,
+    recycleBin: recycleBin,
     entityClass: params['class'],
     shape: params['shape'],
     sortProperty: params['sort_property'],
     sortDirection: params['sort_direction'],
   );
 
-  final bool timeVault;
+  final bool recycleBin;
   final String? entityClass;
   final String? shape;
 
@@ -56,7 +56,7 @@ class CatalogueQuery {
     String? sortDirection,
     bool resetShape = false,
   }) => CatalogueQuery(
-    timeVault: timeVault,
+    recycleBin: recycleBin,
     entityClass: entityClass ?? this.entityClass,
     shape: resetShape ? null : (shape ?? this.shape),
     page: page ?? this.page,
@@ -67,7 +67,7 @@ class CatalogueQuery {
   @override
   bool operator ==(Object other) =>
       other is CatalogueQuery &&
-      other.timeVault == timeVault &&
+      other.recycleBin == recycleBin &&
       other.entityClass == entityClass &&
       other.shape == shape &&
       other.page == page &&
@@ -76,7 +76,7 @@ class CatalogueQuery {
 
   @override
   int get hashCode => Object.hash(
-    timeVault,
+    recycleBin,
     entityClass,
     shape,
     page,
@@ -93,7 +93,7 @@ class CatalogueRepository {
   Future<CataloguePage> fetch(CatalogueQuery query) async {
     final response = await apiGuard(
       () => _dio.get<Map<String, dynamic>>(
-        query.timeVault ? '/api/time-vault' : '/api/catalogue',
+        query.recycleBin ? '/api/recycle-bin' : '/api/catalogue',
         queryParameters: query.toParams(),
       ),
     );

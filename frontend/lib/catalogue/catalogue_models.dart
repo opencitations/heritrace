@@ -38,7 +38,7 @@ class SortableProperty {
   final String displayName;
 }
 
-/// An entry of the catalogue, or of the time vault when [deletion] is set.
+/// An entry of the catalogue, or of the recycle bin when [deletion] is set.
 class CatalogueEntity {
   const CatalogueEntity({
     required this.uri,

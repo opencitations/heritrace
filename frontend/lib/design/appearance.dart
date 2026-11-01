@@ -5,7 +5,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'appearance_storage.dart';
+import '../common/preference_storage.dart';
 
 /// Light or dark, or whatever the system uses when [brightness] is null.
 enum Appearance {
@@ -18,13 +18,15 @@ enum Appearance {
   final Brightness? brightness;
 }
 
+const _key = 'appearance';
+
 class AppearanceController extends Notifier<Appearance> {
   @override
   Appearance build() =>
-      Appearance.values.asNameMap()[readAppearance()] ?? Appearance.system;
+      Appearance.values.asNameMap()[readPreference(_key)] ?? Appearance.system;
 
   void select(Appearance appearance) {
-    writeAppearance(appearance.name);
+    writePreference(_key, appearance.name);
     state = appearance;
   }
 }

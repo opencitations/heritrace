@@ -13,7 +13,7 @@ SHELL_TITLE = b"<title>HERITRACE test shell</title>"
     [
         "/",
         "/catalogue",
-        "/time-vault",
+        "/recycle-bin",
         "/create-entity",
         "/about/https://w3id.org/oc/meta/br/0601",
         "/entity-history/https://w3id.org/oc/meta/br/0601",

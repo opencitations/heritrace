@@ -2,6 +2,5 @@
 //
 // SPDX-License-Identifier: ISC
 
-String? readAppearance() => null;
-
-void writeAppearance(String name) {}
+export 'preference_storage_stub.dart'
+    if (dart.library.js_interop) 'preference_storage_web.dart';

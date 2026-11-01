@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'i18n/language.dart';
 import 'i18n/translations.g.dart';
 import 'navigation/url_strategy.dart';
 
@@ -17,6 +18,6 @@ void main() {
   // finds and presses a hidden button; building it from the start lets
   // VoiceOver read the app right away.
   SemanticsBinding.instance.ensureSemantics();
-  LocaleSettings.useDeviceLocale();
+  applyLanguage(readLanguage());
   runApp(TranslationProvider(child: const ProviderScope(child: App())));
 }

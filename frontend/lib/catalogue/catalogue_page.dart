@@ -21,25 +21,25 @@ import 'catalogue_repository.dart';
 
 class CataloguePage extends ConsumerWidget {
   const CataloguePage({
-    required this.timeVault,
+    required this.recycleBin,
     required this.query,
     super.key,
   });
 
-  final bool timeVault;
+  final bool recycleBin;
   final Map<String, String> query;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final catalogueQuery = CatalogueQuery.fromParams(
-      timeVault: timeVault,
+      recycleBin: recycleBin,
       params: query,
     );
     final page = ref.watch(cataloguePageProvider(catalogueQuery));
 
     String location(CatalogueQuery next) => Uri(
-      path: timeVault ? timeVaultPath : cataloguePath,
+      path: recycleBin ? recycleBinPath : cataloguePath,
       queryParameters: next.toParams(),
     ).toString();
 
@@ -66,7 +66,7 @@ class CataloguePage extends ConsumerWidget {
         Padding(
           padding: pageMargin(context).copyWith(bottom: 0),
           child: AppHeading(
-            timeVault ? t.ui.catalogue.timeVaultTitle : t.ui.catalogue.title,
+            recycleBin ? t.ui.catalogue.recycleBinTitle : t.ui.catalogue.title,
             style: AppTextStyles.of(context).pageTitle,
           ),
         ),
@@ -83,7 +83,7 @@ class CataloguePage extends ConsumerWidget {
               }
               return _CatalogueBody(
                 data: data,
-                timeVault: timeVault,
+                recycleBin: recycleBin,
                 onQueryChanged: navigate,
                 query: catalogueQuery,
               );
@@ -98,13 +98,13 @@ class CataloguePage extends ConsumerWidget {
 class _CatalogueBody extends ConsumerStatefulWidget {
   const _CatalogueBody({
     required this.data,
-    required this.timeVault,
+    required this.recycleBin,
     required this.onQueryChanged,
     required this.query,
   });
 
   final models.CataloguePage data;
-  final bool timeVault;
+  final bool recycleBin;
   final ValueChanged<CatalogueQuery> onQueryChanged;
   final CatalogueQuery query;
 
@@ -220,7 +220,7 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
       loadingMore: _loadingMore,
       loadError: _loadError,
       onRetry: _loadMore,
-      timeVault: widget.timeVault,
+      recycleBin: widget.recycleBin,
       query: widget.query,
       onQueryChanged: widget.onQueryChanged,
     );
@@ -229,7 +229,7 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
       return Padding(
         padding: margin,
         child: Text(
-          widget.timeVault ? t.ui.timeVault.empty : t.ui.catalogue.noClasses,
+          widget.recycleBin ? t.ui.recycleBin.empty : t.ui.catalogue.noClasses,
         ),
       );
     }
@@ -349,7 +349,7 @@ class _EntityList extends ConsumerWidget {
     required this.loadingMore,
     required this.loadError,
     required this.onRetry,
-    required this.timeVault,
+    required this.recycleBin,
     required this.query,
     required this.onQueryChanged,
   });
@@ -359,7 +359,7 @@ class _EntityList extends ConsumerWidget {
   final bool loadingMore;
   final Object? loadError;
   final VoidCallback onRetry;
-  final bool timeVault;
+  final bool recycleBin;
   final CatalogueQuery query;
   final ValueChanged<CatalogueQuery> onQueryChanged;
 
@@ -389,8 +389,8 @@ class _EntityList extends ConsumerWidget {
           AppSection(
             children: [
               for (final entity in entities)
-                timeVault
-                    ? _TimeVaultTile(entity: entity)
+                recycleBin
+                    ? _RecycleBinTile(entity: entity)
                     : AppListTile(
                         title: TileText(entity.label),
                         trailing: const CupertinoListTileChevron(),
@@ -413,8 +413,8 @@ class _EntityList extends ConsumerWidget {
   }
 }
 
-class _TimeVaultTile extends ConsumerWidget {
-  const _TimeVaultTile({required this.entity});
+class _RecycleBinTile extends ConsumerWidget {
+  const _RecycleBinTile({required this.entity});
 
   final models.CatalogueEntity entity;
 
@@ -436,14 +436,14 @@ class _TimeVaultTile extends ConsumerWidget {
             Text(deletion.type, style: styles.secondary),
             const SizedBox(height: appInputSpacing),
             Text(
-              t.ui.timeVault.deletedOn(time: formatTimestamp(deletion.time)),
+              t.ui.recycleBin.deletedOn(time: formatTimestamp(deletion.time)),
               style: styles.secondary,
             ),
             const SizedBox(height: 4),
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(t.ui.timeVault.deletedBy, style: styles.secondary),
+                Text(t.ui.recycleBin.deletedBy, style: styles.secondary),
                 const SizedBox(width: 4),
                 AgentRefView(agent: deletion.deletedBy),
               ],
@@ -461,12 +461,12 @@ class _TimeVaultTile extends ConsumerWidget {
                       deletion.lastValidSnapshotTime,
                     ),
                   ),
-                  label: t.ui.timeVault.viewLastVersion,
+                  label: t.ui.recycleBin.viewLastVersion,
                 ),
                 AppButton(
                   variant: AppButtonVariant.filled,
                   icon: CupertinoIcons.arrow_counterclockwise,
-                  label: t.ui.timeVault.restore,
+                  label: t.ui.recycleBin.restore,
                   onPressed: () => _restore(context, ref),
                 ),
               ],
@@ -481,16 +481,16 @@ class _TimeVaultTile extends ConsumerWidget {
     final t = Translations.of(context);
     final confirmed = await showConfirmDialog(
       context,
-      title: t.ui.timeVault.restoreTitle,
-      message: t.ui.timeVault.restoreMessage(label: entity.label),
-      confirmLabel: t.ui.timeVault.restore,
+      title: t.ui.recycleBin.restoreTitle,
+      message: t.ui.recycleBin.restoreMessage(label: entity.label),
+      confirmLabel: t.ui.recycleBin.restore,
     );
     if (!confirmed || !context.mounted) {
       return;
     }
     final ok = await runWithProgress(
       context,
-      message: t.ui.timeVault.restoring,
+      message: t.ui.recycleBin.restoring,
       action: () => ref
           .read(historyRepositoryProvider)
           .restore(entity.uri, deletion.lastValidSnapshotTime),

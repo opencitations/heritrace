@@ -85,7 +85,7 @@ When an entity could be targeted by multiple rules (e.g., it has multiple types)
 Here are the top-level settings for each rule, listed in order of how they are presented in this documentation:
 
 -   `displayName`: A human-readable name for the entity type (e.g., "Journal Article"). This is shown in the UI.
--   `shouldBeDisplayed`: A boolean (`true` or `false`). If `true`, this entity type will appear in the catalogue and can be created via the "New Record" interface.
+-   `shouldBeDisplayed`: A boolean (`true` or `false`). If `true`, this entity type will appear in the catalogue and can be created via the "Add" page.
 -   `fetchUriDisplay`: A SPARQL query that creates a user-friendly label for an entity, replacing technical URIs with meaningful text. See the [Displaying entity labels](#displaying-entity-labels-with-fetchuridisplay) section for details.
 -   `displayProperties`: A list defining how each property of the entity should be displayed and behave. See the [Configuring properties](#configuring-properties-displayproperties) section for details.
 -   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting catalogue items](#sorting-catalogue-items-sortableby) section for details.
@@ -289,7 +289,7 @@ This configuration tells HERITRACE how to navigate the proxy relationship, disti
 
 ## Sorting catalogue items (`sortableBy`)
 
-The `sortableBy` configuration allows users to sort entities in the catalogue view by specific properties. When configured, sorting controls appear in the catalogue and time vault interfaces, letting users organize items by properties like title, publication date, or any other relevant field.
+The `sortableBy` configuration allows users to sort entities in the catalogue view by specific properties. When configured, sorting controls appear in the catalogue and recycle bin interfaces, letting users organize items by properties like title, publication date, or any other relevant field.
 
 ### Basic configuration
 

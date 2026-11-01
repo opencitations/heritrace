@@ -105,10 +105,10 @@ def test_catalogue_api_with_null_sort_property(api_client: FlaskClient) -> None:
 
 
 @patch("heritrace.routes.api.get_deleted_entities_with_filtering")
-def test_time_vault_api(
+def test_recycle_bin_api(
     mock_get_deleted_entities, api_client: FlaskClient, app: Flask
 ) -> None:
-    """Test the time vault API endpoint."""
+    """Test the recycle bin API endpoint."""
     # Mock the return value of get_deleted_entities_with_filtering
     mock_deleted_entities = [
         {
@@ -135,7 +135,7 @@ def test_time_vault_api(
         1,
     )
 
-    response = api_client.get("/api/time-vault")
+    response = api_client.get("/api/recycle-bin")
     assert response.status_code == 200
     data = json.loads(response.data)
     assert "entities" in data
@@ -146,10 +146,10 @@ def test_time_vault_api(
 
 
 @patch("heritrace.routes.api.get_deleted_entities_with_filtering")
-def test_time_vault_api_with_params(
+def test_recycle_bin_api_with_params(
     mock_get_deleted_entities, api_client: FlaskClient
 ) -> None:
-    """Test the time vault API endpoint with query parameters."""
+    """Test the recycle bin API endpoint with query parameters."""
     # Mock the return value of get_deleted_entities_with_filtering
     mock_deleted_entities = [
         {
@@ -177,7 +177,7 @@ def test_time_vault_api_with_params(
     )
 
     response = api_client.get(
-        "/api/time-vault?class=http://example.org/TestClass&page=1"
+        "/api/recycle-bin?class=http://example.org/TestClass&page=1"
     )
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -189,10 +189,10 @@ def test_time_vault_api_with_params(
 
 
 @patch("heritrace.routes.api.get_deleted_entities_with_filtering")
-def test_time_vault_api_ignores_a_requested_page_size(
+def test_recycle_bin_api_ignores_a_requested_page_size(
     mock_get_deleted_entities, api_client: FlaskClient
 ) -> None:
-    """The time vault API always uses the configured page size."""
+    """The recycle bin API always uses the configured page size."""
     # Mock the return value of get_deleted_entities_with_filtering
     mock_deleted_entities = [
         {
@@ -220,7 +220,7 @@ def test_time_vault_api_ignores_a_requested_page_size(
     )
 
     response = api_client.get(
-        "/api/time-vault?class=http://example.org/TestClass&page=1&per_page=999"
+        "/api/recycle-bin?class=http://example.org/TestClass&page=1&per_page=999"
     )
     assert response.status_code == 200
     data = json.loads(response.data)

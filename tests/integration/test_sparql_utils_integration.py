@@ -702,14 +702,14 @@ FABIO = "http://purl.org/spar/fabio/"
 JOURNAL_VOLUME = f"{FABIO}JournalVolume"
 
 
-class TestTimeVaultIntegration:
-    """Integration tests for the Time Vault listing against the real databases."""
+class TestRecycleBinIntegration:
+    """Integration tests for the Recycle Bin listing against the real databases."""
 
     @pytest.fixture
     def deleted_volume(self, app):
         """Create a journal volume, delete it, and clean up afterwards."""
         test_id = str(uuid.uuid4())
-        graph = URIRef(f"http://example.org/time-vault-{test_id}")
+        graph = URIRef(f"http://example.org/recycle-bin-{test_id}")
         journal = URIRef(f"http://example.org/journal-{test_id}")
         volume = URIRef(f"http://example.org/volume-{test_id}")
 

@@ -936,11 +936,11 @@ def get_deleted_available_classes() -> list[dict[str, str | int]]:
     return deleted_classes
 
 
-def warm_time_vault() -> None:
+def warm_recycle_bin() -> None:
     started_at = time.monotonic()
     deleted_classes = get_deleted_available_classes()
     current_app.logger.info(
-        "[STARTUP] Time Vault warm-up completed for %d categories in %.3f seconds",
+        "[STARTUP] Recycle Bin warm-up completed for %d categories in %.3f seconds",
         len(deleted_classes),
         time.monotonic() - started_at,
     )

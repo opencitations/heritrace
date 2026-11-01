@@ -519,7 +519,7 @@ environment:
 
 ## Catalogue settings
 
-These settings control the behaviour and display of the catalogue and time vault interfaces.
+These settings control the behaviour and display of the catalogue and recycle bin interfaces.
 
 ```yaml
 environment:
@@ -533,7 +533,7 @@ environment:
 | Environment Variable | Type | Description | Default |
 |---------------------|------|-------------|---------|
 | `COUNT_LIMIT` | Integer | Maximum count for entity queries. When exceeded, displays "LIMIT+" in catalog | `10000` |
-| `CATALOGUE_DEFAULT_PER_PAGE` | Integer | Number of entities the catalogue and the time vault load at a time; the next ones load as the user scrolls | `50` |
+| `CATALOGUE_DEFAULT_PER_PAGE` | Integer | Number of entities the catalogue and the recycle bin load at a time; the next ones load as the user scrolls | `50` |
 
 <Aside type="note" title="Query Performance Optimization">
 `COUNT_LIMIT` optimizes catalog queries for large datasets. When counting entities of a specific class, the query stops at `COUNT_LIMIT + 1`. If the limit is exceeded, the catalog displays "LIMIT+" (e.g., "10000+") instead of the exact count, preventing timeouts on very large result sets.

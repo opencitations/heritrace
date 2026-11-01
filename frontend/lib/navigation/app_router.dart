@@ -55,14 +55,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: cataloguePath,
             builder: (context, state) => CataloguePage(
-              timeVault: false,
+              recycleBin: false,
               query: state.uri.queryParameters,
             ),
           ),
           GoRoute(
-            path: timeVaultPath,
+            path: recycleBinPath,
             builder: (context, state) => CataloguePage(
-              timeVault: true,
+              recycleBin: true,
               query: state.uri.queryParameters,
             ),
           ),

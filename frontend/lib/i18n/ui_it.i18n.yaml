@@ -1,0 +1,176 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+appTitle: HERITRACE
+nav:
+  catalogue: Catalogo
+  add: Aggiungi
+  recycleBin: Cestino
+  login: Accedi
+  logout: Esci
+  back: Indietro
+  appearanceSystem: Come il sistema
+  appearanceLight: Chiaro
+  appearanceDark: Scuro
+  languageSystem: Lingua del sistema
+  languageName: Italiano
+actions:
+  ok: OK
+  cancel: Annulla
+  retry: Riprova
+  save: Salva
+  edit: Modifica
+  delete: Elimina
+  close: Chiudi
+  done: Fine
+  add: Aggiungi
+  loadMore: Carica altri
+errors:
+  title: Si è verificato un errore
+  network: Impossibile raggiungere il server. Controlla la connessione e riprova.
+notFound:
+  title: Pagina non trovata
+  message: La pagina che cerchi non esiste.
+  backToCatalogue: Vai al catalogo
+landing:
+  goToCatalogue: Vai al catalogo
+  loginFailed: Si è verificato un errore durante l'autenticazione. Riprova.
+  loginNotAuthorized: Il tuo ORCID non è autorizzato ad accedere a questa applicazione.
+catalogue:
+  title: Catalogo
+  recycleBinTitle: Cestino
+  categories: Categorie
+  noClasses: Il catalogo è vuoto.
+  noEntities: Nessuna risorsa trovata.
+  sortBy: Ordina per
+  sortAscending: Ordine crescente
+  sortDescending: Ordine decrescente
+recycleBin:
+  empty: Nessuna risorsa eliminata.
+  deletedOn: Eliminata il $time
+  deletedBy: "Eliminata da"
+  viewLastVersion: Vedi l'ultima versione
+  restore: Ripristina
+  restoreTitle: Ripristina risorsa
+  restoreMessage: Ripristinare "$label" alla sua ultima versione valida?
+  restoring: Ripristino della risorsa in corso. Attendi...
+form:
+  required: Campo obbligatorio
+  mandatoryValue: Questa proprietà ha un valore obbligatorio che non si può modificare
+  addItem: Aggiungi $name
+  addProperty: Aggiungi proprietà
+  selectOption: Scegli un'opzione
+  fillInDetails: Compila i dettagli
+  draftLabelFailed: Impossibile aggiornare l'etichetta della risorsa
+  dateTypeDate: Data
+  dateTypeMonth: Anno e mese
+  dateTypeYear: Anno
+  pickDate: Scegli una data
+  similarEntities: Trovate $count risorse simili a quella che stai creando
+  noMatchingEntities: Nessuna risorsa corrispondente
+  createNewEntity: Crea nuova risorsa
+  moreResults: Mostra altri risultati
+  customProperty: Proprietà personalizzata
+  propertyUri: URI della proprietà
+  invalidPropertyUri: Inserisci un URL valido come URI della proprietà
+  value: Valore
+  invalidUrl: Inserisci un URL valido
+  valueType: Tipo di valore
+  literal: Letterale
+  uri: URI
+  datatype: Tipo di dato
+  noValidDatatypes: Nessun tipo di dato valido per questo valore
+  errorsTitle: "Errori ($count)"
+  invalidInput: Valore non valido. Atteso $expected.
+  tooMany: La proprietà "$name" ha troppi valori ($count). Il massimo consentito è $max.
+  tooFew: La proprietà "$name" ha troppo pochi valori ($count). Il minimo richiesto è $min.
+  atLeastOneProperty: Compila almeno una proprietà
+  atLeastOneCustomProperty: Indica almeno una proprietà con un valore
+primarySource:
+  title: Fonte primaria
+  description: Inserisci l'URL della fonte primaria di questa operazione, oppure lascia il campo vuoto per non registrare alcuna fonte.
+  hint: Inserisci l'URL
+  saveAsDefault: Usa questo URL come mia fonte primaria predefinita
+  confirm: Conferma
+  invalidUrl: Inserisci un URL valido o lascia il campo vuoto.
+create:
+  title: Aggiungi
+  selectType: Scegli un tipo di risorsa
+  submit: Aggiungi
+  validating: Convalida dei dati in corso. Attendi...
+  validationErrors: Errori di convalida
+  unsavedMessage: Questa risorsa non è ancora stata aggiunta. Vuoi scartarla?
+entity:
+  delete: Elimina risorsa
+  merge: Unisci
+  revert: Annulla modifiche
+  deletedBanner: Questa risorsa è stata eliminata. Puoi consultarne la cronologia con la macchina del tempo qui sopra.
+  noInformation: Nel dataset non ci sono informazioni su questa risorsa.
+  linkedResources: Risorse che rimandano a questa
+  noLinkedResources: Nessuna risorsa rimanda a questa.
+  similarResources: Risorse simili
+  noSimilarResources: Nessuna risorsa potenzialmente simile.
+  unsavedTitle: Modifiche non salvate
+  unsavedMessage: Hai modifiche non salvate. Vuoi davvero uscire dalla modifica?
+  discardChanges: Sì, scarta le modifiche
+  noChangesTitle: Nessuna modifica
+  noChangesMessage: Non hai ancora modificato nulla. Prova prima a cambiare un campo.
+  saveChanges: Salva modifiche
+  primarySourceDescription: La fonte primaria è facoltativa. Premi Salva modifiche per completare il salvataggio.
+  applying: Applicazione delle modifiche in corso. Attendi...
+  checkingDependencies: Controllo delle risorse coinvolte in corso. Attendi...
+  deleteTitle: Sei sicuro?
+  deleteMessage: Questa risorsa verrà eliminata con tutti i suoi dati. Potrai comunque ripristinarla dal cestino.
+  deleteConfirm: Sì, elimina
+lock:
+  lockedTitle: Risorsa bloccata
+  lockedMessage: Un altro utente sta modificando questa risorsa.
+  lostTitle: Blocco perso
+  lostMessage: La sessione di modifica è scaduta. Le modifiche andranno perse.
+orphans:
+  title: Attenzione
+  orphansIntro: "Le seguenti risorse resteranno orfane, cioè non più collegate ad altre risorse del dataset:"
+  proxiesIntro: "Queste risorse servono solo a collegare quella che stai eliminando ad altre:"
+  question: Vuoi eliminare subito tutte queste risorse?
+  delete: Sì, elimina le risorse coinvolte
+  keep: No, mantieni le risorse coinvolte
+history:
+  title: Macchina del tempo
+  snapshot: Versione $index
+  since: Dal $start
+  between: Dal $start al $end
+  responsibleAgent: Agente responsabile
+  primarySource: Fonte primaria
+  description: Descrizione
+  modifications: Modifiche
+  additions: Aggiunte
+  deletions: Rimozioni
+  viewVersion: Vedi versione
+  restore: Ripristina
+  restoring: Ripristino della versione in corso. Attendi...
+version:
+  title: Versione $number
+  restore: Ripristina questa versione
+  previous: Versione precedente
+  next: Versione successiva
+  metadata: Metadati della versione $number
+  generationTime: Data di creazione
+  invalidationTime: Data di invalidazione
+  deletionSnapshot: In questa versione la risorsa è stata eliminata.
+merge:
+  title: Conferma unione delle risorse
+  missingEntities: Per unire servono due risorse selezionate.
+  mergeInto: Unisci in
+  deleteCard: Unisci ed elimina
+  keepCard: Mantieni
+  noProperties: Nessuna proprietà trovata per questa risorsa.
+  viewDetails: Vedi dettagli
+  propertiesTitle: "Proprietà:"
+  propertiesText: Tutte le proprietà della risorsa da eliminare verranno aggiunte a quella che mantieni.
+  referencesTitle: "Riferimenti:"
+  referencesText: I collegamenti alla risorsa da eliminare punteranno a quella che mantieni.
+  deletionTitle: "Eliminazione:"
+  deletionText: Dopo l'unione resterà solo la risorsa che mantieni.
+  confirm: Conferma unione
+  merging: Unione delle risorse in corso. Attendi...

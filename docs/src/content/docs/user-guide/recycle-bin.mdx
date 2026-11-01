@@ -3,19 +3,19 @@
 #
 # SPDX-License-Identifier: ISC
 
-title: Using the time vault
-description: How to manage and restore deleted entities from the time vault in HERITRACE.
+title: Using the recycle bin
+description: How to manage and restore deleted entities from the recycle bin in HERITRACE.
 ---
 import { Image } from 'astro:assets';
-import timeVaultImage from '../../../assets/time_vault.png';
+import recycleBinImage from '../../../assets/recycle_bin.png';
 
-The time vault is a catalogue of deleted entities. Nothing is permanently lost; any deleted entity can be recovered from here.
+The recycle bin is a catalogue of deleted entities. Nothing is permanently lost; any deleted entity can be recovered from here.
 
-<Image src={timeVaultImage} alt="The HERITRACE time vault interface, showing a list of deleted resources" width={800} height={600} />
+<Image src={recycleBinImage} alt="The HERITRACE recycle bin interface, showing a list of deleted resources" width={800} height={600} />
 
-### Navigating the time vault
+### Navigating the recycle bin
 
-The time vault's interface is intentionally similar to the main catalogue, making it easy to use:
+The recycle bin's interface is intentionally similar to the main catalogue, making it easy to use:
 
 -   **Categories Panel**: On the left, you can browse deleted items by their category.
 -   **Deleted Resources List**: On the right, you see the list of deleted items for the selected category.
@@ -26,4 +26,4 @@ The time vault's interface is intentionally similar to the main catalogue, makin
 For each item in the list, you have two primary actions:
 
 -   **View Last Valid Version**: This allows you to see the state of the resource right before it was deleted.
--   **Restore**: This button restores the entity to your collection and removes it from the time vault.
+-   **Restore**: This button restores the entity to your collection and removes it from the recycle bin.

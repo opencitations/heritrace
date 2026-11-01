@@ -9,7 +9,7 @@ spa_bp = Blueprint("spa", __name__)
 SPA_PATHS = (
     "/",
     "/catalogue",
-    "/time-vault",
+    "/recycle-bin",
     "/create-entity",
     "/about/<path:subject>",
     "/entity-history/<path:entity_uri>",

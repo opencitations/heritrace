@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: ISC
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,6 +24,7 @@ class App extends ConsumerWidget {
       theme: buildAppTheme(ref.watch(appearanceProvider).brightness),
       locale: TranslationProvider.of(context).flutterLocale,
       supportedLocales: AppLocaleUtils.supportedLocales,
+      localizationsDelegates: GlobalCupertinoLocalizations.delegates,
       routerConfig: router,
       builder: (context, child) => Overlay(
         initialEntries: [

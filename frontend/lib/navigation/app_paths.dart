@@ -4,7 +4,7 @@
 
 const landingPath = '/';
 const cataloguePath = '/catalogue';
-const timeVaultPath = '/time-vault';
+const recycleBinPath = '/recycle-bin';
 const createEntityPath = '/create-entity';
 const mergePath = '/merge/compare-and-merge';
 const loginPath = '/auth/login';

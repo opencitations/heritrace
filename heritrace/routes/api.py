@@ -124,7 +124,7 @@ def catalogue_api() -> Response:
     return jsonify(catalog_data)
 
 
-@api_bp.route("/time-vault")
+@api_bp.route("/recycle-bin")
 @login_required
 def get_deleted_entities_api() -> Response:
     """

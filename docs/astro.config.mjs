@@ -57,7 +57,7 @@ export default defineConfig({
 						{ label: 'Editing existing records', slug: 'user-guide/editing-records' },
 						{ label: 'Tracking changes', slug: 'user-guide/tracking-changes' },
 						{ label: 'Merging records', slug: 'user-guide/merging-records' },
-						{ label: 'Using the time vault', slug: 'user-guide/time-vault' },
+						{ label: 'Using the recycle bin', slug: 'user-guide/recycle-bin' },
 					],
 				},
 				{

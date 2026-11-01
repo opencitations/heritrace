@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: ISC
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:heritrace/app.dart';
 import 'package:heritrace/navigation/external_navigation.dart';
 
@@ -28,5 +29,20 @@ void main() {
     expect(find.text('Login'), findsOneWidget);
     expect(find.text('Logout'), findsNothing);
     expect(externalNavigations, isEmpty);
+  });
+
+  testWidgets('the account menu switches the interface language', (
+    tester,
+  ) async {
+    await pumpApp(tester, child: const App());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Test User'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Italiano'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vai al catalogo'), findsOneWidget);
+    expect(Intl.defaultLocale, 'it');
   });
 }

@@ -5,14 +5,16 @@
 appTitle: HERITRACE
 nav:
   catalogue: Catalogue
-  newRecord: New record
-  timeVault: Time vault
+  add: Add
+  recycleBin: Recycle bin
   login: Login
   logout: Logout
   back: Back
   appearanceSystem: Match system
   appearanceLight: Light
   appearanceDark: Dark
+  languageSystem: System language
+  languageName: English
 actions:
   ok: OK
   cancel: Cancel
@@ -37,22 +39,22 @@ landing:
   loginNotAuthorized: Your ORCID is not authorized to access this application.
 catalogue:
   title: Catalogue
-  timeVaultTitle: Time vault
+  recycleBinTitle: Recycle bin
   categories: Categories
-  noClasses: No entity types are available in the dataset.
-  noEntities: No entities found.
+  noClasses: The catalogue is empty.
+  noEntities: No resources found.
   sortBy: Sort by
   sortAscending: Sort ascending
   sortDescending: Sort descending
-timeVault:
+recycleBin:
   empty: No deleted resources.
   deletedOn: Deleted on $time
   deletedBy: "Deleted by"
   viewLastVersion: View last version
   restore: Restore
-  restoreTitle: Restore entity
+  restoreTitle: Restore resource
   restoreMessage: Restore "$label" to its last valid version?
-  restoring: Restoring the entity. Please wait...
+  restoring: Restoring the resource. Please wait...
 form:
   required: This field is required
   mandatoryValue: This property has a mandatory value that cannot be modified
@@ -60,14 +62,14 @@ form:
   addProperty: Add property
   selectOption: Select an option
   fillInDetails: Fill in the details
-  draftLabelFailed: Could not update the entity label
+  draftLabelFailed: Could not update the resource label
   dateTypeDate: Date
   dateTypeMonth: Year and month
   dateTypeYear: Year
   pickDate: Pick a date
-  similarEntities: Found $count entities similar to the one you are creating
-  noMatchingEntities: No matching entity found
-  createNewEntity: Create new entity
+  similarEntities: Found $count resources similar to the one you are creating
+  noMatchingEntities: No matching resource found
+  createNewEntity: Create new resource
   moreResults: Ask for more results
   customProperty: Custom property
   propertyUri: Property URI
@@ -93,17 +95,17 @@ primarySource:
   confirm: Confirm
   invalidUrl: Please enter a valid URL or leave blank.
 create:
-  title: New record
-  selectType: Select an entity type
-  submit: Add new record
+  title: Add
+  selectType: Select a resource type
+  submit: Add
   validating: Validating data. Please wait...
   validationErrors: Validation errors
-  unsavedMessage: This record has not been added yet. Do you want to discard it?
+  unsavedMessage: This resource has not been added yet. Do you want to discard it?
 entity:
   delete: Delete resource
   merge: Merge
   revert: Revert
-  deletedBanner: This entity has been deleted. You can view its history using the time machine above.
+  deletedBanner: This resource has been deleted. You can view its history using the time machine above.
   noInformation: There is no information related to this resource in the dataset.
   linkedResources: Resources referencing this
   noLinkedResources: No resources reference this resource.
@@ -116,10 +118,10 @@ entity:
   noChangesMessage: It looks like you have not made any changes yet. Try updating a field first.
   saveChanges: Save changes
   primarySourceDescription: The primary source is optional. Click Save changes to finish saving.
-  applying: Applying changes to the entity. Please wait...
-  checkingDependencies: Checking for affected entities. Please wait...
+  applying: Applying changes to the resource. Please wait...
+  checkingDependencies: Checking for affected resources. Please wait...
   deleteTitle: Are you sure?
-  deleteMessage: This will delete this resource and all its data. You can still restore it later using the time vault.
+  deleteMessage: This will delete this resource and all its data. You can still restore it later from the recycle bin.
   deleteConfirm: Yes, delete it
 lock:
   lockedTitle: Resource locked
@@ -129,10 +131,10 @@ lock:
 orphans:
   title: Warning
   orphansIntro: "The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):"
-  proxiesIntro: "The following intermediate relationships (proxies) link this resource to others:"
-  question: Would you like to delete all these entities now?
-  delete: Yes, delete affected entities
-  keep: No, keep affected entities
+  proxiesIntro: "These resources only link the one you are deleting to others:"
+  question: Would you like to delete all these resources now?
+  delete: Yes, delete affected resources
+  keep: No, keep affected resources
 history:
   title: Time machine
   snapshot: Version $index
@@ -155,20 +157,20 @@ version:
   metadata: Metadata of version $number
   generationTime: Generation time
   invalidationTime: Invalidation time
-  deletionSnapshot: This version records the deletion. The entity was deleted at this point in time.
+  deletionSnapshot: The resource was deleted in this version.
 merge:
-  title: Confirm entity merge
-  missingEntities: Two entities must be selected for merging.
+  title: Confirm resource merge
+  missingEntities: Two resources must be selected for merging.
   mergeInto: Merge into
   deleteCard: Merge and delete
   keepCard: Keep
-  noProperties: No properties found for this entity.
+  noProperties: No properties found for this resource.
   viewDetails: View details
   propertiesTitle: "Properties:"
   propertiesText: All properties of the resource to delete will be added to the one you keep.
   referencesTitle: "References:"
   referencesText: Links pointing to the resource to delete will point to the one you keep.
   deletionTitle: "Deletion:"
-  deletionText: The resource to delete will be deleted after the merge.
+  deletionText: After the merge, only the resource you keep will remain.
   confirm: Confirm merge
-  merging: Merging the entities. Please wait...
+  merging: Merging the resources. Please wait...

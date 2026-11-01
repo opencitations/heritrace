@@ -13,12 +13,13 @@ import '../design/app_theme.dart';
 import '../design/appearance.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
+import '../i18n/language.dart';
 import '../i18n/translations.g.dart';
 import '../session/session_controller.dart';
 import 'app_paths.dart';
 import 'external_navigation.dart';
 
-const _tabPaths = [cataloguePath, createEntityPath, timeVaultPath];
+const _tabPaths = [cataloguePath, createEntityPath, recycleBinPath];
 
 /// The page one level up from an inner page, or null for the landing page and
 /// the tab pages.
@@ -68,8 +69,8 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     final compact = MediaQuery.sizeOf(context).width < appCompactWidth;
     final destinations = [
       (label: t.ui.nav.catalogue, icon: CupertinoIcons.book),
-      (label: t.ui.nav.newRecord, icon: CupertinoIcons.plus_circle),
-      (label: t.ui.nav.timeVault, icon: CupertinoIcons.archivebox),
+      (label: t.ui.nav.add, icon: CupertinoIcons.plus_circle),
+      (label: t.ui.nav.recycleBin, icon: CupertinoIcons.trash),
     ];
 
     Future<void> logout() async {
@@ -183,8 +184,8 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
   }
 }
 
-/// The signed-in user's name, opening a menu with the appearance choice and
-/// the account actions.
+/// The signed-in user's name, opening a menu with the appearance and language
+/// choices and the account actions.
 class _AccountMenu extends ConsumerWidget {
   const _AccountMenu({required this.name, required this.onLogout});
 
@@ -194,7 +195,8 @@ class _AccountMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
-    final current = ref.watch(appearanceProvider);
+    final currentAppearance = ref.watch(appearanceProvider);
+    final currentLanguage = ref.watch(languageProvider);
     final appearances = [
       (
         value: Appearance.system,
@@ -212,6 +214,11 @@ class _AccountMenu extends ConsumerWidget {
         icon: CupertinoIcons.moon,
       ),
     ];
+    final languages = [
+      (value: null, label: t.ui.nav.languageSystem),
+      for (final locale in AppLocale.values)
+        (value: locale, label: locale.buildSync().ui.nav.languageName),
+    ];
     return SelectionContainer.disabled(
       child: CupertinoMenuAnchor(
         menuChildren: [
@@ -221,10 +228,20 @@ class _AccountMenu extends ConsumerWidget {
                   .read(appearanceProvider.notifier)
                   .select(appearance.value),
               leading: Icon(appearance.icon),
-              trailing: appearance.value == current
+              trailing: appearance.value == currentAppearance
                   ? const Icon(CupertinoIcons.check_mark, size: 18)
                   : null,
               child: Text(appearance.label),
+            ),
+          const CupertinoMenuDivider(),
+          for (final language in languages)
+            CupertinoMenuItem(
+              onPressed: () =>
+                  ref.read(languageProvider.notifier).select(language.value),
+              trailing: language.value == currentLanguage
+                  ? const Icon(CupertinoIcons.check_mark, size: 18)
+                  : null,
+              child: Text(language.label),
             ),
           const CupertinoMenuDivider(),
           CupertinoMenuItem(
