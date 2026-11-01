@@ -353,49 +353,55 @@ class _TimeVaultTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final styles = AppTextStyles.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(appCardPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(entity.label, style: styles.heading),
-          const SizedBox(height: 4),
-          Text(deletion.type, style: styles.secondary),
-          const SizedBox(height: appInputSpacing),
-          Text(
-            t.ui.timeVault.deletedOn(time: formatTimestamp(deletion.time)),
-            style: styles.secondary,
-          ),
-          const SizedBox(height: 4),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(t.ui.timeVault.deletedBy, style: styles.secondary),
-              const SizedBox(width: 4),
-              AgentRefView(agent: deletion.deletedBy),
-            ],
-          ),
-          const SizedBox(height: appInputSpacing),
-          Wrap(
-            spacing: appInputSpacing / 2,
-            runSpacing: appInputSpacing / 2,
-            children: [
-              AppButton(
-                variant: AppButtonVariant.tinted,
-                onPressed: () => context.go(
-                  entityVersionPath(entity.uri, deletion.lastValidSnapshotTime),
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.all(appCardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(entity.label, style: styles.heading),
+            const SizedBox(height: 4),
+            Text(deletion.type, style: styles.secondary),
+            const SizedBox(height: appInputSpacing),
+            Text(
+              t.ui.timeVault.deletedOn(time: formatTimestamp(deletion.time)),
+              style: styles.secondary,
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(t.ui.timeVault.deletedBy, style: styles.secondary),
+                const SizedBox(width: 4),
+                AgentRefView(agent: deletion.deletedBy),
+              ],
+            ),
+            const SizedBox(height: appInputSpacing),
+            Wrap(
+              spacing: appInputSpacing / 2,
+              runSpacing: appInputSpacing / 2,
+              children: [
+                AppButton(
+                  variant: AppButtonVariant.tinted,
+                  onPressed: () => context.go(
+                    entityVersionPath(
+                      entity.uri,
+                      deletion.lastValidSnapshotTime,
+                    ),
+                  ),
+                  label: t.ui.timeVault.viewLastVersion,
                 ),
-                label: t.ui.timeVault.viewLastVersion,
-              ),
-              AppButton(
-                variant: AppButtonVariant.filled,
-                icon: CupertinoIcons.arrow_counterclockwise,
-                label: t.ui.timeVault.restore,
-                onPressed: () => _restore(context, ref),
-              ),
-            ],
-          ),
-        ],
+                AppButton(
+                  variant: AppButtonVariant.filled,
+                  icon: CupertinoIcons.arrow_counterclockwise,
+                  label: t.ui.timeVault.restore,
+                  onPressed: () => _restore(context, ref),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

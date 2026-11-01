@@ -340,7 +340,13 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppSection(
       children: [
-        Padding(padding: const EdgeInsets.all(appCardPadding), child: child),
+        SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.all(appCardPadding),
+            child: child,
+          ),
+        ),
       ],
     );
   }
