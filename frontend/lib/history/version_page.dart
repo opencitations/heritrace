@@ -158,22 +158,20 @@ class _VersionBody extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: appSectionSpacing),
                 child: AppCard(
-                  child: AppSelectable(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        PropertyHeading(
-                          label: group.displayName,
-                          style: styles.heading,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      PropertyHeading(
+                        label: group.displayName,
+                        style: styles.heading,
+                      ),
+                      const SizedBox(height: appInputSpacing / 2),
+                      for (final (index, value) in group.values.indexed)
+                        Padding(
+                          padding: listItemSpacing(index),
+                          child: Text(value),
                         ),
-                        const SizedBox(height: appInputSpacing / 2),
-                        for (final (index, value) in group.values.indexed)
-                          Padding(
-                            padding: listItemSpacing(index),
-                            child: Text(value),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               ),

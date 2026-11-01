@@ -185,10 +185,12 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                     ),
                   )
                 else
-                  CupertinoListTile(
-                    leading: const Icon(CupertinoIcons.add_circled),
-                    title: Text(t.ui.form.createNewEntity),
-                    onTap: () => setState(() => _dismissed = true),
+                  SelectionContainer.disabled(
+                    child: CupertinoListTile(
+                      leading: const Icon(CupertinoIcons.add_circled),
+                      title: Text(t.ui.form.createNewEntity),
+                      onTap: () => setState(() => _dismissed = true),
+                    ),
                   ),
                 for (final result in _results)
                   AppListTile(
@@ -199,7 +201,9 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                             sizeStyle: CupertinoButtonSize.small,
                             onPressed: () =>
                                 openExternal(entityPath(result.uri)),
-                            child: Text(t.ui.form.view),
+                            child: SelectionContainer.disabled(
+                              child: Text(t.ui.form.view),
+                            ),
                           )
                         : const CupertinoListTileChevron(),
                     onTap: _suggestionsOnly ? null : () => _select(result),
@@ -218,10 +222,12 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                     ),
                   )
                 else if (_hasMore && !_suggestionsOnly)
-                  CupertinoListTile(
-                    leading: const Icon(CupertinoIcons.refresh),
-                    title: Text(t.ui.form.moreResults),
-                    onTap: () => _search(_offset + 5),
+                  SelectionContainer.disabled(
+                    child: CupertinoListTile(
+                      leading: const Icon(CupertinoIcons.refresh),
+                      title: Text(t.ui.form.moreResults),
+                      onTap: () => _search(_offset + 5),
+                    ),
                   ),
               ],
             ),

@@ -62,10 +62,12 @@ class ValidationSummary extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         foregroundColor: AppColors.error,
                         onPressed: () => focusItem(context, error.item!),
-                        child: Text(
-                          error.fullMessage,
-                          style: const TextStyle(
-                            decoration: TextDecoration.underline,
+                        child: SelectionContainer.disabled(
+                          child: Text(
+                            error.fullMessage,
+                            style: const TextStyle(
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
                       ),

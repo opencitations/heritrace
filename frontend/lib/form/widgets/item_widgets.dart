@@ -210,25 +210,27 @@ class _DateFieldState extends State<DateField> {
         color: AppColors.surface,
         child: SafeArea(
           top: false,
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: CupertinoButton(
-                  onPressed: () => Navigator.of(context).pop(selected),
-                  child: Text(t.ui.actions.done),
+          child: SelectionContainer.disabled(
+            child: Column(
+              children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: CupertinoButton(
+                    onPressed: () => Navigator.of(context).pop(selected),
+                    child: Text(t.ui.actions.done),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: CupertinoDatePicker(
-                  mode: CupertinoDatePickerMode.date,
-                  initialDateTime: selected,
-                  minimumYear: 1000,
-                  maximumYear: 9999,
-                  onDateTimeChanged: (value) => selected = value,
+                Expanded(
+                  child: CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.date,
+                    initialDateTime: selected,
+                    minimumYear: 1000,
+                    maximumYear: 9999,
+                    onDateTimeChanged: (value) => selected = value,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -376,31 +378,35 @@ class NestedTile extends StatelessWidget {
               padding: EdgeInsets.zero,
               minimumSize: Size.zero,
               onPressed: () => showNestedDialog(context, item),
-              child: Container(
-                padding: const EdgeInsets.all(appInputSpacing),
-                decoration: BoxDecoration(
-                  color: AppColors.fieldFill,
-                  borderRadius: BorderRadius.circular(appRadius),
-                  border: hasErrors ? Border.all(color: AppColors.error) : null,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.draftLabel ?? t.ui.form.fillInDetails,
-                        style: TextStyle(
-                          color: hasErrors
-                              ? AppColors.error
-                              : CupertinoColors.label,
+              child: SelectionContainer.disabled(
+                child: Container(
+                  padding: const EdgeInsets.all(appInputSpacing),
+                  decoration: BoxDecoration(
+                    color: AppColors.fieldFill,
+                    borderRadius: BorderRadius.circular(appRadius),
+                    border: hasErrors
+                        ? Border.all(color: AppColors.error)
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.draftLabel ?? t.ui.form.fillInDetails,
+                          style: TextStyle(
+                            color: hasErrors
+                                ? AppColors.error
+                                : CupertinoColors.label,
+                          ),
                         ),
                       ),
-                    ),
-                    const Icon(
-                      CupertinoIcons.chevron_right,
-                      size: 18,
-                      color: AppColors.secondaryText,
-                    ),
-                  ],
+                      const Icon(
+                        CupertinoIcons.chevron_right,
+                        size: 18,
+                        color: AppColors.secondaryText,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

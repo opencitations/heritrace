@@ -97,15 +97,18 @@ class _PrimarySourceDialogState extends State<_PrimarySourceDialog> {
           const SizedBox(height: appInputSpacing),
           GestureDetector(
             onTap: () => setState(() => _saveAsDefault = !_saveAsDefault),
-            child: Row(
-              children: [
-                CupertinoCheckbox(
-                  value: _saveAsDefault,
-                  onChanged: (value) => setState(() => _saveAsDefault = value!),
-                ),
-                const SizedBox(width: appInputSpacing / 2),
-                Expanded(child: Text(t.ui.primarySource.saveAsDefault)),
-              ],
+            child: SelectionContainer.disabled(
+              child: Row(
+                children: [
+                  CupertinoCheckbox(
+                    value: _saveAsDefault,
+                    onChanged: (value) =>
+                        setState(() => _saveAsDefault = value!),
+                  ),
+                  const SizedBox(width: appInputSpacing / 2),
+                  Expanded(child: Text(t.ui.primarySource.saveAsDefault)),
+                ],
+              ),
             ),
           ),
         ],

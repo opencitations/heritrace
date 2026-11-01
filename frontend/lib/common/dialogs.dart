@@ -50,7 +50,7 @@ Future<void> showMessageDialog(
     context: context,
     builder: (context) => AppDialog(
       title: title,
-      content: AppSelectable(child: Text(message)),
+      content: Text(message),
       actions: [
         AppButton(
           variant: AppButtonVariant.filled,

@@ -163,7 +163,9 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
                       children: [
                         CupertinoButton(
                           onPressed: () => _popTo(0),
-                          child: Text(scope.rootLabel),
+                          child: SelectionContainer.disabled(
+                            child: Text(scope.rootLabel),
+                          ),
                         ),
                         for (final (index, entry) in chain.indexed) ...[
                           const Icon(
@@ -184,7 +186,9 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
                           else
                             CupertinoButton(
                               onPressed: () => _popTo(index + 1),
-                              child: Text(entry.def.displayName),
+                              child: SelectionContainer.disabled(
+                                child: Text(entry.def.displayName),
+                              ),
                             ),
                         ],
                       ],
@@ -193,9 +197,11 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
                 ),
                 CupertinoButton(
                   onPressed: _close,
-                  child: Text(
-                    t.ui.actions.done,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  child: SelectionContainer.disabled(
+                    child: Text(
+                      t.ui.actions.done,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
               ],

@@ -68,16 +68,18 @@ class AppScaffold extends ConsumerWidget {
         automaticallyImplyLeading: false,
         leading: GestureDetector(
           onTap: () => context.go(landingPath),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset('assets/images/logo.png', height: 28),
-              const SizedBox(width: appInputSpacing / 2),
-              Text(
-                session?.config.appTitle ?? t.ui.appTitle,
-                style: AppTextStyles.of(context).heading,
-              ),
-            ],
+          child: SelectionContainer.disabled(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/images/logo.png', height: 28),
+                const SizedBox(width: appInputSpacing / 2),
+                Text(
+                  session?.config.appTitle ?? t.ui.appTitle,
+                  style: AppTextStyles.of(context).heading,
+                ),
+              ],
+            ),
           ),
         ),
         middle: signedIn && !compact
@@ -103,7 +105,7 @@ class AppScaffold extends ConsumerWidget {
             : CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () => navigateExternally(backendUrl(loginPath)),
-                child: Text(t.ui.nav.login),
+                child: SelectionContainer.disabled(child: Text(t.ui.nav.login)),
               ),
       ),
       child: Column(
@@ -124,19 +126,21 @@ class AppScaffold extends ConsumerWidget {
             ),
           ),
           if (showTabBar)
-            CupertinoTabBar(
-              currentIndex: activeIndex < 0 ? 0 : activeIndex,
-              activeColor: activeIndex < 0
-                  ? CupertinoColors.inactiveGray
-                  : AppColors.primary,
-              onTap: (index) => context.go(destinations[index].path),
-              items: [
-                for (final destination in destinations)
-                  BottomNavigationBarItem(
-                    icon: Icon(destination.icon),
-                    label: destination.label,
-                  ),
-              ],
+            SelectionContainer.disabled(
+              child: CupertinoTabBar(
+                currentIndex: activeIndex < 0 ? 0 : activeIndex,
+                activeColor: activeIndex < 0
+                    ? CupertinoColors.inactiveGray
+                    : AppColors.primary,
+                onTap: (index) => context.go(destinations[index].path),
+                items: [
+                  for (final destination in destinations)
+                    BottomNavigationBarItem(
+                      icon: Icon(destination.icon),
+                      label: destination.label,
+                    ),
+                ],
+              ),
             ),
         ],
       ),
@@ -167,10 +171,12 @@ class _NavButton extends StatelessWidget {
         color: active ? AppColors.primaryTint : null,
         foregroundColor: active ? AppColors.primary : CupertinoColors.label,
         onPressed: onPressed,
-        child: IconLabel(
-          icon: icon,
-          label: Text(label),
-          style: active ? const TextStyle(fontWeight: FontWeight.w600) : null,
+        child: SelectionContainer.disabled(
+          child: IconLabel(
+            icon: icon,
+            label: Text(label),
+            style: active ? const TextStyle(fontWeight: FontWeight.w600) : null,
+          ),
         ),
       ),
     );

@@ -34,7 +34,9 @@ class AppButton extends StatelessWidget {
         ? (variant == AppButtonVariant.filled ? null : AppColors.error)
         : null;
     final text = Text(label, overflow: TextOverflow.ellipsis);
-    final child = icon == null ? text : IconLabel(icon: icon!, label: text);
+    final child = SelectionContainer.disabled(
+      child: icon == null ? text : IconLabel(icon: icon!, label: text),
+    );
     return switch (variant) {
       AppButtonVariant.filled => CupertinoButton.filled(
         sizeStyle: CupertinoButtonSize.medium,
@@ -211,54 +213,56 @@ class AppMenuButton<T> extends StatelessWidget {
     final selected = options.where((o) => o.value == value).firstOrNull;
     return _WithError(
       errorText: errorText,
-      child: CupertinoMenuAnchor(
-        childFocusNode: focusNode,
-        menuChildren: [
-          for (final option in options)
-            CupertinoMenuItem(
-              onPressed: () => onChanged(option.value),
-              trailing: option.value == value
-                  ? const Icon(CupertinoIcons.check_mark, size: 18)
-                  : null,
-              child: Text(option.label),
-            ),
-        ],
-        builder: (context, controller, _) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () =>
-              controller.isOpen ? controller.close() : controller.open(),
-          child: Focus(
-            focusNode: focusNode,
-            child: Container(
-              padding: _fieldPadding,
-              decoration: _fieldDecoration(hasError: errorText != null),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final label = Text(
-                    selected?.label ?? placeholder ?? '',
-                    overflow: TextOverflow.ellipsis,
-                    style: selected == null
-                        ? styles.body.copyWith(color: AppColors.secondaryText)
-                        : styles.body,
-                  );
-                  return Row(
-                    mainAxisSize: constraints.hasBoundedWidth
-                        ? MainAxisSize.max
-                        : MainAxisSize.min,
-                    children: [
-                      if (constraints.hasBoundedWidth)
-                        Expanded(child: label)
-                      else
-                        Flexible(child: label),
-                      const SizedBox(width: appInputSpacing / 2),
-                      const Icon(
-                        CupertinoIcons.chevron_up_chevron_down,
-                        size: 16,
-                        color: AppColors.secondaryText,
-                      ),
-                    ],
-                  );
-                },
+      child: SelectionContainer.disabled(
+        child: CupertinoMenuAnchor(
+          childFocusNode: focusNode,
+          menuChildren: [
+            for (final option in options)
+              CupertinoMenuItem(
+                onPressed: () => onChanged(option.value),
+                trailing: option.value == value
+                    ? const Icon(CupertinoIcons.check_mark, size: 18)
+                    : null,
+                child: Text(option.label),
+              ),
+          ],
+          builder: (context, controller, _) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () =>
+                controller.isOpen ? controller.close() : controller.open(),
+            child: Focus(
+              focusNode: focusNode,
+              child: Container(
+                padding: _fieldPadding,
+                decoration: _fieldDecoration(hasError: errorText != null),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final label = Text(
+                      selected?.label ?? placeholder ?? '',
+                      overflow: TextOverflow.ellipsis,
+                      style: selected == null
+                          ? styles.body.copyWith(color: AppColors.secondaryText)
+                          : styles.body,
+                    );
+                    return Row(
+                      mainAxisSize: constraints.hasBoundedWidth
+                          ? MainAxisSize.max
+                          : MainAxisSize.min,
+                      children: [
+                        if (constraints.hasBoundedWidth)
+                          Expanded(child: label)
+                        else
+                          Flexible(child: label),
+                        const SizedBox(width: appInputSpacing / 2),
+                        const Icon(
+                          CupertinoIcons.chevron_up_chevron_down,
+                          size: 16,
+                          color: AppColors.secondaryText,
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -386,18 +390,6 @@ class AppBanner extends StatelessWidget {
   }
 }
 
-class AppSelectable extends StatelessWidget {
-  const AppSelectable({required this.child, super.key});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => SelectableRegion(
-    selectionControls: cupertinoTextSelectionHandleControls,
-    child: child,
-  );
-}
-
 class DragHandle extends StatelessWidget {
   const DragHandle({required this.index, super.key});
 
@@ -447,14 +439,17 @@ class AppListTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => CupertinoListTile(
-    padding: const EdgeInsetsDirectional.fromSTEB(20, 10, 14, 10),
-    title: title,
-    subtitle: subtitle,
-    additionalInfo: additionalInfo,
-    trailing: trailing,
-    onTap: onTap,
-  );
+  Widget build(BuildContext context) {
+    final tile = CupertinoListTile(
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 10, 14, 10),
+      title: title,
+      subtitle: subtitle,
+      additionalInfo: additionalInfo,
+      trailing: trailing,
+      onTap: onTap,
+    );
+    return onTap == null ? tile : SelectionContainer.disabled(child: tile);
+  }
 }
 
 /// An icon with the point size of the text next to it. CupertinoIcons
@@ -555,7 +550,9 @@ class AppBreadcrumbs extends StatelessWidget {
               padding: EdgeInsets.zero,
               minimumSize: const Size(0, kMinInteractiveDimensionCupertino),
               onPressed: crumb.onPressed,
-              child: Text(crumb.label, style: crumb.style),
+              child: SelectionContainer.disabled(
+                child: Text(crumb.label, style: crumb.style),
+              ),
             ),
         ],
       ],

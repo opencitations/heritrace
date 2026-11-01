@@ -248,21 +248,23 @@ class _ClassList extends StatelessWidget {
           ),
         ),
         for (final (index, item) in classes.indexed)
-          CupertinoListTile(
-            backgroundColor: index == selectedIndex
-                ? AppColors.primaryTint
-                : null,
-            title: Text(
-              item.label,
-              style: index == selectedIndex
-                  ? const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    )
+          SelectionContainer.disabled(
+            child: CupertinoListTile(
+              backgroundColor: index == selectedIndex
+                  ? AppColors.primaryTint
                   : null,
+              title: Text(
+                item.label,
+                style: index == selectedIndex
+                    ? const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      )
+                    : null,
+              ),
+              additionalInfo: Text(item.count),
+              onTap: () => onSelect(item),
             ),
-            additionalInfo: Text(item.count),
-            onTap: () => onSelect(item),
           ),
       ],
     );
