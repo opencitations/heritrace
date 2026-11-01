@@ -5,6 +5,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import 'entity_models.dart';
@@ -91,25 +92,21 @@ class _AffectedRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: appInputSpacing / 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: appInputSpacing / 2),
-          Expanded(
-            child: Text.rich(
+      child: IconLabel(
+        icon: icon,
+        color: color,
+        expand: true,
+        label: Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: entity.label),
               TextSpan(
-                children: [
-                  TextSpan(text: entity.label),
-                  TextSpan(
-                    text: ' (${entity.type})',
-                    style: AppTextStyles.of(context).caption,
-                  ),
-                ],
+                text: ' (${entity.type})',
+                style: AppTextStyles.of(context).caption,
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

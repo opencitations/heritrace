@@ -124,7 +124,7 @@ class LinkedResourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    return CupertinoListTile(
+    return AppListTile(
       title: TileText(resource.label),
       subtitle: TileText(
         [?resource.typeLabel, resource.predicateLabel].join(' · '),
@@ -149,7 +149,7 @@ class SimilarResourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    return CupertinoListTile(
+    return AppListTile(
       title: TileText(resource.label),
       trailing: AppButton(
         variant: AppButtonVariant.tinted,

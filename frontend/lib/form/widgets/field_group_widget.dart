@@ -42,7 +42,7 @@ class FieldGroupWidget extends StatelessWidget {
                 onReorderItem: group.move,
                 itemBuilder: (context, index) => Padding(
                   key: ObjectKey(items[index]),
-                  padding: const EdgeInsets.only(bottom: appInputSpacing),
+                  padding: listItemSpacing(index),
                   child: _ItemCard(
                     group: group,
                     item: items[index],
@@ -55,7 +55,7 @@ class FieldGroupWidget extends StatelessWidget {
               for (final (index, item) in items.indexed)
                 Padding(
                   key: ObjectKey(item),
-                  padding: const EdgeInsets.only(bottom: appInputSpacing),
+                  padding: listItemSpacing(index),
                   child: _ItemCard(
                     group: group,
                     item: item,
@@ -63,6 +63,8 @@ class FieldGroupWidget extends StatelessWidget {
                     showHeading: showHeading,
                   ),
                 ),
+            if (items.isNotEmpty && group.canAdd)
+              const SizedBox(height: appInputSpacing),
             if (group.canAdd)
               Align(
                 alignment: Alignment.centerLeft,
@@ -113,6 +115,7 @@ class _ItemCard extends StatelessWidget {
     if (!showHeading) {
       return ItemWidget(item: item);
     }
+    final headingStyle = group.depth == 0 ? styles.heading : styles.subheading;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -124,35 +127,29 @@ class _ItemCard extends StatelessWidget {
             ],
             Expanded(
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Flexible(
-                    child: Text(
-                      label,
-                      style: group.depth == 0
-                          ? styles.heading
-                          : styles.subheading,
-                    ),
-                  ),
+                  Flexible(child: Text(label, style: headingStyle)),
                   if (def.isRequired)
                     AppTooltip(
                       message: t.ui.form.required,
-                      child: const Text(
+                      child: Text(
                         ' *',
-                        style: TextStyle(color: AppColors.error),
+                        style: headingStyle.copyWith(color: AppColors.error),
                       ),
                     ),
-                  if (def.hasValue != null)
+                  if (def.hasValue != null) ...[
+                    const SizedBox(width: appInputSpacing / 2),
                     AppTooltip(
                       message: t.ui.form.mandatoryValue,
-                      child: const Padding(
-                        padding: EdgeInsets.only(left: 4),
-                        child: Icon(
-                          CupertinoIcons.question_circle,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
+                      child: TextIcon(
+                        CupertinoIcons.question_circle,
+                        style: headingStyle,
+                        color: AppColors.primary,
                       ),
                     ),
+                  ],
                 ],
               ),
             ),

@@ -80,36 +80,31 @@ class AppScaffold extends ConsumerWidget {
             ],
           ),
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!signedIn)
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () => navigateExternally(backendUrl(loginPath)),
-                child: Text(t.ui.nav.login),
+        middle: signedIn && !compact
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final destination in destinations)
+                    _NavButton(
+                      label: destination.label,
+                      icon: destination.icon,
+                      active: currentPath == destination.path,
+                      onPressed: () => context.go(destination.path),
+                    ),
+                ],
               )
-            else if (compact)
-              AppIconButton(
+            : null,
+        trailing: signedIn
+            ? AppIconButton(
                 icon: CupertinoIcons.square_arrow_right,
                 label: t.ui.nav.logout,
                 onPressed: logout,
               )
-            else ...[
-              for (final destination in destinations)
-                _NavButton(
-                  label: destination.label,
-                  active: currentPath == destination.path,
-                  onPressed: () => context.go(destination.path),
-                ),
-              _NavButton(
-                label: t.ui.nav.logout,
-                active: false,
-                onPressed: logout,
+            : CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => navigateExternally(backendUrl(loginPath)),
+                child: Text(t.ui.nav.login),
               ),
-            ],
-          ],
-        ),
       ),
       child: Column(
         children: [
@@ -157,23 +152,31 @@ class AppScaffold extends ConsumerWidget {
 class _NavButton extends StatelessWidget {
   const _NavButton({
     required this.label,
+    required this.icon,
     required this.active,
     required this.onPressed,
   });
 
   final String label;
+  final IconData icon;
   final bool active;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: appInputSpacing),
-      foregroundColor: active ? AppColors.primary : CupertinoColors.label,
-      onPressed: onPressed,
-      child: Text(
-        label,
-        style: active ? const TextStyle(fontWeight: FontWeight.w600) : null,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: CupertinoButton(
+        sizeStyle: CupertinoButtonSize.small,
+        borderRadius: BorderRadius.circular(appRadius * 2),
+        color: active ? AppColors.primaryTint : null,
+        foregroundColor: active ? AppColors.primary : CupertinoColors.label,
+        onPressed: onPressed,
+        child: IconLabel(
+          icon: icon,
+          label: Text(label),
+          style: active ? const TextStyle(fontWeight: FontWeight.w600) : null,
+        ),
       ),
     );
   }

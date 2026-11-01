@@ -33,16 +33,8 @@ class AppButton extends StatelessWidget {
     final foreground = destructive && onPressed != null
         ? (variant == AppButtonVariant.filled ? null : AppColors.error)
         : null;
-    final child = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 18),
-          const SizedBox(width: appInputSpacing / 2),
-        ],
-        Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
-      ],
-    );
+    final text = Text(label, overflow: TextOverflow.ellipsis);
+    final child = icon == null ? text : IconLabel(icon: icon!, label: text);
     return switch (variant) {
       AppButtonVariant.filled => CupertinoButton.filled(
         sizeStyle: CupertinoButtonSize.medium,
@@ -384,12 +376,11 @@ class AppBanner extends StatelessWidget {
         color: error ? AppColors.errorTint : AppColors.primaryTint,
         borderRadius: BorderRadius.circular(appRadius),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: appInputSpacing),
-          Expanded(child: Text(text)),
-        ],
+      child: IconLabel(
+        icon: icon,
+        color: color,
+        expand: true,
+        label: Text(text),
       ),
     );
   }
@@ -436,3 +427,89 @@ class TileText extends StatelessWidget {
   Widget build(BuildContext context) =>
       Text(text, maxLines: 4, overflow: TextOverflow.ellipsis);
 }
+
+/// A list tile with vertical padding, so that [TileText] spanning several
+/// lines keeps its distance from the separators.
+class AppListTile extends StatelessWidget {
+  const AppListTile({
+    required this.title,
+    this.subtitle,
+    this.additionalInfo,
+    this.trailing,
+    this.onTap,
+    super.key,
+  });
+
+  final Widget title;
+  final Widget? subtitle;
+  final Widget? additionalInfo;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => CupertinoListTile(
+    padding: const EdgeInsetsDirectional.fromSTEB(20, 10, 14, 10),
+    title: title,
+    subtitle: subtitle,
+    additionalInfo: additionalInfo,
+    trailing: trailing,
+    onTap: onTap,
+  );
+}
+
+/// An icon with the point size of the text next to it. CupertinoIcons
+/// glyphs, like SF Symbols, are drawn to sit centred on the capital letters
+/// when they share the baseline of the text, so place it in a row aligned on
+/// [TextBaseline.alphabetic].
+class TextIcon extends StatelessWidget {
+  const TextIcon(this.icon, {this.style, this.color, super.key});
+
+  final IconData icon;
+  final TextStyle? style;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Icon(
+    icon,
+    size: DefaultTextStyle.of(context).style.merge(style).fontSize,
+    color: color,
+  );
+}
+
+/// A [TextIcon] before a label. A label on several lines keeps the icon on
+/// its first line.
+class IconLabel extends StatelessWidget {
+  const IconLabel({
+    required this.icon,
+    required this.label,
+    this.style,
+    this.color,
+    this.expand = false,
+    super.key,
+  });
+
+  final IconData icon;
+  final Widget label;
+  final TextStyle? style;
+  final Color? color;
+  final bool expand;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = DefaultTextStyle.merge(style: style, child: label);
+    return Row(
+      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        TextIcon(icon, style: style, color: color),
+        const SizedBox(width: appInputSpacing / 2),
+        if (expand) Expanded(child: text) else Flexible(child: text),
+      ],
+    );
+  }
+}
+
+/// Spaces the items of a vertical list, leaving no gap above the first one.
+EdgeInsets listItemSpacing(int index) =>
+    EdgeInsets.only(top: index == 0 ? 0 : appInputSpacing);

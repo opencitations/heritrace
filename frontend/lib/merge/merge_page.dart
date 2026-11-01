@@ -102,26 +102,23 @@ class _MergeBody extends ConsumerWidget {
         color: AppColors.primary,
       ),
     ];
+    Widget mergeInto(IconData icon) => Center(
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: AppColors.primary),
+          Text(t.ui.merge.mergeInto, style: styles.caption),
+        ],
+      ),
+    );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(t.ui.merge.title, style: styles.pageTitle),
           const SizedBox(height: appSectionSpacing),
-          Center(
-            child: Column(
-              children: [
-                const Icon(
-                  CupertinoIcons.arrow_right_circle_fill,
-                  size: 40,
-                  color: AppColors.primary,
-                ),
-                Text(t.ui.merge.mergeInto, style: styles.caption),
-              ],
-            ),
-          ),
-          const SizedBox(height: appInputSpacing),
-          if (wide)
+          if (wide) ...[
+            mergeInto(CupertinoIcons.arrow_right_circle_fill),
+            const SizedBox(height: appInputSpacing),
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -131,10 +128,12 @@ class _MergeBody extends ConsumerWidget {
                   Expanded(child: cards[1]),
                 ],
               ),
-            )
-          else ...[
+            ),
+          ] else ...[
             cards[0],
-            const SizedBox(height: appSectionSpacing),
+            const SizedBox(height: appInputSpacing),
+            mergeInto(CupertinoIcons.arrow_down_circle_fill),
+            const SizedBox(height: appInputSpacing),
             cards[1],
           ],
           const SizedBox(height: appSectionSpacing),
@@ -203,17 +202,11 @@ class _MergeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(width: appInputSpacing / 2),
-              Expanded(
-                child: Text(
-                  title,
-                  style: styles.heading.copyWith(color: color),
-                ),
-              ),
-            ],
+          IconLabel(
+            icon: icon,
+            label: Text(title),
+            color: color,
+            style: styles.heading.copyWith(color: color),
           ),
           const SizedBox(height: appInputSpacing / 2),
           Text(entity.label),
@@ -284,25 +277,21 @@ class _Explanation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: appInputSpacing),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: appInputSpacing),
-          Expanded(
-            child: Text.rich(
+      child: IconLabel(
+        icon: icon,
+        color: color,
+        expand: true,
+        label: Text.rich(
+          TextSpan(
+            children: [
               TextSpan(
-                children: [
-                  TextSpan(
-                    text: '$title ',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TextSpan(text: text),
-                ],
+                text: '$title ',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-            ),
+              TextSpan(text: text),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

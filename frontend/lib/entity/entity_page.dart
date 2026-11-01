@@ -468,6 +468,7 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                           subject: view.uri,
                         ),
                       ),
+                      const SizedBox(height: appSectionSpacing),
                     ],
                   ),
                 ),

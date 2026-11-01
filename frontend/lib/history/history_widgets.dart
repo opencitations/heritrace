@@ -11,6 +11,7 @@ import '../common/dialogs.dart';
 import '../common/reference_views.dart';
 import '../common/references.dart';
 import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -109,12 +110,11 @@ class _ModificationList extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 16),
-              const SizedBox(width: 4),
-              Text(title, style: const TextStyle(fontStyle: FontStyle.italic)),
-            ],
+          IconLabel(
+            icon: icon,
+            label: Text(title),
+            color: color,
+            style: const TextStyle(fontStyle: FontStyle.italic),
           ),
           for (final entry in entries)
             Padding(

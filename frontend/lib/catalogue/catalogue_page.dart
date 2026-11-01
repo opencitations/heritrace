@@ -277,19 +277,21 @@ class _EntityList extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SortControls(
-          properties: data.sortableProperties,
-          currentProperty: data.sortProperty,
-          currentDirection: data.sortDirection,
-          onChanged: (property, direction) => onQueryChanged(
-            query.copyWith(
-              sortProperty: property,
-              sortDirection: direction,
-              page: 1,
+        if (data.sortableProperties.isNotEmpty) ...[
+          _SortControls(
+            properties: data.sortableProperties,
+            currentProperty: data.sortProperty,
+            currentDirection: data.sortDirection,
+            onChanged: (property, direction) => onQueryChanged(
+              query.copyWith(
+                sortProperty: property,
+                sortDirection: direction,
+                page: 1,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: appInputSpacing),
+          const SizedBox(height: appInputSpacing),
+        ],
         if (data.entities.isEmpty)
           Padding(
             padding: const EdgeInsets.all(appCardPadding),
@@ -301,7 +303,7 @@ class _EntityList extends ConsumerWidget {
               for (final entity in data.entities)
                 timeVault
                     ? _TimeVaultTile(entity: entity)
-                    : CupertinoListTile(
+                    : AppListTile(
                         title: TileText(entity.label),
                         trailing: const CupertinoListTileChevron(),
                         onTap: () => context.go(entityPath(entity.uri)),
@@ -420,9 +422,6 @@ class _SortControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    if (properties.isEmpty) {
-      return const SizedBox.shrink();
-    }
     final current = currentProperty!;
     return Row(
       children: [

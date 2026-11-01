@@ -52,7 +52,7 @@ class EditableGroupWidget extends StatelessWidget {
                   onReorderItem: group.move,
                   itemBuilder: (context, index) => Padding(
                     key: ObjectKey(group.existing[index]),
-                    padding: const EdgeInsets.only(bottom: appInputSpacing),
+                    padding: listItemSpacing(index),
                     child: ExistingValueWidget(
                       value: group.existing[index],
                       view: view,
@@ -66,7 +66,7 @@ class EditableGroupWidget extends StatelessWidget {
                 for (final (index, value) in group.existing.indexed)
                   Padding(
                     key: ObjectKey(value),
-                    padding: const EdgeInsets.only(bottom: appInputSpacing),
+                    padding: listItemSpacing(index),
                     child: ExistingValueWidget(
                       value: value,
                       view: view,
@@ -74,8 +74,11 @@ class EditableGroupWidget extends StatelessWidget {
                       index: group.group.isDraggable ? index : null,
                     ),
                   ),
-              if (editing && group.formGroup != null)
+              if (editing && group.formGroup != null) ...[
+                if (group.existing.isNotEmpty)
+                  const SizedBox(height: appInputSpacing),
                 FieldGroupWidget(group: group.formGroup!),
+              ],
             ],
           ),
         );
@@ -207,14 +210,15 @@ class _ValueBody extends StatelessWidget {
     }
     if (triple.isMandatory) {
       return Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
         children: [
           Flexible(child: Text(triple.value)),
-          const SizedBox(width: 4),
+          const SizedBox(width: appInputSpacing / 2),
           AppTooltip(
             message: t.ui.form.mandatoryValue,
-            child: const Icon(
+            child: const TextIcon(
               CupertinoIcons.question_circle,
-              size: 16,
               color: AppColors.primary,
             ),
           ),

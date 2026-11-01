@@ -32,7 +32,9 @@ class EntityForm extends StatelessWidget {
         final cards = <List<Widget>>[];
         for (final (index, group) in groups.indexed) {
           final continues = continuesPrevious(index);
-          if (!continues) {
+          if (continues) {
+            cards.last.add(const SizedBox(height: appInputSpacing));
+          } else {
             cards.add([]);
           }
           cards.last.add(

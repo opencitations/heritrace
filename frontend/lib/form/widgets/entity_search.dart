@@ -191,7 +191,7 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                     onTap: () => setState(() => _dismissed = true),
                   ),
                 for (final result in _results)
-                  CupertinoListTile(
+                  AppListTile(
                     title: TileText(result.label),
                     subtitle: Text(result.uri),
                     trailing: _suggestionsOnly
