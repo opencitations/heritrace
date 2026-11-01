@@ -64,6 +64,11 @@ Future<bool?> showOrphanDialog(BuildContext context, OrphanCheck check) {
       actions: [
         AppButton(
           variant: AppButtonVariant.tinted,
+          onPressed: () => Navigator.of(context).pop(),
+          label: t.ui.actions.cancel,
+        ),
+        AppButton(
+          variant: AppButtonVariant.tinted,
           onPressed: () => Navigator.of(context).pop(false),
           label: t.ui.orphans.keep,
         ),

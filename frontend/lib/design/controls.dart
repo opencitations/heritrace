@@ -615,6 +615,8 @@ EdgeInsets listItemSpacing(int index) =>
     EdgeInsets.only(top: index == 0 ? 0 : appInputSpacing);
 
 /// A dialog wide enough for lists and form fields, with left-aligned content.
+/// [actions] go from leading to trailing; more than two stack with the
+/// trailing one on top, following the iOS alert layout.
 class AppDialog extends StatelessWidget {
   const AppDialog({
     required this.content,
@@ -635,7 +637,12 @@ class AppDialog extends StatelessWidget {
         padding: const EdgeInsets.all(appCardPadding),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 480),
-          child: CupertinoPopupSurface(
+          child: Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(appRadius),
+            ),
             child: DefaultTextStyle(
               style: styles.body,
               child: Column(
@@ -665,12 +672,18 @@ class AppDialog extends StatelessWidget {
                         appSectionSpacing,
                         appSectionSpacing,
                       ),
-                      child: Wrap(
-                        alignment: WrapAlignment.end,
-                        spacing: appInputSpacing / 2,
-                        runSpacing: appInputSpacing / 2,
-                        children: actions,
-                      ),
+                      child: actions.length > 2
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              spacing: appInputSpacing / 2,
+                              children: actions.reversed.toList(),
+                            )
+                          : Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: appInputSpacing / 2,
+                              runSpacing: appInputSpacing / 2,
+                              children: actions,
+                            ),
                     ),
                 ],
               ),

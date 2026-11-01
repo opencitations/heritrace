@@ -146,10 +146,14 @@ class SimilarResourceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
     return AppListTile(
       title: TileText(resource.label),
-      trailing: const CupertinoListTileChevron(),
-      onTap: () => context.go(mergeComparePath(subject, resource.uri)),
+      trailing: RowAction(
+        onPressed: () => context.go(mergeComparePath(subject, resource.uri)),
+        icon: CupertinoIcons.arrow_merge,
+        label: t.ui.entity.merge,
+      ),
     );
   }
 }

@@ -103,6 +103,7 @@ entity:
   edit: Edit resource
   cancelEditing: Cancel editing
   delete: Delete resource
+  merge: Merge
   revert: Revert
   deletedBanner: This entity has been deleted. You can view its history using the time machine above.
   noInformation: There is no information related to this resource in the dataset.
