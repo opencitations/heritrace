@@ -114,15 +114,10 @@ class AppScaffold extends ConsumerWidget {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: appPageMaxWidth),
-                  child: Padding(
-                    padding: EdgeInsets.all(
-                      compact ? appCardPadding : appPageMargin,
-                    ),
-                    child: AsyncView(
-                      value: sessionValue,
-                      onRetry: () => ref.invalidate(sessionProvider),
-                      builder: (_) => child,
-                    ),
+                  child: AsyncView(
+                    value: sessionValue,
+                    onRetry: () => ref.invalidate(sessionProvider),
+                    builder: (_) => child,
                   ),
                 ),
               ),

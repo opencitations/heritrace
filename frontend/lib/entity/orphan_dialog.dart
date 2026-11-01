@@ -31,11 +31,10 @@ Future<bool?> showOrphanDialog(BuildContext context, OrphanCheck check) {
   return showCupertinoDialog<bool>(
     context: context,
     barrierDismissible: true,
-    builder: (context) => CupertinoAlertDialog(
-      title: Text(t.ui.orphans.title),
+    builder: (context) => AppDialog(
+      title: t.ui.orphans.title,
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           if (showOrphans) ...[
             Text(t.ui.orphans.orphansIntro),
@@ -63,14 +62,16 @@ Future<bool?> showOrphanDialog(BuildContext context, OrphanCheck check) {
         ],
       ),
       actions: [
-        CupertinoDialogAction(
+        AppButton(
+          variant: AppButtonVariant.tinted,
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(t.ui.orphans.keep),
+          label: t.ui.orphans.keep,
         ),
-        CupertinoDialogAction(
-          isDestructiveAction: true,
+        AppButton(
+          variant: AppButtonVariant.filled,
+          destructive: true,
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text(t.ui.orphans.delete),
+          label: t.ui.orphans.delete,
         ),
       ],
     ),

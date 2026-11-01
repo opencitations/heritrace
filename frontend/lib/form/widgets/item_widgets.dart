@@ -275,9 +275,33 @@ class MandatoryValueField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: appInputSpacing),
-      child: Text(item.def.hasValueLabel ?? item.def.hasValue!),
+    return MandatoryValueText(item.def.hasValueLabel ?? item.def.hasValue!);
+  }
+}
+
+/// A value that cannot be changed, with a hint that explains why.
+class MandatoryValueText extends StatelessWidget {
+  const MandatoryValueText(this.label, {super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Flexible(child: Text(label)),
+        const SizedBox(width: appInputSpacing / 2),
+        AppTooltip(
+          message: t.ui.form.mandatoryValue,
+          child: const TextIcon(
+            CupertinoIcons.question_circle,
+            color: AppColors.primary,
+          ),
+        ),
+      ],
     );
   }
 }

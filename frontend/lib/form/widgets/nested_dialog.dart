@@ -27,8 +27,9 @@ List<NestedItem> nestedChain(NestedItem item) {
   return chain;
 }
 
-/// Discards an untouched item only once the dialog is unmounted, because its
-/// widgets use the item's focus nodes until the exit transition ends.
+/// Hides an untouched item as soon as the dialog closes, but disposes it only
+/// once the dialog is unmounted, because its widgets use the item's focus nodes
+/// until the exit transition ends.
 Future<void> showNestedDialog(BuildContext context, NestedItem item) async {
   final scope = FormScope.of(context);
   final route = CupertinoSheetRoute<void>(
@@ -40,11 +41,16 @@ Future<void> showNestedDialog(BuildContext context, NestedItem item) async {
     ),
   );
   unawaited(Navigator.of(context, rootNavigator: true).push(route));
-  await route.completed;
-  if (item.discardIfUntouched && !item.touched) {
-    item.group.removeItem(item);
-  }
+  await route.popped;
+  final discard = item.discardIfUntouched && !item.touched;
   item.discardIfUntouched = false;
+  if (discard) {
+    item.group.detachItem(item);
+  }
+  await route.completed;
+  if (discard) {
+    item.dispose();
+  }
 }
 
 class NestedEntityDialog extends ConsumerStatefulWidget {

@@ -53,6 +53,9 @@ class AppTextStyles {
   TextStyle get subheading =>
       body.copyWith(fontSize: 15, fontWeight: FontWeight.w600);
 
+  TextStyle get secondary =>
+      body.copyWith(fontSize: 15, color: AppColors.secondaryText);
+
   TextStyle get caption =>
       body.copyWith(fontSize: 13, color: AppColors.secondaryText);
 }

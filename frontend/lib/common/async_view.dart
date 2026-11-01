@@ -37,7 +37,10 @@ class AsyncView<T> extends StatelessWidget {
     return value.when(
       data: builder,
       loading: () => const Center(child: CupertinoActivityIndicator()),
-      error: (error, _) => ErrorView(error: error, onRetry: onRetry),
+      error: (error, _) => Padding(
+        padding: pageMargin(context),
+        child: ErrorView(error: error, onRetry: onRetry),
+      ),
     );
   }
 }

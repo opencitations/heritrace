@@ -18,23 +18,26 @@ class NotFoundPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     return CupertinoPageScaffold(
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              t.ui.notFound.title,
-              style: AppTextStyles.of(context).pageTitle,
-            ),
-            const SizedBox(height: appSectionSpacing),
-            Text(t.ui.notFound.message),
-            const SizedBox(height: appSectionSpacing),
-            AppButton(
-              variant: AppButtonVariant.filled,
-              onPressed: () => context.go(cataloguePath),
-              label: t.ui.notFound.backToCatalogue,
-            ),
-          ],
+      child: Padding(
+        padding: pageMargin(context),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                t.ui.notFound.title,
+                style: AppTextStyles.of(context).pageTitle,
+              ),
+              const SizedBox(height: appSectionSpacing),
+              Text(t.ui.notFound.message),
+              const SizedBox(height: appSectionSpacing),
+              AppButton(
+                variant: AppButtonVariant.filled,
+                onPressed: () => context.go(cataloguePath),
+                label: t.ui.notFound.backToCatalogue,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -69,9 +69,12 @@ class CataloguePage extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          timeVault ? t.ui.catalogue.timeVaultTitle : t.ui.catalogue.title,
-          style: AppTextStyles.of(context).pageTitle,
+        Padding(
+          padding: pageMargin(context).copyWith(bottom: 0),
+          child: Text(
+            timeVault ? t.ui.catalogue.timeVaultTitle : t.ui.catalogue.title,
+            style: AppTextStyles.of(context).pageTitle,
+          ),
         ),
         const SizedBox(height: appSectionSpacing),
         Expanded(
@@ -152,13 +155,18 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
       query: widget.query,
       onQueryChanged: widget.onQueryChanged,
     );
+    final margin = pageMargin(context).copyWith(top: 0);
     if (data.availableClasses.isEmpty) {
-      return Text(
-        widget.timeVault ? t.ui.timeVault.empty : t.ui.catalogue.noClasses,
+      return Padding(
+        padding: margin,
+        child: Text(
+          widget.timeVault ? t.ui.timeVault.empty : t.ui.catalogue.noClasses,
+        ),
       );
     }
     if (!wide) {
       return ListView(
+        padding: margin,
         children: [
           AppLabeledField(
             label: t.ui.catalogue.categories,
@@ -180,8 +188,9 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 320,
+          width: 320 + margin.left + appSectionSpacing / 2,
           child: SingleChildScrollView(
+            padding: margin.copyWith(right: appSectionSpacing / 2),
             child: _ClassList(
               classes: classes,
               selectedIndex: selectedIndex,
@@ -192,8 +201,12 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
             ),
           ),
         ),
-        const SizedBox(width: appSectionSpacing),
-        Expanded(child: SingleChildScrollView(child: entities)),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: margin.copyWith(left: appSectionSpacing / 2),
+            child: entities,
+          ),
+        ),
       ],
     );
   }
@@ -344,15 +357,18 @@ class _TimeVaultTile extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(entity.label, style: styles.heading),
-          Text(deletion.type),
+          const SizedBox(height: 4),
+          Text(deletion.type, style: styles.secondary),
+          const SizedBox(height: appInputSpacing),
           Text(
             t.ui.timeVault.deletedOn(time: formatTimestamp(deletion.time)),
-            style: styles.caption,
+            style: styles.secondary,
           ),
+          const SizedBox(height: 4),
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(t.ui.timeVault.deletedBy, style: styles.caption),
+              Text(t.ui.timeVault.deletedBy, style: styles.secondary),
               const SizedBox(width: 4),
               AgentRefView(agent: deletion.deletedBy),
             ],

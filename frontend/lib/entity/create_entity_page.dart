@@ -191,6 +191,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
         children: [
           Expanded(
             child: SingleChildScrollView(
+              padding: pageMargin(context).copyWith(bottom: 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -246,17 +247,25 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
               ),
             ),
           ),
-          const ValidationSummary(),
           Padding(
-            padding: const EdgeInsets.only(top: appInputSpacing),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: AppButton(
-                variant: AppButtonVariant.filled,
-                onPressed: canSubmit ? _submit : null,
-                icon: CupertinoIcons.checkmark_circle,
-                label: t.ui.create.submit,
-              ),
+            padding: pageMargin(context).copyWith(top: 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const ValidationSummary(),
+                Padding(
+                  padding: const EdgeInsets.only(top: appInputSpacing),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppButton(
+                      variant: AppButtonVariant.filled,
+                      onPressed: canSubmit ? _submit : null,
+                      icon: CupertinoIcons.checkmark_circle,
+                      label: t.ui.create.submit,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

@@ -78,8 +78,8 @@ class _PrimarySourceDialogState extends State<_PrimarySourceDialog> {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    return CupertinoAlertDialog(
-      title: Text(t.ui.primarySource.title),
+    return AppDialog(
+      title: t.ui.primarySource.title,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -103,26 +103,23 @@ class _PrimarySourceDialogState extends State<_PrimarySourceDialog> {
                   value: _saveAsDefault,
                   onChanged: (value) => setState(() => _saveAsDefault = value!),
                 ),
-                Expanded(
-                  child: Text(
-                    t.ui.primarySource.saveAsDefault,
-                    textAlign: TextAlign.start,
-                  ),
-                ),
+                const SizedBox(width: appInputSpacing / 2),
+                Expanded(child: Text(t.ui.primarySource.saveAsDefault)),
               ],
             ),
           ),
         ],
       ),
       actions: [
-        CupertinoDialogAction(
+        AppButton(
+          variant: AppButtonVariant.tinted,
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(t.ui.actions.cancel),
+          label: t.ui.actions.cancel,
         ),
-        CupertinoDialogAction(
-          isDefaultAction: true,
+        AppButton(
+          variant: AppButtonVariant.filled,
           onPressed: _confirm,
-          child: Text(widget.confirmLabel ?? t.ui.primarySource.confirm),
+          label: widget.confirmLabel ?? t.ui.primarySource.confirm,
         ),
       ],
     );

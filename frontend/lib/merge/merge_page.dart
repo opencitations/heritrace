@@ -13,6 +13,7 @@ import '../common/reference_views.dart';
 import '../design/app_theme.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
+import '../form/widgets/field_group_widget.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
 import '../session/session_controller.dart';
@@ -32,7 +33,10 @@ class MergePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     if (subject == null || otherSubject == null) {
-      return Center(child: Text(t.ui.merge.missingEntities));
+      return Padding(
+        padding: pageMargin(context),
+        child: Center(child: Text(t.ui.merge.missingEntities)),
+      );
     }
     final key = (subject: subject!, otherSubject: otherSubject!);
     final comparison = ref.watch(mergeComparisonProvider(key));
@@ -111,6 +115,7 @@ class _MergeBody extends ConsumerWidget {
       ),
     );
     return SingleChildScrollView(
+      padding: pageMargin(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -210,16 +215,15 @@ class _MergeCard extends StatelessWidget {
           ),
           const SizedBox(height: appInputSpacing / 2),
           Text(entity.label),
-          Text(entity.uri, style: styles.caption),
           const SizedBox(height: appInputSpacing / 2),
           _TypeBadge(label: entity.typeLabel),
-          const SizedBox(height: appInputSpacing),
-          Text(t.ui.merge.properties, style: styles.subheading),
-          if (entity.properties.isEmpty)
+          if (entity.properties.isEmpty) ...[
+            const SizedBox(height: appInputSpacing),
             Text(
               t.ui.merge.noProperties,
               style: const TextStyle(fontStyle: FontStyle.italic),
             ),
+          ],
           for (final property in entity.properties) ...[
             Container(
               height: 0.5,
@@ -228,14 +232,15 @@ class _MergeCard extends StatelessWidget {
             ),
             AppTooltip(
               message: property.predicate,
-              child: Text(
-                property.label,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+              child: PropertyHeading(
+                label: property.label,
+                style: styles.subheading,
               ),
             ),
-            for (final value in property.values)
+            const SizedBox(height: appInputSpacing / 2),
+            for (final (index, value) in property.values.indexed)
               Padding(
-                padding: const EdgeInsets.only(left: appInputSpacing, top: 2),
+                padding: listItemSpacing(index),
                 child: value.isUri
                     ? LinkText(
                         label: value.readableLabel,

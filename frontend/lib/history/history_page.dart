@@ -29,26 +29,18 @@ class HistoryPage extends ConsumerWidget {
       value: history,
       onRetry: () => ref.invalidate(entityHistoryProvider(uri)),
       builder: (data) => SingleChildScrollView(
+        padding: pageMargin(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                CupertinoButton(
+            AppBreadcrumbs(
+              crumbs: [
+                AppBreadcrumb(
+                  data.entityLabel,
+                  style: const TextStyle(fontStyle: FontStyle.italic),
                   onPressed: () => context.go(entityPath(uri)),
-                  child: Text(
-                    data.entityLabel,
-                    style: const TextStyle(fontStyle: FontStyle.italic),
-                  ),
                 ),
-                const BreadcrumbSeparator(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: appInputSpacing,
-                  ),
-                  child: Text(t.ui.history.breadcrumb),
-                ),
+                AppBreadcrumb(t.ui.history.title),
               ],
             ),
             const SizedBox(height: appInputSpacing),
@@ -120,6 +112,7 @@ class _SnapshotCard extends ConsumerWidget {
                       t.ui.history.snapshot(index: snapshot.index),
                       style: styles.sectionTitle,
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       snapshot.endTimestamp == null
                           ? t.ui.history.since(
@@ -129,7 +122,7 @@ class _SnapshotCard extends ConsumerWidget {
                               start: formatTimestamp(snapshot.timestamp),
                               end: formatTimestamp(snapshot.endTimestamp!),
                             ),
-                      style: styles.caption,
+                      style: styles.secondary,
                     ),
                     const SizedBox(height: appInputSpacing),
                     AgentAndSource(

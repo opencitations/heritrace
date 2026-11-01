@@ -39,8 +39,8 @@ class EditableGroupWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                group.group.displayName,
+              PropertyHeading(
+                label: group.group.displayName,
                 style: AppTextStyles.of(context).heading,
               ),
               const SizedBox(height: appInputSpacing / 2),
@@ -200,7 +200,6 @@ class _ValueBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Translations.of(context);
     final triple = value.triple;
     if (triple.externalEntity != null) {
       return LinkText(
@@ -209,21 +208,7 @@ class _ValueBody extends StatelessWidget {
       );
     }
     if (triple.isMandatory) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          Flexible(child: Text(triple.value)),
-          const SizedBox(width: appInputSpacing / 2),
-          AppTooltip(
-            message: t.ui.form.mandatoryValue,
-            child: const TextIcon(
-              CupertinoIcons.question_circle,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      );
+      return MandatoryValueText(triple.value);
     }
     final options = view.optionalValues[triple.predicate];
     if (options != null && options.isNotEmpty) {

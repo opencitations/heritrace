@@ -182,14 +182,3 @@ Future<void> restoreVersion(
     context.go(entityPath(uri));
   }
 }
-
-class BreadcrumbSeparator extends StatelessWidget {
-  const BreadcrumbSeparator({super.key});
-
-  @override
-  Widget build(BuildContext context) => const Icon(
-    CupertinoIcons.chevron_right,
-    size: 16,
-    color: AppColors.secondaryText,
-  );
-}

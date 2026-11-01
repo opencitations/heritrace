@@ -10,6 +10,7 @@ import '../common/async_view.dart';
 import '../design/app_theme.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
+import '../form/widgets/field_group_widget.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
 import 'history_models.dart';
@@ -45,33 +46,22 @@ class _VersionBody extends ConsumerWidget {
     final styles = AppTextStyles.of(context);
     final uri = version.entityUri;
     return SingleChildScrollView(
+      padding: pageMargin(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              CupertinoButton(
+          AppBreadcrumbs(
+            crumbs: [
+              AppBreadcrumb(
+                version.entityLabel,
+                style: const TextStyle(fontStyle: FontStyle.italic),
                 onPressed: () => context.go(entityPath(uri)),
-                child: Text(
-                  version.entityLabel,
-                  style: const TextStyle(fontStyle: FontStyle.italic),
-                ),
               ),
-              const BreadcrumbSeparator(),
-              CupertinoButton(
+              AppBreadcrumb(
+                t.ui.history.title,
                 onPressed: () => context.go(entityHistoryPath(uri)),
-                child: Text(t.ui.history.breadcrumb),
               ),
-              const BreadcrumbSeparator(),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: appInputSpacing,
-                ),
-                child: Text(
-                  t.ui.version.breadcrumb(number: version.versionNumber),
-                ),
-              ),
+              AppBreadcrumb(t.ui.version.title(number: version.versionNumber)),
             ],
           ),
           const SizedBox(height: appInputSpacing),
@@ -88,7 +78,7 @@ class _VersionBody extends ConsumerWidget {
                 variant: AppButtonVariant.tinted,
                 onPressed: () => context.go(entityHistoryPath(uri)),
                 icon: CupertinoIcons.clock,
-                label: t.ui.entity.timeMachine,
+                label: t.ui.history.title,
               ),
               if (version.nextTimestamp != null)
                 AppButton(
@@ -170,14 +160,16 @@ class _VersionBody extends ConsumerWidget {
                 child: AppCard(
                   child: AppSelectable(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(group.displayName, style: styles.heading),
-                        for (final value in group.values)
+                        PropertyHeading(
+                          label: group.displayName,
+                          style: styles.heading,
+                        ),
+                        const SizedBox(height: appInputSpacing / 2),
+                        for (final (index, value) in group.values.indexed)
                           Padding(
-                            padding: const EdgeInsets.only(
-                              top: appInputSpacing / 2,
-                            ),
+                            padding: listItemSpacing(index),
                             child: Text(value),
                           ),
                       ],

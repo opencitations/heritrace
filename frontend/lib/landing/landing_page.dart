@@ -25,37 +25,40 @@ class LandingPage extends ConsumerWidget {
     final t = Translations.of(context);
     final session = ref.watch(sessionProvider).value!;
     final styles = AppTextStyles.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset('assets/images/logo.png', height: 160),
-          const SizedBox(height: appSectionSpacing),
-          Text(
-            session.config.appTitle,
-            style: styles.display,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: appInputSpacing),
-          Text(
-            session.config.appSubtitle,
-            style: styles.heading.copyWith(color: AppColors.secondaryText),
-            textAlign: TextAlign.center,
-          ),
-          if (loginError != null) ...[
+    return Padding(
+      padding: pageMargin(context),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset('assets/images/logo.png', height: 160),
             const SizedBox(height: appSectionSpacing),
-            _LoginErrorBanner(code: loginError!),
+            Text(
+              session.config.appTitle,
+              style: styles.display,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: appInputSpacing),
+            Text(
+              session.config.appSubtitle,
+              style: styles.heading.copyWith(color: AppColors.secondaryText),
+              textAlign: TextAlign.center,
+            ),
+            if (loginError != null) ...[
+              const SizedBox(height: appSectionSpacing),
+              _LoginErrorBanner(code: loginError!),
+            ],
+            const SizedBox(height: appSectionSpacing),
+            AppButton(
+              variant: AppButtonVariant.filled,
+              onPressed: () => session.isSignedIn
+                  ? context.go(cataloguePath)
+                  : navigateExternally(backendUrl(loginPath)),
+              icon: CupertinoIcons.book,
+              label: t.ui.landing.goToCatalogue,
+            ),
           ],
-          const SizedBox(height: appSectionSpacing),
-          AppButton(
-            variant: AppButtonVariant.filled,
-            onPressed: () => session.isSignedIn
-                ? context.go(cataloguePath)
-                : navigateExternally(backendUrl(loginPath)),
-            icon: CupertinoIcons.book,
-            label: t.ui.landing.goToCatalogue,
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -19,19 +19,20 @@ Future<bool> showConfirmDialog(
   final t = Translations.of(context);
   final result = await showCupertinoDialog<bool>(
     context: context,
-    builder: (context) => CupertinoAlertDialog(
-      title: Text(title),
+    builder: (context) => AppDialog(
+      title: title,
       content: Text(message),
       actions: [
-        CupertinoDialogAction(
+        AppButton(
+          variant: AppButtonVariant.tinted,
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(t.ui.actions.cancel),
+          label: t.ui.actions.cancel,
         ),
-        CupertinoDialogAction(
-          isDefaultAction: !destructive,
-          isDestructiveAction: destructive,
+        AppButton(
+          variant: AppButtonVariant.filled,
+          destructive: destructive,
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text(confirmLabel),
+          label: confirmLabel,
         ),
       ],
     ),
@@ -47,14 +48,14 @@ Future<void> showMessageDialog(
   final t = Translations.of(context);
   return showCupertinoDialog<void>(
     context: context,
-    builder: (context) => CupertinoAlertDialog(
-      title: Text(title),
+    builder: (context) => AppDialog(
+      title: title,
       content: AppSelectable(child: Text(message)),
       actions: [
-        CupertinoDialogAction(
-          isDefaultAction: true,
+        AppButton(
+          variant: AppButtonVariant.filled,
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(t.ui.actions.ok),
+          label: t.ui.actions.ok,
         ),
       ],
     ),
@@ -80,7 +81,7 @@ Future<bool> runWithProgress(
     context: context,
     builder: (context) => PopScope(
       canPop: false,
-      child: CupertinoAlertDialog(
+      child: AppDialog(
         content: Row(
           children: [
             const CupertinoActivityIndicator(),

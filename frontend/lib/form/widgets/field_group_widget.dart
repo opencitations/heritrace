@@ -115,7 +115,6 @@ class _ItemCard extends StatelessWidget {
     if (!showHeading) {
       return ItemWidget(item: item);
     }
-    final headingStyle = group.depth == 0 ? styles.heading : styles.subheading;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -126,31 +125,10 @@ class _ItemCard extends StatelessWidget {
               const SizedBox(width: appInputSpacing / 2),
             ],
             Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Flexible(child: Text(label, style: headingStyle)),
-                  if (def.isRequired)
-                    AppTooltip(
-                      message: t.ui.form.required,
-                      child: Text(
-                        ' *',
-                        style: headingStyle.copyWith(color: AppColors.error),
-                      ),
-                    ),
-                  if (def.hasValue != null) ...[
-                    const SizedBox(width: appInputSpacing / 2),
-                    AppTooltip(
-                      message: t.ui.form.mandatoryValue,
-                      child: TextIcon(
-                        CupertinoIcons.question_circle,
-                        style: headingStyle,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ],
+              child: PropertyHeading(
+                label: label,
+                style: group.depth == 0 ? styles.heading : styles.subheading,
+                required: def.isRequired,
               ),
             ),
             if (item is NestedItem && (item as NestedItem).isExisting) ...[
@@ -167,6 +145,37 @@ class _ItemCard extends StatelessWidget {
         ),
         const SizedBox(height: appInputSpacing / 2),
         ItemWidget(item: item),
+      ],
+    );
+  }
+}
+
+/// The name of a property, marked when a value is required.
+class PropertyHeading extends StatelessWidget {
+  const PropertyHeading({
+    required this.label,
+    required this.style,
+    this.required = false,
+    super.key,
+  });
+
+  final String label;
+  final TextStyle style;
+  final bool required;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Flexible(child: Text(label, style: style)),
+        if (required)
+          AppTooltip(
+            message: t.ui.form.required,
+            child: Text(' *', style: style.copyWith(color: AppColors.error)),
+          ),
       ],
     );
   }

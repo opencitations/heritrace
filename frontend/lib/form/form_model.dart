@@ -93,8 +93,13 @@ class FieldGroup extends ChangeNotifier {
   }
 
   void removeItem(FormItem item) {
-    items.remove(item);
+    detachItem(item);
     item.dispose();
+  }
+
+  void detachItem(FormItem item) {
+    items.remove(item);
+    item.removeListener(notifyListeners);
     notifyListeners();
   }
 

@@ -80,6 +80,7 @@ class _UntypedEntityBodyState extends ConsumerState<_UntypedEntityBody> {
     final t = Translations.of(context);
     final view = widget.view;
     return SingleChildScrollView(
+      padding: pageMargin(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -388,6 +389,7 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
             children: [
               Expanded(
                 child: SingleChildScrollView(
+                  padding: pageMargin(context).copyWith(bottom: 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -473,10 +475,17 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                   ),
                 ),
               ),
-              if (editing) ...[
-                const ValidationSummary(),
-                _SaveBar(session: _session, onSave: _save),
-              ],
+              if (editing)
+                Padding(
+                  padding: pageMargin(context).copyWith(top: 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const ValidationSummary(),
+                      _SaveBar(session: _session, onSave: _save),
+                    ],
+                  ),
+                ),
             ],
           );
         },
@@ -508,7 +517,7 @@ class _TimeMachineButton extends StatelessWidget {
     variant: AppButtonVariant.tinted,
     onPressed: () => context.go(entityHistoryPath(uri)),
     icon: CupertinoIcons.clock,
-    label: Translations.of(context).ui.entity.timeMachine,
+    label: Translations.of(context).ui.history.title,
   );
 }
 

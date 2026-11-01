@@ -510,6 +510,135 @@ class IconLabel extends StatelessWidget {
   }
 }
 
+class AppBreadcrumb {
+  const AppBreadcrumb(this.label, {this.onPressed, this.style});
+
+  final String label;
+  final VoidCallback? onPressed;
+  final TextStyle? style;
+}
+
+/// The path to the current page, which is the last crumb. Every crumb is as
+/// tall as a button, so the trail keeps its height whatever the crumbs are.
+class AppBreadcrumbs extends StatelessWidget {
+  const AppBreadcrumbs({required this.crumbs, super.key});
+
+  final List<AppBreadcrumb> crumbs;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final (index, crumb) in crumbs.indexed) ...[
+          if (index > 0)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: appInputSpacing / 2),
+              child: Icon(
+                CupertinoIcons.chevron_right,
+                size: 16,
+                color: AppColors.secondaryText,
+              ),
+            ),
+          if (crumb.onPressed == null)
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: kMinInteractiveDimensionCupertino,
+              ),
+              child: Align(
+                widthFactor: 1,
+                child: Text(crumb.label, style: crumb.style),
+              ),
+            )
+          else
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, kMinInteractiveDimensionCupertino),
+              onPressed: crumb.onPressed,
+              child: Text(crumb.label, style: crumb.style),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The margin around page content. A scroll view takes it as its padding, so
+/// that its scrollbar runs in the margin instead of over the content.
+EdgeInsets pageMargin(BuildContext context) => EdgeInsets.all(
+  MediaQuery.sizeOf(context).width < appCompactWidth
+      ? appCardPadding
+      : appPageMargin,
+);
+
 /// Spaces the items of a vertical list, leaving no gap above the first one.
 EdgeInsets listItemSpacing(int index) =>
     EdgeInsets.only(top: index == 0 ? 0 : appInputSpacing);
+
+/// A dialog wide enough for lists and form fields, with left-aligned content.
+class AppDialog extends StatelessWidget {
+  const AppDialog({
+    required this.content,
+    this.title,
+    this.actions = const [],
+    super.key,
+  });
+
+  final String? title;
+  final Widget content;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final styles = AppTextStyles.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(appCardPadding),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: CupertinoPopupSurface(
+            child: DefaultTextStyle(
+              style: styles.body,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(appSectionSpacing),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (title != null) ...[
+                            Text(title!, style: styles.heading),
+                            const SizedBox(height: appInputSpacing),
+                          ],
+                          content,
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (actions.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        appSectionSpacing,
+                        0,
+                        appSectionSpacing,
+                        appSectionSpacing,
+                      ),
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: appInputSpacing / 2,
+                        runSpacing: appInputSpacing / 2,
+                        children: actions,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
