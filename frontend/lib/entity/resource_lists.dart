@@ -87,7 +87,7 @@ class ResourceListSection<T> extends StatelessWidget {
       builder: (context, _) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.of(context).sectionTitle),
+          AppHeading(title, style: AppTextStyles.of(context).sectionTitle),
           const SizedBox(height: appInputSpacing),
           if (resources.error != null)
             ErrorView(error: resources.error!, onRetry: resources.loadMore)
@@ -149,7 +149,7 @@ class SimilarResourceTile extends StatelessWidget {
     final t = Translations.of(context);
     return AppListTile(
       title: TileText(resource.label),
-      trailing: RowAction(
+      trailing: AppButton(
         onPressed: () => context.go(mergeComparePath(subject, resource.uri)),
         icon: CupertinoIcons.arrow_merge,
         label: t.ui.entity.merge,

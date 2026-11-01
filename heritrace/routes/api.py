@@ -86,7 +86,6 @@ def me() -> Response:
             "config": {
                 "app_title": current_app.config["APP_TITLE"],
                 "app_subtitle": current_app.config["APP_SUBTITLE"],
-                "allowed_per_page": current_app.config["CATALOGUE_ALLOWED_PER_PAGE"],
                 "shacl": bool(len(get_shacl_graph())),
                 "datatype_options": get_datatype_options(),
             },
@@ -100,15 +99,9 @@ def catalogue_api() -> Response:
     selected_class = request.args.get("class")
     selected_shape = request.args.get("shape")
     page = int(request.args.get("page", 1))
-    per_page = int(
-        request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"])
-    )
+    per_page = current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]
     sort_property = request.args.get("sort_property")
     sort_direction = request.args.get("sort_direction", "ASC")
-
-    allowed_per_page = current_app.config["CATALOGUE_ALLOWED_PER_PAGE"]
-    if per_page not in allowed_per_page:
-        per_page = current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]
 
     if not sort_property or sort_property.lower() == "null":
         sort_property = None
@@ -141,14 +134,8 @@ def get_deleted_entities_api() -> Response:
     selected_class = request.args.get("class")
     selected_shape = request.args.get("shape")
     page = int(request.args.get("page", 1))
-    per_page = int(
-        request.args.get("per_page", current_app.config["CATALOGUE_DEFAULT_PER_PAGE"])
-    )
+    per_page = current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]
     sort_direction = request.args.get("sort_direction", "DESC")
-
-    allowed_per_page = current_app.config["CATALOGUE_ALLOWED_PER_PAGE"]
-    if per_page not in allowed_per_page:
-        per_page = current_app.config["CATALOGUE_DEFAULT_PER_PAGE"]
 
     (
         deleted_entities,

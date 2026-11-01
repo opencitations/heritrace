@@ -182,9 +182,9 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                 if (results != null) ...[
                   if (results.isEmpty)
                     CupertinoListTile(
-                      leading: const Icon(
+                      leading: Icon(
                         CupertinoIcons.search,
-                        color: AppColors.secondaryText,
+                        color: AppColors.of(context).secondaryText,
                       ),
                       title: Text(t.ui.form.noMatchingEntities),
                     )

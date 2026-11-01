@@ -15,7 +15,6 @@ class CatalogueQuery {
     this.entityClass,
     this.shape,
     this.page,
-    this.perPage,
     this.sortProperty,
     this.sortDirection,
   });
@@ -27,8 +26,6 @@ class CatalogueQuery {
     timeVault: timeVault,
     entityClass: params['class'],
     shape: params['shape'],
-    page: int.tryParse(params['page'] ?? ''),
-    perPage: int.tryParse(params['per_page'] ?? ''),
     sortProperty: params['sort_property'],
     sortDirection: params['sort_direction'],
   );
@@ -36,8 +33,10 @@ class CatalogueQuery {
   final bool timeVault;
   final String? entityClass;
   final String? shape;
+
+  /// The page to fetch; the address leaves it out, since more pages load as
+  /// the list scrolls.
   final int? page;
-  final int? perPage;
   final String? sortProperty;
   final String? sortDirection;
 
@@ -45,7 +44,6 @@ class CatalogueQuery {
     'class': ?entityClass,
     'shape': ?shape,
     if (page != null) 'page': '$page',
-    if (perPage != null) 'per_page': '$perPage',
     'sort_property': ?sortProperty,
     'sort_direction': ?sortDirection,
   };
@@ -54,7 +52,6 @@ class CatalogueQuery {
     String? entityClass,
     String? shape,
     int? page,
-    int? perPage,
     String? sortProperty,
     String? sortDirection,
     bool resetShape = false,
@@ -63,7 +60,6 @@ class CatalogueQuery {
     entityClass: entityClass ?? this.entityClass,
     shape: resetShape ? null : (shape ?? this.shape),
     page: page ?? this.page,
-    perPage: perPage ?? this.perPage,
     sortProperty: sortProperty ?? this.sortProperty,
     sortDirection: sortDirection ?? this.sortDirection,
   );
@@ -75,7 +71,6 @@ class CatalogueQuery {
       other.entityClass == entityClass &&
       other.shape == shape &&
       other.page == page &&
-      other.perPage == perPage &&
       other.sortProperty == sortProperty &&
       other.sortDirection == sortDirection;
 
@@ -85,7 +80,6 @@ class CatalogueQuery {
     entityClass,
     shape,
     page,
-    perPage,
     sortProperty,
     sortDirection,
   );

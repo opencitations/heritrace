@@ -69,7 +69,6 @@ services:
       # Catalogue pagination settings
       - MAX_WORKERS=8
       - CATALOGUE_DEFAULT_PER_PAGE=50
-      - CATALOGUE_ALLOWED_PER_PAGE=50,100,200,500
     volumes:
       # Configuration files for customization
       - ./config/shacl.ttl:/app/shacl.ttl

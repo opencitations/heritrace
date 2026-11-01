@@ -24,7 +24,7 @@ class NotFoundPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              AppHeading(
                 t.ui.notFound.title,
                 style: AppTextStyles.of(context).pageTitle,
               ),

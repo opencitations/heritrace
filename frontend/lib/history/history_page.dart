@@ -37,14 +37,13 @@ class HistoryPage extends ConsumerWidget {
               crumbs: [
                 AppBreadcrumb(
                   data.entityLabel,
-                  style: const TextStyle(fontStyle: FontStyle.italic),
                   onPressed: () => context.go(entityPath(uri)),
                 ),
                 AppBreadcrumb(t.ui.history.title),
               ],
             ),
             const SizedBox(height: appInputSpacing),
-            Text(
+            AppHeading(
               t.ui.history.title,
               style: AppTextStyles.of(context).pageTitle,
             ),
@@ -96,7 +95,10 @@ class _SnapshotCard extends ConsumerWidget {
                 ),
                 if (!isLast)
                   Expanded(
-                    child: Container(width: 2, color: AppColors.separator),
+                    child: Container(
+                      width: 2,
+                      color: AppColors.of(context).separator,
+                    ),
                   ),
               ],
             ),
@@ -108,7 +110,7 @@ class _SnapshotCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    AppHeading(
                       t.ui.history.snapshot(index: snapshot.index),
                       style: styles.sectionTitle,
                     ),

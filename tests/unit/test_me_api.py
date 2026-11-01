@@ -19,7 +19,6 @@ def test_me_for_anonymous_users_exposes_only_the_config(client: FlaskClient) -> 
     assert payload["config"] == {
         "app_title": "ParaText Test",
         "app_subtitle": "Bibliographical database - Test Environment",
-        "allowed_per_page": [50, 100, 200, 500],
         "shacl": True,
         "datatype_options": get_datatype_options(),
     }

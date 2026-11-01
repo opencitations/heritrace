@@ -9,11 +9,16 @@ nav:
   timeVault: Time vault
   login: Login
   logout: Logout
+  back: Back
+  appearanceSystem: Match system
+  appearanceLight: Light
+  appearanceDark: Dark
 actions:
   ok: OK
   cancel: Cancel
   retry: Retry
   save: Save
+  edit: Edit
   delete: Delete
   close: Close
   done: Done
@@ -39,12 +44,6 @@ catalogue:
   sortBy: Sort by
   sortAscending: Sort ascending
   sortDescending: Sort descending
-  perPage: Per page
-  pageOf: Page $current of $total
-  firstPage: First page
-  previousPage: Previous page
-  nextPage: Next page
-  lastPage: Last page
 timeVault:
   empty: No deleted resources.
   deletedOn: Deleted on $time
@@ -99,9 +98,8 @@ create:
   submit: Add new record
   validating: Validating data. Please wait...
   validationErrors: Validation errors
+  unsavedMessage: This record has not been added yet. Do you want to discard it?
 entity:
-  edit: Edit resource
-  cancelEditing: Cancel editing
   delete: Delete resource
   merge: Merge
   revert: Revert
@@ -123,12 +121,6 @@ entity:
   deleteTitle: Are you sure?
   deleteMessage: This will delete this resource and all its data. You can still restore it later using the time vault.
   deleteConfirm: Yes, delete it
-  saving: Saving changes...
-  unsaved: Unsaved changes
-  saved: Changes saved
-  unchanged: No changes
-  readyToSave: Ready to save
-  correctErrors: Correct the errors to save
 lock:
   lockedTitle: Resource locked
   lockedMessage: This resource is currently being edited by another user.
@@ -143,7 +135,7 @@ orphans:
   keep: No, keep affected entities
 history:
   title: Time machine
-  snapshot: Snapshot $index
+  snapshot: Version $index
   since: From $start
   between: From $start to $end
   responsibleAgent: Responsible agent
@@ -160,23 +152,23 @@ version:
   restore: Restore this version
   previous: Previous version
   next: Next version
-  metadata: Metadata of snapshot $number
+  metadata: Metadata of version $number
   generationTime: Generation time
   invalidationTime: Invalidation time
-  deletionSnapshot: This is a deletion snapshot. The entity was deleted at this point in time.
+  deletionSnapshot: This version records the deletion. The entity was deleted at this point in time.
 merge:
   title: Confirm entity merge
   missingEntities: Two entities must be selected for merging.
   mergeInto: Merge into
-  deleteCard: Entity 2 (merge and delete)
-  keepCard: Entity 1 (keep)
+  deleteCard: Merge and delete
+  keepCard: Keep
   noProperties: No properties found for this entity.
   viewDetails: View details
   propertiesTitle: "Properties:"
-  propertiesText: All properties from entity 2 will be added to entity 1.
+  propertiesText: All properties of the resource to delete will be added to the one you keep.
   referencesTitle: "References:"
-  referencesText: Links pointing to entity 2 will be updated to point to entity 1.
+  referencesText: Links pointing to the resource to delete will point to the one you keep.
   deletionTitle: "Deletion:"
-  deletionText: Entity 2 will be deleted after the merge.
+  deletionText: The resource to delete will be deleted after the merge.
   confirm: Confirm merge
   merging: Merging the entities. Please wait...

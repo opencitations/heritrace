@@ -9,6 +9,9 @@ import 'spacing.dart';
 
 enum AppButtonVariant { filled, tinted, plain }
 
+/// The smallest area a finger can reliably hit, 44 × 44 pt in iOS.
+const minTapTarget = Size.square(kMinInteractiveDimensionCupertino);
+
 class AppButton extends StatelessWidget {
   const AppButton({
     required this.label,
@@ -29,9 +32,11 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive ? AppColors.error : null;
+    final color = destructive ? AppColors.of(context).error : null;
     final foreground = destructive && onPressed != null
-        ? (variant == AppButtonVariant.filled ? null : AppColors.error)
+        ? (variant == AppButtonVariant.filled
+              ? null
+              : AppColors.of(context).error)
         : null;
     final text = Text(label, overflow: TextOverflow.ellipsis);
     final child = SelectionContainer.disabled(
@@ -40,14 +45,18 @@ class AppButton extends StatelessWidget {
     return switch (variant) {
       AppButtonVariant.filled => CupertinoButton.filled(
         sizeStyle: CupertinoButtonSize.medium,
+        minimumSize: minTapTarget,
         color: color,
-        foregroundColor: onPressed == null ? CupertinoColors.systemGrey : null,
+        foregroundColor: onPressed == null
+            ? AppColors.of(context).disabled
+            : null,
         focusNode: focusNode,
         onPressed: onPressed,
         child: child,
       ),
       AppButtonVariant.tinted => CupertinoButton.tinted(
         sizeStyle: CupertinoButtonSize.medium,
+        minimumSize: minTapTarget,
         color: color,
         foregroundColor: foreground,
         focusNode: focusNode,
@@ -56,6 +65,7 @@ class AppButton extends StatelessWidget {
       ),
       AppButtonVariant.plain => CupertinoButton(
         sizeStyle: CupertinoButtonSize.medium,
+        minimumSize: minTapTarget,
         padding: const EdgeInsets.symmetric(vertical: appInputSpacing / 2),
         foregroundColor: foreground,
         focusNode: focusNode,
@@ -88,6 +98,7 @@ class AppIconButton extends StatelessWidget {
       excludeSemantics: true,
       child: CupertinoButton(
         sizeStyle: CupertinoButtonSize.small,
+        minimumSize: minTapTarget,
         foregroundColor: onPressed == null ? null : color,
         onPressed: onPressed,
         child: Icon(icon, size: 20),
@@ -96,13 +107,16 @@ class AppIconButton extends StatelessWidget {
   }
 }
 
-BoxDecoration _fieldDecoration({required bool hasError}) => BoxDecoration(
-  color: AppColors.fieldFill,
+BoxDecoration _fieldDecoration(
+  BuildContext context, {
+  required bool hasError,
+}) => BoxDecoration(
+  color: AppColors.of(context).fieldFill,
   borderRadius: BorderRadius.circular(appRadius),
-  border: hasError ? Border.all(color: AppColors.error) : null,
+  border: hasError ? Border.all(color: AppColors.of(context).error) : null,
 );
 
-const _fieldPadding = EdgeInsets.symmetric(horizontal: 10, vertical: 10);
+const _fieldPadding = EdgeInsets.symmetric(horizontal: 10, vertical: 12);
 
 class _WithError extends StatelessWidget {
   const _WithError({required this.errorText, required this.child});
@@ -125,7 +139,7 @@ class _WithError extends StatelessWidget {
           child: Text(
             errorText!,
             style: AppTextStyles.of(context).caption
-                .copyWith(color: AppColors.error),
+                .copyWith(color: AppColors.of(context).error),
           ),
         ),
       ],
@@ -174,7 +188,7 @@ class AppTextField extends StatelessWidget {
         suffix: suffix,
         autofocus: autofocus,
         padding: _fieldPadding,
-        decoration: _fieldDecoration(hasError: errorText != null),
+        decoration: _fieldDecoration(context, hasError: errorText != null),
       ),
     );
   }
@@ -234,14 +248,19 @@ class AppMenuButton<T> extends StatelessWidget {
               focusNode: focusNode,
               child: Container(
                 padding: _fieldPadding,
-                decoration: _fieldDecoration(hasError: errorText != null),
+                decoration: _fieldDecoration(
+                  context,
+                  hasError: errorText != null,
+                ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final label = Text(
                       selected?.label ?? placeholder ?? '',
                       overflow: TextOverflow.ellipsis,
                       style: selected == null
-                          ? styles.body.copyWith(color: AppColors.secondaryText)
+                          ? styles.body.copyWith(
+                              color: AppColors.of(context).secondaryText,
+                            )
                           : styles.body,
                     );
                     return Row(
@@ -254,10 +273,10 @@ class AppMenuButton<T> extends StatelessWidget {
                         else
                           Flexible(child: label),
                         const SizedBox(width: appInputSpacing / 2),
-                        const Icon(
+                        Icon(
                           CupertinoIcons.chevron_up_chevron_down,
                           size: 16,
-                          color: AppColors.secondaryText,
+                          color: AppColors.of(context).secondaryText,
                         ),
                       ],
                     );
@@ -275,70 +294,99 @@ class AppMenuButton<T> extends StatelessWidget {
 /// Where tile text starts; section dividers start at the same offset.
 const double _tileTextInset = 20;
 
-/// An action at the end of a row: a labelled button with a leading gap, or
-/// only its icon on compact screens.
-class RowAction extends StatelessWidget {
-  const RowAction({
+/// A button at the leading edge of a row in edit mode. Its icon starts where
+/// the row's text would, so it lines up with the add buttons below the rows.
+class RowLeadingButton extends StatelessWidget {
+  const RowLeadingButton({
     required this.icon,
     required this.label,
     required this.onPressed,
-    this.destructive = false,
+    this.color,
     super.key,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
-  final bool destructive;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.sizeOf(context).width < appCompactWidth) {
-      return AppIconButton(
-        label: label,
-        color: destructive ? AppColors.error : null,
+    return Semantics(
+      label: label,
+      button: true,
+      excludeSemantics: true,
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: minTapTarget,
+        alignment: AlignmentDirectional.centerStart,
+        foregroundColor: color,
         onPressed: onPressed,
-        icon: icon,
-      );
-    }
-    return Padding(
-      padding: const EdgeInsets.only(left: appInputSpacing),
-      child: AppButton(
-        destructive: destructive,
-        onPressed: onPressed,
-        icon: icon,
-        label: label,
+        child: Icon(icon, size: 20),
       ),
     );
   }
 }
 
-/// A rounded white group on the grey page background, as in iOS Settings.
+/// The red minus that removes a row in edit mode, as in iOS lists.
+class RemoveButton extends StatelessWidget {
+  const RemoveButton({required this.label, required this.onPressed, super.key});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => RowLeadingButton(
+    icon: CupertinoIcons.minus_circle_fill,
+    label: label,
+    color: AppColors.of(context).error,
+    onPressed: onPressed,
+  );
+}
+
+/// A rounded white group on the grey page background, as in iOS Settings,
+/// with its [header] above it, lined up with the group's content.
 class AppSection extends StatelessWidget {
-  const AppSection({required this.children, super.key});
+  const AppSection({required this.children, this.header, super.key});
 
   final List<Widget> children;
+  final Widget? header;
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoListSection.insetGrouped(
+    final section = CupertinoListSection.insetGrouped(
       margin: EdgeInsets.zero,
       dividerMargin: _tileTextInset,
       additionalDividerMargin: 0,
       children: children,
+    );
+    if (header == null) {
+      return section;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: appCardPadding, bottom: 6),
+          child: header,
+        ),
+        section,
+      ],
     );
   }
 }
 
 /// [AppSection] with a single padded body.
 class AppCard extends StatelessWidget {
-  const AppCard({required this.child, super.key});
+  const AppCard({required this.child, this.header, super.key});
 
   final Widget child;
+  final Widget? header;
 
   @override
   Widget build(BuildContext context) {
     return AppSection(
+      header: header,
       children: [
         SizedBox(
           width: double.infinity,
@@ -392,13 +440,13 @@ class AppTooltip extends StatelessWidget {
             vertical: appInputSpacing / 2,
           ),
           decoration: BoxDecoration(
-            color: AppColors.tooltip,
+            color: AppColors.of(context).tooltip,
             borderRadius: BorderRadius.circular(appRadius),
           ),
           child: Text(
             message,
             style: AppTextStyles.of(context).caption
-                .copyWith(color: AppColors.onTooltip),
+                .copyWith(color: AppColors.of(context).onTooltip),
           ),
         ),
       ),
@@ -421,11 +469,11 @@ class AppBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = error ? AppColors.error : AppColors.primary;
+    final color = error ? AppColors.of(context).error : AppColors.primary;
     return Container(
       padding: const EdgeInsets.all(appCardPadding),
       decoration: BoxDecoration(
-        color: error ? AppColors.errorTint : AppColors.primaryTint,
+        color: error ? AppColors.of(context).errorTint : AppColors.primaryTint,
         borderRadius: BorderRadius.circular(appRadius),
       ),
       child: IconLabel(
@@ -446,13 +494,31 @@ class DragHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ReorderableDragStartListener(
     index: index,
-    child: const MouseRegion(
+    child: MouseRegion(
       cursor: SystemMouseCursors.grab,
-      child: Icon(
-        CupertinoIcons.line_horizontal_3,
-        color: AppColors.secondaryText,
+      child: SizedBox.fromSize(
+        size: minTapTarget,
+        child: Icon(
+          CupertinoIcons.line_horizontal_3,
+          color: AppColors.of(context).secondaryText,
+        ),
       ),
     ),
+  );
+}
+
+/// A page or section title, which screen readers announce as a heading.
+class AppHeading extends StatelessWidget {
+  const AppHeading(this.text, {required this.style, this.textAlign, super.key});
+
+  final String text;
+  final TextStyle style;
+  final TextAlign? textAlign;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    header: true,
+    child: Text(text, style: style, textAlign: textAlign),
   );
 }
 
@@ -575,12 +641,12 @@ class AppBreadcrumbs extends StatelessWidget {
       children: [
         for (final (index, crumb) in crumbs.indexed) ...[
           if (index > 0)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: appInputSpacing / 2),
               child: Icon(
                 CupertinoIcons.chevron_right,
                 size: 16,
-                color: AppColors.secondaryText,
+                color: AppColors.of(context).secondaryText,
               ),
             ),
           if (crumb.onPressed == null)
@@ -604,6 +670,51 @@ class AppBreadcrumbs extends StatelessWidget {
             ),
         ],
       ],
+    );
+  }
+}
+
+/// A page's actions below its title. While [pinned], the row stays at the top
+/// of the page as it scrolls, with its actions at either end, so that Save is
+/// always within reach.
+class PageActionBar extends StatelessWidget {
+  const PageActionBar({
+    required this.pinned,
+    required this.children,
+    super.key,
+  });
+
+  final bool pinned;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: pageMargin(context).left,
+        vertical: appInputSpacing,
+      ),
+      decoration: BoxDecoration(
+        color: CupertinoTheme.of(context).scaffoldBackgroundColor,
+        border: pinned
+            ? Border(
+                bottom: BorderSide(
+                  color: AppColors.of(context).separator,
+                  width: 0,
+                ),
+              )
+            : null,
+      ),
+      child: pinned
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: children,
+            )
+          : Wrap(
+              spacing: appInputSpacing,
+              runSpacing: appInputSpacing,
+              children: children,
+            ),
     );
   }
 }
@@ -646,7 +757,7 @@ class AppDialog extends StatelessWidget {
           child: Container(
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.of(context).surface,
               borderRadius: BorderRadius.circular(appRadius),
             ),
             child: DefaultTextStyle(

@@ -75,14 +75,14 @@ class ModificationsView extends StatelessWidget {
           _ModificationList(
             title: t.ui.history.additions,
             icon: CupertinoIcons.plus_circle_fill,
-            color: CupertinoColors.systemGreen,
+            color: AppColors.of(context).success,
             entries: modifications.additions,
           ),
         if (modifications.deletions.isNotEmpty)
           _ModificationList(
             title: t.ui.history.deletions,
             icon: CupertinoIcons.minus_circle_fill,
-            color: AppColors.error,
+            color: AppColors.of(context).error,
             entries: modifications.deletions,
           ),
       ],

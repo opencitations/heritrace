@@ -43,7 +43,7 @@ Future<bool?> showOrphanDialog(BuildContext context, OrphanCheck check) {
               _AffectedRow(
                 entity: entity,
                 icon: CupertinoIcons.minus_circle,
-                color: AppColors.error,
+                color: AppColors.of(context).error,
               ),
             const SizedBox(height: appSectionSpacing),
           ],
@@ -54,7 +54,7 @@ Future<bool?> showOrphanDialog(BuildContext context, OrphanCheck check) {
               _AffectedRow(
                 entity: entity,
                 icon: CupertinoIcons.link,
-                color: AppColors.warning,
+                color: AppColors.of(context).warning,
               ),
             const SizedBox(height: appSectionSpacing),
           ],

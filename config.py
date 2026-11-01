@@ -134,6 +134,3 @@ class Config:
     )
 
     CATALOGUE_DEFAULT_PER_PAGE = int(os.environ["CATALOGUE_DEFAULT_PER_PAGE"])
-    CATALOGUE_ALLOWED_PER_PAGE: ClassVar[list[int]] = [
-        int(x) for x in os.environ["CATALOGUE_ALLOWED_PER_PAGE"].split(",")
-    ]

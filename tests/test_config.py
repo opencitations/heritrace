@@ -67,7 +67,6 @@ class TestConfig:
 
     # Catalogue pagination configuration
     CATALOGUE_DEFAULT_PER_PAGE = 50
-    CATALOGUE_ALLOWED_PER_PAGE: ClassVar[list[int]] = [50, 100, 200, 500]
 
     # Query configuration
     COUNT_LIMIT = 10000

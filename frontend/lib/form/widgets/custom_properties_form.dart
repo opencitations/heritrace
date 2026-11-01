@@ -147,14 +147,12 @@ class _CustomPropertyRowState extends ConsumerState<_CustomPropertyRow> {
       children: [
         Row(
           children: [
+            RemoveButton(
+              label: t.ui.actions.delete,
+              onPressed: widget.onRemove,
+            ),
             Expanded(
               child: Text(title, style: AppTextStyles.of(context).heading),
-            ),
-            RowAction(
-              destructive: true,
-              onPressed: widget.onRemove,
-              icon: CupertinoIcons.delete,
-              label: t.ui.actions.delete,
             ),
           ],
         ),

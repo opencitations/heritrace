@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'design/app_theme.dart';
+import 'design/appearance.dart';
 import 'i18n/translations.g.dart';
 import 'navigation/app_router.dart';
 
@@ -19,7 +20,7 @@ class App extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     return CupertinoApp.router(
       title: t.ui.appTitle,
-      theme: buildAppTheme(),
+      theme: buildAppTheme(ref.watch(appearanceProvider).brightness),
       locale: TranslationProvider.of(context).flutterLocale,
       supportedLocales: AppLocaleUtils.supportedLocales,
       routerConfig: router,

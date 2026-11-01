@@ -27,7 +27,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     refreshListenable: sessionListenable,
     redirect: (context, state) {
-      final encodedLocation = _encodeEntityLocation(state.uri.pathSegments);
+      final encodedLocation = encodeEntityLocation(state.uri.pathSegments);
       if (encodedLocation != null) {
         return encodedLocation;
       }
@@ -69,6 +69,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: createEntityPath,
             builder: (context, state) => const CreateEntityPage(),
+            onExit: (context, state) => ref.read(leaveGuardProvider).canLeave(),
           ),
           GoRoute(
             path: mergePath,
@@ -100,20 +101,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-// The web engine decodes the location before writing it to the address bar,
-// so an entity URI arrives split over several path segments after a reload.
-String? _encodeEntityLocation(List<String> segments) => switch (segments) {
-  ['about', _, _, ...] => entityPath(segments.skip(1).join('/')),
-  ['entity-history', _, _, ...] => entityHistoryPath(
-    segments.skip(1).join('/'),
-  ),
-  ['entity-version', _, _, _, ...] => entityVersionPath(
-    segments.sublist(1, segments.length - 1).join('/'),
-    segments.last,
-  ),
-  _ => null,
-};
 
 class _SessionListenable extends ChangeNotifier {
   _SessionListenable(Ref ref) {

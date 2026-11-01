@@ -31,9 +31,13 @@ class LandingPage extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/images/logo.png', height: 160),
+            Image.asset(
+              'assets/images/logo.png',
+              height: 160,
+              excludeFromSemantics: true,
+            ),
             const SizedBox(height: appSectionSpacing),
-            Text(
+            AppHeading(
               session.config.appTitle,
               style: styles.display,
               textAlign: TextAlign.center,
@@ -41,7 +45,9 @@ class LandingPage extends ConsumerWidget {
             const SizedBox(height: appInputSpacing),
             Text(
               session.config.appSubtitle,
-              style: styles.heading.copyWith(color: AppColors.secondaryText),
+              style: styles.heading.copyWith(
+                color: AppColors.of(context).secondaryText,
+              ),
               textAlign: TextAlign.center,
             ),
             if (loginError != null) ...[

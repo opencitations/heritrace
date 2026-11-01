@@ -4,6 +4,7 @@
 
 import 'package:flutter/widgets.dart';
 
+import '../../design/app_theme.dart';
 import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../form_model.dart';
@@ -19,9 +20,14 @@ class EntityForm extends StatelessWidget {
     return ListenableBuilder(
       listenable: node,
       builder: (context, _) {
-        final groups = node.groups
-            .where((group) => group.def.shouldBeDisplayed)
-            .toList();
+        // Fixed values, such as the type of the record, come first.
+        final displayed = node.groups.where(
+          (group) => group.def.shouldBeDisplayed,
+        );
+        final groups = [
+          ...displayed.where((group) => group.def.hasValue != null),
+          ...displayed.where((group) => group.def.hasValue == null),
+        ];
         // Fixed values of the same property, such as the types of a record,
         // read as one field under a single heading.
         bool continuesPrevious(int index) =>
@@ -29,18 +35,15 @@ class EntityForm extends StatelessWidget {
             groups[index].def.hasValue != null &&
             groups[index - 1].def.hasValue != null &&
             groups[index].def.uri == groups[index - 1].def.uri;
-        final cards = <List<Widget>>[];
+        final cards = <List<FieldGroup>>[];
         for (final (index, group) in groups.indexed) {
-          final continues = continuesPrevious(index);
-          if (continues) {
-            cards.last.add(const SizedBox(height: appInputSpacing));
+          if (continuesPrevious(index)) {
+            cards.last.add(group);
           } else {
-            cards.add([]);
+            cards.add([group]);
           }
-          cards.last.add(
-            FieldGroupWidget(group: group, showHeading: !continues),
-          );
         }
+        final styles = AppTextStyles.of(context);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -48,9 +51,17 @@ class EntityForm extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: appSectionSpacing),
                 child: AppCard(
+                  header: PropertyHeading(
+                    label: card.first.def.displayName,
+                    style: styles.groupHeader,
+                    required: card.first.def.isRequired,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: card,
+                    spacing: appInputSpacing,
+                    children: [
+                      for (final group in card) FieldGroupWidget(group: group),
+                    ],
                   ),
                 ),
               ),

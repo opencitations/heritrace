@@ -168,6 +168,8 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
     super.dispose();
   }
 
+  bool get _canEdit => !widget.view.isDeleted && widget.view.groups.isNotEmpty;
+
   void _revalidate() {
     if (_session.editing) {
       _scope.setErrors(_session.validate(), started: false);
@@ -294,7 +296,6 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
     if (choice.saveAsDefault) {
       ref.read(sessionProvider.notifier).setDefaultPrimarySource(choice.url);
     }
-    _session.markSaved();
     try {
       await _session.stopEditing();
     } on Exception catch (error) {
@@ -370,7 +371,7 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
       action: () => _session.repository.applyChanges(changes),
     );
     if (ok && mounted) {
-      context.go(cataloguePath);
+      Router.neglect(context, () => context.go(cataloguePath));
     }
   }
 
@@ -384,107 +385,140 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
         listenable: _session,
         builder: (context, _) {
           final editing = _session.editing;
+          final margin = pageMargin(context);
+          final actions = PageActionBar(
+            pinned: editing,
+            children: editing
+                ? [
+                    AppButton(
+                      variant: AppButtonVariant.tinted,
+                      onPressed: _session.status == EditStatus.saving
+                          ? null
+                          : _toggleEditing,
+                      icon: CupertinoIcons.xmark,
+                      label: t.ui.actions.cancel,
+                    ),
+                    AppButton(
+                      variant: AppButtonVariant.filled,
+                      onPressed:
+                          _session.hasChanges &&
+                              _session.status != EditStatus.saving
+                          ? _save
+                          : null,
+                      icon: CupertinoIcons.checkmark,
+                      label: t.ui.actions.save,
+                    ),
+                  ]
+                : [
+                    if (_canEdit)
+                      AppButton(
+                        variant: AppButtonVariant.tinted,
+                        onPressed: _session.status == EditStatus.starting
+                            ? null
+                            : _toggleEditing,
+                        icon: CupertinoIcons.pencil,
+                        label: t.ui.actions.edit,
+                      ),
+                    if (view.hasHistory) _TimeMachineButton(uri: view.uri),
+                  ],
+          );
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: SingleChildScrollView(
-                  padding: pageMargin(context).copyWith(bottom: 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _EntityTitle(label: view.label),
-                      const SizedBox(height: appSectionSpacing),
-                      Wrap(
-                        spacing: appInputSpacing,
-                        runSpacing: appInputSpacing,
-                        children: [
-                          if (!view.isDeleted && view.groups.isNotEmpty) ...[
-                            AppButton(
-                              variant: AppButtonVariant.tinted,
-                              onPressed: _session.status == EditStatus.starting
-                                  ? null
-                                  : _toggleEditing,
-                              icon: editing
-                                  ? CupertinoIcons.xmark
-                                  : CupertinoIcons.pencil,
-                              label: editing
-                                  ? t.ui.entity.cancelEditing
-                                  : t.ui.entity.edit,
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: margin.copyWith(bottom: appInputSpacing),
+                      sliver: SliverToBoxAdapter(
+                        child: _EntityTitle(label: view.label),
+                      ),
+                    ),
+                    if (editing)
+                      PinnedHeaderSliver(child: actions)
+                    else
+                      SliverToBoxAdapter(child: actions),
+                    SliverPadding(
+                      padding: margin.copyWith(top: appInputSpacing, bottom: 0),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (view.isDeleted)
+                              AppBanner(text: t.ui.entity.deletedBanner)
+                            else if (view.groups.isEmpty)
+                              AppBanner(text: t.ui.entity.noInformation)
+                            else
+                              for (final group in _session.groups)
+                                if (group.group.triples.isNotEmpty ||
+                                    (editing &&
+                                        view.canBeAdded.contains(
+                                          group.group.property,
+                                        ) &&
+                                        group.formGroup != null))
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: appSectionSpacing,
+                                    ),
+                                    child: EditableGroupWidget(
+                                      group: group,
+                                      view: view,
+                                      editing: editing,
+                                    ),
+                                  ),
+                            if (editing && _session.showsCustomProperties) ...[
+                              CustomPropertiesForm(
+                                controller: _session.customProperties,
+                                datatypeOptions: ref
+                                    .read(sessionProvider)
+                                    .value!
+                                    .config
+                                    .datatypeOptions,
+                              ),
+                              const SizedBox(height: appSectionSpacing),
+                            ],
+                            const SizedBox(height: appSectionSpacing),
+                            _LinkedResourcesSection(resources: _linked),
+                            const SizedBox(height: appSectionSpacing),
+                            ResourceListSection(
+                              title: t.ui.entity.similarResources,
+                              emptyMessage: t.ui.entity.noSimilarResources,
+                              resources: _similar,
+                              itemBuilder: (resource) => SimilarResourceTile(
+                                resource: resource,
+                                subject: view.uri,
+                              ),
                             ),
-                            AppButton(
-                              variant: AppButtonVariant.tinted,
-                              destructive: true,
-                              onPressed: editing ? null : _deleteEntity,
-                              icon: CupertinoIcons.delete,
-                              label: t.ui.entity.delete,
-                            ),
+                            const SizedBox(height: appSectionSpacing),
+                            if (_canEdit && !editing) ...[
+                              AppSection(
+                                children: [
+                                  AppListTile(
+                                    title: IconLabel(
+                                      icon: CupertinoIcons.delete,
+                                      color: AppColors.of(context).error,
+                                      label: Text(t.ui.entity.delete),
+                                      style: TextStyle(
+                                        color: AppColors.of(context).error,
+                                      ),
+                                    ),
+                                    onTap: _deleteEntity,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: appSectionSpacing),
+                            ],
                           ],
-                          if (view.hasHistory)
-                            _TimeMachineButton(uri: view.uri),
-                        ],
-                      ),
-                      const SizedBox(height: appSectionSpacing),
-                      if (view.isDeleted)
-                        AppBanner(text: t.ui.entity.deletedBanner)
-                      else if (view.groups.isEmpty)
-                        AppBanner(text: t.ui.entity.noInformation)
-                      else
-                        for (final group in _session.groups)
-                          if (group.group.triples.isNotEmpty ||
-                              (editing &&
-                                  view.canBeAdded.contains(
-                                    group.group.property,
-                                  ) &&
-                                  group.formGroup != null))
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: appSectionSpacing,
-                              ),
-                              child: EditableGroupWidget(
-                                group: group,
-                                view: view,
-                                editing: editing,
-                              ),
-                            ),
-                      if (editing && _session.showsCustomProperties) ...[
-                        CustomPropertiesForm(
-                          controller: _session.customProperties,
-                          datatypeOptions: ref
-                              .read(sessionProvider)
-                              .value!
-                              .config
-                              .datatypeOptions,
-                        ),
-                        const SizedBox(height: appSectionSpacing),
-                      ],
-                      const SizedBox(height: appSectionSpacing),
-                      _LinkedResourcesSection(resources: _linked),
-                      const SizedBox(height: appSectionSpacing),
-                      ResourceListSection(
-                        title: t.ui.entity.similarResources,
-                        emptyMessage: t.ui.entity.noSimilarResources,
-                        resources: _similar,
-                        itemBuilder: (resource) => SimilarResourceTile(
-                          resource: resource,
-                          subject: view.uri,
                         ),
                       ),
-                      const SizedBox(height: appSectionSpacing),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
               if (editing)
                 Padding(
                   padding: pageMargin(context).copyWith(top: 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const ValidationSummary(),
-                      _SaveBar(session: _session, onSave: _save),
-                    ],
-                  ),
+                  child: const ValidationSummary(),
                 ),
             ],
           );
@@ -500,11 +534,8 @@ class _EntityTitle extends StatelessWidget {
   final String label;
 
   @override
-  Widget build(BuildContext context) => Text(
-    label,
-    style: AppTextStyles.of(context).sectionTitle
-        .copyWith(fontStyle: FontStyle.italic),
-  );
+  Widget build(BuildContext context) =>
+      AppHeading(label, style: AppTextStyles.of(context).sectionTitle);
 }
 
 class _TimeMachineButton extends StatelessWidget {
@@ -534,66 +565,6 @@ class _LinkedResourcesSection extends StatelessWidget {
       emptyMessage: t.ui.entity.noLinkedResources,
       resources: resources,
       itemBuilder: (resource) => LinkedResourceTile(resource: resource),
-    );
-  }
-}
-
-class _SaveBar extends StatelessWidget {
-  const _SaveBar({required this.session, required this.onSave});
-
-  final EditSession session;
-  final VoidCallback onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Translations.of(context);
-    final scope = FormScope.of(context);
-    final saving = session.status == EditStatus.saving;
-    final hasChanges = session.hasChanges;
-    final status = saving
-        ? t.ui.entity.saving
-        : hasChanges
-        ? t.ui.entity.unsaved
-        : session.saved
-        ? t.ui.entity.saved
-        : t.ui.entity.unchanged;
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.separator, width: 0)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(appCardPadding),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(status),
-                  if (scope.validationStarted)
-                    Text(
-                      scope.errors.isEmpty
-                          ? t.ui.entity.readyToSave
-                          : t.ui.entity.correctErrors,
-                      style: TextStyle(
-                        color: scope.errors.isEmpty
-                            ? AppColors.primary
-                            : AppColors.error,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            AppButton(
-              variant: AppButtonVariant.filled,
-              onPressed: hasChanges && !saving ? onSave : null,
-              label: t.ui.entity.saveChanges,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

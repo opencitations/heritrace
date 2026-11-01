@@ -35,14 +35,13 @@ class EditableGroupWidget extends StatelessWidget {
       builder: (context, _) {
         final draggable = editing && group.group.isDraggable;
         return AppCard(
+          header: PropertyHeading(
+            label: group.group.displayName,
+            style: AppTextStyles.of(context).groupHeader,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              PropertyHeading(
-                label: group.group.displayName,
-                style: AppTextStyles.of(context).heading,
-              ),
-              const SizedBox(height: appInputSpacing / 2),
               if (draggable)
                 ReorderableList(
                   shrinkWrap: true,
@@ -56,7 +55,6 @@ class EditableGroupWidget extends StatelessWidget {
                       value: group.existing[index],
                       view: view,
                       editing: editing,
-                      index: index,
                       dragHandle: DragHandle(index: index),
                     ),
                   ),
@@ -70,7 +68,6 @@ class EditableGroupWidget extends StatelessWidget {
                       value: value,
                       view: view,
                       editing: editing,
-                      index: group.group.isDraggable ? index : null,
                     ),
                   ),
               if (editing && group.formGroup != null) ...[
@@ -91,7 +88,6 @@ class ExistingValueWidget extends StatelessWidget {
     required this.value,
     required this.view,
     required this.editing,
-    required this.index,
     this.dragHandle,
     super.key,
   });
@@ -99,7 +95,6 @@ class ExistingValueWidget extends StatelessWidget {
   final ExistingValue value;
   final EntityView view;
   final bool editing;
-  final int? index;
   final Widget? dragHandle;
 
   @override
@@ -123,14 +118,17 @@ class ExistingValueWidget extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (dragHandle != null) ...[
-                dragHandle!,
-                const SizedBox(width: appInputSpacing / 2),
-              ],
-              if (index != null) ...[
-                Text('${index! + 1}.'),
-                const SizedBox(width: appInputSpacing / 2),
-              ],
+              if (deletable && !deleted)
+                RemoveButton(
+                  label: t.ui.actions.delete,
+                  onPressed: value.markForDeletion,
+                ),
+              if (deletable && deleted)
+                RowLeadingButton(
+                  icon: CupertinoIcons.arrow_uturn_left,
+                  label: t.ui.entity.revert,
+                  onPressed: value.undoDeletion,
+                ),
               Expanded(
                 child: DefaultTextStyle.merge(
                   style: deleted
@@ -144,19 +142,10 @@ class ExistingValueWidget extends StatelessWidget {
                 ),
               ),
               if (linked) const CupertinoListTileChevron(),
-              if (deletable && !deleted)
-                RowAction(
-                  icon: CupertinoIcons.delete,
-                  label: t.ui.actions.delete,
-                  onPressed: value.markForDeletion,
-                  destructive: true,
-                ),
-              if (deletable && deleted)
-                RowAction(
-                  icon: CupertinoIcons.arrow_uturn_left,
-                  label: t.ui.entity.revert,
-                  onPressed: value.undoDeletion,
-                ),
+              if (dragHandle != null) ...[
+                const SizedBox(width: appInputSpacing / 2),
+                dragHandle!,
+              ],
             ],
           ),
         );

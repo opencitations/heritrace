@@ -58,9 +58,9 @@ class ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             CupertinoIcons.exclamationmark_circle,
-            color: AppColors.error,
+            color: AppColors.of(context).error,
             size: 40,
           ),
           const SizedBox(height: appInputSpacing),

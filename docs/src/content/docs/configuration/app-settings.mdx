@@ -526,21 +526,19 @@ environment:
   # Query Configuration
   - COUNT_LIMIT=10000
 
-  # Catalogue pagination settings
+  # Number of entities loaded at a time
   - CATALOGUE_DEFAULT_PER_PAGE=50
-  - CATALOGUE_ALLOWED_PER_PAGE=50,100,200,500
 ```
 
 | Environment Variable | Type | Description | Default |
 |---------------------|------|-------------|---------|
 | `COUNT_LIMIT` | Integer | Maximum count for entity queries. When exceeded, displays "LIMIT+" in catalog | `10000` |
-| `CATALOGUE_DEFAULT_PER_PAGE` | Integer | Default number of items displayed per page in the catalogue | `50` |
-| `CATALOGUE_ALLOWED_PER_PAGE` | String | Comma-separated list of pagination options available to users | `50,100,200,500` |
+| `CATALOGUE_DEFAULT_PER_PAGE` | Integer | Number of entities the catalogue and the time vault load at a time; the next ones load as the user scrolls | `50` |
 
 <Aside type="note" title="Query Performance Optimization">
 `COUNT_LIMIT` optimizes catalog queries for large datasets. When counting entities of a specific class, the query stops at `COUNT_LIMIT + 1`. If the limit is exceeded, the catalog displays "LIMIT+" (e.g., "10000+") instead of the exact count, preventing timeouts on very large result sets.
 </Aside>
 
-<Aside type="tip" title="Pagination Performance Considerations">
-For large datasets, consider limiting the maximum items per page to maintain good performance.
+<Aside type="tip" title="Loading performance">
+On large datasets, a smaller `CATALOGUE_DEFAULT_PER_PAGE` makes each step of the scroll load faster.
 </Aside>

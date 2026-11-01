@@ -18,7 +18,6 @@ class AppConfig {
   const AppConfig({
     required this.appTitle,
     required this.appSubtitle,
-    required this.allowedPerPage,
     required this.shacl,
     required this.datatypeOptions,
   });
@@ -26,7 +25,6 @@ class AppConfig {
   factory AppConfig.fromJson(Map<String, dynamic> json) => AppConfig(
     appTitle: json['app_title'] as String,
     appSubtitle: json['app_subtitle'] as String,
-    allowedPerPage: (json['allowed_per_page'] as List<dynamic>).cast<int>(),
     shacl: json['shacl'] as bool,
     datatypeOptions: (json['datatype_options'] as List<dynamic>)
         .map((e) => DatatypeOption.fromJson(e as Map<String, dynamic>))
@@ -35,34 +33,33 @@ class AppConfig {
 
   final String appTitle;
   final String appSubtitle;
-  final List<int> allowedPerPage;
   final bool shacl;
   final List<DatatypeOption> datatypeOptions;
 }
 
 class Session {
   const Session({
-    required this.isSignedIn,
+    required this.userName,
     required this.defaultPrimarySource,
     required this.config,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) => Session(
-    isSignedIn: json['user'] != null,
+    userName: (json['user'] as Map<String, dynamic>?)?['name'] as String?,
     defaultPrimarySource: json['default_primary_source'] as String?,
     config: AppConfig.fromJson(json['config'] as Map<String, dynamic>),
   );
 
-  final bool isSignedIn;
+  /// The signed-in user's name, null when nobody is signed in.
+  final String? userName;
   final String? defaultPrimarySource;
   final AppConfig config;
 
-  Session signedOut() =>
-      Session(isSignedIn: false, defaultPrimarySource: null, config: config);
+  bool get isSignedIn => userName != null;
 
-  Session withDefaultPrimarySource(String? source) => Session(
-    isSignedIn: isSignedIn,
-    defaultPrimarySource: source,
-    config: config,
-  );
+  Session signedOut() =>
+      Session(userName: null, defaultPrimarySource: null, config: config);
+
+  Session withDefaultPrimarySource(String? source) =>
+      Session(userName: userName, defaultPrimarySource: source, config: config);
 }

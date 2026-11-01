@@ -205,7 +205,7 @@ class _DateFieldState extends State<DateField> {
       context: context,
       builder: (context) => Container(
         height: 300,
-        color: AppColors.surface,
+        color: AppColors.of(context).surface,
         child: SafeArea(
           top: false,
           child: SelectionContainer.disabled(
@@ -279,7 +279,9 @@ class MandatoryValueField extends StatelessWidget {
   }
 }
 
-/// A value that cannot be changed, with a hint that explains why.
+/// A fixed value with a mark that explains it cannot change. The whole row
+/// opens the explanation, so the target is wider than the mark alone while
+/// the row keeps the height of the other values.
 class MandatoryValueText extends StatelessWidget {
   const MandatoryValueText(this.label, {super.key});
 
@@ -288,20 +290,32 @@ class MandatoryValueText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Flexible(child: Text(label)),
-        const SizedBox(width: appInputSpacing / 2),
-        AppTooltip(
-          message: t.ui.form.mandatoryValue,
-          child: const TextIcon(
-            CupertinoIcons.question_circle,
-            color: AppColors.primary,
+    return AppTooltip(
+      message: t.ui.form.mandatoryValue,
+      child: SelectionContainer.disabled(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: kCupertinoButtonMinSize[CupertinoButtonSize.medium]!,
+          ),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            widthFactor: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Flexible(child: Text(label)),
+                const SizedBox(width: appInputSpacing / 2),
+                const TextIcon(
+                  CupertinoIcons.question_circle,
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -371,10 +385,10 @@ class NestedTile extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(appInputSpacing),
                   decoration: BoxDecoration(
-                    color: AppColors.fieldFill,
+                    color: AppColors.of(context).fieldFill,
                     borderRadius: BorderRadius.circular(appRadius),
                     border: hasErrors
-                        ? Border.all(color: AppColors.error)
+                        ? Border.all(color: AppColors.of(context).error)
                         : null,
                   ),
                   child: Row(
@@ -386,15 +400,15 @@ class NestedTile extends StatelessWidget {
                               t.ui.form.fillInDetails,
                           style: TextStyle(
                             color: hasErrors
-                                ? AppColors.error
-                                : CupertinoColors.label,
+                                ? AppColors.of(context).error
+                                : AppColors.of(context).label,
                           ),
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         CupertinoIcons.chevron_right,
                         size: 18,
-                        color: AppColors.secondaryText,
+                        color: AppColors.of(context).secondaryText,
                       ),
                     ],
                   ),
@@ -405,7 +419,7 @@ class NestedTile extends StatelessWidget {
               Text(
                 t.ui.form.draftLabelFailed,
                 style: AppTextStyles.of(context).caption
-                    .copyWith(color: AppColors.error),
+                    .copyWith(color: AppColors.of(context).error),
               ),
           ],
         );

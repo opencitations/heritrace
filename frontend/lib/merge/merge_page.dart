@@ -84,7 +84,7 @@ class _MergeBody extends ConsumerWidget {
     if (choice.saveAsDefault) {
       ref.read(sessionProvider.notifier).setDefaultPrimarySource(choice.url);
     }
-    context.go(entityPath(comparison.keep.uri));
+    Router.neglect(context, () => context.go(entityPath(comparison.keep.uri)));
   }
 
   @override
@@ -97,7 +97,7 @@ class _MergeBody extends ConsumerWidget {
         entity: comparison.delete,
         title: t.ui.merge.deleteCard,
         icon: CupertinoIcons.trash_fill,
-        color: AppColors.error,
+        color: AppColors.of(context).error,
       ),
       _MergeCard(
         entity: comparison.keep,
@@ -109,7 +109,7 @@ class _MergeBody extends ConsumerWidget {
     Widget mergeInto(IconData icon) => Center(
       child: Column(
         children: [
-          Icon(icon, size: 40, color: AppColors.primary),
+          Icon(icon, size: 28, color: AppColors.of(context).secondaryText),
           Text(t.ui.merge.mergeInto, style: styles.caption),
         ],
       ),
@@ -119,10 +119,10 @@ class _MergeBody extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(t.ui.merge.title, style: styles.pageTitle),
+          AppHeading(t.ui.merge.title, style: styles.pageTitle),
           const SizedBox(height: appSectionSpacing),
           if (wide) ...[
-            mergeInto(CupertinoIcons.arrow_right_circle_fill),
+            mergeInto(CupertinoIcons.arrow_right),
             const SizedBox(height: appInputSpacing),
             IntrinsicHeight(
               child: Row(
@@ -137,7 +137,7 @@ class _MergeBody extends ConsumerWidget {
           ] else ...[
             cards[0],
             const SizedBox(height: appInputSpacing),
-            mergeInto(CupertinoIcons.arrow_down_circle_fill),
+            mergeInto(CupertinoIcons.arrow_down),
             const SizedBox(height: appInputSpacing),
             cards[1],
           ],
@@ -156,7 +156,7 @@ class _MergeBody extends ConsumerWidget {
           ),
           _Explanation(
             icon: CupertinoIcons.trash,
-            color: AppColors.error,
+            color: AppColors.of(context).error,
             title: t.ui.merge.deletionTitle,
             text: t.ui.merge.deletionText,
           ),
@@ -174,6 +174,7 @@ class _MergeBody extends ConsumerWidget {
               ),
               AppButton(
                 variant: AppButtonVariant.filled,
+                destructive: true,
                 onPressed: () => _confirm(context, ref),
                 icon: CupertinoIcons.check_mark,
                 label: t.ui.merge.confirm,
@@ -228,7 +229,7 @@ class _MergeCard extends StatelessWidget {
             Container(
               height: 0.5,
               margin: const EdgeInsets.symmetric(vertical: appInputSpacing),
-              color: AppColors.separator,
+              color: AppColors.of(context).separator,
             ),
             AppTooltip(
               message: property.predicate,
@@ -310,7 +311,7 @@ class _TypeBadge extends StatelessWidget {
         vertical: 4,
       ),
       decoration: BoxDecoration(
-        color: AppColors.fieldFill,
+        color: AppColors.of(context).fieldFill,
         borderRadius: BorderRadius.circular(appRadius * 2),
       ),
       child: Text(label, style: AppTextStyles.of(context).caption),

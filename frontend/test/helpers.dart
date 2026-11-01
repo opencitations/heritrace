@@ -13,7 +13,6 @@ import 'package:heritrace/session/session_models.dart';
 const testConfig = AppConfig(
   appTitle: 'HERITRACE Test',
   appSubtitle: 'Test subtitle',
-  allowedPerPage: [50, 100],
   shacl: true,
   datatypeOptions: [
     DatatypeOption(
@@ -24,13 +23,13 @@ const testConfig = AppConfig(
 );
 
 const signedInSession = Session(
-  isSignedIn: true,
+  userName: 'Test User',
   defaultPrimarySource: null,
   config: testConfig,
 );
 
 const anonymousSession = Session(
-  isSignedIn: false,
+  userName: null,
   defaultPrimarySource: null,
   config: testConfig,
 );

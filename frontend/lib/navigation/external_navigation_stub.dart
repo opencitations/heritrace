@@ -7,3 +7,5 @@ final List<String> externalNavigations = [];
 void navigateExternally(String path) {
   externalNavigations.add(path);
 }
+
+bool navigateBack() => false;

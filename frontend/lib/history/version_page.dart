@@ -54,7 +54,6 @@ class _VersionBody extends ConsumerWidget {
             crumbs: [
               AppBreadcrumb(
                 version.entityLabel,
-                style: const TextStyle(fontStyle: FontStyle.italic),
                 onPressed: () => context.go(entityPath(uri)),
               ),
               AppBreadcrumb(
@@ -65,7 +64,7 @@ class _VersionBody extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: appInputSpacing),
-          Text(
+          AppHeading(
             t.ui.version.title(number: version.versionNumber),
             style: styles.pageTitle,
           ),
@@ -96,8 +95,11 @@ class _VersionBody extends ConsumerWidget {
                 variant: AppButtonVariant.tinted,
                 onPressed: version.prevTimestamp == null
                     ? null
-                    : () => context.go(
-                        entityVersionPath(uri, version.prevTimestamp!),
+                    : () => Router.neglect(
+                        context,
+                        () => context.go(
+                          entityVersionPath(uri, version.prevTimestamp!),
+                        ),
                       ),
                 icon: CupertinoIcons.arrow_left,
                 label: t.ui.version.previous,
@@ -106,8 +108,11 @@ class _VersionBody extends ConsumerWidget {
                 variant: AppButtonVariant.tinted,
                 onPressed: version.nextTimestamp == null
                     ? null
-                    : () => context.go(
-                        entityVersionPath(uri, version.nextTimestamp!),
+                    : () => Router.neglect(
+                        context,
+                        () => context.go(
+                          entityVersionPath(uri, version.nextTimestamp!),
+                        ),
                       ),
                 icon: CupertinoIcons.arrow_right,
                 label: t.ui.version.next,
@@ -116,14 +121,13 @@ class _VersionBody extends ConsumerWidget {
           ),
           const SizedBox(height: appSectionSpacing),
           AppCard(
+            header: Text(
+              t.ui.version.metadata(number: version.versionNumber),
+              style: styles.groupHeader,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  t.ui.version.metadata(number: version.versionNumber),
-                  style: styles.heading,
-                ),
-                const SizedBox(height: appInputSpacing),
                 MetadataRow(
                   label: t.ui.version.generationTime,
                   child: Text(formatTimestamp(version.generatedAt)),
@@ -158,14 +162,13 @@ class _VersionBody extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: appSectionSpacing),
                 child: AppCard(
+                  header: PropertyHeading(
+                    label: group.displayName,
+                    style: styles.groupHeader,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      PropertyHeading(
-                        label: group.displayName,
-                        style: styles.heading,
-                      ),
-                      const SizedBox(height: appInputSpacing / 2),
                       for (final (index, value) in group.values.indexed)
                         Padding(
                           padding: listItemSpacing(index),

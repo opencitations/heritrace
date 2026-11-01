@@ -180,7 +180,6 @@ class EditSession extends ChangeNotifier {
   final CustomPropertiesController customProperties =
       CustomPropertiesController();
   EditStatus status = EditStatus.viewing;
-  bool saved = false;
   Timer? _renewTimer;
   bool _disposed = false;
   void Function()? onLockLost;
@@ -210,7 +209,6 @@ class EditSession extends ChangeNotifier {
       final acquired = await repository.acquireLock(view.uri, linkedResources);
       if (acquired.status == 'success') {
         status = EditStatus.editing;
-        saved = false;
         _renewTimer = Timer.periodic(lockRenewalInterval, (_) => _renew());
       }
       return acquired;
@@ -316,11 +314,6 @@ class EditSession extends ChangeNotifier {
 
   void setSaving({required bool saving}) {
     status = saving ? EditStatus.saving : EditStatus.editing;
-    notifyListeners();
-  }
-
-  void markSaved() {
-    saved = true;
     notifyListeners();
   }
 

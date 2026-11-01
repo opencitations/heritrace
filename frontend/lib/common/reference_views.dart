@@ -22,15 +22,18 @@ class LinkText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.primary,
-            decoration: TextDecoration.underline,
+    return Semantics(
+      link: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.primary,
+              decoration: TextDecoration.underline,
+            ),
           ),
         ),
       ),
@@ -53,7 +56,11 @@ class AgentRefView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (agent.kind == 'orcid') ...[
-          Image.asset('assets/images/orcid-logo.png', height: 16),
+          Image.asset(
+            'assets/images/orcid-logo.png',
+            height: 16,
+            excludeFromSemantics: true,
+          ),
           const SizedBox(width: 4),
         ],
         Flexible(
@@ -96,7 +103,11 @@ class SourceRefView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (source.kind == 'zenodo') ...[
-              Image.asset('assets/images/zenodo-logo.png', height: 20),
+              Image.asset(
+                'assets/images/zenodo-logo.png',
+                height: 20,
+                semanticLabel: 'Zenodo',
+              ),
               const SizedBox(width: appInputSpacing / 2),
             ],
             Flexible(child: link),

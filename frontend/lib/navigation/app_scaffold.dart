@@ -10,6 +10,7 @@ import '../api/api_client.dart';
 import '../common/async_view.dart';
 import '../common/dialogs.dart';
 import '../design/app_theme.dart';
+import '../design/appearance.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
@@ -17,35 +18,58 @@ import '../session/session_controller.dart';
 import 'app_paths.dart';
 import 'external_navigation.dart';
 
-class AppScaffold extends ConsumerWidget {
+const _tabPaths = [cataloguePath, createEntityPath, timeVaultPath];
+
+/// The page one level up from an inner page, or null for the landing page and
+/// the tab pages.
+String? _parentPath(Uri uri) {
+  if (uri.path == mergePath) {
+    return entityPath(uri.queryParameters['subject']!);
+  }
+  return switch (uri.pathSegments) {
+    ['about', _] => cataloguePath,
+    ['entity-history', final entity] => entityPath(entity),
+    ['entity-version', final entity, _] => entityHistoryPath(entity),
+    _ => null,
+  };
+}
+
+class AppScaffold extends ConsumerStatefulWidget {
   const AppScaffold({required this.child, super.key});
 
   final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppScaffold> createState() => _AppScaffoldState();
+}
+
+class _AppScaffoldState extends ConsumerState<AppScaffold> {
+  /// Inner pages belong to the tab they were opened from.
+  int _tab = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final tab = _tabPaths.indexOf(GoRouterState.of(context).uri.path);
+    if (tab >= 0) {
+      _tab = tab;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = Translations.of(context);
     final sessionValue = ref.watch(sessionProvider);
     final session = sessionValue.value;
-    final currentPath = GoRouterState.of(context).uri.path;
-    final signedIn = session?.isSignedIn ?? false;
+    final uri = GoRouterState.of(context).uri;
+    final parentPath = _parentPath(uri);
+    final userName = session?.userName;
+    final signedIn = userName != null;
     final compact = MediaQuery.sizeOf(context).width < appCompactWidth;
     final destinations = [
-      (
-        label: t.ui.nav.catalogue,
-        path: cataloguePath,
-        icon: CupertinoIcons.book,
-      ),
-      (
-        label: t.ui.nav.newRecord,
-        path: createEntityPath,
-        icon: CupertinoIcons.plus_circle,
-      ),
-      (
-        label: t.ui.nav.timeVault,
-        path: timeVaultPath,
-        icon: CupertinoIcons.archivebox,
-      ),
+      (label: t.ui.nav.catalogue, icon: CupertinoIcons.book),
+      (label: t.ui.nav.newRecord, icon: CupertinoIcons.plus_circle),
+      (label: t.ui.nav.timeVault, icon: CupertinoIcons.archivebox),
     ];
 
     Future<void> logout() async {
@@ -60,52 +84,63 @@ class AppScaffold extends ConsumerWidget {
       navigateExternally(landingPath);
     }
 
-    final activeIndex = destinations.indexWhere((d) => d.path == currentPath);
+    final activeIndex = uri.path == landingPath ? -1 : _tab;
     final showTabBar = signedIn && compact;
 
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         automaticallyImplyLeading: false,
-        leading: GestureDetector(
-          onTap: () => context.go(landingPath),
-          child: SelectionContainer.disabled(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/images/logo.png', height: 28),
-                const SizedBox(width: appInputSpacing / 2),
-                Text(
-                  session?.config.appTitle ?? t.ui.appTitle,
-                  style: AppTextStyles.of(context).heading,
+        leading: parentPath == null
+            ? GestureDetector(
+                onTap: () => context.go(landingPath),
+                child: SelectionContainer.disabled(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/logo.png',
+                        height: 28,
+                        excludeFromSemantics: true,
+                      ),
+                      const SizedBox(width: appInputSpacing / 2),
+                      Text(
+                        session?.config.appTitle ?? t.ui.appTitle,
+                        style: AppTextStyles.of(context).heading,
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-        ),
+              )
+            : SelectionContainer.disabled(
+                child: CupertinoNavigationBarBackButton(
+                  previousPageTitle: t.ui.nav.back,
+                  onPressed: () {
+                    if (!navigateBack()) {
+                      context.go(parentPath);
+                    }
+                  },
+                ),
+              ),
         middle: signedIn && !compact
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (final destination in destinations)
+                  for (final (index, destination) in destinations.indexed)
                     _NavButton(
                       label: destination.label,
                       icon: destination.icon,
-                      active: currentPath == destination.path,
-                      onPressed: () => context.go(destination.path),
+                      active: index == activeIndex,
+                      onPressed: () => context.go(_tabPaths[index]),
                     ),
                 ],
               )
             : null,
         trailing: signedIn
-            ? AppIconButton(
-                icon: CupertinoIcons.square_arrow_right,
-                label: t.ui.nav.logout,
-                onPressed: logout,
-              )
-            : CupertinoButton(
-                padding: EdgeInsets.zero,
+            ? _AccountMenu(name: userName, onLogout: logout)
+            : AppButton(
+                icon: CupertinoIcons.person_crop_circle,
+                label: t.ui.nav.login,
                 onPressed: () => navigateExternally(backendUrl(loginPath)),
-                child: SelectionContainer.disabled(child: Text(t.ui.nav.login)),
               ),
       ),
       child: Column(
@@ -119,7 +154,7 @@ class AppScaffold extends ConsumerWidget {
                   child: AsyncView(
                     value: sessionValue,
                     onRetry: () => ref.invalidate(sessionProvider),
-                    builder: (_) => child,
+                    builder: (_) => widget.child,
                   ),
                 ),
               ),
@@ -130,9 +165,9 @@ class AppScaffold extends ConsumerWidget {
               child: CupertinoTabBar(
                 currentIndex: activeIndex < 0 ? 0 : activeIndex,
                 activeColor: activeIndex < 0
-                    ? CupertinoColors.inactiveGray
+                    ? AppColors.of(context).inactive
                     : AppColors.primary,
-                onTap: (index) => context.go(destinations[index].path),
+                onTap: (index) => context.go(_tabPaths[index]),
                 items: [
                   for (final destination in destinations)
                     BottomNavigationBarItem(
@@ -143,6 +178,70 @@ class AppScaffold extends ConsumerWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// The signed-in user's name, opening a menu with the appearance choice and
+/// the account actions.
+class _AccountMenu extends ConsumerWidget {
+  const _AccountMenu({required this.name, required this.onLogout});
+
+  final String name;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Translations.of(context);
+    final current = ref.watch(appearanceProvider);
+    final appearances = [
+      (
+        value: Appearance.system,
+        label: t.ui.nav.appearanceSystem,
+        icon: CupertinoIcons.circle_lefthalf_fill,
+      ),
+      (
+        value: Appearance.light,
+        label: t.ui.nav.appearanceLight,
+        icon: CupertinoIcons.sun_max,
+      ),
+      (
+        value: Appearance.dark,
+        label: t.ui.nav.appearanceDark,
+        icon: CupertinoIcons.moon,
+      ),
+    ];
+    return SelectionContainer.disabled(
+      child: CupertinoMenuAnchor(
+        menuChildren: [
+          for (final appearance in appearances)
+            CupertinoMenuItem(
+              onPressed: () => ref
+                  .read(appearanceProvider.notifier)
+                  .select(appearance.value),
+              leading: Icon(appearance.icon),
+              trailing: appearance.value == current
+                  ? const Icon(CupertinoIcons.check_mark, size: 18)
+                  : null,
+              child: Text(appearance.label),
+            ),
+          const CupertinoMenuDivider(),
+          CupertinoMenuItem(
+            onPressed: onLogout,
+            trailing: const Icon(CupertinoIcons.square_arrow_left),
+            child: Text(t.ui.nav.logout),
+          ),
+        ],
+        builder: (context, controller, _) => ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 200),
+          child: AppButton(
+            icon: CupertinoIcons.person_crop_circle,
+            label: name,
+            onPressed: () =>
+                controller.isOpen ? controller.close() : controller.open(),
+          ),
+        ),
       ),
     );
   }
@@ -167,9 +266,12 @@ class _NavButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: CupertinoButton(
         sizeStyle: CupertinoButtonSize.small,
+        minimumSize: minTapTarget,
         borderRadius: BorderRadius.circular(appRadius * 2),
         color: active ? AppColors.primaryTint : null,
-        foregroundColor: active ? AppColors.primary : CupertinoColors.label,
+        foregroundColor: active
+            ? AppColors.primary
+            : AppColors.of(context).label,
         onPressed: onPressed,
         child: SelectionContainer.disabled(
           child: IconLabel(

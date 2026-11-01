@@ -14,7 +14,6 @@ import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
-import '../session/session_controller.dart';
 import '../history/history_repository.dart';
 import '../history/history_widgets.dart';
 import 'catalogue_models.dart' as models;
@@ -38,11 +37,6 @@ class CataloguePage extends ConsumerWidget {
       params: query,
     );
     final page = ref.watch(cataloguePageProvider(catalogueQuery));
-    final allowedPerPage = ref
-        .watch(sessionProvider)
-        .value!
-        .config
-        .allowedPerPage;
 
     String location(CatalogueQuery next) => Uri(
       path: timeVault ? timeVaultPath : cataloguePath,
@@ -71,7 +65,7 @@ class CataloguePage extends ConsumerWidget {
       children: [
         Padding(
           padding: pageMargin(context).copyWith(bottom: 0),
-          child: Text(
+          child: AppHeading(
             timeVault ? t.ui.catalogue.timeVaultTitle : t.ui.catalogue.title,
             style: AppTextStyles.of(context).pageTitle,
           ),
@@ -90,7 +84,6 @@ class CataloguePage extends ConsumerWidget {
               return _CatalogueBody(
                 data: data,
                 timeVault: timeVault,
-                allowedPerPage: allowedPerPage,
                 onQueryChanged: navigate,
                 query: catalogueQuery,
               );
@@ -106,14 +99,12 @@ class _CatalogueBody extends ConsumerStatefulWidget {
   const _CatalogueBody({
     required this.data,
     required this.timeVault,
-    required this.allowedPerPage,
     required this.onQueryChanged,
     required this.query,
   });
 
   final models.CataloguePage data;
   final bool timeVault;
-  final List<int> allowedPerPage;
   final ValueChanged<CatalogueQuery> onQueryChanged;
   final CatalogueQuery query;
 
@@ -121,8 +112,84 @@ class _CatalogueBody extends ConsumerStatefulWidget {
   ConsumerState<_CatalogueBody> createState() => _CatalogueBodyState();
 }
 
+/// Shows the first page and loads the next ones as the list nears its end.
 class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
   bool _classesAscending = true;
+  final _scroll = ScrollController();
+  late List<models.CatalogueEntity> _entities = [...widget.data.entities];
+  late int _loadedPage = widget.data.currentPage;
+  bool _loadingMore = false;
+  Object? _loadError;
+
+  bool get _hasMore => _loadedPage < widget.data.totalPages;
+
+  @override
+  void initState() {
+    super.initState();
+    _scroll.addListener(_maybeLoadMore);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLoadMore());
+  }
+
+  @override
+  void didUpdateWidget(_CatalogueBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data != widget.data) {
+      _entities = [...widget.data.entities];
+      _loadedPage = widget.data.currentPage;
+      _loadError = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLoadMore());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _maybeLoadMore() {
+    if (!mounted ||
+        _loadingMore ||
+        _loadError != null ||
+        !_hasMore ||
+        !_scroll.hasClients ||
+        _scroll.position.extentAfter > 600) {
+      return;
+    }
+    _loadMore();
+  }
+
+  Future<void> _loadMore() async {
+    final data = widget.data;
+    setState(() {
+      _loadingMore = true;
+      _loadError = null;
+    });
+    try {
+      final next = await ref
+          .read(catalogueRepositoryProvider)
+          .fetch(
+            widget.query.copyWith(
+              entityClass: data.selectedClass,
+              shape: data.selectedShape,
+              page: _loadedPage + 1,
+            ),
+          );
+      if (mounted && data == widget.data) {
+        _entities.addAll(next.entities);
+        _loadedPage = next.currentPage;
+      }
+    } on Exception catch (error) {
+      if (mounted && data == widget.data) {
+        _loadError = error;
+      }
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _loadingMore = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeLoadMore());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +207,6 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
         entityClass: item.uri,
         shape: item.shape,
         resetShape: item.shape == null,
-        page: 1,
       ),
     );
     final selectedIndex = classes.indexWhere(
@@ -150,8 +216,11 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
     );
     final entities = _EntityList(
       data: data,
+      entities: _entities,
+      loadingMore: _loadingMore,
+      loadError: _loadError,
+      onRetry: _loadMore,
       timeVault: widget.timeVault,
-      allowedPerPage: widget.allowedPerPage,
       query: widget.query,
       onQueryChanged: widget.onQueryChanged,
     );
@@ -166,6 +235,7 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
     }
     if (!wide) {
       return ListView(
+        controller: _scroll,
         padding: margin,
         children: [
           AppLabeledField(
@@ -203,6 +273,7 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
         ),
         Expanded(
           child: SingleChildScrollView(
+            controller: _scroll,
             padding: margin.copyWith(left: appSectionSpacing / 2),
             child: entities,
           ),
@@ -274,15 +345,21 @@ class _ClassList extends StatelessWidget {
 class _EntityList extends ConsumerWidget {
   const _EntityList({
     required this.data,
+    required this.entities,
+    required this.loadingMore,
+    required this.loadError,
+    required this.onRetry,
     required this.timeVault,
-    required this.allowedPerPage,
     required this.query,
     required this.onQueryChanged,
   });
 
   final models.CataloguePage data;
+  final List<models.CatalogueEntity> entities;
+  final bool loadingMore;
+  final Object? loadError;
+  final VoidCallback onRetry;
   final bool timeVault;
-  final List<int> allowedPerPage;
   final CatalogueQuery query;
   final ValueChanged<CatalogueQuery> onQueryChanged;
 
@@ -298,16 +375,12 @@ class _EntityList extends ConsumerWidget {
             currentProperty: data.sortProperty,
             currentDirection: data.sortDirection,
             onChanged: (property, direction) => onQueryChanged(
-              query.copyWith(
-                sortProperty: property,
-                sortDirection: direction,
-                page: 1,
-              ),
+              query.copyWith(sortProperty: property, sortDirection: direction),
             ),
           ),
           const SizedBox(height: appInputSpacing),
         ],
-        if (data.entities.isEmpty)
+        if (entities.isEmpty)
           Padding(
             padding: const EdgeInsets.all(appCardPadding),
             child: Text(t.ui.catalogue.noEntities),
@@ -315,7 +388,7 @@ class _EntityList extends ConsumerWidget {
         else
           AppSection(
             children: [
-              for (final entity in data.entities)
+              for (final entity in entities)
                 timeVault
                     ? _TimeVaultTile(entity: entity)
                     : AppListTile(
@@ -325,18 +398,16 @@ class _EntityList extends ConsumerWidget {
                       ),
             ],
           ),
-        if (data.entities.isNotEmpty) ...[
-          const SizedBox(height: appInputSpacing),
-          _PaginationControls(
-            currentPage: data.currentPage,
-            totalPages: data.totalPages,
-            perPage: data.perPage,
-            allowedPerPage: allowedPerPage,
-            onPageChanged: (page) => onQueryChanged(query.copyWith(page: page)),
-            onPerPageChanged: (perPage) =>
-                onQueryChanged(query.copyWith(perPage: perPage, page: 1)),
+        if (loadingMore)
+          const Padding(
+            padding: EdgeInsets.all(appSectionSpacing),
+            child: Center(child: CupertinoActivityIndicator()),
+          )
+        else if (loadError != null)
+          Padding(
+            padding: const EdgeInsets.all(appSectionSpacing),
+            child: ErrorView(error: loadError!, onRetry: onRetry),
           ),
-        ],
       ],
     );
   }
@@ -470,87 +541,6 @@ class _SortControls extends StatelessWidget {
           icon: currentDirection == 'ASC'
               ? CupertinoIcons.arrow_up
               : CupertinoIcons.arrow_down,
-        ),
-      ],
-    );
-  }
-}
-
-class _PaginationControls extends StatelessWidget {
-  const _PaginationControls({
-    required this.currentPage,
-    required this.totalPages,
-    required this.perPage,
-    required this.allowedPerPage,
-    required this.onPageChanged,
-    required this.onPerPageChanged,
-  });
-
-  final int currentPage;
-  final int totalPages;
-  final int perPage;
-  final List<int> allowedPerPage;
-  final ValueChanged<int> onPageChanged;
-  final ValueChanged<int> onPerPageChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Translations.of(context);
-    return Wrap(
-      spacing: appInputSpacing,
-      runSpacing: appInputSpacing,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(t.ui.catalogue.perPage),
-            const SizedBox(width: appInputSpacing),
-            AppMenuButton<int>(
-              value: allowedPerPage.contains(perPage)
-                  ? perPage
-                  : allowedPerPage.first,
-              options: [
-                for (final value in allowedPerPage)
-                  AppMenuOption(value, '$value'),
-              ],
-              onChanged: onPerPageChanged,
-            ),
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppIconButton(
-              label: t.ui.catalogue.firstPage,
-              onPressed: currentPage > 1 ? () => onPageChanged(1) : null,
-              icon: CupertinoIcons.backward_end,
-            ),
-            AppIconButton(
-              label: t.ui.catalogue.previousPage,
-              onPressed: currentPage > 1
-                  ? () => onPageChanged(currentPage - 1)
-                  : null,
-              icon: CupertinoIcons.chevron_left,
-            ),
-            Text(
-              t.ui.catalogue.pageOf(current: currentPage, total: totalPages),
-            ),
-            AppIconButton(
-              label: t.ui.catalogue.nextPage,
-              onPressed: currentPage < totalPages
-                  ? () => onPageChanged(currentPage + 1)
-                  : null,
-              icon: CupertinoIcons.chevron_right,
-            ),
-            AppIconButton(
-              label: t.ui.catalogue.lastPage,
-              onPressed: currentPage < totalPages
-                  ? () => onPageChanged(totalPages)
-                  : null,
-              icon: CupertinoIcons.forward_end,
-            ),
-          ],
         ),
       ],
     );

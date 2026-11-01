@@ -62,9 +62,8 @@ void main() {
   ) async {
     await pumpGroup(tester, group(title));
 
-    expect(find.text('Title'), findsNWidgets(2));
     expect(find.text('Add Title'), findsNothing);
-    expect(find.text('Delete'), findsNothing);
+    expect(find.byType(RemoveButton), findsNothing);
     expect(find.byType(CupertinoTextField), findsOneWidget);
 
     await tester.enterText(find.byType(CupertinoTextField), 'A new title');
@@ -81,26 +80,24 @@ void main() {
     await tester.pump();
 
     expect(find.text('Add Publication Date'), findsNothing);
-    expect(find.text('Delete'), findsOneWidget);
+    expect(find.byType(RemoveButton), findsOneWidget);
     expect(find.byType(DateTypeMenu), findsOneWidget);
 
-    await tester.tap(find.text('Delete'));
+    await tester.tap(find.byType(RemoveButton));
     await tester.pump();
 
     expect(group(pubDate).items, isEmpty);
     expect(find.text('Add Publication Date'), findsOneWidget);
   });
 
-  testWidgets('closing an untouched new nested entity discards it', (
-    tester,
-  ) async {
+  testWidgets('cancelling a new nested entity discards it', (tester) async {
     await pumpGroup(tester, group(documentContext));
 
     await tester.tap(find.text('Add Author'));
     await tester.pumpAndSettle();
     expect(group(documentContext).items, hasLength(1));
 
-    await tester.tap(find.text('Done'));
+    await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -122,6 +119,6 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Delete'), findsNothing);
+    expect(find.byType(RemoveButton), findsNothing);
   });
 }

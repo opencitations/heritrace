@@ -34,7 +34,7 @@ class ValidationSummary extends StatelessWidget {
         maxHeight: MediaQuery.sizeOf(context).height * 0.3,
       ),
       decoration: BoxDecoration(
-        color: AppColors.errorTint,
+        color: AppColors.of(context).errorTint,
         borderRadius: BorderRadius.circular(appRadius),
       ),
       child: SingleChildScrollView(
@@ -45,7 +45,7 @@ class ValidationSummary extends StatelessWidget {
             Text(
               t.ui.form.errorsTitle(count: scope.errors.length),
               style: AppTextStyles.of(context).heading
-                  .copyWith(color: AppColors.error),
+                  .copyWith(color: AppColors.of(context).error),
             ),
             for (final entry in groups.entries) ...[
               const SizedBox(height: appInputSpacing),
@@ -58,9 +58,13 @@ class ValidationSummary extends StatelessWidget {
                     ? Text(error.fullMessage)
                     : CupertinoButton(
                         sizeStyle: CupertinoButtonSize.small,
+                        minimumSize: const Size(
+                          0,
+                          kMinInteractiveDimensionCupertino,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         alignment: Alignment.centerLeft,
-                        foregroundColor: AppColors.error,
+                        foregroundColor: AppColors.of(context).error,
                         onPressed: () => focusItem(context, error.item!),
                         child: SelectionContainer.disabled(
                           child: Text(

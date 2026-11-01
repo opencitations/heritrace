@@ -22,6 +22,7 @@ import '../form/widgets/entity_form.dart';
 import '../form/widgets/validation_summary.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
+import '../navigation/leave_guard.dart';
 import '../session/session_controller.dart';
 import 'entity_repository.dart';
 
@@ -50,9 +51,17 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
   int _loadVersion = 0;
   final _custom = CustomPropertiesController();
   late final FormScopeController _scope = FormScopeController(rootLabel: '');
+  late final LeaveGuard _leaveGuard;
+
+  @override
+  void initState() {
+    super.initState();
+    _leaveGuard = ref.read(leaveGuardProvider)..register(_confirmDiscard);
+  }
 
   @override
   void dispose() {
+    _leaveGuard.unregister(_confirmDiscard);
     _root?.dispose();
     _custom.dispose();
     _scope.dispose();
@@ -129,6 +138,24 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
     return errors;
   }
 
+  bool get _hasDraft => ref.read(sessionProvider).value!.config.shacl
+      ? _root != null && hasAnyValue(_root!)
+      : _custom.hasAtLeastOneProperty;
+
+  Future<bool> _confirmDiscard() async {
+    if (!_hasDraft) {
+      return true;
+    }
+    final t = Translations.of(context);
+    return showConfirmDialog(
+      context,
+      title: t.ui.entity.unsavedTitle,
+      message: t.ui.create.unsavedMessage,
+      confirmLabel: t.ui.entity.discardChanges,
+      destructive: true,
+    );
+  }
+
   void _revalidate() {
     _scope.setErrors(_collectErrors(), started: false);
   }
@@ -175,7 +202,8 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
     if (choice.saveAsDefault) {
       ref.read(sessionProvider.notifier).setDefaultPrimarySource(choice.url);
     }
-    context.go(entityPath(uri!));
+    _leaveGuard.unregister(_confirmDiscard);
+    Router.neglect(context, () => context.go(entityPath(uri!)));
   }
 
   @override
@@ -184,89 +212,96 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
     final session = ref.watch(sessionProvider).value!;
     final types = ref.watch(entityTypesProvider);
     final canSubmit = !session.config.shacl || _root != null;
+    final margin = pageMargin(context);
     return FormScope(
       notifier: _scope,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: SingleChildScrollView(
-              padding: pageMargin(context).copyWith(bottom: 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    t.ui.create.title,
-                    style: AppTextStyles.of(context).pageTitle,
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: margin.copyWith(bottom: appInputSpacing),
+                  sliver: SliverToBoxAdapter(
+                    child: AppHeading(
+                      t.ui.create.title,
+                      style: AppTextStyles.of(context).pageTitle,
+                    ),
                   ),
-                  const SizedBox(height: appSectionSpacing),
-                  if (session.config.shacl)
-                    AsyncView(
-                      value: types,
-                      onRetry: () => ref.invalidate(entityTypesProvider),
-                      builder: (options) {
-                        if (_selectedType == null && options.isNotEmpty) {
-                          WidgetsBinding.instance.addPostFrameCallback(
-                            (_) => _selectType(options.first),
-                          );
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            AppLabeledField(
-                              label: t.ui.create.selectType,
-                              child: AppMenuButton<EntityTypeOption?>(
-                                value: _selectedType,
-                                options: [
-                                  for (final option in options)
-                                    AppMenuOption(option, option.label),
+                ),
+                PinnedHeaderSliver(
+                  child: PageActionBar(
+                    pinned: true,
+                    children: [
+                      const Spacer(),
+                      AppButton(
+                        variant: AppButtonVariant.filled,
+                        onPressed: canSubmit ? _submit : null,
+                        icon: CupertinoIcons.plus_circle,
+                        label: t.ui.create.submit,
+                      ),
+                    ],
+                  ),
+                ),
+                SliverPadding(
+                  padding: margin.copyWith(top: appSectionSpacing, bottom: 0),
+                  sliver: SliverToBoxAdapter(
+                    child: session.config.shacl
+                        ? AsyncView(
+                            value: types,
+                            onRetry: () => ref.invalidate(entityTypesProvider),
+                            builder: (options) {
+                              if (_selectedType == null && options.isNotEmpty) {
+                                WidgetsBinding.instance.addPostFrameCallback(
+                                  (_) => _selectType(options.first),
+                                );
+                              }
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  AppLabeledField(
+                                    label: t.ui.create.selectType,
+                                    child: AppMenuButton<EntityTypeOption?>(
+                                      value: _selectedType,
+                                      placeholder: t.ui.create.selectType,
+                                      options: [
+                                        for (final option in options)
+                                          AppMenuOption(option, option.label),
+                                      ],
+                                      onChanged: (option) =>
+                                          _selectType(option!),
+                                    ),
+                                  ),
+                                  const SizedBox(height: appSectionSpacing),
+                                  if (_loadingForm)
+                                    const Center(
+                                      child: CupertinoActivityIndicator(),
+                                    )
+                                  else if (_formError != null)
+                                    ErrorView(
+                                      error: _formError!,
+                                      onRetry: () =>
+                                          _selectType(_selectedType!),
+                                    )
+                                  else if (_root != null)
+                                    EntityForm(node: _root!),
                                 ],
-                                onChanged: (option) => _selectType(option!),
-                              ),
-                            ),
-                            const SizedBox(height: appSectionSpacing),
-                            if (_loadingForm)
-                              const Center(child: CupertinoActivityIndicator())
-                            else if (_formError != null)
-                              ErrorView(
-                                error: _formError!,
-                                onRetry: () => _selectType(_selectedType!),
-                              )
-                            else if (_root != null)
-                              EntityForm(node: _root!),
-                          ],
-                        );
-                      },
-                    )
-                  else
-                    CustomPropertiesForm(
-                      controller: _custom,
-                      datatypeOptions: session.config.datatypeOptions,
-                    ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: pageMargin(context).copyWith(top: 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const ValidationSummary(),
-                Padding(
-                  padding: const EdgeInsets.only(top: appInputSpacing),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: AppButton(
-                      variant: AppButtonVariant.filled,
-                      onPressed: canSubmit ? _submit : null,
-                      icon: CupertinoIcons.checkmark_circle,
-                      label: t.ui.create.submit,
-                    ),
+                              );
+                            },
+                          )
+                        : CustomPropertiesForm(
+                            controller: _custom,
+                            datatypeOptions: session.config.datatypeOptions,
+                          ),
                   ),
                 ),
               ],
             ),
+          ),
+          Padding(
+            padding: margin.copyWith(top: 0),
+            child: const ValidationSummary(),
           ),
         ],
       ),

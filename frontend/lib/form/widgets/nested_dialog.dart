@@ -7,7 +7,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../design/app_theme.dart';
+import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
 import '../collector.dart';
@@ -27,12 +27,12 @@ List<NestedItem> nestedChain(NestedItem item) {
   return chain;
 }
 
-/// Hides an untouched item as soon as the dialog closes, but disposes it only
-/// once the dialog is unmounted, because its widgets use the item's focus nodes
-/// until the exit transition ends.
+/// Hides an item being added as soon as the dialog closes on Cancel or
+/// untouched, but disposes it only once the dialog is unmounted, because its
+/// widgets use the item's focus nodes until the exit transition ends.
 Future<void> showNestedDialog(BuildContext context, NestedItem item) async {
   final scope = FormScope.of(context);
-  final route = CupertinoSheetRoute<void>(
+  final route = CupertinoSheetRoute<bool>(
     enableDrag: false,
     settings: RouteSettings(arguments: item),
     scrollableBuilder: (context, scrollController) => FormScope(
@@ -41,8 +41,8 @@ Future<void> showNestedDialog(BuildContext context, NestedItem item) async {
     ),
   );
   unawaited(Navigator.of(context, rootNavigator: true).push(route));
-  await route.popped;
-  final discard = item.discardIfUntouched && !item.touched;
+  final cancelled = await route.popped ?? false;
+  final discard = item.discardIfUntouched && (cancelled || !item.touched);
   item.discardIfUntouched = false;
   if (discard) {
     item.group.detachItem(item);
@@ -134,112 +134,63 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
     }
   }
 
-  void _close() {
+  void _done() {
     final scope = FormScope.of(context);
     for (final group in widget.item.child.groups) {
       for (final nested in group.items) {
         scope.markChecked(nested);
       }
     }
-    Navigator.of(context).pop();
+    Navigator.of(context).pop(false);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final scope = FormScope.of(context);
-    final chain = nestedChain(widget.item);
+    final item = widget.item;
+    // Only an item being added can be cancelled: edits to an existing item
+    // apply as they are made.
+    final adding = item.discardIfUntouched;
     return CupertinoPageScaffold(
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: appInputSpacing),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(
-                bottom: BorderSide(color: AppColors.separator, width: 0),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        CupertinoButton(
-                          onPressed: () => _popTo(0),
-                          child: SelectionContainer.disabled(
-                            child: Text(scope.rootLabel),
-                          ),
-                        ),
-                        for (final (index, entry) in chain.indexed) ...[
-                          const Icon(
-                            CupertinoIcons.chevron_right,
-                            size: 16,
-                            color: AppColors.secondaryText,
-                          ),
-                          if (entry == widget.item)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: appInputSpacing,
-                              ),
-                              child: Text(
-                                entry.def.displayName,
-                                style: AppTextStyles.of(context).heading,
-                              ),
-                            )
-                          else
-                            CupertinoButton(
-                              onPressed: () => _popTo(index + 1),
-                              child: SelectionContainer.disabled(
-                                child: Text(entry.def.displayName),
-                              ),
-                            ),
-                        ],
-                      ],
-                    ),
-                  ),
+      navigationBar: CupertinoNavigationBar(
+        automaticallyImplyLeading: false,
+        leading: adding
+            ? CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.of(context).pop(true),
+                child: SelectionContainer.disabled(
+                  child: Text(t.ui.actions.cancel),
                 ),
-                CupertinoButton(
-                  onPressed: _close,
-                  child: SelectionContainer.disabled(
-                    child: Text(
-                      t.ui.actions.done,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              controller: widget.scrollController,
-              padding: EdgeInsets.all(
-                MediaQuery.sizeOf(context).width < appCompactWidth
-                    ? appCardPadding
-                    : appPageMargin,
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: appPageMaxWidth),
-                  child: EntityForm(node: widget.item.child),
-                ),
+              )
+            : null,
+        middle: Text(item.def.displayName),
+        trailing: ListenableBuilder(
+          listenable: item,
+          builder: (context, _) => CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: adding && !item.touched ? null : _done,
+            child: SelectionContainer.disabled(
+              child: Text(
+                t.ui.actions.done,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ),
-        ],
+        ),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          controller: widget.scrollController,
+          padding: pageMargin(context),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: appPageMaxWidth),
+              child: EntityForm(node: item.child),
+            ),
+          ),
+        ),
       ),
     );
-  }
-
-  void _popTo(int depth) {
-    final chain = nestedChain(widget.item);
-    final toClose = chain.length - depth;
-    for (var i = 0; i < toClose; i++) {
-      _close();
-    }
   }
 }
 

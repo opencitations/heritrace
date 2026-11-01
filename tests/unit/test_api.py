@@ -67,7 +67,7 @@ def test_catalogue_api(api_client: FlaskClient) -> None:
 def test_catalogue_api_with_params(api_client: FlaskClient) -> None:
     """Test the catalogue API endpoint with query parameters."""
     response = api_client.get(
-        "/api/catalogue?class=http://example.org/TestClass&page=1&per_page=50"
+        "/api/catalogue?class=http://example.org/TestClass&page=1"
     )
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -77,8 +77,8 @@ def test_catalogue_api_with_params(api_client: FlaskClient) -> None:
     assert data["current_page"] == 1
 
 
-def test_catalogue_api_with_invalid_per_page(api_client: FlaskClient) -> None:
-    """Test the catalogue API endpoint with an invalid per_page value."""
+def test_catalogue_api_ignores_a_requested_page_size(api_client: FlaskClient) -> None:
+    """The catalogue API always uses the configured page size."""
     response = api_client.get(
         "/api/catalogue?class=http://example.org/TestClass&page=1&per_page=999"
     )
@@ -94,7 +94,7 @@ def test_catalogue_api_with_invalid_per_page(api_client: FlaskClient) -> None:
 def test_catalogue_api_with_null_sort_property(api_client: FlaskClient) -> None:
     """Test the catalogue API endpoint with a null sort property."""
     response = api_client.get(
-        "/api/catalogue?class=http://example.org/TestClass&page=1&per_page=50&sort_property=null"
+        "/api/catalogue?class=http://example.org/TestClass&page=1&sort_property=null"
     )
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -177,7 +177,7 @@ def test_time_vault_api_with_params(
     )
 
     response = api_client.get(
-        "/api/time-vault?class=http://example.org/TestClass&page=1&per_page=50"
+        "/api/time-vault?class=http://example.org/TestClass&page=1"
     )
     assert response.status_code == 200
     data = json.loads(response.data)
@@ -189,10 +189,10 @@ def test_time_vault_api_with_params(
 
 
 @patch("heritrace.routes.api.get_deleted_entities_with_filtering")
-def test_time_vault_api_with_invalid_per_page(
+def test_time_vault_api_ignores_a_requested_page_size(
     mock_get_deleted_entities, api_client: FlaskClient
 ) -> None:
-    """Test the time vault API endpoint with an invalid per_page value."""
+    """The time vault API always uses the configured page size."""
     # Mock the return value of get_deleted_entities_with_filtering
     mock_deleted_entities = [
         {

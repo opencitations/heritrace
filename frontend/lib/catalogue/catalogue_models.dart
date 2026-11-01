@@ -86,7 +86,6 @@ class CataloguePage {
     required this.entities,
     required this.totalPages,
     required this.currentPage,
-    required this.perPage,
     required this.sortProperty,
     required this.sortDirection,
     required this.sortableProperties,
@@ -101,7 +100,6 @@ class CataloguePage {
         .toList(),
     totalPages: json['total_pages'] as int,
     currentPage: json['current_page'] as int,
-    perPage: json['per_page'] as int,
     sortProperty: json['sort_property'] as String?,
     sortDirection: json['sort_direction'] as String,
     sortableProperties: (json['sortable_properties'] as List<dynamic>)
@@ -117,7 +115,6 @@ class CataloguePage {
   final List<CatalogueEntity> entities;
   final int totalPages;
   final int currentPage;
-  final int perPage;
   final String? sortProperty;
   final String sortDirection;
   final List<SortableProperty> sortableProperties;

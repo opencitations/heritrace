@@ -13,14 +13,9 @@ import 'item_widgets.dart';
 import 'nested_dialog.dart';
 
 class FieldGroupWidget extends StatelessWidget {
-  const FieldGroupWidget({
-    required this.group,
-    this.showHeading = true,
-    super.key,
-  });
+  const FieldGroupWidget({required this.group, super.key});
 
   final FieldGroup group;
-  final bool showHeading;
 
   @override
   Widget build(BuildContext context) {
@@ -43,10 +38,9 @@ class FieldGroupWidget extends StatelessWidget {
                 itemBuilder: (context, index) => Padding(
                   key: ObjectKey(items[index]),
                   padding: listItemSpacing(index),
-                  child: _ItemCard(
+                  child: _ItemRow(
                     group: group,
                     item: items[index],
-                    index: index,
                     dragHandle: DragHandle(index: index),
                   ),
                 ),
@@ -56,12 +50,7 @@ class FieldGroupWidget extends StatelessWidget {
                 Padding(
                   key: ObjectKey(item),
                   padding: listItemSpacing(index),
-                  child: _ItemCard(
-                    group: group,
-                    item: item,
-                    index: index,
-                    showHeading: showHeading,
-                  ),
+                  child: _ItemRow(group: group, item: item),
                 ),
             if (items.isNotEmpty && group.canAdd)
               const SizedBox(height: appInputSpacing),
@@ -85,63 +74,38 @@ class FieldGroupWidget extends StatelessWidget {
     if (item is NestedItem) {
       item.discardIfUntouched = true;
       showNestedDialog(context, item);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => item.focusNode.requestFocus(),
+      );
     }
   }
 }
 
-class _ItemCard extends StatelessWidget {
-  const _ItemCard({
-    required this.group,
-    required this.item,
-    required this.index,
-    this.dragHandle,
-    this.showHeading = true,
-  });
+/// One value of a group: the minus that removes it, the value, and the handle
+/// that reorders it, as the rows of an iOS list in edit mode.
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({required this.group, required this.item, this.dragHandle});
 
   final FieldGroup group;
   final FormItem item;
-  final int index;
   final Widget? dragHandle;
-  final bool showHeading;
 
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final def = group.def;
-    final styles = AppTextStyles.of(context);
-    final label = dragHandle == null
-        ? def.displayName
-        : '${def.displayName} ${index + 1}';
-    if (!showHeading) {
-      return ItemWidget(item: item);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
       children: [
-        Row(
-          children: [
-            if (dragHandle != null) ...[
-              dragHandle!,
-              const SizedBox(width: appInputSpacing / 2),
-            ],
-            Expanded(
-              child: PropertyHeading(
-                label: label,
-                style: group.depth == 0 ? styles.heading : styles.subheading,
-                required: def.isRequired,
-              ),
-            ),
-            if (group.canDelete(item))
-              RowAction(
-                destructive: true,
-                onPressed: () => group.removeItem(item),
-                icon: CupertinoIcons.delete,
-                label: t.ui.actions.delete,
-              ),
-          ],
-        ),
-        const SizedBox(height: appInputSpacing / 2),
-        ItemWidget(item: item),
+        if (group.canDelete(item))
+          RemoveButton(
+            label: t.ui.actions.delete,
+            onPressed: () => group.removeItem(item),
+          ),
+        Expanded(child: ItemWidget(item: item)),
+        if (dragHandle != null) ...[
+          const SizedBox(width: appInputSpacing / 2),
+          dragHandle!,
+        ],
       ],
     );
   }
@@ -171,7 +135,10 @@ class PropertyHeading extends StatelessWidget {
         if (required)
           AppTooltip(
             message: t.ui.form.required,
-            child: Text(' *', style: style.copyWith(color: AppColors.error)),
+            child: Text(
+              ' *',
+              style: style.copyWith(color: AppColors.of(context).error),
+            ),
           ),
       ],
     );

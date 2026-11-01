@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:heritrace/app.dart';
+import 'package:heritrace/design/controls.dart';
 import 'package:heritrace/entity/entity_models.dart';
 import 'package:heritrace/entity/entity_repository.dart';
 import 'package:heritrace/navigation/app_paths.dart';
@@ -65,7 +66,7 @@ void main() {
     router.go(entityPath(subject));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Edit resource'));
+    await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
     await tester.enterText(find.text('Old title'), 'New title');
     await tester.pumpAndSettle();
@@ -74,7 +75,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Yes, discard changes'), findsOneWidget);
 
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AppDialog),
+        matching: find.text('Cancel'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('New title'), findsOneWidget);
     expect(repository.released, isEmpty);
