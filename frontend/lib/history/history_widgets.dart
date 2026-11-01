@@ -32,15 +32,24 @@ class MetadataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const labelStyle = TextStyle(fontWeight: FontWeight.bold);
     return Padding(
       padding: const EdgeInsets.only(bottom: appInputSpacing / 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(child: child),
-        ],
-      ),
+      child: MediaQuery.sizeOf(context).width < appCompactWidth
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: labelStyle),
+                child,
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$label: ', style: labelStyle),
+                Expanded(child: child),
+              ],
+            ),
     );
   }
 }

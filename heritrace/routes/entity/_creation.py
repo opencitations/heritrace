@@ -15,6 +15,7 @@ from heritrace.extensions import (
     get_dataset_endpoint,
     get_form_fields,
     get_provenance_endpoint,
+    record_dataset_change,
 )
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._validation import validate_entity_data
@@ -245,6 +246,7 @@ def _handle_create_entity_post(
     except (EditorError, OSError) as e:
         error_message = f"An error occurred while creating the entity: {e}"
         return jsonify({"status": "error", "errors": [error_message]}), 500
+    record_dataset_change()
     return jsonify({"status": "success", "uri": str(entity_uri)}), 200
 
 

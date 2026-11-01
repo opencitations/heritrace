@@ -12,7 +12,7 @@ from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStra
 BASE_DIR = Path(__file__).parent.parent.resolve()
 
 test_counter_handler = MetaCounterHandler()
-test_counter_handler.port = 41804
+test_counter_handler.port = 17804
 
 test_meta_uri_generator = MetaURIGenerator(test_counter_handler)
 
@@ -37,14 +37,14 @@ class TestConfig:
     CACHE_VALIDITY_DAYS = 1
     TESTING = True
 
-    REDIS_URL = "redis://localhost:41804/0"
+    REDIS_URL = "redis://localhost:17804/0"
 
     DATASET_DB_TRIPLESTORE = "virtuoso"
     DATASET_DB_TEXT_INDEX_ENABLED = True
     PROVENANCE_DB_TRIPLESTORE = "virtuoso"
 
-    DATASET_DB_URL = "http://localhost:41800/sparql"
-    PROVENANCE_DB_URL = "http://localhost:41802/sparql"
+    DATASET_DB_URL = "http://localhost:17800/sparql"
+    PROVENANCE_DB_URL = "http://localhost:17802/sparql"
 
     DATASET_IS_QUADSTORE = True
     PROVENANCE_IS_QUADSTORE = True

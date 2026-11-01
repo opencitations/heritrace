@@ -194,7 +194,6 @@ def _filter_with_labels(merge_test_data: dict) -> MagicMock:
 @patch("heritrace.routes.merge.get_custom_filter")
 @patch("heritrace.routes.merge.get_entity_details")
 @patch("heritrace.routes.merge.Editor")
-@patch("heritrace.routes.merge.get_counter_handler")
 @patch(
     "heritrace.routes.merge.get_dataset_endpoint",
     return_value="http://db/ds_merge_flash",
@@ -210,7 +209,6 @@ def test_execute_merge_success(
     _mock_quadstore,
     _mock_prov,
     _mock_ds,
-    mock_counter,
     mock_editor_cls,
     mock_get_details,
     mock_get_filter,
@@ -260,7 +258,7 @@ def test_execute_merge_success(
             provenance="http://db/prov_merge_flash",
             is_quadstore=False,
         ),
-        mock_counter.return_value,
+        client.application.config["COUNTER_HANDLER"],
         merge_test_data["resp_agent_uri"],
         URIRef("https://example.com/test-primary-source"),
         "2024-01-01T00:00:00+00:00",
@@ -303,7 +301,6 @@ def test_execute_merge_invalid_primary_source(
 @patch("heritrace.routes.merge.get_custom_filter")
 @patch("heritrace.routes.merge.get_entity_details")
 @patch("heritrace.routes.merge.Editor")
-@patch("heritrace.routes.merge.get_counter_handler")
 @patch(
     "heritrace.routes.merge.get_dataset_endpoint",
     return_value="http://db/ds_merge_save_source",
@@ -319,7 +316,6 @@ def test_execute_merge_save_default_source(
     _mock_quadstore,
     _mock_prov,
     _mock_ds,
-    _mock_counter,
     mock_editor_cls,
     mock_get_details,
     mock_get_filter,

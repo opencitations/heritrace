@@ -14,6 +14,7 @@ import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
 import '../session/session_controller.dart';
 import '../history/history_repository.dart';
+import '../history/history_widgets.dart';
 import 'catalogue_models.dart' as models;
 import 'catalogue_repository.dart';
 
@@ -49,7 +50,8 @@ class CataloguePage extends ConsumerWidget {
     void navigate(CatalogueQuery next) => context.go(location(next));
 
     void selectFirstClass(List<models.CatalogueClass> classes) {
-      final first = classes.reduce(
+      final populated = classes.where((c) => c.count != '0').toList();
+      final first = (populated.isEmpty ? classes : populated).reduce(
         (a, b) =>
             a.label.toLowerCase().compareTo(b.label.toLowerCase()) <= 0 ? a : b,
       );
@@ -128,21 +130,18 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
             : b.label.toLowerCase().compareTo(a.label.toLowerCase()),
       );
     final wide = MediaQuery.sizeOf(context).width > 800;
-    final classList = _ClassList(
-      classes: classes,
-      selectedClass: data.selectedClass,
-      selectedShape: data.selectedShape,
-      ascending: _classesAscending,
-      onToggleOrder: () =>
-          setState(() => _classesAscending = !_classesAscending),
-      onSelect: (item) => widget.onQueryChanged(
-        widget.query.copyWith(
-          entityClass: item.uri,
-          shape: item.shape,
-          resetShape: item.shape == null,
-          page: 1,
-        ),
+    void select(models.CatalogueClass item) => widget.onQueryChanged(
+      widget.query.copyWith(
+        entityClass: item.uri,
+        shape: item.shape,
+        resetShape: item.shape == null,
+        page: 1,
       ),
+    );
+    final selectedIndex = classes.indexWhere(
+      (item) =>
+          item.uri == data.selectedClass &&
+          (item.shape ?? '') == (data.selectedShape ?? ''),
     );
     final entities = _EntityList(
       data: data,
@@ -152,12 +151,30 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
       onQueryChanged: widget.onQueryChanged,
     );
     if (data.availableClasses.isEmpty) {
-      return Text(t.ui.catalogue.noClasses);
+      return Text(
+        widget.timeVault ? t.ui.timeVault.empty : t.ui.catalogue.noClasses,
+      );
     }
     if (!wide) {
       return ListView(
         children: [
-          classList,
+          DropdownButtonFormField<int>(
+            key: ValueKey(selectedIndex),
+            initialValue: selectedIndex < 0 ? null : selectedIndex,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: t.ui.catalogue.categories,
+              border: const OutlineInputBorder(),
+            ),
+            items: [
+              for (final (index, item) in classes.indexed)
+                DropdownMenuItem(
+                  value: index,
+                  child: Text('${item.label} (${item.count})'),
+                ),
+            ],
+            onChanged: (index) => select(classes[index!]),
+          ),
           const SizedBox(height: appSectionSpacing),
           entities,
         ],
@@ -166,7 +183,19 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 320, child: SingleChildScrollView(child: classList)),
+        SizedBox(
+          width: 320,
+          child: SingleChildScrollView(
+            child: _ClassList(
+              classes: classes,
+              selectedIndex: selectedIndex,
+              ascending: _classesAscending,
+              onToggleOrder: () =>
+                  setState(() => _classesAscending = !_classesAscending),
+              onSelect: select,
+            ),
+          ),
+        ),
         const SizedBox(width: appSectionSpacing),
         Expanded(child: SingleChildScrollView(child: entities)),
       ],
@@ -177,16 +206,14 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
 class _ClassList extends StatelessWidget {
   const _ClassList({
     required this.classes,
-    required this.selectedClass,
-    required this.selectedShape,
+    required this.selectedIndex,
     required this.ascending,
     required this.onToggleOrder,
     required this.onSelect,
   });
 
   final List<models.CatalogueClass> classes;
-  final String? selectedClass;
-  final String? selectedShape;
+  final int selectedIndex;
   final bool ascending;
   final VoidCallback onToggleOrder;
   final ValueChanged<models.CatalogueClass> onSelect;
@@ -219,12 +246,10 @@ class _ClassList extends StatelessWidget {
                 ),
               ],
             ),
-            for (final item in classes)
+            for (final (index, item) in classes.indexed)
               ListTile(
                 dense: true,
-                selected:
-                    item.uri == selectedClass &&
-                    (item.shape ?? '') == (selectedShape ?? ''),
+                selected: index == selectedIndex,
                 selectedTileColor: colorScheme.primaryContainer,
                 title: Text(item.label),
                 trailing: Text(item.count),
@@ -291,16 +316,18 @@ class _EntityList extends ConsumerWidget {
               ],
             ),
           ),
-        const SizedBox(height: appInputSpacing),
-        _PaginationControls(
-          currentPage: data.currentPage,
-          totalPages: data.totalPages,
-          perPage: data.perPage,
-          allowedPerPage: allowedPerPage,
-          onPageChanged: (page) => onQueryChanged(query.copyWith(page: page)),
-          onPerPageChanged: (perPage) =>
-              onQueryChanged(query.copyWith(perPage: perPage, page: 1)),
-        ),
+        if (data.entities.isNotEmpty) ...[
+          const SizedBox(height: appInputSpacing),
+          _PaginationControls(
+            currentPage: data.currentPage,
+            totalPages: data.totalPages,
+            perPage: data.perPage,
+            allowedPerPage: allowedPerPage,
+            onPageChanged: (page) => onQueryChanged(query.copyWith(page: page)),
+            onPerPageChanged: (perPage) =>
+                onQueryChanged(query.copyWith(perPage: perPage, page: 1)),
+          ),
+        ],
       ],
     );
   }
@@ -324,7 +351,7 @@ class _TimeVaultTile extends ConsumerWidget {
         children: [
           Text(deletion.type),
           Text(
-            t.ui.timeVault.deletedOn(time: deletion.time),
+            t.ui.timeVault.deletedOn(time: formatTimestamp(deletion.time)),
             style: textTheme.bodySmall,
           ),
           Row(
@@ -366,14 +393,14 @@ class _TimeVaultTile extends ConsumerWidget {
     if (!confirmed || !context.mounted) {
       return;
     }
-    await runWithProgress(
+    final ok = await runWithProgress(
       context,
       message: t.ui.timeVault.restoring,
       action: () => ref
           .read(historyRepositoryProvider)
           .restore(entity.uri, deletion.lastValidSnapshotTime),
     );
-    if (context.mounted) {
+    if (ok && context.mounted) {
       context.go(entityPath(entity.uri));
     }
   }
@@ -457,43 +484,57 @@ class _PaginationControls extends StatelessWidget {
       runSpacing: appInputSpacing,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text(t.ui.catalogue.perPage),
-        DropdownButton<int>(
-          value: allowedPerPage.contains(perPage)
-              ? perPage
-              : allowedPerPage.first,
-          items: [
-            for (final value in allowedPerPage)
-              DropdownMenuItem(value: value, child: Text('$value')),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(t.ui.catalogue.perPage),
+            const SizedBox(width: appInputSpacing),
+            DropdownButton<int>(
+              value: allowedPerPage.contains(perPage)
+                  ? perPage
+                  : allowedPerPage.first,
+              items: [
+                for (final value in allowedPerPage)
+                  DropdownMenuItem(value: value, child: Text('$value')),
+              ],
+              onChanged: (value) =>
+                  value == null ? null : onPerPageChanged(value),
+            ),
           ],
-          onChanged: (value) => value == null ? null : onPerPageChanged(value),
         ),
-        IconButton(
-          tooltip: t.ui.catalogue.firstPage,
-          onPressed: currentPage > 1 ? () => onPageChanged(1) : null,
-          icon: const Icon(Icons.first_page),
-        ),
-        IconButton(
-          tooltip: t.ui.catalogue.previousPage,
-          onPressed: currentPage > 1
-              ? () => onPageChanged(currentPage - 1)
-              : null,
-          icon: const Icon(Icons.chevron_left),
-        ),
-        Text(t.ui.catalogue.pageOf(current: currentPage, total: totalPages)),
-        IconButton(
-          tooltip: t.ui.catalogue.nextPage,
-          onPressed: currentPage < totalPages
-              ? () => onPageChanged(currentPage + 1)
-              : null,
-          icon: const Icon(Icons.chevron_right),
-        ),
-        IconButton(
-          tooltip: t.ui.catalogue.lastPage,
-          onPressed: currentPage < totalPages
-              ? () => onPageChanged(totalPages)
-              : null,
-          icon: const Icon(Icons.last_page),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: t.ui.catalogue.firstPage,
+              onPressed: currentPage > 1 ? () => onPageChanged(1) : null,
+              icon: const Icon(Icons.first_page),
+            ),
+            IconButton(
+              tooltip: t.ui.catalogue.previousPage,
+              onPressed: currentPage > 1
+                  ? () => onPageChanged(currentPage - 1)
+                  : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Text(
+              t.ui.catalogue.pageOf(current: currentPage, total: totalPages),
+            ),
+            IconButton(
+              tooltip: t.ui.catalogue.nextPage,
+              onPressed: currentPage < totalPages
+                  ? () => onPageChanged(currentPage + 1)
+                  : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+            IconButton(
+              tooltip: t.ui.catalogue.lastPage,
+              onPressed: currentPage < totalPages
+                  ? () => onPageChanged(totalPages)
+                  : null,
+              icon: const Icon(Icons.last_page),
+            ),
+          ],
         ),
       ],
     );

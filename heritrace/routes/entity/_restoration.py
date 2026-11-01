@@ -21,6 +21,7 @@ from heritrace.extensions import (
     get_dataset_endpoint,
     get_dataset_is_quadstore,
     get_provenance_endpoint,
+    record_dataset_change,
 )
 from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._types import _DATETIME_MIN_UTC, _QUAD_LENGTH
@@ -254,6 +255,7 @@ def restore_entity_version(entity_uri: str, timestamp_dt: datetime) -> None:
         editor.g_set.entity_index[entity_uri_ref]["source"] = source
 
     editor.save()
+    record_dataset_change()
 
 
 def compute_graph_differences(

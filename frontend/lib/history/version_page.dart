@@ -74,10 +74,7 @@ class _VersionBody extends ConsumerWidget {
           ),
           const SizedBox(height: appInputSpacing),
           Text(
-            t.ui.version.title(
-              number: version.versionNumber,
-              label: version.entityLabel,
-            ),
+            t.ui.version.title(number: version.versionNumber),
             style: textTheme.headlineMedium,
           ),
           const SizedBox(height: appSectionSpacing),

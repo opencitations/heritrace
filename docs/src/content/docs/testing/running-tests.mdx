@@ -33,9 +33,9 @@ Test databases start and stop automatically. A session-scoped pytest fixture (`d
 
 The test services and their host ports:
 
-- Dataset database (Virtuoso): port 41800
-- Provenance database (Virtuoso): port 41802
-- Redis: port 41804
+- Dataset database (Virtuoso): port 17800
+- Provenance database (Virtuoso): port 17802
+- Redis: port 17804
 
 ## Running tests
 
@@ -128,9 +128,9 @@ Tests use a separate configuration file:
 # tests/test_config.py
 class TestConfig(object):
     TESTING = True
-    DATASET_DB_URL = "http://localhost:41800/sparql"
-    PROVENANCE_DB_URL = "http://localhost:41802/sparql"
-    REDIS_URL = "redis://localhost:41804/0"
+    DATASET_DB_URL = "http://localhost:17800/sparql"
+    PROVENANCE_DB_URL = "http://localhost:17802/sparql"
+    REDIS_URL = "redis://localhost:17804/0"
     SECRET_KEY = "test-secret-key-for-testing-only"
     CACHE_VALIDITY_DAYS = 1
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from rdflib import Literal, URIRef
+from rdflib import XSD, Literal, URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from rdflib_ocdm.reader import Reader
@@ -29,6 +29,12 @@ class EndpointConfig:
 
 class EditorError(Exception):
     pass
+
+
+def _as_stored(value: Literal | URIRef) -> Literal | URIRef:
+    if isinstance(value, Literal) and value.datatype == XSD.string:
+        return Literal(str(value))
+    return value
 
 
 class Editor:
@@ -69,6 +75,7 @@ class Editor:
         value: Literal | URIRef,
         graph: URIRef | None = None,
     ) -> None:
+        value = _as_stored(value)
         if self.dataset_is_quadstore and graph:
             self.g_set.add(  # type: ignore[arg-type]
                 (subject, predicate, value, graph),  # type: ignore[arg-type]
@@ -90,6 +97,7 @@ class Editor:
         new_value: Literal | URIRef,
         graph: URIRef | None = None,
     ) -> None:
+        new_value = _as_stored(new_value)
         if self.dataset_is_quadstore and graph:
             if (subject, predicate, old_value, graph) not in self.g_set:  # type: ignore[operator]
                 msg = (

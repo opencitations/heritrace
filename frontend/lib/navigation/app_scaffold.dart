@@ -27,6 +27,24 @@ class AppScaffold extends ConsumerWidget {
     final session = sessionValue.value;
     final currentPath = GoRouterState.of(context).uri.path;
     final signedIn = session?.isSignedIn ?? false;
+    final compact = MediaQuery.sizeOf(context).width < appCompactWidth;
+    final destinations = [
+      (label: t.ui.nav.catalogue, path: cataloguePath),
+      (label: t.ui.nav.newRecord, path: createEntityPath),
+      (label: t.ui.nav.timeVault, path: timeVaultPath),
+    ];
+
+    Future<void> logout() async {
+      try {
+        await ref.read(sessionProvider.notifier).logout();
+      } on Exception catch (error) {
+        if (context.mounted) {
+          await showErrorDialog(context, error);
+        }
+        return;
+      }
+      navigateExternally(landingPath);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -42,41 +60,42 @@ class AppScaffold extends ConsumerWidget {
           ),
         ),
         actions: [
-          if (signedIn) ...[
-            _NavButton(
-              label: t.ui.nav.catalogue,
-              path: cataloguePath,
-              currentPath: currentPath,
-            ),
-            _NavButton(
-              label: t.ui.nav.newRecord,
-              path: createEntityPath,
-              currentPath: currentPath,
-            ),
-            _NavButton(
-              label: t.ui.nav.timeVault,
-              path: timeVaultPath,
-              currentPath: currentPath,
-            ),
-            TextButton(
-              onPressed: () async {
-                try {
-                  await ref.read(sessionProvider.notifier).logout();
-                } on Exception catch (error) {
-                  if (context.mounted) {
-                    await showErrorDialog(context, error);
-                  }
-                  return;
-                }
-                navigateExternally(landingPath);
-              },
-              child: Text(t.ui.nav.logout),
-            ),
-          ] else
+          if (!signedIn)
             TextButton(
               onPressed: () => navigateExternally(backendUrl(loginPath)),
               child: Text(t.ui.nav.login),
-            ),
+            )
+          else if (compact)
+            PopupMenuButton<VoidCallback>(
+              icon: const Icon(Icons.menu),
+              onSelected: (action) => action(),
+              itemBuilder: (context) => [
+                for (final destination in destinations)
+                  CheckedPopupMenuItem(
+                    checked: currentPath == destination.path,
+                    value: () => context.go(destination.path),
+                    child: Text(destination.label),
+                  ),
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: logout,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.logout),
+                    title: Text(t.ui.nav.logout),
+                  ),
+                ),
+              ],
+            )
+          else ...[
+            for (final destination in destinations)
+              _NavButton(
+                label: destination.label,
+                path: destination.path,
+                currentPath: currentPath,
+              ),
+            TextButton(onPressed: logout, child: Text(t.ui.nav.logout)),
+          ],
           const SizedBox(width: appInputSpacing),
         ],
       ),
@@ -84,7 +103,7 @@ class AppScaffold extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: appPageMaxWidth),
           child: Padding(
-            padding: const EdgeInsets.all(appPageMargin),
+            padding: EdgeInsets.all(compact ? appCardPadding : appPageMargin),
             child: AsyncView(
               value: sessionValue,
               onRetry: () => ref.invalidate(sessionProvider),

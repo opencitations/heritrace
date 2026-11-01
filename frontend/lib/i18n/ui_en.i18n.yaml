@@ -48,6 +48,7 @@ catalogue:
   nextPage: Next page
   lastPage: Last page
 timeVault:
+  empty: No deleted resources.
   deletedOn: Deleted on $time
   deletedBy: "Deleted by"
   viewLastVersion: View last version
@@ -139,13 +140,13 @@ lock:
 orphans:
   title: Warning
   orphansIntro: "The following resources will become orphaned (they will no longer be connected to any other resource in the dataset):"
-  proxiesIntro: "The following intermediate relationships (proxies) will also be removed:"
+  proxiesIntro: "The following intermediate relationships (proxies) link this resource to others:"
   question: Would you like to delete all these entities now?
   delete: Yes, delete affected entities
   keep: No, keep affected entities
 history:
   breadcrumb: History
-  title: Version history for $label
+  title: Version history
   snapshot: Snapshot $index
   since: From $start
   between: From $start to $end
@@ -160,7 +161,7 @@ history:
   restoring: Restoring this version. Please wait...
 version:
   breadcrumb: Version $number
-  title: Version $number of $label
+  title: Version $number
   restore: Restore this version
   previous: Previous version
   next: Next version

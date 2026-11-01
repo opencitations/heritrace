@@ -26,46 +26,53 @@ class ValidationSummary extends StatelessWidget {
     for (final error in scope.errors) {
       groups.putIfAbsent(error.path.join(' › '), () => []).add(error);
     }
+    // The summary sits outside the scrolling form, so that its changes never
+    // move the fields under the pointer.
     return Container(
-      margin: const EdgeInsets.only(bottom: appSectionSpacing),
-      padding: const EdgeInsets.all(appCardPadding),
+      margin: const EdgeInsets.only(top: appInputSpacing),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.3,
+      ),
       decoration: BoxDecoration(
         color: colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.ui.form.errorsTitle(count: scope.errors.length),
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(color: colorScheme.onErrorContainer),
-          ),
-          for (final entry in groups.entries) ...[
-            const SizedBox(height: appInputSpacing),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(appCardPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              entry.key,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onErrorContainer,
-              ),
+              t.ui.form.errorsTitle(count: scope.errors.length),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(color: colorScheme.onErrorContainer),
             ),
-            for (final error in entry.value)
-              error.item == null
-                  ? Text(
-                      error.fullMessage,
-                      style: TextStyle(color: colorScheme.onErrorContainer),
-                    )
-                  : TextButton(
-                      style: TextButton.styleFrom(
-                        foregroundColor: colorScheme.onErrorContainer,
-                        alignment: Alignment.centerLeft,
+            for (final entry in groups.entries) ...[
+              const SizedBox(height: appInputSpacing),
+              Text(
+                entry.key,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onErrorContainer,
+                ),
+              ),
+              for (final error in entry.value)
+                error.item == null
+                    ? Text(
+                        error.fullMessage,
+                        style: TextStyle(color: colorScheme.onErrorContainer),
+                      )
+                    : TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: colorScheme.onErrorContainer,
+                          alignment: Alignment.centerLeft,
+                        ),
+                        onPressed: () => focusItem(context, error.item!),
+                        child: Text(error.fullMessage),
                       ),
-                      onPressed: () => focusItem(context, error.item!),
-                      child: Text(error.fullMessage),
-                    ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

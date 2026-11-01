@@ -26,6 +26,7 @@ from heritrace.extensions import (
     get_classes_with_multiple_shapes,
     get_custom_filter,
     get_dataset_is_quadstore,
+    get_dataset_version,
     get_display_rules,
     get_provenance_sparql,
     get_shacl_graph,
@@ -44,7 +45,7 @@ from heritrace.utils.shacl_utils import (
 )
 from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
 
-_cache: dict[str, tuple[list[dict[str, str | int]], float] | None] = {
+_cache: dict[str, tuple[list[dict[str, str | int]], float, str | None] | None] = {
     "available_classes": None,
     "deleted_classes": None,
 }
@@ -328,12 +329,29 @@ def _get_classes_from_sparql() -> list[str]:
     return [r["class"]["value"] for r in class_bindings]
 
 
+def _cached_classes(key: str, version: str | None) -> list[dict[str, str | int]] | None:
+    """
+    Class counts are kept for a short time in each worker. Every save bumps a
+    dataset version shared through Redis, so a change made in any worker
+    refreshes the counts in all of them.
+    """
+    cached = _cache[key]
+    if cached is None:
+        return None
+    classes, computed_at, cached_version = cached
+    if (
+        cached_version == version
+        and time.monotonic() - computed_at < AVAILABLE_CLASSES_TTL_SECONDS
+    ):
+        return classes
+    return None
+
+
 def get_available_classes() -> list[dict[str, str | int]]:
-    cached = _cache["available_classes"]
+    version = get_dataset_version()
+    cached = _cached_classes("available_classes", version)
     if cached is not None:
-        available_classes, computed_at = cached
-        if time.monotonic() - computed_at < AVAILABLE_CLASSES_TTL_SECONDS:
-            return available_classes
+        return cached
 
     custom_filter = get_custom_filter()
     class_uris = _get_classes_from_config()
@@ -392,7 +410,7 @@ def get_available_classes() -> list[dict[str, str | int]]:
                 )
 
     available_classes.sort(key=lambda x: x["label"].lower())
-    _cache["available_classes"] = (available_classes, time.monotonic())
+    _cache["available_classes"] = (available_classes, time.monotonic(), version)
     return available_classes
 
 
@@ -885,11 +903,10 @@ def _count_deleted_class_instances(
 
 def get_deleted_available_classes() -> list[dict[str, str | int]]:
     """Count the deleted entities of every class the configuration displays."""
-    cached = _cache["deleted_classes"]
+    version = get_dataset_version()
+    cached = _cached_classes("deleted_classes", version)
     if cached is not None:
-        deleted_classes, computed_at = cached
-        if time.monotonic() - computed_at < AVAILABLE_CLASSES_TTL_SECONDS:
-            return deleted_classes
+        return cached
 
     custom_filter = get_custom_filter()
 
@@ -915,7 +932,7 @@ def get_deleted_available_classes() -> list[dict[str, str | int]]:
         )
 
     deleted_classes.sort(key=lambda x: str(x["label"]).lower())
-    _cache["deleted_classes"] = (deleted_classes, time.monotonic())
+    _cache["deleted_classes"] = (deleted_classes, time.monotonic(), version)
     return deleted_classes
 
 
@@ -937,12 +954,32 @@ def _referenced_uris(graph: Graph) -> set[str]:
     }
 
 
+def _deletion_update_queries(uris: set[str]) -> list[str]:
+    if not uris:
+        return []
+    values = " ".join(f"<{uri}>" for uri in uris)
+    deletion_pattern = _deletion_snapshots_pattern(None)
+    provenance_sparql = get_provenance_sparql()
+    provenance_sparql.setQuery(f"""
+        SELECT ?updateQuery
+        WHERE {{
+            VALUES ?entity {{ {values} }}
+            ?snapshot <{PROV}specializationOf> ?entity ;
+                      <{OCO_HAS_UPDATE_QUERY}> ?updateQuery .{deletion_pattern}
+        }}
+    """)
+    provenance_sparql.setReturnFormat(JSON)
+    bindings = get_sparql_bindings(provenance_sparql.query().convert())
+    return [binding["updateQuery"]["value"] for binding in bindings]
+
+
 def _expand_with_current_state(graph: Graph) -> None:
     """
     Add the entities the deleted ones point at, so that display rules reaching
-    into neighbours can still resolve a label. The neighbours are read from the
-    dataset at their current state: only the deleted entities themselves are
-    gone from it.
+    into neighbours can still resolve a label. Neighbours still in the dataset
+    are read at their current state; neighbours deleted as well, such as the
+    author roles removed together with a record, are read from their deletion
+    snapshot.
     """
     sparql = get_sparql()
     known = {str(subject) for subject in graph.subjects()}
@@ -971,6 +1008,10 @@ def _expand_with_current_state(graph: Graph) -> None:
                     _binding_to_node(binding["object"]),
                 )
             )
+        missing = frontier - {binding["subject"]["value"] for binding in bindings}
+        for update_query in _deletion_update_queries(missing):
+            for triple in parse_sparql_update(update_query)["Deletions"]:
+                graph.add(triple)
 
         known |= frontier
         frontier = _referenced_uris(graph) - known
@@ -1015,9 +1056,7 @@ def process_deleted_entities(bindings: list[dict]) -> list[dict[str, str]]:
                     binding["agent"]["value"] if "agent" in binding else None
                 ),
                 "lastValidSnapshotTime": binding["lastValidSnapshotTime"]["value"],
-                "type": custom_filter.human_readable_predicate(
-                    highest_priority_type, entity_key
-                ),
+                "type": custom_filter.human_readable_class(entity_key),
                 "label": custom_filter.human_readable_entity(
                     entity_uri, entity_key, state
                 ),

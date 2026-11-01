@@ -6,8 +6,8 @@ services:
   dataset-db:
     image: openlink/virtuoso-opensource-7:7.2.16
     ports:
-      - "41800:8890"
-      - "41801:1111"
+      - "17800:8890"
+      - "17801:1111"
     environment:
       DBA_PASSWORD: dba
       SPARQL_UPDATE: "true"
@@ -22,8 +22,8 @@ services:
   provenance-db:
     image: openlink/virtuoso-opensource-7:7.2.16
     ports:
-      - "41802:8890"
-      - "41803:1111"
+      - "17802:8890"
+      - "17803:1111"
     environment:
       DBA_PASSWORD: dba
       SPARQL_UPDATE: "true"
@@ -38,7 +38,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "41804:6379"
+      - "17804:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

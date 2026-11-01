@@ -814,101 +814,115 @@ rules:
           SELECT ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?proceedingsTitle
                 (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
-            [[uri]] a fabio:Expression .
-            OPTIONAL { 
-              [[uri]] a ?specificType .
-              FILTER(?specificType != fabio:Expression)
-            }
-            BIND(COALESCE(?specificType, fabio:Expression) AS ?entityType)
+            {
+              SELECT * WHERE {
+                [[uri]] a fabio:Expression .
+                OPTIONAL { 
+                  [[uri]] a ?specificType .
+                  FILTER(?specificType != fabio:Expression)
+                }
+                BIND(COALESCE(?specificType, fabio:Expression) AS ?entityType)
             
-            OPTIONAL { [[uri]] dcterms:title ?title . }
+                OPTIONAL { [[uri]] dcterms:title ?title . }
             
-            # Authors (not applicable for Journal, Volume, Issue)
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?authorRole .
-              ?authorRole pro:withRole pro:author ;
-                          pro:isHeldBy ?author .
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:name ?candidateAuthorName .
-              }
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:familyName ?familyName .
+                # Authors (not applicable for Journal, Volume, Issue)
                 OPTIONAL {
                   [[uri]] pro:isDocumentContextFor ?authorRole .
                   ?authorRole pro:withRole pro:author ;
                               pro:isHeldBy ?author .
-                  ?author foaf:givenName ?givenName .
+                  {
+                    SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                      ?authorRole pro:withRole pro:author .
+                      ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                    }
+                    GROUP BY ?authorRole
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:name ?candidateAuthorName .
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:familyName ?familyName .
+                    OPTIONAL {
+                      [[uri]] pro:isDocumentContextFor ?authorRole .
+                      ?authorRole pro:withRole pro:author ;
+                                  pro:isHeldBy ?author .
+                      ?author foaf:givenName ?givenName .
+                    }
+                    BIND(CONCAT(?familyName, COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")) AS ?candidateAuthorName)
+                  }
                 }
-                BIND(CONCAT(?familyName, COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")) AS ?candidateAuthorName)
-              }
-            }
-            BIND(IF(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue), ?candidateAuthorName, ?unboundAuthorName) AS ?authorName)
+                BIND(IF(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue), ?candidateAuthorName, ?unboundAuthorName) AS ?authorName)
 
-            # Publication Date
-            OPTIONAL {
-              [[uri]] prism:publicationDate ?pubDateRaw . 
-              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, STR(?pubDateRaw),
-                  IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), SUBSTR(STR(?pubDateRaw), 1, 4),
-                  STR(?pubDateRaw))) AS ?pubDate)
-            }
+                # Publication Date
+                OPTIONAL {
+                  [[uri]] prism:publicationDate ?pubDateRaw . 
+                  BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, STR(?pubDateRaw),
+                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), SUBSTR(STR(?pubDateRaw), 1, 4),
+                      STR(?pubDateRaw))) AS ?pubDate)
+                }
             
-            # Journal Article, Volume, and Issue specific info
-            OPTIONAL {
-              {
-                [[uri]] frbr:partOf ?journal .
-                ?journal a fabio:Journal ;
-                        dcterms:title ?journalTitle .
+                # Journal Article, Volume, and Issue specific info
+                OPTIONAL {
+                  {
+                    [[uri]] frbr:partOf ?journal .
+                    ?journal a fabio:Journal ;
+                            dcterms:title ?journalTitle .
+                  }
+                  UNION
+                  {
+                    [[uri]] frbr:partOf ?volume .
+                    ?volume a fabio:JournalVolume ;
+                            fabio:hasSequenceIdentifier ?volumeNumber ;
+                            frbr:partOf ?journal .
+                    ?journal a fabio:Journal ;
+                            dcterms:title ?journalTitle .
+                  }
+                  UNION
+                  {
+                    [[uri]] frbr:partOf ?issue .
+                    ?issue a fabio:JournalIssue ;
+                          fabio:hasSequenceIdentifier ?issueNumber ;
+                          frbr:partOf ?volume .
+                    ?volume a fabio:JournalVolume ;
+                            fabio:hasSequenceIdentifier ?volumeNumber ;
+                            frbr:partOf ?journal .
+                    ?journal a fabio:Journal ;
+                            dcterms:title ?journalTitle .
+                  }
+                }
+            
+                # Book Chapter specific info
+                OPTIONAL {
+                  [[uri]] frbr:partOf ?book .
+                  ?book a fabio:Book ;
+                        dcterms:title ?candidateBookTitle .
+                }
+                BIND(IF(?entityType IN (fabio:BookChapter, fabio:Expression), ?candidateBookTitle, ?unboundBookTitle) AS ?bookTitle)
+            
+                # Proceedings Paper specific info
+                OPTIONAL {
+                  [[uri]] frbr:partOf ?proceedings .
+                  ?proceedings a fabio:AcademicProceedings ;
+                              dcterms:title ?candidateProceedingsTitle .
+                }
+                BIND(IF(?entityType IN (fabio:ProceedingsPaper, fabio:Expression), ?candidateProceedingsTitle, ?unboundProceedingsTitle) AS ?proceedingsTitle)
+            
+                # Page information
+                OPTIONAL {
+                  [[uri]] frbr:embodiment ?embodiment .
+                  OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+                  OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+                }
               }
-              UNION
-              {
-                [[uri]] frbr:partOf ?volume .
-                ?volume a fabio:JournalVolume ;
-                        fabio:hasSequenceIdentifier ?volumeNumber ;
-                        frbr:partOf ?journal .
-                ?journal a fabio:Journal ;
-                        dcterms:title ?journalTitle .
-              }
-              UNION
-              {
-                [[uri]] frbr:partOf ?issue .
-                ?issue a fabio:JournalIssue ;
-                      fabio:hasSequenceIdentifier ?issueNumber ;
-                      frbr:partOf ?volume .
-                ?volume a fabio:JournalVolume ;
-                        fabio:hasSequenceIdentifier ?volumeNumber ;
-                        frbr:partOf ?journal .
-                ?journal a fabio:Journal ;
-                        dcterms:title ?journalTitle .
-              }
-            }
-            
-            # Book Chapter specific info
-            OPTIONAL {
-              [[uri]] frbr:partOf ?book .
-              ?book a fabio:Book ;
-                    dcterms:title ?candidateBookTitle .
-            }
-            BIND(IF(?entityType IN (fabio:BookChapter, fabio:Expression), ?candidateBookTitle, ?unboundBookTitle) AS ?bookTitle)
-            
-            # Proceedings Paper specific info
-            OPTIONAL {
-              [[uri]] frbr:partOf ?proceedings .
-              ?proceedings a fabio:AcademicProceedings ;
-                          dcterms:title ?candidateProceedingsTitle .
-            }
-            BIND(IF(?entityType IN (fabio:ProceedingsPaper, fabio:Expression), ?candidateProceedingsTitle, ?unboundProceedingsTitle) AS ?proceedingsTitle)
-            
-            # Page information
-            OPTIONAL {
-              [[uri]] frbr:embodiment ?embodiment .
-              OPTIONAL { ?embodiment prism:startingPage ?startPage . }
-              OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+              ORDER BY ?authorPosition
             }
           }
           GROUP BY ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?proceedingsTitle
@@ -1010,83 +1024,106 @@ rules:
                 (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
                 (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
           WHERE {
-            [[uri]] a fabio:Book .
-            OPTIONAL { [[uri]] dcterms:title ?title . }
+            {
+              SELECT * WHERE {
+                [[uri]] a fabio:Book .
+                OPTIONAL { [[uri]] dcterms:title ?title . }
             
-            # Get author information
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?authorRole .
-              ?authorRole pro:withRole pro:author ;
-                          pro:isHeldBy ?author .
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:name ?authorName .
-              }
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:familyName ?familyName .
+                # Get author information
                 OPTIONAL {
                   [[uri]] pro:isDocumentContextFor ?authorRole .
                   ?authorRole pro:withRole pro:author ;
                               pro:isHeldBy ?author .
-                  ?author foaf:givenName ?givenName .
+                  {
+                    SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                      ?authorRole pro:withRole pro:author .
+                      ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                    }
+                    GROUP BY ?authorRole
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:name ?authorName .
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:familyName ?familyName .
+                    OPTIONAL {
+                      [[uri]] pro:isDocumentContextFor ?authorRole .
+                      ?authorRole pro:withRole pro:author ;
+                                  pro:isHeldBy ?author .
+                      ?author foaf:givenName ?givenName .
+                    }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?authorName)
+                  }
                 }
-                BIND(CONCAT(
-                  ?familyName,
-                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-                ) AS ?authorName)
-              }
-            }
 
-            # Get editor information
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?editorRole .
-              ?editorRole pro:withRole pro:editor ;
-                          pro:isHeldBy ?editor .
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?editorRole .
-                ?editorRole pro:withRole pro:editor ;
-                            pro:isHeldBy ?editor .
-                ?editor foaf:name ?editorName .
-              }
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?editorRole .
-                ?editorRole pro:withRole pro:editor ;
-                            pro:isHeldBy ?editor .
-                ?editor foaf:familyName ?familyName .
+                # Get editor information
                 OPTIONAL {
                   [[uri]] pro:isDocumentContextFor ?editorRole .
                   ?editorRole pro:withRole pro:editor ;
                               pro:isHeldBy ?editor .
-                  ?editor foaf:givenName ?givenName .
+                  {
+                    SELECT ?editorRole (COUNT(?previousEditorRole) AS ?editorPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?editorRole, ?previousEditorRole .
+                      ?editorRole pro:withRole pro:editor .
+                      ?previousEditorRole <https://w3id.org/oc/ontology/hasNext>* ?editorRole .
+                    }
+                    GROUP BY ?editorRole
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?editorRole .
+                    ?editorRole pro:withRole pro:editor ;
+                                pro:isHeldBy ?editor .
+                    ?editor foaf:name ?editorName .
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?editorRole .
+                    ?editorRole pro:withRole pro:editor ;
+                                pro:isHeldBy ?editor .
+                    ?editor foaf:familyName ?familyName .
+                    OPTIONAL {
+                      [[uri]] pro:isDocumentContextFor ?editorRole .
+                      ?editorRole pro:withRole pro:editor ;
+                                  pro:isHeldBy ?editor .
+                      ?editor foaf:givenName ?givenName .
+                    }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?editorName)
+                  }
                 }
-                BIND(CONCAT(
-                  ?familyName,
-                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-                ) AS ?editorName)
+            
+                # Get publication date
+                OPTIONAL {
+                  [[uri]] prism:publicationDate ?pubDateRaw . 
+                  BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                          STR(?pubDateRaw),
+                          IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                            SUBSTR(STR(?pubDateRaw), 1, 4),
+                            STR(?pubDateRaw))) AS ?pubDate)
+                }
+            
+                # Get publisher information
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?publisherRole .
+                  ?publisherRole pro:withRole pro:publisher ;
+                                pro:isHeldBy ?publisherAgent .
+                  ?publisherAgent foaf:name ?publisher .
+                }
               }
-            }
-            
-            # Get publication date
-            OPTIONAL {
-              [[uri]] prism:publicationDate ?pubDateRaw . 
-              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
-                      STR(?pubDateRaw),
-                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
-                        SUBSTR(STR(?pubDateRaw), 1, 4),
-                        STR(?pubDateRaw))) AS ?pubDate)
-            }
-            
-            # Get publisher information
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?publisherRole .
-              ?publisherRole pro:withRole pro:publisher ;
-                            pro:isHeldBy ?publisherAgent .
-              ?publisherAgent foaf:name ?publisher .
+              ORDER BY ?authorPosition ?editorPosition
             }
           }
           GROUP BY ?title ?pubDate ?publisher
@@ -1151,57 +1188,71 @@ rules:
           SELECT ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
                 (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
-            [[uri]] a fabio:JournalArticle .
-            OPTIONAL { [[uri]] dcterms:title ?title . }
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?authorRole .
-              ?authorRole pro:withRole pro:author ;
-                          pro:isHeldBy ?author .
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:name ?authorName .
-              }
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:familyName ?familyName .
+            {
+              SELECT * WHERE {
+                [[uri]] a fabio:JournalArticle .
+                OPTIONAL { [[uri]] dcterms:title ?title . }
                 OPTIONAL {
                   [[uri]] pro:isDocumentContextFor ?authorRole .
                   ?authorRole pro:withRole pro:author ;
                               pro:isHeldBy ?author .
-                  ?author foaf:givenName ?givenName .
+                  {
+                    SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                      ?authorRole pro:withRole pro:author .
+                      ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                    }
+                    GROUP BY ?authorRole
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:name ?authorName .
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:familyName ?familyName .
+                    OPTIONAL {
+                      [[uri]] pro:isDocumentContextFor ?authorRole .
+                      ?authorRole pro:withRole pro:author ;
+                                  pro:isHeldBy ?author .
+                      ?author foaf:givenName ?givenName .
+                    }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?authorName)
+                  }
                 }
-                BIND(CONCAT(
-                  ?familyName,
-                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-                ) AS ?authorName)
+                OPTIONAL {
+                  [[uri]] prism:publicationDate ?pubDateRaw . 
+                  BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                          STR(?pubDateRaw),
+                          IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                            SUBSTR(STR(?pubDateRaw), 1, 4),
+                            STR(?pubDateRaw))) AS ?pubDate)
+                }
+                OPTIONAL {
+                  [[uri]] frbr:partOf ?issue .
+                  ?issue a fabio:JournalIssue ;
+                        frbr:partOf ?volume .
+                  ?volume a fabio:JournalVolume ;
+                          fabio:hasSequenceIdentifier ?volumeNumber ;
+                          frbr:partOf ?journal .
+                  ?journal dcterms:title ?journalTitle .
+                  OPTIONAL { ?issue fabio:hasSequenceIdentifier ?issueNumber . }
+                }
+                OPTIONAL {
+                  [[uri]] frbr:embodiment ?embodiment .
+                  OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+                  OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+                }
               }
-            }
-            OPTIONAL {
-              [[uri]] prism:publicationDate ?pubDateRaw . 
-              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
-                      STR(?pubDateRaw),
-                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
-                        SUBSTR(STR(?pubDateRaw), 1, 4),
-                        STR(?pubDateRaw))) AS ?pubDate)
-            }
-            OPTIONAL {
-              [[uri]] frbr:partOf ?issue .
-              ?issue a fabio:JournalIssue ;
-                    frbr:partOf ?volume .
-              ?volume a fabio:JournalVolume ;
-                      fabio:hasSequenceIdentifier ?volumeNumber ;
-                      frbr:partOf ?journal .
-              ?journal dcterms:title ?journalTitle .
-              OPTIONAL { ?issue fabio:hasSequenceIdentifier ?issueNumber . }
-            }
-            OPTIONAL {
-              [[uri]] frbr:embodiment ?embodiment .
-              OPTIONAL { ?embodiment prism:startingPage ?startPage . }
-              OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+              ORDER BY ?authorPosition
             }
           }
           GROUP BY ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
@@ -1388,47 +1439,61 @@ rules:
           SELECT ?title ?pubDate ?proceedingsTitle
                 (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
           WHERE {
-            [[uri]] a fabio:ProceedingsPaper .
-            OPTIONAL { [[uri]] dcterms:title ?title . }
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?authorRole .
-              ?authorRole pro:withRole pro:author ;
-                          pro:isHeldBy ?author .
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:name ?authorName .
-              }
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:familyName ?familyName .
+            {
+              SELECT * WHERE {
+                [[uri]] a fabio:ProceedingsPaper .
+                OPTIONAL { [[uri]] dcterms:title ?title . }
                 OPTIONAL {
                   [[uri]] pro:isDocumentContextFor ?authorRole .
                   ?authorRole pro:withRole pro:author ;
                               pro:isHeldBy ?author .
-                  ?author foaf:givenName ?givenName .
+                  {
+                    SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                      ?authorRole pro:withRole pro:author .
+                      ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                    }
+                    GROUP BY ?authorRole
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:name ?authorName .
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:familyName ?familyName .
+                    OPTIONAL {
+                      [[uri]] pro:isDocumentContextFor ?authorRole .
+                      ?authorRole pro:withRole pro:author ;
+                                  pro:isHeldBy ?author .
+                      ?author foaf:givenName ?givenName .
+                    }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?authorName)
+                  }
                 }
-                BIND(CONCAT(
-                  ?familyName,
-                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-                ) AS ?authorName)
+                OPTIONAL {
+                  [[uri]] prism:publicationDate ?pubDateRaw . 
+                  BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                          STR(?pubDateRaw),
+                          IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                            SUBSTR(STR(?pubDateRaw), 1, 4),
+                            STR(?pubDateRaw))) AS ?pubDate)
+                }
+                OPTIONAL {
+                  [[uri]] frbr:partOf ?proceedings .
+                  ?proceedings a fabio:AcademicProceedings ;
+                              dcterms:title ?proceedingsTitle .
+                }
               }
-            }
-            OPTIONAL {
-              [[uri]] prism:publicationDate ?pubDateRaw . 
-              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
-                      STR(?pubDateRaw),
-                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
-                        SUBSTR(STR(?pubDateRaw), 1, 4),
-                        STR(?pubDateRaw))) AS ?pubDate)
-            }
-            OPTIONAL {
-              [[uri]] frbr:partOf ?proceedings .
-              ?proceedings a fabio:AcademicProceedings ;
-                          dcterms:title ?proceedingsTitle .
+              ORDER BY ?authorPosition
             }
           }
           GROUP BY ?title ?pubDate ?proceedingsTitle
@@ -1493,30 +1558,44 @@ rules:
         OPTIONAL {
           SELECT (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
           WHERE {
-            [[uri]] pro:isDocumentContextFor ?editorRole .
-            ?editorRole pro:withRole pro:editor ;
-                        pro:isHeldBy ?editor .
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?editorRole .
-              ?editorRole pro:withRole pro:editor ;
-                          pro:isHeldBy ?editor .
-              ?editor foaf:name ?editorName .
-            }
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?editorRole .
-              ?editorRole pro:withRole pro:editor ;
-                          pro:isHeldBy ?editor .
-              ?editor foaf:familyName ?familyName .
-              OPTIONAL {
+            {
+              SELECT * WHERE {
                 [[uri]] pro:isDocumentContextFor ?editorRole .
                 ?editorRole pro:withRole pro:editor ;
                             pro:isHeldBy ?editor .
-                ?editor foaf:givenName ?givenName .
+                {
+                  SELECT ?editorRole (COUNT(?previousEditorRole) AS ?editorPosition)
+                  WHERE {
+                    [[uri]] pro:isDocumentContextFor ?editorRole, ?previousEditorRole .
+                    ?editorRole pro:withRole pro:editor .
+                    ?previousEditorRole <https://w3id.org/oc/ontology/hasNext>* ?editorRole .
+                  }
+                  GROUP BY ?editorRole
+                }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?editorRole .
+                  ?editorRole pro:withRole pro:editor ;
+                              pro:isHeldBy ?editor .
+                  ?editor foaf:name ?editorName .
+                }
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?editorRole .
+                  ?editorRole pro:withRole pro:editor ;
+                              pro:isHeldBy ?editor .
+                  ?editor foaf:familyName ?familyName .
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?editorRole .
+                    ?editorRole pro:withRole pro:editor ;
+                                pro:isHeldBy ?editor .
+                    ?editor foaf:givenName ?givenName .
+                  }
+                  BIND(CONCAT(
+                    ?familyName,
+                    COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                  ) AS ?editorName)
+                }
               }
-              BIND(CONCAT(
-                ?familyName,
-                COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-              ) AS ?editorName)
+              ORDER BY ?editorPosition
             }
           }
         }
@@ -1558,83 +1637,106 @@ rules:
                 (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
                 (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
           WHERE {
-            [[uri]] a fabio:ReferenceBook .
-            OPTIONAL { [[uri]] dcterms:title ?title . }
+            {
+              SELECT * WHERE {
+                [[uri]] a fabio:ReferenceBook .
+                OPTIONAL { [[uri]] dcterms:title ?title . }
             
-            # Get author information
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?authorRole .
-              ?authorRole pro:withRole pro:author ;
-                          pro:isHeldBy ?author .
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:name ?authorName .
-              }
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:familyName ?familyName .
+                # Get author information
                 OPTIONAL {
                   [[uri]] pro:isDocumentContextFor ?authorRole .
                   ?authorRole pro:withRole pro:author ;
                               pro:isHeldBy ?author .
-                  ?author foaf:givenName ?givenName .
+                  {
+                    SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                      ?authorRole pro:withRole pro:author .
+                      ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                    }
+                    GROUP BY ?authorRole
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:name ?authorName .
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:familyName ?familyName .
+                    OPTIONAL {
+                      [[uri]] pro:isDocumentContextFor ?authorRole .
+                      ?authorRole pro:withRole pro:author ;
+                                  pro:isHeldBy ?author .
+                      ?author foaf:givenName ?givenName .
+                    }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?authorName)
+                  }
                 }
-                BIND(CONCAT(
-                  ?familyName,
-                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-                ) AS ?authorName)
-              }
-            }
 
-            # Get editor information
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?editorRole .
-              ?editorRole pro:withRole pro:editor ;
-                          pro:isHeldBy ?editor .
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?editorRole .
-                ?editorRole pro:withRole pro:editor ;
-                            pro:isHeldBy ?editor .
-                ?editor foaf:name ?editorName .
-              }
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?editorRole .
-                ?editorRole pro:withRole pro:editor ;
-                            pro:isHeldBy ?editor .
-                ?editor foaf:familyName ?familyName .
+                # Get editor information
                 OPTIONAL {
                   [[uri]] pro:isDocumentContextFor ?editorRole .
                   ?editorRole pro:withRole pro:editor ;
                               pro:isHeldBy ?editor .
-                  ?editor foaf:givenName ?givenName .
+                  {
+                    SELECT ?editorRole (COUNT(?previousEditorRole) AS ?editorPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?editorRole, ?previousEditorRole .
+                      ?editorRole pro:withRole pro:editor .
+                      ?previousEditorRole <https://w3id.org/oc/ontology/hasNext>* ?editorRole .
+                    }
+                    GROUP BY ?editorRole
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?editorRole .
+                    ?editorRole pro:withRole pro:editor ;
+                                pro:isHeldBy ?editor .
+                    ?editor foaf:name ?editorName .
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?editorRole .
+                    ?editorRole pro:withRole pro:editor ;
+                                pro:isHeldBy ?editor .
+                    ?editor foaf:familyName ?familyName .
+                    OPTIONAL {
+                      [[uri]] pro:isDocumentContextFor ?editorRole .
+                      ?editorRole pro:withRole pro:editor ;
+                                  pro:isHeldBy ?editor .
+                      ?editor foaf:givenName ?givenName .
+                    }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?editorName)
+                  }
                 }
-                BIND(CONCAT(
-                  ?familyName,
-                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-                ) AS ?editorName)
+            
+                # Get publication date
+                OPTIONAL {
+                  [[uri]] prism:publicationDate ?pubDateRaw . 
+                  BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                          STR(?pubDateRaw),
+                          IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                            SUBSTR(STR(?pubDateRaw), 1, 4),
+                            STR(?pubDateRaw))) AS ?pubDate)
+                }
+            
+                # Get publisher information
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?publisherRole .
+                  ?publisherRole pro:withRole pro:publisher ;
+                                pro:isHeldBy ?publisherAgent .
+                  ?publisherAgent foaf:name ?publisher .
+                }
               }
-            }
-            
-            # Get publication date
-            OPTIONAL {
-              [[uri]] prism:publicationDate ?pubDateRaw . 
-              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
-                      STR(?pubDateRaw),
-                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
-                        SUBSTR(STR(?pubDateRaw), 1, 4),
-                        STR(?pubDateRaw))) AS ?pubDate)
-            }
-            
-            # Get publisher information
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?publisherRole .
-              ?publisherRole pro:withRole pro:publisher ;
-                            pro:isHeldBy ?publisherAgent .
-              ?publisherAgent foaf:name ?publisher .
+              ORDER BY ?authorPosition ?editorPosition
             }
           }
           GROUP BY ?title ?pubDate ?publisher ?edition
@@ -1687,54 +1789,77 @@ rules:
                 (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
                 (GROUP_CONCAT(?publisherName; SEPARATOR = ", ") AS ?publisherList)
           WHERE {
-            [[uri]] a fabio:Thesis .
-            OPTIONAL { [[uri]] dcterms:title ?title . }
+            {
+              SELECT * WHERE {
+                [[uri]] a fabio:Thesis .
+                OPTIONAL { [[uri]] dcterms:title ?title . }
             
-            # Get author information
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?authorRole .
-              ?authorRole pro:withRole pro:author ;
-                          pro:isHeldBy ?author .
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:name ?authorName .
-              }
-              OPTIONAL {
-                [[uri]] pro:isDocumentContextFor ?authorRole .
-                ?authorRole pro:withRole pro:author ;
-                            pro:isHeldBy ?author .
-                ?author foaf:familyName ?familyName .
+                # Get author information
                 OPTIONAL {
                   [[uri]] pro:isDocumentContextFor ?authorRole .
                   ?authorRole pro:withRole pro:author ;
                               pro:isHeldBy ?author .
-                  ?author foaf:givenName ?givenName .
+                  {
+                    SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                      ?authorRole pro:withRole pro:author .
+                      ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                    }
+                    GROUP BY ?authorRole
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:name ?authorName .
+                  }
+                  OPTIONAL {
+                    [[uri]] pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    ?author foaf:familyName ?familyName .
+                    OPTIONAL {
+                      [[uri]] pro:isDocumentContextFor ?authorRole .
+                      ?authorRole pro:withRole pro:author ;
+                                  pro:isHeldBy ?author .
+                      ?author foaf:givenName ?givenName .
+                    }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?authorName)
+                  }
                 }
-                BIND(CONCAT(
-                  ?familyName,
-                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-                ) AS ?authorName)
+            
+                # Get publication date
+                OPTIONAL {
+                  [[uri]] prism:publicationDate ?pubDateRaw . 
+                  BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                          STR(?pubDateRaw),
+                          IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                            SUBSTR(STR(?pubDateRaw), 1, 4),
+                            STR(?pubDateRaw))) AS ?pubDate)
+                }
+            
+                # Get publisher/institution information
+                OPTIONAL {
+                  [[uri]] pro:isDocumentContextFor ?publisherRole .
+                  ?publisherRole pro:withRole pro:publisher ;
+                                pro:isHeldBy ?publisher .
+                  {
+                    SELECT ?publisherRole (COUNT(?previousPublisherRole) AS ?publisherPosition)
+                    WHERE {
+                      [[uri]] pro:isDocumentContextFor ?publisherRole, ?previousPublisherRole .
+                      ?publisherRole pro:withRole pro:publisher .
+                      ?previousPublisherRole <https://w3id.org/oc/ontology/hasNext>* ?publisherRole .
+                    }
+                    GROUP BY ?publisherRole
+                  }
+                  ?publisher foaf:name ?publisherName .
+                }
               }
-            }
-            
-            # Get publication date
-            OPTIONAL {
-              [[uri]] prism:publicationDate ?pubDateRaw . 
-              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
-                      STR(?pubDateRaw),
-                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
-                        SUBSTR(STR(?pubDateRaw), 1, 4),
-                        STR(?pubDateRaw))) AS ?pubDate)
-            }
-            
-            # Get publisher/institution information
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?publisherRole .
-              ?publisherRole pro:withRole pro:publisher ;
-                            pro:isHeldBy ?publisher .
-              ?publisher foaf:name ?publisherName .
+              ORDER BY ?authorPosition ?publisherPosition
             }
           }
           GROUP BY ?title ?pubDate

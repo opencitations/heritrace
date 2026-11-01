@@ -11,9 +11,14 @@ import 'item_widgets.dart';
 import 'nested_dialog.dart';
 
 class FieldGroupWidget extends StatelessWidget {
-  const FieldGroupWidget({required this.group, super.key});
+  const FieldGroupWidget({
+    required this.group,
+    this.showHeading = true,
+    super.key,
+  });
 
   final FieldGroup group;
+  final bool showHeading;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +58,12 @@ class FieldGroupWidget extends StatelessWidget {
                 Padding(
                   key: ObjectKey(item),
                   padding: const EdgeInsets.only(bottom: appInputSpacing),
-                  child: _ItemCard(group: group, item: item, index: index),
+                  child: _ItemCard(
+                    group: group,
+                    item: item,
+                    index: index,
+                    showHeading: showHeading,
+                  ),
                 ),
             if (group.canAdd)
               Align(
@@ -85,12 +95,14 @@ class _ItemCard extends StatelessWidget {
     required this.item,
     required this.index,
     this.dragHandle,
+    this.showHeading = true,
   });
 
   final FieldGroup group;
   final FormItem item;
   final int index;
   final Widget? dragHandle;
+  final bool showHeading;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +113,9 @@ class _ItemCard extends StatelessWidget {
     final label = dragHandle == null
         ? def.displayName
         : '${def.displayName} ${index + 1}';
+    if (!showHeading) {
+      return ItemWidget(item: item);
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

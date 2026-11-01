@@ -184,66 +184,75 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
     final canSubmit = !session.config.shacl || _root != null;
     return FormScope(
       notifier: _scope,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              t.ui.create.title,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: appSectionSpacing),
-            const ValidationSummary(),
-            if (session.config.shacl)
-              AsyncView(
-                value: types,
-                onRetry: () => ref.invalidate(entityTypesProvider),
-                builder: (options) {
-                  if (_selectedType == null && options.isNotEmpty) {
-                    WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => _selectType(options.first),
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      DropdownButtonFormField<EntityTypeOption>(
-                        initialValue: _selectedType,
-                        decoration: InputDecoration(
-                          border: const OutlineInputBorder(),
-                          labelText: t.ui.create.selectType,
-                        ),
-                        items: [
-                          for (final option in options)
-                            DropdownMenuItem(
-                              value: option,
-                              child: Text(option.label),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    t.ui.create.title,
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: appSectionSpacing),
+                  if (session.config.shacl)
+                    AsyncView(
+                      value: types,
+                      onRetry: () => ref.invalidate(entityTypesProvider),
+                      builder: (options) {
+                        if (_selectedType == null && options.isNotEmpty) {
+                          WidgetsBinding.instance.addPostFrameCallback(
+                            (_) => _selectType(options.first),
+                          );
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            DropdownButtonFormField<EntityTypeOption>(
+                              initialValue: _selectedType,
+                              decoration: InputDecoration(
+                                border: const OutlineInputBorder(),
+                                labelText: t.ui.create.selectType,
+                              ),
+                              items: [
+                                for (final option in options)
+                                  DropdownMenuItem(
+                                    value: option,
+                                    child: Text(option.label),
+                                  ),
+                              ],
+                              onChanged: (option) =>
+                                  option == null ? null : _selectType(option),
                             ),
-                        ],
-                        onChanged: (option) =>
-                            option == null ? null : _selectType(option),
-                      ),
-                      const SizedBox(height: appSectionSpacing),
-                      if (_loadingForm)
-                        const Center(child: CircularProgressIndicator())
-                      else if (_formError != null)
-                        ErrorView(
-                          error: _formError!,
-                          onRetry: () => _selectType(_selectedType!),
-                        )
-                      else if (_root != null)
-                        EntityForm(node: _root!),
-                    ],
-                  );
-                },
-              )
-            else
-              CustomPropertiesForm(
-                controller: _custom,
-                datatypeOptions: session.config.datatypeOptions,
+                            const SizedBox(height: appSectionSpacing),
+                            if (_loadingForm)
+                              const Center(child: CircularProgressIndicator())
+                            else if (_formError != null)
+                              ErrorView(
+                                error: _formError!,
+                                onRetry: () => _selectType(_selectedType!),
+                              )
+                            else if (_root != null)
+                              EntityForm(node: _root!),
+                          ],
+                        );
+                      },
+                    )
+                  else
+                    CustomPropertiesForm(
+                      controller: _custom,
+                      datatypeOptions: session.config.datatypeOptions,
+                    ),
+                ],
               ),
-            const SizedBox(height: appSectionSpacing),
-            Align(
+            ),
+          ),
+          const ValidationSummary(),
+          Padding(
+            padding: const EdgeInsets.only(top: appInputSpacing),
+            child: Align(
               alignment: Alignment.centerLeft,
               child: FilledButton.icon(
                 onPressed: canSubmit ? _submit : null,
@@ -251,8 +260,8 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
                 label: Text(t.ui.create.submit),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

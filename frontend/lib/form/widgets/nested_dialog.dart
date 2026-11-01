@@ -181,7 +181,11 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
           const Divider(height: 1),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(appPageMargin),
+              padding: EdgeInsets.all(
+                MediaQuery.sizeOf(context).width < appCompactWidth
+                    ? appCardPadding
+                    : appPageMargin,
+              ),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: appPageMaxWidth),

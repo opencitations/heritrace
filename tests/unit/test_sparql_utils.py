@@ -67,6 +67,14 @@ def mock_custom_filter():
         yield mock_filter
 
 
+@pytest.fixture(autouse=True)
+def dataset_version():
+    with patch(
+        "heritrace.utils.sparql_utils.get_dataset_version", return_value="1"
+    ) as mock_version:
+        yield mock_version
+
+
 @pytest.fixture
 def mock_display_rules():
     """Mock display rules for testing."""
@@ -275,7 +283,7 @@ class TestGetAvailableClasses:
         with (
             patch.dict(
                 "heritrace.utils.sparql_utils._cache",
-                {"available_classes": (cached_classes, time.monotonic())},
+                {"available_classes": (cached_classes, time.monotonic(), "1")},
             ),
             patch("heritrace.utils.sparql_utils._count_class_instances") as mock_count,
         ):
@@ -298,6 +306,7 @@ class TestGetAvailableClasses:
         stale_entry = (
             stale_classes,
             time.monotonic() - (AVAILABLE_CLASSES_TTL_SECONDS + 1),
+            "1",
         )
         mock_custom_filter.human_readable_class.return_value = "Person"
 
@@ -2134,6 +2143,27 @@ class TestGetDeletedAvailableClasses:
 
         assert mock_provenance_sparql.query.call_count == 2
 
+    def test_recounts_after_a_change_to_the_dataset(
+        self,
+        dataset_version,
+        mock_provenance_sparql,
+        mock_custom_filter,
+        mock_shapes_and_visibility,
+        mock_configured_classes,
+    ) -> None:
+        mock_provenance_sparql.query.return_value.convert.side_effect = [
+            self.count_result(1),
+            self.count_result(1),
+            self.count_result(2),
+            self.count_result(2),
+        ]
+
+        get_deleted_available_classes()
+        dataset_version.return_value = "2"
+        classes = get_deleted_available_classes()
+
+        assert [c["count"] for c in classes] == ["2", "2"]
+
 
 class TestProcessDeletedEntities:
     """Tests for building the listing entries of a page of deleted entities."""
@@ -2155,6 +2185,10 @@ class TestProcessDeletedEntities:
         assert entities[0]["lastValidSnapshotTime"] == "2023-01-14T15:20:00+00:00"
         assert entities[0]["label"] == "Human Readable Entity"
         assert entities[0]["deletedBy"] == "Test Agent"
+        assert entities[0]["type"] == "Human Readable Class"
+        mock_custom_filter.human_readable_class.assert_called_once_with(
+            (PERSON, f"{PERSON}Shape")
+        )
 
         state = mock_custom_filter.human_readable_entity.call_args[0][2]
         assert (
@@ -2231,6 +2265,46 @@ class TestProcessDeletedEntities:
             URIRef("http://example.org/name"),
             Literal("ACME"),
         ) in state
+
+    def test_adds_the_deleted_state_of_entities_deleted_with_it(
+        self,
+        mock_sparql_wrapper,
+        mock_provenance_sparql,
+        mock_custom_filter,
+        mock_shapes_and_visibility,
+        mock_virtuoso,
+    ) -> None:
+        binding = deletion_binding(
+            "http://example.org/book1",
+            PERSON,
+            extra=(
+                "<http://example.org/book1> <http://example.org/hasRole>"
+                " <http://example.org/role1> ."
+            ),
+        )
+        mock_provenance_sparql.query.return_value.convert.return_value = {
+            "results": {
+                "bindings": [
+                    {
+                        "updateQuery": {
+                            "value": "DELETE DATA { <http://example.org/role1>"
+                            ' <http://example.org/name> "Maltezou" . }'
+                        }
+                    }
+                ]
+            }
+        }
+
+        process_deleted_entities([binding])
+
+        state = mock_custom_filter.human_readable_entity.call_args[0][2]
+        assert set(state.triples((URIRef("http://example.org/role1"), None, None))) == {
+            (
+                URIRef("http://example.org/role1"),
+                URIRef("http://example.org/name"),
+                Literal("Maltezou"),
+            )
+        }
 
 
 class TestGetDeletedEntitiesWithFiltering:

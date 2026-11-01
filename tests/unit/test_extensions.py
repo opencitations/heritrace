@@ -26,7 +26,6 @@ from heritrace.extensions import (
     adjust_endpoint_url,
     get_change_tracking_config,
     get_classes_with_multiple_shapes,
-    get_counter_handler,
     get_custom_filter,
     get_dataset_endpoint,
     get_dataset_is_quadstore,
@@ -219,56 +218,6 @@ def test_getter_functions(app) -> None:
     assert get_dataset_is_quadstore() is True
     assert get_shacl_graph() is mock_state.shacl_graph
     assert get_classes_with_multiple_shapes() == {"http://example.org/Class1"}
-
-
-def test_get_counter_handler_not_initialized(app) -> None:
-    app.config.pop("URI_GENERATOR", None)
-
-    with (
-        patch("heritrace.extensions.current_app.logger.error") as mock_logger_error,
-        pytest.raises(
-            TypeError,
-            match=(
-                r"CounterHandler is not available\."
-                r" Initialization might have failed\."
-            ),
-        ),
-    ):
-        get_counter_handler()
-    mock_logger_error.assert_called_once_with(
-        "CounterHandler not found in URIGenerator config."
-    )
-
-    app.config["URI_GENERATOR"] = MagicMock(spec=[])
-
-    with (
-        patch("heritrace.extensions.current_app.logger.error") as mock_logger_error,
-        pytest.raises(
-            TypeError,
-            match=(
-                r"CounterHandler is not available\."
-                r" Initialization might have failed\."
-            ),
-        ),
-    ):
-        get_counter_handler()
-    mock_logger_error.assert_called_once_with(
-        "CounterHandler not found in URIGenerator config."
-    )
-
-
-def test_get_counter_handler_success(app) -> None:
-    mock_counter_handler = MagicMock()
-
-    mock_uri_generator = MagicMock()
-    mock_uri_generator.counter_handler = mock_counter_handler
-    mock_uri_generator.initialize_counters = MagicMock()
-
-    app.config["URI_GENERATOR"] = mock_uri_generator
-
-    result = get_counter_handler()
-
-    assert result is mock_counter_handler
 
 
 def test_init_login_manager_directly(app) -> None:

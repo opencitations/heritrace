@@ -107,6 +107,25 @@ class ExistingValueWidget extends StatelessWidget {
         view.shacl &&
         view.canBeDeleted.contains(triple.predicate) &&
         !triple.isMandatory;
+    final compact = MediaQuery.sizeOf(context).width < appCompactWidth;
+    Widget action({
+      required IconData icon,
+      required String label,
+      required VoidCallback onPressed,
+      Color? color,
+    }) => compact
+        ? IconButton(
+            tooltip: label,
+            color: color,
+            onPressed: onPressed,
+            icon: Icon(icon, size: 18),
+          )
+        : TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: color),
+            onPressed: onPressed,
+            icon: Icon(icon, size: 18),
+            label: Text(label),
+          );
     return ListenableBuilder(
       listenable: value,
       builder: (context, _) {
@@ -135,23 +154,23 @@ class ExistingValueWidget extends StatelessWidget {
               ),
             ),
             if (triple.externalEntity != null)
-              TextButton.icon(
+              action(
+                icon: Icons.arrow_forward,
+                label: t.ui.actions.visit,
                 onPressed: () => context.go(entityPath(triple.externalEntity!)),
-                icon: const Icon(Icons.arrow_forward, size: 16),
-                label: Text(t.ui.actions.visit),
               ),
             if (deletable && !deleted)
-              TextButton.icon(
-                style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+              action(
+                icon: Icons.delete_outline,
+                label: t.ui.actions.delete,
                 onPressed: value.markForDeletion,
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: Text(t.ui.actions.delete),
+                color: colorScheme.error,
               ),
             if (deletable && deleted)
-              TextButton.icon(
+              action(
+                icon: Icons.undo,
+                label: t.ui.entity.revert,
                 onPressed: value.undoDeletion,
-                icon: const Icon(Icons.undo, size: 18),
-                label: Text(t.ui.entity.revert),
               ),
           ],
         );

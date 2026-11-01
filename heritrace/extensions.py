@@ -8,7 +8,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from urllib.parse import urlparse, urlunparse
 
 import yaml
@@ -26,7 +26,6 @@ from flask import (
 from flask_login import LoginManager
 from flask_login.signals import user_loaded_from_cookie
 from rdflib import Graph
-from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from redis import Redis
 from redis.exceptions import RedisError
 from SPARQLWrapper import JSON
@@ -39,6 +38,9 @@ from heritrace.services.resource_lock_manager import ResourceLockManager
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings, select_results
 from heritrace.uri_generator.uri_generator import CounterBasedURIGenerator
 from heritrace.utils.filters import Filter
+
+if TYPE_CHECKING:
+    from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 
 
 @dataclass(frozen=True)
@@ -493,13 +495,17 @@ def get_provenance_sparql() -> SPARQLWrapperWithRetry:
     return get_app_state().provenance_sparql
 
 
-def get_counter_handler() -> CounterHandler:
-    uri_generator = current_app.config.get("URI_GENERATOR")
-    if not isinstance(uri_generator, CounterBasedURIGenerator):
-        current_app.logger.error("CounterHandler not found in URIGenerator config.")
-        msg = "CounterHandler is not available. Initialization might have failed."
-        raise TypeError(msg)
-    return uri_generator.counter_handler
+DATASET_VERSION_KEY = "heritrace:dataset_version"
+
+
+def get_dataset_version() -> str | None:
+    redis: Redis = current_app.extensions["redis_client"]
+    return cast("str | None", redis.get(DATASET_VERSION_KEY))
+
+
+def record_dataset_change() -> None:
+    redis: Redis = current_app.extensions["redis_client"]
+    redis.incr(DATASET_VERSION_KEY)
 
 
 def get_custom_filter() -> Filter:

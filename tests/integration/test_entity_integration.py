@@ -824,7 +824,7 @@ def test_generate_unique_uri(app: Flask) -> None:
             assert uri1 != uri2  # URIs should be different
 
             counter_handler = MetaCounterHandler()
-            counter_handler.port = 41804
+            counter_handler.port = 17804
 
             # Create a MetaURIGenerator instance
             meta_generator = MetaURIGenerator(counter_handler)

@@ -25,6 +25,7 @@ from heritrace.extensions import (
     get_form_fields,
     get_provenance_endpoint,
     get_shacl_graph,
+    record_dataset_change,
 )
 from heritrace.services.resource_lock_manager import LockInfo, LockStatus
 from heritrace.utils.datatypes import DATATYPE_MAPPING, get_datatype_options
@@ -814,6 +815,7 @@ def _save_and_respond(editor: Editor) -> tuple[Response, int]:
             }
         ), 500
 
+    record_dataset_change()
     return (
         jsonify(
             {

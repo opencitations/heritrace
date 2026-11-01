@@ -16,12 +16,12 @@ from SPARQLWrapper import JSON
 from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.editor import Editor, EndpointConfig
 from heritrace.extensions import (
-    get_counter_handler,
     get_custom_filter,
     get_dataset_endpoint,
     get_dataset_is_quadstore,
     get_provenance_endpoint,
     get_sparql,
+    record_dataset_change,
 )
 from heritrace.sparql import get_sparql_bindings
 from heritrace.utils.display_rules_utils import (
@@ -183,7 +183,7 @@ def execute_merge() -> Response | tuple[Response, int]:
                 provenance=get_provenance_endpoint(),
                 is_quadstore=get_dataset_is_quadstore(),
             ),
-            get_counter_handler(),
+            current_app.config["COUNTER_HANDLER"],
             get_responsible_agent_uri(current_user.orcid),
             URIRef(current_app.config["PRIMARY_SOURCE"]),
             current_app.config["DATASET_GENERATION_TIME"],
@@ -216,6 +216,7 @@ def execute_merge() -> Response | tuple[Response, int]:
             }
         ), 500
 
+    record_dataset_change()
     return jsonify({"status": "success", "kept": kept, "deleted": deleted})
 
 

@@ -423,7 +423,6 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                         ],
                       ),
                       const SizedBox(height: appSectionSpacing),
-                      const ValidationSummary(),
                       if (view.isDeleted)
                         _InfoBanner(text: t.ui.entity.deletedBanner)
                       else if (view.groups.isEmpty)
@@ -473,7 +472,10 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                   ),
                 ),
               ),
-              if (editing) _SaveBar(session: _session, onSave: _save),
+              if (editing) ...[
+                const ValidationSummary(),
+                _SaveBar(session: _session, onSave: _save),
+              ],
             ],
           );
         },
@@ -490,7 +492,7 @@ class _EntityTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     label,
-    style: Theme.of(context).textTheme.headlineMedium
+    style: Theme.of(context).textTheme.headlineSmall
         ?.copyWith(fontStyle: FontStyle.italic),
   );
 }

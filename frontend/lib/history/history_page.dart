@@ -51,7 +51,7 @@ class HistoryPage extends ConsumerWidget {
             ),
             const SizedBox(height: appInputSpacing),
             Text(
-              t.ui.history.title(label: data.entityLabel),
+              t.ui.history.title,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: appSectionSpacing),

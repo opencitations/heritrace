@@ -17,17 +17,34 @@ class EntityForm extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: node,
-      builder: (context, _) => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final group in node.groups)
-            if (group.def.shouldBeDisplayed)
+      builder: (context, _) {
+        final groups = node.groups
+            .where((group) => group.def.shouldBeDisplayed)
+            .toList();
+        // Fixed values of the same property, such as the types of a record,
+        // read as one field under a single heading.
+        bool continuesPrevious(int index) =>
+            index > 0 &&
+            index < groups.length &&
+            groups[index].def.hasValue != null &&
+            groups[index - 1].def.hasValue != null &&
+            groups[index].def.uri == groups[index - 1].def.uri;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (index, group) in groups.indexed)
               Padding(
-                padding: const EdgeInsets.only(bottom: appSectionSpacing),
-                child: FieldGroupWidget(group: group),
+                padding: EdgeInsets.only(
+                  bottom: continuesPrevious(index + 1) ? 0 : appSectionSpacing,
+                ),
+                child: FieldGroupWidget(
+                  group: group,
+                  showHeading: !continuesPrevious(index),
+                ),
               ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 }

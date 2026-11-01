@@ -21,7 +21,6 @@ final dioProvider = Provider<Dio>((ref) {
     BaseOptions(
       baseUrl: apiBaseUrl,
       connectTimeout: _apiTimeout,
-      sendTimeout: _apiTimeout,
       receiveTimeout: _apiTimeout,
       headers: const {'Accept': 'application/json'},
       extra: const {'withCredentials': true},
