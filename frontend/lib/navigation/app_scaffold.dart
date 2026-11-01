@@ -94,21 +94,12 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
         leading: parentPath == null
             ? GestureDetector(
                 onTap: () => context.go(landingPath),
-                child: SelectionContainer.disabled(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        height: 28,
-                        excludeFromSemantics: true,
-                      ),
-                      const SizedBox(width: appInputSpacing / 2),
-                      Text(
-                        session?.config.appTitle ?? t.ui.appTitle,
-                        style: AppTextStyles.of(context).heading,
-                      ),
-                    ],
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 28,
+                    semanticLabel: session?.config.appTitle ?? t.ui.appTitle,
                   ),
                 ),
               )
