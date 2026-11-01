@@ -8,3 +8,4 @@ const appInputSpacing = 12.0;
 const appSectionSpacing = 24.0;
 const appPageMaxWidth = 1100.0;
 const appCompactWidth = 600.0;
+const appRadius = 10.0;

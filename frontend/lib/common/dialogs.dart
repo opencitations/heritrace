@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import 'async_view.dart';
@@ -16,21 +17,19 @@ Future<bool> showConfirmDialog(
   bool destructive = false,
 }) async {
   final t = Translations.of(context);
-  final colorScheme = Theme.of(context).colorScheme;
-  final result = await showDialog<bool>(
+  final result = await showCupertinoDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => CupertinoAlertDialog(
       title: Text(title),
       content: Text(message),
       actions: [
-        TextButton(
+        CupertinoDialogAction(
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(t.ui.actions.cancel),
         ),
-        FilledButton(
-          style: destructive
-              ? FilledButton.styleFrom(backgroundColor: colorScheme.error)
-              : null,
+        CupertinoDialogAction(
+          isDefaultAction: !destructive,
+          isDestructiveAction: destructive,
           onPressed: () => Navigator.of(context).pop(true),
           child: Text(confirmLabel),
         ),
@@ -46,13 +45,14 @@ Future<void> showMessageDialog(
   required String message,
 }) {
   final t = Translations.of(context);
-  return showDialog<void>(
+  return showCupertinoDialog<void>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => CupertinoAlertDialog(
       title: Text(title),
-      content: SingleChildScrollView(child: SelectableText(message)),
+      content: AppSelectable(child: Text(message)),
       actions: [
-        FilledButton(
+        CupertinoDialogAction(
+          isDefaultAction: true,
           onPressed: () => Navigator.of(context).pop(),
           child: Text(t.ui.actions.ok),
         ),
@@ -76,16 +76,15 @@ Future<bool> runWithProgress(
   required Future<void> Function() action,
 }) async {
   final navigator = Navigator.of(context, rootNavigator: true);
-  showDialog<void>(
+  showCupertinoDialog<void>(
     context: context,
-    barrierDismissible: false,
     builder: (context) => PopScope(
       canPop: false,
-      child: AlertDialog(
+      child: CupertinoAlertDialog(
         content: Row(
           children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: appSectionSpacing),
+            const CupertinoActivityIndicator(),
+            const SizedBox(width: appInputSpacing),
             Expanded(child: Text(message)),
           ],
         ),

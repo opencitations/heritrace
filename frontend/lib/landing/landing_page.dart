@@ -2,11 +2,13 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../api/api_client.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -22,6 +24,7 @@ class LandingPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
     final session = ref.watch(sessionProvider).value!;
+    final styles = AppTextStyles.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -30,13 +33,13 @@ class LandingPage extends ConsumerWidget {
           const SizedBox(height: appSectionSpacing),
           Text(
             session.config.appTitle,
-            style: Theme.of(context).textTheme.displaySmall,
+            style: styles.display,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: appInputSpacing),
           Text(
             session.config.appSubtitle,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: styles.heading.copyWith(color: AppColors.secondaryText),
             textAlign: TextAlign.center,
           ),
           if (loginError != null) ...[
@@ -44,12 +47,13 @@ class LandingPage extends ConsumerWidget {
             _LoginErrorBanner(code: loginError!),
           ],
           const SizedBox(height: appSectionSpacing),
-          FilledButton.icon(
+          AppButton(
+            variant: AppButtonVariant.filled,
             onPressed: () => session.isSignedIn
                 ? context.go(cataloguePath)
                 : navigateExternally(backendUrl(loginPath)),
-            icon: const Icon(Icons.menu_book),
-            label: Text(t.ui.landing.goToCatalogue),
+            icon: CupertinoIcons.book,
+            label: t.ui.landing.goToCatalogue,
           ),
         ],
       ),
@@ -65,21 +69,14 @@ class _LoginErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     final message = switch (code) {
       'not_authorized' => t.ui.landing.loginNotAuthorized,
       _ => t.ui.landing.loginFailed,
     };
-    return Container(
-      padding: const EdgeInsets.all(appCardPadding),
-      decoration: BoxDecoration(
-        color: colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(color: colorScheme.onErrorContainer),
-      ),
+    return AppBanner(
+      text: message,
+      icon: CupertinoIcons.exclamationmark_circle,
+      error: true,
     );
   }
 }

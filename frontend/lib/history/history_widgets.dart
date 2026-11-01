@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import '../common/dialogs.dart';
 import '../common/reference_views.dart';
 import '../common/references.dart';
+import '../design/app_theme.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -62,7 +63,6 @@ class ModificationsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -73,15 +73,15 @@ class ModificationsView extends StatelessWidget {
         if (modifications.additions.isNotEmpty)
           _ModificationList(
             title: t.ui.history.additions,
-            icon: Icons.add_circle,
-            color: colorScheme.primary,
+            icon: CupertinoIcons.plus_circle_fill,
+            color: CupertinoColors.systemGreen,
             entries: modifications.additions,
           ),
         if (modifications.deletions.isNotEmpty)
           _ModificationList(
             title: t.ui.history.deletions,
-            icon: Icons.remove_circle,
-            color: colorScheme.error,
+            icon: CupertinoIcons.minus_circle_fill,
+            color: AppColors.error,
             entries: modifications.deletions,
           ),
       ],
@@ -104,7 +104,6 @@ class _ModificationList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(top: appInputSpacing / 2),
       child: Column(
@@ -132,7 +131,7 @@ class _ModificationList extends StatelessWidget {
                         : '${entry.predicateLabel} #${entry.position}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text(entry.objectLabel, style: textTheme.bodyMedium),
+                  Text(entry.objectLabel),
                 ],
               ),
             ),
@@ -182,4 +181,15 @@ Future<void> restoreVersion(
   if (ok && context.mounted) {
     context.go(entityPath(uri));
   }
+}
+
+class BreadcrumbSeparator extends StatelessWidget {
+  const BreadcrumbSeparator({super.key});
+
+  @override
+  Widget build(BuildContext context) => const Icon(
+    CupertinoIcons.chevron_right,
+    size: 16,
+    color: AppColors.secondaryText,
+  );
 }

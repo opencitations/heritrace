@@ -2,8 +2,10 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
+import '../../design/app_theme.dart';
+import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
 import '../form_model.dart';
@@ -33,10 +35,9 @@ class FieldGroupWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (ordered)
-              ReorderableListView.builder(
+              ReorderableList(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                buildDefaultDragHandles: false,
                 itemCount: items.length,
                 onReorderItem: group.move,
                 itemBuilder: (context, index) => Padding(
@@ -46,10 +47,7 @@ class FieldGroupWidget extends StatelessWidget {
                     group: group,
                     item: items[index],
                     index: index,
-                    dragHandle: ReorderableDragStartListener(
-                      index: index,
-                      child: const Icon(Icons.drag_indicator),
-                    ),
+                    dragHandle: DragHandle(index: index),
                   ),
                 ),
               )
@@ -68,10 +66,10 @@ class FieldGroupWidget extends StatelessWidget {
             if (group.canAdd)
               Align(
                 alignment: Alignment.centerLeft,
-                child: TextButton.icon(
+                child: AppButton(
                   onPressed: () => _add(context),
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: Text(t.ui.form.addItem(name: def.displayName)),
+                  icon: CupertinoIcons.add_circled,
+                  label: t.ui.form.addItem(name: def.displayName),
                 ),
               ),
           ],
@@ -108,8 +106,7 @@ class _ItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     final def = group.def;
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final styles = AppTextStyles.of(context);
     final label = dragHandle == null
         ? def.displayName
         : '${def.displayName} ${index + 1}';
@@ -132,27 +129,27 @@ class _ItemCard extends StatelessWidget {
                     child: Text(
                       label,
                       style: group.depth == 0
-                          ? textTheme.titleMedium
-                          : textTheme.titleSmall,
+                          ? styles.heading
+                          : styles.subheading,
                     ),
                   ),
                   if (def.isRequired)
-                    Tooltip(
+                    AppTooltip(
                       message: t.ui.form.required,
-                      child: Text(
+                      child: const Text(
                         ' *',
-                        style: TextStyle(color: colorScheme.error),
+                        style: TextStyle(color: AppColors.error),
                       ),
                     ),
                   if (def.hasValue != null)
-                    Tooltip(
+                    AppTooltip(
                       message: t.ui.form.mandatoryValue,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 4),
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 4),
                         child: Icon(
-                          Icons.help_outline,
+                          CupertinoIcons.question_circle,
                           size: 16,
-                          color: colorScheme.primary,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -163,11 +160,11 @@ class _ItemCard extends StatelessWidget {
               ExistingEntityActions(item: item as NestedItem),
             ],
             if (group.canDelete(item))
-              TextButton.icon(
-                style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+              AppButton(
+                destructive: true,
                 onPressed: () => group.removeItem(item),
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: Text(t.ui.actions.delete),
+                icon: CupertinoIcons.delete,
+                label: t.ui.actions.delete,
               ),
           ],
         ),

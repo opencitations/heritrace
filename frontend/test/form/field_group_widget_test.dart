@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/form_scope.dart';
+import 'package:heritrace/design/controls.dart';
 import 'package:heritrace/form/widgets/field_group_widget.dart';
+import 'package:heritrace/form/widgets/item_widgets.dart';
 import 'package:heritrace/i18n/translations.g.dart';
 
 import 'fixtures.dart';
@@ -22,9 +24,9 @@ Future<void> pumpGroup(WidgetTester tester, FieldGroup group) async {
   await tester.pumpWidget(
     TranslationProvider(
       child: ProviderScope(
-        child: MaterialApp(
-          home: Scaffold(
-            body: FormScope(
+        child: CupertinoApp(
+          home: CupertinoPageScaffold(
+            child: FormScope(
               notifier: FormScopeController(rootLabel: 'Journal Article'),
               child: SingleChildScrollView(
                 child: FieldGroupWidget(group: group),
@@ -63,9 +65,9 @@ void main() {
     expect(find.text('Title'), findsNWidgets(2));
     expect(find.text('Add Title'), findsNothing);
     expect(find.text('Delete'), findsNothing);
-    expect(find.byType(TextField), findsOneWidget);
+    expect(find.byType(CupertinoTextField), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), 'A new title');
+    await tester.enterText(find.byType(CupertinoTextField), 'A new title');
     expect((group(title).items.single as LiteralItem).value, 'A new title');
   });
 
@@ -80,7 +82,7 @@ void main() {
 
     expect(find.text('Add Publication Date'), findsNothing);
     expect(find.text('Delete'), findsOneWidget);
-    expect(find.byType(DropdownButton<DateType>), findsOneWidget);
+    expect(find.byType(DateTypeMenu), findsOneWidget);
 
     await tester.tap(find.text('Delete'));
     await tester.pump();
@@ -112,8 +114,11 @@ void main() {
 
     expect(find.text('Journal Article'), findsOneWidget);
     expect(
-      find.byTooltip(
-        'This property has a mandatory value that cannot be modified',
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is AppTooltip &&
+            widget.message ==
+                'This property has a mandatory value that cannot be modified',
       ),
       findsOneWidget,
     );

@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../form/validator.dart';
 import '../i18n/translations.g.dart';
@@ -21,7 +22,7 @@ Future<PrimarySourceChoice?> showPrimarySourceDialog(
   String? confirmLabel,
   String? description,
 }) {
-  return showDialog<PrimarySourceChoice>(
+  return showCupertinoDialog<PrimarySourceChoice>(
     context: context,
     builder: (context) => _PrimarySourceDialog(
       defaultPrimarySource: defaultPrimarySource,
@@ -77,44 +78,49 @@ class _PrimarySourceDialogState extends State<_PrimarySourceDialog> {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    return AlertDialog(
+    return CupertinoAlertDialog(
       title: Text(t.ui.primarySource.title),
-      content: SizedBox(
-        width: 480,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.description ?? t.ui.primarySource.description),
-            const SizedBox(height: appInputSpacing),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                hintText: t.ui.primarySource.hint,
-                errorText: _error,
-              ),
-              onSubmitted: (_) => _confirm(),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(widget.description ?? t.ui.primarySource.description),
+          const SizedBox(height: appInputSpacing),
+          AppTextField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            placeholder: t.ui.primarySource.hint,
+            errorText: _error,
+            onSubmitted: (_) => _confirm(),
+          ),
+          const SizedBox(height: appInputSpacing),
+          GestureDetector(
+            onTap: () => setState(() => _saveAsDefault = !_saveAsDefault),
+            child: Row(
+              children: [
+                CupertinoCheckbox(
+                  value: _saveAsDefault,
+                  onChanged: (value) => setState(() => _saveAsDefault = value!),
+                ),
+                Expanded(
+                  child: Text(
+                    t.ui.primarySource.saveAsDefault,
+                    textAlign: TextAlign.start,
+                  ),
+                ),
+              ],
             ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              controlAffinity: ListTileControlAffinity.leading,
-              value: _saveAsDefault,
-              onChanged: (value) =>
-                  setState(() => _saveAsDefault = value ?? false),
-              title: Text(t.ui.primarySource.saveAsDefault),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       actions: [
-        TextButton(
+        CupertinoDialogAction(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(t.ui.actions.cancel),
         ),
-        FilledButton(
+        CupertinoDialogAction(
+          isDefaultAction: true,
           onPressed: _confirm,
           child: Text(widget.confirmLabel ?? t.ui.primarySource.confirm),
         ),

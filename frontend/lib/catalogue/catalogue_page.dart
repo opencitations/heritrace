@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common/async_view.dart';
 import '../common/dialogs.dart';
 import '../common/reference_views.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -69,7 +71,7 @@ class CataloguePage extends ConsumerWidget {
       children: [
         Text(
           timeVault ? t.ui.catalogue.timeVaultTitle : t.ui.catalogue.title,
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: AppTextStyles.of(context).pageTitle,
         ),
         const SizedBox(height: appSectionSpacing),
         Expanded(
@@ -158,22 +160,16 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
     if (!wide) {
       return ListView(
         children: [
-          DropdownButtonFormField<int>(
-            key: ValueKey(selectedIndex),
-            initialValue: selectedIndex < 0 ? null : selectedIndex,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: t.ui.catalogue.categories,
-              border: const OutlineInputBorder(),
+          AppLabeledField(
+            label: t.ui.catalogue.categories,
+            child: AppMenuButton<int?>(
+              value: selectedIndex < 0 ? null : selectedIndex,
+              options: [
+                for (final (index, item) in classes.indexed)
+                  AppMenuOption(index, '${item.label} (${item.count})'),
+              ],
+              onChanged: (index) => select(classes[index!]),
             ),
-            items: [
-              for (final (index, item) in classes.indexed)
-                DropdownMenuItem(
-                  value: index,
-                  child: Text('${item.label} (${item.count})'),
-                ),
-            ],
-            onChanged: (index) => select(classes[index!]),
           ),
           const SizedBox(height: appSectionSpacing),
           entities,
@@ -221,43 +217,41 @@ class _ClassList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(appCardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  t.ui.catalogue.categories,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                IconButton(
-                  tooltip: ascending
-                      ? t.ui.catalogue.sortDescending
-                      : t.ui.catalogue.sortAscending,
-                  onPressed: onToggleOrder,
-                  icon: Icon(
-                    ascending ? Icons.arrow_downward : Icons.arrow_upward,
-                  ),
-                ),
-              ],
-            ),
-            for (final (index, item) in classes.indexed)
-              ListTile(
-                dense: true,
-                selected: index == selectedIndex,
-                selectedTileColor: colorScheme.primaryContainer,
-                title: Text(item.label),
-                trailing: Text(item.count),
-                onTap: () => onSelect(item),
-              ),
-          ],
+    return AppSection(
+      children: [
+        CupertinoListTile(
+          title: Text(
+            t.ui.catalogue.categories,
+            style: AppTextStyles.of(context).heading,
+          ),
+          trailing: AppIconButton(
+            label: ascending
+                ? t.ui.catalogue.sortDescending
+                : t.ui.catalogue.sortAscending,
+            onPressed: onToggleOrder,
+            icon: ascending
+                ? CupertinoIcons.arrow_down
+                : CupertinoIcons.arrow_up,
+          ),
         ),
-      ),
+        for (final (index, item) in classes.indexed)
+          CupertinoListTile(
+            backgroundColor: index == selectedIndex
+                ? AppColors.primaryTint
+                : null,
+            title: Text(
+              item.label,
+              style: index == selectedIndex
+                  ? const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    )
+                  : null,
+            ),
+            additionalInfo: Text(item.count),
+            onTap: () => onSelect(item),
+          ),
+      ],
     );
   }
 }
@@ -302,19 +296,17 @@ class _EntityList extends ConsumerWidget {
             child: Text(t.ui.catalogue.noEntities),
           )
         else
-          Card(
-            child: Column(
-              children: [
-                for (final entity in data.entities)
-                  timeVault
-                      ? _TimeVaultTile(entity: entity)
-                      : ListTile(
-                          title: Text(entity.label),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => context.go(entityPath(entity.uri)),
-                        ),
-              ],
-            ),
+          AppSection(
+            children: [
+              for (final entity in data.entities)
+                timeVault
+                    ? _TimeVaultTile(entity: entity)
+                    : CupertinoListTile(
+                        title: TileText(entity.label),
+                        trailing: const CupertinoListTileChevron(),
+                        onTap: () => context.go(entityPath(entity.uri)),
+                      ),
+            ],
           ),
         if (data.entities.isNotEmpty) ...[
           const SizedBox(height: appInputSpacing),
@@ -343,39 +335,45 @@ class _TimeVaultTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
-    final textTheme = Theme.of(context).textTheme;
-    return ListTile(
-      title: Text(entity.label),
-      subtitle: Column(
+    final styles = AppTextStyles.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(appCardPadding),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(entity.label, style: styles.heading),
           Text(deletion.type),
           Text(
             t.ui.timeVault.deletedOn(time: formatTimestamp(deletion.time)),
-            style: textTheme.bodySmall,
+            style: styles.caption,
           ),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(t.ui.timeVault.deletedBy, style: textTheme.bodySmall),
+              Text(t.ui.timeVault.deletedBy, style: styles.caption),
               const SizedBox(width: 4),
               AgentRefView(agent: deletion.deletedBy),
             ],
           ),
-        ],
-      ),
-      trailing: Wrap(
-        spacing: appInputSpacing / 2,
-        children: [
-          OutlinedButton(
-            onPressed: () => context.go(
-              entityVersionPath(entity.uri, deletion.lastValidSnapshotTime),
-            ),
-            child: Text(t.ui.timeVault.viewLastVersion),
-          ),
-          FilledButton.icon(
-            icon: const Icon(Icons.restore),
-            label: Text(t.ui.timeVault.restore),
-            onPressed: () => _restore(context, ref),
+          const SizedBox(height: appInputSpacing),
+          Wrap(
+            spacing: appInputSpacing / 2,
+            runSpacing: appInputSpacing / 2,
+            children: [
+              AppButton(
+                variant: AppButtonVariant.tinted,
+                onPressed: () => context.go(
+                  entityVersionPath(entity.uri, deletion.lastValidSnapshotTime),
+                ),
+                label: t.ui.timeVault.viewLastVersion,
+              ),
+              AppButton(
+                variant: AppButtonVariant.filled,
+                icon: CupertinoIcons.arrow_counterclockwise,
+                label: t.ui.timeVault.restore,
+                onPressed: () => _restore(context, ref),
+              ),
+            ],
           ),
         ],
       ),
@@ -430,29 +428,25 @@ class _SortControls extends StatelessWidget {
       children: [
         Text(t.ui.catalogue.sortBy),
         const SizedBox(width: appInputSpacing),
-        DropdownButton<String>(
-          value: current,
-          items: [
-            for (final property in properties)
-              DropdownMenuItem(
-                value: property.property,
-                child: Text(property.displayName),
-              ),
-          ],
-          onChanged: (value) => onChanged(value!, currentDirection),
+        Flexible(
+          child: AppMenuButton<String>(
+            value: current,
+            options: [
+              for (final property in properties)
+                AppMenuOption(property.property, property.displayName),
+            ],
+            onChanged: (value) => onChanged(value, currentDirection),
+          ),
         ),
-        const SizedBox(width: appInputSpacing),
-        IconButton(
-          tooltip: currentDirection == 'ASC'
+        AppIconButton(
+          label: currentDirection == 'ASC'
               ? t.ui.catalogue.sortAscending
               : t.ui.catalogue.sortDescending,
           onPressed: () =>
               onChanged(current, currentDirection == 'ASC' ? 'DESC' : 'ASC'),
-          icon: Icon(
-            currentDirection == 'ASC'
-                ? Icons.arrow_upward
-                : Icons.arrow_downward,
-          ),
+          icon: currentDirection == 'ASC'
+              ? CupertinoIcons.arrow_up
+              : CupertinoIcons.arrow_down,
         ),
       ],
     );
@@ -489,50 +483,49 @@ class _PaginationControls extends StatelessWidget {
           children: [
             Text(t.ui.catalogue.perPage),
             const SizedBox(width: appInputSpacing),
-            DropdownButton<int>(
+            AppMenuButton<int>(
               value: allowedPerPage.contains(perPage)
                   ? perPage
                   : allowedPerPage.first,
-              items: [
+              options: [
                 for (final value in allowedPerPage)
-                  DropdownMenuItem(value: value, child: Text('$value')),
+                  AppMenuOption(value, '$value'),
               ],
-              onChanged: (value) =>
-                  value == null ? null : onPerPageChanged(value),
+              onChanged: onPerPageChanged,
             ),
           ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              tooltip: t.ui.catalogue.firstPage,
+            AppIconButton(
+              label: t.ui.catalogue.firstPage,
               onPressed: currentPage > 1 ? () => onPageChanged(1) : null,
-              icon: const Icon(Icons.first_page),
+              icon: CupertinoIcons.backward_end,
             ),
-            IconButton(
-              tooltip: t.ui.catalogue.previousPage,
+            AppIconButton(
+              label: t.ui.catalogue.previousPage,
               onPressed: currentPage > 1
                   ? () => onPageChanged(currentPage - 1)
                   : null,
-              icon: const Icon(Icons.chevron_left),
+              icon: CupertinoIcons.chevron_left,
             ),
             Text(
               t.ui.catalogue.pageOf(current: currentPage, total: totalPages),
             ),
-            IconButton(
-              tooltip: t.ui.catalogue.nextPage,
+            AppIconButton(
+              label: t.ui.catalogue.nextPage,
               onPressed: currentPage < totalPages
                   ? () => onPageChanged(currentPage + 1)
                   : null,
-              icon: const Icon(Icons.chevron_right),
+              icon: CupertinoIcons.chevron_right,
             ),
-            IconButton(
-              tooltip: t.ui.catalogue.lastPage,
+            AppIconButton(
+              label: t.ui.catalogue.lastPage,
               onPressed: currentPage < totalPages
                   ? () => onPageChanged(totalPages)
                   : null,
-              icon: const Icon(Icons.last_page),
+              icon: CupertinoIcons.forward_end,
             ),
           ],
         ),

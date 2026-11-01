@@ -2,10 +2,11 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../design/app_theme.dart';
 import '../design/spacing.dart';
 import '../navigation/app_paths.dart';
 import 'references.dart';
@@ -21,14 +22,16 @@ class LinkText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      child: Text(
-        label,
-        style: TextStyle(
-          color: colorScheme.primary,
-          decoration: TextDecoration.underline,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.primary,
+            decoration: TextDecoration.underline,
+          ),
         ),
       ),
     );
@@ -74,8 +77,6 @@ class SourceRefView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = source.url;
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
     if (url == null) {
       return Text(source.label);
     }
@@ -102,12 +103,7 @@ class SourceRefView extends StatelessWidget {
           ],
         ),
         if (source.extra != null)
-          Text(
-            source.extra!,
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
+          Text(source.extra!, style: AppTextStyles.of(context).caption),
       ],
     );
   }

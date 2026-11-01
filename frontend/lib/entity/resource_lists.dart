@@ -4,10 +4,12 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common/async_view.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -85,31 +87,27 @@ class ResourceListSection<T> extends StatelessWidget {
       builder: (context, _) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          Text(title, style: AppTextStyles.of(context).sectionTitle),
           const SizedBox(height: appInputSpacing),
           if (resources.error != null)
             ErrorView(error: resources.error!, onRetry: resources.loadMore)
           else if (resources.loaded && resources.items.isEmpty)
             Text(emptyMessage)
-          else
-            Card(
-              child: Column(
-                children: [
-                  for (final item in resources.items) itemBuilder(item),
-                ],
-              ),
+          else if (resources.items.isNotEmpty)
+            AppSection(
+              children: [for (final item in resources.items) itemBuilder(item)],
             ),
           if (resources.loading)
             const Padding(
               padding: EdgeInsets.all(appInputSpacing),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: CupertinoActivityIndicator()),
             )
           else if (resources.hasMore)
             Center(
-              child: OutlinedButton.icon(
+              child: AppButton(
                 onPressed: resources.loadMore,
-                icon: const Icon(Icons.expand_more),
-                label: Text(t.ui.actions.loadMore),
+                icon: CupertinoIcons.chevron_down,
+                label: t.ui.actions.loadMore,
               ),
             ),
         ],
@@ -126,16 +124,14 @@ class LinkedResourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    return ListTile(
-      title: Text(resource.label),
-      subtitle: Text(
+    return CupertinoListTile(
+      title: TileText(resource.label),
+      subtitle: TileText(
         [?resource.typeLabel, resource.predicateLabel].join(' · '),
       ),
-      trailing: OutlinedButton.icon(
-        onPressed: () => context.go(entityPath(resource.subject)),
-        icon: const Icon(Icons.arrow_forward, size: 16),
-        label: Text(t.ui.actions.visit),
-      ),
+      additionalInfo: Text(t.ui.actions.visit),
+      trailing: const CupertinoListTileChevron(),
+      onTap: () => context.go(entityPath(resource.subject)),
     );
   }
 }
@@ -153,12 +149,13 @@ class SimilarResourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    return ListTile(
-      title: Text(resource.label),
-      trailing: OutlinedButton.icon(
+    return CupertinoListTile(
+      title: TileText(resource.label),
+      trailing: AppButton(
+        variant: AppButtonVariant.tinted,
         onPressed: () => context.go(mergeComparePath(subject, resource.uri)),
-        icon: const Icon(Icons.merge, size: 16),
-        label: Text(t.ui.entity.merge),
+        icon: CupertinoIcons.arrow_merge,
+        label: t.ui.entity.merge,
       ),
     );
   }

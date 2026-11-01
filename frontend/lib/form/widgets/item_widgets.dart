@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 import '../../common/reference_views.dart';
+import '../../design/app_theme.dart';
+import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
 import '../../navigation/app_paths.dart';
@@ -90,7 +92,7 @@ class _LiteralFieldState extends State<LiteralField> {
   Widget build(BuildContext context) {
     final def = widget.item.def;
     final multiline = def.inputType == 'textarea';
-    final field = TextField(
+    final field = AppTextField(
       controller: _controller,
       focusNode: widget.item.focusNode,
       maxLines: multiline ? 5 : 1,
@@ -103,12 +105,8 @@ class _LiteralFieldState extends State<LiteralField> {
         'textarea' => TextInputType.multiline,
         _ => TextInputType.text,
       },
-      decoration: InputDecoration(
-        border: const OutlineInputBorder(),
-        isDense: true,
-        hintText: def.displayName,
-        errorText: _errorText(context, widget.item),
-      ),
+      placeholder: def.displayName,
+      errorText: _errorText(context, widget.item),
       onChanged: widget.item.setValue,
     );
     if (def.supportsSearch) {
@@ -170,44 +168,30 @@ class _DateFieldState extends State<DateField> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (allowed.length > 1) ...[
-            DropdownButton<DateType>(
+            DateTypeMenu(
               value: item.dateType,
-              items: [
-                for (final type in allowed)
-                  DropdownMenuItem(
-                    value: type,
-                    child: Text(switch (type) {
-                      DateType.date => t.ui.form.dateTypeDate,
-                      DateType.month => t.ui.form.dateTypeMonth,
-                      DateType.year => t.ui.form.dateTypeYear,
-                    }),
-                  ),
-              ],
-              onChanged: (type) => type == null ? null : item.setDateType(type),
+              allowed: allowed,
+              onChanged: item.setDateType,
             ),
             const SizedBox(width: appInputSpacing),
           ],
           Expanded(
-            child: TextField(
+            child: AppTextField(
               controller: _controller,
               focusNode: item.focusNode,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                isDense: true,
-                hintText: switch (item.dateType) {
-                  DateType.date => 'YYYY-MM-DD',
-                  DateType.month => 'YYYY-MM',
-                  DateType.year => 'YYYY',
-                },
-                errorText: _errorText(context, item),
-                suffixIcon: item.dateType == DateType.date
-                    ? IconButton(
-                        tooltip: t.ui.form.pickDate,
-                        icon: const Icon(Icons.calendar_today),
-                        onPressed: () => _pickDate(context),
-                      )
-                    : null,
-              ),
+              placeholder: switch (item.dateType) {
+                DateType.date => 'YYYY-MM-DD',
+                DateType.month => 'YYYY-MM',
+                DateType.year => 'YYYY',
+              },
+              errorText: _errorText(context, item),
+              suffix: item.dateType == DateType.date
+                  ? AppIconButton(
+                      label: t.ui.form.pickDate,
+                      icon: CupertinoIcons.calendar,
+                      onPressed: () => _pickDate(context),
+                    )
+                  : null,
               onChanged: item.setValue,
             ),
           ),
@@ -217,12 +201,37 @@ class _DateFieldState extends State<DateField> {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final initial = DateTime.tryParse(widget.item.value) ?? DateTime.now();
-    final picked = await showDatePicker(
+    final t = Translations.of(context);
+    var selected = DateTime.tryParse(widget.item.value) ?? DateTime.now();
+    final picked = await showCupertinoModalPopup<DateTime>(
       context: context,
-      initialDate: initial,
-      firstDate: DateTime(1000),
-      lastDate: DateTime(9999),
+      builder: (context) => Container(
+        height: 300,
+        color: AppColors.surface,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: CupertinoButton(
+                  onPressed: () => Navigator.of(context).pop(selected),
+                  child: Text(t.ui.actions.done),
+                ),
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.date,
+                  initialDateTime: selected,
+                  minimumYear: 1000,
+                  maximumYear: 9999,
+                  onDateTimeChanged: (value) => selected = value,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
     if (picked != null) {
       widget.item.setValue(picked.toIso8601String().substring(0, 10));
@@ -241,24 +250,14 @@ class SelectField extends StatelessWidget {
     final def = item.def;
     return ListenableBuilder(
       listenable: item,
-      builder: (context, _) => DropdownButtonFormField<String?>(
-        initialValue: item.value,
+      builder: (context, _) => AppMenuButton<String?>(
+        value: item.value,
         focusNode: item.focusNode,
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          isDense: true,
-          errorText: _errorText(context, item),
-        ),
-        items: [
-          DropdownMenuItem<String?>(
-            value: null,
-            child: Text(t.ui.form.selectOption),
-          ),
+        errorText: _errorText(context, item),
+        options: [
+          AppMenuOption(null, t.ui.form.selectOption),
           for (final value in def.optionalValues)
-            DropdownMenuItem<String?>(
-              value: value,
-              child: Text(def.optionalValueLabel(value)),
-            ),
+            AppMenuOption(value, def.optionalValueLabel(value)),
         ],
         onChanged: (value) {
           item.setValue(value);
@@ -296,24 +295,14 @@ class OrSelector extends StatelessWidget {
       builder: (context, _) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DropdownButtonFormField<FieldDef?>(
-            initialValue: item.selected,
+          AppMenuButton<FieldDef?>(
+            value: item.selected,
             focusNode: item.focusNode,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              isDense: true,
-              errorText: _errorText(context, item),
-            ),
-            items: [
-              DropdownMenuItem<FieldDef?>(
-                value: null,
-                child: Text(t.ui.form.selectOption),
-              ),
+            errorText: _errorText(context, item),
+            options: [
+              AppMenuOption(null, t.ui.form.selectOption),
               for (final option in item.def.or!)
-                DropdownMenuItem<FieldDef?>(
-                  value: option,
-                  child: Text(option.displayName),
-                ),
+                AppMenuOption(option, option.displayName),
             ],
             onChanged: item.select,
           ),
@@ -338,7 +327,6 @@ class NestedTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     return ListenableBuilder(
       listenable: item,
       builder: (context, _) {
@@ -346,8 +334,8 @@ class NestedTile extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.all(appInputSpacing),
             decoration: BoxDecoration(
-              border: Border.all(color: colorScheme.outline),
-              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.separator),
+              borderRadius: BorderRadius.circular(appRadius),
             ),
             child: Text(item.existingLabel!),
           );
@@ -359,28 +347,44 @@ class NestedTile extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            OutlinedButton(
+            CupertinoButton(
               focusNode: item.focusNode,
-              style: OutlinedButton.styleFrom(
-                alignment: Alignment.centerLeft,
-                foregroundColor: hasErrors
-                    ? colorScheme.error
-                    : colorScheme.onSurface,
-              ),
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
               onPressed: () => showNestedDialog(context, item),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(item.draftLabel ?? t.ui.form.fillInDetails),
-                  ),
-                  const Icon(Icons.chevron_right),
-                ],
+              child: Container(
+                padding: const EdgeInsets.all(appInputSpacing),
+                decoration: BoxDecoration(
+                  color: AppColors.fieldFill,
+                  borderRadius: BorderRadius.circular(appRadius),
+                  border: hasErrors ? Border.all(color: AppColors.error) : null,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.draftLabel ?? t.ui.form.fillInDetails,
+                        style: TextStyle(
+                          color: hasErrors
+                              ? AppColors.error
+                              : CupertinoColors.label,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      CupertinoIcons.chevron_right,
+                      size: 18,
+                      color: AppColors.secondaryText,
+                    ),
+                  ],
+                ),
               ),
             ),
             if (item.draftLabelFailed)
               Text(
                 t.ui.form.draftLabelFailed,
-                style: TextStyle(color: colorScheme.error, fontSize: 12),
+                style: AppTextStyles.of(context).caption
+                    .copyWith(color: AppColors.error),
               ),
           ],
         );
@@ -411,17 +415,49 @@ class ExistingEntityActions extends StatelessWidget {
     return Wrap(
       spacing: appInputSpacing / 2,
       children: [
-        OutlinedButton.icon(
+        AppButton(
+          variant: AppButtonVariant.tinted,
           onPressed: () => openExternal(entityPath(item.existingUri!)),
-          icon: const Icon(Icons.open_in_new, size: 16),
-          label: Text(t.ui.actions.visit),
+          icon: CupertinoIcons.arrow_up_right_square,
+          label: t.ui.actions.visit,
         ),
-        OutlinedButton.icon(
+        AppButton(
+          variant: AppButtonVariant.tinted,
           onPressed: item.clearExisting,
-          icon: const Icon(Icons.edit, size: 16),
-          label: Text(t.ui.actions.change),
+          icon: CupertinoIcons.pencil,
+          label: t.ui.actions.change,
         ),
       ],
+    );
+  }
+}
+
+class DateTypeMenu extends StatelessWidget {
+  const DateTypeMenu({
+    required this.value,
+    required this.allowed,
+    required this.onChanged,
+    super.key,
+  });
+
+  final DateType value;
+  final List<DateType> allowed;
+  final ValueChanged<DateType> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Translations.of(context);
+    return AppMenuButton<DateType>(
+      value: value,
+      options: [
+        for (final type in allowed)
+          AppMenuOption(type, switch (type) {
+            DateType.date => t.ui.form.dateTypeDate,
+            DateType.month => t.ui.form.dateTypeMonth,
+            DateType.year => t.ui.form.dateTypeYear,
+          }),
+      ],
+      onChanged: onChanged,
     );
   }
 }

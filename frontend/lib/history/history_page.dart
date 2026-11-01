@@ -2,11 +2,13 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common/async_view.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -33,14 +35,14 @@ class HistoryPage extends ConsumerWidget {
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                TextButton(
+                CupertinoButton(
                   onPressed: () => context.go(entityPath(uri)),
                   child: Text(
                     data.entityLabel,
                     style: const TextStyle(fontStyle: FontStyle.italic),
                   ),
                 ),
-                const Icon(Icons.chevron_right, size: 18),
+                const BreadcrumbSeparator(),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: appInputSpacing,
@@ -52,7 +54,7 @@ class HistoryPage extends ConsumerWidget {
             const SizedBox(height: appInputSpacing),
             Text(
               t.ui.history.title,
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: AppTextStyles.of(context).pageTitle,
             ),
             const SizedBox(height: appSectionSpacing),
             for (final snapshot in data.snapshots.reversed)
@@ -82,8 +84,7 @@ class _SnapshotCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final styles = AppTextStyles.of(context);
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -97,31 +98,27 @@ class _SnapshotCard extends ConsumerWidget {
                   height: 16,
                   margin: const EdgeInsets.only(top: appCardPadding),
                   decoration: BoxDecoration(
-                    color: colorScheme.primary,
+                    color: AppColors.primary,
                     shape: BoxShape.circle,
                   ),
                 ),
                 if (!isLast)
                   Expanded(
-                    child: Container(
-                      width: 2,
-                      color: colorScheme.outlineVariant,
-                    ),
+                    child: Container(width: 2, color: AppColors.separator),
                   ),
               ],
             ),
           ),
           Expanded(
-            child: Card(
-              margin: const EdgeInsets.only(bottom: appSectionSpacing),
-              child: Padding(
-                padding: const EdgeInsets.all(appCardPadding),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: appSectionSpacing),
+              child: AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       t.ui.history.snapshot(index: snapshot.index),
-                      style: textTheme.titleLarge,
+                      style: styles.sectionTitle,
                     ),
                     Text(
                       snapshot.endTimestamp == null
@@ -132,7 +129,7 @@ class _SnapshotCard extends ConsumerWidget {
                               start: formatTimestamp(snapshot.timestamp),
                               end: formatTimestamp(snapshot.endTimestamp!),
                             ),
-                      style: textTheme.bodySmall,
+                      style: styles.caption,
                     ),
                     const SizedBox(height: appInputSpacing),
                     AgentAndSource(
@@ -152,22 +149,24 @@ class _SnapshotCard extends ConsumerWidget {
                     Wrap(
                       spacing: appInputSpacing,
                       children: [
-                        OutlinedButton(
+                        AppButton(
+                          variant: AppButtonVariant.tinted,
                           onPressed: () => context.go(
                             entityVersionPath(entityUri, snapshot.timestamp),
                           ),
-                          child: Text(t.ui.history.viewVersion),
+                          label: t.ui.history.viewVersion,
                         ),
                         if (snapshot.canRestore)
-                          FilledButton.icon(
+                          AppButton(
+                            variant: AppButtonVariant.filled,
                             onPressed: () => restoreVersion(
                               context,
                               ref,
                               uri: entityUri,
                               timestamp: snapshot.timestamp,
                             ),
-                            icon: const Icon(Icons.restore),
-                            label: Text(t.ui.history.restore),
+                            icon: CupertinoIcons.arrow_counterclockwise,
+                            label: t.ui.history.restore,
                           ),
                       ],
                     ),

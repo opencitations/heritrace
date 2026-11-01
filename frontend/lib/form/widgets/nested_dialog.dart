@@ -4,9 +4,10 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../design/app_theme.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
 import '../collector.dart';
@@ -30,16 +31,15 @@ List<NestedItem> nestedChain(NestedItem item) {
 /// widgets use the item's focus nodes until the exit transition ends.
 Future<void> showNestedDialog(BuildContext context, NestedItem item) async {
   final scope = FormScope.of(context);
-  final route = DialogRoute<void>(
-    context: context,
-    barrierDismissible: false,
+  final route = CupertinoSheetRoute<void>(
+    enableDrag: false,
     settings: RouteSettings(arguments: item),
-    builder: (context) => FormScope(
+    scrollableBuilder: (context, scrollController) => FormScope(
       notifier: scope,
-      child: NestedEntityDialog(item: item),
+      child: NestedEntityDialog(item: item, scrollController: scrollController),
     ),
   );
-  unawaited(Navigator.of(context).push(route));
+  unawaited(Navigator.of(context, rootNavigator: true).push(route));
   await route.completed;
   if (item.discardIfUntouched && !item.touched) {
     item.group.removeItem(item);
@@ -48,9 +48,14 @@ Future<void> showNestedDialog(BuildContext context, NestedItem item) async {
 }
 
 class NestedEntityDialog extends ConsumerStatefulWidget {
-  const NestedEntityDialog({required this.item, super.key});
+  const NestedEntityDialog({
+    required this.item,
+    required this.scrollController,
+    super.key,
+  });
 
   final NestedItem item;
+  final ScrollController scrollController;
 
   @override
   ConsumerState<NestedEntityDialog> createState() => _NestedEntityDialogState();
@@ -132,11 +137,17 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
     final t = Translations.of(context);
     final scope = FormScope.of(context);
     final chain = nestedChain(widget.item);
-    return Dialog.fullscreen(
+    return CupertinoPageScaffold(
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(appCardPadding),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: appInputSpacing),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(
+                bottom: BorderSide(color: AppColors.separator, width: 0),
+              ),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -144,12 +155,16 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        TextButton(
+                        CupertinoButton(
                           onPressed: () => _popTo(0),
                           child: Text(scope.rootLabel),
                         ),
                         for (final (index, entry) in chain.indexed) ...[
-                          const Icon(Icons.chevron_right, size: 18),
+                          const Icon(
+                            CupertinoIcons.chevron_right,
+                            size: 16,
+                            color: AppColors.secondaryText,
+                          ),
                           if (entry == widget.item)
                             Padding(
                               padding: const EdgeInsets.symmetric(
@@ -157,11 +172,11 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
                               ),
                               child: Text(
                                 entry.def.displayName,
-                                style: Theme.of(context).textTheme.titleMedium,
+                                style: AppTextStyles.of(context).heading,
                               ),
                             )
                           else
-                            TextButton(
+                            CupertinoButton(
                               onPressed: () => _popTo(index + 1),
                               child: Text(entry.def.displayName),
                             ),
@@ -170,17 +185,19 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
                     ),
                   ),
                 ),
-                IconButton(
-                  tooltip: t.ui.actions.close,
+                CupertinoButton(
                   onPressed: _close,
-                  icon: const Icon(Icons.close),
+                  child: Text(
+                    t.ui.actions.done,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
           Expanded(
             child: SingleChildScrollView(
+              controller: widget.scrollController,
               padding: EdgeInsets.all(
                 MediaQuery.sizeOf(context).width < appCompactWidth
                     ? appCardPadding
@@ -191,17 +208,6 @@ class _NestedEntityDialogState extends ConsumerState<NestedEntityDialog> {
                   constraints: const BoxConstraints(maxWidth: appPageMaxWidth),
                   child: EntityForm(node: widget.item.child),
                 ),
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(appCardPadding),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: _close,
-                child: Text(t.ui.actions.done),
               ),
             ),
           ),

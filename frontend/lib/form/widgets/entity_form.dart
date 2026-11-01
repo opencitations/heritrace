@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
+import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../form_model.dart';
 import 'field_group_widget.dart';
@@ -25,21 +26,30 @@ class EntityForm extends StatelessWidget {
         // read as one field under a single heading.
         bool continuesPrevious(int index) =>
             index > 0 &&
-            index < groups.length &&
             groups[index].def.hasValue != null &&
             groups[index - 1].def.hasValue != null &&
             groups[index].def.uri == groups[index - 1].def.uri;
+        final cards = <List<Widget>>[];
+        for (final (index, group) in groups.indexed) {
+          final continues = continuesPrevious(index);
+          if (!continues) {
+            cards.add([]);
+          }
+          cards.last.add(
+            FieldGroupWidget(group: group, showHeading: !continues),
+          );
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final (index, group) in groups.indexed)
+            for (final card in cards)
               Padding(
-                padding: EdgeInsets.only(
-                  bottom: continuesPrevious(index + 1) ? 0 : appSectionSpacing,
-                ),
-                child: FieldGroupWidget(
-                  group: group,
-                  showHeading: !continuesPrevious(index),
+                padding: const EdgeInsets.only(bottom: appSectionSpacing),
+                child: AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: card,
+                  ),
                 ),
               ),
           ],

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +10,8 @@ import '../common/async_view.dart';
 import '../common/dialogs.dart';
 import '../common/primary_source_dialog.dart';
 import '../common/reference_views.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -84,43 +86,37 @@ class _MergeBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
+    final styles = AppTextStyles.of(context);
     final wide = MediaQuery.sizeOf(context).width > 900;
     final cards = [
       _MergeCard(
         entity: comparison.delete,
         title: t.ui.merge.deleteCard,
-        icon: Icons.delete,
-        color: colorScheme.error,
+        icon: CupertinoIcons.trash_fill,
+        color: AppColors.error,
       ),
       _MergeCard(
         entity: comparison.keep,
         title: t.ui.merge.keepCard,
-        icon: Icons.check_circle,
-        color: colorScheme.primary,
+        icon: CupertinoIcons.checkmark_circle_fill,
+        color: AppColors.primary,
       ),
     ];
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            t.ui.merge.title,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
+          Text(t.ui.merge.title, style: styles.pageTitle),
           const SizedBox(height: appSectionSpacing),
           Center(
             child: Column(
               children: [
-                Icon(
-                  Icons.arrow_circle_right,
+                const Icon(
+                  CupertinoIcons.arrow_right_circle_fill,
                   size: 40,
-                  color: colorScheme.primary,
+                  color: AppColors.primary,
                 ),
-                Text(
-                  t.ui.merge.mergeInto,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(t.ui.merge.mergeInto, style: styles.caption),
               ],
             ),
           ),
@@ -143,36 +139,40 @@ class _MergeBody extends ConsumerWidget {
           ],
           const SizedBox(height: appSectionSpacing),
           _Explanation(
-            icon: Icons.input,
-            color: colorScheme.primary,
+            icon: CupertinoIcons.square_arrow_down,
+            color: AppColors.primary,
             title: t.ui.merge.propertiesTitle,
             text: t.ui.merge.propertiesText,
           ),
           _Explanation(
-            icon: Icons.link,
-            color: colorScheme.primary,
+            icon: CupertinoIcons.link,
+            color: AppColors.primary,
             title: t.ui.merge.referencesTitle,
             text: t.ui.merge.referencesText,
           ),
           _Explanation(
-            icon: Icons.delete,
-            color: colorScheme.error,
+            icon: CupertinoIcons.trash,
+            color: AppColors.error,
             title: t.ui.merge.deletionTitle,
             text: t.ui.merge.deletionText,
           ),
           const SizedBox(height: appSectionSpacing),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: appInputSpacing,
+            runSpacing: appInputSpacing,
             children: [
-              OutlinedButton.icon(
+              AppButton(
+                variant: AppButtonVariant.tinted,
                 onPressed: () => context.go(entityPath(comparison.keep.uri)),
-                icon: const Icon(Icons.close),
-                label: Text(t.ui.actions.cancel),
+                icon: CupertinoIcons.xmark,
+                label: t.ui.actions.cancel,
               ),
-              FilledButton.icon(
+              AppButton(
+                variant: AppButtonVariant.filled,
                 onPressed: () => _confirm(context, ref),
-                icon: const Icon(Icons.check),
-                label: Text(t.ui.merge.confirm),
+                icon: CupertinoIcons.check_mark,
+                label: t.ui.merge.confirm,
               ),
             ],
           ),
@@ -198,67 +198,70 @@ class _MergeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final textTheme = Theme.of(context).textTheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(appCardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color),
-                const SizedBox(width: appInputSpacing / 2),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: textTheme.titleMedium?.copyWith(color: color),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: appInputSpacing / 2),
-            Tooltip(message: entity.uri, child: Text(entity.label)),
-            const SizedBox(height: appInputSpacing / 2),
-            Chip(label: Text(entity.typeLabel)),
-            const SizedBox(height: appInputSpacing),
-            Text(t.ui.merge.properties, style: textTheme.titleSmall),
-            if (entity.properties.isEmpty)
-              Text(
-                t.ui.merge.noProperties,
-                style: const TextStyle(fontStyle: FontStyle.italic),
-              ),
-            for (final property in entity.properties) ...[
-              const Divider(),
-              Tooltip(
-                message: property.predicate,
+    final styles = AppTextStyles.of(context);
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: appInputSpacing / 2),
+              Expanded(
                 child: Text(
-                  property.label,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  title,
+                  style: styles.heading.copyWith(color: color),
                 ),
               ),
-              for (final value in property.values)
-                Padding(
-                  padding: const EdgeInsets.only(left: appInputSpacing, top: 2),
-                  child: value.isUri
-                      ? LinkText(
-                          label: value.readableLabel,
-                          onTap: () => openExternal(entityPath(value.value)),
-                        )
-                      : Text(value.readableLabel),
-                ),
             ],
-            const SizedBox(height: appInputSpacing),
-            Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
-                onPressed: () => openExternal(entityPath(entity.uri)),
-                icon: const Icon(Icons.open_in_new, size: 16),
-                label: Text(t.ui.merge.viewDetails),
+          ),
+          const SizedBox(height: appInputSpacing / 2),
+          Text(entity.label),
+          Text(entity.uri, style: styles.caption),
+          const SizedBox(height: appInputSpacing / 2),
+          _TypeBadge(label: entity.typeLabel),
+          const SizedBox(height: appInputSpacing),
+          Text(t.ui.merge.properties, style: styles.subheading),
+          if (entity.properties.isEmpty)
+            Text(
+              t.ui.merge.noProperties,
+              style: const TextStyle(fontStyle: FontStyle.italic),
+            ),
+          for (final property in entity.properties) ...[
+            Container(
+              height: 0.5,
+              margin: const EdgeInsets.symmetric(vertical: appInputSpacing),
+              color: AppColors.separator,
+            ),
+            AppTooltip(
+              message: property.predicate,
+              child: Text(
+                property.label,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
+            for (final value in property.values)
+              Padding(
+                padding: const EdgeInsets.only(left: appInputSpacing, top: 2),
+                child: value.isUri
+                    ? LinkText(
+                        label: value.readableLabel,
+                        onTap: () => openExternal(entityPath(value.value)),
+                      )
+                    : Text(value.readableLabel),
+              ),
           ],
-        ),
+          const SizedBox(height: appInputSpacing),
+          Align(
+            alignment: Alignment.centerRight,
+            child: AppButton(
+              variant: AppButtonVariant.tinted,
+              onPressed: () => openExternal(entityPath(entity.uri)),
+              icon: CupertinoIcons.arrow_up_right_square,
+              label: t.ui.merge.viewDetails,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -301,6 +304,27 @@ class _Explanation extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TypeBadge extends StatelessWidget {
+  const _TypeBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: appInputSpacing,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.fieldFill,
+        borderRadius: BorderRadius.circular(appRadius * 2),
+      ),
+      child: Text(label, style: AppTextStyles.of(context).caption),
     );
   }
 }

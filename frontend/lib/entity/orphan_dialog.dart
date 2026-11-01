@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
+import '../design/app_theme.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import 'entity_models.dart';
@@ -26,52 +27,47 @@ Future<bool?> showOrphanDialog(BuildContext context, OrphanCheck check) {
     final deleteProxies = check.proxyStrategy == 'delete' && proxies.isNotEmpty;
     return Future.value(deleteOrphans || deleteProxies);
   }
-  final colorScheme = Theme.of(context).colorScheme;
-  return showDialog<bool>(
+  return showCupertinoDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
+    barrierDismissible: true,
+    builder: (context) => CupertinoAlertDialog(
       title: Text(t.ui.orphans.title),
-      content: SizedBox(
-        width: 520,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showOrphans) ...[
-                Text(t.ui.orphans.orphansIntro),
-                const SizedBox(height: appInputSpacing),
-                for (final entity in orphans)
-                  _AffectedRow(
-                    entity: entity,
-                    icon: Icons.remove_circle_outline,
-                    color: colorScheme.error,
-                  ),
-                const SizedBox(height: appSectionSpacing),
-              ],
-              if (showProxies) ...[
-                Text(t.ui.orphans.proxiesIntro),
-                const SizedBox(height: appInputSpacing),
-                for (final entity in proxies)
-                  _AffectedRow(
-                    entity: entity,
-                    icon: Icons.link,
-                    color: colorScheme.tertiary,
-                  ),
-                const SizedBox(height: appSectionSpacing),
-              ],
-              Text(t.ui.orphans.question),
-            ],
-          ),
-        ),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showOrphans) ...[
+            Text(t.ui.orphans.orphansIntro),
+            const SizedBox(height: appInputSpacing),
+            for (final entity in orphans)
+              _AffectedRow(
+                entity: entity,
+                icon: CupertinoIcons.minus_circle,
+                color: AppColors.error,
+              ),
+            const SizedBox(height: appSectionSpacing),
+          ],
+          if (showProxies) ...[
+            Text(t.ui.orphans.proxiesIntro),
+            const SizedBox(height: appInputSpacing),
+            for (final entity in proxies)
+              _AffectedRow(
+                entity: entity,
+                icon: CupertinoIcons.link,
+                color: AppColors.warning,
+              ),
+            const SizedBox(height: appSectionSpacing),
+          ],
+          Text(t.ui.orphans.question),
+        ],
       ),
       actions: [
-        TextButton(
+        CupertinoDialogAction(
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(t.ui.orphans.keep),
         ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
+        CupertinoDialogAction(
+          isDestructiveAction: true,
           onPressed: () => Navigator.of(context).pop(true),
           child: Text(t.ui.orphans.delete),
         ),
@@ -93,7 +89,6 @@ class _AffectedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: appInputSpacing / 2),
       child: Row(
@@ -108,7 +103,7 @@ class _AffectedRow extends StatelessWidget {
                   TextSpan(text: entity.label),
                   TextSpan(
                     text: ' (${entity.type})',
-                    style: textTheme.bodySmall,
+                    style: AppTextStyles.of(context).caption,
                   ),
                 ],
               ),

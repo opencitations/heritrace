@@ -2,11 +2,13 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common/async_view.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -40,7 +42,7 @@ class _VersionBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Translations.of(context);
-    final textTheme = Theme.of(context).textTheme;
+    final styles = AppTextStyles.of(context);
     final uri = version.entityUri;
     return SingleChildScrollView(
       child: Column(
@@ -49,19 +51,19 @@ class _VersionBody extends ConsumerWidget {
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              TextButton(
+              CupertinoButton(
                 onPressed: () => context.go(entityPath(uri)),
                 child: Text(
                   version.entityLabel,
                   style: const TextStyle(fontStyle: FontStyle.italic),
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 18),
-              TextButton(
+              const BreadcrumbSeparator(),
+              CupertinoButton(
                 onPressed: () => context.go(entityHistoryPath(uri)),
                 child: Text(t.ui.history.breadcrumb),
               ),
-              const Icon(Icons.chevron_right, size: 18),
+              const BreadcrumbSeparator(),
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: appInputSpacing,
@@ -75,86 +77,87 @@ class _VersionBody extends ConsumerWidget {
           const SizedBox(height: appInputSpacing),
           Text(
             t.ui.version.title(number: version.versionNumber),
-            style: textTheme.headlineMedium,
+            style: styles.pageTitle,
           ),
           const SizedBox(height: appSectionSpacing),
           Wrap(
             spacing: appInputSpacing,
             runSpacing: appInputSpacing,
             children: [
-              OutlinedButton.icon(
+              AppButton(
+                variant: AppButtonVariant.tinted,
                 onPressed: () => context.go(entityHistoryPath(uri)),
-                icon: const Icon(Icons.history),
-                label: Text(t.ui.entity.timeMachine),
+                icon: CupertinoIcons.clock,
+                label: t.ui.entity.timeMachine,
               ),
               if (version.nextTimestamp != null)
-                FilledButton.icon(
+                AppButton(
+                  variant: AppButtonVariant.filled,
                   onPressed: () => restoreVersion(
                     context,
                     ref,
                     uri: uri,
                     timestamp: version.timestamp,
                   ),
-                  icon: const Icon(Icons.restore),
-                  label: Text(t.ui.version.restore),
+                  icon: CupertinoIcons.arrow_counterclockwise,
+                  label: t.ui.version.restore,
                 ),
-              OutlinedButton.icon(
+              AppButton(
+                variant: AppButtonVariant.tinted,
                 onPressed: version.prevTimestamp == null
                     ? null
                     : () => context.go(
                         entityVersionPath(uri, version.prevTimestamp!),
                       ),
-                icon: const Icon(Icons.arrow_back),
-                label: Text(t.ui.version.previous),
+                icon: CupertinoIcons.arrow_left,
+                label: t.ui.version.previous,
               ),
-              OutlinedButton.icon(
+              AppButton(
+                variant: AppButtonVariant.tinted,
                 onPressed: version.nextTimestamp == null
                     ? null
                     : () => context.go(
                         entityVersionPath(uri, version.nextTimestamp!),
                       ),
-                icon: const Icon(Icons.arrow_forward),
-                label: Text(t.ui.version.next),
+                icon: CupertinoIcons.arrow_right,
+                label: t.ui.version.next,
               ),
             ],
           ),
           const SizedBox(height: appSectionSpacing),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(appCardPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t.ui.version.metadata(number: version.versionNumber),
-                    style: textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: appInputSpacing),
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.ui.version.metadata(number: version.versionNumber),
+                  style: styles.heading,
+                ),
+                const SizedBox(height: appInputSpacing),
+                MetadataRow(
+                  label: t.ui.version.generationTime,
+                  child: Text(formatTimestamp(version.generatedAt)),
+                ),
+                if (version.invalidatedAt != null)
                   MetadataRow(
-                    label: t.ui.version.generationTime,
-                    child: Text(formatTimestamp(version.generatedAt)),
+                    label: t.ui.version.invalidationTime,
+                    child: Text(formatTimestamp(version.invalidatedAt!)),
                   ),
-                  if (version.invalidatedAt != null)
-                    MetadataRow(
-                      label: t.ui.version.invalidationTime,
-                      child: Text(formatTimestamp(version.invalidatedAt!)),
-                    ),
-                  AgentAndSource(
-                    agent: version.attributedTo,
-                    source: version.primarySource,
+                AgentAndSource(
+                  agent: version.attributedTo,
+                  source: version.primarySource,
+                ),
+                if (version.description != null)
+                  MetadataRow(
+                    label: t.ui.history.description,
+                    child: Text(version.description!),
                   ),
-                  if (version.description != null)
-                    MetadataRow(
-                      label: t.ui.history.description,
-                      child: Text(version.description!),
-                    ),
-                  if (version.modifications != null &&
-                      !version.modifications!.isEmpty) ...[
-                    const SizedBox(height: appInputSpacing),
-                    ModificationsView(modifications: version.modifications!),
-                  ],
+                if (version.modifications != null &&
+                    !version.modifications!.isEmpty) ...[
+                  const SizedBox(height: appInputSpacing),
+                  ModificationsView(modifications: version.modifications!),
                 ],
-              ),
+              ],
             ),
           ),
           const SizedBox(height: appSectionSpacing),
@@ -164,19 +167,22 @@ class _VersionBody extends ConsumerWidget {
             for (final group in version.groups)
               Padding(
                 padding: const EdgeInsets.only(bottom: appSectionSpacing),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(group.displayName, style: textTheme.titleMedium),
-                    for (final value in group.values)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: appInputSpacing,
-                          top: appInputSpacing / 2,
-                        ),
-                        child: SelectableText(value),
-                      ),
-                  ],
+                child: AppCard(
+                  child: AppSelectable(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(group.displayName, style: styles.heading),
+                        for (final value in group.values)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              top: appInputSpacing / 2,
+                            ),
+                            child: Text(value),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
         ],

@@ -4,11 +4,13 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/async_view.dart';
 import '../../common/reference_views.dart';
+import '../../design/app_theme.dart';
+import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
 import '../../navigation/app_paths.dart';
@@ -156,7 +158,6 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     final showResults =
         !_dismissed && (_loading || _failure != null || _results.isNotEmpty);
     return Column(
@@ -164,49 +165,49 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
       children: [
         widget.field,
         if (showResults)
-          Card(
-            margin: const EdgeInsets.only(top: appInputSpacing / 2),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          Padding(
+            padding: const EdgeInsets.only(top: appInputSpacing / 2),
+            child: AppSection(
               children: [
                 if (_suggestionsOnly)
-                  ListTile(
-                    leading: Icon(
-                      Icons.info_outline,
-                      color: colorScheme.primary,
+                  CupertinoListTile(
+                    leading: const Icon(
+                      CupertinoIcons.info_circle,
+                      color: AppColors.primary,
                     ),
                     title: Text(
                       t.ui.form.similarEntities(count: _results.length),
                     ),
-                    trailing: IconButton(
-                      tooltip: t.ui.actions.close,
+                    trailing: AppIconButton(
+                      label: t.ui.actions.close,
                       onPressed: () => setState(() => _dismissed = true),
-                      icon: const Icon(Icons.close),
+                      icon: CupertinoIcons.xmark,
                     ),
                   )
                 else
-                  ListTile(
-                    leading: const Icon(Icons.add_circle_outline),
+                  CupertinoListTile(
+                    leading: const Icon(CupertinoIcons.add_circled),
                     title: Text(t.ui.form.createNewEntity),
                     onTap: () => setState(() => _dismissed = true),
                   ),
                 for (final result in _results)
-                  ListTile(
-                    title: Text(result.label),
+                  CupertinoListTile(
+                    title: TileText(result.label),
                     subtitle: Text(result.uri),
                     trailing: _suggestionsOnly
-                        ? TextButton(
+                        ? CupertinoButton(
+                            sizeStyle: CupertinoButtonSize.small,
                             onPressed: () =>
                                 openExternal(entityPath(result.uri)),
                             child: Text(t.ui.form.view),
                           )
-                        : const Icon(Icons.chevron_right),
+                        : const CupertinoListTileChevron(),
                     onTap: _suggestionsOnly ? null : () => _select(result),
                   ),
                 if (_loading)
                   const Padding(
                     padding: EdgeInsets.all(appInputSpacing),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(child: CupertinoActivityIndicator()),
                   )
                 else if (_failure case (:final error, :final offset))
                   Padding(
@@ -217,8 +218,8 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                     ),
                   )
                 else if (_hasMore && !_suggestionsOnly)
-                  ListTile(
-                    leading: const Icon(Icons.refresh),
+                  CupertinoListTile(
+                    leading: const Icon(CupertinoIcons.refresh),
                     title: Text(t.ui.form.moreResults),
                     onTap: () => _search(_offset + 5),
                   ),

@@ -2,8 +2,9 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
+import '../../design/app_theme.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
 import '../form_model.dart';
@@ -18,7 +19,6 @@ class ValidationSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     final scope = FormScope.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     if (!scope.validationStarted || scope.errors.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -34,8 +34,8 @@ class ValidationSummary extends StatelessWidget {
         maxHeight: MediaQuery.sizeOf(context).height * 0.3,
       ),
       decoration: BoxDecoration(
-        color: colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.errorTint,
+        borderRadius: BorderRadius.circular(appRadius),
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(appCardPadding),
@@ -44,31 +44,30 @@ class ValidationSummary extends StatelessWidget {
           children: [
             Text(
               t.ui.form.errorsTitle(count: scope.errors.length),
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(color: colorScheme.onErrorContainer),
+              style: AppTextStyles.of(context).heading
+                  .copyWith(color: AppColors.error),
             ),
             for (final entry in groups.entries) ...[
               const SizedBox(height: appInputSpacing),
               Text(
                 entry.key,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onErrorContainer,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               for (final error in entry.value)
                 error.item == null
-                    ? Text(
-                        error.fullMessage,
-                        style: TextStyle(color: colorScheme.onErrorContainer),
-                      )
-                    : TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: colorScheme.onErrorContainer,
-                          alignment: Alignment.centerLeft,
-                        ),
+                    ? Text(error.fullMessage)
+                    : CupertinoButton(
+                        sizeStyle: CupertinoButtonSize.small,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        alignment: Alignment.centerLeft,
+                        foregroundColor: AppColors.error,
                         onPressed: () => focusItem(context, error.item!),
-                        child: Text(error.fullMessage),
+                        child: Text(
+                          error.fullMessage,
+                          style: const TextStyle(
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
                       ),
             ],
           ],

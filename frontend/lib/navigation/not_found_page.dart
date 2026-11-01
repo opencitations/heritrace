@@ -2,9 +2,11 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 import 'app_paths.dart';
@@ -15,21 +17,22 @@ class NotFoundPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    return Scaffold(
-      body: Center(
+    return CupertinoPageScaffold(
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               t.ui.notFound.title,
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: AppTextStyles.of(context).pageTitle,
             ),
             const SizedBox(height: appSectionSpacing),
             Text(t.ui.notFound.message),
             const SizedBox(height: appSectionSpacing),
-            FilledButton(
+            AppButton(
+              variant: AppButtonVariant.filled,
               onPressed: () => context.go(cataloguePath),
-              child: Text(t.ui.notFound.backToCatalogue),
+              label: t.ui.notFound.backToCatalogue,
             ),
           ],
         ),

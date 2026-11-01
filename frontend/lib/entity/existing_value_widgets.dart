@@ -2,13 +2,16 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common/reference_views.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../form/form_model.dart';
 import '../form/widgets/field_group_widget.dart';
+import '../form/widgets/item_widgets.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
 import 'edit_session.dart';
@@ -28,53 +31,53 @@ class EditableGroupWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     return ListenableBuilder(
       listenable: group,
       builder: (context, _) {
         final draggable = editing && group.group.isDraggable;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(group.group.displayName, style: textTheme.titleMedium),
-            const SizedBox(height: appInputSpacing / 2),
-            if (draggable)
-              ReorderableListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                buildDefaultDragHandles: false,
-                itemCount: group.existing.length,
-                onReorderItem: group.move,
-                itemBuilder: (context, index) => Padding(
-                  key: ObjectKey(group.existing[index]),
-                  padding: const EdgeInsets.only(bottom: appInputSpacing),
-                  child: ExistingValueWidget(
-                    value: group.existing[index],
-                    view: view,
-                    editing: editing,
-                    index: index,
-                    dragHandle: ReorderableDragStartListener(
+        return AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                group.group.displayName,
+                style: AppTextStyles.of(context).heading,
+              ),
+              const SizedBox(height: appInputSpacing / 2),
+              if (draggable)
+                ReorderableList(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: group.existing.length,
+                  onReorderItem: group.move,
+                  itemBuilder: (context, index) => Padding(
+                    key: ObjectKey(group.existing[index]),
+                    padding: const EdgeInsets.only(bottom: appInputSpacing),
+                    child: ExistingValueWidget(
+                      value: group.existing[index],
+                      view: view,
+                      editing: editing,
                       index: index,
-                      child: const Icon(Icons.drag_indicator),
+                      dragHandle: DragHandle(index: index),
                     ),
                   ),
-                ),
-              )
-            else
-              for (final (index, value) in group.existing.indexed)
-                Padding(
-                  key: ObjectKey(value),
-                  padding: const EdgeInsets.only(bottom: appInputSpacing),
-                  child: ExistingValueWidget(
-                    value: value,
-                    view: view,
-                    editing: editing,
-                    index: group.group.isDraggable ? index : null,
+                )
+              else
+                for (final (index, value) in group.existing.indexed)
+                  Padding(
+                    key: ObjectKey(value),
+                    padding: const EdgeInsets.only(bottom: appInputSpacing),
+                    child: ExistingValueWidget(
+                      value: value,
+                      view: view,
+                      editing: editing,
+                      index: group.group.isDraggable ? index : null,
+                    ),
                   ),
-                ),
-            if (editing && group.formGroup != null)
-              FieldGroupWidget(group: group.formGroup!),
-          ],
+              if (editing && group.formGroup != null)
+                FieldGroupWidget(group: group.formGroup!),
+            ],
+          ),
         );
       },
     );
@@ -100,7 +103,6 @@ class ExistingValueWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     final triple = value.triple;
     final deletable =
         editing &&
@@ -112,19 +114,22 @@ class ExistingValueWidget extends StatelessWidget {
       required IconData icon,
       required String label,
       required VoidCallback onPressed,
-      Color? color,
+      bool destructive = false,
     }) => compact
-        ? IconButton(
-            tooltip: label,
-            color: color,
+        ? AppIconButton(
+            label: label,
+            color: destructive ? AppColors.error : null,
             onPressed: onPressed,
-            icon: Icon(icon, size: 18),
+            icon: icon,
           )
-        : TextButton.icon(
-            style: TextButton.styleFrom(foregroundColor: color),
-            onPressed: onPressed,
-            icon: Icon(icon, size: 18),
-            label: Text(label),
+        : Padding(
+            padding: const EdgeInsets.only(left: appInputSpacing),
+            child: AppButton(
+              destructive: destructive,
+              onPressed: onPressed,
+              icon: icon,
+              label: label,
+            ),
           );
     return ListenableBuilder(
       listenable: value,
@@ -155,20 +160,20 @@ class ExistingValueWidget extends StatelessWidget {
             ),
             if (triple.externalEntity != null)
               action(
-                icon: Icons.arrow_forward,
+                icon: CupertinoIcons.arrow_right,
                 label: t.ui.actions.visit,
                 onPressed: () => context.go(entityPath(triple.externalEntity!)),
               ),
             if (deletable && !deleted)
               action(
-                icon: Icons.delete_outline,
+                icon: CupertinoIcons.delete,
                 label: t.ui.actions.delete,
                 onPressed: value.markForDeletion,
-                color: colorScheme.error,
+                destructive: true,
               ),
             if (deletable && deleted)
               action(
-                icon: Icons.undo,
+                icon: CupertinoIcons.arrow_uturn_left,
                 label: t.ui.entity.revert,
                 onPressed: value.undoDeletion,
               ),
@@ -194,7 +199,6 @@ class _ValueBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Translations.of(context);
     final triple = value.triple;
-    final colorScheme = Theme.of(context).colorScheme;
     if (triple.externalEntity != null) {
       return LinkText(
         label: triple.value,
@@ -206,12 +210,12 @@ class _ValueBody extends StatelessWidget {
         children: [
           Flexible(child: Text(triple.value)),
           const SizedBox(width: 4),
-          Tooltip(
+          AppTooltip(
             message: t.ui.form.mandatoryValue,
-            child: Icon(
-              Icons.help_outline,
+            child: const Icon(
+              CupertinoIcons.question_circle,
               size: 16,
-              color: colorScheme.primary,
+              color: AppColors.primary,
             ),
           ),
         ],
@@ -222,20 +226,15 @@ class _ValueBody extends StatelessWidget {
       if (!editable) {
         return Text(triple.label ?? value.newValue);
       }
-      return DropdownButtonFormField<String>(
-        initialValue: options.any((o) => o.value == value.newValue)
+      return AppMenuButton<String?>(
+        value: options.any((o) => o.value == value.newValue)
             ? value.newValue
             : null,
-        decoration: const InputDecoration(
-          border: OutlineInputBorder(),
-          isDense: true,
-        ),
-        items: [
+        options: [
           for (final option in options)
-            DropdownMenuItem(value: option.value, child: Text(option.label)),
+            AppMenuOption(option.value, option.label),
         ],
-        onChanged: (selected) =>
-            selected == null ? null : value.setValue(selected),
+        onChanged: (selected) => value.setValue(selected!),
       );
     }
     if (!editable) {
@@ -246,23 +245,12 @@ class _ValueBody extends StatelessWidget {
       return Row(
         children: [
           if (allowed.length > 1) ...[
-            DropdownButton<DateType>(
+            DateTypeMenu(
               value: allowed.contains(value.dateType)
                   ? value.dateType
                   : allowed.first,
-              items: [
-                for (final type in allowed)
-                  DropdownMenuItem(
-                    value: type,
-                    child: Text(switch (type) {
-                      DateType.date => t.ui.form.dateTypeDate,
-                      DateType.month => t.ui.form.dateTypeMonth,
-                      DateType.year => t.ui.form.dateTypeYear,
-                    }),
-                  ),
-              ],
-              onChanged: (type) =>
-                  type == null ? null : value.setDateType(type),
+              allowed: allowed,
+              onChanged: value.setDateType,
             ),
             const SizedBox(width: appInputSpacing),
           ],
@@ -317,13 +305,9 @@ class _TextValueFieldState extends State<_TextValueField> {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return AppTextField(
       controller: _controller,
       maxLines: widget.multiline ? 5 : 1,
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        isDense: true,
-      ),
       onChanged: widget.value.setValue,
     );
   }

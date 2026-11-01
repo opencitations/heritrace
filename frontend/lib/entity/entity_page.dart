@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common/async_view.dart';
 import '../common/dialogs.dart';
 import '../common/primary_source_dialog.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../form/form_scope.dart';
 import '../form/widgets/custom_properties_form.dart';
@@ -90,7 +92,7 @@ class _UntypedEntityBodyState extends ConsumerState<_UntypedEntityBody> {
             ),
           ],
           const SizedBox(height: appSectionSpacing),
-          _InfoBanner(
+          AppBanner(
             text: view.isDeleted
                 ? t.ui.entity.deletedBanner
                 : t.ui.entity.noInformation,
@@ -396,26 +398,24 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                         runSpacing: appInputSpacing,
                         children: [
                           if (!view.isDeleted && view.groups.isNotEmpty) ...[
-                            OutlinedButton.icon(
+                            AppButton(
+                              variant: AppButtonVariant.tinted,
                               onPressed: _session.status == EditStatus.starting
                                   ? null
                                   : _toggleEditing,
-                              icon: Icon(editing ? Icons.close : Icons.edit),
-                              label: Text(
-                                editing
-                                    ? t.ui.entity.cancelEditing
-                                    : t.ui.entity.edit,
-                              ),
+                              icon: editing
+                                  ? CupertinoIcons.xmark
+                                  : CupertinoIcons.pencil,
+                              label: editing
+                                  ? t.ui.entity.cancelEditing
+                                  : t.ui.entity.edit,
                             ),
-                            OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .error,
-                              ),
+                            AppButton(
+                              variant: AppButtonVariant.tinted,
+                              destructive: true,
                               onPressed: editing ? null : _deleteEntity,
-                              icon: const Icon(Icons.delete_outline),
-                              label: Text(t.ui.entity.delete),
+                              icon: CupertinoIcons.delete,
+                              label: t.ui.entity.delete,
                             ),
                           ],
                           if (view.hasHistory)
@@ -424,9 +424,9 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                       ),
                       const SizedBox(height: appSectionSpacing),
                       if (view.isDeleted)
-                        _InfoBanner(text: t.ui.entity.deletedBanner)
+                        AppBanner(text: t.ui.entity.deletedBanner)
                       else if (view.groups.isEmpty)
-                        _InfoBanner(text: t.ui.entity.noInformation)
+                        AppBanner(text: t.ui.entity.noInformation)
                       else
                         for (final group in _session.groups)
                           if (group.group.triples.isNotEmpty ||
@@ -492,8 +492,8 @@ class _EntityTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     label,
-    style: Theme.of(context).textTheme.headlineSmall
-        ?.copyWith(fontStyle: FontStyle.italic),
+    style: AppTextStyles.of(context).sectionTitle
+        .copyWith(fontStyle: FontStyle.italic),
   );
 }
 
@@ -503,10 +503,11 @@ class _TimeMachineButton extends StatelessWidget {
   final String uri;
 
   @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
+  Widget build(BuildContext context) => AppButton(
+    variant: AppButtonVariant.tinted,
     onPressed: () => context.go(entityHistoryPath(uri)),
-    icon: const Icon(Icons.history),
-    label: Text(Translations.of(context).ui.entity.timeMachine),
+    icon: CupertinoIcons.clock,
+    label: Translations.of(context).ui.entity.timeMachine,
   );
 }
 
@@ -523,31 +524,6 @@ class _LinkedResourcesSection extends StatelessWidget {
       emptyMessage: t.ui.entity.noLinkedResources,
       resources: resources,
       itemBuilder: (resource) => LinkedResourceTile(resource: resource),
-    );
-  }
-}
-
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(appCardPadding),
-      decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: colorScheme.onSecondaryContainer),
-          const SizedBox(width: appInputSpacing),
-          Expanded(child: Text(text)),
-        ],
-      ),
     );
   }
 }
@@ -571,10 +547,11 @@ class _SaveBar extends StatelessWidget {
         : session.saved
         ? t.ui.entity.saved
         : t.ui.entity.unchanged;
-    final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      elevation: 8,
-      color: colorScheme.surfaceContainer,
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.separator, width: 0)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(appCardPadding),
         child: Row(
@@ -592,16 +569,17 @@ class _SaveBar extends StatelessWidget {
                           : t.ui.entity.correctErrors,
                       style: TextStyle(
                         color: scope.errors.isEmpty
-                            ? colorScheme.primary
-                            : colorScheme.error,
+                            ? AppColors.primary
+                            : AppColors.error,
                       ),
                     ),
                 ],
               ),
             ),
-            FilledButton(
+            AppButton(
+              variant: AppButtonVariant.filled,
               onPressed: hasChanges && !saving ? onSave : null,
-              child: Text(t.ui.entity.saveChanges),
+              label: t.ui.entity.saveChanges,
             ),
           ],
         ),

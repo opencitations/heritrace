@@ -4,9 +4,11 @@
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../design/app_theme.dart';
+import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
 import '../../session/session_models.dart';
@@ -63,18 +65,20 @@ class CustomPropertiesForm extends ConsumerWidget {
             Padding(
               key: ObjectKey(property),
               padding: const EdgeInsets.only(bottom: appSectionSpacing),
-              child: _CustomPropertyRow(
-                property: property,
-                datatypeOptions: datatypeOptions,
-                onRemove: () => controller.remove(property),
+              child: AppCard(
+                child: _CustomPropertyRow(
+                  property: property,
+                  datatypeOptions: datatypeOptions,
+                  onRemove: () => controller.remove(property),
+                ),
               ),
             ),
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton.icon(
+            child: AppButton(
               onPressed: controller.add,
-              icon: const Icon(Icons.add_circle_outline),
-              label: Text(t.ui.form.addProperty),
+              icon: CupertinoIcons.add_circled,
+              label: t.ui.form.addProperty,
             ),
           ),
         ],
@@ -128,7 +132,6 @@ class _CustomPropertyRowState extends ConsumerState<_CustomPropertyRow> {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     final property = widget.property;
     final title = property.predicate.trim().isEmpty
         ? t.ui.form.customProperty
@@ -145,47 +148,36 @@ class _CustomPropertyRowState extends ConsumerState<_CustomPropertyRow> {
         Row(
           children: [
             Expanded(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              child: Text(title, style: AppTextStyles.of(context).heading),
             ),
-            TextButton.icon(
-              style: TextButton.styleFrom(foregroundColor: colorScheme.error),
+            AppButton(
+              destructive: true,
               onPressed: widget.onRemove,
-              icon: const Icon(Icons.delete_outline, size: 18),
-              label: Text(t.ui.actions.delete),
+              icon: CupertinoIcons.delete,
+              label: t.ui.actions.delete,
             ),
           ],
         ),
         const SizedBox(height: appInputSpacing / 2),
-        TextField(
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            isDense: true,
-            hintText: t.ui.form.propertyUri,
-            errorText:
-                property.predicate.trim().isNotEmpty &&
-                    !isValidUrl(property.predicate.trim())
-                ? t.ui.form.invalidPropertyUri
-                : null,
-          ),
+        AppTextField(
+          placeholder: t.ui.form.propertyUri,
+          errorText:
+              property.predicate.trim().isNotEmpty &&
+                  !isValidUrl(property.predicate.trim())
+              ? t.ui.form.invalidPropertyUri
+              : null,
           keyboardType: TextInputType.url,
           onChanged: (value) => property.update(predicate: value),
         ),
         const SizedBox(height: appInputSpacing),
-        TextField(
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            isDense: true,
-            hintText: t.ui.form.value,
-            errorText:
-                property.type == 'uri' &&
-                    property.value.trim().isNotEmpty &&
-                    !isValidUrl(property.value.trim())
-                ? t.ui.form.invalidUrl
-                : null,
-          ),
+        AppTextField(
+          placeholder: t.ui.form.value,
+          errorText:
+              property.type == 'uri' &&
+                  property.value.trim().isNotEmpty &&
+                  !isValidUrl(property.value.trim())
+              ? t.ui.form.invalidUrl
+              : null,
           onChanged: (value) {
             property.update(value: value);
             _refreshDatatypes();
@@ -195,50 +187,41 @@ class _CustomPropertyRowState extends ConsumerState<_CustomPropertyRow> {
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: property.type,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  labelText: t.ui.form.valueType,
+              child: AppLabeledField(
+                label: t.ui.form.valueType,
+                child: AppMenuButton<String>(
+                  value: property.type,
+                  options: [
+                    AppMenuOption('literal', t.ui.form.literal),
+                    AppMenuOption('uri', t.ui.form.uri),
+                  ],
+                  onChanged: (type) {
+                    property.update(type: type);
+                    _refreshDatatypes();
+                  },
                 ),
-                items: [
-                  DropdownMenuItem(
-                    value: 'literal',
-                    child: Text(t.ui.form.literal),
-                  ),
-                  DropdownMenuItem(value: 'uri', child: Text(t.ui.form.uri)),
-                ],
-                onChanged: (type) {
-                  property.update(type: type);
-                  _refreshDatatypes();
-                },
               ),
             ),
             if (property.type == 'literal') ...[
               const SizedBox(width: appInputSpacing),
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue:
-                      options.any((option) => option.uri == property.datatype)
-                      ? property.datatype
-                      : options.firstOrNull?.uri,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                    labelText: t.ui.form.datatype,
+                child: AppLabeledField(
+                  label: t.ui.form.datatype,
+                  child: AppMenuButton<String?>(
+                    value:
+                        options.any((option) => option.uri == property.datatype)
+                        ? property.datatype
+                        : options.firstOrNull?.uri,
                     errorText: options.isEmpty
                         ? t.ui.form.noValidDatatypes
                         : null,
+                    options: [
+                      for (final option in options)
+                        AppMenuOption(option.uri, option.label),
+                    ],
+                    onChanged: (datatype) =>
+                        property.update(datatype: datatype),
                   ),
-                  items: [
-                    for (final option in options)
-                      DropdownMenuItem(
-                        value: option.uri,
-                        child: Text(option.label),
-                      ),
-                  ],
-                  onChanged: (datatype) => property.update(datatype: datatype),
                 ),
               ),
             ],

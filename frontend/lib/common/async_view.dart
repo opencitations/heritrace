@@ -2,10 +2,12 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_exception.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
 
@@ -34,7 +36,7 @@ class AsyncView<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return value.when(
       data: builder,
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: CupertinoActivityIndicator()),
       error: (error, _) => ErrorView(error: error, onRetry: onRetry),
     );
   }
@@ -49,17 +51,24 @@ class ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Translations.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline, color: colorScheme.error, size: 40),
+          const Icon(
+            CupertinoIcons.exclamationmark_circle,
+            color: AppColors.error,
+            size: 40,
+          ),
           const SizedBox(height: appInputSpacing),
           Text(describeError(context, error), textAlign: TextAlign.center),
           if (onRetry != null) ...[
             const SizedBox(height: appInputSpacing),
-            OutlinedButton(onPressed: onRetry, child: Text(t.ui.actions.retry)),
+            AppButton(
+              variant: AppButtonVariant.tinted,
+              onPressed: onRetry,
+              label: t.ui.actions.retry,
+            ),
           ],
         ],
       ),

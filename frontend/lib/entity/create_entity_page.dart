@@ -2,13 +2,15 @@
 //
 // SPDX-License-Identifier: ISC
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common/async_view.dart';
 import '../common/dialogs.dart';
 import '../common/primary_source_dialog.dart';
+import '../design/app_theme.dart';
+import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../form/collector.dart';
 import '../form/form_model.dart';
@@ -194,7 +196,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
                 children: [
                   Text(
                     t.ui.create.title,
-                    style: Theme.of(context).textTheme.headlineMedium,
+                    style: AppTextStyles.of(context).pageTitle,
                   ),
                   const SizedBox(height: appSectionSpacing),
                   if (session.config.shacl)
@@ -210,25 +212,20 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            DropdownButtonFormField<EntityTypeOption>(
-                              initialValue: _selectedType,
-                              decoration: InputDecoration(
-                                border: const OutlineInputBorder(),
-                                labelText: t.ui.create.selectType,
+                            AppLabeledField(
+                              label: t.ui.create.selectType,
+                              child: AppMenuButton<EntityTypeOption?>(
+                                value: _selectedType,
+                                options: [
+                                  for (final option in options)
+                                    AppMenuOption(option, option.label),
+                                ],
+                                onChanged: (option) => _selectType(option!),
                               ),
-                              items: [
-                                for (final option in options)
-                                  DropdownMenuItem(
-                                    value: option,
-                                    child: Text(option.label),
-                                  ),
-                              ],
-                              onChanged: (option) =>
-                                  option == null ? null : _selectType(option),
                             ),
                             const SizedBox(height: appSectionSpacing),
                             if (_loadingForm)
-                              const Center(child: CircularProgressIndicator())
+                              const Center(child: CupertinoActivityIndicator())
                             else if (_formError != null)
                               ErrorView(
                                 error: _formError!,
@@ -254,10 +251,11 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
             padding: const EdgeInsets.only(top: appInputSpacing),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
+              child: AppButton(
+                variant: AppButtonVariant.filled,
                 onPressed: canSubmit ? _submit : null,
-                icon: const Icon(Icons.check_circle_outline),
-                label: Text(t.ui.create.submit),
+                icon: CupertinoIcons.checkmark_circle,
+                label: t.ui.create.submit,
               ),
             ),
           ),
