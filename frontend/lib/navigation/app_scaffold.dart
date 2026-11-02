@@ -45,13 +45,16 @@ class AppScaffold extends ConsumerStatefulWidget {
 }
 
 class _AppScaffoldState extends ConsumerState<AppScaffold> {
-  /// Inner pages belong to the tab they were opened from.
+  /// Pages whose parent is a tab belong to that tab; deeper pages belong to
+  /// the tab they were opened from.
   int _tab = 0;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final tab = _tabPaths.indexOf(GoRouterState.of(context).uri.path);
+    final uri = GoRouterState.of(context).uri;
+    final tabPath = _tabPaths.contains(uri.path) ? uri.path : _parentPath(uri);
+    final tab = _tabPaths.indexWhere((path) => path == tabPath);
     if (tab >= 0) {
       _tab = tab;
     }
