@@ -571,10 +571,9 @@ class AppListTile extends StatelessWidget {
   }
 }
 
-/// An icon with the point size of the text next to it. CupertinoIcons
-/// glyphs, like SF Symbols, are drawn to sit centred on the capital letters
-/// when they share the baseline of the text, so place it in a row aligned on
-/// [TextBaseline.alphabetic].
+/// An icon drawn as a glyph of the text next to it, so it shares the text's
+/// baseline and line height in a row aligned on [TextBaseline.alphabetic].
+/// It is decorative, so screen readers skip it.
 class TextIcon extends StatelessWidget {
   const TextIcon(this.icon, {this.style, this.color, super.key});
 
@@ -583,11 +582,22 @@ class TextIcon extends StatelessWidget {
   final Color? color;
 
   @override
-  Widget build(BuildContext context) => Icon(
-    icon,
-    size: DefaultTextStyle.of(context).style.merge(style).fontSize,
-    color: color,
-  );
+  Widget build(BuildContext context) {
+    final textStyle = DefaultTextStyle.of(context).style.merge(style);
+    return ExcludeSemantics(
+      child: Text(
+        String.fromCharCode(icon.codePoint),
+        style: TextStyle(
+          inherit: false,
+          color: color ?? textStyle.color,
+          fontSize: textStyle.fontSize,
+          fontFamily: icon.fontFamily,
+          package: icon.fontPackage,
+        ),
+        strutStyle: StrutStyle.fromTextStyle(textStyle, forceStrutHeight: true),
+      ),
+    );
+  }
 }
 
 /// A [TextIcon] before a label. A label on several lines keeps the icon on

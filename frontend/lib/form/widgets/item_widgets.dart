@@ -12,7 +12,6 @@ import '../field_def.dart';
 import '../form_model.dart';
 import '../form_scope.dart';
 import 'entity_search.dart';
-import 'field_group_widget.dart';
 import 'nested_dialog.dart';
 
 class ItemWidget extends StatelessWidget {
@@ -344,11 +343,11 @@ class OrSelector extends StatelessWidget {
             ],
             onChanged: item.select,
           ),
-          if (item.selectedGroup != null) ...[
+          if (item.selectedItem != null) ...[
             const SizedBox(height: appInputSpacing),
             Padding(
               padding: const EdgeInsets.only(left: appInputSpacing),
-              child: FieldGroupWidget(group: item.selectedGroup!),
+              child: ItemWidget(item: item.selectedItem!),
             ),
           ],
         ],

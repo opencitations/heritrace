@@ -215,7 +215,7 @@ bool nestedDetailsComplete(NestedItem item) {
             hasValue = true;
           }
         case OrItem():
-          if (child.selectedGroup != null) {
+          if (child.selectedItem != null) {
             hasValue = true;
           }
       }

@@ -315,33 +315,26 @@ class NestedItem extends FormItem {
 }
 
 /// A `sh:or` field: the user picks one of the alternative shapes, then fills
-/// the group built for that shape.
+/// the single value built for that shape.
 class OrItem extends FormItem {
   OrItem({required super.def, required super.depth});
 
   FieldDef? selected;
-  FieldGroup? selectedGroup;
+  FormItem? selectedItem;
 
   void select(FieldDef? option) {
-    selectedGroup?.dispose();
+    selectedItem?.dispose();
     selected = option;
-    if (option == null) {
-      selectedGroup = null;
-    } else {
-      final group = FieldGroup(def: option, depth: depth)
-        ..owner = this.group.owner;
-      group
-        ..addListener(notifyListeners)
-        ..addItem(notify: false);
-      selectedGroup = group;
-    }
+    selectedItem = option == null
+        ? null
+        : (createItem(option, depth, group)..addListener(notifyListeners));
     touched = true;
     notifyListeners();
   }
 
   @override
   void dispose() {
-    selectedGroup?.dispose();
+    selectedItem?.dispose();
     super.dispose();
   }
 }

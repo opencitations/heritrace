@@ -333,9 +333,9 @@ void _validateItem(
         );
       }
     case OrItem():
-      final selected = item.selectedGroup;
+      final selected = item.selectedItem;
       if (selected != null) {
-        _validateGroup(selected, node, messages, path, errors);
+        _validateItem(selected, node, messages, path, errors);
       } else if (def.isRequired) {
         errors.add(
           ValidationError(
@@ -423,8 +423,8 @@ bool hasAnyValue(EntityNode node) =>
     node.groups.any((group) => group.items.any(_hasValue));
 
 bool _hasValue(FormItem item) => switch (item) {
-  OrItem(:final selectedGroup) =>
-    selectedGroup != null && selectedGroup.items.any(_hasValue),
+  OrItem(:final selectedItem) =>
+    selectedItem != null && _hasValue(selectedItem),
   NestedItem() => item.isExisting || hasAnyValue(item.child),
   MandatoryItem() => false,
   _ => !item.isEmpty,

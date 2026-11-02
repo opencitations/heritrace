@@ -23,12 +23,18 @@ const hasNext = 'https://w3id.org/oc/ontology/hasNext';
 const identifier = 'http://purl.org/spar/datacite/hasIdentifier';
 const identifierClass = 'http://purl.org/spar/datacite/Identifier';
 const identifierShape = 'http://schema.org/IdentifierShape';
+const partOf = 'http://purl.org/vocab/frbr/core#partOf';
+const issue = 'http://purl.org/spar/fabio/JournalIssue';
+const issueShape = 'http://schema.org/IssueShape';
+const volume = 'http://purl.org/spar/fabio/JournalVolume';
+const volumeShape = 'http://schema.org/VolumeShape';
+const sequenceIdentifier = 'http://purl.org/spar/fabio/hasSequenceIdentifier';
 const literalValue =
     'http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue';
 
 /// A trimmed version of `/api/form-fields` for a journal article with its
 /// title, publication date, an ordered author list (an intermediate relation
-/// to agents) and identifiers.
+/// to agents), identifiers and a container that is an issue or a volume.
 List<dynamic> articleFormFields() =>
     jsonDecode(jsonEncode(_rawArticleFormFields)) as List<dynamic>;
 
@@ -135,6 +141,61 @@ const List<Object> _rawArticleFormFields = [
           },
         },
         'additionalProperties': {withRole: author},
+      },
+    ],
+  ],
+  [
+    partOf,
+    [
+      {
+        'uri': partOf,
+        'displayName': 'Container',
+        'entityType': article,
+        'subjectShape': articleShape,
+        'min': 0,
+        'max': 1,
+        'or': [
+          {
+            'uri': partOf,
+            'displayName': 'Issue',
+            'entityType': issue,
+            'subjectShape': articleShape,
+            'nodeShape': issueShape,
+            'min': 0,
+            'max': 1,
+            'nestedShape': [
+              {
+                'uri': sequenceIdentifier,
+                'displayName': 'Number',
+                'entityType': issue,
+                'subjectShape': issueShape,
+                'datatypes': [xsdString],
+                'min': 0,
+                'max': 1,
+              },
+            ],
+          },
+          {
+            'uri': partOf,
+            'displayName': 'Volume',
+            'entityType': volume,
+            'subjectShape': articleShape,
+            'nodeShape': volumeShape,
+            'min': 0,
+            'max': 1,
+            'nestedShape': [
+              {
+                'uri': sequenceIdentifier,
+                'displayName': 'Number',
+                'entityType': volume,
+                'subjectShape': volumeShape,
+                'datatypes': [xsdString],
+                'min': 0,
+                'max': 1,
+              },
+            ],
+          },
+        ],
       },
     ],
   ],

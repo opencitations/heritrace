@@ -90,6 +90,27 @@ void main() {
     });
   });
 
+  test('the entity of the chosen container shape is collected', () {
+    final container = group(root, partOf).addItem() as OrItem;
+    container.select(container.def.or!.first);
+    final issueItem = container.selectedItem! as NestedItem;
+    (group(issueItem.child, sequenceIdentifier).addItem() as LiteralItem)
+        .setValue('4');
+
+    expect(collectProperties(root), {
+      rdfType: [article],
+      partOf: [
+        {
+          'entity_type': issue,
+          'entity_shape': issueShape,
+          'properties': {
+            sequenceIdentifier: ['4'],
+          },
+        },
+      ],
+    });
+  });
+
   test('untouched nested entities are skipped', () {
     group(root, documentContext).addItem();
 

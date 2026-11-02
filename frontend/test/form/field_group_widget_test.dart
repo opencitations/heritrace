@@ -121,4 +121,20 @@ void main() {
     );
     expect(find.byType(RemoveButton), findsNothing);
   });
+
+  testWidgets('a chosen container shape is one value with one delete action', (
+    tester,
+  ) async {
+    await pumpGroup(tester, group(partOf));
+
+    await tester.tap(find.text('Add Container'));
+    await tester.pump();
+    final container = group(partOf).items.single as OrItem;
+    container.select(container.def.or!.first);
+    await tester.pump();
+
+    expect(find.byType(RemoveButton), findsOneWidget);
+    expect(find.text('Fill in the details'), findsOneWidget);
+    expect(find.text('Add Issue'), findsNothing);
+  });
 }

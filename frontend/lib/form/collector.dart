@@ -21,9 +21,6 @@ void _collectGroup(FieldGroup group, Map<String, List<Object>> data) {
     if (value != null) {
       data.putIfAbsent(group.def.uri, () => []).add(value);
     }
-    if (item is OrItem && item.selectedGroup != null) {
-      _collectGroup(item.selectedGroup!, data);
-    }
   }
 }
 
@@ -33,7 +30,8 @@ Object? collectItem(FormItem item) => switch (item) {
   DateItem() ||
   MandatoryItem() => item.isEmpty ? null : item.textValue,
   NestedItem() => collectNested(item),
-  OrItem() => null,
+  OrItem(:final selectedItem) =>
+    selectedItem == null ? null : collectItem(selectedItem),
 };
 
 Map<String, Object>? collectNested(NestedItem item) {
