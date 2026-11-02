@@ -39,7 +39,7 @@ def login() -> WerkzeugResponse:
     if os.environ.get("FLASK_ENV") == "demo":
         user_id_from_env = os.environ.get("USER_ID", "demo_user")
         demo_uri = f"http://example.org/demo/{user_id_from_env}"
-        user_name = f"Demo User ({user_id_from_env})"
+        user_name = "Demo User"
         _start_session(User(user_id=demo_uri, name=user_name, orcid=demo_uri))
         return redirect(_frontend(CATALOGUE_PATH))
 

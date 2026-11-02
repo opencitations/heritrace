@@ -69,7 +69,7 @@ class AppTextStyles {
       body.copyWith(fontSize: _compact ? 24 : 28, fontWeight: FontWeight.w700);
 
   TextStyle get sectionTitle =>
-      body.copyWith(fontSize: 20, fontWeight: FontWeight.w600);
+      body.copyWith(fontSize: 20, fontWeight: FontWeight.w600, height: 1.2);
 
   TextStyle get heading =>
       body.copyWith(fontSize: 17, fontWeight: FontWeight.w600);

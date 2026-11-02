@@ -107,7 +107,7 @@ def test_login_demo_mode(client: FlaskClient) -> None:
         assert response.status_code == 302
         assert response.location == "/catalogue"
         with client.session_transaction() as sess:
-            assert sess["user_name"] == "Demo User (test_demo)"
+            assert sess["user_name"] == "Demo User"
             assert sess["_user_id"] == "http://example.org/demo/test_demo"
 
 

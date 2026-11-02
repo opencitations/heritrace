@@ -66,7 +66,8 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     final parentPath = _parentPath(uri);
     final userName = session?.userName;
     final signedIn = userName != null;
-    final compact = MediaQuery.sizeOf(context).width < appCompactWidth;
+    final compact =
+        MediaQuery.sizeOf(context).width < appNavigationCompactWidth;
     final destinations = [
       (label: t.ui.nav.catalogue, icon: CupertinoIcons.book),
       (label: t.ui.nav.add, icon: CupertinoIcons.plus_circle),
