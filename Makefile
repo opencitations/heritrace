@@ -8,7 +8,7 @@ export HOST_GID := $(shell id -g)
 DEV_COMPOSE := docker compose -f dev/docker-compose.dev.yaml
 USER_TEST_DIR := .user-test
 
-.PHONY: frontend frontend-dev dev-big dev-small demo-big demo-small demo-iswc2026 user-test-enduser user-test-technician
+.PHONY: frontend frontend-dev dev-big dev-small demo-big demo-small reset-demo-big reset-demo-small demo-iswc2026 user-test-enduser user-test-technician
 
 frontend:
 	cd frontend && dart run slang && flutter build web --release
@@ -26,6 +26,10 @@ dev-big dev-small: dev-%: .env
 demo-big demo-small: demo-%: .env
 	./dev/fetch-databases.sh $*
 	DEV_DATASET=$* $(DEV_COMPOSE) -f dev/docker-compose.demo.yaml up --build
+
+reset-demo-big reset-demo-small: reset-demo-%:
+	rm -rf dev/data/$*/meta-updates dev/data/$*/provenance dev/data/$*/redis
+	$(MAKE) demo-$*
 
 .env:
 	cp .env.example .env

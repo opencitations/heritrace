@@ -69,6 +69,8 @@ This runs the Flutter client with hot reload on `https://127.0.0.1:5100`, with t
 ### Demo mode
 `make demo-small` and `make demo-big` start the same environments as `make dev-small` and `make dev-big` with `FLASK_ENV=demo`, which bypasses ORCID authentication.
 
+Edits, provenance, and Redis data persist across restarts. `make reset-demo-small` and `make reset-demo-big` discard them and start the demo from the original dataset.
+
 ### Hot reload
 Gunicorn runs with `--reload`, so changes to Python files automatically restart the workers. Watched paths include:
 - Python source files in `heritrace/`
