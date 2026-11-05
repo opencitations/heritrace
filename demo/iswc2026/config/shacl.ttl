@@ -380,7 +380,7 @@ schema:ResourceEmbodimentShape
     shui:propertyRole shui:LabelRole ;
     sh:values [
       sh:select """
-        SELECT (CONCAT("Pages ", ?start, "-", ?end) AS ?display)
+        SELECT (CONCAT(?start, "-", ?end) AS ?display)
         WHERE {
           $this prism:startingPage ?start ;
                   prism:endingPage ?end .

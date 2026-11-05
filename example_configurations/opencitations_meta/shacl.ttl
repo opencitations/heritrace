@@ -665,7 +665,7 @@ schema:AgentRoleShape
           BIND(
               IF(BOUND(?name), ?name,
                   IF(BOUND(?familyName) && BOUND(?givenName), 
-                      CONCAT(?givenName, " ", ?familyName),
+                      CONCAT(?familyName, ", ", ?givenName),
                       IF(BOUND(?familyName), ?familyName, 
                           IF(BOUND(?givenName), ?givenName, STR(?agent))
                       )
@@ -1146,7 +1146,7 @@ schema:JournalArticleShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -1362,7 +1362,7 @@ schema:BookShape
             ) AS ?displayWithDot
           )
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -1540,7 +1540,7 @@ schema:ProceedingsPaperShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -1678,7 +1678,7 @@ schema:ProceedingsShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -2124,7 +2124,7 @@ schema:ReferenceBookShape
               "."
             ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -2305,7 +2305,7 @@ schema:ThesisShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -2356,11 +2356,11 @@ schema:ResourceEmbodimentShape
 
           BIND(
             IF(BOUND(?start) && BOUND(?end), 
-              CONCAT("Pages ", ?start, "-", ?end),
+              CONCAT(?start, "-", ?end),
               IF(BOUND(?start), 
-                  CONCAT("Page ", ?start),
+                  ?start,
                   IF(BOUND(?end), 
-                    CONCAT("Page ", ?end),
+                    ?end,
                     "Unknown page")))
             AS ?display)
         }
@@ -2432,7 +2432,7 @@ schema:ResponsibleAgentShape
               BIND(
                   IF(BOUND(?name), ?name,
                       IF(BOUND(?familyName) && BOUND(?givenName), 
-                          CONCAT(?givenName, " ", ?familyName),
+                          CONCAT(?familyName, ", ", ?givenName),
                           IF(BOUND(?familyName), ?familyName, 
                               IF(BOUND(?givenName), ?givenName, "")
                           )

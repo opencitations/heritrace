@@ -35,10 +35,12 @@ from heritrace.utils.primary_source_utils import (
     get_user_default_primary_source,
     save_user_default_primary_source,
 )
+from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 from heritrace.utils.shacl_validation import validate_new_triple
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
     DeletedEntitiesQuery,
+    fetch_data_graph_for_subject,
     find_orphaned_entities,
     get_available_classes,
     get_catalog_data,
@@ -385,34 +387,33 @@ def _collect_affected_entities(
 def _format_orphan_response(
     orphans: list[dict[str, str]],
     intermediate_orphans: list[dict[str, str]],
-    entity_shape: str | None,
     orphan_strategy: OrphanHandlingStrategy,
     proxy_strategy: ProxyHandlingStrategy,
 ) -> Response:
     custom_filter = get_custom_filter()
 
-    def format_entities(
-        entities: list[dict[str, str]],
-        *,
-        is_intermediate: bool = False,
-    ) -> list[dict[str, str | bool]]:
-        return [
-            {
-                "uri": entity["uri"],
-                "label": custom_filter.human_readable_entity(
-                    entity["uri"], (entity["type"], entity_shape)
-                ),
-                "type": custom_filter.human_readable_class(
-                    (entity["type"], entity_shape)
-                ),
-                "is_intermediate": is_intermediate,
-            }
-            for entity in entities
-        ]
+    def format_entity(
+        entity: dict[str, str], *, is_intermediate: bool
+    ) -> dict[str, str | bool]:
+        uri = URIRef(entity["uri"])
+        shape = determine_shape_for_entity_triples(
+            list(
+                get_triples_from_graph(
+                    fetch_data_graph_for_subject(uri), (uri, None, None)
+                )
+            )
+        )
+        entity_key = (entity["type"], shape)
+        return {
+            "uri": entity["uri"],
+            "label": custom_filter.human_readable_entity(uri, entity_key),
+            "type": custom_filter.human_readable_class(entity_key),
+            "is_intermediate": is_intermediate,
+        }
 
-    affected_entities = format_entities(orphans) + format_entities(
-        intermediate_orphans, is_intermediate=True
-    )
+    affected_entities = [
+        format_entity(entity, is_intermediate=False) for entity in orphans
+    ] + [format_entity(entity, is_intermediate=True) for entity in intermediate_orphans]
 
     should_delete = (
         orphan_strategy == OrphanHandlingStrategy.DELETE
@@ -457,7 +458,6 @@ def check_orphans() -> Response | tuple[Response, int]:
 
         changes = data.get("changes", [])
         entity_type = data.get("entity_type")
-        entity_shape = data.get("entity_shape")
 
         check_for_orphans = orphan_strategy in (
             OrphanHandlingStrategy.DELETE,
@@ -486,7 +486,6 @@ def check_orphans() -> Response | tuple[Response, int]:
         return _format_orphan_response(
             orphans,
             intermediate_orphans,
-            entity_shape,
             orphan_strategy,
             proxy_strategy,
         )

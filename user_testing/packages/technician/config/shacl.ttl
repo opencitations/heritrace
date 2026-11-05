@@ -152,7 +152,7 @@ schema:JournalArticleShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -282,7 +282,7 @@ schema:AgentShape
           BIND(
               IF(BOUND(?name), ?name,
                   IF(BOUND(?familyName) && BOUND(?givenName), 
-                      CONCAT(?givenName, " ", ?familyName),
+                      CONCAT(?familyName, ", ", ?givenName),
                       IF(BOUND(?familyName), ?familyName, 
                           IF(BOUND(?givenName), ?givenName, "Unnamed Agent")
                       )

@@ -129,16 +129,11 @@ class EntityRepository {
   Future<OrphanCheck> checkOrphans({
     required List<Map<String, Object?>> changes,
     required String entityType,
-    required String? entityShape,
   }) async {
     final response = await apiGuard(
       () => _dio.post<Map<String, dynamic>>(
         '/api/check_orphans',
-        data: {
-          'changes': changes,
-          'entity_type': entityType,
-          'entity_shape': entityShape,
-        },
+        data: {'changes': changes, 'entity_type': entityType},
       ),
     );
     return OrphanCheck.fromJson(response.data!);

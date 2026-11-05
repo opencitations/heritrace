@@ -133,6 +133,15 @@ def entity_history(entity_uri: str) -> Response:
                 raise AssertionError(msg)
             end_timestamp = next_date.isoformat()
 
+        is_deletion_snapshot = not any(
+            get_triples_from_graph(snapshot_graph, (entity_uri_ref, None, None))
+        )
+        description_graph = (
+            history[entity_uri][sorted_timestamps[i - 1]]
+            if is_deletion_snapshot and i > 0
+            else snapshot_graph
+        )
+
         snapshots.append(
             {
                 "index": i + 1,
@@ -145,7 +154,7 @@ def entity_history(entity_uri: str) -> Response:
                     metadata["hadPrimarySource"]
                 ),
                 "description": _format_snapshot_description(
-                    metadata, history_ctx, context_snapshot, i
+                    metadata, history_ctx, description_graph, i
                 ),
                 "modifications": _snapshot_modifications(
                     metadata, history_ctx, snapshot_graph, timestamp

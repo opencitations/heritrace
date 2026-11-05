@@ -662,7 +662,7 @@ schema:AgentRoleShape
           BIND(
               IF(BOUND(?name), ?name,
                   IF(BOUND(?familyName) && BOUND(?givenName), 
-                      CONCAT(?givenName, " ", ?familyName),
+                      CONCAT(?familyName, ", ", ?givenName),
                       IF(BOUND(?familyName), ?familyName, 
                           IF(BOUND(?givenName), ?givenName, STR(?agent))
                       )
@@ -805,9 +805,8 @@ schema:ExpressionShape
                   OPTIONAL { 
                     $this a ?specificType .
                     FILTER(?specificType != fabio:Expression)
-                    BIND(?specificType AS ?entityType)
                   }
-                  BIND(COALESCE(?entityType, fabio:Expression) AS ?entityType)
+                  BIND(COALESCE(?specificType, fabio:Expression) AS ?entityType)
 
                   OPTIONAL { $this dcterms:title ?title . }
 
@@ -943,7 +942,7 @@ schema:ExpressionShape
                     IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
                     "."),
             "Unknown entity type."
-          )))))))) AS ?display)
+          ))))))) AS ?display)
         }
       """ ;
     ] ;
@@ -1162,7 +1161,7 @@ schema:ArticleShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -1385,7 +1384,7 @@ schema:JournalArticleShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -1613,7 +1612,7 @@ schema:BookShape
             ) AS ?displayWithDot
           )
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -1816,7 +1815,7 @@ schema:ProceedingsPaperShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -2004,7 +2003,7 @@ schema:ProceedingsShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -2652,7 +2651,7 @@ schema:ReferenceBookShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -2892,7 +2891,7 @@ schema:ReviewShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -3125,7 +3124,7 @@ schema:ReviewArticleShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -3331,7 +3330,7 @@ schema:ThesisShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -3530,7 +3529,7 @@ schema:SeriesShape
             "."
           ) AS ?displayWithDot)
 
-          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(REPLACE(REPLACE(?displayWithDot, "([^.])[.][.] ", "$1. "), "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
           BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
         }
       """ ;
@@ -3580,11 +3579,11 @@ schema:ResourceEmbodimentShape
 
           BIND(
             IF(BOUND(?start) && BOUND(?end), 
-              CONCAT("Pages ", ?start, "-", ?end),
+              CONCAT(?start, "-", ?end),
               IF(BOUND(?start), 
-                  CONCAT("Page ", ?start),
+                  ?start,
                   IF(BOUND(?end), 
-                    CONCAT("Page ", ?end),
+                    ?end,
                     "Unknown page")))
             AS ?display)
         }
@@ -3655,7 +3654,7 @@ schema:ResponsibleAgentShape
               BIND(
                   IF(BOUND(?name), ?name,
                       IF(BOUND(?familyName) && BOUND(?givenName), 
-                          CONCAT(?givenName, " ", ?familyName),
+                          CONCAT(?familyName, ", ", ?givenName),
                           IF(BOUND(?familyName), ?familyName, 
                               IF(BOUND(?givenName), ?givenName, "")
                           )
@@ -3744,6 +3743,7 @@ schema:AuthorShape
           {
             SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
             WHERE {
+              $this pro:isHeldBy ?ra .
               OPTIONAL {
                 ?ra datacite:hasIdentifier ?identifier .
                 ?identifier datacite:usesIdentifierScheme ?scheme ;
@@ -3827,6 +3827,7 @@ schema:EditorShape
           {
             SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
             WHERE {
+              $this pro:isHeldBy ?ra .
               OPTIONAL {
                 ?ra datacite:hasIdentifier ?identifier .
                 ?identifier datacite:usesIdentifierScheme ?scheme ;
@@ -3910,6 +3911,7 @@ schema:PublisherShape
           {
             SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
             WHERE {
+              $this pro:isHeldBy ?ra .
               OPTIONAL {
                 ?ra datacite:hasIdentifier ?identifier .
                 ?identifier datacite:usesIdentifierScheme ?scheme ;
@@ -3993,6 +3995,7 @@ schema:TranslatorShape
           {
             SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
             WHERE {
+              $this pro:isHeldBy ?ra .
               OPTIONAL {
                 ?ra datacite:hasIdentifier ?identifier .
                 ?identifier datacite:usesIdentifierScheme ?scheme ;
@@ -4076,6 +4079,7 @@ schema:CollaboratorShape
           {
             SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
             WHERE {
+              $this pro:isHeldBy ?ra .
               OPTIONAL {
                 ?ra datacite:hasIdentifier ?identifier .
                 ?identifier datacite:usesIdentifierScheme ?scheme ;

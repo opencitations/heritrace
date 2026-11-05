@@ -321,7 +321,6 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
         check = await _session.repository.checkOrphans(
           changes: deletions,
           entityType: widget.type,
-          entityShape: widget.view.shape,
         );
       },
     );

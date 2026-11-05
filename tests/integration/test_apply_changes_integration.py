@@ -148,3 +148,66 @@ def test_reorder_backfills_provenance_for_all_chained_authors(
             in object_labels
         )
         assert f"ra/test{data['test_id']}n{i}" not in object_labels
+
+
+def test_check_orphans_labels_each_entity_with_its_own_shape(
+    logged_in_client: FlaskClient, ordered_authors_article: dict
+) -> None:
+    data = ordered_authors_article
+
+    response = logged_in_client.post(
+        "/api/check_orphans",
+        json={
+            "changes": [{"action": "delete", "subject": data["br"]}],
+            "entity_type": "http://purl.org/spar/fabio/JournalArticle",
+        },
+    )
+
+    assert response.status_code == 200
+    affected = sorted(response.get_json()["affected_entities"], key=lambda e: e["uri"])
+    assert affected == [
+        {
+            "uri": data["ars"][i - 1],
+            "label": (
+                f"Family{i}x{data['test_id']}, Given{i}"
+                f" [omid:ra/test{data['test_id']}n{i}]"
+            ),
+            "type": "Agent Role",
+            "is_intermediate": True,
+        }
+        for i in range(1, AUTHOR_COUNT + 1)
+    ]
+
+
+def test_history_describes_each_version_with_its_own_label(
+    logged_in_client: FlaskClient, ordered_authors_article: dict
+) -> None:
+    data = ordered_authors_article
+    old_title = f"Test Article {data['test_id']}"
+    new_title = f"Renamed Article {data['test_id']}"
+
+    response = logged_in_client.post(
+        "/api/apply_changes",
+        json=[
+            {
+                "action": "update",
+                "subject": data["br"],
+                "predicate": "http://purl.org/dc/terms/title",
+                "object": old_title,
+                "newObject": new_title,
+            }
+        ],
+    )
+    assert response.status_code == 200
+
+    history_response = logged_in_client.get(f"/api/entity-history/{data['br']}")
+    descriptions = [
+        snapshot["description"] for snapshot in history_response.get_json()["snapshots"]
+    ]
+    authors = " & ".join(
+        f"Family{i}x{data['test_id']}, G." for i in range(1, AUTHOR_COUNT + 1)
+    )
+    assert descriptions == [
+        f"The entity '{authors} {old_title}.' has been created.",
+        f"The entity '{authors} {new_title}.' was modified.",
+    ]
