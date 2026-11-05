@@ -6,18 +6,17 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from flask import Flask
-from rdflib import RDF, XSD, Graph, Literal, URIRef
+from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
 from rdflib.plugins.sparql import prepareQuery
 
 from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
-    apply_display_rules_to_nested_shapes,
     execute_shacl_query,
     get_object_class,
-    order_fields,
     process_query_results,
 )
+from heritrace.utils.shacl_presentation import read_presentation
 from heritrace.utils.shacl_utils import (
     get_form_fields_from_shacl,
     process_nested_shapes,
@@ -30,6 +29,8 @@ from heritrace.utils.shacl_validation import (
     validate_new_triple,
 )
 from tests.test_config import BASE_DIR
+
+DATACITE = Namespace("http://purl.org/spar/datacite/")
 
 
 @pytest.fixture
@@ -443,7 +444,7 @@ def test_validate_new_triple_journal_identifier(
             entity_types=["http://purl.org/spar/datacite/Identifier"],
         )
         assert error != "", "Should reject invalid DOI format"
-        assert "The property has literal value requires at least 1 value" in error
+        assert "The property Literal Value requires at least 1 value" in error
 
 
 def test_get_valid_predicates_journal_article(app: Flask, shacl_graph: Graph) -> None:
@@ -578,7 +579,7 @@ def test_validate_new_triple_with_datatype_conversion(
 
 
 def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph) -> None:
-    """Test form field extraction with display rules."""
+    """Names come from the shapes and visibility from the display rules."""
     with app.app_context():
         # Update display rules to include both class and shape
         journal_article_shape = "http://schema.org/JournalArticleShape"
@@ -590,14 +591,8 @@ def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph) -> N
                 },
                 "displayProperties": [
                     {
-                        "property": "http://purl.org/dc/terms/title",
-                        "displayName": "Article Title",
-                        "shouldBeDisplayed": True,
-                    },
-                    {
                         "property": "http://purl.org/dc/terms/abstract",
-                        "displayName": "Abstract",
-                        "shouldBeDisplayed": True,
+                        "shouldBeDisplayed": False,
                     },
                 ],
             }
@@ -623,10 +618,10 @@ def test_get_form_fields_with_display_rules(app: Flask, shacl_graph: Graph) -> N
         title_field = article_fields["http://purl.org/dc/terms/title"][0]
         abstract_field = article_fields["http://purl.org/dc/terms/abstract"][0]
 
-        assert title_field["displayName"] == "Article Title"
+        assert title_field["displayName"] == "Title"
         assert abstract_field["displayName"] == "Abstract"
         assert title_field["shouldBeDisplayed"] is True
-        assert abstract_field["shouldBeDisplayed"] is True
+        assert abstract_field["shouldBeDisplayed"] is False
 
 
 def test_validate_new_triple_with_delete_action(
@@ -1102,79 +1097,6 @@ def test_convert_to_matching_class_edge_cases(app: Flask) -> None:
             assert str(result) == "http://example.org/test"
 
 
-def test_order_fields(app: Flask) -> None:
-    """Test the order_fields function."""
-    with app.app_context():
-        # Test with matching property order
-        fields = [
-            {"predicate": "http://example.org/property2"},
-            {"predicate": "http://example.org/property1"},
-            {"predicate": "http://example.org/property3"},
-        ]
-
-        property_order = [
-            "http://example.org/property1",
-            "http://example.org/property2",
-        ]
-
-        result = order_fields(fields, property_order)
-        assert result[0]["predicate"] == "http://example.org/property1"
-        assert result[1]["predicate"] == "http://example.org/property2"
-        assert result[2]["predicate"] == "http://example.org/property3"
-
-        # Test with empty property order
-        result = order_fields(fields, [])
-        assert result == fields
-
-        # Test with None fields
-        result = order_fields(None, property_order)
-        assert result == []
-
-
-def test_apply_display_rules_to_nested_shapes(app: Flask) -> None:
-    """Test the apply_display_rules_to_nested_shapes function."""
-    with app.app_context():
-        # Test with matching display rules
-        nested_fields = [{"predicate": "http://example.org/property1"}]
-
-        parent_prop = {
-            "property": "http://example.org/parent",
-            "displayRules": [
-                {
-                    "shape": "http://example.org/shape",
-                    "nestedDisplayRules": [
-                        {
-                            "property": "http://example.org/property1",
-                            "displayName": "Nested Property 1",
-                        }
-                    ],
-                }
-            ],
-        }
-
-        result = apply_display_rules_to_nested_shapes(
-            nested_fields, parent_prop, "http://example.org/shape"
-        )
-        assert result[0]["displayName"] == "Nested Property 1"
-
-        # Test with non-matching shape
-        result = apply_display_rules_to_nested_shapes(
-            nested_fields, parent_prop, "http://example.org/other-shape"
-        )
-        assert "displayName" not in result[0]
-
-        # Test with no nestedDisplayRules
-        parent_prop = {
-            "property": "http://example.org/parent",
-            "displayRules": [{"shape": "http://example.org/shape"}],
-        }
-
-        result = apply_display_rules_to_nested_shapes(
-            nested_fields, parent_prop, "http://example.org/shape"
-        )
-        assert result == nested_fields
-
-
 def test_execute_shacl_query(app: Flask, shacl_graph: Graph) -> None:
     """Test the execute_shacl_query function."""
     with app.app_context():
@@ -1201,6 +1123,8 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
             display_rules=None,
+            presentation=read_presentation(shacl_graph),
+            pattern_alternatives=[],
             app=app,
             processed_shapes=set(),
         )
@@ -1215,6 +1139,8 @@ def test_process_nested_shapes_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         ctx2 = ShaclProcessingContext(
             shacl=shacl_graph,
             display_rules=None,
+            presentation=read_presentation(shacl_graph),
+            pattern_alternatives=[],
             app=app,
             processed_shapes={"http://www.w3.org/ns/shacl#NodeShape"},
         )
@@ -1268,6 +1194,8 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
             display_rules=None,
+            presentation=read_presentation(shacl_graph),
+            pattern_alternatives=[],
             app=app,
             processed_shapes=set(),
         )
@@ -1283,6 +1211,8 @@ def test_process_query_results_edge_cases(app: Flask, shacl_graph: Graph) -> Non
         ctx = ShaclProcessingContext(
             shacl=shacl_graph,
             display_rules=None,
+            presentation=read_presentation(shacl_graph),
+            pattern_alternatives=[],
             app=app,
             processed_shapes=set(),
         )
@@ -1365,92 +1295,57 @@ def test_get_valid_predicates_edge_cases() -> None:
         assert result is not None
 
 
+@pytest.mark.parametrize(
+    ("scheme", "value", "error"),
+    [
+        ("doi", "10.1162/qss_a_00023", ""),
+        (
+            "doi",
+            "invalid-doi",
+            "DOI must start with '10.' followed by a prefix, a forward slash, and a"
+            " suffix. For example: 10.1162/qss_a_00023",
+        ),
+        ("openalex", "W2741809807", ""),
+        ("openalex", "S4210172589", ""),
+        (
+            "openalex",
+            "X1",
+            "OpenAlex work ID must start with 'W' followed by numbers. For example:"
+            " W2741809807",
+        ),
+    ],
+)
 def test_validate_new_triple_with_pattern_validation(
-    app: Flask, shacl_graph: Graph, mock_fetch_data_graph
+    app: Flask, shacl_graph: Graph, scheme: str, value: str, error: str
 ) -> None:
-    """Test validate_new_triple with pattern validation."""
-    with app.test_request_context(), app.app_context():
-        data_graph = Graph()
-        mock_fetch_data_graph.return_value = data_graph
+    subject = URIRef("https://example.org/identifier/test")
+    predicate = URIRef(
+        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
+    )
+    data_graph = Graph()
+    data_graph.add((subject, RDF.type, DATACITE.Identifier))
+    data_graph.add((subject, DATACITE.usesIdentifierScheme, DATACITE[scheme]))
+    with (
+        app.test_request_context(),
+        app.app_context(),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph",
+            return_value=shacl_graph,
+        ),
+        patch(
+            "heritrace.utils.shacl_validation.fetch_data_graph_for_subject",
+            return_value=data_graph,
+        ),
+    ):
+        _valid_value, _old_value, message = validate_new_triple(
+            subject,
+            predicate,
+            value,
+            "create",
+            entity_types=[str(DATACITE.Identifier)],
+        )
 
-        with patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph):
-            subject = URIRef("https://example.org/identifier/test")
-            predicate = URIRef(
-                "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
-            )
-
-            class MockRow:
-                def __init__(
-                    self, pattern, message=None, condition_paths="", condition_values=""
-                ) -> None:
-                    self.pattern = pattern
-                    self.message = message
-                    self.conditionPaths = condition_paths
-                    self.conditionValues = condition_values
-                    self.datatype = XSD.string
-                    self.path = predicate
-                    self.a_class = None
-                    self.classIn = None
-                    self.maxCount = None
-                    self.minCount = None
-                    self.optionalValues = ""
-                    self.shape = URIRef("http://example.org/TestShape")
-
-            mock_results = [
-                MockRow(r"10\.[0-9]{4,}/[a-zA-Z0-9.]+", "Invalid DOI format")
-            ]
-
-            with (
-                patch("rdflib.graph.Graph.query", return_value=mock_results),
-                patch("re.match") as mock_re_match,
-            ):
-                # For invalid pattern
-                mock_re_match.return_value = None
-                new_value = "invalid-doi"
-                valid_value, _old_value, error = validate_new_triple(
-                    subject,
-                    predicate,
-                    new_value,
-                    "create",
-                    entity_types=["http://purl.org/spar/datacite/Identifier"],
-                )
-
-                # Should have an error for invalid pattern
-                assert error is not None
-                assert "Invalid DOI format" in error
-
-                # For valid pattern
-                mock_re_match.return_value = True  # Mock a successful match
-                new_value = "10.1234/valid.doi"
-                valid_value, _old_value, error = validate_new_triple(
-                    subject,
-                    predicate,
-                    new_value,
-                    "create",
-                    entity_types=["http://purl.org/spar/datacite/Identifier"],
-                )
-
-                # Should be valid for matching pattern
-                assert valid_value is not None
-                assert error == ""
-
-                # Test with no message in the pattern constraint
-                mock_results = [MockRow(r"10\.[0-9]{4,}/[a-zA-Z0-9.]+", None)]
-                with patch("rdflib.graph.Graph.query", return_value=mock_results):
-                    # For invalid pattern without custom message
-                    mock_re_match.return_value = None
-                    new_value = "invalid-doi"
-                    valid_value, _old_value, error = validate_new_triple(
-                        subject,
-                        predicate,
-                        new_value,
-                        "create",
-                        entity_types=["http://purl.org/spar/datacite/Identifier"],
-                    )
-
-                    # Should have a generic error message
-                    assert error is not None
-                    assert "Value must match pattern" in error
+    assert message == error
 
 
 def test_validate_new_triple_with_invalid_uri(
@@ -1568,19 +1463,12 @@ def test_validate_new_triple_with_literal_conversion(
 
         # Create a mock SPARQL query result for literal conversion
         class MockRow:
-            def __init__(self, datatype=None, pattern=None, message=None) -> None:
+            def __init__(self, datatype=None) -> None:
                 self.datatype = datatype
-                self.pattern = pattern
-                self.message = message
                 self.path = predicate
-                self.conditionPaths = ""
-                self.conditionValues = ""
                 self.a_class = None
-                self.classIn = None
                 self.maxCount = None
                 self.minCount = None
-                self.pattern = None
-                self.message = None
                 self.optionalValues = ""
                 self.shape = URIRef("http://example.org/TestShape")
 
@@ -1588,7 +1476,10 @@ def test_validate_new_triple_with_literal_conversion(
         mock_results = [MockRow(datatype=XSD.string)]
 
         # Mock the query result
-        with patch("rdflib.graph.Graph.query", return_value=mock_results):
+        with patch(
+            "heritrace.utils.shacl_validation._query_shacl_constraints",
+            return_value=mock_results,
+        ):
             # Test with existing Literal value
             old_value = Literal("Old Title", datatype=XSD.string)
             new_value = "New Title"
@@ -1618,7 +1509,10 @@ def test_validate_new_triple_with_literal_conversion(
                 mock_results = [MockRow()]
 
                 # Mock the query result again for the URIRef test
-                with patch("rdflib.graph.Graph.query", return_value=mock_results):
+                with patch(
+                    "heritrace.utils.shacl_validation._query_shacl_constraints",
+                    return_value=mock_results,
+                ):
                     old_value = URIRef("https://example.org/old-value")
                     new_value = None
                     valid_value, old_value, error = validate_new_triple(
@@ -1667,8 +1561,8 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
                 self.or_nodes = or_nodes
                 self.condition_path = None
                 self.condition_value = None
-                self.pattern = None
-                self.message = None
+                self.name = None
+                self.editor = None
 
         # Create two rows with different entity types but same predicate
         rows = [
@@ -1716,6 +1610,8 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
             ctx = ShaclProcessingContext(
                 shacl=shacl_graph,
                 display_rules=display_rules,
+                presentation=read_presentation(shacl_graph),
+                pattern_alternatives=[],
                 app=app,
                 processed_shapes=processed_shapes,
             )
@@ -1758,6 +1654,8 @@ def test_process_query_results_with_or_nodes(app: Flask, shacl_graph: Graph) -> 
             ctx = ShaclProcessingContext(
                 shacl=shacl_graph,
                 display_rules=display_rules,
+                presentation=read_presentation(shacl_graph),
+                pattern_alternatives=[],
                 app=app,
                 processed_shapes=processed_shapes,
             )
@@ -1832,14 +1730,9 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
                 self.datatypes = datatypes
                 self.datatype = datatypes[0] if datatypes else None
                 self.a_class = None
-                self.classIn = None
                 self.maxCount = None
                 self.minCount = None
-                self.pattern = None
-                self.message = None
                 self.optionalValues = ""
-                self.conditionPaths = ""
-                self.conditionValues = ""
 
         mock_results = [
             MockRow(
@@ -1865,7 +1758,10 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
                 "heritrace.utils.shacl_validation.get_custom_filter",
                 return_value=mock_custom_filter,
             ),
-            patch("rdflib.graph.Graph.query", return_value=mock_results),
+            patch(
+                "heritrace.utils.shacl_validation._query_shacl_constraints",
+                return_value=mock_results,
+            ),
             patch("validators.url", return_value=False),
             patch(
                 "heritrace.utils.shacl_validation.convert_to_matching_literal",
@@ -1910,14 +1806,9 @@ def test_validate_new_triple_with_invalid_url() -> None:
                 self.datatypes = None
                 self.datatype = None
                 self.a_class = None
-                self.classIn = None
                 self.maxCount = None
                 self.minCount = None
-                self.pattern = None
-                self.message = None
                 self.optionalValues = None
-                self.conditionPaths = None
-                self.conditionValues = None
 
         mock_results = [
             MockRow(
@@ -1943,7 +1834,10 @@ def test_validate_new_triple_with_invalid_url() -> None:
                 "heritrace.utils.shacl_validation.get_custom_filter",
                 return_value=mock_custom_filter,
             ),
-            patch("rdflib.graph.Graph.query", return_value=mock_results),
+            patch(
+                "heritrace.utils.shacl_validation._query_shacl_constraints",
+                return_value=mock_results,
+            ),
             patch("validators.url", return_value=False),
         ):
             valid_value, _old_value, _error = validate_new_triple(

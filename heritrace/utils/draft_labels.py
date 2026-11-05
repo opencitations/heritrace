@@ -6,10 +6,8 @@ from uuid import uuid4
 
 from rdflib import RDF, Graph, Literal, URIRef
 
-from heritrace.extensions import get_form_fields
-from heritrace.sparql import select_results
+from heritrace.extensions import get_custom_filter, get_form_fields
 from heritrace.utils.datatypes import determine_datatype
-from heritrace.utils.display_rules_utils import find_matching_rule
 from heritrace.utils.shacl_utils import find_matching_form_field
 from heritrace.utils.uri_utils import is_valid_url
 
@@ -46,24 +44,6 @@ def add_draft_entity(graph: Graph, entity: dict) -> URIRef:
     return uri
 
 
-def relation_display_query(entry: dict) -> str | None:
-    parent_rule = find_matching_rule(entry["parent_class"], entry["parent_shape"])
-    if not parent_rule or "displayProperties" not in parent_rule:
-        return None
-    for prop in parent_rule["displayProperties"]:
-        if prop.get("property") != entry["predicate"]:
-            continue
-        candidates = [prop]
-        if "displayRules" in prop:
-            candidates = prop["displayRules"]
-        for rule in candidates:
-            if "shape" in rule and rule["shape"] != entry["entity"]["entity_shape"]:
-                continue
-            if "fetchValueFromQuery" in rule:
-                return rule["fetchValueFromQuery"]
-    return None
-
-
 def draft_label(entry: dict) -> str | None:
     graph = Graph()
     entity = entry["entity"]
@@ -71,21 +51,13 @@ def draft_label(entry: dict) -> str | None:
     parent = URIRef(f"urn:heritrace:draft:{uuid4()}")
     graph.add((parent, RDF.type, URIRef(entry["parent_class"])))
     graph.add((parent, URIRef(entry["predicate"]), uri))
-    query = relation_display_query(entry)
-    if query is None:
-        rule = find_matching_rule(entity["entity_type"], entity["entity_shape"])
-        if rule and "fetchUriDisplay" in rule:
-            query = rule["fetchUriDisplay"]
-    if query is None:
+    custom_filter = get_custom_filter()
+    if not custom_filter.has_label(entity["entity_shape"]):
         return None
-    query = (
-        query.replace("[[subject]]", parent.n3())
-        .replace("[[value]]", uri.n3())
-        .replace("[[uri]]", uri.n3())
-    )
-    for row in select_results(graph.query(query)):
-        if row[0] is not None:
-            label = str(row[0]).strip()
-            if label and "urn:heritrace:draft:" not in label:
-                return label
+    label = custom_filter.entity_label(uri, entity["entity_shape"], graph)
+    if label is None:
+        return None
+    label = label.strip()
+    if label and "urn:heritrace:draft:" not in label:
+        return label
     return None

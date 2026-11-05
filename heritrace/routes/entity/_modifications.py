@@ -7,6 +7,7 @@ from typing import TypedDict
 from rdflib import RDF, Graph, Literal, URIRef
 from rdflib.term import Node
 
+from heritrace.extensions import get_presentation
 from heritrace.routes.entity._types import (
     EntityIdentity,
     EntityRenderContext,
@@ -15,8 +16,6 @@ from heritrace.routes.entity._types import (
 from heritrace.utils.display_rules_utils import (
     get_highest_priority_class,
     get_predicate_ordering_info,
-    get_property_order_from_rules,
-    get_shape_order_from_display_rules,
 )
 from heritrace.utils.shacl_utils import (
     determine_shape_for_entity_triples,
@@ -161,9 +160,7 @@ def _ordered_groups(
     processed_predicates: set[tuple[str, str | None]] = set()
 
     for predicate in ordered_properties:
-        shape_order = get_shape_order_from_display_rules(
-            ctx.highest_priority_class, ctx.entity_shape, predicate
-        )
+        shape_order = get_presentation().node_order(ctx.entity_shape, predicate)
         predicate_groups = []
         for group_key, group_triples in predicate_shape_groups.items():
             predicate_uri, object_shape_uri = group_key
@@ -203,9 +200,7 @@ def build_modifications(
     current_snapshot: Graph,
     current_snapshot_timestamp: str,
 ) -> Modifications:
-    ordered_properties = get_property_order_from_rules(
-        ctx.highest_priority_class, ctx.entity_shape
-    )
+    ordered_properties = get_presentation().predicate_order(ctx.entity_shape)
 
     result: Modifications = {}
     for mod_type, triples in modifications.items():

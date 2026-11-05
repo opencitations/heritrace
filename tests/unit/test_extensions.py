@@ -31,6 +31,8 @@ from heritrace.extensions import (
     get_dataset_is_quadstore,
     get_display_rules,
     get_form_fields,
+    get_labels_use_inverse_relations,
+    get_presentation,
     get_provenance_endpoint,
     get_provenance_sparql,
     get_shacl_graph,
@@ -199,11 +201,12 @@ def test_getter_functions(app) -> None:
         change_tracking_config={"key": "value"},
         custom_filter=MagicMock(),
         display_rules=[{"rule": 1}],
+        presentation=MagicMock(),
         form_fields_cache={"field": "data"},
         dataset_is_quadstore=True,
         shacl_graph=Graph(),
         classes_with_multiple_shapes={"http://example.org/Class1"},
-        display_rules_use_inverse_relations=False,
+        labels_use_inverse_relations=True,
     )
     app.extensions["heritrace"] = mock_state
 
@@ -218,6 +221,8 @@ def test_getter_functions(app) -> None:
     assert get_dataset_is_quadstore() is True
     assert get_shacl_graph() is mock_state.shacl_graph
     assert get_classes_with_multiple_shapes() == {"http://example.org/Class1"}
+    assert get_presentation() is mock_state.presentation
+    assert get_labels_use_inverse_relations() is True
 
 
 def test_init_login_manager_directly(app) -> None:

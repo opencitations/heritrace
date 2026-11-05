@@ -17,7 +17,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-import yaml
 from flask import Flask
 from flask.testing import FlaskClient
 from rdflib import RDF, XSD, Dataset, Literal, URIRef
@@ -29,6 +28,7 @@ from heritrace.editor import Editor, EndpointConfig
 from heritrace.extensions import (
     get_change_tracking_config,
     get_dataset_endpoint,
+    get_presentation,
     get_provenance_endpoint,
 )
 from heritrace.routes.entity import (
@@ -1101,13 +1101,7 @@ def test_modification_entry(app: Flask) -> None:
         with context_path.open() as config_file:
             context = json.load(config_file)["@context"]
 
-        display_rules_path = (
-            Path(__file__).parent.parent.parent / "tests" / "display_rules.yaml"
-        )
-        with display_rules_path.open() as f:
-            display_rules = yaml.safe_load(f)["rules"]
-
-        real_filter = Filter(context, display_rules, "http://example.org/sparql")
+        real_filter = Filter(context, get_presentation(), "http://example.org/sparql")
         subject = URIRef("http://example.org/entity/1")
 
         def _make_ctx(classes_cache=None):

@@ -791,7 +791,7 @@ class TestRecycleBinIntegration:
             assert selected_class == JOURNAL_VOLUME
             assert sortable_properties == [_su.DELETION_TIME_PROPERTY]
             assert entities[0]["uri"] == deleted_volume["volume"]
-            assert entities[0]["label"] == "Volume 42 of Test Journal"
+            assert entities[0]["label"] == "Vol. 42, Test Journal"
             assert entities[0]["type"] == "Volume"
 
     def test_restored_volume_is_no_longer_listed(self, app, deleted_volume) -> None:

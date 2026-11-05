@@ -38,6 +38,11 @@ from heritrace.services.resource_lock_manager import ResourceLockManager
 from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings, select_results
 from heritrace.uri_generator.uri_generator import CounterBasedURIGenerator
 from heritrace.utils.filters import Filter
+from heritrace.utils.shacl_presentation import (
+    ShapesPresentation,
+    labels_use_inverse_relations,
+    read_presentation,
+)
 
 if TYPE_CHECKING:
     from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
@@ -52,11 +57,12 @@ class AppState:
     change_tracking_config: dict
     custom_filter: Filter
     display_rules: list[dict]
+    presentation: ShapesPresentation
     form_fields_cache: dict
     dataset_is_quadstore: bool
     shacl_graph: Graph
     classes_with_multiple_shapes: set[str]
-    display_rules_use_inverse_relations: bool
+    labels_use_inverse_relations: bool
 
 
 def get_app_state() -> AppState:
@@ -64,10 +70,6 @@ def get_app_state() -> AppState:
 
 
 def init_extensions(app: Flask, login_manager: LoginManager, redis: Redis) -> None:
-    from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
-        uses_inverse_relations,
-    )
-
     init_login_manager(app, login_manager)
 
     (
@@ -87,11 +89,12 @@ def init_extensions(app: Flask, login_manager: LoginManager, redis: Redis) -> No
         change_tracking_config=change_tracking_config,
         custom_filter=cast("Filter", None),
         display_rules=[],
+        presentation=read_presentation(Graph()),
         form_fields_cache={},
         dataset_is_quadstore=False,
         shacl_graph=Graph(),
         classes_with_multiple_shapes=set(),
-        display_rules_use_inverse_relations=False,
+        labels_use_inverse_relations=False,
     )
 
     (
@@ -101,7 +104,8 @@ def init_extensions(app: Flask, login_manager: LoginManager, redis: Redis) -> No
         shacl_graph,
         classes_with_multiple_shapes,
     ) = initialize_global_variables(app)
-    custom_filter = init_filters(display_rules, dataset_endpoint)
+    presentation = read_presentation(shacl_graph)
+    custom_filter = init_filters(presentation, dataset_endpoint)
     init_request_handlers(app, redis)
 
     app.extensions["heritrace"] = AppState(
@@ -112,11 +116,12 @@ def init_extensions(app: Flask, login_manager: LoginManager, redis: Redis) -> No
         change_tracking_config=change_tracking_config,
         custom_filter=custom_filter,
         display_rules=display_rules,
+        presentation=presentation,
         form_fields_cache=form_fields_cache,
         dataset_is_quadstore=dataset_is_quadstore,
         shacl_graph=shacl_graph,
         classes_with_multiple_shapes=classes_with_multiple_shapes,
-        display_rules_use_inverse_relations=uses_inverse_relations(display_rules),
+        labels_use_inverse_relations=labels_use_inverse_relations(presentation),
     )
     app.extensions["login_manager"] = login_manager
     app.extensions["redis_client"] = redis
@@ -435,11 +440,11 @@ def init_sparql_services(
     )
 
 
-def init_filters(display_rules: list[dict], dataset_endpoint: str) -> Filter:
+def init_filters(presentation: ShapesPresentation, dataset_endpoint: str) -> Filter:
     with (Path(__file__).parent / "utils" / "context.json").open() as config_file:
         context = json.load(config_file)["@context"]
 
-    return Filter(context, display_rules or None, dataset_endpoint)
+    return Filter(context, presentation, dataset_endpoint)
 
 
 def init_request_handlers(app: Flask, redis: Redis) -> None:
@@ -528,8 +533,12 @@ def get_dataset_is_quadstore() -> bool:
     return get_app_state().dataset_is_quadstore
 
 
-def get_display_rules_use_inverse_relations() -> bool:
-    return get_app_state().display_rules_use_inverse_relations
+def get_labels_use_inverse_relations() -> bool:
+    return get_app_state().labels_use_inverse_relations
+
+
+def get_presentation() -> ShapesPresentation:
+    return get_app_state().presentation
 
 
 def get_shacl_graph() -> Graph:

@@ -20,6 +20,8 @@ from heritrace.utils.shacl_display import (
     order_form_fields,
     process_nested_shapes,
 )
+from heritrace.utils.shacl_patterns import read_pattern_alternatives
+from heritrace.utils.shacl_presentation import read_presentation
 from heritrace.utils.virtual_properties import get_virtual_properties_for_entity
 
 _class_shapes_cache: WeakKeyDictionary[Graph, dict[str, list[str]]] = (
@@ -52,14 +54,18 @@ def get_form_fields_from_shacl(
     if not shacl:
         return {}
 
+    presentation = read_presentation(shacl)
+
     # Step 1: Get the initial form fields from SHACL shapes
-    form_fields = extract_shacl_form_fields(shacl, display_rules, app=app)
+    form_fields = extract_shacl_form_fields(shacl, display_rules, presentation, app=app)
 
     # Step 2: Process nested shapes for each field
     processed_shapes: set[str] = set()
     ctx = ShaclProcessingContext(
         shacl=shacl,
         display_rules=display_rules,
+        presentation=presentation,
+        pattern_alternatives=read_pattern_alternatives(shacl),
         app=app,
         processed_shapes=processed_shapes,
     )
@@ -84,7 +90,7 @@ def get_form_fields_from_shacl(
     enhanced_form_fields = add_virtual_properties_to_form_fields_internal(form_fields)
 
     # Step 5: Order form fields (including virtual properties)
-    return order_form_fields(enhanced_form_fields, display_rules)
+    return order_form_fields(enhanced_form_fields, presentation)
 
 
 def _apply_field_overrides(shape_data: dict, override: dict) -> dict:
@@ -324,6 +330,7 @@ def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:
             SELECT DISTINCT ?property WHERE {{
                 <{shape_uri}> sh:property ?propertyShape .
                 ?propertyShape sh:path ?property .
+                FILTER NOT EXISTS {{ ?propertyShape sh:values ?computed . }}
             }}
         """
 

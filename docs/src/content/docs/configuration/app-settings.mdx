@@ -209,7 +209,7 @@ For managing your Virtuoso instance (launching the server, bulk-loading data, ex
 
 These settings control the data model's constraints and its presentation in the user interface.
 
-Set `SHACL_PATH` and `DISPLAY_RULES_PATH` in `.env` to choose the files that define the schema and display rules:
+Set `SHACL_PATH` and `DISPLAY_RULES_PATH` in `.env` to choose the SHACL and YAML files:
 
 ```dotenv
 SHACL_PATH=example_configurations/opencitations_meta/shacl.ttl
@@ -499,20 +499,15 @@ environment:
     - `targetEntityType`: The RDF class of the final entity you want to create and link to (e.g., `foaf:Agent`).
 
     <Aside type="note" title="Configuration Example">
-      In this example, `pro:isDocumentContextFor` is configured as a proxy. When a user adds an author, HERITRACE creates a `pro:RoleInTime` entity that links the bibliographic resource to a `foaf:Agent`. See the [Display Rules documentation](../display-rules/) for more details.
+      In this example, `pro:isDocumentContextFor` is configured as a proxy. When a user adds an author, HERITRACE creates a `pro:RoleInTime` entity that links the bibliographic resource to a `foaf:Agent`. See [Extra configuration](../extra/) for more details.
     </Aside>
 
     ```yaml
     # In display_rules.yaml
     - property: "http://purl.org/spar/pro/isDocumentContextFor"
-      displayName: "Author"
       intermediateRelation:
         class: "http://purl.org/spar/pro/RoleInTime"
         targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
-      displayRules:
-        - shape: "http://schema.org/AuthorShape"
-          displayName: "Author"
-          # ...
     ```
   </TabItem>
 </Tabs>

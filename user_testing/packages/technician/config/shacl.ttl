@@ -13,36 +13,63 @@
 @prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
 @prefix oco: <https://w3id.org/oc/ontology/> .
 @prefix frbr: <http://purl.org/vocab/frbr/core#> .
+@prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+
+# Prefixes for the SPARQL queries in this shapes graph
+
+[] a sh:ShapesGraph ;
+  sh:declare
+    [ sh:prefix "datacite" ; sh:namespace "http://purl.org/spar/datacite/"^^xsd:anyURI ] ,
+    [ sh:prefix "dcterms" ; sh:namespace "http://purl.org/dc/terms/"^^xsd:anyURI ] ,
+    [ sh:prefix "fabio" ; sh:namespace "http://purl.org/spar/fabio/"^^xsd:anyURI ] ,
+    [ sh:prefix "foaf" ; sh:namespace "http://xmlns.com/foaf/0.1/"^^xsd:anyURI ] ,
+    [ sh:prefix "frbr" ; sh:namespace "http://purl.org/vocab/frbr/core#"^^xsd:anyURI ] ,
+    [ sh:prefix "literal" ; sh:namespace "http://www.essepuntato.it/2010/06/literalreification/"^^xsd:anyURI ] ,
+    [ sh:prefix "prism" ; sh:namespace "http://prismstandard.org/namespaces/basic/2.0/"^^xsd:anyURI ] ,
+    [ sh:prefix "pro" ; sh:namespace "http://purl.org/spar/pro/"^^xsd:anyURI ] ,
+    [ sh:prefix "xsd" ; sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI ] .
 
 
 schema:JournalArticleShape
   a sh:NodeShape ;
+  sh:name "Journal Article" ;
   sh:targetClass fabio:JournalArticle ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:JournalArticle ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:IdentifierShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 5 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -53,34 +80,110 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 4 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Journal" ;
+    sh:order 6 ;
     sh:node schema:JournalShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?journalTitle
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+            WHERE {
+              $this a fabio:JournalArticle .
+              OPTIONAL { $this dcterms:title ?title . }
+              OPTIONAL {
+                $this pro:isDocumentContextFor ?authorRole .
+                ?authorRole pro:withRole pro:author ;
+                            pro:isHeldBy ?author .
+                OPTIONAL { ?author foaf:name ?authorName . }
+                OPTIONAL {
+                  ?author foaf:familyName ?familyName .
+                  OPTIONAL { ?author foaf:givenName ?givenName . }
+                  BIND(CONCAT(
+                    ?familyName,
+                    COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                  ) AS ?authorName)
+                }
+              }
+              OPTIONAL {
+                $this prism:publicationDate ?pubDateRaw . 
+                BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                        STR(?pubDateRaw),
+                        IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                          SUBSTR(STR(?pubDateRaw), 1, 4),
+                          STR(?pubDateRaw))) AS ?pubDate)
+              }
+              OPTIONAL {
+                $this frbr:partOf ?journal .
+                ?journal a fabio:Journal ;
+                        dcterms:title ?journalTitle .
+              }
+            }
+            GROUP BY ?title ?pubDate ?journalTitle
+          }
+
+          BIND(CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?journalTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?journalTitle
+            ), ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 
 schema:IdentifierShape
   a sh:NodeShape ;
+  sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue datacite:Identifier ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
     sh:in (
       datacite:doi
       datacite:issn
@@ -88,78 +191,138 @@ schema:IdentifierShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
+  sh:or (
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:doi ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:issn ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
+        sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+      ] ;
+    ]
+  ) ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:doi ;
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                  literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
     ] ;
-    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:issn ;
-    ] ;
-    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
-    sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
   ] .
 
 
 schema:AgentShape
   a sh:NodeShape ;
+  sh:name "Responsible Agent" ;
   sh:targetClass foaf:Agent ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue foaf:Agent ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path foaf:name ;
+    sh:name "Name" ;
+    sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path foaf:givenName ;
+    sh:name "Given Name" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path foaf:familyName ;
+    sh:name "Family Name" ;
+    sh:order 4 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this a foaf:Agent .
+          OPTIONAL { $this foaf:name ?name. }
+          OPTIONAL { $this foaf:familyName ?familyName. }
+          OPTIONAL { $this foaf:givenName ?givenName. }
+
+          BIND(
+              IF(BOUND(?name), ?name,
+                  IF(BOUND(?familyName) && BOUND(?givenName), 
+                      CONCAT(?givenName, " ", ?familyName),
+                      IF(BOUND(?familyName), ?familyName, 
+                          IF(BOUND(?givenName), ?givenName, "Unnamed Agent")
+                      )
+                  )
+              ) AS ?agentName
+          )
+
+          BIND(STR($this) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(CONCAT(?agentName, " [omid:", ?omid, "]") AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 
 schema:AuthorShape
   a sh:NodeShape ;
+  sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue pro:RoleInTime ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 3 ;
     sh:hasValue pro:author ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
+    sh:name "Held By" ;
+    sh:order 2 ;
     sh:node schema:AgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -169,31 +332,86 @@ schema:AuthorShape
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT DISTINCT ?formattedName
+        WHERE {
+          $this pro:isHeldBy ?ra;
+              pro:withRole pro:author.
+          OPTIONAL { ?ra foaf:name ?name. }
+          OPTIONAL { ?ra foaf:familyName ?familyName. }
+          OPTIONAL { ?ra foaf:givenName ?givenName. }
+
+          BIND(
+            IF(BOUND(?name), ?name,
+                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                    )
+                )
+            ) AS ?nameDisplay
+          )
+
+          BIND(STR(?ra) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(CONCAT(?nameDisplay, " [omid:", ?omid, "]") AS ?formattedName)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:JournalShape
   a sh:NodeShape ;
+  sh:name "Journal" ;
   sh:targetClass fabio:Journal ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Journal ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:IdentifierShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this dcterms:title ?title .
+          BIND(STR($this) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(CONCAT(?title, " [omid:", ?omid, "]") AS ?display)
+        }
+      """ ;
+    ] ;
   ] .

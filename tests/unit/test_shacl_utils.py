@@ -15,10 +15,11 @@ from rdflib import RDF, XSD, Graph, Literal, Namespace, URIRef
 
 from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
-    apply_display_rules_to_nested_shapes,
     get_shape_target_class,
     process_query_results,
 )
+from heritrace.utils.shacl_patterns import PatternAlternative
+from heritrace.utils.shacl_presentation import read_presentation
 from heritrace.utils.shacl_utils import (
     _find_entity_position_in_order_map,
     _get_shape_properties,
@@ -61,16 +62,70 @@ class TestShaclUtils:
         assert result == {}
 
         # Caso 4: Test extract_shacl_form_fields con None
-        result = extract_shacl_form_fields(None, [], app)
+        result = extract_shacl_form_fields(None, [], read_presentation(Graph()), app)
         assert result == {}
 
         # Caso 5: Test extract_shacl_form_fields con empty Graph
-        result = extract_shacl_form_fields(empty_graph, [], app)
+        result = extract_shacl_form_fields(
+            empty_graph, [], read_presentation(empty_graph), app
+        )
         assert result == {}
 
         # Caso 6: Test extract_shacl_form_fields con None e display rules
-        result = extract_shacl_form_fields(None, display_rules, app)
+        result = extract_shacl_form_fields(
+            None, display_rules, read_presentation(Graph()), app
+        )
         assert result == {}
+
+    def test_shapes_give_field_names_and_widgets(self) -> None:
+        app = Flask(__name__)
+        app.config["DATASET_DB_URL"] = "http://example.org/sparql"
+        shacl = Graph().parse(
+            data="""
+            @prefix sh: <http://www.w3.org/ns/shacl#> .
+            @prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+            @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+            @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+            @prefix ex: <http://example.org/> .
+
+            ex:ArticleShape a sh:NodeShape ;
+              sh:targetClass ex:Article ;
+              sh:property [
+                sh:path ex:abstract ;
+                sh:datatype xsd:string ;
+                sh:name "Abstract" ;
+                shui:editor shui:TextAreaEditor ;
+              ] ;
+              sh:property [
+                sh:path ex:pages ;
+                sh:datatype xsd:integer ;
+              ] ;
+              sh:property [
+                sh:path rdfs:label ;
+                shui:propertyRole shui:LabelRole ;
+                sh:values [ sh:select "SELECT ?l WHERE { $this ex:abstract ?l }" ] ;
+              ] .
+            """,
+            format="turtle",
+        )
+
+        form_fields = extract_shacl_form_fields(
+            shacl, [], read_presentation(shacl), app
+        )
+
+        fields = form_fields[
+            ("http://example.org/Article", "http://example.org/ArticleShape")
+        ]
+        assert {
+            predicate: [
+                (details.get("displayName"), details["inputType"])
+                for details in details_list
+            ]
+            for predicate, details_list in fields.items()
+        } == {
+            "http://example.org/abstract": [("Abstract", "textarea")],
+            "http://example.org/pages": [(None, "number")],
+        }
 
     def test_qualified_value_shapes_yield_mandatory_values(self) -> None:
         app = Flask(__name__)
@@ -114,7 +169,9 @@ class TestShaclUtils:
             format="turtle",
         )
 
-        form_fields = extract_shacl_form_fields(shacl, [], app)
+        form_fields = extract_shacl_form_fields(
+            shacl, [], read_presentation(shacl), app
+        )
         entity_key = ("http://example.org/Article", "http://example.org/ArticleShape")
         summary = sorted(
             (
@@ -198,10 +255,8 @@ class TestShaclUtils:
             datatype: object
             optional_values: object
             or_nodes: object
-            condition_path: object
-            condition_value: object
-            pattern: object
-            message: object
+            name: object = None
+            editor: object = None
 
         # Crea un risultato con orNodes
         results = [
@@ -217,10 +272,6 @@ class TestShaclUtils:
                 datatype=None,
                 optional_values="",
                 or_nodes="orNode1",  # Questo è importante: specifica un orNode
-                condition_path=None,
-                condition_value=None,
-                pattern=None,
-                message=None,
             )
         ]
 
@@ -241,6 +292,8 @@ class TestShaclUtils:
             ctx = ShaclProcessingContext(
                 shacl=shacl,
                 display_rules=display_rules,
+                presentation=read_presentation(shacl),
+                pattern_alternatives=[],
                 app=app,
                 processed_shapes=processed_shapes,
             )
@@ -292,24 +345,6 @@ class TestShaclUtils:
         # Verifica che il risultato sia None
         assert result is None
 
-    def test_apply_display_rules_to_nested_shapes_parent_prop_not_dict(self) -> None:
-        """
-        Test che apply_display_rules_to_nested_shapes ritorni nested_fields quando
-        parent_prop non è un dizionario.
-        """
-        # Prepara i dati di test
-        nested_fields = [
-            {"uri": "http://example.org/predicate1", "displayName": "Original Name"}
-        ]
-        parent_prop = "not_a_dict"  # Questo non è un dizionario
-
-        result = apply_display_rules_to_nested_shapes(
-            nested_fields, parent_prop, "http://example.org/Shape1"
-        )
-
-        # Verifica che il risultato sia uguale a nested_fields senza modifiche
-        assert result == nested_fields
-
     @patch("heritrace.utils.shacl_display.get_shape_target_class")
     @patch("heritrace.utils.shacl_display.get_object_class")
     @patch("heritrace.utils.filters.Filter.human_readable_class")
@@ -344,13 +379,10 @@ class TestShaclUtils:
             datatype: object
             optional_values: object
             or_nodes: object
-            condition_path: object
-            condition_value: object
-            pattern: object
-            message: object
+            name: object = None
+            editor: object = None
 
-        # Crea due risultati con lo stesso campo di base ma con datatype e condizioni
-        # diverse
+        # Crea due risultati con lo stesso campo di base ma con datatype diversi
         # Il primo risultato crea il campo base
         results = [
             QueryResult(
@@ -365,13 +397,10 @@ class TestShaclUtils:
                 datatype="http://www.w3.org/2001/XMLSchema#string",  # Primo datatype
                 optional_values="",
                 or_nodes="",  # Nessun orNode
-                condition_path=None,
-                condition_value=None,
-                pattern=None,
-                message=None,
+                name=None,
+                editor=None,
             ),
-            # Il secondo risultato ha lo stesso campo base ma con un datatype diverso e
-            # una condizione
+            # Il secondo risultato ha lo stesso campo base ma con un datatype diverso
             QueryResult(
                 shape="subjectShape1",
                 type="entity_type1",
@@ -384,10 +413,6 @@ class TestShaclUtils:
                 datatype="http://www.w3.org/2001/XMLSchema#integer",  # Secondo datatype
                 optional_values="",
                 or_nodes="",  # Stesso orNodes (vuoto)
-                condition_path="conditionPath1",  # Aggiungiamo una condizione
-                condition_value="conditionValue1",
-                pattern="pattern1",  # Aggiungiamo un pattern
-                message="message1",  # Aggiungiamo un messaggio
             ),
         ]
 
@@ -408,6 +433,18 @@ class TestShaclUtils:
             ctx = ShaclProcessingContext(
                 shacl=shacl,
                 display_rules=display_rules,
+                presentation=read_presentation(shacl),
+                pattern_alternatives=[
+                    PatternAlternative(
+                        target_class="entity_type1",
+                        shape="subjectShape1",
+                        path="predicate1",
+                        condition_path="conditionPath1",
+                        condition_value="conditionValue1",
+                        pattern="pattern1",
+                        message="message1",
+                    )
+                ],
                 app=app,
                 processed_shapes=processed_shapes,
             )
@@ -429,27 +466,13 @@ class TestShaclUtils:
         assert "http://www.w3.org/2001/XMLSchema#string" in field_info["datatypes"]
         assert "http://www.w3.org/2001/XMLSchema#integer" in field_info["datatypes"]
 
-        # Verifica che il campo contenga le condizioni
-        assert "conditions" in field_info
-        assert (
-            len(field_info["conditions"]) == 1
-        )  # Solo la condizione non vuota dal secondo risultato
-
-        # Trova la condizione non vuota
-        non_empty_condition = None
-        for condition in field_info["conditions"]:
-            if condition:
-                non_empty_condition = condition
-                break
-
-        assert non_empty_condition is not None
-        assert "condition" in non_empty_condition
-        assert non_empty_condition["condition"]["path"] == "conditionPath1"
-        assert non_empty_condition["condition"]["value"] == "conditionValue1"
-        assert "pattern" in non_empty_condition
-        assert non_empty_condition["pattern"] == "pattern1"
-        assert "message" in non_empty_condition
-        assert non_empty_condition["message"] == "message1"
+        assert field_info["conditions"] == [
+            {
+                "condition": {"path": "conditionPath1", "value": "conditionValue1"},
+                "pattern": "pattern1",
+                "message": "message1",
+            }
+        ]
 
     def test_validate_new_triple_no_shacl(self) -> None:
         """Test che validate_new_triple funzioni correttamente quando non c'è SHACL."""

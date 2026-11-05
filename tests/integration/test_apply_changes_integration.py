@@ -143,5 +143,8 @@ def test_reorder_backfills_provenance_for_all_chained_authors(
         for entry in entries
     }
     for i in range(1, AUTHOR_COUNT + 1):
-        assert f"author: Given{i} Family{i}x{data['test_id']}" in object_labels
+        assert (
+            f"Family{i}x{data['test_id']}, Given{i} [omid:ra/test{data['test_id']}n{i}]"
+            in object_labels
+        )
         assert f"ra/test{data['test_id']}n{i}" not in object_labels

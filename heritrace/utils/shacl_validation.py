@@ -21,6 +21,7 @@ from heritrace.extensions import get_custom_filter, get_shacl_graph
 from heritrace.sparql import select_results
 from heritrace.utils.datatypes import DATATYPE_MAPPING
 from heritrace.utils.display_rules_utils import get_highest_priority_class
+from heritrace.utils.shacl_patterns import read_pattern_alternatives
 from heritrace.utils.sparql_utils import (
     fetch_data_graph_for_subject,
     get_triples_from_graph,
@@ -139,6 +140,7 @@ def get_valid_predicates(
                 OPTIONAL {{?orConstraint sh:hasValue ?optionalValue .}}
             }}
             FILTER (isURI(?predicate))
+            FILTER NOT EXISTS {{?property sh:values ?computed .}}
         }}
         GROUP BY ?predicate ?datatype ?maxCount ?minCount ?hasValue
     """
@@ -237,19 +239,15 @@ def _query_shacl_constraints(
 ) -> list[ResultRow]:
     query = f"""
         PREFIX sh: <http://www.w3.org/ns/shacl#>
-        SELECT DISTINCT ?path ?datatype ?a_class ?classIn ?maxCount ?minCount ?pattern
-        ?message ?shape
+        SELECT DISTINCT ?path ?datatype ?a_class ?maxCount ?minCount ?shape
             (GROUP_CONCAT(DISTINCT COALESCE(?optionalValue, ""); separator=",") AS
             ?optionalValues)
-            (GROUP_CONCAT(DISTINCT COALESCE(?conditionPath, ""); separator=",") AS
-            ?conditionPaths)
-            (GROUP_CONCAT(DISTINCT COALESCE(?conditionValue, ""); separator=",") AS
-            ?conditionValues)
         WHERE {{
             ?shape sh:targetClass ?type ;
                 sh:property ?propertyShape .
             ?propertyShape sh:path ?path .
             FILTER(?path = <{predicate}>)
+            FILTER NOT EXISTS {{?propertyShape sh:values ?computed .}}
             VALUES ?type {{<{"> <".join(str(t) for t in s_types)}>}}
             OPTIONAL {{?propertyShape sh:datatype ?datatype .}}
             OPTIONAL {{
@@ -270,25 +268,11 @@ def _query_shacl_constraints(
                 OPTIONAL {{?orConstraint sh:class ?class .}}
             }}
             OPTIONAL {{
-                ?propertyShape  sh:classIn ?classInList .
-                ?classInList rdf:rest*/rdf:first ?classIn .
-            }}
-            OPTIONAL {{
                 ?propertyShape sh:in ?list .
                 ?list rdf:rest*/rdf:first ?optionalValue .
             }}
-            OPTIONAL {{
-                ?propertyShape sh:pattern ?pattern .
-                OPTIONAL {{?propertyShape sh:message ?message .}}
-            }}
-            OPTIONAL {{
-                ?propertyShape sh:condition ?conditionNode .
-                ?conditionNode sh:path ?conditionPath ;
-                             sh:hasValue ?conditionValue .
-            }}
         }}
-        GROUP BY ?path ?datatype ?a_class ?classIn
-            ?maxCount ?minCount ?pattern ?message ?shape
+        GROUP BY ?path ?datatype ?a_class ?maxCount ?minCount ?shape
     """
     shacl = get_shacl_graph()
     results = shacl.query(query)
@@ -332,41 +316,36 @@ def _validate_cardinality(
     return None
 
 
-def _validate_pattern_constraints(
-    results_list: list[ResultRow],
+def _validate_pattern_constraints(  # noqa: PLR0913
+    predicate: URIRef,
+    s_types: list[str],
     new_value: str | URIRef | None,
     old_value: URIRef | Literal | None,
     data_graph: Graph | Dataset,
     subject: URIRef,
 ) -> tuple[URIRef | Literal | None, URIRef | Literal | None, str] | None:
-    for row in results_list:
-        if not row.pattern:
-            continue
-        condition_paths = row.conditionPaths.split(",") if row.conditionPaths else []
-        condition_values = row.conditionValues.split(",") if row.conditionValues else []
-        conditions_met = True
-
-        for path, value in zip(condition_paths, condition_values, strict=False):
-            if path and value:
-                condition_exists = any(
-                    get_triples_from_graph(
-                        data_graph, (subject, URIRef(path), URIRef(value))
-                    )
-                )
-                if not condition_exists:
-                    conditions_met = False
-                    break
-
-        if conditions_met:
-            pattern = str(row.pattern)
-            if new_value is None or not re.match(pattern, str(new_value)):
-                error_message = (
-                    str(row.message)
-                    if row.message
-                    else f"Value must match pattern: {pattern}"
-                )
-                return None, old_value, error_message
-    return None
+    applicable = [
+        alternative
+        for alternative in read_pattern_alternatives(get_shacl_graph())
+        if alternative.path == str(predicate)
+        and alternative.target_class in s_types
+        and any(
+            get_triples_from_graph(
+                data_graph,
+                (
+                    subject,
+                    URIRef(alternative.condition_path),
+                    URIRef(alternative.condition_value),
+                ),
+            )
+        )
+    ]
+    if not applicable or any(
+        new_value is not None and re.match(alternative.pattern, str(new_value))
+        for alternative in applicable
+    ):
+        return None
+    return None, old_value, applicable[0].message
 
 
 def _type_error(
@@ -464,7 +443,6 @@ def _extract_shacl_constraints(
     classes: list[URIRef] = [
         URIRef(str(row.a_class)) for row in results_list if row.a_class
     ]
-    classes.extend(URIRef(str(row.classIn)) for row in results_list if row.classIn)
     optional_values_str = [
         row.optionalValues for row in results_list if row.optionalValues
     ]
@@ -560,7 +538,7 @@ def validate_new_triple(  # noqa: PLR0911, PLR0913
         return optional_error
 
     pattern_error = _validate_pattern_constraints(
-        results_list, new_value, old_value, data_graph, subject
+        predicate, s_types, new_value, old_value, data_graph, subject
     )
     if pattern_error:
         return pattern_error

@@ -3,354 +3,92 @@
 # SPDX-License-Identifier: ISC
 
 rules:
-  - target:
-      class: "http://purl.org/spar/fabio/JournalArticle"
-    priority: 1
-    shouldBeDisplayed: true
-    displayName: "Journal Article"
-    similarity_properties:
-      - "http://purl.org/dc/terms/title"
-      - "http://purl.org/spar/datacite/hasIdentifier"
-    fetchUriDisplay: |
-      PREFIX dcterms: <http://purl.org/dc/terms/>
-      PREFIX fabio: <http://purl.org/spar/fabio/>
-      PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-      PREFIX pro: <http://purl.org/spar/pro/>
-      PREFIX prism: <http://prismstandard.org/namespaces/basic/2.0/>
-      PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-      PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-      SELECT ?display
-      WHERE {
-        {
-          SELECT ?title ?pubDate ?journalTitle
-                (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
-          WHERE {
-            [[uri]] a fabio:JournalArticle .
-            OPTIONAL { [[uri]] dcterms:title ?title . }
-            OPTIONAL {
-              [[uri]] pro:isDocumentContextFor ?authorRole .
-              ?authorRole pro:withRole pro:author ;
-                          pro:isHeldBy ?author .
-              OPTIONAL { ?author foaf:name ?authorName . }
-              OPTIONAL {
-                ?author foaf:familyName ?familyName .
-                OPTIONAL { ?author foaf:givenName ?givenName . }
-                BIND(CONCAT(
-                  ?familyName,
-                  COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
-                ) AS ?authorName)
-              }
-            }
-            OPTIONAL {
-              [[uri]] prism:publicationDate ?pubDateRaw . 
-              BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
-                      STR(?pubDateRaw),
-                      IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
-                        SUBSTR(STR(?pubDateRaw), 1, 4),
-                        STR(?pubDateRaw))) AS ?pubDate)
-            }
-            OPTIONAL {
-              [[uri]] frbr:partOf ?journal .
-              ?journal a fabio:Journal ;
-                      dcterms:title ?journalTitle .
-            }
-          }
-          GROUP BY ?title ?pubDate ?journalTitle
-        }
-        
-        BIND(CONCAT(
-          COALESCE(?authorList, ""),
-          IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
-          IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
-          IF(BOUND(?title), CONCAT(
-            IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
-            ?title
-          ), ""),
-          IF(BOUND(?journalTitle), CONCAT(
-            IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
-            ?journalTitle
-          ), ""),
-          "."
-        ) AS ?displayWithDot)
-
-        BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
-        BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
-      }
-    displayProperties:
-      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-        displayName: "Type"
-        shouldBeDisplayed: true
-        supportsSearch: false
-      - property: "http://purl.org/spar/datacite/hasIdentifier"
-        displayName: "Identifier"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-          PREFIX datacite: <http://purl.org/spar/datacite/>
-          PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-          SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
-          WHERE {
-              [[subject]] datacite:hasIdentifier ?identifier.
-              VALUES (?identifier) {([[value]])}
-              ?identifier datacite:usesIdentifierScheme ?scheme;
-                          literal:hasLiteralValue ?literal.
-          }
-        supportsSearch: true
-        minCharsForSearch: 3
-        searchTarget: "parent"
-      - property: "http://purl.org/dc/terms/title"
-        displayName: "Title"
-        shouldBeDisplayed: true
-        inputType: "textarea"
-        supportsSearch: true
-        minCharsForSearch: 2
-        searchTarget: "self"
-      - property: "http://purl.org/spar/pro/isDocumentContextFor"
-        orderedBy: "https://w3id.org/oc/ontology/hasNext"
-        intermediateRelation:
-          class: "http://purl.org/spar/pro/RoleInTime"
-          targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
-        displayRules:
-          - shape: "http://schema.org/AuthorShape"
-            displayName: "Author"
-            fetchValueFromQuery: |
-              PREFIX pro: <http://purl.org/spar/pro/>
-              PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-              SELECT DISTINCT ?formattedName ?ra WHERE {
-                [[value]] pro:isHeldBy ?ra;
-                    pro:withRole pro:author.
-                OPTIONAL { ?ra foaf:name ?name. }
-                OPTIONAL { ?ra foaf:familyName ?familyName. }
-                OPTIONAL { ?ra foaf:givenName ?givenName. }
-                
-                BIND(
-                  IF(BOUND(?name), ?name,
-                      IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
-                          IF(BOUND(?familyName), CONCAT(?familyName, ","), 
-                              IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
-                          )
-                      )
-                  ) AS ?nameDisplay
-                )
-                
-                BIND(STR(?ra) AS ?uriString)
-                BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-                BIND(CONCAT(?nameDisplay, " [omid:", ?omid, "]") AS ?formattedName)
-              }
-      - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate"
-        displayName: "Publication Date"
-        shouldBeDisplayed: true
-        supportsSearch: false
-      - property: "http://purl.org/vocab/frbr/core#partOf"
-        displayName: "Journal"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-          PREFIX fabio: <http://purl.org/spar/fabio/>
-          PREFIX frbr: <http://purl.org/vocab/frbr/core#>
-          PREFIX dcterms: <http://purl.org/dc/terms/>
-          SELECT ?journalDisplay ?journal
-          WHERE {
-            [[subject]] frbr:partOf ?journal.
-            ?journal a fabio:Journal;
-                    dcterms:title ?journalName.
-            
-            BIND(STR(?journal) AS ?uriString)
-            BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-            BIND(CONCAT(?journalName, " [omid:", ?omid, "]") AS ?journalDisplay)
-          }
-        supportsSearch: true
-    sortableBy:
-      - property: "http://purl.org/dc/terms/title"
-        sortOrder: ["asc", "desc"]
-      - property: "http://prismstandard.org/namespaces/basic/2.0/publicationDate" 
-        sortOrder: ["desc", "asc"]
-
-  - target:
-      class: "http://purl.org/spar/fabio/Expression"
-    priority: 2
-    shouldBeDisplayed: false
-
-  - target:
-      class: "http://purl.org/spar/fabio/Journal"
-    priority: 1
-    shouldBeDisplayed: true
-    displayName: "Journal"
-    similarity_properties:
-      - "http://purl.org/dc/terms/title"
-      - "http://purl.org/spar/datacite/hasIdentifier"
-    fetchUriDisplay: |
-      PREFIX dcterms: <http://purl.org/dc/terms/>
-      PREFIX datacite: <http://purl.org/spar/datacite/>
-      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-      SELECT ?display
-      WHERE {
-        [[uri]] dcterms:title ?title .
-        BIND(STR([[uri]]) AS ?uriString)
-        BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-        BIND(CONCAT(?title, " [omid:", ?omid, "]") AS ?display)
-      }
-    displayProperties:
-      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-        displayName: "Type"
-        shouldBeDisplayed: true
-        supportsSearch: false
-      - property: "http://purl.org/spar/datacite/hasIdentifier"
-        displayName: "Identifier"
-        shouldBeDisplayed: true
-        fetchValueFromQuery: |
-          PREFIX datacite: <http://purl.org/spar/datacite/>
-          PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-          SELECT (CONCAT(STRAFTER(STR(?scheme), "http://purl.org/spar/datacite/"), ":", ?literal) AS ?id) ?identifier
-          WHERE {
-              [[subject]] datacite:hasIdentifier ?identifier.
-              VALUES (?identifier) {([[value]])}
-              ?identifier datacite:usesIdentifierScheme ?scheme;
-                          literal:hasLiteralValue ?literal.
-          }
-        supportsSearch: true
-        minCharsForSearch: 3
-        searchTarget: "parent"
-      - property: "http://purl.org/dc/terms/title"
-        displayName: "Title"
-        shouldBeDisplayed: true
-        inputType: "textarea"
-        supportsSearch: true
-        minCharsForSearch: 2
-        searchTarget: "self"
-    sortableBy:
-      - property: "http://purl.org/dc/terms/title"
-        sortOrder: ["asc", "desc"]
-
-  - target:
-      class: "http://purl.org/spar/datacite/Identifier"
-    priority: 1
-    shouldBeDisplayed: false
-    displayName: "Identifier"
-    similarity_properties:
-      - and:
-        - "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
-        - "http://purl.org/spar/datacite/usesIdentifierScheme"
-    fetchUriDisplay: |
-      PREFIX datacite: <http://purl.org/spar/datacite/>
-      PREFIX literal: <http://www.essepuntato.it/2010/06/literalreification/>
-      SELECT ?display
-      WHERE {
-        [[uri]] datacite:usesIdentifierScheme ?scheme ;
-                literal:hasLiteralValue ?value .
-        BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
-      }
-    displayProperties:
-      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-        displayName: "Type"
-        shouldBeDisplayed: true
-        supportsSearch: false
-      - property: "http://purl.org/spar/datacite/usesIdentifierScheme"
-        displayName: "Identifier Scheme"
-        shouldBeDisplayed: true
-        supportsSearch: false
-      - property: "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
-        displayName: "Literal Value"
-        shouldBeDisplayed: true
-        supportsSearch: true
-        minCharsForSearch: 3
-        searchTarget: "parent"
-
-  - target:
-      class: "http://purl.org/spar/pro/RoleInTime"
-    priority: 1
-    shouldBeDisplayed: false
-    displayName: "Agent Role"
-    fetchUriDisplay: |
-      PREFIX pro: <http://purl.org/spar/pro/>
-      PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-      SELECT ?display
-      WHERE {
-        [[uri]] pro:withRole ?role ;
-                pro:isHeldBy ?agent .
-        OPTIONAL { ?agent foaf:name ?name. }
-        OPTIONAL { ?agent foaf:familyName ?familyName. }
-        OPTIONAL { ?agent foaf:givenName ?givenName. }
-        BIND(
-            IF(BOUND(?name), ?name,
-                IF(BOUND(?familyName) && BOUND(?givenName), 
-                    CONCAT(?givenName, " ", ?familyName),
-                    IF(BOUND(?familyName), ?familyName, 
-                        IF(BOUND(?givenName), ?givenName, STR(?agent))
-                    )
-                )
-            ) AS ?agentDisplay
-        )
-        BIND(
-          CONCAT(STRAFTER(STR(?role), "pro/"), ": ", ?agentDisplay) AS ?display
-        )
-      }
-    displayProperties:
-      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-        displayName: "Type"
-        shouldBeDisplayed: true
-        supportsSearch: false
-      - property: "http://purl.org/spar/pro/isHeldBy"
-        displayName: "Held By"
-        shouldBeDisplayed: true
-        supportsSearch: false
-      - property: "http://purl.org/spar/pro/withRole"
-        displayName: "Role"
-        shouldBeDisplayed: true
-        supportsSearch: false
-
-  - target:
-      class: "http://xmlns.com/foaf/0.1/Agent"
-    priority: 1
-    shouldBeDisplayed: false
-    displayName: "Responsible Agent"
-    similarity_properties:
-      - "http://xmlns.com/foaf/0.1/name"
-      - and:
-          - "http://xmlns.com/foaf/0.1/familyName"
-          - "http://xmlns.com/foaf/0.1/givenName"
-    fetchUriDisplay: |
-      PREFIX foaf: <http://xmlns.com/foaf/0.1/>
-      SELECT ?display
-      WHERE {
-        [[uri]] a foaf:Agent .
-        OPTIONAL { [[uri]] foaf:name ?name. }
-        OPTIONAL { [[uri]] foaf:familyName ?familyName. }
-        OPTIONAL { [[uri]] foaf:givenName ?givenName. }
-        
-        BIND(
-            IF(BOUND(?name), ?name,
-                IF(BOUND(?familyName) && BOUND(?givenName), 
-                    CONCAT(?givenName, " ", ?familyName),
-                    IF(BOUND(?familyName), ?familyName, 
-                        IF(BOUND(?givenName), ?givenName, "Unnamed Agent")
-                    )
-                )
-            ) AS ?agentName
-        )
-        
-        BIND(STR([[uri]]) AS ?uriString)
-        BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
-        BIND(CONCAT(?agentName, " [omid:", ?omid, "]") AS ?display)
-      }
-    displayProperties:
-      - property: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-        displayName: "Type"
-        shouldBeDisplayed: true
-        supportsSearch: false
-      - property: "http://xmlns.com/foaf/0.1/name"
-        displayName: "Name"
-        shouldBeDisplayed: true
-        supportsSearch: true
-        minCharsForSearch: 3
-        searchTarget: "self"
-      - property: "http://xmlns.com/foaf/0.1/givenName"
-        displayName: "Given Name"
-        shouldBeDisplayed: true
-        supportsSearch: true
-        minCharsForSearch: 3
-        searchTarget: "self"
-      - property: "http://xmlns.com/foaf/0.1/familyName"
-        displayName: "Family Name"
-        shouldBeDisplayed: true
-        supportsSearch: true
-        minCharsForSearch: 3
-        searchTarget: "self" 
+- target:
+    class: http://purl.org/spar/fabio/JournalArticle
+  priority: 1
+  displayProperties:
+  - property: http://purl.org/spar/datacite/hasIdentifier
+    supportsSearch: true
+    minCharsForSearch: 3
+    searchTarget: parent
+  - property: http://purl.org/dc/terms/title
+    supportsSearch: true
+    minCharsForSearch: 2
+  - property: http://purl.org/spar/pro/isDocumentContextFor
+    orderedBy: https://w3id.org/oc/ontology/hasNext
+    intermediateRelation:
+      class: http://purl.org/spar/pro/RoleInTime
+      targetEntityType: http://xmlns.com/foaf/0.1/Agent
+  - property: http://purl.org/vocab/frbr/core#partOf
+    supportsSearch: true
+  sortableBy:
+  - property: http://purl.org/dc/terms/title
+    sortOrder:
+    - asc
+    - desc
+  - property: http://prismstandard.org/namespaces/basic/2.0/publicationDate
+    sortOrder:
+    - desc
+    - asc
+  similarity_properties:
+  - http://purl.org/dc/terms/title
+  - http://purl.org/spar/datacite/hasIdentifier
+- target:
+    class: http://purl.org/spar/fabio/Expression
+  priority: 2
+  shouldBeDisplayed: false
+- target:
+    class: http://purl.org/spar/fabio/Journal
+  priority: 1
+  displayProperties:
+  - property: http://purl.org/spar/datacite/hasIdentifier
+    supportsSearch: true
+    minCharsForSearch: 3
+    searchTarget: parent
+  - property: http://purl.org/dc/terms/title
+    supportsSearch: true
+    minCharsForSearch: 2
+  sortableBy:
+  - property: http://purl.org/dc/terms/title
+    sortOrder:
+    - asc
+    - desc
+  similarity_properties:
+  - http://purl.org/dc/terms/title
+  - http://purl.org/spar/datacite/hasIdentifier
+- target:
+    class: http://purl.org/spar/datacite/Identifier
+  priority: 1
+  shouldBeDisplayed: false
+  displayProperties:
+  - property: http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue
+    supportsSearch: true
+    minCharsForSearch: 3
+    searchTarget: parent
+  similarity_properties:
+  - and:
+    - http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue
+    - http://purl.org/spar/datacite/usesIdentifierScheme
+- target:
+    class: http://purl.org/spar/pro/RoleInTime
+  priority: 1
+  shouldBeDisplayed: false
+- target:
+    class: http://xmlns.com/foaf/0.1/Agent
+  priority: 1
+  shouldBeDisplayed: false
+  displayProperties:
+  - property: http://xmlns.com/foaf/0.1/name
+    supportsSearch: true
+    minCharsForSearch: 3
+  - property: http://xmlns.com/foaf/0.1/givenName
+    supportsSearch: true
+    minCharsForSearch: 3
+  - property: http://xmlns.com/foaf/0.1/familyName
+    supportsSearch: true
+    minCharsForSearch: 3
+  similarity_properties:
+  - http://xmlns.com/foaf/0.1/name
+  - and:
+    - http://xmlns.com/foaf/0.1/familyName
+    - http://xmlns.com/foaf/0.1/givenName

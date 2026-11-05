@@ -6,10 +6,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-import yaml
 from pyparsing import ParseException
+from rdflib import Graph
 
 from heritrace.utils.draft_labels import draft_label
+from heritrace.utils.filters import Filter
+from heritrace.utils.shacl_presentation import ShapesPresentation, read_presentation
 
 FOAF = "http://xmlns.com/foaf/0.1/"
 DATACITE = "http://purl.org/spar/datacite/"
@@ -17,13 +19,23 @@ LITERAL = "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
 PRO = "http://purl.org/spar/pro/"
 
 
+def labels_from(presentation: ShapesPresentation):
+    return patch(
+        "heritrace.utils.draft_labels.get_custom_filter",
+        return_value=Filter({}, presentation, "http://localhost:0/sparql"),
+    )
+
+
+def configuration_labels(configuration: str):
+    graph = Graph().parse(
+        Path("example_configurations") / configuration / "shacl.ttl", format="turtle"
+    )
+    return labels_from(read_presentation(graph))
+
+
 @pytest.fixture
-def configured_draft_rules():
-    path = Path("example_configurations/opencitations_meta/display_rules.yaml")
-    rules = yaml.safe_load(path.read_text())["rules"]
-    with patch(
-        "heritrace.utils.display_rules_utils.get_display_rules", return_value=rules
-    ):
+def configured_draft_labels():
+    with configuration_labels("opencitations_meta"):
         yield
 
 
@@ -40,7 +52,7 @@ def identifier_entry(properties):
     }
 
 
-def test_draft_relation_labels(logged_in_client, configured_draft_rules):
+def test_draft_relation_labels(logged_in_client, configured_draft_labels):
     identifier = identifier_entry(
         {
             DATACITE + "usesIdentifierScheme": [DATACITE + "orcid"],
@@ -79,7 +91,7 @@ def test_draft_relation_labels(logged_in_client, configured_draft_rules):
     }
 
 
-def test_incomplete_and_unconfigured_drafts(logged_in_client, configured_draft_rules):
+def test_incomplete_and_unconfigured_drafts(logged_in_client, configured_draft_labels):
     incomplete = identifier_entry(
         {DATACITE + "usesIdentifierScheme": [DATACITE + "doi"]}
     )
@@ -94,7 +106,7 @@ def test_incomplete_and_unconfigured_drafts(logged_in_client, configured_draft_r
     assert response.json == {"labels": [None, None]}
 
 
-def test_entity_rule_and_existing_reference(app, configured_draft_rules):
+def test_entity_rule_and_existing_reference(app, configured_draft_labels):
     entry = identifier_entry(
         {
             DATACITE + "usesIdentifierScheme": [DATACITE + "doi"],
@@ -122,7 +134,7 @@ def test_entity_rule_and_existing_reference(app, configured_draft_rules):
     ],
 )
 def test_saved_author_uses_available_properties(
-    app, configured_draft_rules, uri, expected
+    app, configured_draft_labels, uri, expected
 ):
     entry = {
         "parent_class": "https://example.org/Unknown",
@@ -143,7 +155,7 @@ def test_saved_author_uses_available_properties(
 
 @pytest.mark.parametrize("with_reference", [False, True])
 def test_author_names_need_no_dataset(
-    logged_in_client, configured_draft_rules, with_reference
+    logged_in_client, configured_draft_labels, with_reference
 ):
     properties: dict[str, list[str] | list[dict[str, str | bool]]] = {
         FOAF + "givenName": ["Theodore A."],
@@ -181,37 +193,41 @@ def test_author_names_need_no_dataset(
 
 
 def test_draft_label_query_errors_propagate(app):
-    rule = {"fetchUriDisplay": "invalid SPARQL"}
-
-    with (
-        app.app_context(),
-        patch("heritrace.utils.draft_labels.find_matching_rule", return_value=rule),
-        pytest.raises(ParseException),
-    ):
+    presentation = ShapesPresentation(
+        shape_names={},
+        properties={},
+        label_queries={"http://schema.org/AgentIdentifierShape": "invalid SPARQL"},
+    )
+    with app.app_context(), labels_from(presentation), pytest.raises(ParseException):
         draft_label(identifier_entry({LITERAL: ["abc"]}))
 
 
 def test_draft_rules_use_field_datatypes(logged_in_client):
     entity_class = "https://example.org/Measurement"
+    entity_shape = "https://example.org/MeasurementShape"
     predicate = "https://example.org/value"
-    rule = {
-        "fetchUriDisplay": """
-            SELECT (STR(?value) AS ?display) WHERE {
-                [[uri]] <https://example.org/value> ?value .
-                FILTER(?value = 42)
-            }
-        """,
-    }
+    presentation = ShapesPresentation(
+        shape_names={},
+        properties={},
+        label_queries={
+            entity_shape: """
+                SELECT (STR(?value) AS ?display) WHERE {
+                    $this <https://example.org/value> ?value .
+                    FILTER(?value = 42)
+                }
+            """
+        },
+    )
     entry = identifier_entry({predicate: ["42"]})
     entry["entity"]["entity_type"] = entity_class
-    entry["entity"]["entity_shape"] = ""
+    entry["entity"]["entity_shape"] = entity_shape
     fields = {
-        (entity_class, None): {
+        (entity_class, entity_shape): {
             predicate: [{"datatypes": ["http://www.w3.org/2001/XMLSchema#integer"]}],
         }
     }
     with (
-        patch("heritrace.utils.draft_labels.find_matching_rule", return_value=rule),
+        labels_from(presentation),
         patch("heritrace.utils.draft_labels.get_form_fields", return_value=fields),
     ):
         response = logged_in_client.post("/api/draft-labels", json={"entries": [entry]})
@@ -223,10 +239,7 @@ def test_draft_rules_use_field_datatypes(logged_in_client):
     ("predicate", "shape"),
     [("Citations", "CitationShape"), ("Is Cited By", "ReverseCitationShape")],
 )
-def test_virtual_property_uses_entity_display_rule(logged_in_client, predicate, shape):
-    rules = yaml.safe_load(
-        Path("example_configurations/paratext/display_rules.yaml").read_text()
-    )["rules"]
+def test_virtual_property_uses_entity_label(logged_in_client, predicate, shape):
     entry = {
         "parent_class": "http://purl.org/spar/fabio/JournalArticle",
         "parent_shape": "http://schema.org/JournalArticleShape",
@@ -247,9 +260,7 @@ def test_virtual_property_uses_entity_display_rule(logged_in_client, predicate, 
             },
         },
     }
-    with patch(
-        "heritrace.utils.display_rules_utils.get_display_rules", return_value=rules
-    ):
+    with configuration_labels("paratext"):
         response = logged_in_client.post("/api/draft-labels", json={"entries": [entry]})
     assert response.status_code == 200
     assert response.json == {"labels": ['Citation from "Source book" to "Target book"']}

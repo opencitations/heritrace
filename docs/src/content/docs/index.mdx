@@ -57,13 +57,13 @@ http://127.0.0.1:5000
 HERITRACE requires two data-model configuration files:
 
 - **SHACL schema** (`.ttl`): Defines the data model, classes, and properties. See [SHACL configuration](/heritrace/configuration/shacl/).
-- **Display rules** (`.yaml`): Controls how entities appear in the interface. See [Display rules configuration](/heritrace/configuration/display-rules/).
+- **Extra configuration** (`.yaml`): Covers the editor behaviour that SHACL cannot express. See [Extra configuration](/heritrace/configuration/extra/).
 
 The `default_components/` directory contains optional URI generator, counter
 handler, and save plugin implementations. They are distributed with HERITRACE but
 enabled only when selected in the [application settings](/heritrace/configuration/app-settings/).
 
-The `example_configurations/` directory contains examples to use as a starting point, including one based on the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank" rel="noopener noreferrer">OpenCitations Data Model (OCDM)</a>.
+The [`example_configurations/`](https://github.com/opencitations/heritrace/tree/main/example_configurations) directory contains examples to use as a starting point, including one based on the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank" rel="noopener noreferrer">OpenCitations Data Model (OCDM)</a>.
 
 ## What's next?
 
@@ -72,7 +72,7 @@ Now that HERITRACE is running, you can:
 1. **Explore the interface**: Navigate through the metadata management features with the preconfigured data model
 2. **Production setup**: Configure [ORCID authentication and security settings](/heritrace/configuration/app-settings/) for production use
 3. **Configure schemas**: Customize the [SHACL schema](/heritrace/configuration/shacl/) for your data model
-4. **Set display rules**: Modify the [YAML display rules](/heritrace/configuration/display-rules/) for your interface
+4. **Set the extra configuration**: Modify the [YAML file](/heritrace/configuration/extra/) for your interface
 
 ## Stopping the application
 

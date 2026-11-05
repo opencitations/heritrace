@@ -15,26 +15,49 @@
 @prefix oco: <https://w3id.org/oc/ontology/> .
 @prefix prism: <http://prismstandard.org/namespaces/basic/2.0/> .
 @prefix pro: <http://purl.org/spar/pro/> .
+@prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+
+# Prefixes for the SPARQL queries in this shapes graph
+
+[] a sh:ShapesGraph ;
+  sh:declare
+    [ sh:prefix "cito" ; sh:namespace "http://purl.org/spar/cito/"^^xsd:anyURI ] ,
+    [ sh:prefix "datacite" ; sh:namespace "http://purl.org/spar/datacite/"^^xsd:anyURI ] ,
+    [ sh:prefix "dcterms" ; sh:namespace "http://purl.org/dc/terms/"^^xsd:anyURI ] ,
+    [ sh:prefix "fabio" ; sh:namespace "http://purl.org/spar/fabio/"^^xsd:anyURI ] ,
+    [ sh:prefix "foaf" ; sh:namespace "http://xmlns.com/foaf/0.1/"^^xsd:anyURI ] ,
+    [ sh:prefix "frbr" ; sh:namespace "http://purl.org/vocab/frbr/core#"^^xsd:anyURI ] ,
+    [ sh:prefix "literal" ; sh:namespace "http://www.essepuntato.it/2010/06/literalreification/"^^xsd:anyURI ] ,
+    [ sh:prefix "prism" ; sh:namespace "http://prismstandard.org/namespaces/basic/2.0/"^^xsd:anyURI ] ,
+    [ sh:prefix "pro" ; sh:namespace "http://purl.org/spar/pro/"^^xsd:anyURI ] ,
+    [ sh:prefix "xsd" ; sh:namespace "http://www.w3.org/2001/XMLSchema#"^^xsd:anyURI ] .
 
 # Identifiers
 
 schema:IdentifierShape 
   a sh:NodeShape ;
+  sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue datacite:Identifier ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
     sh:in (
       datacite:crossref
       datacite:datacite
@@ -52,19 +75,38 @@ schema:IdentifierShape
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                  literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:JournalArticleIdentifierShape
   a sh:NodeShape ;
+  sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue datacite:Identifier ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:in (
@@ -76,64 +118,89 @@ schema:JournalArticleIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:doi ;
-    ] ;
-    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
   ] ;
+  sh:or (
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:doi ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:pmid ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[1-9]\\d*$" ;
+        sh:message "PMID must contain only numbers. For example: 39288764" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:pmcid ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
+        sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:openalex ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^W[1-9]\\d*$" ;
+        sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
+      ] ;
+    ]
+  ) ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:pmid ;
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                  literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
     ] ;
-    sh:pattern "^[1-9]\\d*$" ;
-    sh:message "PMID must contain only numbers. For example: 39288764" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:pmcid ;
-    ] ;
-    sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
-    sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:openalex ;
-    ] ;
-    sh:pattern "^W[1-9]\\d*$" ;
-    sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
   ] .
 
 schema:JournalIdentifierShape
   a sh:NodeShape ;
+  sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue datacite:Identifier ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:in (
@@ -145,64 +212,89 @@ schema:JournalIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:issn ;
-    ] ;
-    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
-    sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
   ] ;
+  sh:or (
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:issn ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
+        sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:doi ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:jid ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
+        sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:openalex ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^S\\d+$" ;
+        sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326" ;
+      ] ;
+    ]
+  ) ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:doi ;
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                  literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
     ] ;
-    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:jid ;
-    ] ;
-    sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
-    sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
-  ] ;  
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:openalex ;
-    ] ;
-    sh:pattern "^S\\d+$" ;
-    sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326" ;
   ] .
 
 schema:SeriesAndProceedingsIdentifierShape
   a sh:NodeShape ;
+  sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue datacite:Identifier ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:in (
@@ -215,76 +307,100 @@ schema:SeriesAndProceedingsIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:issn ;
-    ] ;
-    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
-    sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
   ] ;
+  sh:or (
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:issn ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
+        sh:message "ISSN must be in the format NNNN-NNNC where N is a digit and C is a digit or 'X'. For example: 2641-3337" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:doi ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:jid ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
+        sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:openalex ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^S\\d+$" ;
+        sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 " ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:isbn ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
+        sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
+      ] ;
+    ]
+  ) ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:doi ;
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                  literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
     ] ;
-    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:jid ;
-    ] ;
-    sh:pattern "^[a-z]+([12][0-9]{3}){0,1}[a-z]*$" ;
-    sh:message "JID must start with lowercase letters, optionally followed by a four-digit year, and may end with additional lowercase letters. For example: nature or science2001 or procnatacadsci" ;
-  ] ;  
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:openalex ;
-    ] ;
-    sh:pattern "^S\\d+$" ;
-    sh:message "The OpenAlex journal ID must start with 'S' followed by numbers. For example: S4210195326 " ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:isbn ;
-    ] ;
-    sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
-    sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
   ] .
 
 schema:BookIdentifierShape
   a sh:NodeShape ;
+  sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue datacite:Identifier ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
     sh:in (
       datacite:doi
       datacite:isbn
@@ -297,82 +413,108 @@ schema:BookIdentifierShape
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:doi ;
-    ] ;
-    sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
-    sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
   ] ;
+  sh:or (
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:doi ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^10\\.(\\d{4,9}|[^\\s/]+(\\.[^\\s/]+)*)/[^\\s]+$" ;
+        sh:message "DOI must start with '10.' followed by a prefix, a forward slash, and a suffix. For example: 10.1162/qss_a_00023" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:pmid ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[1-9]\\d*$" ;
+        sh:message "PMID must contain only numbers. For example: 39288764" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:pmcid ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
+        sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:isbn ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
+        sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:openalex ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^W[1-9]\\d*$" ;
+        sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
+      ] ;
+    ]
+  ) ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:pmid ;
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                  literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
     ] ;
-    sh:pattern "^[1-9]\\d*$" ;
-    sh:message "PMID must contain only numbers. For example: 39288764" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:pmcid ;
-    ] ;
-    sh:pattern "^PMC[1-9]\\d+(\\.(\\d{1,2})?)?$" ;
-    sh:message "PMCID must start with 'PMC' followed by a number that doesn't start with 0, and may optionally end with a dot and 1-2 digits. For example: PMC10829861" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:isbn ;
-    ] ;
-    sh:pattern "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$" ;
-    sh:message "ISBN must be a valid 10 or 13-digit ISBN number, with optional hyphens. For example: 0-7475-3269-9 or 978-0-7475-3269-9" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:openalex ;
-    ] ;
-    sh:pattern "^W[1-9]\\d*$" ;
-    sh:message "OpenAlex work ID must start with 'W' followed by numbers. For example: W2741809807" ;
   ] .
   
 schema:AgentIdentifierShape
   a sh:NodeShape ;
+  sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue datacite:Identifier ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path literal:hasLiteralValue ;
+    sh:name "Literal Value" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:usesIdentifierScheme ;
+    sh:name "Identifier Scheme" ;
+    sh:order 2 ;
     sh:in (
       datacite:crossref
       datacite:orcid
@@ -384,122 +526,175 @@ schema:AgentIdentifierShape
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
+  sh:or (
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:orcid ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^([0-9]{4}-){3}[0-9]{3}[0-9X]$" ;
+        sh:message "ORCID must be in the format 'XXXX-XXXX-XXXX-XXXX' where X is a digit or 'X'. For example: 0000-0002-1825-0097" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:viaf ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[1-9]\\d{1,21}$" ;
+        sh:message "VIAF ID must be a string of 2 to 22 digits, not starting with 0. For example: 12345678" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:crossref ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^\\d+$" ;
+        sh:message "Crossref ID must be a string of one or more digits. For example: 98765432" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:wikidata ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^Q[1-9]\\d*$" ;
+        sh:message "Wikidata ID must start with 'Q' followed by a non-zero digit and optionally more digits. For example: Q42" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:wikipedia ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[1-9][0-9]*$" ;
+        sh:message "Wikipedia ID must be a string of digits not starting with 0. For example: 123456" ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:ror ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^((https:\\/\\/)?ror\\.org\\/)?0[a-hj-km-np-tv-z0-9]{6}[0-9]{2}$" ;
+        sh:message "ROR ID must be in the format '0XXXXXXXX' where X is a digit or lowercase letter (excluding i, l, o), optionally prefixed with 'https://ror.org/'. For example: 04wxnsj81 or https://ror.org/04wxnsj81" ;
+      ] ;
+    ]
+  ) ;
   sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:orcid ;
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this datacite:usesIdentifierScheme ?scheme ;
+                  literal:hasLiteralValue ?value .
+          BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?display)
+        }
+      """ ;
     ] ;
-    sh:pattern "^([0-9]{4}-){3}[0-9]{3}[0-9X]$" ;
-    sh:message "ORCID must be in the format 'XXXX-XXXX-XXXX-XXXX' where X is a digit or 'X'. For example: 0000-0002-1825-0097" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:viaf ;
-    ] ;
-    sh:pattern "^[1-9]\\d{1,21}$" ;
-    sh:message "VIAF ID must be a string of 2 to 22 digits, not starting with 0. For example: 12345678" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:crossref ;
-    ] ;
-    sh:pattern "^\\d+$" ;
-    sh:message "Crossref ID must be a string of one or more digits. For example: 98765432" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:wikidata ;
-    ] ;
-    sh:pattern "^Q[1-9]\\d*$" ;
-    sh:message "Wikidata ID must start with 'Q' followed by a non-zero digit and optionally more digits. For example: Q42" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:wikipedia ;
-    ] ;
-    sh:pattern "^[1-9][0-9]*$" ;
-    sh:message "Wikipedia ID must be a string of digits not starting with 0. For example: 123456" ;
-  ] ;
-  sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:datatype xsd:string ;
-    sh:minCount 1 ;
-    sh:maxCount 1 ;
-    sh:condition [
-      sh:path datacite:usesIdentifierScheme ;
-      sh:hasValue datacite:ror ;
-    ] ;
-    sh:pattern "^((https:\\/\\/)?ror\\.org\\/)?0[a-hj-km-np-tv-z0-9]{6}[0-9]{2}$" ;
-    sh:message "ROR ID must be in the format '0XXXXXXXX' where X is a digit or lowercase letter (excluding i, l, o), optionally prefixed with 'https://ror.org/'. For example: 04wxnsj81 or https://ror.org/04wxnsj81" ;
   ] .
 
 # Agent roles
 
 schema:AgentRoleShape
   a sh:NodeShape ;
+  sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue pro:RoleInTime ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    sh:name "Has Next" ;
+    sh:order 3 ;
     sh:node schema:AgentRoleShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
+    sh:name "Held By" ;
+    sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 4 ;
     sh:in (pro:publisher pro:author pro:editor pro:translator pro:contributor) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this pro:withRole ?role ;
+                  pro:isHeldBy ?agent .
+          OPTIONAL { ?agent foaf:name ?name. }
+          OPTIONAL { ?agent foaf:familyName ?familyName. }
+          OPTIONAL { ?agent foaf:givenName ?givenName. }
+          BIND(
+              IF(BOUND(?name), ?name,
+                  IF(BOUND(?familyName) && BOUND(?givenName), 
+                      CONCAT(?givenName, " ", ?familyName),
+                      IF(BOUND(?familyName), ?familyName, 
+                          IF(BOUND(?givenName), ?givenName, STR(?agent))
+                      )
+                  )
+              ) AS ?agentDisplay
+          )
+          BIND(
+            CONCAT(STRAFTER(STR(?role), "pro/"), ": ", ?agentDisplay) AS ?display
+          )
+        }
+      """ ;
+    ] ;
   ] .
 
 # Bibliographic resources
 
 schema:ExpressionShape
   a sh:NodeShape ;
+  sh:name "Bibliographic Resource" ;
   sh:targetClass fabio:Expression ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:or (
       [ sh:hasValue fabio:JournalArticle ]
       [ sh:hasValue fabio:Book ]
@@ -520,33 +715,48 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:IdentifierShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -557,61 +767,244 @@ schema:ExpressionShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    sh:name "Page" ;
+    sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:order 11 ;
     sh:node schema:AgentRoleShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Part Of" ;
+    sh:order 14 ;
     sh:node schema:BibliographicResourceShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?proceedingsTitle
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:Expression .
+                  OPTIONAL { 
+                    $this a ?specificType .
+                    FILTER(?specificType != fabio:Expression)
+                    BIND(?specificType AS ?entityType)
+                  }
+                  BIND(COALESCE(?entityType, fabio:Expression) AS ?entityType)
+
+                  OPTIONAL { $this dcterms:title ?title . }
+
+                  # Authors (not applicable for Journal, Volume, Issue)
+                  OPTIONAL {
+                    FILTER(?entityType NOT IN (fabio:JournalVolume, fabio:JournalIssue))
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(?familyName, COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")) AS ?authorName)
+                    }
+                  }
+
+                  # Publication Date
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, STR(?pubDateRaw),
+                        IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), SUBSTR(STR(?pubDateRaw), 1, 4),
+                        STR(?pubDateRaw))) AS ?pubDate)
+                  }
+
+                  # Journal Article, Volume, and Issue specific info
+                  OPTIONAL {
+                    {
+                      $this frbr:partOf ?journal .
+                      ?journal a fabio:Journal ;
+                              dcterms:title ?journalTitle .
+                    }
+                    UNION
+                    {
+                      $this frbr:partOf ?volume .
+                      ?volume a fabio:JournalVolume ;
+                              fabio:hasSequenceIdentifier ?volumeNumber ;
+                              frbr:partOf ?journal .
+                      ?journal a fabio:Journal ;
+                              dcterms:title ?journalTitle .
+                    }
+                    UNION
+                    {
+                      $this frbr:partOf ?issue .
+                      ?issue a fabio:JournalIssue ;
+                            fabio:hasSequenceIdentifier ?issueNumber ;
+                            frbr:partOf ?volume .
+                      ?volume a fabio:JournalVolume ;
+                              fabio:hasSequenceIdentifier ?volumeNumber ;
+                              frbr:partOf ?journal .
+                      ?journal a fabio:Journal ;
+                              dcterms:title ?journalTitle .
+                    }
+                  }
+
+                  # Proceedings Paper specific info
+                  OPTIONAL {
+                    FILTER(?entityType IN (fabio:ProceedingsPaper, fabio:Expression))
+                    $this frbr:partOf ?proceedings .
+                    ?proceedings a fabio:AcademicProceedings ;
+                                dcterms:title ?proceedingsTitle .
+                  }
+
+                  # Page information
+                  OPTIONAL {
+                    $this frbr:embodiment ?embodiment .
+                    OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+                    OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+                  }
+                }
+                ORDER BY ?authorPosition
+              }
+            }
+            GROUP BY ?entityType ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage ?bookTitle ?proceedingsTitle
+          }
+
+          # Construct the display string based on entity type
+          BIND(
+            IF(?entityType IN (fabio:JournalArticle, fabio:Expression), 
+              CONCAT(COALESCE(?authorList, ""),
+                    IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+                    IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+                    IF(BOUND(?title), CONCAT(". ", ?title), ""),
+                    IF(BOUND(?journalTitle), CONCAT(". ", ?journalTitle), ""),
+                    IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+                    IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+                    IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+                    COALESCE(?startPage, ""),
+                    IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+                    COALESCE(?endPage, ""),
+                    "."),
+            IF(?entityType IN (fabio:ProceedingsPaper, fabio:Expression),
+              CONCAT(COALESCE(?authorList, ""),
+                    IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+                    IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+                    IF(BOUND(?title), CONCAT(". ", ?title), ""),
+                    IF(BOUND(?proceedingsTitle), CONCAT(". In: ", ?proceedingsTitle), ""),
+                    IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+                    COALESCE(?startPage, ""),
+                    IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+                    COALESCE(?endPage, ""),
+                    "."),
+            IF(?entityType IN (fabio:Book, fabio:Expression),
+              CONCAT(COALESCE(?authorList, ""),
+                    IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+                    IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+                    IF(BOUND(?title), CONCAT(". ", ?title), ""),
+                    "."),
+            IF(?entityType IN (fabio:AcademicProceedings, fabio:Expression),
+              CONCAT(IF(BOUND(?title), ?title, ""),
+                    IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
+                    "."),
+            IF(?entityType IN (fabio:JournalVolume, fabio:Expression),
+              CONCAT("Volume ", ?volumeNumber,
+                    IF(BOUND(?journalTitle), CONCAT(" of ", ?journalTitle), ""),
+                    "."),
+            IF(?entityType IN (fabio:JournalIssue, fabio:Expression),
+              CONCAT("Issue ", ?issueNumber,
+                    IF(BOUND(?volumeNumber), CONCAT(" of Volume ", ?volumeNumber), ""),
+                    IF(BOUND(?journalTitle), CONCAT(", ", ?journalTitle), ""),
+                    "."),
+            IF(?entityType = fabio:Journal,
+              CONCAT(?title,
+                    IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
+                    "."),
+            "Unknown entity type."
+          )))))))) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:ArticleShape
   a sh:NodeShape ;
+  sh:name "Article" ;
   sh:targetClass fabio:Article ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Article ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -622,90 +1015,222 @@ schema:ArticleShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    sh:name "Page" ;
+    sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Miscellany" ;
+    sh:order 14 ;
     sh:node schema:SeriesShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?seriesTitle
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:Article .
+                  OPTIONAL { $this dcterms:title ?title . }
+
+                  # Get author information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?authorName)
+                    }
+                  }
+
+                  # Get publication date
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw .
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear,
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime),
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+
+                  # Get series/miscellany information
+                  OPTIONAL {
+                    $this frbr:partOf ?series .
+                    ?series a fabio:Series ;
+                          dcterms:title ?seriesTitle .
+                  }
+
+                  # Get page information
+                  OPTIONAL {
+                    $this frbr:embodiment ?embodiment .
+                    OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+                    OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+                  }
+                }
+                ORDER BY ?authorPosition
+              }
+            }
+            GROUP BY ?title ?pubDate ?seriesTitle ?startPage ?endPage
+          }
+
+          BIND(CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?seriesTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
+              ?seriesTitle
+            ), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
   
 schema:JournalArticleShape
   a sh:NodeShape ;
+  sh:name "Journal Article" ;
   sh:targetClass fabio:JournalArticle ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:JournalArticle ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Container" ;
+    sh:order 14 ;
     sh:or (
       [ sh:node schema:IssueShape ]
       [ sh:node schema:SpecialIssueShape ]
@@ -717,6 +1242,8 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -727,79 +1254,206 @@ schema:JournalArticleShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    sh:name "Page" ;
+    sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:JournalArticle .
+                  OPTIONAL { $this dcterms:title ?title . }
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?authorName)
+                    }
+                  }
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+                  OPTIONAL {
+                    $this frbr:partOf ?issue .
+                    ?issue a fabio:JournalIssue ;
+                          frbr:partOf ?volume .
+                    ?volume a fabio:JournalVolume ;
+                            fabio:hasSequenceIdentifier ?volumeNumber ;
+                            frbr:partOf ?journal .
+                    ?journal dcterms:title ?journalTitle .
+                    OPTIONAL { ?issue fabio:hasSequenceIdentifier ?issueNumber . }
+                  }
+                  OPTIONAL {
+                    $this frbr:embodiment ?embodiment .
+                    OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+                    OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+                  }
+                }
+                ORDER BY ?authorPosition
+              }
+            }
+            GROUP BY ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
+          }
+
+          BIND(CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?journalTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?journalTitle
+            ), ""),
+            IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+            IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:BookShape
   a sh:NodeShape ;
+  sh:name "Monograph" ;
   sh:targetClass fabio:Book ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Book ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -810,75 +1464,226 @@ schema:BookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?publisher
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+                  (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:Book .
+                  OPTIONAL { $this dcterms:title ?title . }
+
+                  # Get author information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?authorName)
+                    }
+                  }
+
+                  # Get editor information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?editorRole .
+                    ?editorRole pro:withRole pro:editor ;
+                                pro:isHeldBy ?editor .
+                    {
+                      SELECT ?editorRole (COUNT(?previousEditorRole) AS ?editorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?editorRole, ?previousEditorRole .
+                        ?editorRole pro:withRole pro:editor .
+                        ?previousEditorRole <https://w3id.org/oc/ontology/hasNext>* ?editorRole .
+                      }
+                      GROUP BY ?editorRole
+                    }
+                    OPTIONAL { ?editor foaf:name ?editorName . }
+                    OPTIONAL {
+                      ?editor foaf:familyName ?familyName .
+                      OPTIONAL { ?editor foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?editorName)
+                    }
+                  }
+
+                  # Get publication date
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+
+                  # Get publisher information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?publisherRole .
+                    ?publisherRole pro:withRole pro:publisher ;
+                                  pro:isHeldBy ?publisherAgent .
+                    ?publisherAgent foaf:name ?publisher .
+                  }
+                }
+                ORDER BY ?authorPosition ?editorPosition
+              }
+            }
+            GROUP BY ?title ?pubDate ?publisher
+          }
+
+          # Construct the display string based on available information
+          BIND(
+            IF(BOUND(?editorList) && (!BOUND(?authorList) || ?authorList = ""),
+              # Case 1: Only editors
+              CONCAT(
+                ?editorList, " (Ed.)",
+                IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
+                IF(BOUND(?title), CONCAT(". ", ?title), ""),
+                IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
+                "."
+              ),
+              # Case 2: Authors (with or without editors)
+              CONCAT(
+                COALESCE(?authorList, ""),
+                IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+                IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+                IF(BOUND(?title), CONCAT(". ", ?title), ""),
+                IF(BOUND(?editorList), CONCAT(". ", ?editorList, " (Ed.)"), ""),
+                IF(BOUND(?publisher), CONCAT(". ", ?publisher), ""),
+                "."
+              )
+            ) AS ?displayWithDot
+          )
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:ProceedingsPaperShape
   a sh:NodeShape ;
+  sh:name "Proceedings Paper" ;
   sh:targetClass fabio:ProceedingsPaper ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:ProceedingsPaper ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Conference Proceedings" ;
+    sh:order 14 ;
     sh:node schema:ProceedingsShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -889,80 +1694,191 @@ schema:ProceedingsPaperShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    sh:name "Page" ;
+    sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?proceedingsTitle
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:ProceedingsPaper .
+                  OPTIONAL { $this dcterms:title ?title . }
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?authorName)
+                    }
+                  }
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+                  OPTIONAL {
+                    $this frbr:partOf ?proceedings .
+                    ?proceedings a fabio:AcademicProceedings ;
+                                dcterms:title ?proceedingsTitle .
+                  }
+                }
+                ORDER BY ?authorPosition
+              }
+            }
+            GROUP BY ?title ?pubDate ?proceedingsTitle
+          }
+
+          BIND(CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title
+            ), ""),
+            IF(BOUND(?proceedingsTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". In: ", "In: "),
+              ?proceedingsTitle
+            ), ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:ProceedingsShape
   a sh:NodeShape ;
+  sh:name "Proceedings" ;
   sh:targetClass fabio:AcademicProceedings ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:AcademicProceedings ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 10 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -973,112 +1889,323 @@ schema:ProceedingsShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 7 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 8 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:SeriesAndProceedingsIdentifierShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this a fabio:AcademicProceedings ;
+                  dcterms:title ?title .
+          OPTIONAL {
+            $this prism:publicationDate ?pubDateRaw . 
+            BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                    STR(?pubDateRaw),
+                    IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                      SUBSTR(STR(?pubDateRaw), 1, 4),
+                      STR(?pubDateRaw))) AS ?pubDate)
+          }
+          OPTIONAL {
+            SELECT (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this pro:isDocumentContextFor ?editorRole .
+                  ?editorRole pro:withRole pro:editor ;
+                              pro:isHeldBy ?editor .
+                  {
+                    SELECT ?editorRole (COUNT(?previousEditorRole) AS ?editorPosition)
+                    WHERE {
+                      $this pro:isDocumentContextFor ?editorRole, ?previousEditorRole .
+                      ?editorRole pro:withRole pro:editor .
+                      ?previousEditorRole <https://w3id.org/oc/ontology/hasNext>* ?editorRole .
+                    }
+                    GROUP BY ?editorRole
+                  }
+                  OPTIONAL { ?editor foaf:name ?editorName . }
+                  OPTIONAL {
+                    ?editor foaf:familyName ?familyName .
+                    OPTIONAL { ?editor foaf:givenName ?givenName . }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?editorName)
+                  }
+                }
+                ORDER BY ?editorPosition
+              }
+            }
+          }
+          OPTIONAL {
+            SELECT (GROUP_CONCAT(?collabName; SEPARATOR = ", ") AS ?collabList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this pro:isDocumentContextFor ?collabRole .
+                  ?collabRole pro:withRole pro:contributor ;
+                              pro:isHeldBy ?collab .
+                  {
+                    SELECT ?collabRole (COUNT(?previousCollabRole) AS ?collabPosition)
+                    WHERE {
+                      $this pro:isDocumentContextFor ?collabRole, ?previousCollabRole .
+                      ?collabRole pro:withRole pro:contributor .
+                      ?previousCollabRole <https://w3id.org/oc/ontology/hasNext>* ?collabRole .
+                    }
+                    GROUP BY ?collabRole
+                  }
+                  OPTIONAL { ?collab foaf:name ?collabName . }
+                  OPTIONAL {
+                    ?collab foaf:familyName ?familyName .
+                    OPTIONAL { ?collab foaf:givenName ?givenName . }
+                    BIND(CONCAT(
+                      ?familyName,
+                      COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                    ) AS ?collabName)
+                  }
+                }
+                ORDER BY ?collabPosition
+              }
+            }
+          }
+
+          BIND(CONCAT(
+            ?title,
+            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, " (Ed.)"), ""),
+            IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, " (Collab.)"), ""),
+            IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:JournalShape
   a sh:NodeShape ;
+  sh:name "Journal" ;
   sh:targetClass fabio:Journal ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Journal ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:JournalIdentifierShape ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+            WHERE {
+              $this dcterms:title ?title .
+
+              # Get all identifiers
+              OPTIONAL {
+                $this datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                          literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+            }
+            GROUP BY ?title
+          }
+
+          # Format display string with OMID and identifiers
+          BIND(STR($this) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+                CONCAT(?title, " [omid:", ?omid, " ", ?identifiers, "]"),
+                CONCAT(?title, " [omid:", ?omid, "]")
+              ) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:VolumeShape
   a sh:NodeShape ;
+  sh:name "Volume" ;
   sh:targetClass fabio:JournalVolume ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:JournalVolume ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
+    sh:name "Number" ;
+    sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Journal" ;
+    sh:order 4 ;
     sh:node schema:JournalShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this fabio:hasSequenceIdentifier ?volumeNumber .
+          OPTIONAL {
+            $this frbr:partOf ?journal .
+            ?journal a fabio:Journal ;
+                     dcterms:title ?journalTitle .
+            OPTIONAL {
+              SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?journalIdentifiers)
+              WHERE {
+                $this frbr:partOf ?journal .
+                ?journal datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                            literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+              GROUP BY ?journal
+            }
+            BIND(STR(?journal) AS ?journalUriString)
+            BIND(STRAFTER(?journalUriString, "https://w3id.org/oc/meta/") AS ?journalOmid)
+            BIND(IF(BOUND(?journalIdentifiers) && STRLEN(?journalIdentifiers) > 0,
+                  IF(STRSTARTS(?journalUriString, "https://w3id.org/oc/meta/") && STRLEN(?journalOmid) > 0,
+                    CONCAT(?journalTitle, " [omid:", ?journalOmid, " ", ?journalIdentifiers, "]"),
+                    CONCAT(?journalTitle, " [", ?journalIdentifiers, "]")),
+                  IF(STRSTARTS(?journalUriString, "https://w3id.org/oc/meta/") && STRLEN(?journalOmid) > 0,
+                    CONCAT(?journalTitle, " [omid:", ?journalOmid, "]"),
+                    ?journalTitle)
+                ) AS ?journalDisplay)
+          }
+          BIND(IF(BOUND(?journalDisplay),
+            CONCAT("Vol. ", ?volumeNumber, ", ", ?journalDisplay),
+            CONCAT("Vol. ", ?volumeNumber)) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:IssueShape
   a sh:NodeShape ;
+  sh:name "Issue" ;
   sh:targetClass fabio:JournalIssue ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:JournalIssue ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
+    sh:name "Number" ;
+    sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Container" ;
+    sh:order 4 ;
     sh:or (
       [ sh:node schema:VolumeShape ]
       [ sh:node schema:JournalShape ]
@@ -1088,33 +2215,93 @@ schema:IssueShape
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this fabio:hasSequenceIdentifier ?issueNumber .
+          OPTIONAL {
+            $this frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    fabio:hasSequenceIdentifier ?volumeNumber .
+          }
+          OPTIONAL {
+            $this frbr:partOf/frbr:partOf? ?journal .
+            ?journal a fabio:Journal ;
+                     dcterms:title ?journalTitle .
+            OPTIONAL {
+              SELECT ?journal (GROUP_CONCAT(?idString; separator=" ") AS ?journalIdentifiers)
+              WHERE {
+                $this frbr:partOf/frbr:partOf? ?journal .
+                ?journal datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                            literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+              GROUP BY ?journal
+            }
+            BIND(STR(?journal) AS ?journalUriString)
+            BIND(STRAFTER(?journalUriString, "https://w3id.org/oc/meta/") AS ?journalOmid)
+            BIND(IF(BOUND(?journalIdentifiers) && STRLEN(?journalIdentifiers) > 0,
+                  IF(STRSTARTS(?journalUriString, "https://w3id.org/oc/meta/") && STRLEN(?journalOmid) > 0,
+                    CONCAT(?journalTitle, " [omid:", ?journalOmid, " ", ?journalIdentifiers, "]"),
+                    CONCAT(?journalTitle, " [", ?journalIdentifiers, "]")),
+                  IF(STRSTARTS(?journalUriString, "https://w3id.org/oc/meta/") && STRLEN(?journalOmid) > 0,
+                    CONCAT(?journalTitle, " [omid:", ?journalOmid, "]"),
+                    ?journalTitle)
+                ) AS ?journalDisplay)
+          }
+          BIND(CONCAT(
+            "Issue ", ?issueNumber,
+            IF(BOUND(?volumeNumber), CONCAT(", Vol. ", ?volumeNumber), ""),
+            IF(BOUND(?journalDisplay), CONCAT(", ", ?journalDisplay), "")
+          ) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:SpecialIssueShape
   a sh:NodeShape ;
+  sh:name "Special Issue" ;
   sh:targetClass fabio:JournalIssue ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:JournalIssue ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path fabio:hasSequenceIdentifier ;
+    sh:name "Number" ;
+    sh:order 4 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Container" ;
+    sh:order 15 ;
     sh:or (
       [ sh:node schema:VolumeShape ]
       [ sh:node schema:JournalShape ]
@@ -1124,28 +2311,41 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 6 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 7 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 13 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -1156,69 +2356,144 @@ schema:SpecialIssueShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    sh:name "Page" ;
+    sh:order 14 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 8 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 9 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 10 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 12 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 11 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this fabio:hasSequenceIdentifier ?number .
+
+          # Try to find volume
+          OPTIONAL {
+            $this frbr:partOf ?volume .
+            ?volume a fabio:JournalVolume ;
+                    fabio:hasSequenceIdentifier ?volumeNumber .
+
+            # Try to find journal through volume
+            OPTIONAL {
+              ?volume frbr:partOf ?journal .
+              ?journal a fabio:Journal ;
+                      dcterms:title ?journalTitle .
+            }
+          }
+
+          # If no volume, try to find journal directly
+          OPTIONAL {
+            FILTER (!BOUND(?volumeNumber))
+            $this frbr:partOf ?journal .
+            ?journal a fabio:Journal ;
+                    dcterms:title ?journalTitle .
+          }
+
+          # Build display string based on available information
+          BIND(
+            IF(BOUND(?number) && BOUND(?volumeNumber) && BOUND(?journalTitle),
+              CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber, ", ", ?journalTitle),
+              IF(BOUND(?number) && BOUND(?journalTitle),
+                CONCAT("Issue ", ?number, ", ", ?journalTitle),
+                IF(BOUND(?number) && BOUND(?volumeNumber),
+                  CONCAT("Issue ", ?number, " of Volume ", ?volumeNumber),
+                  CONCAT("Issue ", ?number)
+                )
+              )
+            ) AS ?display
+          )
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:ReferenceBookShape
   a sh:NodeShape ;
+  sh:name "Dictionary" ;
   sh:targetClass fabio:ReferenceBook ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:ReferenceBook ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 10 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -1229,74 +2504,217 @@ schema:ReferenceBookShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 5 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 6 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 7 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 8 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 9 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?publisher ?edition
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+                  (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:ReferenceBook .
+                  OPTIONAL { $this dcterms:title ?title . }
+
+                  # Get author information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?authorName)
+                    }
+                  }
+
+                  # Get editor information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?editorRole .
+                    ?editorRole pro:withRole pro:editor ;
+                                pro:isHeldBy ?editor .
+                    {
+                      SELECT ?editorRole (COUNT(?previousEditorRole) AS ?editorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?editorRole, ?previousEditorRole .
+                        ?editorRole pro:withRole pro:editor .
+                        ?previousEditorRole <https://w3id.org/oc/ontology/hasNext>* ?editorRole .
+                      }
+                      GROUP BY ?editorRole
+                    }
+                    OPTIONAL { ?editor foaf:name ?editorName . }
+                    OPTIONAL {
+                      ?editor foaf:familyName ?familyName .
+                      OPTIONAL { ?editor foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?editorName)
+                    }
+                  }
+
+                  # Get publication date
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+
+                  # Get publisher information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?publisherRole .
+                    ?publisherRole pro:withRole pro:publisher ;
+                                  pro:isHeldBy ?publisherAgent .
+                    ?publisherAgent foaf:name ?publisher .
+                  }
+                }
+                ORDER BY ?authorPosition ?editorPosition
+              }
+            }
+            GROUP BY ?title ?pubDate ?publisher ?edition
+          }
+
+          BIND(CONCAT(
+            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(?editorList, " (Ed.)"), COALESCE(?authorList, "")),
+            IF((BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList)) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title) && STRLEN(?title) > 0, CONCAT(
+              IF(BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title,
+              " [Dictionary]"
+            ), ""),
+            IF(BOUND(?publisher) && STRLEN(?publisher) > 0, CONCAT(
+              IF(BOUND(?editorList) && STRLEN(?editorList) > 0 || BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?publisher
+            ), ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:ReviewShape
   a sh:NodeShape ;
+  sh:name "Review" ;
   sh:targetClass fabio:Review ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Review ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -1307,42 +2725,58 @@ schema:ReviewShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:JournalIdentifierShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    sh:name "Page" ;
+    sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Container" ;
+    sh:order 14 ;
     sh:or (
       [ sh:node schema:IssueShape ]
       [ sh:node schema:SpecialIssueShape ]
@@ -1351,47 +2785,176 @@ schema:ReviewShape
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?containerTitle ?volumeNumber ?issueNumber ?startPage ?endPage
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:Review .
+                  OPTIONAL { $this dcterms:title ?title . }
+
+                  # Get author information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?authorName)
+                    }
+                  }
+
+                  # Get publication date
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+
+                  # Get container information (journal, book, or proceedings)
+                  OPTIONAL {
+                    $this frbr:partOf ?container .
+                    ?container dcterms:title ?containerTitle .
+
+                    # If it's part of a journal, get volume and issue
+                    OPTIONAL {
+                      ?container a fabio:Journal .
+                      OPTIONAL {
+                        $this frbr:partOf ?issue .
+                        ?issue a fabio:JournalIssue ;
+                              frbr:partOf ?volume .
+                        ?volume a fabio:JournalVolume ;
+                                fabio:hasSequenceIdentifier ?volumeNumber .
+                        OPTIONAL { ?issue fabio:hasSequenceIdentifier ?issueNumber . }
+                      }
+                    }
+                  }
+
+                  # Get page information
+                  OPTIONAL {
+                    $this frbr:embodiment ?embodiment .
+                    OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+                    OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+                  }
+                }
+                ORDER BY ?authorPosition
+              }
+            }
+            GROUP BY ?title ?pubDate ?containerTitle ?volumeNumber ?issueNumber ?startPage ?endPage
+          }
+
+          BIND(CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title,
+              " [Review]"
+            ), ""),
+            IF(BOUND(?containerTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?containerTitle
+            ), ""),
+            IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+            IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:ReviewArticleShape
   a sh:NodeShape ;
+  sh:name "Review Article" ;
   sh:targetClass fabio:ReviewArticle ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:ReviewArticle ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path frbr:partOf ;
+    sh:name "Container" ;
+    sh:order 14 ;
     sh:or (
       [ sh:node schema:IssueShape ]
       [ sh:node schema:SpecialIssueShape ]
@@ -1403,6 +2966,8 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -1413,80 +2978,216 @@ schema:ReviewArticleShape
   ] ;
   sh:property [
     sh:path frbr:embodiment ;
+    sh:name "Page" ;
+    sh:order 13 ;
     sh:node schema:ResourceEmbodimentShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:JournalArticleIdentifierShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:ReviewArticle .
+                  OPTIONAL { $this dcterms:title ?title . }
+
+                  # Get author information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?authorName)
+                    }
+                  }
+
+                  # Get publication date
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+
+                  # Get journal information
+                  OPTIONAL {
+                    $this frbr:partOf ?issue .
+                    ?issue a fabio:JournalIssue ;
+                          frbr:partOf ?volume .
+                    ?volume a fabio:JournalVolume ;
+                            fabio:hasSequenceIdentifier ?volumeNumber ;
+                            frbr:partOf ?journal .
+                    ?journal dcterms:title ?journalTitle .
+                    OPTIONAL { ?issue fabio:hasSequenceIdentifier ?issueNumber . }
+                  }
+
+                  # Get page information
+                  OPTIONAL {
+                    $this frbr:embodiment ?embodiment .
+                    OPTIONAL { ?embodiment prism:startingPage ?startPage . }
+                    OPTIONAL { ?embodiment prism:endingPage ?endPage . }
+                  }
+                }
+                ORDER BY ?authorPosition
+              }
+            }
+            GROUP BY ?title ?pubDate ?journalTitle ?volumeNumber ?issueNumber ?startPage ?endPage
+          }
+
+          BIND(CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title,
+              " [Review Article]"
+            ), ""),
+            IF(BOUND(?journalTitle), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?journalTitle
+            ), ""),
+            IF(BOUND(?volumeNumber), CONCAT(", ", ?volumeNumber), ""),
+            IF(BOUND(?issueNumber), CONCAT("(", ?issueNumber, ")"), ""),
+            IF(BOUND(?startPage) || BOUND(?endPage), ", ", ""),
+            COALESCE(?startPage, ""),
+            IF(BOUND(?startPage) && BOUND(?endPage), "-", ""),
+            COALESCE(?endPage, ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:ThesisShape
   a sh:NodeShape ;
+  sh:name "Thesis" ;
   sh:targetClass fabio:Thesis ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Thesis ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 12 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -1497,75 +3198,202 @@ schema:ThesisShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Author" ;
+    sh:order 7 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 8 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Translator" ;
+    sh:order 10 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 11 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:BookIdentifierShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate
+                  (GROUP_CONCAT(?authorName; SEPARATOR = " & ") AS ?authorList)
+                  (GROUP_CONCAT(?publisherName; SEPARATOR = ", ") AS ?publisherList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:Thesis .
+                  OPTIONAL { $this dcterms:title ?title . }
+
+                  # Get author information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?authorRole .
+                    ?authorRole pro:withRole pro:author ;
+                                pro:isHeldBy ?author .
+                    {
+                      SELECT ?authorRole (COUNT(?previousAuthorRole) AS ?authorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?authorRole, ?previousAuthorRole .
+                        ?authorRole pro:withRole pro:author .
+                        ?previousAuthorRole <https://w3id.org/oc/ontology/hasNext>* ?authorRole .
+                      }
+                      GROUP BY ?authorRole
+                    }
+                    OPTIONAL { ?author foaf:name ?authorName . }
+                    OPTIONAL {
+                      ?author foaf:familyName ?familyName .
+                      OPTIONAL { ?author foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?authorName)
+                    }
+                  }
+
+                  # Get publication date
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+
+                  # Get publisher/institution information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?publisherRole .
+                    ?publisherRole pro:withRole pro:publisher ;
+                                  pro:isHeldBy ?publisher .
+                    {
+                      SELECT ?publisherRole (COUNT(?previousPublisherRole) AS ?publisherPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?publisherRole, ?previousPublisherRole .
+                        ?publisherRole pro:withRole pro:publisher .
+                        ?previousPublisherRole <https://w3id.org/oc/ontology/hasNext>* ?publisherRole .
+                      }
+                      GROUP BY ?publisherRole
+                    }
+                    ?publisher foaf:name ?publisherName .
+                  }
+                }
+                ORDER BY ?authorPosition ?publisherPosition
+              }
+            }
+            GROUP BY ?title ?pubDate
+          }
+
+          BIND(CONCAT(
+            COALESCE(?authorList, ""),
+            IF(BOUND(?authorList) && BOUND(?pubDate), " ", ""),
+            IF(BOUND(?pubDate), CONCAT("(", ?pubDate, ")"), ""),
+            IF(BOUND(?title), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate), ". ", ""),
+              ?title,
+              " [Thesis]"
+            ), ""),
+            IF(BOUND(?publisherList), CONCAT(
+              IF(BOUND(?authorList) || BOUND(?pubDate) || BOUND(?title), ". ", ""),
+              ?publisherList
+            ), ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:SeriesShape
   a sh:NodeShape ;
+  sh:name "Miscellany" ;
   sh:targetClass fabio:Series ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Expression ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Series ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:title ;
+    sh:name "Title" ;
+    sh:order 3 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path dcterms:abstract ;
+    sh:name "Abstract" ;
+    sh:order 5 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:keyword ;
+    sh:name "Keyword" ;
+    sh:order 6 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path dcterms:description ;
+    sh:name "Description" ;
+    sh:order 4 ;
+    shui:editor shui:TextAreaEditor ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path prism:publicationDate ;
+    sh:name "Publication Date" ;
+    sh:order 10 ;
     sh:or (
       [ sh:datatype xsd:date ]
       [ sh:datatype xsd:gYearMonth ]
@@ -1576,55 +3404,202 @@ schema:SeriesShape
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Editor" ;
+    sh:order 7 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Publisher" ;
+    sh:order 8 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path pro:isDocumentContextFor ;
+    sh:name "Collaborator" ;
+    sh:order 9 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
   ] ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:SeriesAndProceedingsIdentifierShape ;
     sh:minCount 0 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?title ?pubDate ?publisher
+                  (GROUP_CONCAT(?editorName; SEPARATOR = ", ") AS ?editorList)
+                  (GROUP_CONCAT(?collabName; SEPARATOR = ", ") AS ?collabList)
+            WHERE {
+              {
+                SELECT * WHERE {
+                  $this a fabio:Series .
+                  OPTIONAL { $this dcterms:title ?title . }
+
+                  # Get editor information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?editorRole .
+                    ?editorRole pro:withRole pro:editor ;
+                                pro:isHeldBy ?editor .
+                    {
+                      SELECT ?editorRole (COUNT(?previousEditorRole) AS ?editorPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?editorRole, ?previousEditorRole .
+                        ?editorRole pro:withRole pro:editor .
+                        ?previousEditorRole <https://w3id.org/oc/ontology/hasNext>* ?editorRole .
+                      }
+                      GROUP BY ?editorRole
+                    }
+                    OPTIONAL { ?editor foaf:name ?editorName . }
+                    OPTIONAL {
+                      ?editor foaf:familyName ?familyName .
+                      OPTIONAL { ?editor foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?editorName)
+                    }
+                  }
+
+                  # Get collaborator information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?collabRole .
+                    ?collabRole pro:withRole pro:contributor ;
+                                pro:isHeldBy ?collab .
+                    {
+                      SELECT ?collabRole (COUNT(?previousCollabRole) AS ?collabPosition)
+                      WHERE {
+                        $this pro:isDocumentContextFor ?collabRole, ?previousCollabRole .
+                        ?collabRole pro:withRole pro:contributor .
+                        ?previousCollabRole <https://w3id.org/oc/ontology/hasNext>* ?collabRole .
+                      }
+                      GROUP BY ?collabRole
+                    }
+                    OPTIONAL { ?collab foaf:name ?collabName . }
+                    OPTIONAL {
+                      ?collab foaf:familyName ?familyName .
+                      OPTIONAL { ?collab foaf:givenName ?givenName . }
+                      BIND(CONCAT(
+                        ?familyName,
+                        COALESCE(CONCAT(", ", SUBSTR(?givenName, 1, 1), "."), "")
+                      ) AS ?collabName)
+                    }
+                  }
+
+                  # Get publication date
+                  OPTIONAL {
+                    $this prism:publicationDate ?pubDateRaw . 
+                    BIND(IF(DATATYPE(?pubDateRaw) = xsd:gYear, 
+                            STR(?pubDateRaw),
+                            IF(DATATYPE(?pubDateRaw) IN (xsd:date, xsd:dateTime), 
+                              SUBSTR(STR(?pubDateRaw), 1, 4),
+                              STR(?pubDateRaw))) AS ?pubDate)
+                  }
+
+                  # Get publisher information
+                  OPTIONAL {
+                    $this pro:isDocumentContextFor ?publisherRole .
+                    ?publisherRole pro:withRole pro:publisher ;
+                                  pro:isHeldBy ?publisherAgent .
+                    ?publisherAgent foaf:name ?publisher .
+                  }
+                }
+                ORDER BY ?editorPosition ?collabPosition
+              }
+            }
+            GROUP BY ?title ?pubDate ?publisher
+          }
+
+          BIND(CONCAT(
+            ?title,
+            IF(BOUND(?editorList) && STRLEN(?editorList) > 0, CONCAT(". ", ?editorList, " (Ed.)"), ""),
+            IF(BOUND(?collabList) && STRLEN(?collabList) > 0, CONCAT(". ", ?collabList, " (Collab.)"), ""),
+            IF(BOUND(?pubDate), CONCAT(" (", ?pubDate, ")"), ""),
+            "."
+          ) AS ?displayWithDot)
+
+          BIND(REPLACE(?displayWithDot, "^[., ]+|[., ]+$", "") AS ?displayTrimmed)
+          BIND(IF(STRLEN(?displayTrimmed) > 0, CONCAT(?displayTrimmed, "."), ?displayTrimmed) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 # Resource embodiment
 
 schema:ResourceEmbodimentShape
   a sh:NodeShape ;
+  sh:name "Page" ;
   sh:targetClass fabio:Manifestation ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue fabio:Manifestation ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:startingPage ;
+    sh:name "Starting Page" ;
+    sh:order 2 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path prism:endingPage ;
+    sh:name "Ending Page" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this a fabio:Manifestation .
+          OPTIONAL { $this prism:startingPage ?start . }
+          OPTIONAL { $this prism:endingPage ?end . }
+
+          BIND(
+            IF(BOUND(?start) && BOUND(?end), 
+              CONCAT("Pages ", ?start, "-", ?end),
+              IF(BOUND(?start), 
+                  CONCAT("Page ", ?start),
+                  IF(BOUND(?end), 
+                    CONCAT("Page ", ?end),
+                    "Unknown page")))
+            AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 # Responsible agent
 
 schema:ResponsibleAgentShape
   a sh:NodeShape ;
+  sh:name "Responsible Agent" ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue foaf:Agent ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -1632,180 +3607,521 @@ schema:ResponsibleAgentShape
   sh:targetClass foaf:Agent ;
   sh:property [
     sh:path datacite:hasIdentifier ;
+    sh:name "Identifier" ;
+    sh:order 2 ;
     sh:node schema:AgentIdentifierShape ;
   ] ;
   sh:property [
     sh:path foaf:name ;
+    sh:name "Name" ;
+    sh:order 3 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path foaf:givenName ;
+    sh:name "Given Name" ;
+    sh:order 4 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path foaf:familyName ;
+    sh:name "Family Name" ;
+    sh:order 5 ;
     sh:datatype xsd:string ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          {
+            SELECT ?agentName (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+            WHERE {
+              $this a foaf:Agent .
+
+              OPTIONAL { $this foaf:name ?name. }
+              OPTIONAL { $this foaf:familyName ?familyName. }
+              OPTIONAL { $this foaf:givenName ?givenName. }
+
+              BIND(
+                  IF(BOUND(?name), ?name,
+                      IF(BOUND(?familyName) && BOUND(?givenName), 
+                          CONCAT(?givenName, " ", ?familyName),
+                          IF(BOUND(?familyName), ?familyName, 
+                              IF(BOUND(?givenName), ?givenName, "")
+                          )
+                      )
+                  ) AS ?agentName
+              )
+
+              OPTIONAL {
+                $this datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                            literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+            }
+            GROUP BY ?agentName
+          }
+
+          BIND(STR($this) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(IF(STRSTARTS(?uriString, "https://w3id.org/oc/meta/") && STRLEN(?omid) > 0, CONCAT("omid:", ?omid), "") AS ?omidString)
+          BIND(COALESCE(?identifiers, "") AS ?identifierList)
+          BIND(IF(STRLEN(?omidString) > 0 && STRLEN(?identifierList) > 0,
+                  CONCAT(?omidString, " ", ?identifierList),
+                  CONCAT(?omidString, ?identifierList)
+              ) AS ?idList)
+          BIND(IF(STRLEN(?idList) > 0,
+                  IF(STRLEN(?agentName) > 0, CONCAT(?agentName, " [", ?idList, "]"), CONCAT("[", ?idList, "]")),
+                  IF(STRLEN(?agentName) > 0, ?agentName, ?uriString)
+              ) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 # Agent Roles
 
 schema:AuthorShape
   a sh:NodeShape ;
+  sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue pro:RoleInTime ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 4 ;
     sh:hasValue pro:author ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
+    sh:name "Held By" ;
+    sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    sh:name "Has Next" ;
+    sh:order 3 ;
     sh:node schema:AuthorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT DISTINCT ?formattedName
+        WHERE {
+          $this pro:isHeldBy ?ra;
+              pro:withRole pro:author.
+          OPTIONAL { ?ra foaf:name ?name. }
+          OPTIONAL { ?ra foaf:familyName ?familyName. }
+          OPTIONAL { ?ra foaf:givenName ?givenName. }
+
+          {
+            SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+            WHERE {
+              OPTIONAL {
+                ?ra datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                          literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+            }
+            GROUP BY ?ra
+          }
+
+          BIND(
+            IF(BOUND(?name), ?name,
+                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                    )
+                )
+            ) AS ?nameDisplay
+          )
+
+          BIND(STR(?ra) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+                CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
+                CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+            ) AS ?formattedName)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:EditorShape
   a sh:NodeShape ;
+  sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue pro:RoleInTime ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 4 ;
     sh:hasValue pro:editor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
+    sh:name "Held By" ;
+    sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    sh:name "Has Next" ;
+    sh:order 3 ;
     sh:node schema:EditorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT DISTINCT ?formattedName
+        WHERE {
+          $this pro:isHeldBy ?ra;
+              pro:withRole pro:editor.
+          OPTIONAL { ?ra foaf:name ?name. }
+          OPTIONAL { ?ra foaf:familyName ?familyName. }
+          OPTIONAL { ?ra foaf:givenName ?givenName. }
+
+          {
+            SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+            WHERE {
+              OPTIONAL {
+                ?ra datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                          literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+            }
+            GROUP BY ?ra
+          }
+
+          BIND(
+            IF(BOUND(?name), ?name,
+                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                    )
+                )
+            ) AS ?nameDisplay
+          )
+
+          BIND(STR(?ra) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+                CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
+                CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+            ) AS ?formattedName)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:PublisherShape
   a sh:NodeShape ;
+  sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue pro:RoleInTime ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 4 ;
     sh:hasValue pro:publisher ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
+    sh:name "Held By" ;
+    sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    sh:name "Has Next" ;
+    sh:order 3 ;
     sh:node schema:PublisherShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT DISTINCT ?formattedName
+        WHERE {
+          $this pro:isHeldBy ?ra;
+              pro:withRole pro:publisher.
+          OPTIONAL { ?ra foaf:name ?name. }
+          OPTIONAL { ?ra foaf:familyName ?familyName. }
+          OPTIONAL { ?ra foaf:givenName ?givenName. }
+
+          {
+            SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+            WHERE {
+              OPTIONAL {
+                ?ra datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                          literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+            }
+            GROUP BY ?ra
+          }
+
+          BIND(
+            IF(BOUND(?name), ?name,
+                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                    )
+                )
+            ) AS ?nameDisplay
+          )
+
+          BIND(STR(?ra) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+                CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
+                CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+            ) AS ?formattedName)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:TranslatorShape
   a sh:NodeShape ;
+  sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue pro:RoleInTime ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 4 ;
     sh:hasValue pro:translator ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
+    sh:name "Held By" ;
+    sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    sh:name "Has Next" ;
+    sh:order 3 ;
     sh:node schema:TranslatorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT DISTINCT ?formattedName
+        WHERE {
+          $this pro:isHeldBy ?ra;
+              pro:withRole pro:translator.
+          OPTIONAL { ?ra foaf:name ?name. }
+          OPTIONAL { ?ra foaf:familyName ?familyName. }
+          OPTIONAL { ?ra foaf:givenName ?givenName. }
+
+          {
+            SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+            WHERE {
+              OPTIONAL {
+                ?ra datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                          literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+            }
+            GROUP BY ?ra
+          }
+
+          BIND(
+            IF(BOUND(?name), ?name,
+                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                    )
+                )
+            ) AS ?nameDisplay
+          )
+
+          BIND(STR(?ra) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+                CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
+                CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+            ) AS ?formattedName)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:CollaboratorShape
   a sh:NodeShape ;
+  sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue pro:RoleInTime ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:withRole ;
+    sh:name "Role" ;
+    sh:order 4 ;
     sh:hasValue pro:contributor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path pro:isHeldBy ;
+    sh:name "Held By" ;
+    sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path oco:hasNext ;
+    sh:name "Has Next" ;
+    sh:order 3 ;
     sh:node schema:CollaboratorShape ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT DISTINCT ?formattedName
+        WHERE {
+          $this pro:isHeldBy ?ra;
+              pro:withRole pro:contributor.
+          OPTIONAL { ?ra foaf:name ?name. }
+          OPTIONAL { ?ra foaf:familyName ?familyName. }
+          OPTIONAL { ?ra foaf:givenName ?givenName. }
+
+          {
+            SELECT ?ra (GROUP_CONCAT(?idString; separator=" ") AS ?identifiers)
+            WHERE {
+              OPTIONAL {
+                ?ra datacite:hasIdentifier ?identifier .
+                ?identifier datacite:usesIdentifierScheme ?scheme ;
+                          literal:hasLiteralValue ?value .
+                BIND(CONCAT(STRAFTER(STR(?scheme), "datacite/"), ":", ?value) AS ?idString)
+              }
+            }
+            GROUP BY ?ra
+          }
+
+          BIND(
+            IF(BOUND(?name), ?name,
+                IF(BOUND(?familyName) && BOUND(?givenName), CONCAT(?familyName, ", ", ?givenName),
+                    IF(BOUND(?familyName), CONCAT(?familyName, ","), 
+                        IF(BOUND(?givenName), CONCAT(",", ?givenName), "")
+                    )
+                )
+            ) AS ?nameDisplay
+          )
+
+          BIND(STR(?ra) AS ?uriString)
+          BIND(STRAFTER(?uriString, "https://w3id.org/oc/meta/") AS ?omid)
+          BIND(IF(BOUND(?identifiers) && STRLEN(?identifiers) > 0,
+                CONCAT(?nameDisplay, " [omid:", ?omid, " ", ?identifiers, "]"),
+                CONCAT(?nameDisplay, " [omid:", ?omid, "]")
+            ) AS ?formattedName)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:CitationShape
   a sh:NodeShape ;
+  sh:name "Citation" ;
   sh:targetClass cito:Citation ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue cito:Citation ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path cito:hasCitingEntity ;
+    sh:name "Citing Entity" ;
+    sh:order 2 ;
     sh:or (
       [ sh:node schema:ArticleShape ]
       [ sh:node schema:JournalArticleShape ]
@@ -1824,6 +4140,8 @@ schema:CitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitedEntity ;
+    sh:name "Cited Entity" ;
+    sh:order 3 ;
     sh:or (
       [ sh:node schema:ArticleShape ]
       [ sh:node schema:JournalArticleShape ]
@@ -1842,6 +4160,8 @@ schema:CitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitationCharacterization ;
+    sh:name "Citation Type" ;
+    sh:order 4 ;
     sh:or (
       [ sh:hasValue cito:reviews ]
       [ sh:hasValue cito:citesAsRelated ]
@@ -1850,19 +4170,48 @@ schema:CitationShape
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this cito:hasCitingEntity ?citing ;
+                  cito:hasCitedEntity ?cited .
+
+          OPTIONAL { ?citing dcterms:title ?citingTitle . }
+          OPTIONAL { ?cited dcterms:title ?citedTitle . }
+
+          BIND(CONCAT(
+            "Citation from \\"",
+            COALESCE(?citingTitle, STR(?citing)),
+            "\\" to \\"",
+            COALESCE(?citedTitle, STR(?cited)),
+            "\\""
+          ) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .
 
 schema:ReverseCitationShape
   a sh:NodeShape ;
+  sh:name "Reverse Citation" ;
   sh:targetClass cito:Citation ;
   sh:property [
     sh:path rdf:type ;
+    sh:name "Type" ;
+    sh:order 1 ;
     sh:hasValue cito:Citation ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
   sh:property [
     sh:path cito:hasCitedEntity ;
+    sh:name "Cited Entity" ;
+    sh:order 2 ;
     sh:or (
       [ sh:node schema:ArticleShape ]
       [ sh:node schema:JournalArticleShape ]
@@ -1881,6 +4230,8 @@ schema:ReverseCitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitingEntity ;
+    sh:name "Citing Entity" ;
+    sh:order 3 ;
     sh:or (
       [ sh:node schema:ArticleShape ]
       [ sh:node schema:JournalArticleShape ]
@@ -1899,6 +4250,8 @@ schema:ReverseCitationShape
   ] ;
   sh:property [
     sh:path cito:hasCitationCharacterization ;
+    sh:name "Citation Type" ;
+    sh:order 4 ;
     sh:or (
       [ sh:hasValue cito:isReviewedBy ]
       [ sh:hasValue cito:isCitedAsRelatedBy ]
@@ -1907,4 +4260,28 @@ schema:ReverseCitationShape
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select """
+        SELECT ?display
+        WHERE {
+          $this cito:hasCitingEntity ?citing ;
+                  cito:hasCitedEntity ?cited .
+
+          OPTIONAL { ?citing dcterms:title ?citingTitle . }
+          OPTIONAL { ?cited dcterms:title ?citedTitle . }
+
+          BIND(CONCAT(
+            "Citation from \\"",
+            COALESCE(?citingTitle, STR(?citing)),
+            "\\" to \\"",
+            COALESCE(?citedTitle, STR(?cited)),
+            "\\""
+          ) AS ?display)
+        }
+      """ ;
+    ] ;
   ] .

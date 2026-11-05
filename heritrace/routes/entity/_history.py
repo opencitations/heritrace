@@ -15,7 +15,7 @@ from heritrace.extensions import (
     get_change_tracking_config,
     get_custom_filter,
     get_dataset_is_quadstore,
-    get_display_rules_use_inverse_relations,
+    get_labels_use_inverse_relations,
     get_provenance_sparql,
 )
 from heritrace.routes.entity._blueprint import entity_bp
@@ -64,7 +64,7 @@ def entity_history(entity_uri: str) -> Response:
         config=change_tracking_config,
         include_related_objects=True,
         include_merged_entities=True,
-        include_reverse_relations=get_display_rules_use_inverse_relations(),
+        include_reverse_relations=get_labels_use_inverse_relations(),
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
     history = convert_to_rdflib_graphs(history, is_quadstore=get_dataset_is_quadstore())
@@ -360,7 +360,7 @@ def entity_version(entity_uri: str, timestamp: str) -> Response:
         config=change_tracking_config,
         include_related_objects=True,
         include_merged_entities=True,
-        include_reverse_relations=get_display_rules_use_inverse_relations(),
+        include_reverse_relations=get_labels_use_inverse_relations(),
     )
     history, provenance = agnostic_entity.get_history(include_prov_metadata=True)
     history = convert_to_rdflib_graphs(history, is_quadstore=get_dataset_is_quadstore())

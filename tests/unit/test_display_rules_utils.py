@@ -6,37 +6,25 @@
 Tests for display_rules_utils.py
 """
 
-from collections import OrderedDict
 from unittest.mock import MagicMock, patch
 
 import pytest
-from rdflib import Graph, Literal, URIRef
+from rdflib import RDF, Graph, Literal, URIRef
 
 from heritrace.utils.display_rules_utils import (
     GroupingContext,
-    execute_historical_query,
-    execute_sparql_query,
     find_matching_rule,
     get_class_priority,
     get_grouped_triples,
     get_highest_priority_class,
-    get_property_order_from_rules,
     get_similarity_properties,
     get_sortable_properties,
     is_entity_type_visible,
     process_default_property,
-    process_display_rule,
     process_ordering,
-    uses_inverse_relations,
 )
-
-_RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
-_FETCH_LABEL_ENTITY_QUERY = (
-    "SELECT ?label ?entity WHERE"
-    f" {{ [[value]] <{_RDFS_LABEL}> ?label"
-    " . BIND([[value]] AS ?entity) }"
-)
-_FETCH_LABEL_QUERY = f"SELECT ?label WHERE {{ [[value]] <{_RDFS_LABEL}> ?label }}"
+from heritrace.utils.filters import Filter
+from heritrace.utils.shacl_presentation import read_presentation
 
 
 @pytest.fixture
@@ -49,23 +37,7 @@ def mock_display_rules():
             "shouldBeDisplayed": True,
             "displayProperties": [
                 {
-                    "property": "http://example.org/name",
-                    "displayName": "Name",
-                    "displayRules": [
-                        {
-                            "displayName": "Person Name",
-                            "fetchValueFromQuery": _FETCH_LABEL_ENTITY_QUERY,
-                            "shape": "http://example.org/PersonShape",
-                        }
-                    ],
-                },
-                {
-                    "property": "http://example.org/age",
-                    "displayName": "Age",
-                },
-                {
                     "property": "http://example.org/knows",
-                    "displayName": "Knows",
                     "orderedBy": "http://example.org/order",
                     "intermediateRelation": {
                         "class": "http://example.org/Relationship"
@@ -75,7 +47,6 @@ def mock_display_rules():
             "sortableBy": [
                 {
                     "property": "http://example.org/name",
-                    "displayName": "Name",
                 }
             ],
         },
@@ -86,7 +57,6 @@ def mock_display_rules():
             "displayProperties": [
                 {
                     "property": "http://example.org/title",
-                    "displayName": "Title",
                 }
             ],
         },
@@ -291,6 +261,24 @@ class TestIsEntityTypeVisible:
 class TestGetSortableProperties:
     """Tests for get_sortable_properties function."""
 
+    @pytest.fixture(autouse=True)
+    def property_names(self):
+        names = {
+            "http://example.org/name": "Person Name",
+            "http://example.org/height": "Height",
+            "http://example.org/unknown": "Unknown",
+            "http://example.org/birthDate": "Birth Date",
+            "http://example.org/isActive": "Is Active",
+            "http://example.org/description": "Description",
+        }
+        custom_filter = MagicMock()
+        custom_filter.human_readable_predicate.side_effect = lambda p, _key: names[p]
+        with patch(
+            "heritrace.utils.display_rules_utils.get_custom_filter",
+            return_value=custom_filter,
+        ):
+            yield
+
     @patch("heritrace.utils.display_rules_utils.get_display_rules")
     @patch("heritrace.utils.display_rules_utils.get_form_fields")
     def test_get_sortable_properties_with_rules(
@@ -356,7 +344,6 @@ class TestGetSortableProperties:
         modified_rules[0]["sortableBy"].append(
             {
                 "property": "http://example.org/height",
-                "displayName": "Height",
             }
         )
 
@@ -412,12 +399,8 @@ class TestGetSortableProperties:
         modified_display_rules = [
             {
                 "target": {"class": "http://example.org/Person"},
-                "sortableBy": [
-                    {"property": "http://example.org/name", "displayName": "Name"}
-                ],
-                "displayProperties": [
-                    {"property": "http://example.org/name", "displayName": "Name"}
-                ],
+                "sortableBy": [{"property": "http://example.org/name"}],
+                "displayProperties": [{"property": "http://example.org/name"}],
                 "priority": 1,
                 "shouldBeDisplayed": True,
             }
@@ -439,12 +422,8 @@ class TestGetSortableProperties:
         modified_display_rules = [
             {
                 "target": {"class": "http://example.org/Person"},
-                "sortableBy": [
-                    {"property": "http://example.org/unknown", "displayName": "Unknown"}
-                ],
-                "displayProperties": [
-                    {"property": "http://example.org/unknown", "displayName": "Unknown"}
-                ],
+                "sortableBy": [{"property": "http://example.org/unknown"}],
+                "displayProperties": [{"property": "http://example.org/unknown"}],
                 "priority": 1,
                 "shouldBeDisplayed": True,
             }
@@ -480,7 +459,6 @@ class TestGetSortableProperties:
         modified_rules[0]["sortableBy"].append(
             {
                 "property": "http://example.org/birthDate",
-                "displayName": "Birth Date",
             }
         )
 
@@ -523,7 +501,6 @@ class TestGetSortableProperties:
         modified_rules[0]["sortableBy"].append(
             {
                 "property": "http://example.org/isActive",
-                "displayName": "Is Active",
             }
         )
 
@@ -565,7 +542,6 @@ class TestGetSortableProperties:
         modified_rules[0]["sortableBy"].append(
             {
                 "property": "http://example.org/description",
-                "displayName": "Description",
             }
         )
 
@@ -632,1326 +608,6 @@ class TestGetHighestPriorityClass:
         assert result == "http://example.org/Person"  # First one should be returned
 
 
-class TestGetGroupedTriples:
-    """Tests for get_grouped_triples function."""
-
-    @pytest.fixture(autouse=True)
-    def setup_mocks(
-        self,
-        mock_triples,
-        mock_subject_classes,
-        mock_valid_predicates_info,
-        mock_form_fields_cache,
-    ):
-        """Setup common mocks for all test methods."""
-        self.highest_priority_class = URIRef("http://example.org/Person")
-        self.subject_shape = "http://example.org/PersonShape"
-
-        self.get_display_rules_patch = patch(
-            "heritrace.utils.display_rules_utils.get_display_rules"
-        )
-        self.mock_get_display_rules = self.get_display_rules_patch.start()
-
-        self.get_form_fields_patch = patch(
-            "heritrace.utils.display_rules_utils.get_form_fields"
-        )
-        self.mock_get_form_fields = self.get_form_fields_patch.start()
-
-        self.get_highest_priority_class_patch = patch(
-            "heritrace.utils.display_rules_utils.get_highest_priority_class",
-            return_value=self.highest_priority_class,
-        )
-        self.mock_get_highest_priority_class = (
-            self.get_highest_priority_class_patch.start()
-        )
-
-        self.determine_shape_for_classes_patch = patch(
-            "heritrace.utils.shacl_utils.determine_shape_for_classes",
-            return_value=self.subject_shape,
-        )
-        self.mock_determine_shape_for_classes = (
-            self.determine_shape_for_classes_patch.start()
-        )
-
-        self.find_matching_rule_patch = patch(
-            "heritrace.utils.display_rules_utils.find_matching_rule",
-            return_value={
-                "target": {
-                    "class": "http://example.org/Person",
-                    "shape": "http://example.org/PersonShape",
-                },
-                "displayProperties": [
-                    {
-                        "property": "http://example.org/name",
-                        "displayName": "Name",
-                    },
-                    {
-                        "property": "http://example.org/age",
-                        "displayName": "Age",
-                    },
-                    {
-                        "property": "http://example.org/knows",
-                        "displayName": "Knows",
-                        "intermediateRelation": {
-                            "class": "http://example.org/Relationship"
-                        },
-                    },
-                    {
-                        "property": "http://example.org/simple",
-                        "displayName": "Simple Property",
-                        "intermediateRelation": {
-                            "class": "http://example.org/SimpleRelationship"
-                        },
-                    },
-                ],
-                "priority": 1,
-                "shouldBeDisplayed": True,
-            },
-        )
-        self.mock_find_matching_rule = self.find_matching_rule_patch.start()
-
-        self.mock_display_rules = [
-            {
-                "target": {
-                    "class": "http://example.org/Person",
-                    "shape": "http://example.org/PersonShape",
-                },
-                "displayProperties": [
-                    {
-                        "property": "http://example.org/name",
-                        "displayName": "Name",
-                        "displayRules": [
-                            {
-                                "displayName": "Person Name",
-                                "fetchValueFromQuery": _FETCH_LABEL_QUERY,
-                            }
-                        ],
-                    },
-                    {
-                        "property": "http://example.org/age",
-                        "displayName": "Age",
-                        "displayRules": [{"displayName": "Person Age"}],
-                    },
-                    {
-                        "property": "http://example.org/knows",
-                        "displayName": "Knows",
-                        "displayRules": [
-                            {
-                                "displayName": "Person Knows",
-                                "fetchValueFromQuery": _FETCH_LABEL_QUERY,
-                            }
-                        ],
-                    },
-                ],
-                "priority": 1,
-                "shouldBeDisplayed": True,
-            }
-        ]
-        self.mock_get_display_rules.return_value = self.mock_display_rules
-
-        self.mock_find_matching_rule.return_value = {
-            "target": {
-                "class": "http://example.org/Person",
-                "shape": "http://example.org/PersonShape",
-            },
-            "displayProperties": [],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        self.mock_form_fields = {
-            (self.highest_priority_class, self.subject_shape): {
-                "http://example.org/name": [
-                    {"nodeShape": "http://example.org/PersonShape"}
-                ],
-                "http://example.org/age": [{"nodeShape": None}],
-                "http://example.org/knows": [
-                    {"nodeShape": "http://example.org/PersonShape"}
-                ],
-                "http://example.org/simple": [
-                    {"nodeShape": "http://example.org/SimpleShape"}
-                ],
-            }
-        }
-        self.mock_get_form_fields.return_value = self.mock_form_fields
-
-        self.mock_display_rules[0]["displayProperties"].extend(
-            [
-                {
-                    "property": "http://example.org/knows",
-                    "displayName": "Knows",
-                    "orderedBy": "http://example.org/order",
-                    "intermediateRelation": {
-                        "class": "http://example.org/Relationship"
-                    },
-                },
-                {
-                    "property": "http://example.org/simple",
-                    "displayName": "Simple Property",
-                    "intermediateRelation": {
-                        "class": "http://example.org/SimpleRelationship"
-                    },
-                    "shape": "http://example.org/SimpleShape",
-                },
-            ]
-        )
-
-        yield
-
-        self.get_display_rules_patch.stop()
-        self.get_form_fields_patch.stop()
-        self.get_highest_priority_class_patch.stop()
-        self.determine_shape_for_classes_patch.stop()
-        self.find_matching_rule_patch.stop()
-
-    def test_get_grouped_triples_with_rules(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """Test getting grouped triples with display rules."""
-
-        self.mock_find_matching_rule.return_value = {
-            "target": {
-                "class": "http://example.org/Person",
-                "shape": "http://example.org/PersonShape",
-            },
-            "displayProperties": [
-                {
-                    "property": "http://example.org/name",
-                    "displayName": "Name",
-                    "displayRules": [
-                        {
-                            "displayName": "Person Name",
-                        }
-                    ],
-                },
-                {
-                    "property": "http://example.org/age",
-                    "displayName": "Age",
-                    "displayRules": [
-                        {
-                            "displayName": "Person Age",
-                        }
-                    ],
-                },
-                {
-                    "property": "http://example.org/knows",
-                    "displayName": "Knows",
-                    "displayRules": [
-                        {
-                            "displayName": "Person Knows",
-                        }
-                    ],
-                },
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        with patch("heritrace.utils.display_rules_utils.process_default_property"):
-            grouped_triples = OrderedDict()
-            relevant_properties = {
-                "http://example.org/name",
-                "http://example.org/age",
-                "http://example.org/knows",
-            }
-
-            grouped_triples["Person Name"] = {
-                "property": "http://example.org/name",
-                "triples": [
-                    {
-                        "triple": (
-                            "http://example.org/person1",
-                            "http://example.org/name",
-                            "mock_value",
-                        )
-                    }
-                ],
-                "subjectClass": "http://example.org/Person",
-                "subjectShape": "http://example.org/PersonShape",
-                "objectShape": None,
-            }
-            grouped_triples["Person Age"] = {
-                "property": "http://example.org/age",
-                "triples": [
-                    {
-                        "triple": (
-                            "http://example.org/person1",
-                            "http://example.org/age",
-                            "mock_value",
-                        )
-                    }
-                ],
-                "subjectClass": "http://example.org/Person",
-                "subjectShape": "http://example.org/PersonShape",
-                "objectShape": None,
-            }
-            grouped_triples["Person Knows"] = {
-                "property": "http://example.org/knows",
-                "triples": [
-                    {
-                        "triple": (
-                            "http://example.org/person1",
-                            "http://example.org/knows",
-                            "mock_value",
-                        )
-                    }
-                ],
-                "subjectClass": "http://example.org/Person",
-                "subjectShape": "http://example.org/PersonShape",
-                "objectShape": None,
-            }
-
-            assert isinstance(grouped_triples, dict)
-
-            assert "Person Name" in grouped_triples
-            assert "Person Age" in grouped_triples
-            assert "Person Knows" in grouped_triples
-
-            assert "http://example.org/name" in relevant_properties
-            assert "http://example.org/age" in relevant_properties
-            assert "http://example.org/knows" in relevant_properties
-
-    def test_get_grouped_triples_no_rules(
-        self, mock_triples, mock_valid_predicates_info
-    ) -> None:
-        """Test getting grouped triples with no display rules."""
-        self.mock_get_display_rules.return_value = []
-
-        def mock_process_default_property(
-            prop_uri,
-            _triples,
-            grouped_triples,
-            _subject_shape=None,
-            _subject_class=None,
-        ) -> None:
-            display_name = prop_uri.split("/")[-1]
-            if display_name not in grouped_triples:
-                grouped_triples[display_name] = {
-                    "property": prop_uri,
-                    "triples": [
-                        {
-                            "triple": (
-                                "http://example.org/person1",
-                                prop_uri,
-                                "mock_value",
-                            )
-                        }
-                    ],
-                    "subjectClass": self.highest_priority_class,
-                    "subjectShape": self.subject_shape,
-                    "objectShape": None,
-                }
-
-        with patch(
-            "heritrace.utils.display_rules_utils.process_default_property",
-            side_effect=mock_process_default_property,
-        ):
-            result = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                mock_valid_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-            grouped_triples, relevant_properties = result
-            assert isinstance(grouped_triples, dict)
-            assert isinstance(relevant_properties, set)
-            assert len(grouped_triples) > 0
-            # Verify bug fix: relevant_properties should contain all valid predicates
-            # when no rules exist
-            assert relevant_properties == set(mock_valid_predicates_info), (
-                "Expected all valid predicates in"
-                " relevant_properties,"
-                f" got {relevant_properties}"
-            )
-
-    def test_get_grouped_triples_no_matching_rule(
-        self, mock_triples, mock_valid_predicates_info
-    ) -> None:
-        """
-        Test getting grouped triples when display rules exist but no rule matches the
-        entity class/shape.
-        """
-        # Set up display rules for a different class that won't match
-        self.mock_get_display_rules.return_value = [
-            {
-                "target": {"class": "http://example.org/DifferentClass"},
-                "priority": 1,
-                "shouldBeDisplayed": True,
-                "displayProperties": [
-                    {
-                        "property": "http://example.org/differentProperty",
-                        "displayName": "Different Property",
-                    }
-                ],
-            }
-        ]
-
-        # Mock find_matching_rule to return None (no matching rule)
-        self.mock_find_matching_rule.return_value = None
-
-        def mock_process_default_property(
-            prop_uri,
-            _triples,
-            grouped_triples,
-            _subject_shape=None,
-            _subject_class=None,
-        ) -> None:
-            display_name = prop_uri.split("/")[-1]
-            if display_name not in grouped_triples:
-                grouped_triples[display_name] = {
-                    "property": prop_uri,
-                    "triples": [
-                        {
-                            "triple": (
-                                "http://example.org/person1",
-                                prop_uri,
-                                "mock_value",
-                            )
-                        }
-                    ],
-                    "subjectClass": self.highest_priority_class,
-                    "subjectShape": self.subject_shape,
-                    "objectShape": None,
-                }
-
-        with patch(
-            "heritrace.utils.display_rules_utils.process_default_property",
-            side_effect=mock_process_default_property,
-        ):
-            result = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                mock_valid_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-            grouped_triples, relevant_properties = result
-            assert isinstance(grouped_triples, dict)
-            assert isinstance(relevant_properties, set)
-            assert len(grouped_triples) > 0
-            # Verify bug fix: relevant_properties should contain all valid predicates
-            # when no matching rule exists
-            assert relevant_properties == set(mock_valid_predicates_info), (
-                "Expected all valid predicates in"
-                " relevant_properties,"
-                f" got {relevant_properties}"
-            )
-
-    def test_type_consistency_for_filtering_in_entity_about(
-        self, mock_triples, mock_valid_predicates_info
-    ) -> None:
-        """Test that verifies type consistency between can_be_added/can_be_deleted and
-        relevant_properties.
-
-        This test simulates the scenario in entity.py where can_be_added and
-        can_be_deleted
-        are filtered by relevant_properties. Both should contain the same data types
-        (strings)
-        to ensure the filtering works correctly.
-        """
-        # Simulate no display rules (the scenario where the bug occurred)
-        self.mock_get_display_rules.return_value = []
-
-        def mock_process_default_property(
-            prop_uri,
-            _triples,
-            grouped_triples,
-            _subject_shape=None,
-            _subject_class=None,
-        ) -> None:
-            display_name = prop_uri.split("/")[-1]
-            if display_name not in grouped_triples:
-                grouped_triples[display_name] = {
-                    "property": prop_uri,
-                    "triples": [
-                        {
-                            "triple": (
-                                "http://example.org/person1",
-                                prop_uri,
-                                "mock_value",
-                            )
-                        }
-                    ],
-                    "subjectClass": self.highest_priority_class,
-                    "subjectShape": self.subject_shape,
-                    "objectShape": None,
-                }
-
-        with patch(
-            "heritrace.utils.display_rules_utils.process_default_property",
-            side_effect=mock_process_default_property,
-        ):
-            result = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                mock_valid_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-            _grouped_triples, relevant_properties = result
-
-            # Simulate the filtering that happens in entity.py
-            # This would fail before the fix due to type mismatch
-            mock_can_be_added = mock_valid_predicates_info.copy()  # These are strings
-            mock_can_be_deleted = mock_valid_predicates_info.copy()  # These are strings
-
-            # This filtering should work because both are strings now
-            filtered_can_be_added = [
-                uri for uri in mock_can_be_added if uri in relevant_properties
-            ]
-            filtered_can_be_deleted = [
-                uri for uri in mock_can_be_deleted if uri in relevant_properties
-            ]
-
-            # Verify the filtering works correctly
-            assert filtered_can_be_added == mock_valid_predicates_info, (
-                f"Filtering failed for can_be_added:"
-                f" {filtered_can_be_added}"
-                f" != {mock_valid_predicates_info}"
-            )
-            assert filtered_can_be_deleted == mock_valid_predicates_info, (
-                f"Filtering failed for can_be_deleted:"
-                f" {filtered_can_be_deleted}"
-                f" != {mock_valid_predicates_info}"
-            )
-
-            # Verify all items in relevant_properties are strings
-            assert all(isinstance(prop, str) for prop in relevant_properties), (
-                "relevant_properties should contain only"
-                " strings, got:"
-                f" {[type(prop) for prop in relevant_properties]}"
-            )
-
-    def test_get_grouped_triples_with_intermediate_relation(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """Test getting grouped triples with intermediate relation."""
-        self.mock_find_matching_rule.return_value = {
-            "target": {
-                "class": "http://example.org/Person",
-                "shape": "http://example.org/PersonShape",
-            },
-            "displayProperties": [
-                {
-                    "property": "http://example.org/knows",
-                    "displayName": "Knows",
-                    "intermediateRelation": {
-                        "class": "http://example.org/Relationship"
-                    },
-                    "shape": "http://example.org/PersonShape",
-                    "displayRules": [
-                        {
-                            "displayName": "Person Knows",
-                            "intermediateRelation": {
-                                "class": "http://example.org/Relationship"
-                            },
-                        }
-                    ],
-                }
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        def mock_process_default_property(
-            prop_uri, _triples, grouped_triples, subject_shape=None, subject_class=None
-        ) -> None:
-            if prop_uri == "http://example.org/knows":
-                display_name = "Knows"
-                if display_name not in grouped_triples:
-                    grouped_triples[display_name] = {
-                        "property": prop_uri,
-                        "triples": [
-                            {
-                                "triple": (
-                                    "http://example.org/person1",
-                                    prop_uri,
-                                    "mock_value",
-                                )
-                            }
-                        ],
-                        "subjectClass": subject_class,
-                        "subjectShape": subject_shape,
-                        "objectShape": "http://example.org/PersonShape",
-                        "intermediateRelation": {
-                            "class": "http://example.org/Relationship"
-                        },
-                    }
-
-        with (
-            patch("heritrace.utils.display_rules_utils.process_display_rule"),
-            patch(
-                "heritrace.utils.display_rules_utils.process_default_property",
-                side_effect=mock_process_default_property,
-            ) as mock_process_default_property,
-        ):
-            result = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                mock_valid_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-
-            grouped_triples, relevant_properties = result
-
-            assert isinstance(grouped_triples, dict)
-            assert isinstance(relevant_properties, set)
-
-            assert mock_process_default_property.called
-
-            assert "Person Knows" in grouped_triples
-            assert grouped_triples["Person Knows"]["intermediateRelation"] == {
-                "class": "http://example.org/Relationship"
-            }
-
-            assert "http://example.org/knows" in relevant_properties
-
-    def test_top_level_intermediate_relation_condition(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """
-        Test the 'intermediateRelation' condition in top-level display rules with
-        fetchValueFromQuery.
-        """
-        self.mock_find_matching_rule.return_value = {
-            "target": {
-                "class": "http://example.org/Person",
-                "shape": "http://example.org/PersonShape",
-            },
-            "displayProperties": [
-                {
-                    "displayName": "Knows",
-                    "property": "http://example.org/knows",
-                    "intermediateRelation": {
-                        "class": "http://example.org/Relationship"
-                    },
-                    "fetchValueFromQuery": _FETCH_LABEL_QUERY,
-                }
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        def mock_execute_sparql_query(_query, _subject, value):
-            return "Label for " + str(value), None
-
-        def mock_process_default_property(
-            prop_uri, _triples, grouped_triples, subject_shape=None, subject_class=None
-        ) -> None:
-            if prop_uri == "http://example.org/knows":
-                display_name = "Knows"
-                if display_name not in grouped_triples:
-                    grouped_triples[display_name] = {
-                        "property": prop_uri,
-                        "triples": [
-                            {
-                                "triple": (
-                                    "http://example.org/person1",
-                                    prop_uri,
-                                    "mock_value",
-                                )
-                            }
-                        ],
-                        "subjectClass": subject_class,
-                        "subjectShape": subject_shape,
-                        "objectShape": None,
-                        "intermediateRelation": {
-                            "class": "http://example.org/Relationship"
-                        },
-                    }
-
-        with (
-            patch(
-                "heritrace.utils.display_rules_utils.execute_sparql_query",
-                side_effect=mock_execute_sparql_query,
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.process_default_property",
-                side_effect=mock_process_default_property,
-            ) as mock_process_default_property,
-        ):
-            grouped_triples, _relevant_properties = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                mock_valid_predicates_info,
-                entity_key=(URIRef("http://example.org/Person"), None),
-            )
-
-            assert mock_process_default_property.called
-
-            assert "Knows" in grouped_triples
-            assert grouped_triples["Knows"]["intermediateRelation"] == {
-                "class": "http://example.org/Relationship"
-            }
-            assert grouped_triples["Knows"]["property"] == "http://example.org/knows"
-            assert "triples" in grouped_triples["Knows"]
-
-    def test_nested_intermediate_relation_condition(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """Test the 'intermediateRelation' condition in nested display rules."""
-        self.mock_find_matching_rule.return_value = {
-            "target": {
-                "class": "http://example.org/Person",
-                "shape": "http://example.org/PersonShape",
-            },
-            "displayProperties": [
-                {
-                    "property": "http://example.org/knows",
-                    "displayName": "Knows",
-                    "displayRules": [
-                        {
-                            "displayName": "Knows (with relationship)",
-                            "fetchValueFromQuery": _FETCH_LABEL_ENTITY_QUERY,
-                            "intermediateRelation": {
-                                "class": "http://example.org/Relationship"
-                            },
-                        }
-                    ],
-                    "shape": "http://example.org/PersonShape",
-                }
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        def mock_process_default_property(
-            prop_uri, _triples, grouped_triples, subject_shape=None, subject_class=None
-        ) -> None:
-            if prop_uri == "http://example.org/knows":
-                display_name = "Knows (with relationship)"
-                if display_name not in grouped_triples:
-                    grouped_triples[display_name] = {
-                        "property": prop_uri,
-                        "triples": [
-                            {
-                                "triple": (
-                                    "http://example.org/person1",
-                                    prop_uri,
-                                    "mock_value",
-                                )
-                            }
-                        ],
-                        "subjectClass": subject_class,
-                        "subjectShape": subject_shape,
-                        "objectShape": "http://example.org/PersonShape",
-                        "intermediateRelation": {
-                            "class": "http://example.org/Relationship"
-                        },
-                    }
-
-        def mock_execute_sparql_query(_query, _subject, value):
-            return "Label for " + str(value), str(value)
-
-        with (
-            patch(
-                "heritrace.utils.display_rules_utils.execute_sparql_query",
-                side_effect=mock_execute_sparql_query,
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.process_default_property",
-                side_effect=mock_process_default_property,
-            ) as mock_process_default_property,
-        ):
-            grouped_triples, _relevant_properties = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                mock_valid_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-
-            assert mock_process_default_property.called
-
-            assert "Knows (with relationship)" in grouped_triples
-            assert grouped_triples["Knows (with relationship)"][
-                "intermediateRelation"
-            ] == {"class": "http://example.org/Relationship"}
-
-    def test_inherited_intermediate_relation_condition(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """
-        Test the 'intermediateRelation' condition when inherited from parent property.
-        """
-        self.mock_find_matching_rule.return_value = {
-            "target": {
-                "class": "http://example.org/Person",
-                "shape": "http://example.org/PersonShape",
-            },
-            "displayProperties": [
-                {
-                    "property": "http://example.org/knows",
-                    "displayName": "Knows",
-                    "intermediateRelation": {
-                        "class": "http://example.org/Relationship"
-                    },
-                    "displayRules": [
-                        {
-                            "displayName": "Knows (with inherited relationship)",
-                            "fetchValueFromQuery": _FETCH_LABEL_ENTITY_QUERY,
-                            "shape": "http://example.org/PersonShape",
-                        }
-                    ],
-                }
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        def mock_process_default_property(
-            prop_uri, _triples, grouped_triples, subject_shape=None, subject_class=None
-        ) -> None:
-            if prop_uri == "http://example.org/knows":
-                display_name = "Knows (with inherited relationship)"
-                if display_name not in grouped_triples:
-                    grouped_triples[display_name] = {
-                        "property": prop_uri,
-                        "triples": [
-                            {
-                                "triple": (
-                                    "http://example.org/person1",
-                                    prop_uri,
-                                    "mock_value",
-                                )
-                            }
-                        ],
-                        "subjectClass": subject_class,
-                        "subjectShape": subject_shape,
-                        "objectShape": "http://example.org/PersonShape",
-                        "intermediateRelation": {
-                            "class": "http://example.org/Relationship"
-                        },
-                    }
-
-        def mock_execute_sparql_query(_query, _subject, value):
-            return "Label for " + str(value), str(value)
-
-        with (
-            patch(
-                "heritrace.utils.display_rules_utils.execute_sparql_query",
-                side_effect=mock_execute_sparql_query,
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.process_default_property",
-                side_effect=mock_process_default_property,
-            ) as mock_process_default_property,
-        ):
-            grouped_triples, _relevant_properties = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                mock_valid_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-
-            assert mock_process_default_property.called
-
-            assert "Knows (with inherited relationship)" in grouped_triples
-            assert grouped_triples["Knows (with inherited relationship)"][
-                "intermediateRelation"
-            ] == {"class": "http://example.org/Relationship"}
-            assert (
-                grouped_triples["Knows (with inherited relationship)"]["property"]
-                == "http://example.org/knows"
-            )
-
-    def test_simple_display_name_with_ordered_by(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """Test the 'orderedBy' condition in simple display name section."""
-        simple_ordered_rules = [
-            {
-                "target": {"class": "http://example.org/Person"},
-                "displayProperties": [
-                    {
-                        "displayName": "Simple Property",
-                        "property": "http://example.org/simple",
-                        "orderedBy": "http://example.org/order",
-                        "shape": "http://example.org/SimpleShape",
-                    }
-                ],
-                "priority": 1,
-                "shouldBeDisplayed": True,
-            }
-        ]
-
-        extended_predicates_info = [
-            *mock_valid_predicates_info,
-            "http://example.org/simple",
-        ]
-
-        def mock_process_display_rule(*args, **kwargs) -> None:
-            pass
-
-        with (
-            patch(
-                "heritrace.utils.display_rules_utils.get_display_rules",
-                return_value=simple_ordered_rules,
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.get_highest_priority_class",
-                return_value=URIRef("http://example.org/Person"),
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.process_display_rule",
-                side_effect=mock_process_display_rule,
-            ),
-            patch("heritrace.utils.display_rules_utils.process_ordering"),
-        ):
-            grouped_triples, _relevant_properties = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                extended_predicates_info,
-                entity_key=(URIRef("http://example.org/Person"), None),
-            )
-
-            assert "http://example.org/simple" in grouped_triples
-            prop_data = grouped_triples["http://example.org/simple"]
-            assert prop_data["property"] == "http://example.org/simple"
-
-    def test_simple_display_name_with_intermediate_relation(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """Test the 'intermediateRelation' condition in simple display name section."""
-        self.mock_find_matching_rule.return_value = {
-            "target": {
-                "class": "http://example.org/Person",
-                "shape": "http://example.org/PersonShape",
-            },
-            "displayProperties": [
-                {
-                    "displayName": "Simple Property",
-                    "property": "http://example.org/simple",
-                    "intermediateRelation": {
-                        "class": "http://example.org/SimpleRelationship"
-                    },
-                    "shape": "http://example.org/SimpleShape",
-                }
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        extended_predicates_info = [
-            *mock_valid_predicates_info,
-            "http://example.org/simple",
-        ]
-
-        def mock_process_default_property(
-            prop_uri, _triples, grouped_triples, subject_shape=None, subject_class=None
-        ) -> None:
-            if prop_uri == "http://example.org/simple":
-                display_name = "Simple Property"
-                if display_name not in grouped_triples:
-                    grouped_triples[display_name] = {
-                        "property": prop_uri,
-                        "triples": [
-                            {
-                                "triple": (
-                                    "http://example.org/person1",
-                                    prop_uri,
-                                    "mock_value",
-                                )
-                            }
-                        ],
-                        "subjectClass": subject_class,
-                        "subjectShape": subject_shape,
-                        "objectShape": "http://example.org/SimpleShape",
-                        "intermediateRelation": {
-                            "class": "http://example.org/SimpleRelationship"
-                        },
-                    }
-
-        with patch(
-            "heritrace.utils.display_rules_utils.process_default_property",
-            side_effect=mock_process_default_property,
-        ) as mock_process_default_property:
-            result = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                extended_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-
-            assert mock_process_default_property.called
-
-            grouped_triples, relevant_properties = result
-
-            assert "Simple Property" in grouped_triples
-            assert (
-                grouped_triples["Simple Property"]["property"]
-                == "http://example.org/simple"
-            )
-            assert grouped_triples["Simple Property"]["intermediateRelation"] == {
-                "class": "http://example.org/SimpleRelationship"
-            }
-
-            assert "http://example.org/simple" in relevant_properties
-
-    def test_process_display_rule_with_fetch_value(self, mock_triples) -> None:
-        """Test processing display rule with fetchValueFromQuery."""
-        display_name = "Person Name"
-        prop_uri = "http://example.org/name"
-        rule = {
-            "fetchValueFromQuery": _FETCH_LABEL_ENTITY_QUERY,
-            "shape": "http://example.org/PersonShape",
-        }
-        subject = "http://example.org/person1"
-        grouped_triples = {}
-        fetched_values_map = {}
-        subject_shape = "http://example.org/PersonShape"
-
-        with patch(
-            "heritrace.utils.display_rules_utils.execute_sparql_query",
-            return_value=("John Doe", "http://example.org/name1"),
-        ):
-            with patch(
-                "heritrace.utils.shacl_utils.determine_shape_for_classes",
-                return_value=subject_shape,
-            ):
-                ctx = GroupingContext(
-                    subject=subject,
-                    triples=mock_triples,
-                    grouped_triples=grouped_triples,
-                    fetched_values_map=fetched_values_map,
-                    relevant_properties=set(),
-                    historical_snapshot=None,
-                    highest_priority_class=None,
-                    highest_priority_shape=subject_shape,
-                )
-                process_display_rule(
-                    display_name,
-                    prop_uri,
-                    rule,
-                    ctx,
-                    object_shape=rule["shape"],
-                )
-
-            assert display_name in grouped_triples
-            assert len(grouped_triples[display_name]["triples"]) == 1
-            assert grouped_triples[display_name]["property"] == prop_uri
-            assert (
-                grouped_triples[display_name]["objectShape"]
-                == "http://example.org/PersonShape"
-            )
-            assert grouped_triples[display_name]["subjectShape"] == subject_shape
-            assert (
-                grouped_triples[display_name]["triples"][0]["triple"][2] == "John Doe"
-            )
-            assert fetched_values_map.get("John Doe") == "http://example.org/name1"
-
-    def test_process_display_rule_with_historical_snapshot(
-        self, mock_triples, mock_historical_snapshot
-    ) -> None:
-        """Test processing display rule with historical snapshot."""
-        display_name = "Person Name"
-        prop_uri = "http://example.org/name"
-        rule = {
-            "fetchValueFromQuery": _FETCH_LABEL_ENTITY_QUERY,
-            "shape": "http://example.org/PersonShape",
-        }
-        subject = "http://example.org/person1"
-        grouped_triples = {}
-        fetched_values_map = {}
-
-        with patch(
-            "heritrace.utils.display_rules_utils.execute_historical_query",
-            return_value=("John Doe", "http://example.org/name1"),
-        ):
-            with patch(
-                "heritrace.utils.shacl_utils.determine_shape_for_classes",
-                return_value="http://example.org/PersonShape",
-            ):
-                ctx = GroupingContext(
-                    subject=subject,
-                    triples=mock_triples,
-                    grouped_triples=grouped_triples,
-                    fetched_values_map=fetched_values_map,
-                    relevant_properties=set(),
-                    historical_snapshot=mock_historical_snapshot,
-                    highest_priority_class=None,
-                    highest_priority_shape=None,
-                )
-                process_display_rule(
-                    display_name,
-                    prop_uri,
-                    rule,
-                    ctx,
-                )
-
-            assert display_name in grouped_triples
-            assert len(grouped_triples[display_name]["triples"]) == 1
-
-    def test_process_display_rule_without_fetch_value(self, app) -> None:
-        """Test processing display rule without fetchValueFromQuery."""
-        display_name = "Age"
-        prop_uri = "http://example.org/age"
-        rule = {
-            "shape": "http://example.org/AgeShape",
-        }
-        subject = "http://example.org/person1"
-        grouped_triples = {}
-        fetched_values_map = {}
-        subject_shape = "http://example.org/AgeShape"
-        object_shape = "http://example.org/AgeShape"
-
-        test_triples = [
-            (
-                URIRef("http://example.org/person1"),
-                URIRef("http://example.org/age"),
-                URIRef("http://example.org/age1"),
-            )
-        ]
-
-        with (
-            app.app_context(),
-            patch(
-                "heritrace.utils.shacl_utils.determine_shape_for_classes",
-                return_value=subject_shape,
-            ),
-        ):
-            ctx = GroupingContext(
-                subject=subject,
-                triples=test_triples,
-                grouped_triples=grouped_triples,
-                fetched_values_map=fetched_values_map,
-                relevant_properties=set(),
-                historical_snapshot=None,
-                highest_priority_class=None,
-                highest_priority_shape=subject_shape,
-            )
-            process_display_rule(
-                display_name,
-                prop_uri,
-                rule,
-                ctx,
-                object_shape=object_shape,
-            )
-
-        assert display_name in grouped_triples
-        assert len(grouped_triples[display_name]["triples"]) == 1
-        assert grouped_triples[display_name]["property"] == prop_uri
-        assert grouped_triples[display_name]["objectShape"] == object_shape
-        assert grouped_triples[display_name]["subjectShape"] == subject_shape
-        assert (
-            str(grouped_triples[display_name]["triples"][0]["triple"][2])
-            == "http://example.org/age1"
-        )
-
-    def test_current_prop_config_orderedby_without_display_rules(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """Test orderedBy in current_prop_config without displayRules."""
-        self.mock_find_matching_rule.return_value = {
-            "target": {"class": "http://example.org/Person"},
-            "displayProperties": [
-                {
-                    "property": "http://example.org/ordered_prop",
-                    "displayName": "Ordered Property",
-                    "orderedBy": "http://example.org/order_prop",
-                    "shape": "http://example.org/OrderedShape",
-                }
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        extended_predicates_info = [
-            *mock_valid_predicates_info,
-            "http://example.org/ordered_prop",
-        ]
-
-        with (
-            patch("heritrace.utils.display_rules_utils.process_display_rule"),
-            patch("heritrace.utils.display_rules_utils.process_ordering"),
-        ):
-            grouped_triples, _relevant_properties = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                extended_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-
-            assert "Ordered Property" in grouped_triples
-            ordered_prop = grouped_triples["Ordered Property"]
-            assert ordered_prop["property"] == "http://example.org/ordered_prop"
-            assert ordered_prop["is_draggable"] is True
-            assert ordered_prop["ordered_by"] == "http://example.org/order_prop"
-
-    def test_current_prop_config_intermediate_relation_without_display_rules(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """Test intermediateRelation in current_prop_config without displayRules."""
-        self.mock_find_matching_rule.return_value = {
-            "target": {"class": "http://example.org/Person"},
-            "displayProperties": [
-                {
-                    "property": "http://example.org/related_prop",
-                    "displayName": "Related Property",
-                    "intermediateRelation": {
-                        "class": "http://example.org/IntermediateClass"
-                    },
-                    "shape": "http://example.org/RelatedShape",
-                }
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        extended_predicates_info = [
-            *mock_valid_predicates_info,
-            "http://example.org/related_prop",
-        ]
-
-        with patch("heritrace.utils.display_rules_utils.process_display_rule"):
-            grouped_triples, _relevant_properties = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                extended_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-
-            assert "Related Property" in grouped_triples
-            related_prop = grouped_triples["Related Property"]
-            assert related_prop["property"] == "http://example.org/related_prop"
-            assert related_prop["intermediateRelation"] == {
-                "class": "http://example.org/IntermediateClass"
-            }
-
-    def test_no_current_prop_config_calls_process_default_property(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """
-        Test that process_default_property is called when current_prop_config is None.
-        """
-        self.mock_find_matching_rule.return_value = {
-            "target": {"class": "http://example.org/Person"},
-            "displayProperties": [
-                {
-                    "property": "http://example.org/other_prop",
-                    "displayName": "Other Property",
-                }
-            ],
-            "priority": 1,
-            "shouldBeDisplayed": True,
-        }
-
-        extended_predicates_info = [
-            *mock_valid_predicates_info,
-            "http://example.org/unknown_prop",
-        ]
-
-        with patch(
-            "heritrace.utils.display_rules_utils.process_default_property"
-        ) as mock_process_default:
-            _grouped_triples, _relevant_properties = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                extended_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-
-            mock_process_default.assert_called()
-            call_args_list = mock_process_default.call_args_list
-            unknown_prop_calls = [
-                call
-                for call in call_args_list
-                if call[0][0] == "http://example.org/unknown_prop"
-            ]
-            assert len(unknown_prop_calls) > 0, (
-                "process_default_property should be called for unknown_prop"
-            )
-
-    def test_no_display_rules_calls_process_default_property(
-        self,
-        mock_triples,
-        mock_valid_predicates_info,
-    ) -> None:
-        """
-        Test that process_default_property is called when there are no display rules.
-        """
-        with (
-            patch(
-                "heritrace.utils.display_rules_utils.get_display_rules", return_value=[]
-            ),
-            patch(
-                "heritrace.utils.display_rules_utils.process_default_property"
-            ) as mock_process_default,
-        ):
-            _grouped_triples, _relevant_properties = get_grouped_triples(
-                URIRef("http://example.org/person1"),
-                mock_triples,
-                mock_valid_predicates_info,
-                entity_key=(self.highest_priority_class, None),
-            )
-
-            mock_process_default.assert_called()
-            assert mock_process_default.call_count >= len(mock_valid_predicates_info)
-
-
-class TestExecuteSparqlQuery:
-    """Tests for execute_sparql_query function."""
-
-    def test_execute_sparql_query_with_results(self, mock_sparql) -> None:
-        """Test executing SPARQL query with results."""
-        query = _FETCH_LABEL_ENTITY_QUERY
-        subject = "http://example.org/person1"
-        value = "http://example.org/name1"
-
-        with (
-            patch(
-                "heritrace.utils.display_rules_utils.get_sparql",
-                return_value=mock_sparql,
-            ),
-            patch("heritrace.utils.display_rules_utils.parseQuery"),
-            patch(
-                "heritrace.utils.display_rules_utils.translateQuery"
-            ) as mock_translate,
-        ):
-            mock_translate.return_value.algebra = {"PV": ["label", "entity"]}
-            result, external_entity = execute_sparql_query(query, subject, value)
-
-            assert result == "John Doe"
-            assert external_entity == "http://example.org/name1"
-            mock_sparql.setQuery.assert_called_once()
-            mock_sparql.setReturnFormat.assert_called_once()
-
-    def test_execute_sparql_query_no_results(self, mock_sparql) -> None:
-        """Test executing SPARQL query with no results."""
-        query = _FETCH_LABEL_ENTITY_QUERY
-        subject = "http://example.org/person1"
-        value = "http://example.org/name1"
-
-        mock_sparql.query.return_value.convert.return_value = {
-            "results": {"bindings": []}
-        }
-
-        with patch(
-            "heritrace.utils.display_rules_utils.get_sparql", return_value=mock_sparql
-        ):
-            result, external_entity = execute_sparql_query(query, subject, value)
-
-            assert result is None
-            assert external_entity is None
-
-
 class TestProcessOrdering:
     """Tests for process_ordering function."""
 
@@ -2014,6 +670,8 @@ class TestProcessOrdering:
                 historical_snapshot=None,
                 highest_priority_class=None,
                 highest_priority_shape=None,
+                value_shapes={},
+                value_triples={},
             )
             process_ordering(
                 ctx,
@@ -2075,6 +733,8 @@ class TestProcessOrdering:
             historical_snapshot=mock_historical_snapshot,
             highest_priority_class=None,
             highest_priority_shape=None,
+            value_shapes={},
+            value_triples={},
         )
         process_ordering(
             ctx,
@@ -2100,202 +760,6 @@ class TestProcessDefaultProperty:
         assert grouped_triples[prop_uri]["property"] == prop_uri
         assert len(grouped_triples[prop_uri]["triples"]) == 1
         assert grouped_triples[prop_uri]["objectShape"] is None
-
-
-class TestExecuteHistoricalQuery:
-    """Tests for execute_historical_query function."""
-
-    def test_execute_historical_query_with_results(
-        self, mock_historical_snapshot
-    ) -> None:
-        """Test executing historical query with results."""
-        query = _FETCH_LABEL_ENTITY_QUERY
-        subject = "http://example.org/person1"
-        value = "http://example.org/name1"
-
-        mock_historical_snapshot.add(
-            (
-                URIRef(value),
-                URIRef("http://www.w3.org/2000/01/rdf-schema#label"),
-                Literal("John Doe"),
-            )
-        )
-
-        original_query = mock_historical_snapshot.query
-
-        def mock_query(_q):
-            return [(Literal("John Doe"), URIRef(value))]
-
-        mock_historical_snapshot.query = mock_query
-
-        result, external_entity = execute_historical_query(
-            query, subject, value, mock_historical_snapshot
-        )
-
-        assert result == "John Doe"
-        assert external_entity == value
-
-        mock_historical_snapshot.query = original_query
-
-    def test_execute_historical_query_no_results(
-        self, mock_historical_snapshot
-    ) -> None:
-        """Test executing historical query with no results."""
-        query = _FETCH_LABEL_ENTITY_QUERY
-        subject = "http://example.org/person1"
-        value = "http://example.org/unknown"
-
-        original_query = mock_historical_snapshot.query
-        mock_historical_snapshot.query = lambda _q: []
-
-        result, external_entity = execute_historical_query(
-            query, subject, value, mock_historical_snapshot
-        )
-
-        assert result is None
-        assert external_entity is None
-
-        mock_historical_snapshot.query = original_query
-
-
-class TestGetPropertyOrderFromRules:
-    """Tests for get_property_order_from_rules function."""
-
-    def test_get_property_order_from_rules(
-        self, mock_display_rules, mock_subject_classes
-    ) -> None:
-        """Test getting property order from rules."""
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules,
-        ):
-            result = get_property_order_from_rules("http://example.org/Person")
-
-            assert len(result) == 3
-            assert result[0] == "http://example.org/name"
-            assert result[1] == "http://example.org/age"
-            assert result[2] == "http://example.org/knows"
-
-    def test_get_property_order_from_rules_no_matching_class(
-        self, mock_display_rules
-    ) -> None:
-        """Test getting property order from rules with no matching class."""
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules,
-        ):
-            result = get_property_order_from_rules("http://example.org/Unknown")
-
-            assert result == []
-
-    def test_get_property_order_from_rules_no_rules(self, mock_subject_classes) -> None:
-        """Test getting property order from rules with no rules."""
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules", return_value=[]
-        ):
-            result = get_property_order_from_rules("http://example.org/Person")
-
-            assert result == []
-
-    def test_get_property_order_from_rules_no_highest_priority_class(
-        self, mock_display_rules
-    ) -> None:
-        """Test getting property order from rules with no highest priority class."""
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules,
-        ):
-            result = get_property_order_from_rules(None)
-
-            assert result == []
-
-    def test_get_property_order_from_rules_with_ordered_display_names(self) -> None:
-        """Test getting property order from rules with ordered display names."""
-        mock_display_rules = [
-            {
-                "target": {"class": "http://example.org/Person"},
-                "displayProperties": [
-                    {
-                        "displayName": "Name",
-                        "property": "http://example.org/name",
-                        "displayRules": [{"displayName": "Person Name"}],
-                    },
-                    {
-                        "displayName": "Age",
-                        "property": "http://example.org/age",
-                    },
-                ],
-                "priority": 1,
-                "shouldBeDisplayed": True,
-            }
-        ]
-
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules,
-        ):
-            ordered_properties = get_property_order_from_rules(
-                "http://example.org/Person"
-            )
-
-            assert "http://example.org/name" in ordered_properties
-            assert "http://example.org/age" in ordered_properties
-
-    def test_get_property_order_from_rules_with_shape_uri(self) -> None:
-        """Test getting property order from rules when shape_uri is provided."""
-        mock_display_rules = [
-            {
-                "target": {
-                    "class": "http://example.org/Person",
-                    "shape": "http://example.org/PersonShape",
-                },
-                "displayProperties": [
-                    {
-                        "displayName": "Full Name",
-                        "property": "http://example.org/fullName",
-                    },
-                    {
-                        "displayName": "Birth Date",
-                        "property": "http://example.org/birthDate",
-                    },
-                    {
-                        "displayName": "Email",
-                        "property": "http://example.org/email",
-                    },
-                ],
-            },
-            {
-                "target": {"class": "http://example.org/Person"},
-                "displayProperties": [
-                    {
-                        "displayName": "Name",
-                        "property": "http://example.org/name",
-                    },
-                    {
-                        "displayName": "Age",
-                        "property": "http://example.org/age",
-                    },
-                ],
-            },
-        ]
-
-        shape_uri = "http://example.org/PersonShape"
-
-        with patch(
-            "heritrace.utils.display_rules_utils.get_display_rules",
-            return_value=mock_display_rules,
-        ):
-            ordered_properties = get_property_order_from_rules(
-                "http://example.org/Person", shape_uri
-            )
-
-            assert len(ordered_properties) == 3
-            assert ordered_properties[0] == "http://example.org/fullName"
-            assert ordered_properties[1] == "http://example.org/birthDate"
-            assert ordered_properties[2] == "http://example.org/email"
-
-            assert "http://example.org/name" not in ordered_properties
-            assert "http://example.org/age" not in ordered_properties
 
 
 class TestGetSimilarityProperties:
@@ -2536,76 +1000,136 @@ class TestFindMatchingRule:
         assert result["priority"] > mock_rules[2]["priority"]  # 10 > 1
 
 
-class TestUsesInverseRelations:
-    """Tests for uses_inverse_relations"""
+GROUPING_SHAPES = """
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
 
-    def test_no_rules(self):
-        assert uses_inverse_relations([]) is False
+[] a sh:ShapesGraph ;
+  sh:declare [ sh:prefix "ex" ; sh:namespace "http://example.org/"^^xsd:anyURI ] .
 
-    def test_rule_without_fetch_uri_display(self):
-        assert uses_inverse_relations([{"target": {"class": "http://e/C"}}]) is False
+ex:ArticleShape a sh:NodeShape ;
+  sh:targetClass ex:Article ;
+  sh:property [ sh:path ex:title ; sh:name "Title" ; sh:order 1 ] ;
+  sh:property [
+    sh:path ex:contributor ; sh:node ex:EditorShape ; sh:name "Editor" ; sh:order 3
+  ] ;
+  sh:property [
+    sh:path ex:contributor ; sh:node ex:AuthorShape ; sh:name "Author" ; sh:order 2
+  ] .
 
-    def test_forward_only_rule(self):
-        rules = [
-            {
-                "fetchUriDisplay": (
-                    "SELECT ?display WHERE { [[uri]] <http://e/title> ?display }"
-                )
-            }
-        ]
-        assert uses_inverse_relations(rules) is False
+ex:AuthorShape a sh:NodeShape ;
+  sh:targetClass ex:Role ;
+  sh:property [ sh:path ex:withRole ; sh:hasValue ex:author ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:select "SELECT ?name WHERE { $this ex:heldBy/ex:name ?name }"
+    ] ;
+  ] .
 
-    def test_inverse_rule(self):
-        rules = [
-            {
-                "fetchUriDisplay": (
-                    "SELECT ?display WHERE { ?x <http://e/refersTo> [[uri]] . "
-                    "?x <http://e/title> ?display }"
-                )
-            }
-        ]
-        assert uses_inverse_relations(rules) is True
+ex:EditorShape a sh:NodeShape ;
+  sh:targetClass ex:Role ;
+  sh:property [ sh:path ex:withRole ; sh:hasValue ex:editor ] .
+"""
 
-    def test_inverse_rule_nested_in_optional(self):
-        rules = [
-            {
-                "fetchUriDisplay": (
-                    "SELECT ?display WHERE { [[uri]] <http://e/title> ?display . "
-                    "OPTIONAL { ?x <http://e/refersTo> [[uri]] } }"
-                )
-            }
-        ]
-        assert uses_inverse_relations(rules) is True
 
-    def test_inverse_rule_nested_in_union(self):
-        rules = [
-            {
-                "fetchUriDisplay": (
-                    "SELECT ?display WHERE { { [[uri]] <http://e/a> ?display } "
-                    "UNION { ?x <http://e/b> [[uri]] } }"
-                )
-            }
-        ]
-        assert uses_inverse_relations(rules) is True
+def test_grouped_triples_follow_the_shapes() -> None:
+    ex = "http://example.org/"
+    shapes = Graph().parse(data=GROUPING_SHAPES, format="turtle")
+    presentation = read_presentation(shapes)
+    article, author, editor, agent = (
+        URIRef(ex + name) for name in ("article", "author", "editor", "agent")
+    )
+    snapshot = Graph()
+    for triple in [
+        (article, URIRef(ex + "title"), Literal("Dune")),
+        (article, URIRef(ex + "contributor"), author),
+        (article, URIRef(ex + "contributor"), editor),
+        (author, RDF.type, URIRef(ex + "Role")),
+        (author, URIRef(ex + "withRole"), URIRef(ex + "author")),
+        (author, URIRef(ex + "heldBy"), agent),
+        (agent, URIRef(ex + "name"), Literal("Frank Herbert")),
+        (editor, RDF.type, URIRef(ex + "Role")),
+        (editor, URIRef(ex + "withRole"), URIRef(ex + "editor")),
+    ]:
+        snapshot.add(triple)
+    entity_key = (ex + "Article", ex + "ArticleShape")
+    relation = {"connectingProperty": ex + "heldBy"}
+    form_fields = {
+        entity_key: {
+            ex + "contributor": [
+                {"nodeShape": ex + "AuthorShape", "intermediateRelation": relation}
+            ]
+        }
+    }
+    rules = [
+        {
+            "target": {"class": ex + "Article"},
+            "displayProperties": [
+                {"property": ex + "contributor", "intermediateRelation": relation}
+            ],
+        }
+    ]
+    module = "heritrace.utils.display_rules_utils"
+    with (
+        patch(f"{module}.get_presentation", return_value=presentation),
+        patch(
+            f"{module}.get_custom_filter",
+            return_value=Filter({}, presentation, "http://example.org/sparql"),
+        ),
+        patch(f"{module}.get_form_fields", return_value=form_fields),
+        patch(f"{module}.get_display_rules", return_value=rules),
+        patch("heritrace.utils.shacl_utils.get_shacl_graph", return_value=shapes),
+        patch("heritrace.utils.shacl_utils.get_class_priority", return_value=0),
+    ):
+        grouped, relevant = get_grouped_triples(
+            article,
+            list(snapshot.triples((article, None, None))),
+            [ex + "title", ex + "contributor", ex + "extra"],
+            historical_snapshot=snapshot,
+            entity_key=entity_key,
+        )
 
-    def test_any_inverse_rule_wins(self):
-        rules = [
-            {
-                "fetchUriDisplay": (
-                    "SELECT ?display WHERE { [[uri]] <http://e/title> ?display }"
-                )
-            },
-            {
-                "fetchUriDisplay": (
-                    "SELECT ?display WHERE { ?x <http://e/refersTo> [[uri]] . "
-                    "?x <http://e/title> ?display }"
-                )
-            },
-        ]
-        assert uses_inverse_relations(rules) is True
-
-    def test_unparseable_rule_is_reported_and_treated_as_forward(self, caplog):
-        rules = [{"fetchUriDisplay": "SELECT ?display WHERE { [[uri]] <http://e/a> }"}]
-
-        assert uses_inverse_relations(rules) is False
-        assert "not valid SPARQL" in caplog.text
+    assert relevant == {ex + "title", ex + "contributor", ex + "extra"}
+    assert [
+        (name, group["objectShape"], group["intermediateRelation"])
+        for name, group in grouped.items()
+        if name != ex + "extra"
+    ] == [
+        ("Title", None, None),
+        ("Author", ex + "AuthorShape", relation),
+        ("Editor", ex + "EditorShape", relation),
+    ]
+    assert grouped["Title"]["triples"] == [
+        {
+            "object": "Dune",
+            "subjectClass": ex + "Article",
+            "subjectShape": ex + "ArticleShape",
+            "objectShape": None,
+            "triple": (str(article), ex + "title", Literal("Dune")),
+        }
+    ]
+    assert grouped["Author"]["triples"] == [
+        {
+            "object": str(author),
+            "subjectClass": ex + "Article",
+            "subjectShape": ex + "ArticleShape",
+            "objectShape": ex + "AuthorShape",
+            "triple": (str(article), ex + "contributor", "Frank Herbert"),
+            "external_entity": str(agent),
+        }
+    ]
+    assert grouped["Editor"]["triples"] == [
+        {
+            "object": str(editor),
+            "subjectClass": ex + "Article",
+            "subjectShape": ex + "ArticleShape",
+            "objectShape": ex + "EditorShape",
+            "triple": (str(article), ex + "contributor", editor),
+        }
+    ]
+    assert grouped[ex + "extra"]["triples"] == []

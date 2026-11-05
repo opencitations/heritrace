@@ -88,16 +88,6 @@ def _is_proxy_entity(entity_types: list) -> tuple[bool, str]:
                 ):
                     return True, prop["property"]
 
-                for display_rule in prop.get("displayRules", []):
-                    nested_intermediate_config = display_rule.get(
-                        "intermediateRelation"
-                    )
-                    if (
-                        nested_intermediate_config
-                        and nested_intermediate_config.get("class") == entity_type
-                    ):
-                        return True, prop["property"]
-
     return False, ""
 
 

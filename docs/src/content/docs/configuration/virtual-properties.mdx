@@ -39,7 +39,7 @@ Use virtual properties when your ontology models something as a class, but users
 
 ## Configuration structure
 
-Virtual properties are configured within the `displayProperties` section of a display rule, using several specific keys.
+Virtual properties are configured within the `displayProperties` section of a YAML rule, using several specific keys.
 
 ### Basic structure
 
@@ -47,9 +47,6 @@ Virtual properties are configured within the `displayProperties` section of a di
 displayProperties:
   - displayName: "Property Label"
     isVirtual: true
-    shouldBeDisplayed: true
-    fetchValueFromQuery: |
-      # SPARQL query to fetch and format values
     implementedVia:
       target:
         class: "http://example.org/IntermediateClass"
@@ -67,7 +64,6 @@ displayProperties:
 - **`isVirtual`**: Must be set to `true` to enable virtual property behavior
 - **`displayName`**: The label shown in the user interface for this property
 - **`shouldBeDisplayed`**: Controls whether this property appears in forms and entity views
-- **`fetchValueFromQuery`**: A SPARQL query that retrieves and formats the display value. The query context is the intermediate entity, referenced by `[[value]]`
 - **`implementedVia`**: Defines how the virtual property is implemented in the RDF graph
 
 #### The `implementedVia` section
@@ -121,26 +117,10 @@ In this model:
 This virtual property appears on the citing resource and shows what it cites.
 
 ```yaml
-# First, define the query as a reusable anchor
-queries:
-  citations_query: &citations_query |
-    PREFIX cito: <http://purl.org/spar/cito/>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    SELECT ?display ?target WHERE {
-      [[value]] a cito:Citation ;
-                cito:hasCitingEntity [[subject]] ;
-                cito:hasCitedEntity ?target .
-      ?target dcterms:title ?title .
-      BIND(CONCAT(?title, " (", STR(?target), ")") AS ?display)
-    }
-
-# Then use it in a virtual property
 virtual_properties:
   citations_property: &citations_property
     displayName: "Citations"
     isVirtual: true
-    shouldBeDisplayed: true
-    fetchValueFromQuery: *citations_query
     implementedVia:
       target:
         class: "http://purl.org/spar/cito/Citation"
@@ -172,24 +152,10 @@ virtual_properties:
 This virtual property appears on the cited resource and shows what cites it. It queries for `Citation` entities where the current resource is the cited entity.
 
 ```yaml
-# Define the inverse query
-queries:
-  citing_entity_query: &citing_entity_query |
-    PREFIX cito: <http://purl.org/spar/cito/>
-    PREFIX dcterms: <http://purl.org/dc/terms/>
-    SELECT ?display ?target WHERE {
-      [[value]] cito:hasCitingEntity ?target .
-      ?target dcterms:title ?title .
-      BIND(CONCAT(?title, " (", STR(?target), ")") AS ?display)
-    }
-
-# Configure the reverse virtual property
 virtual_properties:
   is_cited_by_property: &is_cited_by_property
     displayName: "Is Cited By"
     isVirtual: true
-    shouldBeDisplayed: true
-    fetchValueFromQuery: *citing_entity_query
     implementedVia:
       target:
         class: "http://purl.org/spar/cito/Citation"
@@ -208,12 +174,31 @@ virtual_properties:
 ```
 
 **Key differences from the forward citation:**
-- The `fetchValueFromQuery` retrieves the citing entity instead of the cited entity
 - `hasCitedEntity` is now automatically set to `${currentEntity}` (instead of `hasCitingEntity`)
 - `hasCitingEntity` is now the user-facing field (instead of `hasCitedEntity`)
 - A different SHACL shape (`ReverseCitationShape`) distinguishes it from forward citations
 
-### Using the virtual properties in display rules
+### Labelling the citations
+
+Since each direction has its own shape, each shape can label the citation from its own side. The forward shape names the cited resource, and the reverse shape names the citing one:
+
+```ttl
+schema:CitationShape
+    sh:property [
+        sh:path rdfs:label ;
+        shui:propertyRole shui:LabelRole ;
+        sh:values [
+            sh:select """
+                SELECT ?display WHERE {
+                  $this cito:hasCitedEntity ?target .
+                  ?target dcterms:title ?display .
+                }
+            """ ;
+        ] ;
+    ] .
+```
+
+### Using the virtual properties in the YAML file
 
 Once defined, you use the virtual properties in your entity rules:
 
@@ -221,7 +206,6 @@ Once defined, you use the virtual properties in your entity rules:
 rules:
   - target:
       class: "http://purl.org/spar/fabio/JournalArticle"
-    displayName: "Journal Article"
     displayProperties:
       # ... other properties ...
       - *citations_property
@@ -243,30 +227,3 @@ fieldOverrides:
 ```
 
 When creating a citation from Article A's page, `${currentEntity}` becomes Article A's URI. This ensures the `Citation` entity correctly references Article A.
-
-## Understanding `fetchValueFromQuery` context
-
-For virtual properties, the `fetchValueFromQuery` has a specific context:
-
-- `[[subject]]`: The URI of the main entity being viewed (e.g., the article)
-- `[[value]]`: The URI of the intermediate entity (e.g., the `Citation` entity)
-
-The query starts from the intermediate entity and navigates to retrieve the display value.
-
-**Example:**
-```sparql
-SELECT ?display ?target WHERE {
-  # [[value]] is the Citation entity URI
-  [[value]] cito:hasCitedEntity ?target .
-
-  # Navigate from the Citation to get the cited resource's title
-  ?target dcterms:title ?title .
-
-  # Format the display string
-  BIND(CONCAT(?title, " (citation)") AS ?display)
-}
-```
-
-The query must return two variables in order:
-1. The formatted display string
-2. The URI of the final target entity

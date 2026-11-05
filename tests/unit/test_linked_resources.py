@@ -447,30 +447,6 @@ def test_is_proxy_entity_matching_proxy(mock_get_display_rules) -> None:
 
 
 @patch("heritrace.routes.linked_resources.get_display_rules")
-def test_is_proxy_entity_nested_display_rules(mock_get_display_rules) -> None:
-    """Test _is_proxy_entity with nested display rules."""
-    mock_get_display_rules.return_value = [
-        {
-            "displayProperties": [
-                {
-                    "property": "http://example.org/predicate2",
-                    "displayRules": [
-                        {
-                            "intermediateRelation": {
-                                "class": "http://example.org/NestedProxyType"
-                            }
-                        }
-                    ],
-                }
-            ]
-        }
-    ]
-    result, predicate = _is_proxy_entity(["http://example.org/NestedProxyType"])
-    assert result
-    assert predicate == "http://example.org/predicate2"
-
-
-@patch("heritrace.routes.linked_resources.get_display_rules")
 def test_is_proxy_entity_no_intermediate_relation(mock_get_display_rules) -> None:
     """Test _is_proxy_entity when displayProperties have no intermediateRelation."""
     mock_get_display_rules.return_value = [
@@ -767,26 +743,6 @@ def test_is_proxy_entity_missing_displayproperties(mock_get_display_rules) -> No
     mock_get_display_rules.return_value = [
         {
             # Missing displayProperties key
-        }
-    ]
-    result, predicate = _is_proxy_entity(["http://example.org/SomeType"])
-    assert not result
-    assert predicate == ""
-
-
-@patch("heritrace.routes.linked_resources.get_display_rules")
-def test_is_proxy_entity_missing_display_rules_in_property(
-    mock_get_display_rules,
-) -> None:
-    """Test _is_proxy_entity when displayRules key is missing in property."""
-    mock_get_display_rules.return_value = [
-        {
-            "displayProperties": [
-                {
-                    "property": "http://example.org/predicate1"
-                    # Missing displayRules key
-                }
-            ]
         }
     ]
     result, predicate = _is_proxy_entity(["http://example.org/SomeType"])

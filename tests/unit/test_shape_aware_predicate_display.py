@@ -3,18 +3,14 @@
 # SPDX-License-Identifier: ISC
 
 """
-Unit tests for shape-aware predicate display functionality.
-
-Tests the enhanced human_readable_predicate method that can display different
-labels for the same predicate based on the object entity's shape.
+Unit tests for choosing the shape of an entity from its triples.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from rdflib import RDF, Graph, URIRef
 
-from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 
 
@@ -55,168 +51,8 @@ def mock_shacl_graph():
     return shacl_graph
 
 
-@pytest.fixture
-def mock_filter_with_shape_rules():
-    """Create a Filter with display rules that include shape-specific configurations."""
-    context = {"pro": "http://purl.org/spar/pro/", "schema": "http://schema.org/"}
-    display_rules = [
-        {
-            "target": {
-                "class": "http://purl.org/spar/fabio/Expression",
-                "shape": "http://schema.org/ExpressionShape",
-            },
-            "displayName": "Expression",
-            "displayProperties": [
-                {
-                    "property": "http://purl.org/spar/pro/isDocumentContextFor",
-                    "displayRules": [
-                        {
-                            "shape": "http://schema.org/AuthorShape",
-                            "displayName": "Author",
-                        },
-                        {
-                            "shape": "http://schema.org/EditorShape",
-                            "displayName": "Editor",
-                        },
-                        {
-                            "shape": "http://schema.org/PublisherShape",
-                            "displayName": "Publisher",
-                        },
-                    ],
-                }
-            ],
-        }
-    ]
-    sparql_endpoint = "http://example.org/sparql"
-
-    # Mock the get_sparql function
-    mock_sparql = MagicMock()
-    with patch("heritrace.extensions.get_sparql", return_value=mock_sparql):
-        return Filter(context, display_rules, sparql_endpoint)
-
-
-class TestShapeAwarePredicate:
-    """Test cases for shape-aware predicate display functionality."""
-
-    def test_human_readable_predicate_with_author_shape(
-        self, mock_filter_with_shape_rules
-    ) -> None:
-        """
-        Test that isDocumentContextFor displays as 'Author' when object has AuthorShape.
-        """
-        predicate_uri = "http://purl.org/spar/pro/isDocumentContextFor"
-        entity_key = (
-            "http://purl.org/spar/fabio/Expression",
-            "http://schema.org/ExpressionShape",
-        )
-        object_shape_uri = "http://schema.org/AuthorShape"
-
-        with patch(
-            "heritrace.utils.display_rules_utils.find_matching_rule"
-        ) as mock_find_rule:
-            mock_find_rule.return_value = mock_filter_with_shape_rules.display_rules[0]
-
-            result = mock_filter_with_shape_rules.human_readable_predicate(
-                predicate_uri, entity_key, object_shape_uri=object_shape_uri
-            )
-
-        assert result == "Author"
-
-    def test_human_readable_predicate_with_editor_shape(
-        self, mock_filter_with_shape_rules
-    ) -> None:
-        """
-        Test that isDocumentContextFor displays as 'Editor' when object has EditorShape.
-        """
-        predicate_uri = "http://purl.org/spar/pro/isDocumentContextFor"
-        entity_key = (
-            "http://purl.org/spar/fabio/Expression",
-            "http://schema.org/ExpressionShape",
-        )
-        object_shape_uri = "http://schema.org/EditorShape"
-
-        with patch(
-            "heritrace.utils.display_rules_utils.find_matching_rule"
-        ) as mock_find_rule:
-            mock_find_rule.return_value = mock_filter_with_shape_rules.display_rules[0]
-
-            result = mock_filter_with_shape_rules.human_readable_predicate(
-                predicate_uri, entity_key, object_shape_uri=object_shape_uri
-            )
-
-        assert result == "Editor"
-
-    def test_human_readable_predicate_with_publisher_shape(
-        self, mock_filter_with_shape_rules
-    ) -> None:
-        """
-        Test that isDocumentContextFor displays as 'Publisher' when object has
-        PublisherShape.
-        """
-        predicate_uri = "http://purl.org/spar/pro/isDocumentContextFor"
-        entity_key = (
-            "http://purl.org/spar/fabio/Expression",
-            "http://schema.org/ExpressionShape",
-        )
-        object_shape_uri = "http://schema.org/PublisherShape"
-
-        with patch(
-            "heritrace.utils.display_rules_utils.find_matching_rule"
-        ) as mock_find_rule:
-            mock_find_rule.return_value = mock_filter_with_shape_rules.display_rules[0]
-
-            result = mock_filter_with_shape_rules.human_readable_predicate(
-                predicate_uri, entity_key, object_shape_uri=object_shape_uri
-            )
-
-        assert result == "Publisher"
-
-    def test_human_readable_predicate_fallback_when_shape_not_matched(
-        self, mock_filter_with_shape_rules
-    ) -> None:
-        """
-        Test fallback to first display rule when object shape doesn't match any rule.
-        """
-        predicate_uri = "http://purl.org/spar/pro/isDocumentContextFor"
-        entity_key = (
-            "http://purl.org/spar/fabio/Expression",
-            "http://schema.org/ExpressionShape",
-        )
-        object_shape_uri = "http://schema.org/UnknownShape"
-
-        with patch(
-            "heritrace.utils.display_rules_utils.find_matching_rule"
-        ) as mock_find_rule:
-            mock_find_rule.return_value = mock_filter_with_shape_rules.display_rules[0]
-
-            result = mock_filter_with_shape_rules.human_readable_predicate(
-                predicate_uri, entity_key, object_shape_uri=object_shape_uri
-            )
-
-        # Should fallback to first rule (Author)
-        assert result == "Author"
-
-    def test_human_readable_predicate_fallback_when_no_object_shape(
-        self, mock_filter_with_shape_rules
-    ) -> None:
-        """Test fallback to first display rule when no object shape is provided."""
-        predicate_uri = "http://purl.org/spar/pro/isDocumentContextFor"
-        entity_key = (
-            "http://purl.org/spar/fabio/Expression",
-            "http://schema.org/ExpressionShape",
-        )
-
-        with patch(
-            "heritrace.utils.display_rules_utils.find_matching_rule"
-        ) as mock_find_rule:
-            mock_find_rule.return_value = mock_filter_with_shape_rules.display_rules[0]
-
-            result = mock_filter_with_shape_rules.human_readable_predicate(
-                predicate_uri, entity_key
-            )
-
-        # Should fallback to first rule (Author)
-        assert result == "Author"
+class TestShapeSelection:
+    """Test cases for shape selection from entity triples."""
 
     @patch("heritrace.utils.shacl_utils.get_class_priority", return_value=0)
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")

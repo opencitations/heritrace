@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import threading
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from urllib.parse import urlparse
 
 from rdflib import RDF
@@ -33,15 +33,17 @@ from heritrace.utils.uri_utils import is_valid_url
 if TYPE_CHECKING:
     from rdflib import Dataset, Graph, URIRef
 
+    from heritrace.utils.shacl_presentation import ShapesPresentation
+
 VERSION_SOURCE_MARKER = "/prov/se/"
 
 
 class Filter:
     def __init__(
-        self, context: dict, display_rules: list[dict] | None, sparql_endpoint: str
+        self, context: dict, presentation: ShapesPresentation, sparql_endpoint: str
     ) -> None:
         self.context = context
-        self.display_rules = display_rules
+        self.presentation = presentation
         self.sparql_endpoint = sparql_endpoint
         self._thread_local = threading.local()
         self._query_lock = threading.Lock()
@@ -54,27 +56,15 @@ class Filter:
         return self._thread_local.sparql
 
     @staticmethod
-    def _find_display_name_from_rule(
-        rule: dict,
-        predicate_uri: str,
-        object_shape_uri: str | None,
-    ) -> str | None:
-        if "displayProperties" not in rule:
-            return None
-        for display_property in rule["displayProperties"]:
-            prop_uri = display_property.get("property") or display_property.get(
-                "virtual_property"
-            )
-            if prop_uri == str(predicate_uri):
-                if "displayRules" in display_property:
-                    if object_shape_uri:
-                        for display_rule in display_property["displayRules"]:
-                            if display_rule.get("shape") == object_shape_uri:
-                                return display_rule["displayName"]
-                    return display_property["displayRules"][0]["displayName"]
-                if "displayName" in display_property:
-                    return display_property["displayName"]
-        return None
+    def _shape_for(entity_key: tuple[str | None, str | None]) -> str | None:
+        from heritrace.utils.shacl_utils import (  # noqa: PLC0415
+            determine_shape_for_classes,
+        )
+
+        class_uri, shape_uri = entity_key
+        if shape_uri is None and class_uri is not None:
+            return determine_shape_for_classes([class_uri])
+        return shape_uri
 
     def human_readable_predicate(
         self,
@@ -83,19 +73,11 @@ class Filter:
         *,
         object_shape_uri: str | None = None,
     ) -> str:
-        from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
-            find_matching_rule,
+        display_name = self.presentation.property_name(
+            self._shape_for(entity_key), str(predicate_uri), object_shape_uri
         )
-
-        class_uri, shape_uri = entity_key
-        rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
-
-        if rule:
-            display_name = self._find_display_name_from_rule(
-                rule, predicate_uri, object_shape_uri
-            )
-            if display_name is not None:
-                return display_name
+        if display_name is not None:
+            return display_name
 
         first_part, _ = split_namespace(predicate_uri)
         if first_part in self.context:
@@ -105,13 +87,6 @@ class Filter:
     def human_readable_class(
         self, entity_key: tuple[str | None, str | None] | None
     ) -> str:
-        from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
-            find_matching_rule,
-        )
-        from heritrace.utils.shacl_utils import (  # noqa: PLC0415
-            determine_shape_for_classes,
-        )
-
         if entity_key is None:
             return "Unknown"
 
@@ -120,16 +95,39 @@ class Filter:
         if class_uri is None and shape_uri is None:
             return "Unknown"
 
-        if shape_uri is None and class_uri is not None:
-            shape_uri = determine_shape_for_classes([class_uri])
-        rule = find_matching_rule(class_uri, shape_uri, self.display_rules)
-
-        if rule and "displayName" in rule:
-            return rule["displayName"]
+        display_name = self.presentation.shape_name(self._shape_for(entity_key))
+        if display_name is not None:
+            return display_name
 
         if class_uri is None:
             return "Unknown"
         return format_uri_as_readable(class_uri)
+
+    def has_label(self, shape: str | None) -> bool:
+        return shape in self.presentation.label_queries
+
+    def entity_label(
+        self,
+        uri: str | URIRef,
+        shape: str | None,
+        graph: Graph | Dataset | None = None,
+    ) -> str | None:
+        query = cast("str", self.presentation.label_query(shape, str(uri)))
+        if graph is not None:
+            with self._query_lock:
+                results = graph.query(query)
+            for row in select_results(results):
+                if row[0] is not None:
+                    return str(row[0])
+            return None
+        sparql = self._get_sparql()
+        sparql.setQuery(query)
+        result = sparql.query().convert()
+        bindings = get_sparql_bindings(result)
+        if not bindings:
+            return None
+        label_variable = cast("dict", result)["head"]["vars"][0]
+        return bindings[0][label_variable]["value"]
 
     def human_readable_entity(
         self,
@@ -137,48 +135,15 @@ class Filter:
         entity_key: tuple[str | None, str | None],
         graph: Graph | Dataset | None = None,
     ) -> str:
-        from heritrace.utils.display_rules_utils import (  # noqa: PLC0415
-            find_matching_rule,
-        )
-
         uri_string = str(uri)
-        rule = find_matching_rule(entity_key[0], entity_key[1], self.display_rules)
-        if not rule:
+        shape = self._shape_for(entity_key)
+        if not self.has_label(shape):
             return uri_string
-
-        if "fetchUriDisplay" in rule:
-            return self.get_fetch_uri_display(uri_string, rule, graph)
-
-        if "displayName" in rule:
-            return rule["displayName"]
-
-        return uri_string
-
-    def get_fetch_uri_display(
-        self,
-        uri: str | URIRef,
-        rule: dict,
-        graph: Graph | Dataset | None = None,
-    ) -> str:
-        uri_string = str(uri)
-        query = rule["fetchUriDisplay"].replace("[[uri]]", f"<{uri_string}>")
-
-        if graph is not None:
-            with self._query_lock:
-                results = graph.query(query)
-            for row in select_results(results):
-                display = row["display"]
-                if display is not None:
-                    return str(display)
-        else:
-            sparql = self._get_sparql()
-            sparql.setQuery(query)
-            bindings = get_sparql_bindings(sparql.query().convert())
-            if bindings:
-                return bindings[0]["display"]["value"]
-
-        msg = f"fetchUriDisplay returned no result for {uri_string}"
-        raise ValueError(msg)
+        label = self.entity_label(uri_string, shape, graph)
+        if label is None:
+            msg = f"The label query returned no result for {uri_string}"
+            raise ValueError(msg)
+        return label
 
     def format_source_reference(self, url: str | None) -> SourceRef:
         if not url:

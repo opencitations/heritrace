@@ -7,24 +7,36 @@ title: SHACL configuration
 description: Define your data model using SHACL for automatic form generation and validation.
 ---
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import ShaclSupport from '../../../components/ShaclSupport.astro';
 
-<Aside type="caution" title="Supported Features">
-HERITRACE implements a specific subset of the SHACL specification. This document outlines the supported features and patterns. Constructs not described here may not be supported. We are continuously working to expand SHACL compatibility in future updates.
-</Aside>
+The SHACL (Shapes Constraint Language) file describes your data model. HERITRACE reads it for three purposes:
 
-The SHACL (Shapes Constraint Language) file is a cornerstone of HERITRACE, serving two primary functions:
+-   **Form generation**: each shape becomes a form, and each property shape becomes a field with its input type and validation hints.
+-   **Data validation**: the constraints, such as datatypes and cardinality, are checked on every change.
+-   **Presentation**: names, field order, widgets and entity labels come from the [presentation terms](#presentation) of the shapes.
 
--   **Automatic form generation**: The application reads your SHACL schema to dynamically generate forms for creating and editing entities. It uses property definitions to create the appropriate input fields, labels, and validation hints.
--   **Data validation**: It enforces the constraints defined in the schema—such as data types, cardinality, and value ranges—to ensure the integrity of all data entered into the system.
+## Supported vocabulary
 
-In short, your SHACL file acts as a single source of truth that dictates both the data entry interface and the validation rules.
+The chips below list the terms that a shapes graph can use in the SHACL 1.2 drafts. HERITRACE reads the highlighted terms and ignores the dimmed ones.
+
+<ShaclSupport />
+
+HERITRACE reads some supported terms only in part. Each item below says which part it reads and which part it ignores.
+
+-   `sh:path` takes a single predicate. SHACL also allows property paths that combine several steps, such as an inverse path, a sequence of predicates or a repeated predicate. HERITRACE does not follow these paths.
+-   `sh:values` says that the values of a property are computed instead of being stored in the data. SHACL offers several ways to describe the computation: a fixed value, the values found by following a path, or a SPARQL query written with `sh:select`. HERITRACE computes a single case: the entity label, written as a SPARQL query on the property shape that carries `shui:LabelRole`. Any other property shape with `sh:values` is left out of forms.
+-   `sh:class` takes a single class. SHACL also accepts a list of classes, meaning that a value may belong to any of them, but HERITRACE does not read that form.
+-   `sh:pattern` and `sh:message` are read only inside the alternatives of a node shape's `sh:or`, as described in [Pattern matching](#pattern-matching-shpattern-and-shmessage).
+-   `sh:or` is read in two places. On a property shape, its members can be datatypes, node shapes or fixed values. On a node shape, each member must pair a fixed value with a pattern. Members of any other kind are ignored.
 
 ## Official documentation
 
-For a complete understanding of SHACL and its advanced features, refer to the official W3C documentation:
+The lists above follow the W3C editor's drafts of the SHACL 1.2 family:
 
-- <a href="https://www.w3.org/TR/shacl/" target="_blank" rel="noopener noreferrer">SHACL Specification</a>: The official recommendation for the Shapes Constraint Language.
-- <a href="https://www.w3.org/TR/shacl-af/" target="_blank" rel="noopener noreferrer">SHACL Advanced Features</a>: A note detailing SPARQL-based constraints and other extensions.
+- <a href="https://w3c.github.io/data-shapes/shacl12-core/" target="_blank" rel="noopener noreferrer">SHACL 1.2 Core</a>
+- <a href="https://w3c.github.io/data-shapes/shacl12-sparql/" target="_blank" rel="noopener noreferrer">SHACL 1.2 SPARQL-Related Features</a>
+- <a href="https://w3c.github.io/data-shapes/shacl12-node-expr/" target="_blank" rel="noopener noreferrer">SHACL 1.2 Node Expressions</a>
+- <a href="https://w3c.github.io/data-shapes/shacl12-ui/" target="_blank" rel="noopener noreferrer">SHACL 1.2 User Interfaces</a>
 
 ## File location
 
@@ -35,7 +47,7 @@ volumes:
   - ./my_shacl.ttl:/app/shacl.ttl
 ```
 
-Example configurations are available in `example_configurations/`.
+Example configurations are available in [`example_configurations/`](https://github.com/opencitations/heritrace/tree/main/example_configurations).
 
 ## Core concepts
 
@@ -76,9 +88,10 @@ SHACL constraints define the validation rules for properties on a targeted class
 
 ### Cardinality (`sh:minCount` and `sh:maxCount`)
 Control how many values a property can have. Both count every value of `sh:path` on the
-entity, across all the property constraints declared for it. To constrain the number of
-occurrences of one specific value rather than the total, see
-[Occurrences of a specific value](#occurrences-of-a-specific-value-shqualifiedvalueshape).
+entity, even when the shape declares several property shapes with the same path. For example,
+an entity typed both `fabio:Expression` and `fabio:JournalArticle` fails `sh:maxCount 1` on
+`rdf:type`, because the count includes both types. To limit how many times one specific value
+occurs, see [Occurrences of a specific value](#occurrences-of-a-specific-value-shqualifiedvalueshape).
 
 - `sh:minCount`: The minimum number of values. A value of `1` or more makes the property required.
 - `sh:maxCount`: The maximum number of values. A value of `1` restricts it to a single value.
@@ -188,9 +201,6 @@ sh:property [
 ] .
 ```
 
-A single property constraint must not declare both plain and qualified counts: HERITRACE would
-read them as two separate fields on the same property.
-
 ### Shape reference (`sh:node`)
 Specify that a property's value must conform to another shape. This is used to validate complex objects or relationships.
 
@@ -203,144 +213,160 @@ sh:property [
 ] .
 ```
 
-### Conditional validation (`sh:condition`)
-Apply a constraint only when a specific condition is met. This is useful for creating validation rules that depend on the value of another property.
-
-In the example below, the `sh:pattern` is only checked if the identifier's scheme (`datacite:usesIdentifierScheme`) is `datacite:doi`.
-
+### Pattern matching (`sh:pattern` and `sh:message`)
+Use a regular expression to check the format of a string value, and `sh:message` to tell users what went wrong.
 ```ttl
 schema:JournalArticleIdentifierShape
-    a sh:NodeShape;
-    sh:targetClass datacite:Identifier;
-    sh:property [
-        sh:path literal:hasLiteralValue;
-        sh:datatype xsd:string;
-        # This constraint only applies if the condition below is met
-        sh:condition [
-            sh:path datacite:usesIdentifierScheme;
-            sh:hasValue datacite:doi;
-        ];
-        # The pattern to validate against
-        sh:pattern "^10\\..+/.+";
-        sh:message "DOI is not valid.";
-    ].
+  a sh:NodeShape ;
+  sh:targetClass datacite:Identifier ;
+  sh:property [
+    sh:path datacite:usesIdentifierScheme ;
+    sh:in ( datacite:doi datacite:pmid ) ;
+  ] ;
+  sh:property [
+    sh:path literal:hasLiteralValue ;
+    sh:datatype xsd:string ;
+  ] ;
+  sh:or (
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:doi ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^10\\..+/.+" ;
+        sh:message "DOI must start with '10.'." ;
+      ] ;
+    ]
+    [
+      sh:property [
+        sh:path datacite:usesIdentifierScheme ;
+        sh:hasValue datacite:pmid ;
+      ] ;
+      sh:property [
+        sh:path literal:hasLiteralValue ;
+        sh:pattern "^[1-9]\\d*$" ;
+        sh:message "PMID must contain only numbers." ;
+      ] ;
+    ]
+  ) .
 ```
 
-### Pattern matching (`sh:pattern` and `sh:message`)
-Use regular expressions to validate the format of string literals. You can provide a custom `sh:message` to guide users.
+## Presentation
+
+HERITRACE takes from the shapes graph the names of entity types and fields, their order, the widget of each field and the label of each entity. Declare the `shui:` prefix to use the SHACL UI terms:
 
 ```ttl
-# Validate ISSN format
+@prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+```
+
+### Names (`sh:name`)
+
+On a node shape, `sh:name` names the kind of entity that the shape describes, so `schema:JournalArticleShape` appears as "Journal Article".
+On the other hand, `sh:name` on a property shape names the property, so `dcterms:title` appears as "Title".
+```ttl
+schema:JournalArticleShape
+    a sh:NodeShape ;
+    sh:targetClass fabio:JournalArticle ;
+    sh:name "Journal Article" ;
+    sh:property [
+        sh:path dcterms:title ;
+        sh:name "Title" ;
+    ] .
+```
+
+Several property shapes can share a path and differ by `sh:node`. Each one keeps its own name. Here the roles of an article appear as "Author" and "Editor":
+
+```ttl
 sh:property [
-    sh:path literal:hasLiteralValue ;
-    sh:condition [
-        sh:path datacite:usesIdentifierScheme ;
-        sh:hasValue datacite:issn ;
-    ] ;
-    sh:pattern "^[0-9]{4}-[0-9]{3}[0-9X]$" ;
-    sh:message "ISSN must be in the format NNNN-NNNC." ;
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:AuthorShape ;
+    sh:name "Author" ;
+] ;
+sh:property [
+    sh:path pro:isDocumentContextFor ;
+    sh:node schema:EditorShape ;
+    sh:name "Editor" ;
 ] .
 ```
 
-## Complex relationships: The proxy pattern
+Without `sh:name`, HERITRACE derives a readable name from the IRI, so `hasPublicationDate` becomes "has publication date".
 
-HERITRACE is data-model-agnostic. To handle complex relationships that require their own properties (for instance, defining a person's role in a project or the time frame of a collaboration), you can implement a "proxy pattern." This involves using an intermediate entity to link two other entities, where the intermediate entity holds the attributes of the relationship.
+### Order (`sh:order`)
 
-You can define this entire structure using SHACL. The application will interpret it to generate the appropriate forms and validation. The example below shows how to model an author's role, but the same pattern can be applied to any similar scenario in your data model.
+Fields follow the ascending value of `sh:order`. Property shapes without `sh:order` come after the ordered ones, sorted alphabetically by `sh:name`, or by the IRI of their path when they have no name. Without any `sh:order`, all fields follow this alphabetical order. The same rule sorts two shapes that share a position.
 
-Here is how the pattern is implemented:
+If you are wondering why HERITRACE does not simply keep the order in which you wrote the properties: SHACL is a graph after all, and a graph does not remember which triple came first.
 
-1.  **Link to the Proxy Shape**: From your primary entity's shape (e.g., a `JournalArticleShape`), use `sh:node` to point to a shape that defines the proxy entity (e.g., `AuthorShape`).
+```ttl
+sh:property [ sh:path dcterms:title ; sh:name "Title" ; sh:order 1 ] ;
+sh:property [ sh:path prism:publicationDate ; sh:name "Publication Date" ; sh:order 2 ] .
+```
 
-    ```ttl
+### Widgets (`shui:editor`)
+
+HERITRACE does its best to pick the right input from the constraints of each property. A property with `sh:in` becomes a list of values to choose from. A date datatype (`xsd:date`, `xsd:gYearMonth` or `xsd:gYear`) gets a calendar, and when the shape allows more than one of them, users also choose between a full date, a month and a year. Numbers and `xsd:anyURI` open the matching keyboard. Any other value gets a single-line text field.
+
+The datatype cannot tell a short title from a long abstract, though, because both are strings. For such fields, `shui:editor` sets the input: `shui:TextAreaEditor` asks for a multi-line text area, and `shui:TextFieldEditor` for a single-line field.
+
+```ttl
+sh:property [
+    sh:path dcterms:abstract ;
+    sh:datatype xsd:string ;
+    shui:editor shui:TextAreaEditor ;
+] .
+```
+
+### Entity labels (`shui:LabelRole`)
+
+Each entity is identified by an IRI, such as `https://w3id.org/oc/meta/ra/0601`, which people cannot read. Its label is the text that HERITRACE shows in place of the IRI, such as "Maltezou, Helen C.". To define it, mark one property shape of the node shape with `shui:propertyRole shui:LabelRole`. Without it, HERITRACE shows the IRI.
+
+If the data already holds a readable name, give the role to the property shape of that name. Here an agent is labelled by its `foaf:name`:
+
+```ttl
+schema:ResponsibleAgentShape
     sh:property [
-        sh:path pro:isDocumentContextFor ;
-        sh:node schema:AuthorShape ;
+        sh:path foaf:name ;
+        sh:datatype xsd:string ;
+        sh:name "Name" ;
+        shui:propertyRole shui:LabelRole ;
     ] .
-    ```
+```
 
-2.  **Define the Proxy Shape**: Create the shape for the intermediate entity (e.g., `AuthorShape`). This shape should:
-    - Target the class of the intermediate entity (e.g., `pro:RoleInTime`).
-    - Define constraints for the relationship's attributes (e.g., `sh:hasValue pro:author`).
-    - Link to the final target entity's shape (e.g., `sh:node schema:ResponsibleAgentShape`).
+If no single value is enough, build the label with `sh:values` and a SPARQL query written with `sh:select`. The query returns exactly one variable, and `$this` stands for the entity being labelled. Here a volume is labelled with its number and the title of its journal:
 
-    ```ttl
-    schema:AuthorShape
-        a sh:NodeShape ;
-        sh:targetClass pro:RoleInTime ;
-        sh:property [
-            sh:path pro:withRole ;
-            sh:hasValue pro:author ;
+```ttl
+schema:JournalVolumeShape
+    sh:property [
+        sh:path rdfs:label ;
+        shui:propertyRole shui:LabelRole ;
+        sh:values [
+            sh:select """
+                SELECT ?display
+                WHERE {
+                  $this fabio:hasSequenceIdentifier ?number ;
+                        frbr:partOf ?journal .
+                  ?journal dcterms:title ?journalTitle .
+                  BIND(CONCAT("Vol. ", ?number, ", ", ?journalTitle) AS ?display)
+                }
+            """ ;
         ] ;
-        sh:property [
-            sh:path pro:isHeldBy ;
-            sh:node schema:ResponsibleAgentShape ;
-        ] .
-    ```
+    ] .
+```
 
-<Aside type="note" title="Proxy Entities in HERITRACE">
-This pattern is central to how HERITRACE manages complex data.
-- **[Configure proxy relationships in the UI](/heritrace/configuration/display-rules/#relationship-properties)**
-- **[Manage proxy deletion behavior in settings](/heritrace/configuration/app-settings/#entity-handling-strategies)**
+The prefixes that the query uses are declared once for the whole shapes graph:
+
+```ttl
+[] a sh:ShapesGraph ;
+    sh:declare
+        [ sh:prefix "dcterms" ; sh:namespace "http://purl.org/dc/terms/"^^xsd:anyURI ] ,
+        [ sh:prefix "fabio" ; sh:namespace "http://purl.org/spar/fabio/"^^xsd:anyURI ] ,
+        [ sh:prefix "frbr" ; sh:namespace "http://purl.org/vocab/frbr/core#"^^xsd:anyURI ] .
+```
+
+A select expression can also carry its own `sh:prefixes`. If a label query returns no result, HERITRACE reports the error.
+
+<Aside type="caution" title="Labels that follow incoming references">
+A label query can use `$this` as an object and build the label from the entities that point at it. HERITRACE detects this and loads those entities on history pages, which is expensive when an entity has many referrers. Such a label also resolves only for snapshots taken after the referring entity existed, so prefer following references away from the entity.
 </Aside>
-
-## SHACL and display rules interaction
-
-SHACL and Display Rules are both individually optional, but their interaction follows specific rules that determine data validation, form generation, and user interface behavior.
-
-### Configuration interaction matrix
-
-| Scenario | SHACL Schema | Display Rules | Entity Creation Method | Property Constraints | Form Generation | Display Names |
-|----------|--------------|---------------|----------------------|---------------------|-----------------|---------------|
-| **Full Configuration** | ✅ Present | ✅ Present | SHACL-based forms (predefined entity types) | ✅ SHACL constraints enforced | ✅ Generated from SHACL + Display Rules styling | ✅ From Display Rules with URI fallback |
-| **SHACL Only** | ✅ Present | ❌ Absent | SHACL-based forms (predefined entity types) | ✅ SHACL constraints enforced | ✅ Generated from SHACL only | ✅ Auto-generated from URI |
-| **Display Rules Only** | ❌ Absent | ✅ Present | Custom properties form (free-form) | ❌ No validation | ✅ Custom properties form | ✅ From Display Rules (if class matches) or URI |
-| **Neither Present** | ❌ Absent | ❌ Absent | Custom properties form (free-form) | ❌ No validation | ✅ Custom properties form | ✅ Auto-generated from URI |
-
-### Key interaction rules
-
-#### 1. SHACL has precedence over properties
-- **Rule**: When a SHACL shape exists for an entity class, **only properties defined in that shape** are available for entity creation and editing.
-- **Implication**: You cannot add arbitrary properties through Display Rules if they're not defined in the corresponding SHACL shape.
-- **Example**: If `JournalArticleShape` only defines `dcterms:title` and `dcterms:abstract`, you cannot create display rules for `prism:keyword` unless you first add it to the SHACL shape.
-
-#### 2. Entity creation methods
-- **Rule**: The presence of SHACL determines the entity creation method available to users.
-- **With SHACL**: Users get structured forms with predefined entity types and properties, limited to what's defined in SHACL shapes.
-- **Without SHACL**: Users get a custom properties form where they can define any property URI and value.
-- **Example**: With SHACL, you select "Journal Article" from a dropdown and fill predefined fields. Without SHACL, you manually enter property URIs like `dcterms:title` and their values.
-
-#### 3. Display name fallback chain
-- **Rule**: Display names for properties follow this priority order:
-  1. **Display Rules**: `displayName` from matching display rule
-  2. **Auto-generated from URI**: Automatic formatting of property URI using `format_uri_as_readable()`
-- **Note**: The system always provides readable names by converting URIs like `dcterms:title` to `title` or `hasPublicationDate` to `has publication date`.
-
-#### 4. Shape priority determines specificity
-- **Rule**: When multiple SHACL shapes target the same class, Display Rules priority determines which shape to use.
-- **Implication**: Lower priority numbers (higher priority) in Display Rules affect SHACL shape selection.
-- **Example**: Both `RegularIssueShape` and `SpecialIssueShape` target `fabio:JournalIssue`, but the Display Rule with `priority: 1` determines which shape applies.
-
-#### 5. Validation always follows SHACL
-- **Rule**: Data validation constraints come exclusively from SHACL shapes, never from Display Rules.
-- **Implication**: Display Rules control presentation and behavior, but cannot override or add validation constraints.
-
-### Best practices for combined configuration
-
-1. **Define SHACL first**: Always start by defining your SHACL shapes before creating display rules.
-
-2. **Align properties**: Ensure display rules only reference properties that exist in the corresponding SHACL shapes.
-
-3. **Test iteratively**: When modifying SHACL shapes, verify that existing display rules still function correctly.
-
-4. **Use consistent priorities**: Align display rules priorities with your intended SHACL shape precedence.
-
-## Testing and updating
-
-- **Reloading**: When running in development mode, the application will automatically restart when it detects changes to `shacl.ttl`, applying your updates instantly.
-- **Update display rules**: If you modify properties, remember to update `display_rules.yaml` to reflect those changes in the user interface.
-- **Validation testing**: After SHACL changes, test form generation and validation to ensure all constraints work as expected.
-
-<Aside type="caution" title="Breaking Changes">
-Schema changes can affect existing data. Always backup your database before making significant schema modifications. Changes to SHACL shapes may invalidate existing Display Rules configurations.
-</Aside> 

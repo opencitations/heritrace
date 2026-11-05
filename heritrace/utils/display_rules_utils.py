@@ -10,16 +10,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.parse import unquote
 
-from pyparsing.exceptions import ParseException
-from rdflib import Graph, Literal, URIRef
-from rdflib.plugins.sparql.algebra import translateQuery, traverse
-from rdflib.plugins.sparql.parser import parseQuery
+from rdflib import RDF, Graph, Literal, URIRef
 from SPARQLWrapper import JSON
 
 from heritrace.extensions import (
     get_custom_filter,
     get_display_rules,
     get_form_fields,
+    get_presentation,
     get_sparql,
     get_sparql_bindings,
     select_results,
@@ -27,6 +25,9 @@ from heritrace.extensions import (
 
 if TYPE_CHECKING:
     from rdflib.query import ResultRow
+    from rdflib.term import Node
+
+    from heritrace.utils.shacl_presentation import PropertyPresentation
 
 
 @dataclass(slots=True)
@@ -39,52 +40,8 @@ class GroupingContext:
     historical_snapshot: Graph | None
     highest_priority_class: str | None
     highest_priority_shape: str | None
-
-
-_SUBJECT_LABEL_PAIR_LENGTH = 2
-
-_INVERSE_PROBE = URIRef("urn:heritrace:inverse-probe")
-
-
-def _binds_uri_as_object(fetch_uri_display: str) -> bool:
-    probed = fetch_uri_display.replace("[[uri]]", f"<{_INVERSE_PROBE}>")
-    try:
-        algebra = translateQuery(parseQuery(probed)).algebra
-    except ParseException:
-        # rdflib evaluates fetchUriDisplay against the snapshot graph with this
-        # same parser, so a query it cannot parse cannot produce a label there
-        # and cannot need incoming references either.
-        logging.getLogger(__name__).warning(
-            "fetchUriDisplay query is not valid SPARQL and will not render in "
-            "entity history: %s",
-            fetch_uri_display,
-        )
-        return False
-    found = False
-
-    def visit(node: object) -> None:
-        nonlocal found
-        triples = getattr(node, "triples", None)
-        if triples is None:
-            return
-        for triple in triples:
-            if triple[2] == _INVERSE_PROBE:
-                found = True
-
-    traverse(algebra, visitPre=visit)
-    return found
-
-
-# A rule that binds [[uri]] as an object resolves its label from entities
-# pointing at the current one, so history retrieval must collect reverse
-# relations to render it. That means reconstructing the history of every
-# referring entity, so it is done only when a rule actually needs it.
-def uses_inverse_relations(display_rules: list[dict]) -> bool:
-    return any(
-        _binds_uri_as_object(rule["fetchUriDisplay"])
-        for rule in display_rules
-        if "fetchUriDisplay" in rule
-    )
+    value_shapes: dict[str, str | None]
+    value_triples: dict[str, list[tuple[Node, Node, Node]]]
 
 
 def find_matching_rule(
@@ -222,16 +179,9 @@ def get_sortable_properties(entity_key: tuple[str, str | None]) -> list[dict[str
     sort_props = []
     for sort_config in rule["sortableBy"]:
         prop = sort_config.copy()
-
-        for display_prop in rule["displayProperties"]:
-            if display_prop["property"] == prop["property"]:
-                if "displayRules" in display_prop:
-                    prop["displayName"] = display_prop["displayRules"][0]["displayName"]
-                else:
-                    prop["displayName"] = display_prop.get(
-                        "displayName", prop["property"]
-                    )
-                break
+        prop["displayName"] = get_custom_filter().human_readable_predicate(
+            prop["property"], entity_key
+        )
 
         # Default to string sorting
         prop["sortType"] = "string"
@@ -301,20 +251,182 @@ def get_highest_priority_class(subject_classes: list[str]) -> str | None:
     return highest_priority_class
 
 
-def _ensure_grouped_entry(
-    ctx: GroupingContext,
-    display_name: str,
-    prop_uri: str,
-    object_shape: str | None,
-) -> None:
-    if display_name not in ctx.grouped_triples:
-        ctx.grouped_triples[display_name] = {
-            "property": prop_uri,
-            "triples": [],
-            "subjectClass": ctx.highest_priority_class,
-            "subjectShape": ctx.highest_priority_shape,
-            "objectShape": object_shape,
+def _value_shapes(
+    triples: list[tuple[URIRef, URIRef, URIRef | Literal]],
+    historical_snapshot: Graph | None,
+) -> tuple[dict[str, str | None], dict[str, list[tuple[Node, Node, Node]]]]:
+    from heritrace.utils.shacl_utils import (  # noqa: PLC0415
+        determine_shape_for_entity_triples,
+    )
+    from heritrace.utils.sparql_utils import get_triples_from_graph  # noqa: PLC0415
+
+    values = sorted(
+        {
+            str(obj)
+            for _, predicate, obj in triples
+            if isinstance(obj, URIRef) and predicate != RDF.type
         }
+    )
+    value_triples: dict[str, list[tuple[Node, Node, Node]]] = {
+        value: [] for value in values
+    }
+    if historical_snapshot is not None:
+        for value in values:
+            value_triples[value] = list(
+                get_triples_from_graph(historical_snapshot, (URIRef(value), None, None))
+            )
+    elif values:
+        sparql = get_sparql()
+        sparql.setQuery(
+            "SELECT ?s ?p ?o WHERE { VALUES ?s { "
+            + " ".join(URIRef(value).n3() for value in values)
+            + " } ?s ?p ?o }"
+        )
+        sparql.setReturnFormat(JSON)
+        for binding in get_sparql_bindings(sparql.query().convert()):
+            obj = binding["o"]
+            value_triples[binding["s"]["value"]].append(
+                (
+                    URIRef(binding["s"]["value"]),
+                    URIRef(binding["p"]["value"]),
+                    URIRef(obj["value"])
+                    if obj["type"] == "uri"
+                    else Literal(obj["value"]),
+                )
+            )
+    shapes = {
+        value: determine_shape_for_entity_triples(entity_triples)
+        for value, entity_triples in value_triples.items()
+    }
+    return shapes, value_triples
+
+
+def _connecting_property(
+    entity_key: tuple[str | None, str | None], predicate: str, object_shape: str | None
+) -> str | None:
+    for field in get_form_fields().get(entity_key, {}).get(predicate, []):
+        relation = field.get("intermediateRelation")
+        if relation and field.get("nodeShape") == object_shape:
+            return relation["connectingProperty"]
+    return None
+
+
+def _linked_entity(
+    ctx: GroupingContext,
+    value: str,
+    predicate: str,
+    object_shape: str | None,
+) -> str:
+    connecting_property = _connecting_property(
+        (ctx.highest_priority_class, ctx.highest_priority_shape),
+        predicate,
+        object_shape,
+    )
+    if connecting_property is None:
+        return value
+    for _, linked_predicate, linked in ctx.value_triples[value]:
+        if str(linked_predicate) == connecting_property:
+            return str(linked)
+    return value
+
+
+def _triple_data(
+    ctx: GroupingContext,
+    triple: tuple[URIRef, URIRef, URIRef | Literal],
+    object_shape: str | None,
+) -> dict:
+    subject, predicate, obj = triple
+    object_uri = str(obj)
+    data = {
+        "object": object_uri,
+        "subjectClass": ctx.highest_priority_class,
+        "subjectShape": ctx.highest_priority_shape,
+        "objectShape": object_shape,
+    }
+    custom_filter = get_custom_filter()
+    if predicate == RDF.type:
+        from heritrace.utils.shacl_utils import (  # noqa: PLC0415
+            determine_shape_for_classes,
+        )
+
+        label = custom_filter.human_readable_class(
+            (object_uri, determine_shape_for_classes([object_uri]))
+        )
+        return {**data, "triple": (str(subject), str(predicate), label)}
+    value_shape = ctx.value_shapes.get(object_uri)
+    if isinstance(obj, URIRef) and custom_filter.has_label(value_shape):
+        label = custom_filter.entity_label(
+            object_uri, value_shape, ctx.historical_snapshot
+        )
+        if label is not None:
+            ctx.fetched_values_map[label] = object_uri
+            return {
+                **data,
+                "triple": (str(subject), str(predicate), label),
+                "external_entity": _linked_entity(
+                    ctx, object_uri, str(predicate), object_shape
+                ),
+            }
+    return {**data, "triple": (str(subject), str(predicate), obj)}
+
+
+def _new_group(
+    ctx: GroupingContext,
+    predicate: str,
+    object_shape: str | None,
+    prop_config: dict,
+) -> dict:
+    return {
+        "property": predicate,
+        "triples": [],
+        "subjectClass": ctx.highest_priority_class,
+        "subjectShape": ctx.highest_priority_shape,
+        "objectShape": object_shape,
+        "intermediateRelation": prop_config.get("intermediateRelation"),
+    }
+
+
+def _property_shape_for_value(
+    ctx: GroupingContext,
+    presentations: list[PropertyPresentation],
+    obj: URIRef | Literal,
+) -> PropertyPresentation:
+    value_shape = ctx.value_shapes.get(str(obj))
+    for presentation in presentations:
+        if presentation.node == value_shape:
+            return presentation
+    return presentations[0]
+
+
+def _group_shape_properties(ctx: GroupingContext, prop_configs: dict) -> None:
+    by_predicate: OrderedDict[str, list[PropertyPresentation]] = OrderedDict()
+    for prop in get_presentation().shape_properties(ctx.highest_priority_shape):
+        by_predicate.setdefault(prop.path, []).append(prop)
+
+    for predicate, presentations in by_predicate.items():
+        ctx.relevant_properties.add(predicate)
+        prop_config = prop_configs.get(predicate, {})
+        group_names = {}
+        for presentation in presentations:
+            group_name = presentation.name or predicate
+            group_names[presentation.identifier] = group_name
+            if group_name not in ctx.grouped_triples:
+                ctx.grouped_triples[group_name] = _new_group(
+                    ctx, predicate, presentation.node, prop_config
+                )
+        for triple in ctx.triples:
+            if str(triple[1]) != predicate:
+                continue
+            presentation = _property_shape_for_value(ctx, presentations, triple[2])
+            group_name = group_names[presentation.identifier]
+            ctx.grouped_triples[group_name]["triples"].append(
+                _triple_data(ctx, triple, presentation.node)
+            )
+        if "orderedBy" in prop_config:
+            for group_name in dict.fromkeys(group_names.values()):
+                _apply_ordering_to_group(
+                    ctx, prop_config, prop_config["orderedBy"], group_name
+                )
 
 
 def _apply_ordering_to_group(
@@ -333,176 +445,6 @@ def _apply_ordering_to_group(
     )
 
 
-def _apply_intermediate_relation(
-    grouped_triples: OrderedDict,
-    display_name: str,
-    *sources: dict,
-) -> None:
-    for source in sources:
-        if "intermediateRelation" in source:
-            grouped_triples[display_name]["intermediateRelation"] = source[
-                "intermediateRelation"
-            ]
-            return
-
-
-def _process_property_with_nested_display_rules(
-    prop_uri: str,
-    current_prop_config: dict,
-    ctx: GroupingContext,
-) -> None:
-    is_ordered = "orderedBy" in current_prop_config
-    order_property = current_prop_config.get("orderedBy")
-
-    for display_rule_nested in current_prop_config["displayRules"]:
-        display_name_nested = display_rule_nested.get("displayName", prop_uri)
-        ctx.relevant_properties.add(prop_uri)
-        object_shape = display_rule_nested.get("shape")
-        if current_prop_config.get("isVirtual"):
-            process_virtual_property_display(
-                display_name_nested,
-                current_prop_config,
-                ctx,
-            )
-        else:
-            process_display_rule(
-                display_name_nested,
-                prop_uri,
-                display_rule_nested,
-                ctx,
-                object_shape=object_shape,
-            )
-        if is_ordered and not current_prop_config.get("isVirtual", False):
-            _apply_ordering_to_group(
-                ctx,
-                current_prop_config,
-                order_property,
-                display_name_nested,
-            )
-
-        _ensure_grouped_entry(
-            ctx,
-            display_name_nested,
-            prop_uri,
-            display_rule_nested.get("shape"),
-        )
-
-        _apply_intermediate_relation(
-            ctx.grouped_triples,
-            display_name_nested,
-            display_rule_nested,
-            current_prop_config,
-        )
-
-
-def _process_property_with_simple_config(
-    prop_uri: str,
-    current_prop_config: dict,
-    current_form_field: list[dict] | None,
-    ctx: GroupingContext,
-) -> None:
-    display_name_simple = current_prop_config.get("displayName", prop_uri)
-    # Only add non-virtual properties to relevant_properties
-    # Virtual properties are handled separately in entity.py
-    if not current_prop_config.get("isVirtual"):
-        ctx.relevant_properties.add(prop_uri)
-
-    object_shape = None
-    if current_form_field:
-        for form_field in current_form_field:
-            object_shape = form_field.get("nodeShape")
-            break
-
-    if current_prop_config.get("isVirtual"):
-        process_virtual_property_display(
-            display_name_simple,
-            current_prop_config,
-            ctx,
-        )
-    else:
-        process_display_rule(
-            display_name_simple,
-            prop_uri,
-            current_prop_config,
-            ctx,
-            object_shape=object_shape,
-        )
-    if "orderedBy" in current_prop_config and not current_prop_config.get(
-        "isVirtual", False
-    ):
-        _ensure_grouped_entry(
-            ctx,
-            display_name_simple,
-            prop_uri,
-            current_prop_config.get("shape"),
-        )
-        _apply_ordering_to_group(
-            ctx,
-            current_prop_config,
-            current_prop_config.get("orderedBy"),
-            display_name_simple,
-        )
-    if "intermediateRelation" in current_prop_config:
-        _ensure_grouped_entry(
-            ctx,
-            display_name_simple,
-            prop_uri,
-            current_prop_config.get("shape"),
-        )
-        ctx.grouped_triples[display_name_simple]["intermediateRelation"] = (
-            current_prop_config["intermediateRelation"]
-        )
-
-
-def _process_property_with_display_rules(
-    prop_uri: str,
-    matching_rule: dict,
-    matching_form_field: dict | None,
-    ctx: GroupingContext,
-) -> None:
-    current_prop_config = None
-    for prop_config in matching_rule.get("displayProperties", []):
-        config_identifier = (
-            prop_config.get("displayName")
-            if prop_config.get("isVirtual")
-            else prop_config.get("property")
-        )
-        if config_identifier == prop_uri:
-            current_prop_config = prop_config
-            break
-
-    current_form_field = (
-        matching_form_field.get(prop_uri) if matching_form_field else None
-    )
-
-    if current_prop_config:
-        if "displayRules" in current_prop_config:
-            _process_property_with_nested_display_rules(
-                prop_uri,
-                current_prop_config,
-                ctx,
-            )
-        else:
-            _process_property_with_simple_config(
-                prop_uri,
-                current_prop_config,
-                current_form_field,
-                ctx,
-            )
-    else:
-        # Property without specific configuration - add to relevant_properties
-        # Don't process properties without config
-        # (they are not virtual in this case)
-        ctx.relevant_properties.add(prop_uri)
-        process_default_property(
-            prop_uri,
-            ctx.triples,
-            ctx.grouped_triples,
-            ctx.highest_priority_shape,
-            ctx.highest_priority_class,
-        )
-
-
 def get_grouped_triples(
     subject: URIRef,
     triples: list[tuple[URIRef, URIRef, URIRef | Literal]],
@@ -511,56 +453,41 @@ def get_grouped_triples(
     entity_key: tuple[str | None, str | None] = (None, None),
 ) -> tuple[OrderedDict, set]:
     highest_priority_class, highest_priority_shape = entity_key
-    display_rules = get_display_rules()
-    form_fields = get_form_fields()
-
-    grouped_triples = OrderedDict()
-    relevant_properties: set = set()
-    fetched_values_map: dict[str, str] = {}
+    value_shapes, value_triples = _value_shapes(triples, historical_snapshot)
 
     ctx = GroupingContext(
         subject=subject,
         triples=triples,
-        grouped_triples=grouped_triples,
-        fetched_values_map=fetched_values_map,
-        relevant_properties=relevant_properties,
+        grouped_triples=OrderedDict(),
+        fetched_values_map={},
+        relevant_properties=set(),
         historical_snapshot=historical_snapshot,
         highest_priority_class=highest_priority_class,
         highest_priority_shape=highest_priority_shape,
+        value_shapes=value_shapes,
+        value_triples=value_triples,
     )
 
-    matching_rule = find_matching_rule(
-        highest_priority_class, highest_priority_shape, display_rules
+    matching_rule = find_matching_rule(highest_priority_class, highest_priority_shape)
+    display_properties = (
+        matching_rule.get("displayProperties", []) if matching_rule else []
     )
-    matching_form_field = form_fields.get(
-        (highest_priority_class, highest_priority_shape)
-    )
+    prop_configs = {
+        prop["property"]: prop
+        for prop in display_properties
+        if not prop.get("isVirtual")
+    }
 
-    ordered_properties = []
-    if display_rules and matching_rule:
-        for prop_config in matching_rule.get("displayProperties", []):
-            if prop_config.get("isVirtual"):
-                prop_uri = prop_config.get("displayName")
-            else:
-                prop_uri = prop_config.get("property")
-            if prop_uri and prop_uri not in ordered_properties:
-                ordered_properties.append(prop_uri)
+    _group_shape_properties(ctx, prop_configs)
+
+    for prop_config in display_properties:
+        if prop_config.get("isVirtual"):
+            process_virtual_property_display(
+                prop_config["displayName"], prop_config, ctx
+            )
 
     for prop_uri in valid_predicates_info:
-        if prop_uri not in ordered_properties:
-            ordered_properties.append(prop_uri)
-
-    for prop_uri in ordered_properties:
-        if display_rules and matching_rule:
-            _process_property_with_display_rules(
-                prop_uri,
-                matching_rule,
-                matching_form_field,
-                ctx,
-            )
-        else:
-            # No display rules or no matching rule -
-            # add all properties to relevant_properties
+        if prop_uri not in ctx.relevant_properties:
             ctx.relevant_properties.add(prop_uri)
             process_default_property(
                 prop_uri,
@@ -570,76 +497,7 @@ def get_grouped_triples(
                 ctx.highest_priority_class,
             )
 
-    ctx.grouped_triples = OrderedDict(ctx.grouped_triples)
     return ctx.grouped_triples, ctx.relevant_properties
-
-
-def process_display_rule(
-    display_name: str,
-    prop_uri: str,
-    rule: dict,
-    ctx: GroupingContext,
-    object_shape: str | None = None,
-) -> None:
-    if display_name not in ctx.grouped_triples:
-        ctx.grouped_triples[display_name] = {
-            "property": prop_uri,
-            "triples": [],
-            "subjectClass": ctx.highest_priority_class,
-            "subjectShape": ctx.highest_priority_shape,
-            "objectShape": object_shape,
-            "intermediateRelation": rule.get("intermediateRelation"),
-        }
-    for triple in ctx.triples:
-        if str(triple[1]) == prop_uri:
-            if rule.get("fetchValueFromQuery"):
-                if ctx.historical_snapshot:
-                    result, external_entity = execute_historical_query(
-                        rule["fetchValueFromQuery"],
-                        ctx.subject,
-                        triple[2],
-                        ctx.historical_snapshot,
-                    )
-                else:
-                    result, external_entity = execute_sparql_query(
-                        rule["fetchValueFromQuery"], ctx.subject, triple[2]
-                    )
-                if result:
-                    ctx.fetched_values_map[str(result)] = str(triple[2])
-                    new_triple = (str(triple[0]), str(triple[1]), str(result))
-                    object_uri = str(triple[2])
-                    new_triple_data = {
-                        "triple": new_triple,
-                        "external_entity": external_entity,
-                        "object": object_uri,
-                        "subjectClass": ctx.highest_priority_class,
-                        "subjectShape": ctx.highest_priority_shape,
-                        "objectShape": object_shape,
-                    }
-                    ctx.grouped_triples[display_name]["triples"].append(new_triple_data)
-            else:
-                if str(triple[1]) == "http://www.w3.org/1999/02/22-rdf-syntax-ns#type":
-                    from heritrace.utils.shacl_utils import (  # noqa: PLC0415
-                        determine_shape_for_classes,
-                    )
-
-                    object_class_shape = determine_shape_for_classes([triple[2]])
-                    result = get_custom_filter().human_readable_class(
-                        (triple[2], object_class_shape)
-                    )
-                else:
-                    result = triple[2]
-
-                object_uri = str(triple[2])
-
-                new_triple_data = {
-                    "triple": (str(triple[0]), str(triple[1]), result),
-                    "object": object_uri,
-                    "subjectClass": ctx.highest_priority_class,
-                    "subjectShape": ctx.highest_priority_shape,
-                    "objectShape": object_shape,
-                }
-                ctx.grouped_triples[display_name]["triples"].append(new_triple_data)
 
 
 def _fetch_virtual_property_entities(
@@ -676,59 +534,20 @@ def _fetch_virtual_property_entities(
     return [res["entity"]["value"] for res in bindings]
 
 
-def _build_virtual_property_triples(
-    display_name: str,
-    prop_config: dict,
-    target_shape: str | None,
-    entity_uris: list[str],
-    ctx: GroupingContext,
-) -> None:
-    if display_name not in ctx.grouped_triples:
-        ctx.grouped_triples[display_name] = {
-            "property": display_name,
-            "triples": [],
-            "subjectClass": ctx.highest_priority_class,
-            "subjectShape": ctx.highest_priority_shape,
-            "objectShape": None,
-            "is_virtual": True,
-        }
-
-    for entity_uri in entity_uris:
-        if ctx.historical_snapshot:
-            result, external_entity = execute_historical_query(
-                prop_config["fetchValueFromQuery"],
-                ctx.subject,
-                URIRef(entity_uri),
-                ctx.historical_snapshot,
-            )
-        else:
-            result, external_entity = execute_sparql_query(
-                prop_config["fetchValueFromQuery"], str(ctx.subject), entity_uri
-            )
-
-        if result:
-            ctx.fetched_values_map[str(result)] = entity_uri
-            new_triple_data = {
-                "triple": (str(ctx.subject), display_name, str(result)),
-                "external_entity": external_entity,
-                "object": entity_uri,
-                "subjectClass": ctx.highest_priority_class,
-                "subjectShape": ctx.highest_priority_shape,
-                "objectShape": target_shape,
-                "is_virtual": True,
-            }
-            ctx.grouped_triples[display_name]["triples"].append(new_triple_data)
-
-
 def process_virtual_property_display(
     display_name: str,
     prop_config: dict,
     ctx: GroupingContext,
 ) -> None:
+    from heritrace.utils.shacl_utils import (  # noqa: PLC0415
+        determine_shape_for_classes,
+    )
+
     implementation = prop_config.get("implementedVia", {})
     field_overrides = implementation.get("fieldOverrides", {})
     target = implementation.get("target", {})
     target_class = target.get("class")
+    target_shape = target.get("shape") or determine_shape_for_classes([target_class])
 
     reference_field = None
     for field_uri, override in field_overrides.items():
@@ -739,49 +558,34 @@ def process_virtual_property_display(
     if not reference_field:
         return
 
-    entity_uris = _fetch_virtual_property_entities(reference_field, target_class, ctx)
+    ctx.grouped_triples[display_name] = {
+        "property": display_name,
+        "triples": [],
+        "subjectClass": ctx.highest_priority_class,
+        "subjectShape": ctx.highest_priority_shape,
+        "objectShape": None,
+        "is_virtual": True,
+    }
 
-    if prop_config.get("fetchValueFromQuery") and entity_uris:
-        _build_virtual_property_triples(
-            display_name, prop_config, target.get("shape"), entity_uris, ctx
+    custom_filter = get_custom_filter()
+    for entity_uri in _fetch_virtual_property_entities(
+        reference_field, target_class, ctx
+    ):
+        label = custom_filter.human_readable_entity(
+            entity_uri, (target_class, target_shape), ctx.historical_snapshot
         )
-
-    elif display_name not in ctx.grouped_triples:
-        ctx.grouped_triples[display_name] = {
-            "property": display_name,
-            "triples": [],
-            "subjectClass": ctx.highest_priority_class,
-            "subjectShape": ctx.highest_priority_shape,
-            "objectShape": None,
-            "is_virtual": True,
-        }
-
-
-def execute_sparql_query(
-    query: str, subject: str, value: str
-) -> tuple[str | None, str | None]:
-    sparql = get_sparql()
-
-    decoded_subject = unquote(subject)
-    decoded_value = unquote(value)
-    query = query.replace("[[subject]]", f"<{decoded_subject}>")
-    query = query.replace("[[value]]", f"<{decoded_value}>")
-    sparql.setQuery(query)
-    sparql.setReturnFormat(JSON)
-    bindings = get_sparql_bindings(sparql.query().convert())
-    if bindings:
-        parsed_query = parseQuery(query)
-        algebra_query = translateQuery(parsed_query).algebra
-        variable_order = algebra_query["PV"]
-        result = bindings[0]
-        values = [
-            result.get(str(var_name), {}).get("value", None)
-            for var_name in variable_order
-        ]
-        first_value = values[0] if len(values) > 0 else None
-        second_value = values[1] if len(values) > 1 else None
-        return (first_value, second_value)
-    return None, None
+        ctx.fetched_values_map[label] = entity_uri
+        ctx.grouped_triples[display_name]["triples"].append(
+            {
+                "triple": (str(ctx.subject), display_name, label),
+                "external_entity": entity_uri,
+                "object": entity_uri,
+                "subjectClass": ctx.highest_priority_class,
+                "subjectShape": ctx.highest_priority_shape,
+                "objectShape": target_shape,
+                "is_virtual": True,
+            }
+        )
 
 
 def process_ordering(
@@ -880,53 +684,6 @@ def process_default_property(
         grouped_triples[display_name]["triples"].append(new_triple_data)
 
 
-def execute_historical_query(
-    query: str, subject: str, value: str, historical_snapshot: Graph
-) -> tuple[str | None, str | None]:
-    decoded_subject = unquote(subject)
-    decoded_value = unquote(value)
-    query = query.replace("[[subject]]", f"<{decoded_subject}>")
-    query = query.replace("[[value]]", f"<{decoded_value}>")
-    results = historical_snapshot.query(query)
-    for row in select_results(results):
-        if len(row) == _SUBJECT_LABEL_PAIR_LENGTH:
-            return (str(row[0]), str(row[1]))
-    return None, None
-
-
-def get_property_order_from_rules(
-    highest_priority_class: str | None, shape_uri: str | None = None
-) -> list[str]:
-    """
-    Extract ordered list of properties from display rules
-    for given entity class and optionally a shape.
-
-    Args:
-        highest_priority_class: The highest priority class for the entity
-        shape_uri: Optional shape URI for the entity
-
-    Returns:
-        List of property URIs in the order specified by display rules
-    """
-    if not highest_priority_class:
-        return []
-
-    rule = find_matching_rule(highest_priority_class, shape_uri)
-    if not rule:
-        return []
-
-    ordered_properties = []
-    for prop in rule.get("displayProperties", []):
-        if not isinstance(prop, dict):
-            continue
-        if prop.get("isVirtual"):
-            continue  # Virtual properties don't have RDF predicates
-        if "property" in prop:
-            ordered_properties.append(prop["property"])
-
-    return ordered_properties
-
-
 def get_predicate_ordering_info(
     predicate_uri: str,
     highest_priority_class: str | None,
@@ -960,46 +717,6 @@ def get_predicate_ordering_info(
             return prop.get("orderedBy")
 
     return None
-
-
-def get_shape_order_from_display_rules(
-    highest_priority_class: str | None, entity_shape: str | None, predicate_uri: str
-) -> list[str]:
-    """
-    Get the ordered list of shapes for a specific predicate from display rules.
-
-    Args:
-        highest_priority_class: The highest priority class for the entity
-        entity_shape: The shape for the subject entity
-        predicate_uri: The predicate URI to get shape ordering for
-
-    Returns:
-        List of shape URIs in the order specified in
-        displayRules, or empty list if no rules found
-    """
-    display_rules = get_display_rules()
-    if not display_rules:
-        return []
-
-    rule = find_matching_rule(highest_priority_class, entity_shape, display_rules)
-    if not rule or "displayProperties" not in rule:
-        return []
-
-    for prop_config in rule["displayProperties"]:
-        if not isinstance(prop_config, dict):
-            continue
-        if prop_config.get("isVirtual"):
-            continue  # Virtual properties don't have RDF predicates or display rules
-        if "property" not in prop_config:
-            continue  # Defensive check for malformed configuration
-        if prop_config["property"] == predicate_uri and "displayRules" in prop_config:
-            return [
-                display_rule.get("shape")
-                for display_rule in prop_config["displayRules"]
-                if display_rule.get("shape")
-            ]
-
-    return []
 
 
 def get_similarity_properties(
