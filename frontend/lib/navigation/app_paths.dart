@@ -2,20 +2,22 @@
 //
 // SPDX-License-Identifier: ISC
 
+import 'entity_store.dart';
+
 const landingPath = '/';
 const cataloguePath = '/catalogue';
 const recycleBinPath = '/recycle-bin';
 const createEntityPath = '/create-entity';
 const mergePath = '/merge/compare-and-merge';
+const settingsPath = '/settings';
 const loginPath = '/auth/login';
 
-String entityPath(String uri) => '/about/${Uri.encodeComponent(uri)}';
+String entityPath(String uri) => EntityStore.dataset.entityPath(uri);
 
-String entityHistoryPath(String uri) =>
-    '/entity-history/${Uri.encodeComponent(uri)}';
+String entityHistoryPath(String uri) => EntityStore.dataset.historyPath(uri);
 
 String entityVersionPath(String uri, String timestamp) =>
-    '/entity-version/${Uri.encodeComponent(uri)}/${Uri.encodeComponent(timestamp)}';
+    EntityStore.dataset.versionPath(uri, timestamp);
 
 String mergeComparePath(String subject, String otherSubject) => Uri(
   path: mergePath,
@@ -27,13 +29,22 @@ String mergeComparePath(String subject, String otherSubject) => Uri(
 /// engine decodes every location it writes to the browser history, so links
 /// and history entries carry the entity URI split at its slashes.
 String? encodeEntityLocation(List<String> segments) => switch (segments) {
-  ['about', _, _, ...] => entityPath(segments.skip(1).join('/')),
-  ['entity-history', _, _, ...] => entityHistoryPath(
-    segments.skip(1).join('/'),
+  ['settings', 'shapes', ...final rest] => _encodeStoreLocation(
+    EntityStore.configuration,
+    rest,
   ),
-  ['entity-version', _, _, _, ...] => entityVersionPath(
-    segments.sublist(1, segments.length - 1).join('/'),
-    segments.last,
-  ),
-  _ => null,
+  _ => _encodeStoreLocation(EntityStore.dataset, segments),
 };
+
+String? _encodeStoreLocation(EntityStore store, List<String> segments) =>
+    switch (segments) {
+      ['about', _, _, ...] => store.entityPath(segments.skip(1).join('/')),
+      ['entity-history', _, _, ...] => store.historyPath(
+        segments.skip(1).join('/'),
+      ),
+      ['entity-version', _, _, _, ...] => store.versionPath(
+        segments.sublist(1, segments.length - 1).join('/'),
+        segments.last,
+      ),
+      _ => null,
+    };

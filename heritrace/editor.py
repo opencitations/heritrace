@@ -2,11 +2,13 @@
 #
 # SPDX-License-Identifier: ISC
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Protocol
 
-from rdflib import XSD, Literal, URIRef
+from rdflib import XSD, Graph, Literal, URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from rdflib_ocdm.reader import Reader
@@ -14,21 +16,91 @@ from rdflib_ocdm.storer import Storer
 from SPARQLWrapper import JSON
 
 from heritrace.counter_handler import TransactionalCounterHandler
-from heritrace.sparql import SPARQLWrapperWithRetry, get_sparql_bindings
+from heritrace.rdf_files import load_rdf_file
+from heritrace.sparql import (
+    LocalSparql,
+    SparqlEndpoint,
+    SPARQLWrapperWithRetry,
+    get_sparql_bindings,
+)
 
 if TYPE_CHECKING:
     from heritrace.save_plugin import SavePlugin
 
 
+class EditorError(Exception):
+    pass
+
+
+class Backend(Protocol):
+    @property
+    def is_quadstore(self) -> bool: ...
+
+    def sparql(self) -> SparqlEndpoint: ...
+
+    def import_entities(
+        self, g_set: OCDMGraph | OCDMDataset, subjects: list[URIRef]
+    ) -> None: ...
+
+    def store(self, g_set: OCDMGraph | OCDMDataset) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
-class EndpointConfig:
+class TriplestoreBackend:
     dataset: str
     provenance: str
     is_quadstore: bool = True
 
+    def sparql(self) -> SparqlEndpoint:
+        return SPARQLWrapperWithRetry(self.dataset)
 
-class EditorError(Exception):
-    pass
+    def import_entities(
+        self, g_set: OCDMGraph | OCDMDataset, subjects: list[URIRef]
+    ) -> None:
+        Reader.import_entities_from_triplestore(g_set, self.dataset, subjects)
+
+    def store(self, g_set: OCDMGraph | OCDMDataset) -> None:
+        if not Storer(g_set).upload_all(self.dataset):
+            msg = "Failed to update the dataset triplestore"
+            raise EditorError(msg)
+        if not Storer(g_set.provenance).upload_all(self.provenance):
+            msg = "Failed to update the provenance triplestore"
+            raise EditorError(msg)
+
+
+# Keeps the data in a Turtle file and its provenance in a TriG file. Before
+# writing, check receives the data as it will be after the change and raises to
+# reject it. The caller holds a lock on the files for the whole change, from
+# reading the counters to storing.
+@dataclass(frozen=True, slots=True)
+class FileBackend:
+    data_path: Path
+    provenance_path: Path
+    check: Callable[[Graph], None]
+    after_store: Callable[[], object]
+    is_quadstore: bool = False
+
+    def sparql(self) -> SparqlEndpoint:
+        return LocalSparql(lambda: load_rdf_file(self.data_path))
+
+    def import_entities(
+        self, g_set: OCDMGraph | OCDMDataset, subjects: list[URIRef]
+    ) -> None:
+        Reader.import_entities_from_graph(
+            g_set, load_rdf_file(self.data_path), subjects
+        )
+
+    def store(self, g_set: OCDMGraph | OCDMDataset) -> None:
+        candidate = Graph()
+        for triple in load_rdf_file(self.data_path):
+            candidate.add(triple)
+        Storer(g_set).apply(candidate)
+        self.check(candidate)
+        draft = self.data_path.with_name(f".{self.data_path.name}.tmp")
+        candidate.serialize(draft, format="turtle")
+        Storer(g_set.provenance).store_file(self.provenance_path)
+        draft.replace(self.data_path)
+        self.after_store()
 
 
 def _as_stored(value: Literal | URIRef) -> Literal | URIRef:
@@ -40,21 +112,20 @@ def _as_stored(value: Literal | URIRef) -> Literal | URIRef:
 class Editor:
     def __init__(  # noqa: PLR0913
         self,
-        endpoints: EndpointConfig,
+        backend: Backend,
         counter_handler: CounterHandler,
         resp_agent: URIRef,
         source: URIRef | None = None,
         c_time: datetime | None = None,
         save_plugin: "SavePlugin | None" = None,
     ) -> None:
-        self.dataset_endpoint = endpoints.dataset
-        self.provenance_endpoint = endpoints.provenance
+        self.backend = backend
         self.counter_handler = counter_handler
         self.resp_agent = resp_agent
         self.source = source
         self.c_time = self.to_posix_timestamp(c_time)
         self.save_plugin = save_plugin
-        self.dataset_is_quadstore = endpoints.is_quadstore
+        self.dataset_is_quadstore = backend.is_quadstore
         self.transactional_counter_handler: TransactionalCounterHandler | None = (
             counter_handler
             if isinstance(counter_handler, TransactionalCounterHandler)
@@ -214,11 +285,7 @@ class Editor:
             self.g_set.mark_as_deleted(subject)  # type: ignore[arg-type]
 
     def import_entity(self, subject: URIRef) -> None:
-        Reader.import_entities_from_triplestore(
-            self.g_set,
-            self.dataset_endpoint,
-            [subject],  # type: ignore[arg-type]
-        )
+        self.backend.import_entities(self.g_set, [subject])
 
     def merge(
         self,
@@ -230,7 +297,7 @@ class Editor:
             msg = "Cannot merge an entity with itself."
             raise ValueError(msg)
 
-        merge_sparql = SPARQLWrapperWithRetry(self.dataset_endpoint)
+        merge_sparql = self.backend.sparql()
         entities_to_import: set[URIRef] = {keep_entity_uri, delete_entity_uri}
 
         query_incoming = (
@@ -244,11 +311,7 @@ class Editor:
             s_uri = URIRef(binding["s"]["value"])
             entities_to_import.add(s_uri)
 
-        Reader.import_entities_from_triplestore(
-            self.g_set,
-            self.dataset_endpoint,
-            list(entities_to_import),  # type: ignore[arg-type]
-        )
+        self.backend.import_entities(self.g_set, list(entities_to_import))
         self.begin_counter_transaction()
         self.g_set.preexisting_finished(self.resp_agent, self.source, self.c_time)  # type: ignore[arg-type]
         self.set_primary_source(primary_source)
@@ -264,18 +327,7 @@ class Editor:
         self.begin_counter_transaction()
         try:
             self.g_set.generate_provenance()  # type: ignore[arg-type]
-            dataset_storer = Storer(self.g_set)  # type: ignore[arg-type]
-            prov_storer = Storer(self.g_set.provenance)  # type: ignore[attr-defined]
-            self._upload_or_raise(
-                dataset_storer,
-                self.dataset_endpoint,
-                "Failed to update the dataset triplestore",
-            )
-            self._upload_or_raise(
-                prov_storer,
-                self.provenance_endpoint,
-                "Failed to update the provenance triplestore",
-            )
+            self.backend.store(self.g_set)
             if self.save_plugin is not None:
                 self.save_plugin.persist(self.g_set)
             self.g_set.commit_changes()  # type: ignore[arg-type]
@@ -283,11 +335,6 @@ class Editor:
         finally:
             if self._counter_transaction_started:
                 self._rollback_counter_transaction()
-
-    @staticmethod
-    def _upload_or_raise(storer: Storer, endpoint: str, error_message: str) -> None:
-        if not storer.upload_all(endpoint):  # type: ignore[arg-type]
-            raise EditorError(error_message)
 
     def begin_counter_transaction(self) -> None:
         if (

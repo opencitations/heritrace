@@ -1,31 +1,26 @@
-# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
+import tempfile
 from pathlib import Path
 from typing import ClassVar
 
 from default_components.meta_counter_handler import MetaCounterHandler
-from default_components.meta_uri_generator import MetaURIGenerator
-from heritrace.utils.strategies import OrphanHandlingStrategy, ProxyHandlingStrategy
 
 BASE_DIR = Path(__file__).parent.parent.resolve()
 
-test_counter_handler = MetaCounterHandler()
-test_counter_handler.port = 17804
+test_counter_handler = MetaCounterHandler(port=17804)
 
-test_meta_uri_generator = MetaURIGenerator(test_counter_handler)
-
-test_shacl_path = BASE_DIR / "tests" / "shacl.ttl"
-test_display_rules_path = BASE_DIR / "tests" / "display_rules.yaml"
+# The tests seed a copy, so the tests that save the configuration leave the
+# sources untouched.
+test_example_dir = BASE_DIR / "tests"
+test_config_dir = Path(tempfile.gettempdir()) / "heritrace-config"
 test_frontend_build_dir = BASE_DIR / "tests" / "frontend_build"
 
 
 class TestConfig:
     """Configuration for testing."""
-
-    APP_TITLE = "ParaText Test"
-    APP_SUBTITLE = "Bibliographical database - Test Environment"
 
     SECRET_KEY = "test-secret-key-for-testing-only"
     SESSION_COOKIE_SAMESITE = "Lax"
@@ -34,41 +29,32 @@ class TestConfig:
     SERVER_NAME = "localhost:5000"
     APPLICATION_ROOT = "/"
     PREFERRED_URL_SCHEME = "http"
-    CACHE_VALIDITY_DAYS = 1
     TESTING = True
 
     REDIS_URL = "redis://localhost:17804/0"
+    GUNICORN_WORKERS = 2
+
+    CONFIG_DIR = test_config_dir
+    DISPLAY_RULES_PATH = test_config_dir / "display_rules.yaml"
+    ADMIN_ORCIDS: ClassVar[list[str]] = ["0000-0000-0000-0000"]
 
     DATASET_DB_TRIPLESTORE = "virtuoso"
-    DATASET_DB_TEXT_INDEX_ENABLED = True
     PROVENANCE_DB_TRIPLESTORE = "virtuoso"
 
     DATASET_DB_URL = "http://localhost:17800/sparql"
     PROVENANCE_DB_URL = "http://localhost:17802/sparql"
 
     DATASET_IS_QUADSTORE = True
+    DATASET_DB_TEXT_INDEX_ENABLED = True
     PROVENANCE_IS_QUADSTORE = True
 
-    DATASET_GENERATION_TIME = "2024-01-01T00:00:00+00:00"
-    URI_GENERATOR = test_meta_uri_generator
-    COUNTER_HANDLER = test_counter_handler
-    PRIMARY_SOURCE = "https://example.com/test-primary-source"
-    SHACL_PATH = test_shacl_path
-    DISPLAY_RULES_PATH = test_display_rules_path
+    BASE_IRI = None
+    URI_GENERATOR_CLASS = "default_components.meta_uri_generator.MetaURIGenerator"
+    URI_GENERATOR_OPTIONS: ClassVar[dict[str, object]] = {}
+    COUNTER_HANDLER_CLASS = "default_components.meta_counter_handler.MetaCounterHandler"
+    COUNTER_HANDLER_OPTIONS: ClassVar[dict[str, object]] = {"port": 17804}
+    SAVE_PLUGIN_CLASS = None
+    SAVE_PLUGIN_OPTIONS: ClassVar[dict[str, object]] = {}
 
     ORCID_CLIENT_ID = "test-client-id"
     ORCID_CLIENT_SECRET = "test-client-secret"
-    ORCID_SAFELIST: ClassVar[list[str]] = [
-        "0000-0000-0000-0000",
-    ]
-
-    ORPHAN_HANDLING_STRATEGY = OrphanHandlingStrategy.ASK
-    PROXY_HANDLING_STRATEGY = ProxyHandlingStrategy.ASK
-
-    # Catalogue pagination configuration
-    CATALOGUE_DEFAULT_PER_PAGE = 50
-
-    # Query configuration
-    COUNT_LIMIT = 10000
-    MAX_WORKERS = 1
-    GUNICORN_WORKERS = 2

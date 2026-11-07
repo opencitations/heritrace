@@ -11,13 +11,15 @@ from requests.exceptions import RequestException
 from requests_oauthlib import OAuth2Session
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from heritrace.apis.orcid import extract_orcid_id, is_orcid_url
+from heritrace.apis.orcid import normalize_orcid
+from heritrace.configuration.runtime import is_admin
 from heritrace.models import User
 
 auth_bp = Blueprint("auth", __name__)
 
 CATALOGUE_PATH = "/catalogue"
 LOGIN_ERROR_PATH = "/?login_error="
+DEMO_USER = "http://example.org/demo/demo_user"
 
 
 def _frontend(path: str) -> str:
@@ -31,16 +33,23 @@ def _start_session(user: User) -> None:
     login_user(user)
 
 
+def _may_sign_in(orcid_id: str) -> bool:
+    config = current_app.config
+    if is_admin(config, orcid_id):
+        return True
+    if config["SETUP_ERROR"] is not None:
+        return False
+    safelist = config["ORCID_SAFELIST"]
+    return not safelist or orcid_id in {normalize_orcid(item) for item in safelist}
+
+
 @auth_bp.route("/login")
 def login() -> WerkzeugResponse:
     if current_user.is_authenticated:
         return redirect(_frontend(CATALOGUE_PATH))
 
     if os.environ.get("FLASK_ENV") == "demo":
-        user_id_from_env = os.environ.get("USER_ID", "demo_user")
-        demo_uri = f"http://example.org/demo/{user_id_from_env}"
-        user_name = "Demo User"
-        _start_session(User(user_id=demo_uri, name=user_name, orcid=demo_uri))
+        _start_session(User(user_id=DEMO_USER, name="Demo User", orcid=DEMO_USER))
         return redirect(_frontend(CATALOGUE_PATH))
 
     callback_url = url_for("auth.callback", _external=True, _scheme="https")
@@ -78,13 +87,8 @@ def callback() -> WerkzeugResponse:
         return redirect(_frontend(LOGIN_ERROR_PATH + "oauth_failed"))
     orcid_id = str(token["orcid"])
 
-    safelist = current_app.config["ORCID_SAFELIST"]
-    if safelist:
-        normalized_safelist = {
-            extract_orcid_id(item) if is_orcid_url(item) else item for item in safelist
-        }
-        if orcid_id not in normalized_safelist:
-            return redirect(_frontend(LOGIN_ERROR_PATH + "not_authorized"))
+    if not _may_sign_in(orcid_id):
+        return redirect(_frontend(LOGIN_ERROR_PATH + "not_authorized"))
 
     _start_session(User(user_id=orcid_id, name=str(token["name"]), orcid=orcid_id))
     return redirect(_frontend(CATALOGUE_PATH))

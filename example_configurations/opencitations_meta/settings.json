@@ -1,0 +1,11 @@
+{
+  "appTitle": "HERITRACE",
+  "appSubtitle": "Edit your knowledge graph with provenance",
+  "countLimit": 10000,
+  "catalogueDefaultPerPage": 50,
+  "datasetGenerationTime": "2024-12-25T00:00:00+00:00",
+  "primarySource": "https://example.org",
+  "orcidSafelist": [],
+  "orphanHandling": "ASK",
+  "proxyHandling": "ASK"
+}

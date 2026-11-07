@@ -12,12 +12,7 @@ Unfortunately, SHACL ([SHACL Core](https://w3c.github.io/data-shapes/shacl12-cor
 
 ## File location
 
-The application reads the YAML file from `/app/display_rules.yaml` inside the container. To use your own file, mount it as a Docker volume:
-
-```yaml
-volumes:
-  - ./my_display_rules.yaml:/app/display_rules.yaml
-```
+HERITRACE reads the YAML file from `display_rules.yaml` in the [configuration folder](../app-settings/#configuration-folder). To use your own file, put it in that folder with this name. The configuration editor does not change it; after editing it by hand, restart HERITRACE.
 
 Example configurations are available in [`example_configurations/`](https://github.com/opencitations/heritrace/tree/main/example_configurations).
 

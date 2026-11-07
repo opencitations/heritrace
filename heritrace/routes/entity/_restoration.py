@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from flask import Response, abort, current_app, jsonify
+from flask import Response, abort, jsonify
 from flask_login import current_user, login_required
 from rdflib import Dataset, Graph, Literal, URIRef
 from time_agnostic_library.agnostic_entity import AgnosticEntity
@@ -15,12 +15,11 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor, EditorError, EndpointConfig
+from heritrace.editor import Editor, EditorError
 from heritrace.extensions import (
     get_change_tracking_config,
-    get_dataset_endpoint,
     get_dataset_is_quadstore,
-    get_provenance_endpoint,
+    new_editor,
     record_dataset_change,
 )
 from heritrace.routes.entity._blueprint import entity_bp
@@ -222,18 +221,7 @@ def restore_entity_version(entity_uri: str, timestamp_dt: datetime) -> None:
 
     source_uri = None if is_deleted else entity_snapshots[entity_uri]["source"]
     resp_agent = get_responsible_agent_uri(current_user.orcid)
-    editor = Editor(
-        EndpointConfig(
-            dataset=get_dataset_endpoint(),
-            provenance=get_provenance_endpoint(),
-            is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
-        ),
-        current_app.config["COUNTER_HANDLER"],
-        resp_agent,
-        URIRef(source_uri) if source_uri else None,
-        current_app.config["DATASET_GENERATION_TIME"],
-        save_plugin=current_app.config.get("SAVE_PLUGIN"),
-    )
+    editor = new_editor(resp_agent, URIRef(source_uri) if source_uri else None)
 
     if get_dataset_is_quadstore():
         if not isinstance(current_graph, Dataset):

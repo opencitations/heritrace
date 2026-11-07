@@ -18,13 +18,15 @@ from flask_login import current_user, login_required
 from rdflib import RDF, XSD, Graph, Literal, URIRef
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor, EndpointConfig
+from heritrace.configuration.entity import ConfigurationRejectedError
+from heritrace.configuration.runtime import is_admin
+from heritrace.editor import Editor
 from heritrace.extensions import (
     get_custom_filter,
-    get_dataset_endpoint,
     get_form_fields,
-    get_provenance_endpoint,
+    get_primary_source,
     get_shacl_graph,
+    new_editor,
     record_dataset_change,
 )
 from heritrace.services.resource_lock_manager import LockInfo, LockStatus
@@ -68,29 +70,36 @@ api_bp = Blueprint("api", __name__)
 
 @api_bp.route("/me")
 def me() -> Response:
-    user = (
-        {
-            "id": current_user.id,
-            "name": current_user.name,
-            "orcid": current_user.orcid,
-        }
-        if current_user.is_authenticated
-        else None
-    )
+    signed_in = current_user.is_authenticated
+    admin = signed_in and is_admin(current_app.config, current_user.orcid)
+    setup_error = current_app.config["SETUP_ERROR"]
+    configured = setup_error is None
     return jsonify(
         {
-            "user": user,
+            "user": {
+                "id": current_user.id,
+                "name": current_user.name,
+                "orcid": current_user.orcid,
+            }
+            if signed_in
+            else None,
+            "is_admin": admin,
+            "setup_required": not configured,
+            "configuration_revision": current_app.config["CONFIGURATION_REVISION"],
+            "setup_error": setup_error if admin else None,
             "default_primary_source": get_user_default_primary_source(
                 current_user.orcid
             )
-            if user
+            if signed_in and configured
             else None,
             "config": {
                 "app_title": current_app.config["APP_TITLE"],
                 "app_subtitle": current_app.config["APP_SUBTITLE"],
                 "shacl": bool(len(get_shacl_graph())),
                 "datatype_options": get_datatype_options(),
-            },
+            }
+            if configured
+            else None,
         }
     )
 
@@ -435,12 +444,8 @@ def _format_orphan_response(
 @login_required
 def check_orphans() -> Response | tuple[Response, int]:
     try:
-        orphan_strategy = current_app.config.get(
-            "ORPHAN_HANDLING_STRATEGY", OrphanHandlingStrategy.KEEP
-        )
-        proxy_strategy = current_app.config.get(
-            "PROXY_HANDLING_STRATEGY", ProxyHandlingStrategy.KEEP
-        )
+        orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
+        proxy_strategy = current_app.config["PROXY_HANDLING_STRATEGY"]
 
         data = request.json
         if not data or "changes" not in data or "entity_type" not in data:
@@ -580,18 +585,7 @@ def _setup_editor(
     delete_affected: bool,
 ) -> tuple[Editor, URIRef | None]:
     resp_agent = get_responsible_agent_uri(current_user.orcid)
-    editor = Editor(
-        EndpointConfig(
-            dataset=get_dataset_endpoint(),
-            provenance=get_provenance_endpoint(),
-            is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
-        ),
-        current_app.config["COUNTER_HANDLER"],
-        resp_agent,
-        URIRef(current_app.config["PRIMARY_SOURCE"]),
-        current_app.config["DATASET_GENERATION_TIME"],
-        save_plugin=current_app.config.get("SAVE_PLUGIN"),
-    )
+    editor = new_editor(resp_agent, get_primary_source())
 
     deletion_subjects = _collect_entity_deletion_subjects(
         changes, affected_entities, delete_affected=delete_affected
@@ -661,12 +655,8 @@ def _handle_affected_entities(
     graph_uri: URIRef | None,
     deleted_entities: set[URIRef],
 ) -> None:
-    orphan_strategy = current_app.config.get(
-        "ORPHAN_HANDLING_STRATEGY", OrphanHandlingStrategy.KEEP
-    )
-    proxy_strategy = current_app.config.get(
-        "PROXY_HANDLING_STRATEGY", ProxyHandlingStrategy.KEEP
-    )
+    orphan_strategy = current_app.config["ORPHAN_HANDLING_STRATEGY"]
+    proxy_strategy = current_app.config["PROXY_HANDLING_STRATEGY"]
     # Separiamo le operazioni di delete in due fasi:
     # 1. Prima eliminiamo tutte le entità orfane/intermedie
     # 2. Poi eliminiamo le triple specifiche
@@ -788,7 +778,7 @@ def _process_delete_change(
 def _save_and_respond(editor: Editor) -> tuple[Response, int]:
     try:
         editor.save()
-    except ValueError:
+    except (ConfigurationRejectedError, ValueError):
         current_app.logger.exception("Error during save operation")
         raise
     except Exception as save_error:
@@ -879,6 +869,8 @@ def apply_changes() -> tuple[Response, int]:
 
         return _save_and_respond(editor)
 
+    except ConfigurationRejectedError:
+        raise
     except ValueError as e:
         error_message = str(e)
         current_app.logger.warning("Validation error: %s", error_message)

@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: ISC
 
+from dataclasses import replace
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 from flask import url_for
 from rdflib import URIRef
 
-from heritrace.editor import EndpointConfig
 from heritrace.routes.merge import merge_bp
 
 
@@ -63,22 +63,10 @@ def _filter_with_labels(merge_test_data: dict) -> MagicMock:
 
 @patch("heritrace.routes.merge.get_custom_filter")
 @patch("heritrace.routes.merge.get_entity_types")
-@patch("heritrace.routes.merge.Editor")
-@patch(
-    "heritrace.routes.merge.get_dataset_endpoint",
-    return_value="http://db/ds_merge_flash",
-)
-@patch(
-    "heritrace.routes.merge.get_provenance_endpoint",
-    return_value="http://db/prov_merge_flash",
-)
-@patch("heritrace.routes.merge.get_dataset_is_quadstore", return_value=False)
+@patch("heritrace.routes.merge.new_editor")
 @patch("flask_login.utils._get_user")
 def test_execute_merge_success(
     mock_current_user,
-    _mock_quadstore,
-    _mock_prov,
-    _mock_ds,
     mock_editor_cls,
     mock_get_types,
     mock_get_filter,
@@ -123,16 +111,8 @@ def test_execute_merge_success(
         },
     }
     mock_editor_cls.assert_called_once_with(
-        EndpointConfig(
-            dataset="http://db/ds_merge_flash",
-            provenance="http://db/prov_merge_flash",
-            is_quadstore=False,
-        ),
-        client.application.config["COUNTER_HANDLER"],
         merge_test_data["resp_agent_uri"],
         URIRef("https://example.com/test-primary-source"),
-        "2024-01-01T00:00:00+00:00",
-        save_plugin=None,
     )
     assert mock_import_entity_graph.call_args_list == [
         call(mock_editor_instance, URIRef(merge_test_data["entity1_uri"])),
@@ -170,22 +150,10 @@ def test_execute_merge_invalid_primary_source(
 @patch("heritrace.routes.merge.save_user_default_primary_source")
 @patch("heritrace.routes.merge.get_custom_filter")
 @patch("heritrace.routes.merge.get_entity_types")
-@patch("heritrace.routes.merge.Editor")
-@patch(
-    "heritrace.routes.merge.get_dataset_endpoint",
-    return_value="http://db/ds_merge_save_source",
-)
-@patch(
-    "heritrace.routes.merge.get_provenance_endpoint",
-    return_value="http://db/prov_merge_save_source",
-)
-@patch("heritrace.routes.merge.get_dataset_is_quadstore", return_value=False)
+@patch("heritrace.routes.merge.new_editor")
 @patch("flask_login.utils._get_user")
 def test_execute_merge_save_default_source(
     mock_current_user,
-    _mock_quadstore,
-    _mock_prov,
-    _mock_ds,
     mock_editor_cls,
     mock_get_types,
     mock_get_filter,
@@ -239,7 +207,7 @@ def test_execute_merge_missing_uris(mock_current_user, client, mock_user) -> Non
 
 @patch("heritrace.routes.merge.get_custom_filter")
 @patch("heritrace.routes.merge.get_entity_types")
-@patch("heritrace.routes.merge.Editor")
+@patch("heritrace.routes.merge.new_editor")
 @patch("flask_login.utils._get_user")
 def test_execute_merge_editor_value_error(
     mock_current_user,
@@ -277,7 +245,7 @@ def test_execute_merge_editor_value_error(
 
 @patch("heritrace.routes.merge.get_custom_filter")
 @patch("heritrace.routes.merge.get_entity_types")
-@patch("heritrace.routes.merge.Editor")
+@patch("heritrace.routes.merge.new_editor")
 @patch("flask_login.utils._get_user")
 def test_execute_merge_general_exception(
     mock_current_user,
@@ -641,6 +609,9 @@ def test_find_similar_resources_literal_formatting(
 ) -> None:
     """Test correct SPARQL formatting for various literal types."""
     app.config["DATASET_DB_TRIPLESTORE"] = backend
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], is_virtuoso=backend == "virtuoso"
+    )
     mock_current_user.return_value = mock_user
     mock_sparql_instance = MagicMock()
 
@@ -1069,6 +1040,9 @@ def test_find_similar_resources_success_with_and_group(
 ) -> None:
     """Test finding similar resources successfully using an AND group condition."""
     app.config["DATASET_DB_TRIPLESTORE"] = backend
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], is_virtuoso=backend == "virtuoso"
+    )
     mock_current_user.return_value = mock_user
     mock_sparql_instance = MagicMock()
     prop_a = "http://similar.prop/propA"

@@ -44,8 +44,7 @@ COPY heritrace ./heritrace
 COPY default_components ./default_components
 
 COPY config.py ./config.py
-COPY example_configurations/opencitations_meta/shacl.ttl ./shacl.ttl
-COPY example_configurations/opencitations_meta/display_rules.yaml ./display_rules.yaml
+COPY example_configurations ./example_configurations
 
 RUN uv sync --locked --no-dev
 

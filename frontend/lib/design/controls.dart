@@ -118,6 +118,28 @@ BoxDecoration _fieldDecoration(
 
 const _fieldPadding = EdgeInsets.symmetric(horizontal: 10, vertical: 12);
 
+/// A short line under a field: a hint, or an error when [error].
+class FieldCaption extends StatelessWidget {
+  const FieldCaption(this.text, {this.error = false, super.key});
+
+  final String text;
+  final bool error;
+
+  @override
+  Widget build(BuildContext context) {
+    final caption = AppTextStyles.of(context).caption;
+    return Padding(
+      padding: const EdgeInsets.only(top: appCaptionSpacing),
+      child: Text(
+        text,
+        style: error
+            ? caption.copyWith(color: AppColors.of(context).error)
+            : caption,
+      ),
+    );
+  }
+}
+
 class _WithError extends StatelessWidget {
   const _WithError({required this.errorText, required this.child});
 
@@ -132,17 +154,7 @@ class _WithError extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        child,
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            errorText!,
-            style: AppTextStyles.of(context).caption
-                .copyWith(color: AppColors.of(context).error),
-          ),
-        ),
-      ],
+      children: [child, FieldCaption(errorText!, error: true)],
     );
   }
 }
@@ -539,23 +551,29 @@ class TileText extends StatelessWidget {
 class AppListTile extends StatelessWidget {
   const AppListTile({
     required this.title,
+    this.leading,
     this.subtitle,
     this.additionalInfo,
     this.trailing,
+    this.backgroundColor,
     this.onTap,
     super.key,
   });
 
   final Widget title;
+  final Widget? leading;
   final Widget? subtitle;
   final Widget? additionalInfo;
   final Widget? trailing;
+  final Color? backgroundColor;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final tile = CupertinoListTile(
       padding: const EdgeInsetsDirectional.fromSTEB(_tileTextInset, 14, 14, 14),
+      backgroundColor: backgroundColor,
+      leading: leading,
       title: title,
       subtitle: subtitle,
       additionalInfo: additionalInfo,
@@ -567,7 +585,11 @@ class AppListTile extends StatelessWidget {
             ),
       onTap: onTap,
     );
-    return onTap == null ? tile : SelectionContainer.disabled(child: tile);
+    return onTap == null
+        ? tile
+        : SelectionContainer.disabled(
+            child: MouseRegion(cursor: SystemMouseCursors.click, child: tile),
+          );
   }
 }
 

@@ -70,7 +70,6 @@ HERITRACE is data model agnostic. You define your domain through SHACL shapes, w
 
 ## Development
 
-- [Testing guide](https://opencitations.github.io/heritrace/testing/running-tests/)
 - [CI/CD pipeline](https://opencitations.github.io/heritrace/testing/cicd/)
 
 ## Paper

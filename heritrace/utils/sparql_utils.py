@@ -9,7 +9,8 @@ import re
 import time
 from collections import defaultdict, deque
 from collections.abc import Generator
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 from dataclasses import dataclass
 
 from flask import current_app
@@ -23,6 +24,7 @@ from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
 from heritrace.editor import Editor
 from heritrace.extensions import (
+    get_app_state,
     get_classes_with_multiple_shapes,
     get_custom_filter,
     get_dataset_is_quadstore,
@@ -45,10 +47,6 @@ from heritrace.utils.shacl_utils import (
 )
 from heritrace.utils.virtuoso_utils import VIRTUOSO_EXCLUDED_GRAPHS, is_virtuoso
 
-_cache: dict[str, tuple[list[dict[str, str | int]], float, str | None] | None] = {
-    "available_classes": None,
-    "deleted_classes": None,
-}
 AVAILABLE_CLASSES_TTL_SECONDS = 60
 
 
@@ -119,21 +117,15 @@ def get_triples_from_graph(
         yield from graph_or_dataset.triples(pattern)
 
 
-COUNT_LIMIT = int(os.getenv("COUNT_LIMIT", "10000"))
-
-
 @dataclass(slots=True)
 class _WorkerPool:
-    executor: ProcessPoolExecutor | None = None
+    executor: ThreadPoolExecutor | None = None
 
 
 _worker_pool = _WorkerPool()
 
 
-def configure_worker_pool(max_workers: int, gunicorn_workers: int) -> None:
-    if max_workers < 1:
-        msg = "MAX_WORKERS must be at least 1"
-        raise ValueError(msg)
+def configure_worker_pool(gunicorn_workers: int) -> None:
     if gunicorn_workers < 1:
         msg = "GUNICORN_WORKERS must be at least 1"
         raise ValueError(msg)
@@ -141,12 +133,10 @@ def configure_worker_pool(max_workers: int, gunicorn_workers: int) -> None:
     if _worker_pool.executor is not None:
         _worker_pool.executor.shutdown()
 
-    workers_per_server = max_workers // gunicorn_workers
-    _worker_pool.executor = (
-        ProcessPoolExecutor(max_workers=workers_per_server)
-        if workers_per_server > 0
-        else None
-    )
+    # Each Gunicorn worker takes its share of the processors. With a share
+    # of one, a single extra thread would only add overhead.
+    share = (os.cpu_count() or 1) // gunicorn_workers
+    _worker_pool.executor = ThreadPoolExecutor(max_workers=share) if share > 1 else None
 
 
 def shutdown_worker_pool() -> None:
@@ -187,7 +177,7 @@ def _build_count_query_with_limit(class_uri: str, limit: int) -> str:
     """
 
 
-def _count_class_instances(class_uri: str, limit: int = COUNT_LIMIT) -> tuple:
+def _count_class_instances(class_uri: str, limit: int) -> tuple:
     """
     Count instances of a class up to a limit.
 
@@ -209,7 +199,7 @@ def _count_class_instances(class_uri: str, limit: int = COUNT_LIMIT) -> tuple:
 
 
 def _get_entities_with_enhanced_shape_detection(
-    class_uri: str, classes_with_multiple_shapes: set[str], limit: int = COUNT_LIMIT
+    class_uri: str, classes_with_multiple_shapes: set[str], limit: int
 ) -> defaultdict[str, list[dict[str, str]]]:
     """
     Get entities for a class using enhanced shape detection
@@ -335,10 +325,10 @@ def _cached_classes(key: str, version: str | None) -> list[dict[str, str | int]]
     dataset version shared through Redis, so a change made in any worker
     refreshes the counts in all of them.
     """
-    cached = _cache[key]
-    if cached is None:
+    class_counts = get_app_state().class_counts
+    if key not in class_counts:
         return None
-    classes, computed_at, cached_version = cached
+    classes, computed_at, cached_version = class_counts[key]
     if (
         cached_version == version
         and time.monotonic() - computed_at < AVAILABLE_CLASSES_TTL_SECONDS
@@ -355,10 +345,11 @@ def get_available_classes() -> list[dict[str, str | int]]:
 
     custom_filter = get_custom_filter()
     class_uris = _get_classes_from_config()
+    count_limit = current_app.config["COUNT_LIMIT"]
 
     classes_with_counts = []
     for class_uri in class_uris:
-        display_count, numeric_count = _count_class_instances(class_uri)
+        display_count, numeric_count = _count_class_instances(class_uri, count_limit)
         classes_with_counts.append(
             {
                 "uri": class_uri,
@@ -377,7 +368,7 @@ def get_available_classes() -> list[dict[str, str | int]]:
 
         if classes_with_multiple_shapes and class_uri in classes_with_multiple_shapes:
             shape_to_entities = _get_entities_with_enhanced_shape_detection(
-                class_uri, classes_with_multiple_shapes, limit=COUNT_LIMIT
+                class_uri, classes_with_multiple_shapes, limit=count_limit
             )
 
             for shape_uri, entities in shape_to_entities.items():
@@ -388,7 +379,7 @@ def get_available_classes() -> list[dict[str, str | int]]:
                             "uri": class_uri,
                             "label": custom_filter.human_readable_class(entity_key),
                             "count": f"{len(entities)}+"
-                            if len(entities) >= COUNT_LIMIT
+                            if len(entities) >= count_limit
                             else str(len(entities)),
                             "count_numeric": len(entities),
                             "shape": shape_uri,
@@ -410,7 +401,11 @@ def get_available_classes() -> list[dict[str, str | int]]:
                 )
 
     available_classes.sort(key=lambda x: x["label"].lower())
-    _cache["available_classes"] = (available_classes, time.monotonic(), version)
+    get_app_state().class_counts["available_classes"] = (
+        available_classes,
+        time.monotonic(),
+        version,
+    )
     return available_classes
 
 
@@ -464,11 +459,14 @@ def _fetch_entity_labels(
 
     if _worker_pool.executor is None:
         return [_fetch_entity_label(uri, entity_key) for uri in subject_uris]
-    return list(
-        _worker_pool.executor.map(
-            _fetch_entity_label, subject_uris, [entity_key] * len(subject_uris)
+    # Each thread runs in a copy of the caller's context to see the Flask app.
+    futures = [
+        _worker_pool.executor.submit(
+            copy_context().run, _fetch_entity_label, uri, entity_key
         )
-    )
+        for uri in subject_uris
+    ]
+    return [future.result() for future in futures]
 
 
 def _fetch_entity_label(uri: str, entity_key: tuple[str | None, str | None]) -> str:
@@ -870,9 +868,7 @@ def _deleted_entity_types(entity_uri: str, update_query: str) -> list[str]:
     return re.findall(f"{statement}<([^>]+)>", update_query)
 
 
-def _count_deleted_class_instances(
-    class_uri: str, limit: int = COUNT_LIMIT
-) -> tuple[str, int]:
+def _count_deleted_class_instances(class_uri: str, limit: int) -> tuple[str, int]:
     """
     Count deleted entities of a class up to a limit.
 
@@ -917,7 +913,9 @@ def get_deleted_available_classes() -> list[dict[str, str | int]]:
         if not is_entity_type_visible(entity_key):
             continue
 
-        display_count, numeric_count = _count_deleted_class_instances(class_uri)
+        display_count, numeric_count = _count_deleted_class_instances(
+            class_uri, current_app.config["COUNT_LIMIT"]
+        )
         if numeric_count == 0:
             continue
 
@@ -932,7 +930,11 @@ def get_deleted_available_classes() -> list[dict[str, str | int]]:
         )
 
     deleted_classes.sort(key=lambda x: str(x["label"]).lower())
-    _cache["deleted_classes"] = (deleted_classes, time.monotonic(), version)
+    get_app_state().class_counts["deleted_classes"] = (
+        deleted_classes,
+        time.monotonic(),
+        version,
+    )
     return deleted_classes
 
 

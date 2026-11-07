@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+# Every node of the configuration has a fixed type, which HERITRACE writes by
+# itself, so the pages leave it out.
+rules:
+- target:
+    shape: https://w3id.org/heritrace/meta/ShapesGraphShape
+  displayProperties:
+  - property: http://www.w3.org/1999/02/22-rdf-syntax-ns#type
+    shouldBeDisplayed: false
+- target:
+    shape: https://w3id.org/heritrace/meta/NodeShapeShape
+  displayProperties:
+  - property: http://www.w3.org/1999/02/22-rdf-syntax-ns#type
+    shouldBeDisplayed: false
+- target:
+    shape: https://w3id.org/heritrace/meta/PropertyShapeShape
+  displayProperties:
+  - property: http://www.w3.org/1999/02/22-rdf-syntax-ns#type
+    shouldBeDisplayed: false

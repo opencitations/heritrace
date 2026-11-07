@@ -25,6 +25,7 @@ class LandingPage extends ConsumerWidget {
     final t = Translations.of(context);
     final session = ref.watch(sessionProvider).value!;
     final styles = AppTextStyles.of(context);
+    final config = session.config;
     return Padding(
       padding: pageMargin(context),
       child: Center(
@@ -38,13 +39,13 @@ class LandingPage extends ConsumerWidget {
             ),
             const SizedBox(height: appSectionSpacing),
             AppHeading(
-              session.config.appTitle,
+              config?.appTitle ?? t.ui.appTitle,
               style: styles.display,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: appInputSpacing),
             Text(
-              session.config.appSubtitle,
+              config?.appSubtitle ?? t.ui.settings.setupPending,
               style: styles.heading.copyWith(
                 color: AppColors.of(context).secondaryText,
               ),
@@ -55,14 +56,22 @@ class LandingPage extends ConsumerWidget {
               _LoginErrorBanner(code: loginError!),
             ],
             const SizedBox(height: appSectionSpacing),
-            AppButton(
-              variant: AppButtonVariant.filled,
-              onPressed: () => session.isSignedIn
-                  ? context.go(cataloguePath)
-                  : navigateExternally(backendUrl(loginPath)),
-              icon: CupertinoIcons.book,
-              label: t.ui.landing.goToCatalogue,
-            ),
+            if (config != null)
+              AppButton(
+                variant: AppButtonVariant.filled,
+                onPressed: () => session.isSignedIn
+                    ? context.go(cataloguePath)
+                    : navigateExternally(backendUrl(loginPath)),
+                icon: CupertinoIcons.book,
+                label: t.ui.landing.goToCatalogue,
+              )
+            else if (!session.isSignedIn)
+              AppButton(
+                variant: AppButtonVariant.filled,
+                onPressed: () => navigateExternally(backendUrl(loginPath)),
+                icon: CupertinoIcons.person_crop_circle,
+                label: t.ui.nav.login,
+              ),
           ],
         ),
       ),

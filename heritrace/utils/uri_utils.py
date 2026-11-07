@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: ISC
 
 import validators
-from flask import current_app
 from rdflib import URIRef
 
 
@@ -23,7 +22,9 @@ def generate_unique_uri(
         URIRef: The generated unique URI
     """
     entity_type = str(entity_type)
-    uri = current_app.config["URI_GENERATOR"].generate_uri(entity_type, context_data)
+    from heritrace.extensions import get_uri_generator  # noqa: PLC0415
+
+    uri = get_uri_generator().generate_uri(entity_type, context_data)
     return URIRef(uri)
 
 

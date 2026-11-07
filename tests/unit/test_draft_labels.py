@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: ISC
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pyparsing import ParseException
@@ -22,7 +22,7 @@ PRO = "http://purl.org/spar/pro/"
 def labels_from(presentation: ShapesPresentation):
     return patch(
         "heritrace.utils.draft_labels.get_custom_filter",
-        return_value=Filter({}, presentation, "http://localhost:0/sparql"),
+        return_value=Filter({}, presentation, MagicMock),
     )
 
 

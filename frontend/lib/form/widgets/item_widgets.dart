@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../../design/app_theme.dart';
 import '../../design/controls.dart';
+import '../../design/date_time_sheet.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
 import '../field_def.dart';
@@ -198,39 +199,10 @@ class _DateFieldState extends State<DateField> {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final t = Translations.of(context);
-    var selected = DateTime.tryParse(widget.item.value) ?? DateTime.now();
-    final picked = await showCupertinoModalPopup<DateTime>(
-      context: context,
-      builder: (context) => Container(
-        height: 300,
-        color: AppColors.of(context).surface,
-        child: SafeArea(
-          top: false,
-          child: SelectionContainer.disabled(
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: CupertinoButton(
-                    onPressed: () => Navigator.of(context).pop(selected),
-                    child: Text(t.ui.actions.done),
-                  ),
-                ),
-                Expanded(
-                  child: CupertinoDatePicker(
-                    mode: CupertinoDatePickerMode.date,
-                    initialDateTime: selected,
-                    minimumYear: 1000,
-                    maximumYear: 9999,
-                    onDateTimeChanged: (value) => selected = value,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    final picked = await showDateTimeSheet(
+      context,
+      initial: DateTime.tryParse(widget.item.value) ?? DateTime.now(),
+      doneLabel: Translations.of(context).ui.actions.done,
     );
     if (picked != null) {
       widget.item.setValue(picked.toIso8601String().substring(0, 10));

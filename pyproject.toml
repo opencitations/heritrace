@@ -19,12 +19,12 @@ dependencies = [
     "pyshacl>=0.40.0",
     "python-dateutil>=2.9.0.post0",
     "pyyaml>=6.0.3",
-    "rdflib-ocdm==2.0.2",
+    "rdflib-ocdm==2.1.0",
     "requests>=2.34.2",
     "requests-oauthlib>=2.0.0",
     "setuptools>=83.0.0",
     "sparqlwrapper>=2.0.0",
-    "time-agnostic-library>=8.0.1",
+    "time-agnostic-library>=8.1.0",
     "validators==0.35.0",
 ]
 

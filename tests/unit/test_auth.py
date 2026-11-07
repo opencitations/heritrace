@@ -102,13 +102,13 @@ def test_logout_unauthenticated(client: FlaskClient) -> None:
 
 
 def test_login_demo_mode(client: FlaskClient) -> None:
-    with patch.dict("os.environ", {"FLASK_ENV": "demo", "USER_ID": "test_demo"}):
+    with patch.dict("os.environ", {"FLASK_ENV": "demo"}):
         response = client.get("/auth/login")
         assert response.status_code == 302
         assert response.location == "/catalogue"
         with client.session_transaction() as sess:
             assert sess["user_name"] == "Demo User"
-            assert sess["_user_id"] == "http://example.org/demo/test_demo"
+            assert sess["_user_id"] == "http://example.org/demo/demo_user"
 
 
 def test_callback_no_safelist(client: FlaskClient, app: Flask) -> None:
@@ -126,3 +126,20 @@ def test_redirects_target_the_frontend_origin_when_configured(
     finally:
         app.config["FRONTEND_ORIGIN"] = ""
     assert location == "https://localhost:5100/catalogue"
+
+
+def test_callback_admin_outside_safelist(client: FlaskClient, app: Flask) -> None:
+    app.config["ORCID_SAFELIST"] = ["0000-0000-0000-0001"]
+    app.config["ADMIN_ORCIDS"] = ["https://orcid.org/0000-0000-0000-0002"]
+    token = {**TEST_TOKEN, "orcid": "0000-0000-0000-0002"}
+    assert _callback_with_token(client, token) == "/catalogue"
+
+
+def test_callback_in_setup_mode_admits_only_admins(
+    client: FlaskClient, app: Flask
+) -> None:
+    app.config["SETUP_ERROR"] = "The configuration has no system settings"
+    app.config["ORCID_SAFELIST"] = []
+    assert _callback_with_token(client, TEST_TOKEN) == "/?login_error=not_authorized"
+    app.config["ADMIN_ORCIDS"] = ["0000-0000-0000-0001"]
+    assert _callback_with_token(client, TEST_TOKEN) == "/catalogue"

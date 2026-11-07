@@ -4,41 +4,40 @@
 # SPDX-License-Identifier: ISC
 
 title: Application settings
-description: Configure HERITRACE application settings and integrations
+description: Environment variables that connect HERITRACE to its databases, its configuration file and ORCID
 ---
 
-import { Tabs, TabItem, Aside, Badge } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
-HERITRACE is configured through Docker environment variables.
+Environment variables tell HERITRACE where its databases are, who its administrators are, how to sign users in and which Python components to load. The title, the data model, the deletion rules and the other settings live in the configuration folder. Administrators edit them in the app, as described in [Configuration editor](../editor/).
 
 ## Configuration method
 
-Configure settings in your `docker-compose.yml` file:
+Set the variables in your `docker-compose.yml` file, or in a `.env` file:
 
 ```yaml
 environment:
-  # Application settings
-  - FLASK_ENV=production
-  - APP_TITLE=HERITRACE
-  - APP_SUBTITLE=A semantic editor for heritage data
-
   # Security (REQUIRED: Change this!)
   - SECRET_KEY=your-secure-secret-key-here
 
-  # Query Configuration
-  - COUNT_LIMIT=10000
-  - MAX_WORKERS=8
+  # Configuration folder and administrators
+  - CONFIG_DIR=/app/config
+  - ADMIN_ORCIDS=0000-0002-1825-0097
+
+  # Base of the IRIs of new entities
+  - BASE_IRI=https://example.org/my-collection
 
   # Database endpoints
   - DATASET_DB_URL=http://dataset-db:8890/sparql
   - PROVENANCE_DB_URL=http://provenance-db:8890/sparql
   - DATASET_DB_TRIPLESTORE=virtuoso
   - PROVENANCE_DB_TRIPLESTORE=virtuoso
+  - DATASET_IS_QUADSTORE=true
+  - PROVENANCE_IS_QUADSTORE=true
 
   # ORCID authentication
   - ORCID_CLIENT_ID=your-client-id
   - ORCID_CLIENT_SECRET=your-client-secret
-  - ORCID_SAFELIST=0000-0000-0000-0000,0000-0000-0000-0001
 ```
 
 <Aside type="tip">
@@ -47,23 +46,47 @@ Keep sensitive credentials secure. Use Docker secrets or external secret managem
 
 ## Core application settings
 
-### Basic configuration
-
 | Environment Variable | Type | Description | Required | Default |
 |---------------------|------|-------------|----------|---------|
-| `APP_TITLE` | String | Main application title shown in UI | No | `HERITRACE` |
-| `APP_SUBTITLE` | String | Subtitle displayed in interface | No | `Heritage Enhanced Repository Interface` |
-| `SECRET_KEY` | String | Flask secret key for security | **Yes** | `generate-a-secure-random-key` |
-| `CACHE_VALIDITY_DAYS` | Integer | Days until the performance cache expires (internal Redis only) | No | `7` |
-| `MAX_WORKERS` | Integer | Maximum number of auxiliary worker processes available to HERITRACE | **Yes** | None |
+| `SECRET_KEY` | String | Flask secret key that signs the session cookies | **Yes** | None |
+| `FLASK_ENV` | String | `demo` signs every visitor in as the demo user `http://example.org/demo/demo_user`, without ORCID. `development` and `production` require ORCID | No | `development` |
+| `FRONTEND_ORIGIN` | String | Origin of a web client served from another address, such as `https://127.0.0.1:5100`. HERITRACE accepts requests with cookies from this origin | No | None |
 
 <Aside type="caution">
 Set a unique `SECRET_KEY` in production.
 </Aside>
 
-<Aside type="note">
-The performance cache prevents slow initialization queries from running on every startup. After `CACHE_VALIDITY_DAYS`, the application will reinitialize counters from the database. This setting only applies when using the internal Redis instance.
-</Aside>
+## Configuration folder
+
+| Environment Variable | Type | Description | Required |
+|---------------------|------|-------------|----------|
+| `CONFIG_DIR` | Path | Folder that holds the configuration. A relative path starts from the HERITRACE folder | **Yes** |
+
+The folder holds `settings.db` with the system settings, `shacl.ttl` with the entity types and `display_rules.yaml` with the extra configuration. HERITRACE needs only `settings.db`, which [setup mode](../editor/#setup-mode) creates on the first start. [Where the configuration lives](../editor/#where-the-configuration-lives) describes each file.
+
+The configuration editor rewrites the files when you save, so HERITRACE must be able to write to the folder. In Docker, mount the folder:
+
+```yaml
+services:
+  web:
+    environment:
+      - CONFIG_DIR=/app/config
+    volumes:
+      - ./config:/app/config
+```
+
+When the folder has no valid configuration, HERITRACE starts in setup mode and waits for an administrator to provide one. See [Setup mode](../editor/#setup-mode).
+
+## Administrators
+
+`ADMIN_ORCIDS` lists the ORCID iDs of the administrators, separated by commas. You can write each one as a bare iD or as a full ORCID URL.
+
+```yaml
+environment:
+  - ADMIN_ORCIDS=0000-0002-1825-0097,https://orcid.org/0000-0001-5109-3700
+```
+
+Administrators can always sign in, even when they are missing from the list of authorized ORCID iDs in the system settings. Only they see the configuration editor.
 
 ## Gunicorn configuration
 
@@ -90,10 +113,12 @@ HERITRACE uses Redis for counter management and caching. You can use either an i
 
 By default, HERITRACE runs a Redis instance inside the application container. No additional configuration is needed.
 
-```yaml
-# No REDIS_URL specified - uses internal Redis
-environment:
-  - CACHE_VALIDITY_DAYS=7
+HERITRACE keeps its counters there: the number of the next IRI and the number of the next provenance version of each entity. It updates them on every change. On its first start, and whenever Redis has lost the counters, HERITRACE rebuilds them by reading the databases.
+
+If you add data to the databases without going through HERITRACE, the counters fall behind, and HERITRACE could create an IRI that already exists. Ask HERITRACE to rebuild them at the next start:
+
+```bash
+docker compose exec web redis-cli DEL heritrace:counters_initialized
 ```
 
 ### External Redis
@@ -102,12 +127,10 @@ To use an external Redis instance, set the `REDIS_URL` environment variable:
 
 ```yaml
 environment:
-  # Redis Configuration
   - REDIS_URL=redis://heritrace-redis:6379/0
-
-  # Counter initialization is skipped when using external Redis
-  # Make sure counters are already populated in the external instance
 ```
+
+HERITRACE skips counter initialization when it uses an external Redis instance, so make sure the counters are already there.
 
 | Environment Variable | Type | Description | Required | Default |
 |---------------------|------|-------------|----------|---------|
@@ -115,31 +138,35 @@ environment:
 
 ## Database configuration
 
-Compatible with SPARQL 1.1 triplestores. Tested with **Virtuoso** and **Blazegraph**.
-
-When `DATASET_DB_TEXT_INDEX_ENABLED` is enabled, searches for existing entities use the text index with Virtuoso or QLever.
-
-For QLever, build or download an index that includes `ql:has-word` triples, generated with `qlever-index --add-has-word-triples`. Searches match words within the selected field and allow a prefix for the last word, so `Arcang` finds `Arcangelo`. With several words, each preceding word must match a complete word in the same value.
-
-### Triplestore settings
+Compatible with SPARQL 1.1 triplestores. Tested with **Virtuoso**, **Blazegraph** and **QLever**.
 
 ```yaml
 environment:
-  # Triplestore Types
-  - DATASET_DB_TRIPLESTORE=virtuoso      # 'virtuoso' or 'blazegraph'
-  - PROVENANCE_DB_TRIPLESTORE=virtuoso   # 'virtuoso' or 'blazegraph'
+  # Triplestore types
+  - DATASET_DB_TRIPLESTORE=virtuoso
+  - PROVENANCE_DB_TRIPLESTORE=virtuoso
 
-  # Database URLs  
+  # Database URLs
   - DATASET_DB_URL=http://dataset-db:8890/sparql
   - PROVENANCE_DB_URL=http://provenance-db:8890/sparql
 
-  # Storage Types
+  # Storage types
   - DATASET_IS_QUADSTORE=true
   - PROVENANCE_IS_QUADSTORE=true
 
-  # Features
+  # Full-text search
   - DATASET_DB_TEXT_INDEX_ENABLED=true
 ```
+
+| Environment Variable | Options | Description |
+|---------------------|---------|-------------|
+| `DATASET_DB_TRIPLESTORE` | `virtuoso`, `blazegraph`, `qlever` | Type of the dataset database |
+| `PROVENANCE_DB_TRIPLESTORE` | `virtuoso`, `blazegraph`, `qlever` | Type of the provenance database |
+| `DATASET_DB_URL` | URL | SPARQL endpoint of the dataset database |
+| `PROVENANCE_DB_URL` | URL | SPARQL endpoint of the provenance database |
+| `DATASET_IS_QUADSTORE` | `true`/`false` | Enable named graph support |
+| `PROVENANCE_IS_QUADSTORE` | `true`/`false` | Enable provenance named graphs |
+| `DATASET_DB_TEXT_INDEX_ENABLED` | `true`/`false` | Search for existing entities with the full-text index of the dataset database |
 
 ### Database options
 
@@ -149,15 +176,14 @@ environment:
     environment:
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
-      - DATASET_DB_TEXT_INDEX_ENABLED=true
     ```
-    
+
     **Pros:**
     - Mature and battle-tested database
     - Open source and SPARQL 1.1 compliant
     - Good performance with large datasets
     - Full-text indexing and named graph support
-    
+
     **Cons:**
     - Complex configuration
     - Poor documentation
@@ -168,21 +194,20 @@ environment:
   <TabItem label="Blazegraph">
     ```yaml
     environment:
-      - DATASET_DB_TRIPLESTORE=blazegraph 
+      - DATASET_DB_TRIPLESTORE=blazegraph
       - PROVENANCE_DB_TRIPLESTORE=blazegraph
-      - DATASET_DB_TEXT_INDEX_ENABLED=true
     ```
-    
+
     **Pros:**
     - Simple to configure
     - Open source and SPARQL 1.1 compliant
     - Full-text indexing and named graph support
-    
+
     **Cons:**
     - No longer actively maintained
-    - Performance degrades  and may stop accepting triples with large datasets
+    - Performance degrades and may stop accepting triples with large datasets
     - Poor documentation
-    
+
     <a href="https://github.com/blazegraph/database" target="_blank" rel="noopener noreferrer">**Visit the Blazegraph GitHub Repository**</a>
   </TabItem>
 </Tabs>
@@ -197,55 +222,126 @@ While the system functions correctly with external databases, using Docker conta
 For managing your Virtuoso instance (launching the server, bulk-loading data, exporting dumps, rebuilding the full-text index), see <a href="https://github.com/opencitations/virtuoso_utilities" target="_blank" rel="noopener noreferrer">**virtuoso-utilities**</a>. This Python package automates tasks that are otherwise tedious to configure in Virtuoso.
 </Aside>
 
-### Storage configuration
+## Display rules
 
-| Environment Variable | Options | Description |
-|---------------------|---------|-------------|
-| `DATASET_IS_QUADSTORE` | `true`/`false` | Enable named graph support |
-| `PROVENANCE_IS_QUADSTORE` | `true`/`false` | Enable provenance named graphs |
-| `DATASET_DB_TEXT_INDEX_ENABLED` | `true`/`false` | Enable internal query optimization using the database's full-text search index |
+The [extra configuration](../extra/) is read from `display_rules.yaml` in the [configuration folder](#configuration-folder). Without that file, HERITRACE runs with no display rules.
 
-## Schema and display configuration
+## Components
 
-These settings control the data model's constraints and its presentation in the user interface.
-
-Set `SHACL_PATH` and `DISPLAY_RULES_PATH` in `.env` to choose the SHACL and YAML files:
-
-```dotenv
-SHACL_PATH=example_configurations/opencitations_meta/shacl.ttl
-DISPLAY_RULES_PATH=example_configurations/opencitations_meta/display_rules.yaml
-```
-
-Relative paths start from the project root, and absolute paths are also supported. The defaults are `shacl.ttl` and `display_rules.yaml` in the project root. For Docker, use paths inside the container and mount the files at those locations:
-
-```yaml
-volumes:
-  - ./my_shacl.ttl:/app/shacl.ttl
-  - ./my_display_rules.yaml:/app/display_rules.yaml
-```
-
-## Data provenance and versioning
-
-These settings configure how the application handles data provenance and versioning, aligning with the <a href="https://www.w3.org/TR/prov-o/" target="_blank" rel="noopener noreferrer">W3C PROV Ontology</a>.
-
-```yaml
-environment:
-  # Provenance and Versioning
-  - DATASET_GENERATION_TIME=2024-09-16T00:00:00+02:00
-  - PRIMARY_SOURCE=https://doi.org/your-doi
-```
+Three environment variables select Python classes that HERITRACE loads at start. A matching `_OPTIONS` variable holds a JSON object, whose properties HERITRACE passes to the class constructor as keyword arguments. An `_OPTIONS` variable needs its `_CLASS` variable.
 
 | Environment Variable | Description | Default |
 |---------------------|-------------|---------|
-| `PRIMARY_SOURCE` | Defines the DOI or URL recorded as `prov:hadPrimarySource` for the initial historical snapshot of the pre-existing dataset | Required |
-| `DATASET_GENERATION_TIME` | Specifies the creation timestamp for a pre-existing dataset. This value is used for the `prov:generatedAtTime` property in the initial historical snapshot | Current time |
+| `URI_GENERATOR_CLASS`, `URI_GENERATOR_OPTIONS` | Creates the IRIs of new entities | The built-in generator |
+| `COUNTER_HANDLER_CLASS`, `COUNTER_HANDLER_OPTIONS` | Stores the counters of counter-based IRI generators | A counter handler in Redis |
+| `SAVE_PLUGIN_CLASS`, `SAVE_PLUGIN_OPTIONS` | Receives each change after HERITRACE writes it to the databases | None |
+| `BASE_IRI` | Base IRI of the built-in IRI generator | None |
 
-## Optional save plugin
+Each class is given by its import path, such as `default_components.meta_uri_generator.MetaURIGenerator`.
 
-`SAVE_PLUGIN_CLASS` selects a component that receives the working RDF graph after
-the dataset and provenance SPARQL updates and before HERITRACE commits its internal
-changes. `SAVE_PLUGIN_OPTIONS` accepts a JSON object whose properties are passed to
-the component constructor. The component must provide:
+The `default_components/` directory holds ready-made components. To add your own, write the classes in a `custom_components/` directory and mount it in the container:
+
+```yaml
+volumes:
+  - ./custom_components:/app/custom_components
+```
+
+This setup configures HERITRACE for OpenCitations Meta, with its own IRI generator, counter handler and save plugin:
+
+```yaml
+environment:
+  COUNTER_HANDLER_CLASS: default_components.meta_filesystem_counter_handler.MetaFilesystemCounterHandler
+  COUNTER_HANDLER_OPTIONS: '{"info_dir": "/app/info_dir", "supplier_prefix": "09110", "base_iri": "https://w3id.org/oc/meta"}'
+  URI_GENERATOR_CLASS: default_components.meta_uri_generator.MetaURIGenerator
+  SAVE_PLUGIN_CLASS: default_components.meta_rdf_file_writer.MetaRDFFileWriter
+  SAVE_PLUGIN_OPTIONS: '{"rdf_dir": "/app/rdf", "base_iri": "https://w3id.org/oc/meta/", "dir_split_number": 10000, "items_per_file": 1000}'
+```
+
+### Built-in IRI generator
+
+Without `URI_GENERATOR_CLASS`, HERITRACE uses a built-in generator that mints IRIs of the form `BASE_IRI/<uuid>`. In this case `BASE_IRI` is required. Provenance snapshot counters are then stored in Redis, so the built-in default needs no code.
+
+### IRI generator
+
+A custom IRI generator implements two methods:
+
+- **`generate_uri(entity_type: str | None = None) -> str`**: Generates a new URI for the given entity type
+- **`initialize_counters(sparql) -> None`**: Initializes any required state from existing data in the database
+
+<Aside type="note" title="Example: UUID-Based URI Generator">
+This generator uses UUIDs in place of counters:
+
+```python
+import uuid
+from heritrace.uri_generator.uri_generator import URIGenerator
+
+class UUIDURIGenerator(URIGenerator):
+    def __init__(self, base_iri: str):
+        self.base_iri = base_iri.rstrip('/')
+
+    def generate_uri(self, entity_type: str | None = None) -> str:
+        return f"{self.base_iri}/{uuid.uuid4()}"
+
+    def initialize_counters(self, sparql) -> None:
+        pass
+```
+
+Select it with:
+
+```yaml
+environment:
+  - URI_GENERATOR_CLASS=custom_components.my_uri.UUIDURIGenerator
+  - URI_GENERATOR_OPTIONS={"base_iri":"https://example.org"}
+```
+</Aside>
+
+### Counter handler
+
+<Aside type="caution">
+A counter handler is needed only when the IRI generator uses counters. Without `COUNTER_HANDLER_CLASS`, HERITRACE provides a Redis-backed counter handler, since provenance snapshot numbering relies on one.
+</Aside>
+
+The counter handler keeps the numerical counters of **counter-based** IRI generators. Without it, such generators cannot guarantee unique IRIs across restarts.
+
+A custom counter handler implements these methods:
+-   **`read_counter(entity_name: str) -> int`**: Returns the current counter value for a given entity type, or `0` if the counter does not exist.
+-   **`set_counter(new_value: int, entity_name: str)`**: Sets the counter for an entity type to a specific value.
+-   **`increment_counter(entity_name: str) -> int`**: Atomically increments the counter for an entity type by one and returns the new value.
+-   **`close()`**: Closes any open connections (e.g., to a database).
+
+<Aside type="note" title="Example: A Simple In-Memory Counter Handler">
+This minimal handler keeps the counters in memory. It is for demonstration only: the counters are lost when the application restarts.
+
+```python
+import threading
+
+class InMemoryCounterHandler:
+    def __init__(self):
+        self._counters = {}
+        self._lock = threading.Lock()
+
+    def set_counter(self, new_value: int, entity_name: str) -> None:
+        with self._lock:
+            self._counters[entity_name] = new_value
+
+    def read_counter(self, entity_name: str) -> int:
+        with self._lock:
+            return self._counters.get(entity_name, 0)
+
+    def increment_counter(self, entity_name: str) -> int:
+        with self._lock:
+            new_value = self._counters.get(entity_name, 0) + 1
+            self._counters[entity_name] = new_value
+            return new_value
+
+    def close(self):
+        pass
+```
+</Aside>
+
+### Save plugin
+
+A save plugin receives the working RDF graph after the dataset and provenance SPARQL updates and before HERITRACE commits its internal changes. It provides one method:
 
 ```python
 from typing import Protocol
@@ -257,177 +353,14 @@ class SavePlugin(Protocol):
     def persist(self, graph_set: OCDMGraphCommons) -> None: ...
 ```
 
-Leaving both variables unset disables the extension.
-
-The included OpenCitations Meta component updates the zipped JSON-LD data and
-provenance files using the Meta directory convention. It requires
-`DATASET_IS_QUADSTORE=true`.
-
-```yaml
-environment:
-  SAVE_PLUGIN_CLASS: default_components.meta_rdf_file_writer.MetaRDFFileWriter
-  SAVE_PLUGIN_OPTIONS: '{"rdf_dir":"/app/rdf","base_iri":"https://w3id.org/oc/meta/","dir_split_number":10000,"items_per_file":1000}'
-volumes:
-  - ./rdf:/app/rdf
-```
-
-The component rewrites only archives containing changed entities. It locks each
-archive during read-modify-write operations so multiple application workers do
-not overwrite each other's changes.
-
-## URI generation and counter handling
-
-HERITRACE uses a pluggable architecture for URI generation and counter management, allowing you to customize how unique identifiers are created for entities.
-
-### Built-in default (no code)
-
-Leaving both `URI_GENERATOR_CLASS` and `COUNTER_HANDLER_CLASS` unset enables the built-in default: a UUID-based generator that mints IRIs of the form `BASE_IRI/<uuid>`, with provenance snapshot counters stored automatically in the Redis instance at `REDIS_URL`. This requires no code, only the `BASE_IRI` environment variable.
-
-```yaml
-environment:
-  - BASE_IRI=https://example.org/my-collection
-  # URI_GENERATOR_CLASS and COUNTER_HANDLER_CLASS left unset
-```
-
-### Optional and custom components
-
-Setting `URI_GENERATOR_CLASS` replaces the built-in UUID generator. Set
-`COUNTER_HANDLER_CLASS` as well when the selected generator uses counters.
-
-`COUNTER_HANDLER_OPTIONS` and `URI_GENERATOR_OPTIONS` accept JSON objects. HERITRACE
-passes their properties as keyword arguments to the selected constructors. For
-example:
-
-```yaml
-environment:
-  COUNTER_HANDLER_CLASS: custom_components.my_counter.FileCounterHandler
-  COUNTER_HANDLER_OPTIONS: '{"directory":"/app/counters"}'
-  URI_GENERATOR_CLASS: custom_components.my_uri.SequentialURIGenerator
-  URI_GENERATOR_OPTIONS: '{"base_iri":"https://example.org"}'
-```
-
-You can create custom URI generators and counter handlers by:
-
-1. **Creating custom components**: Write your own Python classes in a `custom_components/` directory
-2. **Mounting the volume**: Add `- ./custom_components:/app/custom_components` to your docker-compose volumes
-3. **Updating environment variables**: Set the class paths to your custom implementations
-
-Example:
-```yaml
-environment:
-  - COUNTER_HANDLER_CLASS=custom_components.my_counter.FileCounterHandler
-  - URI_GENERATOR_CLASS=custom_components.my_uri.UUIDURIGenerator
-volumes:
-  - ./custom_components:/app/custom_components
-```
-
-### URI_GENERATOR
-
-The `URI_GENERATOR` component is responsible for creating unique URIs for new entities. A custom URI generator should implement the following methods:
-
-- **`generate_uri(entity_type: str | None = None) -> str`**: Generates a new URI for the given entity type
-- **`initialize_counters(sparql) -> None`**: Initializes any required state from existing data in the database
-
-<Aside type="note" title="Example: UUID-Based URI Generator">
-Here is an example of a custom generator that uses UUIDs instead of counters:
-
-```python
-import uuid
-from heritrace.uri_generator.uri_generator import URIGenerator
-
-class UUIDURIGenerator(URIGenerator):
-    """
-    A simple URI generator that creates unique URIs using UUIDs.
-    This generator does not rely on sequential counters.
-    """
-    def __init__(self, base_iri: str):
-        self.base_iri = base_iri.rstrip('/')
-
-    def generate_uri(self, entity_type: str | None = None) -> str:
-        """
-        Generates a new URI by appending a new UUID to the base IRI.
-        The entity_type is ignored in this implementation.
-        """
-        return f"{self.base_iri}/{uuid.uuid4()}"
-
-    def initialize_counters(self, sparql) -> None:
-        """
-        This method is not needed for a UUID-based generator,
-        so it has an empty implementation.
-        """
-        pass
-```
-</Aside>
-
-### COUNTER_HANDLER
-
-<Aside type="caution">
-`COUNTER_HANDLER_CLASS` is only required if your `URI_GENERATOR` uses a counter-based strategy. If you use a non-counter generator (like the UUID example above), you can omit it: HERITRACE then provides a generic Redis-backed counter handler automatically, since provenance snapshot numbering always relies on a counter handler.
-</Aside>
-
-The `COUNTER_HANDLER` is a component designed to work with **counter-based** URI generators. It manages the persistent state of the numerical counters. Without it, counter-based URI generators cannot guarantee uniqueness across application restarts.
-
-A custom counter handler should implement the following methods:
--   **`read_counter(entity_name: str) -> int`**: Returns the current counter value for a given entity type. Should return `0` if the counter doesn't exist.
--   **`set_counter(new_value: int, entity_name: str)`**: Sets the counter for an entity type to a specific value.
--   **`increment_counter(entity_name: str) -> int`**: Atomically increments the counter for an entity type by one and returns the new value.
--   **`close()`**: Closes any open connections (e.g., to a database).
-
-
-<Aside type="note" title="Example: A Simple In-Memory Counter Handler">
-Here is an example of a minimal, non-persistent counter handler. **Note:** This is for demonstration only and is not suitable for production, as counter values will be lost on application restart.
-
-```python
-import threading
-
-class InMemoryCounterHandler:
-    """
-    A simple, non-persistent counter handler that stores counters in memory.
-    
-    This implementation is for demonstration purposes only. It is NOT 
-    suitable for production as all counter states will be lost when the 
-    application restarts.
-    """
-    def __init__(self):
-        self._counters = {}
-        self._lock = threading.Lock()
-
-    def set_counter(self, new_value: int, entity_name: str) -> None:
-        """Sets the counter for a given entity type to a specific value."""
-        with self._lock:
-            self._counters[entity_name] = new_value
-
-    def read_counter(self, entity_name: str) -> int:
-        """Reads the current value of a counter, returning 0 if not found."""
-        with self._lock:
-            return self._counters.get(entity_name, 0)
-
-    def increment_counter(self, entity_name: str) -> int:
-        """Increments a counter by one and returns the new value."""
-        with self._lock:
-            current_value = self._counters.get(entity_name, 0)
-            new_value = current_value + 1
-            self._counters[entity_name] = new_value
-            return new_value
-    
-    def close(self):
-        """No action needed for the in-memory handler."""
-        pass
-```
-</Aside>
+Without `SAVE_PLUGIN_CLASS`, HERITRACE runs no save plugin.
 
 ## ORCID integration
 
-### Basic setup
-
 ```yaml
 environment:
-  # ORCID OAuth Configuration
   - ORCID_CLIENT_ID=your-client-id
   - ORCID_CLIENT_SECRET=your-client-secret
-
-  # Access Control
-  - ORCID_SAFELIST=your-allowed-orcid-1,your-allowed-orcid-2
 ```
 
 ### Setting up ORCID
@@ -451,89 +384,4 @@ environment:
       - ORCID_CLIENT_SECRET=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
     ```
 
-5.  **Safelist Your ORCID ID**:
-    To enable access, you must add authorized ORCID IDs to the `ORCID_SAFELIST`. The application automatically extracts the ID from full ORCID URLs, so you can use either format.
-
-    ```yaml
-    environment:
-      # Allow specific researchers by ID or full URL (comma-separated)
-      - ORCID_SAFELIST=0000-0002-1825-0097,https://orcid.org/0000-0001-5109-3700
-    ```
-
-## Entity handling strategies
-
-HERITRACE provides configurable strategies to manage how the application handles entities that are left without connections after a deletion. These strategies apply to two distinct types of entities: **orphans** and **proxies**.
-
-```yaml
-environment:
-  # Entity Handling Strategies
-  - ORPHAN_HANDLING_STRATEGY=ASK  # Options: ASK, DELETE, KEEP
-  - PROXY_HANDLING_STRATEGY=ASK   # Options: ASK, DELETE, KEEP
-```
-
-### Strategy options
-
-<Tabs>
-  <TabItem label="Orphan Handling">
-    An **orphan** is an entity that is no longer referenced by any other entity in the database. For example, if you remove the last author from a book, the author's record becomes an orphan if no other books or entities refer to it.
-
-    This strategy controls what happens to these orphaned entities:
-    - `ASK`: (Default) Prompts the user for confirmation before deleting any orphaned entities.
-    - `DELETE`: Automatically deletes any entities that become orphans as a result of a deletion.
-    - `KEEP`: Keeps the orphaned entities in the database, even if they are no longer connected to anything.
-  </TabItem>
-  <TabItem label="Proxy Handling">
-    A **proxy** (or **intermediate**) entity is a resource that links two other entities, often to add specific attributes to their relationship. For example, a `pro:RoleInTime` entity can connect a `foaf:Person` to a `fabio:Book`, defining their role as an `author`.
-
-    When the primary relationship (e.g., the book's author entry) is deleted, this strategy determines what happens to the intermediate `pro:RoleInTime` entity:
-    - `ASK`: (Default) Prompts the user for confirmation before deleting.
-    - `DELETE`: Automatically deletes the intermediate entity.
-    - `KEEP`: Retains the intermediate entity in the database.
-
-    #### Defining a Proxy Relationship
-    
-    A property is treated as a proxy relationship in `display_rules.yaml` by using the `intermediateRelation` key. This key tells HERITRACE to create an intermediate entity to connect the subject to the target object.
-
-    You must specify two things under `intermediateRelation`:
-    - `class`: The RDF class of the intermediate entity (e.g., `pro:RoleInTime`).
-    - `targetEntityType`: The RDF class of the final entity you want to create and link to (e.g., `foaf:Agent`).
-
-    <Aside type="note" title="Configuration Example">
-      In this example, `pro:isDocumentContextFor` is configured as a proxy. When a user adds an author, HERITRACE creates a `pro:RoleInTime` entity that links the bibliographic resource to a `foaf:Agent`. See [Extra configuration](../extra/) for more details.
-    </Aside>
-
-    ```yaml
-    # In display_rules.yaml
-    - property: "http://purl.org/spar/pro/isDocumentContextFor"
-      intermediateRelation:
-        class: "http://purl.org/spar/pro/RoleInTime"
-        targetEntityType: "http://xmlns.com/foaf/0.1/Agent"
-    ```
-  </TabItem>
-</Tabs>
-
-## Catalogue settings
-
-These settings control the behaviour and display of the catalogue and recycle bin interfaces.
-
-```yaml
-environment:
-  # Query Configuration
-  - COUNT_LIMIT=10000
-
-  # Number of entities loaded at a time
-  - CATALOGUE_DEFAULT_PER_PAGE=50
-```
-
-| Environment Variable | Type | Description | Default |
-|---------------------|------|-------------|---------|
-| `COUNT_LIMIT` | Integer | Maximum count for entity queries. When exceeded, displays "LIMIT+" in catalog | `10000` |
-| `CATALOGUE_DEFAULT_PER_PAGE` | Integer | Number of entities the catalogue and the recycle bin load at a time; the next ones load as the user scrolls | `50` |
-
-<Aside type="note" title="Query Performance Optimization">
-`COUNT_LIMIT` optimizes catalog queries for large datasets. When counting entities of a specific class, the query stops at `COUNT_LIMIT + 1`. If the limit is exceeded, the catalog displays "LIMIT+" (e.g., "10000+") instead of the exact count, preventing timeouts on very large result sets.
-</Aside>
-
-<Aside type="tip" title="Loading performance">
-On large datasets, a smaller `CATALOGUE_DEFAULT_PER_PAGE` makes each step of the scroll load faster.
-</Aside>
+5.  **Add yourself as an administrator**: Put your ORCID iD in [`ADMIN_ORCIDS`](#administrators). Then sign in and choose who else may sign in, under **Access** in the [configuration editor](../editor/).

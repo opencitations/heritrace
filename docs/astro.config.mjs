@@ -64,6 +64,7 @@ export default defineConfig({
 					label: 'Configuration',
 					items: [
 						{ label: 'Application settings', slug: 'configuration/app-settings' },
+						{ label: 'Configuration editor', slug: 'configuration/editor' },
 						{ label: 'SHACL configuration', slug: 'configuration/shacl' },
 						{ label: 'Extra configuration', slug: 'configuration/extra' },
 						{ label: 'Virtual properties', slug: 'configuration/virtual-properties' },
@@ -73,7 +74,6 @@ export default defineConfig({
 					label: 'Development',
 					items: [
 						{ label: 'Development setup', slug: 'development' },
-						{ label: 'Running tests', slug: 'testing/running-tests' },
 						{ label: 'CI/CD pipeline', slug: 'testing/cicd' },
 					],
 				},

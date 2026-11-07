@@ -17,6 +17,7 @@ import '../i18n/language.dart';
 import '../i18n/translations.g.dart';
 import '../session/session_controller.dart';
 import 'app_paths.dart';
+import 'entity_store.dart';
 import 'external_navigation.dart';
 
 const _tabPaths = [cataloguePath, createEntityPath, recycleBinPath];
@@ -28,6 +29,16 @@ String? _parentPath(Uri uri) {
     return entityPath(uri.queryParameters['subject']!);
   }
   return switch (uri.pathSegments) {
+    ['settings', 'shapes', 'about', final entity]
+        when Uri.decodeComponent(entity) == configurationRoot =>
+      null,
+    ['settings', 'shapes', 'about', _] => EntityStore.configuration.entityPath(
+      configurationRoot,
+    ),
+    ['settings', 'shapes', 'entity-history', final entity] =>
+      EntityStore.configuration.entityPath(entity),
+    ['settings', 'shapes', 'entity-version', final entity, _] =>
+      EntityStore.configuration.historyPath(entity),
     ['about', _] => cataloguePath,
     ['entity-history', final entity] => entityPath(entity),
     ['entity-version', final entity, _] => entityHistoryPath(entity),
@@ -69,6 +80,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
     final parentPath = _parentPath(uri);
     final userName = session?.userName;
     final signedIn = userName != null;
+    final showsNavigation = signedIn && !session!.setupRequired;
     final compact =
         MediaQuery.sizeOf(context).width < appNavigationCompactWidth;
     final destinations = [
@@ -89,8 +101,11 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
       navigateExternally(landingPath);
     }
 
-    final activeIndex = uri.path == landingPath ? -1 : _tab;
-    final showTabBar = signedIn && compact;
+    final activeIndex =
+        uri.path == landingPath || uri.path.startsWith(settingsPath)
+        ? -1
+        : _tab;
+    final showTabBar = showsNavigation && compact;
 
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
@@ -103,7 +118,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                   child: Image.asset(
                     'assets/images/logo.png',
                     height: 28,
-                    semanticLabel: session?.config.appTitle ?? t.ui.appTitle,
+                    semanticLabel: session?.config?.appTitle ?? t.ui.appTitle,
                   ),
                 ),
               )
@@ -117,7 +132,7 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
                   },
                 ),
               ),
-        middle: signedIn && !compact
+        middle: showsNavigation && !compact
             ? Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -132,7 +147,11 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
               )
             : null,
         trailing: signedIn
-            ? _AccountMenu(name: userName, onLogout: logout)
+            ? _AccountMenu(
+                name: userName,
+                isAdmin: session!.isAdmin,
+                onLogout: logout,
+              )
             : AppButton(
                 icon: CupertinoIcons.person_crop_circle,
                 label: t.ui.nav.login,
@@ -182,9 +201,14 @@ class _AppScaffoldState extends ConsumerState<AppScaffold> {
 /// The signed-in user's name, opening a menu with the appearance and language
 /// choices and the account actions.
 class _AccountMenu extends ConsumerWidget {
-  const _AccountMenu({required this.name, required this.onLogout});
+  const _AccountMenu({
+    required this.name,
+    required this.isAdmin,
+    required this.onLogout,
+  });
 
   final String name;
+  final bool isAdmin;
   final VoidCallback onLogout;
 
   @override
@@ -233,6 +257,12 @@ class _AccountMenu extends ConsumerWidget {
               child: Text(language.buildSync().ui.nav.languageName),
             ),
           const CupertinoMenuDivider(),
+          if (isAdmin)
+            CupertinoMenuItem(
+              onPressed: () => context.go(settingsPath),
+              leading: const Icon(CupertinoIcons.gear),
+              child: Text(t.ui.settings.title),
+            ),
           CupertinoMenuItem(
             onPressed: onLogout,
             leading: const Icon(CupertinoIcons.square_arrow_left),

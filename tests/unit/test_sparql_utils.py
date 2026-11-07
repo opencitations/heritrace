@@ -7,19 +7,21 @@ Tests for the SPARQL utilities module.
 """
 
 import time
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import ContextVar
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 from rdflib import Dataset, Graph, Literal, URIRef
 from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
 
+from heritrace.extensions import get_app_state
 from heritrace.utils import sparql_utils
 from heritrace.utils.sparql_utils import (
     AVAILABLE_CLASSES_TTL_SECONDS,
     CatalogQuery,
     DeletedEntitiesQuery,
     _deleted_entity_types,
-    _fetch_entity_label,
     _fetch_entity_labels,
     _get_entities_with_enhanced_shape_detection,
     build_sort_clause,
@@ -35,6 +37,10 @@ from heritrace.utils.sparql_utils import (
     process_deleted_entities,
     warm_catalogue,
 )
+
+COUNT_LIMIT = 10000
+_caller: ContextVar[str] = ContextVar("caller")
+_PERSON = ("http://example.org/Person", "http://example.org/PersonShape")
 
 
 @pytest.fixture
@@ -120,84 +126,76 @@ def mock_quadstore():
 
 
 class TestWorkerPool:
-    def test_configures_shared_process_budget(self) -> None:
+    def test_splits_the_processors_among_the_gunicorn_workers(self) -> None:
         executor = MagicMock()
 
         with (
             patch("heritrace.utils.sparql_utils._worker_pool.executor", None),
+            patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=8),
             patch(
-                "heritrace.utils.sparql_utils.ProcessPoolExecutor",
+                "heritrace.utils.sparql_utils.ThreadPoolExecutor",
                 return_value=executor,
             ) as mock_executor_class,
         ):
-            sparql_utils.configure_worker_pool(8, 2)
+            sparql_utils.configure_worker_pool(2)
             sparql_utils.shutdown_worker_pool()
 
         mock_executor_class.assert_called_once_with(max_workers=4)
         executor.shutdown.assert_called_once_with()
 
-    def test_uses_sequential_execution_when_budget_is_below_server_workers(
-        self,
+    @pytest.mark.parametrize("gunicorn_workers", [5, 17])
+    def test_loads_labels_one_at_a_time_with_a_share_below_two(
+        self, gunicorn_workers: int
     ) -> None:
         with (
             patch("heritrace.utils.sparql_utils._worker_pool.executor", None),
+            patch("heritrace.utils.sparql_utils.os.cpu_count", return_value=8),
             patch(
-                "heritrace.utils.sparql_utils.ProcessPoolExecutor"
+                "heritrace.utils.sparql_utils.ThreadPoolExecutor"
             ) as mock_executor_class,
         ):
-            sparql_utils.configure_worker_pool(1, 2)
+            sparql_utils.configure_worker_pool(gunicorn_workers)
 
         mock_executor_class.assert_not_called()
 
-    @pytest.mark.parametrize(
-        ("max_workers", "gunicorn_workers", "message"),
-        [
-            (0, 1, "MAX_WORKERS must be at least 1"),
-            (1, 0, "GUNICORN_WORKERS must be at least 1"),
-        ],
-    )
-    def test_rejects_invalid_worker_counts(
-        self, max_workers: int, gunicorn_workers: int, message: str
-    ) -> None:
+    def test_rejects_zero_gunicorn_workers(self) -> None:
         with (
             patch("heritrace.utils.sparql_utils._worker_pool.executor", None),
-            pytest.raises(ValueError, match=message),
+            pytest.raises(ValueError, match="GUNICORN_WORKERS must be at least 1"),
         ):
-            sparql_utils.configure_worker_pool(max_workers, gunicorn_workers)
+            sparql_utils.configure_worker_pool(0)
 
-    def test_fetches_fifty_labels_in_input_order_with_shared_pool(self) -> None:
+    def test_fetches_fifty_labels_in_order_in_the_caller_context(self) -> None:
         uris = [f"http://example.org/person/{index}" for index in range(50)]
-        entity_key = (
-            "http://example.org/Person",
-            "http://example.org/PersonShape",
-        )
-        labels = [f"Person {index}" for index in range(50)]
-        executor = MagicMock()
-        executor.map.return_value = labels
-
-        with patch("heritrace.utils.sparql_utils._worker_pool.executor", executor):
-            result = _fetch_entity_labels(uris, entity_key)
-
-        assert result == labels
-        worker, submitted_uris, submitted_keys = executor.map.call_args.args
-        assert worker is _fetch_entity_label
-        assert submitted_uris == uris
-        assert list(submitted_keys) == [entity_key] * 50
-
-    def test_label_error_propagates_from_shared_pool(self) -> None:
-        executor = MagicMock()
-        executor.map.side_effect = SPARQLWrapperException(b"query failed")
+        token = _caller.set("catalogue request")
 
         with (
+            ThreadPoolExecutor(max_workers=4) as executor,
             patch("heritrace.utils.sparql_utils._worker_pool.executor", executor),
+            patch(
+                "heritrace.utils.sparql_utils._fetch_entity_label",
+                side_effect=lambda uri, _key: f"{_caller.get()}: {uri}",
+            ),
+        ):
+            result = _fetch_entity_labels(uris, _PERSON)
+        _caller.reset(token)
+
+        assert result == [f"catalogue request: {uri}" for uri in uris]
+
+    def test_label_error_propagates_from_shared_pool(self) -> None:
+        with (
+            ThreadPoolExecutor(max_workers=2) as executor,
+            patch("heritrace.utils.sparql_utils._worker_pool.executor", executor),
+            patch(
+                "heritrace.utils.sparql_utils._fetch_entity_label",
+                side_effect=SPARQLWrapperException(b"query failed"),
+            ),
             pytest.raises(SPARQLWrapperException, match="query failed"),
         ):
-            _fetch_entity_labels(
-                ["http://example.org/person/1"],
-                ("http://example.org/Person", "http://example.org/PersonShape"),
-            )
+            _fetch_entity_labels(["http://example.org/person/1"], _PERSON)
 
 
+@pytest.mark.usefixtures("app")
 class TestGetAvailableClasses:
     """Tests for the get_available_classes function."""
 
@@ -219,10 +217,6 @@ class TestGetAvailableClasses:
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
                 return_value="http://example.org/PersonShape",
-            ),
-            patch.dict(
-                "heritrace.utils.sparql_utils._cache",
-                {"available_classes": None},
             ),
             patch(
                 "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
@@ -282,8 +276,9 @@ class TestGetAvailableClasses:
         ]
         with (
             patch.dict(
-                "heritrace.utils.sparql_utils._cache",
+                get_app_state().class_counts,
                 {"available_classes": (cached_classes, time.monotonic(), "1")},
+                clear=True,
             ),
             patch("heritrace.utils.sparql_utils._count_class_instances") as mock_count,
         ):
@@ -312,8 +307,9 @@ class TestGetAvailableClasses:
 
         with (
             patch.dict(
-                "heritrace.utils.sparql_utils._cache",
+                get_app_state().class_counts,
                 {"available_classes": stale_entry},
+                clear=True,
             ),
             patch(
                 "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
@@ -337,9 +333,9 @@ class TestGetAvailableClasses:
             ),
         ):
             result = get_available_classes()
-            cached_value = sparql_utils._cache["available_classes"]  # noqa: SLF001
+            cached_value = get_app_state().class_counts["available_classes"]
 
-        mock_count.assert_called_once_with("http://example.org/Person")
+        mock_count.assert_called_once_with("http://example.org/Person", COUNT_LIMIT)
         assert result == [
             {
                 "uri": "http://example.org/Person",
@@ -370,10 +366,6 @@ class TestGetAvailableClasses:
             patch(
                 "heritrace.utils.sparql_utils.determine_shape_for_classes",
                 return_value="http://example.org/PersonShape",
-            ),
-            patch.dict(
-                "heritrace.utils.sparql_utils._cache",
-                {"available_classes": None},
             ),
             patch(
                 "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
@@ -1216,7 +1208,7 @@ class TestGetEntitiesWithEnhancedShapeDetection:
             )
 
             result = _get_entities_with_enhanced_shape_detection(
-                class_uri, classes_with_multiple_shapes
+                class_uri, classes_with_multiple_shapes, COUNT_LIMIT
             )
 
             # Now expects 2 queries: one for subjects, one for triples
@@ -1302,7 +1294,7 @@ class TestGetEntitiesWithEnhancedShapeDetection:
             ]
 
             result = _get_entities_with_enhanced_shape_detection(
-                class_uri, classes_with_multiple_shapes
+                class_uri, classes_with_multiple_shapes, COUNT_LIMIT
             )
 
             # Now expects 2 queries: one for subjects, one for triples
@@ -1364,12 +1356,13 @@ class TestGetEntitiesWithEnhancedShapeDetection:
             mock_sparql.query.return_value.convert.return_value = mock_sparql_results
 
             result = _get_entities_with_enhanced_shape_detection(
-                class_uri, classes_with_multiple_shapes
+                class_uri, classes_with_multiple_shapes, COUNT_LIMIT
             )
 
             assert len(result) == 0
 
 
+@pytest.mark.usefixtures("app")
 class TestGetAvailableClassesMultipleShapes:
     """Tests for the multiple shapes branch in get_available_classes function."""
 
@@ -1438,10 +1431,6 @@ class TestGetAvailableClassesMultipleShapes:
             ),
             patch(
                 "heritrace.utils.sparql_utils.is_entity_type_visible", return_value=True
-            ),
-            patch.dict(
-                "heritrace.utils.sparql_utils._cache",
-                {"available_classes": None},
             ),
             patch(
                 "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
@@ -1536,10 +1525,6 @@ class TestGetAvailableClassesMultipleShapes:
             patch(
                 "heritrace.utils.sparql_utils._get_entities_with_enhanced_shape_detection",
                 return_value=mock_shape_to_entities,
-            ),
-            patch.dict(
-                "heritrace.utils.sparql_utils._cache",
-                {"available_classes": None},
             ),
             patch(
                 "heritrace.utils.sparql_utils.get_classes_from_shacl_or_display_rules",
@@ -1989,10 +1974,9 @@ def deletion_binding(
 
 
 @pytest.fixture(autouse=True)
-def clear_deleted_classes_cache():
-    sparql_utils._cache["deleted_classes"] = None  # noqa: SLF001
-    yield
-    sparql_utils._cache["deleted_classes"] = None  # noqa: SLF001
+def clear_class_counts(app):
+    with patch.dict(app.extensions["heritrace"].class_counts, clear=True):
+        yield
 
 
 @pytest.fixture
@@ -2054,6 +2038,7 @@ class TestDeletedEntityTypes:
         assert types == [PERSON]
 
 
+@pytest.mark.usefixtures("app")
 class TestGetDeletedAvailableClasses:
     """Tests for the deleted entity class counts."""
 
@@ -2094,7 +2079,7 @@ class TestGetDeletedAvailableClasses:
 
         queries = [c[0][0] for c in mock_provenance_sparql.setQuery.call_args_list]
         assert f'"{RDF_TYPE} <{PERSON}>"' in queries[0]
-        assert f"LIMIT {sparql_utils.COUNT_LIMIT + 1}" in queries[0]
+        assert f"LIMIT {COUNT_LIMIT + 1}" in queries[0]
 
     def test_caps_the_displayed_count_at_the_limit(
         self,
@@ -2104,13 +2089,13 @@ class TestGetDeletedAvailableClasses:
         mock_configured_classes,
     ) -> None:
         mock_provenance_sparql.query.return_value.convert.return_value = (
-            self.count_result(sparql_utils.COUNT_LIMIT + 1)
+            self.count_result(COUNT_LIMIT + 1)
         )
 
         deleted_classes = get_deleted_available_classes()
 
-        assert deleted_classes[0]["count"] == f"{sparql_utils.COUNT_LIMIT}+"
-        assert deleted_classes[0]["count_numeric"] == sparql_utils.COUNT_LIMIT
+        assert deleted_classes[0]["count"] == f"{COUNT_LIMIT}+"
+        assert deleted_classes[0]["count_numeric"] == COUNT_LIMIT
 
     def test_skips_classes_that_are_not_visible_or_never_deleted(
         self,
@@ -2307,6 +2292,7 @@ class TestProcessDeletedEntities:
         }
 
 
+@pytest.mark.usefixtures("app")
 class TestGetDeletedEntitiesWithFiltering:
     """Tests for the get_deleted_entities_with_filtering function."""
 

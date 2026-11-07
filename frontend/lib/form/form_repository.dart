@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
+import '../navigation/entity_store.dart';
 import 'field_def.dart';
 
 class EntityTypeOption {
@@ -64,13 +65,14 @@ class ContextConstraint {
 }
 
 class FormRepository {
-  const FormRepository(this._dio);
+  const FormRepository(this._dio, this._store);
 
   final Dio _dio;
+  final EntityStore _store;
 
   Future<List<EntityTypeOption>> entityTypes() async {
     final response = await apiGuard(
-      () => _dio.get<Map<String, dynamic>>('/api/entity-types'),
+      () => _dio.get<Map<String, dynamic>>('${_store.apiPrefix}/entity-types'),
     );
     return (response.data!['types'] as List<dynamic>)
         .map((e) => EntityTypeOption.fromJson(e as Map<String, dynamic>))
@@ -80,7 +82,7 @@ class FormRepository {
   Future<List<FieldDef>> formFields(String entityClass, String? shape) async {
     final response = await apiGuard(
       () => _dio.get<Map<String, dynamic>>(
-        '/api/form-fields',
+        '${_store.apiPrefix}/form-fields',
         queryParameters: {'entity_class': entityClass, 'entity_shape': shape},
       ),
     );
@@ -90,7 +92,7 @@ class FormRepository {
   Future<String?> draftLabel(Map<String, Object?> entry) async {
     final response = await apiGuard(
       () => _dio.post<Map<String, dynamic>>(
-        '/api/draft-labels',
+        '${_store.apiPrefix}/draft-labels',
         data: {
           'entries': [entry],
         },
@@ -110,7 +112,7 @@ class FormRepository {
   }) async {
     final response = await apiGuard(
       () => _dio.post<Map<String, dynamic>>(
-        '/api/search',
+        '${_store.apiPrefix}/search',
         data: {
           'term': term,
           'entity_class': entityClass,
@@ -136,7 +138,7 @@ class FormRepository {
     try {
       final response = await apiGuard(
         () => _dio.post<Map<String, dynamic>>(
-          '/api/validate-literal',
+          '${_store.apiPrefix}/validate-literal',
           data: {'value': value},
         ),
       );
@@ -152,9 +154,12 @@ class FormRepository {
 }
 
 final formRepositoryProvider = Provider<FormRepository>(
-  (ref) => FormRepository(ref.watch(dioProvider)),
+  (ref) =>
+      FormRepository(ref.watch(dioProvider), ref.watch(entityStoreProvider)),
+  dependencies: [entityStoreProvider],
 );
 
 final entityTypesProvider = FutureProvider<List<EntityTypeOption>>(
   (ref) => ref.watch(formRepositoryProvider).entityTypes(),
+  dependencies: [formRepositoryProvider],
 );

@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+from dataclasses import replace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -232,6 +233,9 @@ def test_get_paginated_inverse_references_backend(
     mock_get_sparql, mock_get_filter, mock_get_types, app, backend
 ) -> None:
     app.config["DATASET_DB_TRIPLESTORE"] = backend
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], is_virtuoso=backend == "virtuoso"
+    )
     limit = 5
     offset = 0
     mock_sparql_instance = mock_sparql_query_results([], limit=limit, offset=offset)

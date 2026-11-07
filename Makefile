@@ -21,14 +21,16 @@ frontend-dev:
 
 dev-big dev-small: dev-%: .env
 	./dev/fetch-databases.sh $*
+	mkdir -p dev/data/$*/config
 	DEV_DATASET=$* $(DEV_COMPOSE) up --build
 
 demo-big demo-small: demo-%: .env
 	./dev/fetch-databases.sh $*
+	mkdir -p dev/data/$*/config
 	DEV_DATASET=$* $(DEV_COMPOSE) -f dev/docker-compose.demo.yaml up --build
 
 reset-demo-big reset-demo-small: reset-demo-%:
-	rm -rf dev/data/$*/meta-updates dev/data/$*/provenance dev/data/$*/redis
+	rm -rf dev/data/$*/meta-updates dev/data/$*/provenance dev/data/$*/redis dev/data/$*/config
 	$(MAKE) demo-$*
 
 .env:

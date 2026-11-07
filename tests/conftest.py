@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+import shutil
 import subprocess
 from collections.abc import Generator
 from pathlib import Path
@@ -11,7 +12,8 @@ from flask import Flask
 from flask.testing import FlaskClient, FlaskCliRunner
 from redis import Redis
 
-from tests.test_config import TestConfig
+from heritrace.scripts.seed_config import seed_config
+from tests.test_config import TestConfig, test_example_dir
 
 COMPOSE_FILE = str(Path(__file__).parent / "docker-compose.yml")
 
@@ -41,6 +43,11 @@ def _grant_virtuoso_permissions(container: str) -> None:
     )
 
 
+def write_test_configuration() -> None:
+    shutil.rmtree(TestConfig.CONFIG_DIR, ignore_errors=True)
+    seed_config(TestConfig.CONFIG_DIR, test_example_dir)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def docker_services() -> Generator[None, None, None]:
     subprocess.run(
@@ -49,6 +56,7 @@ def docker_services() -> Generator[None, None, None]:
     )
     _grant_virtuoso_permissions("tests-dataset-db-1")
     _grant_virtuoso_permissions("tests-provenance-db-1")
+    write_test_configuration()
     yield
     subprocess.run(
         ["docker", "compose", "-f", COMPOSE_FILE, "down"],

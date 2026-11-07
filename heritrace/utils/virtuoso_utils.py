@@ -2,16 +2,6 @@
 #
 # SPDX-License-Identifier: ISC
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-from flask import current_app
-
-if TYPE_CHECKING:
-    from flask import Flask
-
-
 VIRTUOSO_EXCLUDED_GRAPHS = [
     "http://localhost:8890/DAV/",
     "http://www.openlinksw.com/schemas/virtrdf#",
@@ -22,16 +12,7 @@ VIRTUOSO_EXCLUDED_GRAPHS = [
 ]
 
 
-def is_virtuoso(app: Flask | None = None) -> bool:
-    """
-    Check if the triplestore is Virtuoso.
+def is_virtuoso() -> bool:
+    from heritrace.extensions import get_app_state  # noqa: PLC0415
 
-    Args:
-        app: Flask application object (optional)
-
-    Returns:
-        bool: True if triplestore is Virtuoso, False otherwise
-    """
-    if app is None:
-        app = current_app
-    return app.config["DATASET_DB_TRIPLESTORE"].lower() == "virtuoso"
+    return get_app_state().is_virtuoso

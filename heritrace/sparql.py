@@ -2,11 +2,13 @@
 #
 # SPDX-License-Identifier: ISC
 
+import json
 import logging
 import time
-from collections.abc import Iterator
-from typing import TypedDict, cast
+from collections.abc import Callable, Iterator
+from typing import Protocol, TypedDict, cast
 
+from rdflib import Graph
 from rdflib.query import Result, ResultRow
 from SPARQLWrapper import POST, QueryResult, SPARQLWrapper
 from SPARQLWrapper.SPARQLExceptions import SPARQLWrapperException
@@ -59,6 +61,48 @@ class SPARQLWrapperWithRetry(SPARQLWrapper):
 
         logger.error("All %d SPARQL query attempts failed", self.max_attempts)
         raise last_exception  # type: ignore[misc]
+
+
+class _ConvertibleResult(Protocol):
+    def convert(self) -> object: ...
+
+
+class SparqlEndpoint(Protocol):
+    def setQuery(self, query: str) -> None: ...  # noqa: N802
+
+    def setReturnFormat(self, format: str) -> None: ...  # noqa: N802, A002
+
+    def query(self) -> _ConvertibleResult: ...
+
+    def queryAndConvert(self) -> object: ...  # noqa: N802
+
+
+class _LocalResult:
+    def __init__(self, result: Result) -> None:
+        self._result = result
+
+    def convert(self) -> object:
+        return json.loads(cast("bytes", self._result.serialize(format="json")))
+
+
+# Answers like a SPARQL endpoint, with SPARQL JSON results, from an rdflib graph
+# that the callable returns afresh for every query.
+class LocalSparql:
+    def __init__(self, graph: Callable[[], Graph]) -> None:
+        self._graph = graph
+        self._query = ""
+
+    def setQuery(self, query: str) -> None:  # noqa: N802
+        self._query = query
+
+    def setReturnFormat(self, format: str) -> None:  # noqa: N802, A002
+        pass
+
+    def query(self) -> _LocalResult:
+        return _LocalResult(self._graph().query(self._query))
+
+    def queryAndConvert(self) -> object:  # noqa: N802
+        return self.query().convert()
 
 
 class _SparqlJsonResults(TypedDict):

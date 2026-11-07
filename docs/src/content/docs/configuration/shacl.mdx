@@ -1,5 +1,5 @@
 ---
-# SPDX-FileCopyrightText: 2025 Arcangelo Massari <arcangelo.massari@unibo.it>
+# SPDX-FileCopyrightText: 2025-2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -9,7 +9,7 @@ description: Define your data model using SHACL for automatic form generation an
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
 import ShaclSupport from '../../../components/ShaclSupport.astro';
 
-The SHACL (Shapes Constraint Language) file describes your data model. HERITRACE reads it for three purposes:
+SHACL (Shapes Constraint Language) shapes describe your data model. HERITRACE reads it for three purposes:
 
 -   **Form generation**: each shape becomes a form, and each property shape becomes a field with its input type and validation hints.
 -   **Data validation**: the constraints, such as datatypes and cardinality, are checked on every change.
@@ -38,21 +38,16 @@ The lists above follow the W3C editor's drafts of the SHACL 1.2 family:
 - <a href="https://w3c.github.io/data-shapes/shacl12-node-expr/" target="_blank" rel="noopener noreferrer">SHACL 1.2 Node Expressions</a>
 - <a href="https://w3c.github.io/data-shapes/shacl12-ui/" target="_blank" rel="noopener noreferrer">SHACL 1.2 User Interfaces</a>
 
-## File location
+## Where the shapes live
 
-The application reads the SHACL schema from `/app/shacl.ttl` inside the container. To use your own schema, mount it as a Docker volume:
+The shapes are part of the HERITRACE configuration, stored in `shacl.ttl` in the configuration folder. They are optional: without shapes, you edit the data with free properties, choosing classes, predicates and values yourself. You can add shapes at any time, starting from an empty configuration. You can edit them in the **Entity types** tab of the [configuration editor](../editor/), or write them in Turtle before the first start.
 
-```yaml
-volumes:
-  - ./my_shacl.ttl:/app/shacl.ttl
-```
-
-Example configurations are available in [`example_configurations/`](https://github.com/opencitations/heritrace/tree/main/example_configurations).
+Example shapes are available in [`example_configurations/`](https://github.com/opencitations/heritrace/tree/main/example_configurations).
 
 ## Core concepts
 
 ### Namespaces
-Define the ontologies and vocabularies you'll use at the top of your file.
+Define the ontologies and vocabularies you'll use at the top of your Turtle file.
 
 ```ttl
 @prefix sh: <http://www.w3.org/ns/shacl#> .

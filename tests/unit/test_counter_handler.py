@@ -8,13 +8,12 @@ Tests for the counter handler functionality.
 
 import pytest
 
-from tests.test_config import TestConfig
+from tests.test_config import test_counter_handler
 
 
 def test_counter_handler_basic_operations() -> None:
     """Test basic operations of the counter handler."""
-    # Get the counter handler from TestConfig
-    counter_handler = TestConfig.COUNTER_HANDLER
+    counter_handler = test_counter_handler
     assert counter_handler is not None
 
     # Create a subject URI
@@ -48,8 +47,7 @@ def test_counter_handler_basic_operations() -> None:
 
 def test_counter_handler_with_different_entities() -> None:
     """Test counter handler with different entity names."""
-    # Get the counter handler from TestConfig
-    counter_handler = TestConfig.COUNTER_HANDLER
+    counter_handler = test_counter_handler
     assert counter_handler is not None
 
     # Test with multiple different entity names
@@ -77,8 +75,7 @@ def test_counter_handler_with_different_entities() -> None:
 
 def test_counter_handler_negative_value() -> None:
     """Test that set_counter raises ValueError when a negative value is passed."""
-    # Get the counter handler from TestConfig
-    counter_handler = TestConfig.COUNTER_HANDLER
+    counter_handler = test_counter_handler
     assert counter_handler is not None
 
     # Create a test entity name

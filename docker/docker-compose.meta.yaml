@@ -80,7 +80,22 @@ services:
       retries: 20
       start_period: 5m
 
+  config-seed:
+    image: heritrace-meta
+    build:
+      context: ..
+      dockerfile: dev/Dockerfile.dev
+    entrypoint: [/app/.venv/bin/python, -m, heritrace.scripts.seed_config]
+    command: [/config, /example]
+    volumes:
+      - ../heritrace:/app/heritrace
+      - ./meta-settings.json:/example/settings.json:ro
+      - ../example_configurations/opencitations_meta/shacl.ttl:/example/shacl.ttl:ro
+      - ../example_configurations/opencitations_meta/display_rules.yaml:/example/display_rules.yaml:ro
+      - ../meta_config:/config
+
   web:
+    image: heritrace-meta
     build:
       context: ..
       dockerfile: dev/Dockerfile.dev
@@ -91,20 +106,20 @@ services:
       DATASET_DB_TRIPLESTORE: virtuoso
       DATASET_DB_TEXT_INDEX_ENABLED: "true"
       PROVENANCE_DB_TRIPLESTORE: qlever
-      GUNICORN_WORKERS: "1"
-      MAX_WORKERS: "8"
-      COUNT_LIMIT: "500"
+      CONFIG_DIR: /app/config
       COUNTER_HANDLER_CLASS: default_components.meta_filesystem_counter_handler.MetaFilesystemCounterHandler
-      COUNTER_HANDLER_OPTIONS: '{"info_dir":"/app/info_dir","supplier_prefix":"09110","base_iri":"https://w3id.org/oc/meta"}'
+      COUNTER_HANDLER_OPTIONS: '{"info_dir": "/app/info_dir", "supplier_prefix": "09110", "base_iri": "https://w3id.org/oc/meta"}'
       URI_GENERATOR_CLASS: default_components.meta_uri_generator.MetaURIGenerator
-      URI_GENERATOR_OPTIONS: "{}"
       SAVE_PLUGIN_CLASS: default_components.meta_rdf_file_writer.MetaRDFFileWriter
-      SAVE_PLUGIN_OPTIONS: '{"rdf_dir":"/app/rdf","base_iri":"https://w3id.org/oc/meta/","dir_split_number":10000,"items_per_file":1000}'
+      SAVE_PLUGIN_OPTIONS: '{"rdf_dir": "/app/rdf", "base_iri": "https://w3id.org/oc/meta/", "dir_split_number": 10000, "items_per_file": 1000}'
+      GUNICORN_WORKERS: "1"
     depends_on:
       dataset-db:
         condition: service_healthy
       provenance-db:
         condition: service_healthy
+      config-seed:
+        condition: service_completed_successfully
     ports:
       - "5000:5000"
     volumes:
@@ -113,8 +128,7 @@ services:
       - ../config.py:/app/config.py
       - ../default_components:/app/default_components
       - ../info_dir:/app/info_dir
+      - ../meta_config:/app/config
       - ../pyproject.toml:/app/pyproject.toml
       - ../uv.lock:/app/uv.lock
-      - ../example_configurations/opencitations_meta/shacl.ttl:/app/shacl.ttl
-      - ../example_configurations/opencitations_meta/display_rules.yaml:/app/display_rules.yaml
       - ../rdf:/app/rdf

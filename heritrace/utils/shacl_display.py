@@ -295,7 +295,9 @@ def process_query_results(
     with (Path(__file__).parent / "context.json").open() as config_file:
         context = json.load(config_file)["@context"]
 
-    custom_filter = Filter(context, ctx.presentation, ctx.app.config["DATASET_DB_URL"])
+    from heritrace.extensions import new_store_sparql  # noqa: PLC0415
+
+    custom_filter = Filter(context, ctx.presentation, new_store_sparql)
 
     for row in results:
         parsed = _parse_row(row)

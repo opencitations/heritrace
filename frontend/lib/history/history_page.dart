@@ -11,7 +11,7 @@ import '../design/app_theme.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
-import '../navigation/app_paths.dart';
+import '../navigation/entity_store.dart';
 import 'history_models.dart';
 import 'history_repository.dart';
 import 'history_widgets.dart';
@@ -37,7 +37,8 @@ class HistoryPage extends ConsumerWidget {
               crumbs: [
                 AppBreadcrumb(
                   data.entityLabel,
-                  onPressed: () => context.go(entityPath(uri)),
+                  onPressed: () =>
+                      context.go(context.entityStore.entityPath(uri)),
                 ),
                 AppBreadcrumb(t.ui.history.title),
               ],
@@ -173,7 +174,10 @@ class _SnapshotCard extends ConsumerWidget {
                     AppButton(
                       variant: AppButtonVariant.tinted,
                       onPressed: () => context.go(
-                        entityVersionPath(entityUri, snapshot.timestamp),
+                        context.entityStore.versionPath(
+                          entityUri,
+                          snapshot.timestamp,
+                        ),
                       ),
                       label: t.ui.history.viewVersion,
                     ),

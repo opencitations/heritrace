@@ -4,17 +4,17 @@
 
 from dataclasses import dataclass
 
-from flask import Response, current_app, jsonify, request
+from flask import Response, jsonify, request
 from flask_login import current_user, login_required
 from rdflib import RDF, XSD, Literal, URIRef
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor, EditorError, EndpointConfig
+from heritrace.editor import Editor, EditorError
 from heritrace.extensions import (
     get_custom_filter,
-    get_dataset_endpoint,
     get_form_fields,
-    get_provenance_endpoint,
+    get_primary_source,
+    new_editor,
     record_dataset_change,
 )
 from heritrace.routes.entity._blueprint import entity_bp
@@ -201,18 +201,7 @@ def _handle_create_entity_post(
             return jsonify({"status": "error", "errors": validation_errors}), 400
 
     resp_agent = get_responsible_agent_uri(current_user.orcid)
-    editor = Editor(
-        EndpointConfig(
-            dataset=get_dataset_endpoint(),
-            provenance=get_provenance_endpoint(),
-            is_quadstore=current_app.config["DATASET_IS_QUADSTORE"],
-        ),
-        current_app.config["COUNTER_HANDLER"],
-        resp_agent,
-        URIRef(current_app.config["PRIMARY_SOURCE"]),
-        current_app.config["DATASET_GENERATION_TIME"],
-        save_plugin=current_app.config.get("SAVE_PLUGIN"),
-    )
+    editor = new_editor(resp_agent, get_primary_source())
     entity_uri = generate_unique_uri(entity_type)
     default_graph_uri = (
         URIRef(f"{entity_uri}/graph") if editor.dataset_is_quadstore else None
@@ -266,20 +255,17 @@ def create_entity() -> tuple[Response, int]:
 @login_required
 def entity_types() -> Response:
     custom_filter = get_custom_filter()
-    visible_keys = sorted(
-        (key for key in get_form_fields() if is_entity_type_visible(key)),
-        key=get_class_priority,
-        reverse=True,
-    )
+    labelled_keys = [
+        (key, custom_filter.human_readable_class(key))
+        for key in get_form_fields()
+        if is_entity_type_visible(key)
+    ]
+    labelled_keys.sort(key=lambda item: (-get_class_priority(item[0]), item[1]))
     return jsonify(
         {
             "types": [
-                {
-                    "class": entity_class,
-                    "shape": shape,
-                    "label": custom_filter.human_readable_class((entity_class, shape)),
-                }
-                for entity_class, shape in visible_keys
+                {"class": entity_class, "shape": shape, "label": label}
+                for (entity_class, shape), label in labelled_keys
             ]
         }
     )

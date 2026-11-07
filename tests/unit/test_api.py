@@ -1859,32 +1859,19 @@ def test_order_logic_entity_type_error(app: Flask) -> None:
 
 
 def test_generate_unique_uri(app: Flask) -> None:
-    """Test the generate_unique_uri function."""
-    with app.app_context():
-        # Create a mock URI generator
-        mock_uri_generator = MagicMock()
-        mock_uri_generator.generate_uri.return_value = "http://example.org/entity/1"
+    mock_uri_generator = MagicMock()
+    mock_uri_generator.generate_uri.return_value = "http://example.org/entity/1"
+    entity_type = "http://example.org/EntityType"
+    with (
+        app.app_context(),
+        patch(
+            "heritrace.extensions.get_uri_generator", return_value=mock_uri_generator
+        ),
+    ):
+        result = generate_unique_uri(entity_type)
 
-        # Store the original URI generator
-        original_uri_generator = app.config["URI_GENERATOR"]
-
-        try:
-            # Set our mock as the application's URI generator
-            app.config["URI_GENERATOR"] = mock_uri_generator
-
-            # Call the function with an entity type
-            entity_type = "http://example.org/EntityType"
-            result = generate_unique_uri(entity_type)
-
-            # Verify the result
-            assert result == URIRef("http://example.org/entity/1")
-
-            # Verify the mock was called correctly
-            mock_uri_generator.generate_uri.assert_called_once_with(entity_type, None)
-
-        finally:
-            # Restore the original URI generator
-            app.config["URI_GENERATOR"] = original_uri_generator
+    assert result == URIRef("http://example.org/entity/1")
+    mock_uri_generator.generate_uri.assert_called_once_with(entity_type, None)
 
 
 @patch("heritrace.routes.api.get_custom_filter")
@@ -2538,14 +2525,10 @@ def test_apply_changes_invalid_primary_source(api_client: FlaskClient) -> None:
 @patch("heritrace.routes.api.save_user_default_primary_source")
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_save_default_source(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_import_entity,
     mock_transform,
@@ -2555,8 +2538,6 @@ def test_apply_changes_save_default_source(
     app: Flask,
 ) -> None:
     """Test apply_changes with save_default_source flag."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -2598,14 +2579,10 @@ def test_apply_changes_save_default_source(
 @patch("heritrace.routes.api.update_logic")
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_set_primary_source_on_editor(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_import_entity,
     mock_transform,
@@ -2614,8 +2591,6 @@ def test_apply_changes_set_primary_source_on_editor(
     app: Flask,
 ) -> None:
     """Test apply_changes sets primary source on editor."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -2658,14 +2633,10 @@ def test_apply_changes_set_primary_source_on_editor(
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.import_referenced_entities")
 @patch("heritrace.routes.api.create_logic")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_with_create_action(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_create_logic,
     mock_import_referenced,
@@ -2675,8 +2646,6 @@ def test_apply_changes_with_create_action(
     app: Flask,
 ) -> None:
     """Test apply_changes with create action."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -2713,14 +2682,10 @@ def test_apply_changes_with_create_action(
 @patch("heritrace.routes.api.update_logic")
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_with_quadstore(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_import_entity,
     mock_transform,
@@ -2729,8 +2694,6 @@ def test_apply_changes_with_quadstore(
     app: Flask,
 ) -> None:
     """Test apply_changes with quadstore to extract graph URI."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -2777,14 +2740,10 @@ def test_apply_changes_with_quadstore(
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.delete_logic")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_with_orphan_deletion(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_delete_logic,
     mock_import_entity,
@@ -2796,8 +2755,6 @@ def test_apply_changes_with_orphan_deletion(
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.DELETE
     app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.KEEP
 
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -2842,14 +2799,10 @@ def test_apply_changes_with_orphan_deletion(
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.delete_logic")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_with_proxy_deletion(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_delete_logic,
     mock_import_entity,
@@ -2861,8 +2814,6 @@ def test_apply_changes_with_proxy_deletion(
     app.config["ORPHAN_HANDLING_STRATEGY"] = OrphanHandlingStrategy.KEEP
     app.config["PROXY_HANDLING_STRATEGY"] = ProxyHandlingStrategy.DELETE
 
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -2907,14 +2858,10 @@ def test_apply_changes_with_proxy_deletion(
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.delete_logic")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_delete_entity(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_delete_logic,
     mock_import_entity,
@@ -2923,8 +2870,6 @@ def test_apply_changes_delete_entity(
     app: Flask,
 ) -> None:
     """Test apply_changes with entity deletion (no predicate)."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -2949,14 +2894,10 @@ def test_apply_changes_delete_entity(
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.update_logic")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_update_action(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_update_logic,
     mock_import_entity,
@@ -2965,8 +2906,6 @@ def test_apply_changes_update_action(
     app: Flask,
 ) -> None:
     """Test apply_changes with update action."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -3005,14 +2944,10 @@ def test_apply_changes_update_action(
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
 @patch("heritrace.routes.api.order_logic")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_order_action(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_order_logic,
     mock_import_entity,
@@ -3021,8 +2956,6 @@ def test_apply_changes_order_action(
     app: Flask,
 ) -> None:
     """Test apply_changes with order action."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -3060,14 +2993,10 @@ def test_apply_changes_order_action(
 
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_save_valueerror(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_import_entity,
     mock_transform,
@@ -3075,8 +3004,6 @@ def test_apply_changes_save_valueerror(
     app: Flask,
 ) -> None:
     """Test apply_changes when editor.save() raises ValueError."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()
@@ -3118,14 +3045,10 @@ def test_apply_changes_save_valueerror(
 @patch("heritrace.routes.api.update_logic")
 @patch("heritrace.routes.api.transform_changes_with_virtual_properties")
 @patch("heritrace.routes.api.import_entity_graph")
-@patch("heritrace.routes.api.Editor")
-@patch("heritrace.routes.api.get_dataset_endpoint")
-@patch("heritrace.routes.api.get_provenance_endpoint")
+@patch("heritrace.routes.api.new_editor")
 @patch("heritrace.routes.api.get_responsible_agent_uri")
 def test_apply_changes_save_exception(
     mock_get_responsible,
-    mock_get_prov,
-    mock_get_dataset,
     mock_editor_class,
     mock_import_entity,
     mock_transform,
@@ -3134,8 +3057,6 @@ def test_apply_changes_save_exception(
     app: Flask,
 ) -> None:
     """Test apply_changes when editor.save() raises generic Exception."""
-    mock_get_dataset.return_value = "http://dataset"
-    mock_get_prov.return_value = "http://prov"
     mock_get_responsible.return_value = "http://agent"
 
     mock_editor = MagicMock()

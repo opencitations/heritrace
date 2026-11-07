@@ -17,6 +17,7 @@ import '../form/widgets/custom_properties_form.dart';
 import '../form/widgets/validation_summary.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
+import '../navigation/entity_store.dart';
 import '../navigation/leave_guard.dart';
 import '../session/session_controller.dart';
 import 'create_entity_page.dart';
@@ -28,9 +29,12 @@ import 'orphan_dialog.dart';
 import 'resource_lists.dart';
 
 class EntityPage extends ConsumerWidget {
-  const EntityPage({required this.uri, super.key});
+  const EntityPage({required this.uri, this.header, super.key});
 
   final String uri;
+
+  /// Shown in place of the entity title.
+  final Widget? header;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,6 +48,7 @@ class EntityPage extends ConsumerWidget {
           key: ValueKey(data),
           view: data,
           type: type,
+          header: header,
           onReload: () => ref.invalidate(entityViewProvider(uri)),
         ),
       },
@@ -110,12 +115,14 @@ class _EntityBody extends ConsumerStatefulWidget {
   const _EntityBody({
     required this.view,
     required this.type,
+    required this.header,
     required this.onReload,
     super.key,
   });
 
   final EntityView view;
   final String type;
+  final Widget? header;
   final VoidCallback onReload;
 
   @override
@@ -125,8 +132,9 @@ class _EntityBody extends ConsumerStatefulWidget {
 class _EntityBodyState extends ConsumerState<_EntityBody> {
   late final EditSession _session;
   late final FormScopeController _scope;
-  late final PagedResources<LinkedResource> _linked;
-  late final PagedResources<SimilarResource> _similar;
+  // Linked and similar resources exist only among the dataset's entities.
+  PagedResources<LinkedResource>? _linked;
+  PagedResources<SimilarResource>? _similar;
   late final LeaveGuard _leaveGuard;
 
   @override
@@ -144,6 +152,9 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
     )..onLockLost = _onLockLost;
     _session.addListener(_revalidate);
     _scope = FormScopeController(rootLabel: view.typeLabel);
+    if (ref.read(entityStoreProvider) != EntityStore.dataset) {
+      return;
+    }
     _linked = PagedResources(
       (offset) => repository.linkedResources(view.uri, offset: offset),
     )..loadMore();
@@ -163,12 +174,16 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
     _session.removeListener(_revalidate);
     _session.dispose();
     _scope.dispose();
-    _linked.dispose();
-    _similar.dispose();
+    _linked?.dispose();
+    _similar?.dispose();
     super.dispose();
   }
 
   bool get _canEdit => !widget.view.isDeleted && widget.view.groups.isNotEmpty;
+
+  // Deleting the configuration, or a part of it, is not offered yet.
+  bool get _canDelete =>
+      _canEdit && ref.read(entityStoreProvider) == EntityStore.dataset;
 
   void _revalidate() {
     if (_session.editing) {
@@ -219,8 +234,13 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
       }
       return;
     }
-    await _linked.whenLoaded;
-    final linkedUris = _linked.items.map((r) => r.subject).toList();
+    final List<String> linkedUris;
+    if (_linked case final linked?) {
+      await linked.whenLoaded;
+      linkedUris = linked.items.map((r) => r.subject).toList();
+    } else {
+      linkedUris = const [];
+    }
     try {
       final response = await _session.startEditing(linkedUris);
       if (!mounted) {
@@ -430,7 +450,7 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                     SliverPadding(
                       padding: margin.copyWith(bottom: appInputSpacing),
                       sliver: SliverToBoxAdapter(
-                        child: _EntityTitle(label: view.label),
+                        child: widget.header ?? _EntityTitle(label: view.label),
                       ),
                     ),
                     if (editing)
@@ -438,58 +458,61 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                     else
                       SliverToBoxAdapter(child: actions),
                     SliverPadding(
-                      padding: margin.copyWith(top: appInputSpacing, bottom: 0),
+                      padding: margin.copyWith(
+                        top: appInputSpacing,
+                        bottom: appSectionSpacing,
+                      ),
                       sliver: SliverToBoxAdapter(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
+                          spacing: appPartSpacing,
                           children: [
-                            if (view.isDeleted)
-                              AppBanner(text: t.ui.entity.deletedBanner)
-                            else if (view.groups.isEmpty)
-                              AppBanner(text: t.ui.entity.noInformation)
-                            else
-                              for (final group in _session.groups)
-                                if (group.group.triples.isNotEmpty ||
-                                    (editing &&
-                                        view.canBeAdded.contains(
-                                          group.group.property,
-                                        ) &&
-                                        group.formGroup != null))
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: appSectionSpacing,
-                                    ),
-                                    child: EditableGroupWidget(
-                                      group: group,
-                                      view: view,
-                                      editing: editing,
-                                    ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              spacing: appSectionSpacing,
+                              children: [
+                                if (view.isDeleted)
+                                  AppBanner(text: t.ui.entity.deletedBanner)
+                                else if (view.groups.isEmpty)
+                                  AppBanner(text: t.ui.entity.noInformation)
+                                else
+                                  for (final group in _session.groups)
+                                    if (group.group.isShown &&
+                                        (group.group.triples.isNotEmpty ||
+                                            (editing &&
+                                                view.canBeAdded.contains(
+                                                  group.group.property,
+                                                ) &&
+                                                group.formGroup != null)))
+                                      EditableGroupWidget(
+                                        group: group,
+                                        view: view,
+                                        editing: editing,
+                                      ),
+                                if (editing && _session.showsCustomProperties)
+                                  CustomPropertiesForm(
+                                    controller: _session.customProperties,
+                                    datatypeOptions: ref
+                                        .read(sessionProvider)
+                                        .value!
+                                        .config!
+                                        .datatypeOptions,
                                   ),
-                            if (editing && _session.showsCustomProperties) ...[
-                              CustomPropertiesForm(
-                                controller: _session.customProperties,
-                                datatypeOptions: ref
-                                    .read(sessionProvider)
-                                    .value!
-                                    .config
-                                    .datatypeOptions,
-                              ),
-                              const SizedBox(height: appSectionSpacing),
-                            ],
-                            const SizedBox(height: appSectionSpacing),
-                            _LinkedResourcesSection(resources: _linked),
-                            const SizedBox(height: appSectionSpacing),
-                            ResourceListSection(
-                              title: t.ui.entity.similarResources,
-                              emptyMessage: t.ui.entity.noSimilarResources,
-                              resources: _similar,
-                              itemBuilder: (resource) => SimilarResourceTile(
-                                resource: resource,
-                                subject: view.uri,
-                              ),
+                              ],
                             ),
-                            const SizedBox(height: appSectionSpacing),
-                            if (_canEdit && !editing) ...[
+                            if (_linked case final linked?)
+                              _LinkedResourcesSection(resources: linked),
+                            if (_similar case final similar?)
+                              ResourceListSection(
+                                title: t.ui.entity.similarResources,
+                                emptyMessage: t.ui.entity.noSimilarResources,
+                                resources: similar,
+                                itemBuilder: (resource) => SimilarResourceTile(
+                                  resource: resource,
+                                  subject: view.uri,
+                                ),
+                              ),
+                            if (_canDelete && !editing)
                               AppSection(
                                 children: [
                                   AppListTile(
@@ -505,8 +528,6 @@ class _EntityBodyState extends ConsumerState<_EntityBody> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: appSectionSpacing),
-                            ],
                           ],
                         ),
                       ),
@@ -545,7 +566,7 @@ class _TimeMachineButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppButton(
     variant: AppButtonVariant.tinted,
-    onPressed: () => context.go(entityHistoryPath(uri)),
+    onPressed: () => context.go(context.entityStore.historyPath(uri)),
     icon: CupertinoIcons.clock,
     label: Translations.of(context).ui.history.title,
   );

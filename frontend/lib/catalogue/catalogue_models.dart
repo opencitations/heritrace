@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: ISC
 
+import 'package:intl/intl.dart';
+
 import '../common/references.dart';
 
 class CatalogueClass {
@@ -9,20 +11,28 @@ class CatalogueClass {
     required this.uri,
     required this.label,
     required this.count,
+    required this.capped,
     required this.shape,
   });
 
   factory CatalogueClass.fromJson(Map<String, dynamic> json) => CatalogueClass(
     uri: json['uri'] as String,
     label: json['label'] as String,
-    count: json['count'].toString(),
+    count: json['count_numeric'] as int,
+    capped: json['count'].toString().endsWith('+'),
     shape: json['shape'] as String?,
   );
 
   final String uri;
   final String label;
-  final String count;
+  final int count;
+
+  /// Counting stopped at the configured limit, so there may be more.
+  final bool capped;
   final String? shape;
+
+  String get countText =>
+      '${NumberFormat.decimalPattern().format(count)}${capped ? '+' : ''}';
 }
 
 class SortableProperty {

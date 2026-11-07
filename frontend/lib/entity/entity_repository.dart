@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
+import '../navigation/entity_store.dart';
 import 'entity_models.dart';
 import 'resource_lists.dart';
 
@@ -15,14 +16,15 @@ class LockLostException implements Exception {
 }
 
 class EntityRepository {
-  const EntityRepository(this._dio);
+  const EntityRepository(this._dio, this._store);
 
   final Dio _dio;
+  final EntityStore _store;
 
   Future<EntityView> view(String uri) async {
     final response = await apiGuard(
       () => _dio.get<Map<String, dynamic>>(
-        '/api/entity/${Uri.encodeComponent(uri)}',
+        '${_store.apiPrefix}/entity/${Uri.encodeComponent(uri)}',
       ),
     );
     return EntityView.fromJson(response.data!);
@@ -35,7 +37,7 @@ class EntityRepository {
   }) async {
     final response = await apiGuard(
       () => _dio.post<Map<String, dynamic>>(
-        '/api/entity',
+        '${_store.apiPrefix}/entity',
         data: {
           'structured_data': structuredData,
           'primary_source': primarySource,
@@ -97,17 +99,17 @@ class EntityRepository {
   }
 
   Future<LockResponse> checkLock(String uri) =>
-      _lockCall('/api/check-lock', {'resource_uri': uri});
+      _lockCall('${_store.apiPrefix}/check-lock', {'resource_uri': uri});
 
   Future<LockResponse> acquireLock(String uri, List<String> linkedResources) =>
-      _lockCall('/api/acquire-lock', {
+      _lockCall('${_store.apiPrefix}/acquire-lock', {
         'resource_uri': uri,
         'linked_resources': linkedResources,
       });
 
   Future<void> renewLock(String uri) async {
     try {
-      await _lockCall('/api/renew-lock', {'resource_uri': uri});
+      await _lockCall('${_store.apiPrefix}/renew-lock', {'resource_uri': uri});
     } on ApiException catch (error) {
       if (error.statusCode == 423) {
         throw const LockLostException();
@@ -117,7 +119,7 @@ class EntityRepository {
   }
 
   Future<void> releaseLock(String uri) =>
-      _lockCall('/api/release-lock', {'resource_uri': uri});
+      _lockCall('${_store.apiPrefix}/release-lock', {'resource_uri': uri});
 
   Future<LockResponse> _lockCall(String path, Map<String, Object> body) async {
     final response = await apiGuard(
@@ -132,7 +134,7 @@ class EntityRepository {
   }) async {
     final response = await apiGuard(
       () => _dio.post<Map<String, dynamic>>(
-        '/api/check_orphans',
+        '${_store.apiPrefix}/check_orphans',
         data: {'changes': changes, 'entity_type': entityType},
       ),
     );
@@ -141,18 +143,23 @@ class EntityRepository {
 
   Future<String> applyChanges(List<Map<String, Object?>> changes) async {
     final response = await apiGuard(
-      () =>
-          _dio.post<Map<String, dynamic>>('/api/apply_changes', data: changes),
+      () => _dio.post<Map<String, dynamic>>(
+        '${_store.apiPrefix}/apply_changes',
+        data: changes,
+      ),
     );
     return response.data!['message'] as String;
   }
 }
 
 final entityRepositoryProvider = Provider<EntityRepository>(
-  (ref) => EntityRepository(ref.watch(dioProvider)),
+  (ref) =>
+      EntityRepository(ref.watch(dioProvider), ref.watch(entityStoreProvider)),
+  dependencies: [entityStoreProvider],
 );
 
 final entityViewProvider = FutureProvider.autoDispose
     .family<EntityView, String>(
       (ref, uri) => ref.watch(entityRepositoryProvider).view(uri),
+      dependencies: [entityRepositoryProvider],
     );

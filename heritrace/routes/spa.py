@@ -15,6 +15,7 @@ SPA_PATHS = (
     "/entity-history/<path:entity_uri>",
     "/entity-version/<path:entity_uri>/<timestamp>",
     "/merge/compare-and-merge",
+    "/settings",
 )
 
 

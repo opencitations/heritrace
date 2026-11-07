@@ -15,8 +15,10 @@ import '../history/version_page.dart';
 import '../landing/landing_page.dart';
 import '../merge/merge_page.dart';
 import '../session/session_controller.dart';
+import '../settings/settings_page.dart';
 import 'app_paths.dart';
 import 'app_scaffold.dart';
+import 'entity_store.dart';
 import 'external_navigation.dart';
 import 'leave_guard.dart';
 import 'not_found_page.dart';
@@ -32,14 +34,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         return encodedLocation;
       }
       final session = ref.read(sessionProvider).value;
-      if (session == null || session.isSignedIn) {
+      if (session == null) {
         return null;
       }
-      if (state.uri.path == landingPath) {
-        return null;
+      final path = state.uri.path;
+      if (!session.isSignedIn) {
+        if (path == landingPath) {
+          return null;
+        }
+        navigateExternally(backendUrl(loginPath));
+        return landingPath;
       }
-      navigateExternally(backendUrl(loginPath));
-      return landingPath;
+      if (session.setupRequired) {
+        final home = session.isAdmin ? settingsPath : landingPath;
+        return path == home ? null : home;
+      }
+      if (path.startsWith(settingsPath) && !session.isAdmin) {
+        return cataloguePath;
+      }
+      return null;
     },
     errorBuilder: (context, state) => const NotFoundPage(),
     routes: [
@@ -79,6 +92,39 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: settingsPath,
+            builder: (context, state) => const SettingsPage(),
+            onExit: (context, state) => ref.read(leaveGuardProvider).canLeave(),
+          ),
+          GoRoute(
+            path:
+                '${EntityStore.configuration.pathPrefix}/entity-version/:uri/:timestamp',
+            builder: (context, state) => _inConfiguration(
+              VersionPage(
+                uri: state.pathParameters['uri']!,
+                timestamp: state.pathParameters['timestamp']!,
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '${EntityStore.configuration.pathPrefix}/entity-history/:uri',
+            builder: (context, state) => _inConfiguration(
+              HistoryPage(uri: state.pathParameters['uri']!),
+            ),
+          ),
+          GoRoute(
+            path: '${EntityStore.configuration.pathPrefix}/about/:subject',
+            builder: (context, state) =>
+                _inConfiguration(switch (state.pathParameters['subject']!) {
+                  configurationRoot => const EntityPage(
+                    uri: configurationRoot,
+                    header: SettingsHeader(tab: SettingsTab.types),
+                  ),
+                  final subject => EntityPage(uri: subject),
+                }),
+            onExit: (context, state) => ref.read(leaveGuardProvider).canLeave(),
+          ),
+          GoRoute(
             path: '/entity-version/:uri/:timestamp',
             builder: (context, state) => VersionPage(
               uri: state.pathParameters['uri']!,
@@ -101,6 +147,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+Widget _inConfiguration(Widget page) => ProviderScope(
+  overrides: [entityStoreProvider.overrideWithValue(EntityStore.configuration)],
+  child: page,
+);
 
 class _SessionListenable extends ChangeNotifier {
   _SessionListenable(Ref ref) {

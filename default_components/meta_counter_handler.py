@@ -11,21 +11,14 @@ from default_components.meta_entities import META_DATA_ENTITY_TYPE_ABBR
 
 
 class MetaCounterHandler(SupplierAwareCounterHandler):
-    def __init__(self) -> None:
-        """
-        Constructor of the ``MetaCounterHandler`` class.
-        Configure these values directly in this script.
-        """
-        host = "redis"
-        port = 6379
-        db = 0
-        password = None
-        supplier_prefix = "09110"
-
-        if host is None or host == "redis":
-            host = "localhost"
-
-        # Store connection parameters for lazy initialization
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 6379,
+        db: int = 0,
+        password: str | None = None,
+        supplier_prefix: str = "09110",
+    ) -> None:
         self.host = host
         self.port = port
         self.db = db

@@ -46,7 +46,7 @@ class CataloguePage extends ConsumerWidget {
     void navigate(CatalogueQuery next) => context.go(location(next));
 
     void selectFirstClass(List<models.CatalogueClass> classes) {
-      final populated = classes.where((c) => c.count != '0').toList();
+      final populated = classes.where((c) => c.count != 0).toList();
       final first = (populated.isEmpty ? classes : populated).reduce(
         (a, b) =>
             a.label.toLowerCase().compareTo(b.label.toLowerCase()) <= 0 ? a : b,
@@ -244,7 +244,7 @@ class _CatalogueBodyState extends ConsumerState<_CatalogueBody> {
               value: selectedIndex < 0 ? null : selectedIndex,
               options: [
                 for (final (index, item) in classes.indexed)
-                  AppMenuOption(index, '${item.label} (${item.count})'),
+                  AppMenuOption(index, '${item.label} (${item.countText})'),
               ],
               onChanged: (index) => select(classes[index!]),
             ),
@@ -319,23 +319,21 @@ class _ClassList extends StatelessWidget {
           ),
         ),
         for (final (index, item) in classes.indexed)
-          SelectionContainer.disabled(
-            child: CupertinoListTile(
-              backgroundColor: index == selectedIndex
-                  ? AppColors.primaryTint
+          AppListTile(
+            backgroundColor: index == selectedIndex
+                ? AppColors.primaryTint
+                : null,
+            title: Text(
+              item.label,
+              style: index == selectedIndex
+                  ? const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    )
                   : null,
-              title: Text(
-                item.label,
-                style: index == selectedIndex
-                    ? const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      )
-                    : null,
-              ),
-              additionalInfo: Text(item.count),
-              onTap: () => onSelect(item),
             ),
+            additionalInfo: Text(item.countText),
+            onTap: () => onSelect(item),
           ),
       ],
     );

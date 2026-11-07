@@ -10,6 +10,7 @@ from heritrace.apis.orcid import (
     extract_orcid_id,
     get_orcid_data,
     is_orcid_url,
+    is_valid_orcid_id,
     orcid_agent,
 )
 
@@ -147,3 +148,14 @@ def test_orcid_agent_success(app) -> None:
             "label": "John Doe",
             "orcid_id": orcid_id,
         }
+
+
+def test_valid_orcid_ids_pass_the_check_digit() -> None:
+    assert is_valid_orcid_id("0000-0002-1825-0097")
+    assert is_valid_orcid_id("0000-0002-9079-593X")
+
+
+def test_wrong_check_digit_or_shape_fails() -> None:
+    assert not is_valid_orcid_id("0000-0002-1825-0098")
+    assert not is_valid_orcid_id("0000-0002-1825-009")
+    assert not is_valid_orcid_id("https://orcid.org/0000-0002-1825-0097")

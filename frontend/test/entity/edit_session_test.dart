@@ -10,6 +10,7 @@ import 'package:heritrace/entity/entity_repository.dart';
 import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_model.dart';
 import 'package:heritrace/form/validator.dart';
+import 'package:heritrace/navigation/entity_store.dart';
 
 import '../form/fixtures.dart';
 
@@ -106,7 +107,7 @@ void main() {
     session = EditSession(
       view: view(),
       entityType: article,
-      repository: EntityRepository(Dio()),
+      repository: EntityRepository(Dio(), EntityStore.dataset),
       validationMessages: messages,
       atLeastOnePropertyMessage: 'at least one',
     );

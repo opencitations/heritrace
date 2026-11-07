@@ -81,6 +81,12 @@ class PropertyGroup {
   final String? orderedBy;
   final FieldDef? field;
   final List<EntityTriple> triples;
+
+  /// Display rules can hide a property that the shape defines.
+  bool get isShown => switch (field) {
+    null => true,
+    final field => field.shouldBeDisplayed,
+  };
 }
 
 class EntityView {

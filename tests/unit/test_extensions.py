@@ -4,7 +4,6 @@
 
 import json
 import socket
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
@@ -13,7 +12,7 @@ import yaml
 from flask import Flask, g
 from flask_login import LoginManager
 from flask_login.signals import user_loaded_from_cookie
-from rdflib import Graph
+from rdflib import Graph, URIRef
 from redis import Redis
 from redis.exceptions import RedisError
 from SPARQLWrapper import SPARQLWrapper
@@ -21,31 +20,33 @@ from SPARQLWrapper import SPARQLWrapper
 from default_components.meta_filesystem_counter_handler import (
     MetaFilesystemCounterHandler,
 )
+from heritrace.configuration.runtime import SetupRequiredError
+from heritrace.editor import TriplestoreBackend
 from heritrace.extensions import (
     AppState,
     adjust_endpoint_url,
     get_change_tracking_config,
     get_classes_with_multiple_shapes,
     get_custom_filter,
-    get_dataset_endpoint,
     get_dataset_is_quadstore,
     get_display_rules,
     get_form_fields,
     get_labels_use_inverse_relations,
     get_presentation,
-    get_provenance_endpoint,
+    get_primary_source,
     get_provenance_sparql,
     get_shacl_graph,
     get_sparql,
+    get_uri_generator,
     init_extensions,
     init_login_manager,
     init_request_handlers,
     initialize_change_tracking_config,
     initialize_counter_handler,
     initialize_global_variables,
+    mark_counters_initialized,
     need_initialization,
     running_in_docker,
-    update_cache,
 )
 from heritrace.sparql import SPARQLWrapperWithRetry
 
@@ -80,7 +81,13 @@ def lightweight_app():
         PROVENANCE_DIRS=[],
         DATASET_IS_QUADSTORE=False,
         PROVENANCE_IS_QUADSTORE=False,
-        CACHE_VALIDITY_DAYS=7,
+        DATASET_DB_TRIPLESTORE="virtuoso",
+        COUNTER_HANDLER=MagicMock(),
+        URI_GENERATOR=MagicMock(),
+        SAVE_PLUGIN=None,
+        PRIMARY_SOURCE="https://example.org/source",
+        DATASET_GENERATION_TIME=None,
+        DISPLAY_RULES_PATH=Path("/path/does/not/exist"),
     )
     return app
 
@@ -92,7 +99,7 @@ def test_init_extensions(lightweight_app, login_manager, mock_redis) -> None:
         patch("heritrace.extensions.initialize_counter_handler"),
         patch(
             "heritrace.extensions.initialize_global_variables",
-            return_value=([], {}, False, Graph(), set()),
+            return_value=([], {}, False, set()),
         ),
         patch("heritrace.extensions.init_filters", return_value=MagicMock()),
     ):
@@ -103,7 +110,7 @@ def test_init_extensions(lightweight_app, login_manager, mock_redis) -> None:
             MagicMock(),
             {},
         )
-        init_extensions(lightweight_app, login_manager, mock_redis)
+        init_extensions(lightweight_app, login_manager, mock_redis, Graph())
 
         assert lightweight_app.extensions["redis_client"] is mock_redis
         assert isinstance(lightweight_app.extensions["heritrace"], AppState)
@@ -118,7 +125,7 @@ def test_login_manager_initialization(
         patch("heritrace.extensions.initialize_counter_handler"),
         patch(
             "heritrace.extensions.initialize_global_variables",
-            return_value=([], {}, False, Graph(), set()),
+            return_value=([], {}, False, set()),
         ),
         patch("heritrace.extensions.init_filters", return_value=MagicMock()),
     ):
@@ -129,7 +136,7 @@ def test_login_manager_initialization(
             MagicMock(),
             {},
         )
-        init_extensions(lightweight_app, login_manager, mock_redis)
+        init_extensions(lightweight_app, login_manager, mock_redis, Graph())
 
         assert hasattr(login_manager, "login_view")
         assert hasattr(login_manager, "login_message")
@@ -194,25 +201,28 @@ def test_running_in_docker() -> None:
 
 def test_getter_functions(app) -> None:
     mock_state = AppState(
-        dataset_endpoint="dataset_endpoint_value",
-        provenance_endpoint="provenance_endpoint_value",
         sparql=MagicMock(spec=SPARQLWrapperWithRetry),
         provenance_sparql=MagicMock(spec=SPARQLWrapperWithRetry),
+        backend=TriplestoreBackend("dataset_endpoint_value", "provenance_value"),
+        new_counter_handler=MagicMock(),
+        uri_generator=MagicMock(),
+        save_plugin=None,
+        primary_source=URIRef("https://example.org/source"),
+        generation_time=None,
         change_tracking_config={"key": "value"},
         custom_filter=MagicMock(),
         display_rules=[{"rule": 1}],
         presentation=MagicMock(),
         form_fields_cache={"field": "data"},
         dataset_is_quadstore=True,
+        is_virtuoso=False,
         shacl_graph=Graph(),
         classes_with_multiple_shapes={"http://example.org/Class1"},
         labels_use_inverse_relations=True,
     )
     app.extensions["heritrace"] = mock_state
 
-    assert get_dataset_endpoint() == "dataset_endpoint_value"
     assert get_sparql() is mock_state.sparql
-    assert get_provenance_endpoint() == "provenance_endpoint_value"
     assert get_provenance_sparql() is mock_state.provenance_sparql
     assert get_custom_filter() is mock_state.custom_filter
     assert get_change_tracking_config() == {"key": "value"}
@@ -223,6 +233,8 @@ def test_getter_functions(app) -> None:
     assert get_classes_with_multiple_shapes() == {"http://example.org/Class1"}
     assert get_presentation() is mock_state.presentation
     assert get_labels_use_inverse_relations() is True
+    assert get_primary_source() == URIRef("https://example.org/source")
+    assert get_uri_generator() is mock_state.uri_generator
 
 
 def test_init_login_manager_directly(app) -> None:
@@ -269,43 +281,21 @@ def test_rotate_session_token(app) -> None:
             assert mock_session.modified is True
 
 
-def test_need_initialization(app) -> None:
-    app.config["CACHE_VALIDITY_DAYS"] = 7
+def test_counters_are_rebuilt_only_when_redis_has_lost_them(app) -> None:
+    store: dict[str, str] = {}
+    redis = MagicMock()
+    redis.exists.side_effect = lambda key: int(key in store)
+    redis.set.side_effect = store.__setitem__
 
-    mock_redis = MagicMock()
+    assert need_initialization(app, redis) is True
 
-    mock_redis.get.return_value = None
-    assert need_initialization(app, mock_redis) is True
+    mark_counters_initialized(redis)
 
-    mock_redis.get.side_effect = RedisError("Redis error")
-    assert need_initialization(app, mock_redis) is True
+    assert list(store) == ["heritrace:counters_initialized"]
+    assert need_initialization(app, redis) is False
 
-    expired_time = (datetime.now(tz=timezone.utc) - timedelta(days=10)).isoformat()
-    mock_redis.get.return_value = expired_time
-    mock_redis.get.side_effect = None
-    assert need_initialization(app, mock_redis) is True
-
-    current_time = datetime.now(tz=timezone.utc).isoformat()
-    mock_redis.get.return_value = current_time
-    assert need_initialization(app, mock_redis) is False
-
-
-def test_update_cache(app) -> None:
-    mock_redis = MagicMock()
-
-    update_cache(app, mock_redis)
-
-    assert mock_redis.set.call_count == 2
-
-    calls = mock_redis.set.call_args_list
-
-    first_call_args = calls[0][0]
-    assert first_call_args[0] == "heritrace:last_initialization"
-    assert isinstance(first_call_args[1], str)
-
-    second_call_args = calls[1][0]
-    assert second_call_args[0] == "heritrace:cache_version"
-    assert second_call_args[1] == "1.0"
+    redis.exists.side_effect = RedisError("Redis error")
+    assert need_initialization(app, redis) is True
 
 
 def test_initialize_change_tracking_config(app, cleanup_nonexistent_config) -> None:
@@ -458,7 +448,7 @@ def test_initialize_counter_handler(app) -> None:
 
     with (
         patch("heritrace.extensions.need_initialization", return_value=True),
-        patch("heritrace.extensions.update_cache") as mock_update_cache,
+        patch("heritrace.extensions.mark_counters_initialized") as mock_mark,
     ):
         initialize_counter_handler(app, mock_redis, mock_sparql, mock_provenance_sparql)
 
@@ -467,7 +457,7 @@ def test_initialize_counter_handler(app) -> None:
         )
         mock_counter_handler.set_counter.assert_any_call(5, "http://example.org/Event")
 
-        mock_update_cache.assert_called_once_with(app, mock_redis)
+        mock_mark.assert_called_once_with(mock_redis)
 
 
 def test_initialize_lock_manager() -> None:
@@ -496,24 +486,21 @@ def test_initialize_global_variables_dataset_is_quadstore(app) -> None:
         _display_rules,
         _form_fields_cache,
         dataset_is_quadstore,
-        _shacl_graph,
         _classes_with_multiple_shapes,
-    ) = initialize_global_variables(app)
+    ) = initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
 
     assert dataset_is_quadstore is True
 
 
 def test_initialize_global_variables_display_rules_not_found(app) -> None:
     app.config["DISPLAY_RULES_PATH"] = Path("/path/does/not/exist")
-    app.config.pop("SHACL_PATH", None)
 
     (
         display_rules,
         _form_fields_cache,
         _dataset_is_quadstore,
-        _shacl_graph,
         _classes_with_multiple_shapes,
-    ) = initialize_global_variables(app)
+    ) = initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
 
     assert display_rules == []
 
@@ -532,15 +519,13 @@ rules:
     display_rules_path.write_text(display_rules_content)
 
     app.config["DISPLAY_RULES_PATH"] = display_rules_path
-    app.config.pop("SHACL_PATH", None)
 
     (
         display_rules,
         _form_fields_cache,
         _dataset_is_quadstore,
-        _shacl_graph,
         _classes_with_multiple_shapes,
-    ) = initialize_global_variables(app)
+    ) = initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
 
     assert any(
         rule.get("target", {}).get("class") == "Class1" for rule in display_rules
@@ -557,38 +542,32 @@ def test_initialize_global_variables_display_rules_error(app, tmp_path) -> None:
     display_rules_path.write_text("invalid: yaml: content:")
 
     app.config["DISPLAY_RULES_PATH"] = display_rules_path
-    app.config.pop("SHACL_PATH", None)
 
     with (
         patch("yaml.safe_load", side_effect=yaml.YAMLError("YAML parsing error")),
         pytest.raises(
-            RuntimeError, match="Failed to load display rules: YAML parsing error"
+            SetupRequiredError, match="Failed to load display rules: YAML parsing error"
         ),
     ):
-        initialize_global_variables(app)
+        initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
 
 
-def test_initialize_global_variables_shacl_not_found(app) -> None:
-    app.config.pop("DISPLAY_RULES_PATH", None)
-    app.config["SHACL_PATH"] = Path("/path/does/not/exist")
-
+def test_initialize_global_variables_without_shapes(app) -> None:
     (
         _display_rules,
         form_fields_cache,
         _dataset_is_quadstore,
-        _shacl_graph,
         _classes_with_multiple_shapes,
-    ) = initialize_global_variables(app)
+    ) = initialize_global_variables(app, Graph(), Path("/path/does/not/exist"))
 
     assert form_fields_cache == {}
 
 
-def test_initialize_global_variables_shacl_loaded(app, tmp_path) -> None:
-    shacl_path = tmp_path / "shacl.ttl"
-    shacl_path.write_text("@prefix sh: <http://www.w3.org/ns/shacl#> .")
-
-    app.config.pop("DISPLAY_RULES_PATH", None)
-    app.config["SHACL_PATH"] = shacl_path
+def test_initialize_global_variables_shacl_loaded(app) -> None:
+    shacl_graph = Graph().parse(
+        data="<http://example.org/S> a <http://www.w3.org/ns/shacl#NodeShape> .",
+        format="turtle",
+    )
 
     mock_form_fields = {"Class1": {"properties": ["prop1"]}}
 
@@ -600,38 +579,39 @@ def test_initialize_global_variables_shacl_loaded(app, tmp_path) -> None:
             _display_rules,
             form_fields_cache,
             _dataset_is_quadstore,
-            shacl_graph,
             _classes_with_multiple_shapes,
-        ) = initialize_global_variables(app)
+        ) = initialize_global_variables(app, shacl_graph, Path("/path/does/not/exist"))
 
     assert form_fields_cache == mock_form_fields
-    assert shacl_graph is not None
 
 
-def test_initialize_global_variables_shacl_error(app, tmp_path) -> None:
-    shacl_path = tmp_path / "invalid_shacl.ttl"
-    shacl_path.write_text("invalid turtle content")
-
-    app.config.pop("DISPLAY_RULES_PATH", None)
-    app.config["SHACL_PATH"] = shacl_path
+def test_initialize_global_variables_shacl_error(app) -> None:
+    shacl_graph = Graph().parse(
+        data="<http://example.org/S> a <http://www.w3.org/ns/shacl#NodeShape> .",
+        format="turtle",
+    )
 
     with (
-        patch("rdflib.Graph.parse", side_effect=ValueError("Turtle parsing error")),
+        patch(
+            "heritrace.utils.shacl_utils.get_form_fields_from_shacl",
+            side_effect=ValueError("Bad shape"),
+        ),
         pytest.raises(
-            RuntimeError, match="Failed to initialize form fields: Turtle parsing error"
+            SetupRequiredError, match="Failed to initialize form fields: Bad shape"
         ),
     ):
-        initialize_global_variables(app)
+        initialize_global_variables(app, shacl_graph, Path("/path/does/not/exist"))
 
 
 def test_initialize_global_variables_general_exception(app) -> None:
     with (
         patch.object(app.config, "get", side_effect=ValueError("General error")),
         pytest.raises(
-            RuntimeError, match="Global variables initialization failed: General error"
+            SetupRequiredError,
+            match="Global variables initialization failed: General error",
         ),
     ):
-        initialize_global_variables(app)
+        initialize_global_variables(app, Graph(), app.config["DISPLAY_RULES_PATH"])
 
 
 def test_initialize_counter_handler_no_initialization_needed(app) -> None:
@@ -702,7 +682,7 @@ def test_initialize_counter_handler_non_counter_based_generator(app) -> None:
 
     with (
         patch("heritrace.extensions.need_initialization", return_value=True),
-        patch("heritrace.extensions.update_cache"),
+        patch("heritrace.extensions.mark_counters_initialized"),
     ):
         initialize_counter_handler(app, mock_redis, mock_sparql, mock_provenance_sparql)
 

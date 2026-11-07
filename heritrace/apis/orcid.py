@@ -2,8 +2,10 @@
 #
 # SPDX-License-Identifier: ISC
 
+import re
 from functools import lru_cache
 from http import HTTPStatus
+from typing import cast
 from urllib.parse import urlparse
 
 import requests
@@ -14,6 +16,12 @@ from heritrace.utils.references import AgentRef, url_agent
 
 _ORCID_ID_LENGTH = 19
 _ORCID_HYPHEN_COUNT = 3
+_ORCID_ID = re.compile(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$")
+_CHECK_DIGIT_TEN = 10
+
+
+class OrcidNotFoundError(Exception):
+    pass
 
 
 def is_orcid_url(url: str) -> bool:
@@ -29,6 +37,48 @@ def extract_orcid_id(url: str) -> str | None:
         return None
     path = urlparse(url).path.strip("/")
     return path.removeprefix("https://orcid.org/")
+
+
+def normalize_orcid(value: str) -> str:
+    return cast("str", extract_orcid_id(value)) if is_orcid_url(value) else value
+
+
+def is_valid_orcid_id(orcid_id: str) -> bool:
+    if not _ORCID_ID.match(orcid_id):
+        return False
+    # ISO 7064 MOD 11-2, as described at
+    # https://support.orcid.org/hc/en-us/articles/360006897674
+    digits = orcid_id.replace("-", "")
+    total = 0
+    for digit in digits[:-1]:
+        total = (total + int(digit)) * 2
+    check = (12 - total % 11) % 11
+    return digits[-1] == ("X" if check == _CHECK_DIGIT_TEN else str(check))
+
+
+def _person_name(person: dict) -> str | None:
+    # ORCID sends null for the parts of a name its owner keeps private.
+    name = person["name"]
+    if name is None:
+        return None
+    parts = [
+        part["value"]
+        for part in (name["given-names"], name["family-name"])
+        if part is not None
+    ]
+    return " ".join(parts) or None
+
+
+def fetch_orcid_name(orcid_id: str) -> str | None:
+    response = requests.get(
+        f"https://pub.orcid.org/v3.0/{orcid_id}/person",
+        headers={"Accept": "application/json"},
+        timeout=5,
+    )
+    if response.status_code == HTTPStatus.NOT_FOUND:
+        raise OrcidNotFoundError(orcid_id)
+    response.raise_for_status()
+    return _person_name(response.json())
 
 
 @lru_cache(maxsize=1000)
@@ -70,12 +120,7 @@ def get_orcid_data(orcid_id: str) -> dict | None:
                 "orcid": orcid_id,
             }
 
-            # Get main name
-            if "name" in data:
-                given_name = data["name"].get("given-names", {}).get("value", "")
-                family_name = data["name"].get("family-name", {}).get("value", "")
-                if given_name or family_name:
-                    result["name"] = f"{given_name} {family_name}".strip()
+            result["name"] = _person_name(data)
 
             # Get other names
             if "other-names" in data and "other-name" in data["other-names"]:

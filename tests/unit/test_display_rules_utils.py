@@ -1079,7 +1079,7 @@ def test_grouped_triples_follow_the_shapes() -> None:
         patch(f"{module}.get_presentation", return_value=presentation),
         patch(
             f"{module}.get_custom_filter",
-            return_value=Filter({}, presentation, "http://example.org/sparql"),
+            return_value=Filter({}, presentation, MagicMock),
         ),
         patch(f"{module}.get_form_fields", return_value=form_fields),
         patch(f"{module}.get_display_rules", return_value=rules),

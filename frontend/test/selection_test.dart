@@ -2,11 +2,14 @@
 //
 // SPDX-License-Identifier: ISC
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:heritrace/app.dart';
+import 'package:heritrace/common/reference_views.dart';
 import 'package:heritrace/navigation/app_router.dart';
 
 import 'helpers.dart';
@@ -83,5 +86,32 @@ void main() {
     await copy(tester);
 
     expect(clipboard, isNull);
+  });
+
+  testWidgets('a link inside selectable text shows the hand cursor', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      CupertinoApp(
+        home: SelectableRegion(
+          selectionControls: cupertinoTextSelectionHandleControls,
+          child: Center(
+            child: LinkText(label: 'Docs', onTap: () {}),
+          ),
+        ),
+      ),
+    );
+
+    final mouse = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+      pointer: 1,
+    );
+    await mouse.moveTo(tester.getCenter(find.text('Docs')));
+    await tester.pump();
+
+    expect(
+      RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
+      SystemMouseCursors.click,
+    );
   });
 }

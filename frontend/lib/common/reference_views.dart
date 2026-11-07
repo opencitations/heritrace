@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../design/app_theme.dart';
 import '../design/spacing.dart';
-import '../navigation/app_paths.dart';
+import '../navigation/entity_store.dart';
 import 'references.dart';
 
 Future<void> openExternal(String url) =>
@@ -22,17 +22,20 @@ class LinkText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      link: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.primary,
-              decoration: TextDecoration.underline,
+    // Selectable text would show the text cursor instead of the hand.
+    return SelectionContainer.disabled(
+      child: Semantics(
+        link: true,
+        child: GestureDetector(
+          onTap: onTap,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.primary,
+                decoration: TextDecoration.underline,
+              ),
             ),
           ),
         ),
@@ -90,8 +93,9 @@ class SourceRefView extends StatelessWidget {
     final link = switch (source.kind) {
       'version' => LinkText(
         label: source.label,
-        onTap: () =>
-            context.go(entityVersionPath(source.entityUri!, source.timestamp!)),
+        onTap: () => context.go(
+          context.entityStore.versionPath(source.entityUri!, source.timestamp!),
+        ),
       ),
       _ => LinkText(label: source.label, onTap: () => openExternal(url)),
     };

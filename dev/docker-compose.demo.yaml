@@ -6,3 +6,4 @@ services:
   web:
     environment:
       - FLASK_ENV=demo
+      - ADMIN_ORCIDS=http://example.org/demo/demo_user

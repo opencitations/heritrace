@@ -8,15 +8,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:heritrace/app.dart';
 import 'package:heritrace/design/controls.dart';
 import 'package:heritrace/entity/entity_models.dart';
+import 'package:heritrace/entity/entity_page.dart';
 import 'package:heritrace/entity/entity_repository.dart';
 import 'package:heritrace/navigation/app_paths.dart';
 import 'package:heritrace/navigation/app_router.dart';
+import 'package:heritrace/navigation/entity_store.dart';
+import 'package:heritrace/session/session_models.dart';
 
 import '../helpers.dart';
 import 'edit_session_test.dart' show subject, view;
 
 class _FakeEntityRepository extends EntityRepository {
-  _FakeEntityRepository() : super(Dio());
+  _FakeEntityRepository() : super(Dio(), EntityStore.dataset);
 
   final List<String> released = [];
 
@@ -91,5 +94,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Go to the catalogue'), findsOneWidget);
     expect(repository.released, [subject]);
+  });
+
+  testWidgets('only the entities of the dataset can be deleted', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      child: const App(),
+      session: const Session(
+        userName: 'Admin',
+        defaultPrimarySource: null,
+        config: testConfig,
+        isAdmin: true,
+      ),
+      overrides: [
+        entityRepositoryProvider.overrideWithValue(_FakeEntityRepository()),
+        entityViewProvider.overrideWith((ref, uri) async => view()),
+      ],
+    );
+    final router = ProviderScope.containerOf(tester.element(find.byType(App)))
+        .read(routerProvider);
+
+    router.go(entityPath(subject));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete resource'), findsOneWidget);
+
+    router.go(EntityStore.configuration.entityPath(subject));
+    await tester.pumpAndSettle();
+    expect(find.byType(EntityPage), findsOneWidget);
+    expect(find.text('Delete resource'), findsNothing);
   });
 }

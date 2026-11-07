@@ -1,0 +1,50 @@
+---
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
+#
+# SPDX-License-Identifier: ISC
+
+title: Configuration editor
+description: Edit the system settings and the entity types of HERITRACE from the web app
+---
+
+HERITRACE has two kinds of configuration that administrators edit in the app:
+
+-   **System settings**: the title, the provenance defaults, the deletion rules and who may sign in.
+-   **Entity types**: the data model, written as SHACL shapes as described in [SHACL configuration](../shacl/).
+
+Open the account menu and choose **Configuration**, or go to the `/settings` page. Only the ORCID iDs listed in [`ADMIN_ORCIDS`](../app-settings/#administrators) see this menu entry.
+
+## Where the configuration lives
+
+The configuration lives in the folder set by [`CONFIG_DIR`](../app-settings/#configuration-folder). The folder holds these files:
+
+| File | Content |
+|------|---------|
+| `shacl.ttl` | The entity types, as SHACL shapes in Turtle. It is optional |
+| `shacl-provenance.trig` | The history of the entity types, as provenance snapshots in TriG |
+| `settings.db` | The system settings, in an SQLite database |
+| `display_rules.yaml` | The [extra configuration](../extra/), which the editor does not change. It is optional |
+
+HERITRACE reads the folder when it starts. Without `shacl.ttl`, it starts with no entity types and creates the file, so you can add entity types later in the **Entity types** tab. On the first start, `shacl-provenance.trig` does not exist yet: HERITRACE checks `shacl.ttl`, records its content as the first version of the entity types and creates the file. From then on, every change made in the app rewrites `shacl.ttl` and adds a snapshot to `shacl-provenance.trig`. Because of this rewrite, the comments and the layout of a `shacl.ttl` written by hand are lost on the first save.
+
+## Setup mode
+
+HERITRACE needs valid system settings to run, and valid entity types when `shacl.ttl` exists. When `settings.db` is missing, when its settings have an error, or when `shacl.ttl` cannot be used, HERITRACE starts in setup mode:
+
+-   Only administrators can sign in. After signing in, they land on the **System** tab.
+-   The tab shows administrators the error that blocked the start.
+-   Every other API request answers with status 503 until an administrator saves valid settings.
+
+On the first start, the **System** tab shows the default values: complete them and save. When the error is in `shacl.ttl`, fix the file and restart HERITRACE.
+
+## Editing at the same time
+
+Only one administrator at a time can edit the system settings. While someone edits them, the others see who is editing when they choose **Edit**. Entity types and fields work like the entities of the dataset: each one is locked while an administrator edits it.
+
+## Entity types
+
+All the shapes form a single entity, shown in the **Entity types** tab. Each entity type, a SHACL node shape, and each field, a property shape, has its own page. These are the same pages HERITRACE uses for the data, so every change has a history and any past version can be restored.
+
+Each save checks the whole set of shapes, not only the part you changed. When the result is not valid, such as a field whose maximum is lower than its minimum, HERITRACE shows the reason and stores nothing.
+
+The pages of the configuration do not offer to delete it, nor any of its entity types or fields.

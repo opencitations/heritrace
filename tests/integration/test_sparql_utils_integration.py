@@ -14,7 +14,7 @@ from rdflib.plugins.sparql.algebra import translateUpdate
 from rdflib.plugins.sparql.parser import parseUpdate
 from SPARQLWrapper import SPARQLWrapper
 
-from heritrace.editor import Editor, EndpointConfig
+from heritrace.editor import Editor, TriplestoreBackend
 from heritrace.utils import sparql_utils as _su
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
@@ -29,7 +29,7 @@ from heritrace.utils.sparql_utils import (
     get_entities_for_class,
     parse_sparql_update,
 )
-from tests.test_config import TestConfig
+from tests.test_config import TestConfig, test_counter_handler
 
 
 @pytest.mark.usefixtures("setup_test_data")
@@ -714,12 +714,12 @@ class TestRecycleBinIntegration:
         volume = URIRef(f"http://example.org/volume-{test_id}")
 
         editor = Editor(
-            EndpointConfig(
+            TriplestoreBackend(
                 dataset=TestConfig.DATASET_DB_URL,
                 provenance=TestConfig.PROVENANCE_DB_URL,
                 is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
             ),
-            TestConfig.COUNTER_HANDLER,
+            test_counter_handler,
             URIRef("http://example.org/test-agent"),
         )
         editor.create(journal, RDF.type, URIRef(f"{FABIO}Journal"), graph)
@@ -745,12 +745,12 @@ class TestRecycleBinIntegration:
         editor.save()
 
         delete_editor = Editor(
-            EndpointConfig(
+            TriplestoreBackend(
                 dataset=TestConfig.DATASET_DB_URL,
                 provenance=TestConfig.PROVENANCE_DB_URL,
                 is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
             ),
-            TestConfig.COUNTER_HANDLER,
+            test_counter_handler,
             URIRef("http://example.org/test-agent"),
         )
         delete_editor.import_entity(volume)
@@ -802,12 +802,12 @@ class TestRecycleBinIntegration:
             assert entities[0]["uri"] == deleted_volume["volume"]
 
             restore_editor = Editor(
-                EndpointConfig(
+                TriplestoreBackend(
                     dataset=TestConfig.DATASET_DB_URL,
                     provenance=TestConfig.PROVENANCE_DB_URL,
                     is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
                 ),
-                TestConfig.COUNTER_HANDLER,
+                test_counter_handler,
                 URIRef("http://example.org/test-agent"),
             )
             volume = URIRef(deleted_volume["volume"])

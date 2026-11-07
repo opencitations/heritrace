@@ -17,10 +17,10 @@ from rdflib_ocdm.counter_handler.redis_counter_handler import RedisCounterHandle
 from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from SPARQLWrapper import JSON, SPARQLWrapper
 
-from heritrace.editor import Editor, EndpointConfig
+from heritrace.editor import Editor, TriplestoreBackend
 from heritrace.sparql import get_sparql_bindings
 from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
-from tests.test_config import TestConfig
+from tests.test_config import TestConfig, test_counter_handler
 
 if TYPE_CHECKING:
     from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
@@ -40,7 +40,7 @@ def editor(mock_counter_handler) -> Editor:
     resp_agent = URIRef("http://example.org/agent")
 
     return Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=dataset_endpoint,
             provenance=provenance_endpoint,
             is_quadstore=True,
@@ -56,12 +56,12 @@ def real_editor():
     resp_agent = URIRef("http://example.org/test-agent")
 
     return Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=TestConfig.DATASET_DB_URL,
             provenance=TestConfig.PROVENANCE_DB_URL,
             is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
         ),
-        TestConfig.COUNTER_HANDLER,
+        test_counter_handler,
         resp_agent,
     )
 
@@ -78,7 +78,7 @@ def default_components_editor() -> Editor:
     counter_handler.connect()
 
     return Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=TestConfig.DATASET_DB_URL,
             provenance=TestConfig.PROVENANCE_DB_URL,
             is_quadstore=TestConfig.DATASET_IS_QUADSTORE,
@@ -104,8 +104,11 @@ def reset_editor_after_test(editor: Editor):
 def test_editor_initialization(editor: Editor, mock_counter_handler) -> None:
     """Test that the Editor is initialized correctly."""
     assert editor is not None
-    assert editor.dataset_endpoint == "http://example.org/dataset"
-    assert editor.provenance_endpoint == "http://example.org/provenance"
+    assert editor.backend == TriplestoreBackend(
+        dataset="http://example.org/dataset",
+        provenance="http://example.org/provenance",
+        is_quadstore=True,
+    )
     assert editor.counter_handler == mock_counter_handler
     assert editor.resp_agent == URIRef("http://example.org/agent")
 
@@ -230,7 +233,7 @@ def test_create_with_provenance(real_editor: Editor) -> None:
         assert (subject, predicate, value, graph) in real_editor.g_set  # type: ignore[operator]
 
         # Setup SPARQL wrapper for provenance database
-        provenance_sparql = SPARQLWrapper(real_editor.provenance_endpoint)
+        provenance_sparql = SPARQLWrapper(real_editor.backend.provenance)
         provenance_sparql.setReturnFormat(JSON)
 
         # Verify that the triple was added with the correct responsible agent using
@@ -304,7 +307,7 @@ def test_update_with_provenance(real_editor: Editor) -> None:
         real_editor.save()
 
         # Setup SPARQL wrapper for provenance database
-        provenance_sparql = SPARQLWrapper(real_editor.provenance_endpoint)
+        provenance_sparql = SPARQLWrapper(real_editor.backend.provenance)
         provenance_sparql.setReturnFormat(JSON)
 
         # Verify that the update was tracked with the correct responsible agent
@@ -379,7 +382,7 @@ def test_delete_with_provenance(real_editor: Editor) -> None:
         real_editor.save()
 
         # Setup SPARQL wrapper for provenance database
-        provenance_sparql = SPARQLWrapper(real_editor.provenance_endpoint)
+        provenance_sparql = SPARQLWrapper(real_editor.backend.provenance)
         provenance_sparql.setReturnFormat(JSON)
 
         # Verify that the deletion was tracked with the correct responsible agent
@@ -453,7 +456,7 @@ def test_provenance_numbering_with_default_components(
         )
         default_components_editor.save()
 
-        provenance_sparql = SPARQLWrapper(default_components_editor.provenance_endpoint)
+        provenance_sparql = SPARQLWrapper(default_components_editor.backend.provenance)
         provenance_sparql.setReturnFormat(JSON)
         query = f"""
         PREFIX prov: <http://www.w3.org/ns/prov#>
@@ -795,7 +798,7 @@ def test_import_entity_method(editor: Editor) -> None:
         # Verify Reader.import_entities_from_triplestore was called with the correct
         # parameters
         mock_import.assert_called_once_with(
-            editor.g_set, editor.dataset_endpoint, [subject]
+            editor.g_set, "http://example.org/dataset", [subject]
         )
 
 

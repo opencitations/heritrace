@@ -12,6 +12,7 @@ import 'package:heritrace/history/history_models.dart';
 import 'package:heritrace/history/history_repository.dart';
 import 'package:heritrace/navigation/app_paths.dart';
 import 'package:heritrace/navigation/app_router.dart';
+import 'package:heritrace/navigation/entity_store.dart';
 
 import 'helpers.dart';
 
@@ -41,7 +42,7 @@ Map<String, dynamic> _snapshot(int index, String start, String? end) => {
 };
 
 class _FakeHistoryRepository extends HistoryRepository {
-  _FakeHistoryRepository() : super(Dio());
+  _FakeHistoryRepository() : super(Dio(), EntityStore.dataset);
 
   @override
   Future<EntityHistory> history(String uri) async => EntityHistory.fromJson({

@@ -286,7 +286,9 @@ def test_validate_new_triple_journal_article_title(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         subject = URIRef("https://example.org/article/1")
         predicate = URIRef("http://purl.org/dc/terms/title")
@@ -325,7 +327,9 @@ def test_validate_new_triple_journal_identifier(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         # Create a new identifier with DOI scheme
         identifier = URIRef("https://example.org/identifier/test-doi")
@@ -451,7 +455,9 @@ def test_get_valid_predicates_journal_article(app: Flask, shacl_graph: Graph) ->
     """Test getting valid predicates for a JournalArticle."""
     with (
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         # Create a test graph with a JournalArticle
         test_graph = Graph()
@@ -500,7 +506,9 @@ def test_validate_new_triple_with_pattern_and_conditions(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         # Test DOI pattern validation
         valid_doi = "10.1000/test.123"
@@ -540,7 +548,9 @@ def test_validate_new_triple_with_datatype_conversion(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         # Usiamo un nuovo articolo senza date esistenti
         subject = URIRef("https://example.org/article/2")
@@ -631,7 +641,9 @@ def test_validate_new_triple_with_delete_action(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         subject = URIRef("https://example.org/article/1")
         predicate = URIRef("http://purl.org/dc/terms/title")
@@ -661,7 +673,9 @@ def test_validate_new_triple_with_invalid_property(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
         patch(
             "heritrace.utils.filters.Filter.human_readable_class"
         ) as mock_human_readable_class,
@@ -692,7 +706,9 @@ def test_validate_new_triple_with_optional_values(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         subject = URIRef(
             "https://example.org/identifier/new"
@@ -761,7 +777,9 @@ def test_validate_new_triple_with_nested_validation(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         subject = URIRef("https://example.org/article/1")
         predicate = URIRef("http://purl.org/spar/pro/isDocumentContextFor")
@@ -787,7 +805,9 @@ def test_validate_new_triple_with_or_constraints(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         # Usiamo un nuovo articolo senza data esistente
         URIRef("https://example.org/article/2")
@@ -839,7 +859,9 @@ def test_validate_new_triple_with_multiple_types(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         # Usiamo un nuovo articolo senza titolo esistente
         subject = URIRef("https://example.org/article/2")
@@ -925,7 +947,9 @@ def test_validate_new_triple_with_datatype_conversion_edge_cases(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         subject = URIRef("https://example.org/article/1")
 
@@ -959,7 +983,9 @@ def test_validate_new_triple_with_complex_conditions(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
         patch(
             "heritrace.utils.filters.Filter.human_readable_class"
         ) as mock_human_readable_class,
@@ -1229,7 +1255,9 @@ def test_validate_new_triple_with_uri_validation(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
         patch(
             "heritrace.utils.shacl_validation.get_valid_predicates"
         ) as mock_get_valid_predicates,
@@ -1355,7 +1383,9 @@ def test_validate_new_triple_with_invalid_uri(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
         patch(
             "heritrace.utils.filters.Filter.human_readable_class"
         ) as mock_human_readable_class,
@@ -1400,7 +1430,9 @@ def test_validate_new_triple_with_invalid_class_match(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
         patch(
             "heritrace.utils.filters.Filter.human_readable_class"
         ) as mock_human_readable_class,
@@ -1450,7 +1482,9 @@ def test_validate_new_triple_with_literal_conversion(
     with (
         app.test_request_context(),
         app.app_context(),
-        patch("heritrace.extensions.get_shacl_graph", return_value=shacl_graph),
+        patch(
+            "heritrace.utils.shacl_validation.get_shacl_graph", return_value=shacl_graph
+        ),
     ):
         subject = URIRef("https://example.org/resource/test")
         predicate = URIRef("http://purl.org/dc/terms/title")

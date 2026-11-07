@@ -13,13 +13,11 @@ from rdflib import RDF, URIRef
 from SPARQLWrapper import JSON
 
 from heritrace.apis.orcid import get_responsible_agent_uri
-from heritrace.editor import Editor, EndpointConfig
 from heritrace.extensions import (
     get_custom_filter,
-    get_dataset_endpoint,
-    get_dataset_is_quadstore,
-    get_provenance_endpoint,
+    get_primary_source,
     get_sparql,
+    new_editor,
     record_dataset_change,
 )
 from heritrace.routes.entity import build_entity_view
@@ -116,17 +114,8 @@ def execute_merge() -> Response | tuple[Response, int]:
         kept = _entity_summary(entity1_uri, entity1_types)
         deleted = _entity_summary(entity2_uri, entity2_types)
 
-        editor = Editor(
-            EndpointConfig(
-                dataset=get_dataset_endpoint(),
-                provenance=get_provenance_endpoint(),
-                is_quadstore=get_dataset_is_quadstore(),
-            ),
-            current_app.config["COUNTER_HANDLER"],
-            get_responsible_agent_uri(current_user.orcid),
-            URIRef(current_app.config["PRIMARY_SOURCE"]),
-            current_app.config["DATASET_GENERATION_TIME"],
-            save_plugin=current_app.config.get("SAVE_PLUGIN"),
+        editor = new_editor(
+            get_responsible_agent_uri(current_user.orcid), get_primary_source()
         )
 
         editor = import_entity_graph(editor, entity1_uri)

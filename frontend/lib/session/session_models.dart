@@ -42,24 +42,49 @@ class Session {
     required this.userName,
     required this.defaultPrimarySource,
     required this.config,
+    this.isAdmin = false,
+    this.setupError,
+    this.configurationRevision,
   });
 
   factory Session.fromJson(Map<String, dynamic> json) => Session(
     userName: (json['user'] as Map<String, dynamic>?)?['name'] as String?,
     defaultPrimarySource: json['default_primary_source'] as String?,
-    config: AppConfig.fromJson(json['config'] as Map<String, dynamic>),
+    config: json['config'] == null
+        ? null
+        : AppConfig.fromJson(json['config'] as Map<String, dynamic>),
+    isAdmin: json['is_admin'] as bool,
+    setupError: json['setup_error'] as String?,
+    configurationRevision: json['configuration_revision'] as String?,
   );
 
   /// The signed-in user's name, null when nobody is signed in.
   final String? userName;
   final String? defaultPrimarySource;
-  final AppConfig config;
+
+  /// Null while HERITRACE waits for an administrator to configure it.
+  final AppConfig? config;
+  final bool isAdmin;
+
+  /// Why the configuration cannot be used, shown to administrators only.
+  final String? setupError;
+  final String? configurationRevision;
 
   bool get isSignedIn => userName != null;
 
-  Session signedOut() =>
-      Session(userName: null, defaultPrimarySource: null, config: config);
+  bool get setupRequired => config == null;
+
+  Session _copy({String? userName, String? defaultPrimarySource}) => Session(
+    userName: userName,
+    defaultPrimarySource: defaultPrimarySource,
+    config: config,
+    isAdmin: isAdmin,
+    setupError: setupError,
+    configurationRevision: configurationRevision,
+  );
+
+  Session signedOut() => _copy();
 
   Session withDefaultPrimarySource(String? source) =>
-      Session(userName: userName, defaultPrimarySource: source, config: config);
+      _copy(userName: userName, defaultPrimarySource: source);
 }

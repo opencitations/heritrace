@@ -173,3 +173,58 @@ merge:
   deletionText: Dopo l'unione resterà solo la risorsa che mantieni.
   confirm: Conferma unione
   merging: Unione delle risorse in corso. Attendi...
+settings:
+  title: Configurazione
+  saving: Salvataggio della configurazione in corso. Attendi...
+  applying: Applicazione della configurazione. HERITRACE si sta riavviando...
+  saved: Configurazione salvata
+  restartNeeded: La configurazione è salvata. Riavvia HERITRACE per applicarla.
+  reloadTimeout: La configurazione è salvata, ma HERITRACE non si è riavviato in tempo. Controlla i log del server.
+  invalid: Alcuni valori non sono validi
+  invalidMessage: Correggi i campi segnati in rosso, poi salva di nuovo.
+  setupBanner: HERITRACE non è ancora configurato. Compila le impostazioni di sistema, poi salva.
+  setupError: "La configurazione attuale non si può usare: $error"
+  setupPending: HERITRACE è in fase di configurazione. Riprova più tardi.
+  lockedTitle: Impostazioni in modifica
+  lockedMessage: $name ($orcid) sta modificando le impostazioni di sistema. Riprova quando avrà finito.
+  tabs:
+    system: Sistema
+    types: Tipi di entità
+  system:
+    homePage: Pagina iniziale
+    appTitle: Titolo grande
+    appSubtitle: Frase sotto il titolo
+    provenance: Provenance
+    primarySource: Fonte primaria predefinita
+    primarySourceHint: IRI della fonte registrata nella provenance di ogni modifica
+    iriInvalid: Scrivi un IRI completo, per esempio https://example.org/fonte
+    generationTime: Data di generazione del dataset
+    pickDateTime: Scegli data e ora
+    generationTimeHint: Serve solo se il dataset contiene già dati senza provenance. Se la lasci vuota, la loro data di creazione sarà quella della prima modifica
+    lists: Catalogo e cestino
+    perPage: Risorse per pagina
+    countLimit: Conteggio massimo per categoria
+    countLimitHintDefault: Oltre questo numero la categoria mostra, per esempio, «$count+». Un numero più alto dà conteggi più precisi, ma richiede più tempo per contare
+    countLimitHint: Oltre questo numero la categoria mostra «$count+». Un numero più alto dà conteggi più precisi, ma richiede più tempo per contare
+    deletion: Pulizia dopo un'eliminazione
+    orphans: Risorse rimaste isolate
+    orphansHint: Quando elimini una risorsa o un collegamento, le risorse a cui puntava possono non essere più collegate a niente.
+    proxies: Risorse di collegamento
+    proxiesHint: Alcune risorse servono solo a collegarne altre due. Quando elimini una delle due o togli il collegamento, non servono più.
+    proxiesHowTo: Come si definiscono
+    strategyAsk: Chiedi ogni volta se eliminarle
+    strategyDelete: Eliminale sempre
+    strategyKeep: Tienile sempre
+    access: Accesso
+    safelist: ORCID iD autorizzati
+    notSet: Non impostato
+    safelistEmpty: "Nessun iD: può entrare chiunque abbia un account ORCID."
+    addOrcid: "Aggiungi ORCID iD"
+    removeOrcid: "Rimuovi ORCID iD"
+    orcidInvalid: "Non è un ORCID iD valido. Ha la forma 0000-0002-1825-0097"
+    orcidChecking: "Controllo su ORCID…"
+    orcidNoName: "Account ORCID trovato, ma il nome non è pubblico"
+    orcidMissing: "Nessun account ORCID con questo iD"
+    orcidUnreachable: "ORCID non risponde, quindi non è stato possibile controllare l'iD"
+    invalidNumber: Inserisci un numero intero
+    invalidDateTime: Scrivi una data e un'ora, per esempio 2024-12-25T10:00:00+01:00

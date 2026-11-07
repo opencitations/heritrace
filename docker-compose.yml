@@ -38,6 +38,15 @@ services:
     networks:
       - heritrace-network
 
+  config-seed:
+    image: arcangelo7/heritrace:3.2.0
+    # Copies the example configuration into ./config on the first start. Files
+    # already in the folder stay as they are, so edits made in the app survive.
+    entrypoint: [/app/.venv/bin/python, -m, heritrace.scripts.seed_config]
+    command: [/app/config, /app/example_configurations/opencitations_meta]
+    volumes:
+      - ./config:/app/config
+
   web:
     image: arcangelo7/heritrace:3.2.0
     ports:
@@ -47,24 +56,23 @@ services:
         condition: service_healthy
       provenance-db:
         condition: service_healthy
+      config-seed:
+        condition: service_completed_successfully
     environment:
-      # Application settings
       - FLASK_ENV=demo
-      - APP_TITLE=HERITRACE
-      - APP_SUBTITLE=An environment for semantic data curation
 
       # Security (REQUIRED: Change this!)
       - SECRET_KEY=your-secure-secret-key-here
-      - CACHE_VALIDITY_DAYS=7
+
+      # Configuration folder, edited in the app by the administrators
+      - CONFIG_DIR=/app/config
+      - ADMIN_ORCIDS=http://example.org/demo/demo_user
 
       # Database endpoints
       - DATASET_DB_URL=http://dataset-db:8890/sparql
       - PROVENANCE_DB_URL=http://provenance-db:8890/sparql
       - DATASET_DB_TRIPLESTORE=virtuoso
       - PROVENANCE_DB_TRIPLESTORE=virtuoso
-
-      # Query Configuration
-      - COUNT_LIMIT=10000
 
       # Database settings
       - DATASET_DB_TEXT_INDEX_ENABLED=false
@@ -74,27 +82,14 @@ services:
       # ORCID authentication (get from https://orcid.org/developer-tools)
       - ORCID_CLIENT_ID=your-client-id
       - ORCID_CLIENT_SECRET=your-client-secret
-      - ORCID_SAFELIST=0000-0000-0000-0000,0000-0000-0000-0001  # Comma-separated ORCID IDs
-
-      # Provenance settings
-      - DATASET_GENERATION_TIME=2023-06-28T13:00:48+00:00
-      - PRIMARY_SOURCE=https://doi.org/10.6084/m9.figshare.21747536.v4
 
       # Base namespace for the default IRI generator (used only when the component
       # classes below are left unset)
       - BASE_IRI=https://w3id.org/oc/meta/demo
 
-      # Entity handling strategies (Options: ASK, DELETE, KEEP)
-      - ORPHAN_HANDLING_STRATEGY=ASK
-      - PROXY_HANDLING_STRATEGY=ASK
-
       # Gunicorn Configuration
       - GUNICORN_WORKERS=2
-      - MAX_WORKERS=8
       # - GUNICORN_TIMEOUT=120
-
-      # Catalogue pagination settings
-      - CATALOGUE_DEFAULT_PER_PAGE=50
 
       # IRI minting components. Leave both unset for the built-in default: a UUID-based
       # generator (BASE_IRI/<uuid>) with provenance counters in Redis, requiring no code.
@@ -103,9 +98,7 @@ services:
       - COUNTER_HANDLER_CLASS=default_components.meta_counter_handler.MetaCounterHandler
       - URI_GENERATOR_CLASS=default_components.meta_uri_generator.MetaURIGenerator
     volumes:
-      # Expose configuration files for customization (optional)
-      # - ./shacl.ttl:/app/shacl.ttl
-      # - ./display_rules.yaml:/app/display_rules.yaml
+      - ./config:/app/config
 
       # Default components
       # - ./default_components:/app/default_components

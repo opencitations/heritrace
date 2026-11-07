@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+from dataclasses import replace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -40,14 +41,10 @@ def mock_editor():
     return MagicMock()
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
 @patch("heritrace.routes.entity._creation.get_form_fields")
-@patch("heritrace.routes.entity._creation.get_dataset_endpoint")
-@patch("heritrace.routes.entity._creation.get_provenance_endpoint")
 def test_create_entity_with_shacl(
-    _mock_get_prov,
-    _mock_get_dataset,
     mock_get_form_fields,
     _mock_validate,
     mock_editor,
@@ -59,10 +56,11 @@ def test_create_entity_with_shacl(
     # Setup mocks
     mock_get_form_fields.return_value = mock_form_fields
     mock_editor_instance = mock_editor.return_value
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     data = {
         "entity_type": "http://example.org/Person",
@@ -88,13 +86,13 @@ def test_create_entity_with_shacl(
     # Verify editor calls
     mock_editor_instance.preexisting_finished.assert_called_once()
     mock_editor_instance.set_primary_source.assert_called_once_with(None)
-    assert mock_editor.call_args.args[3] == URIRef(app.config["PRIMARY_SOURCE"])
+    assert mock_editor.call_args.args[1] == URIRef(app.config["PRIMARY_SOURCE"])
     assert (
         mock_editor_instance.create.call_count >= 3
     )  # At least 3 create calls expected
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_without_shacl(
     mock_get_form_fields, mock_editor, logged_in_client, app
@@ -103,10 +101,11 @@ def test_create_entity_without_shacl(
     # Setup mocks
     mock_get_form_fields.return_value = {}
     mock_editor_instance = mock_editor.return_value
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     data = {
         # Add entity_type since it's required
@@ -134,7 +133,7 @@ def test_create_entity_without_shacl(
     )  # At least 2 create calls expected
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_with_ordered_properties(
@@ -161,10 +160,11 @@ def test_create_entity_with_ordered_properties(
         },
     }
     mock_editor_instance = mock_editor.return_value
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     data = {
         "entity_type": "http://example.org/Person",
@@ -198,7 +198,7 @@ def test_create_entity_with_ordered_properties(
     )  # At least 5 create calls expected (2 addresses + ordering + properties)
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_with_shape_matching(
@@ -226,10 +226,11 @@ def test_create_entity_with_shape_matching(
         },
     }
     mock_get_form_fields.return_value = form_fields
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     # Test with matching shape
     data = {
@@ -268,7 +269,7 @@ def test_create_entity_with_shape_matching(
     assert response.json["status"] == "success"
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch(
     "heritrace.routes.entity._creation.validate_entity_data",
     return_value=["Missing required property"],
@@ -289,10 +290,11 @@ def test_create_entity_validation_error(
             ]
         }
     }
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     data = {"entity_type": "http://example.org/Person", "properties": {}}
 
@@ -307,10 +309,10 @@ def test_create_entity_validation_error(
     }
     mock_validate_entity_data.assert_called_once_with(data)
     mock_editor.assert_not_called()
-    app.config["URI_GENERATOR"].generate_uri.assert_not_called()
+    uri_generator.generate_uri.assert_not_called()
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_editor_exception(
@@ -325,10 +327,11 @@ def test_create_entity_editor_exception(
     mock_get_form_fields.return_value = mock_form_fields
     mock_editor_instance = mock_editor.return_value
     mock_editor_instance.save.side_effect = EditorError("Test error")
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     data = {
         "entity_type": "http://example.org/Person",
@@ -344,7 +347,7 @@ def test_create_entity_editor_exception(
     assert "Test error" in response.json["errors"][0]
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_with_direct_uri_reference(
@@ -364,10 +367,11 @@ def test_create_entity_with_direct_uri_reference(
     }
     mock_get_form_fields.return_value = form_fields
     mock_editor_instance = mock_editor.return_value
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     # Test data with explicit metadata for existing entity references
     data = {
@@ -425,7 +429,7 @@ def test_create_entity_with_direct_uri_reference(
     )
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_with_single_value_properties(
@@ -448,10 +452,11 @@ def test_create_entity_with_single_value_properties(
     }
     mock_get_form_fields.return_value = form_fields
     mock_editor_instance = mock_editor.return_value
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     # Test data with single values (not in lists)
     data = {
@@ -502,17 +507,18 @@ def test_create_entity_with_single_value_properties(
     )
 
 
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.get_form_fields")
 def test_create_entity_invalid_primary_source(
     mock_get_form_fields, mock_editor, logged_in_client, app
 ) -> None:
     """Test entity creation with an invalid primary source URL"""
     mock_get_form_fields.return_value = {}  # No SHACL validation needed for this test
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     data = {
         "properties": {
@@ -538,14 +544,10 @@ def test_create_entity_invalid_primary_source(
 
 
 @patch("heritrace.routes.entity._creation.save_user_default_primary_source")
-@patch("heritrace.routes.entity._creation.Editor")
+@patch("heritrace.routes.entity._creation.new_editor")
 @patch("heritrace.routes.entity._creation.validate_entity_data", return_value=[])
 @patch("heritrace.routes.entity._creation.get_form_fields")
-@patch("heritrace.routes.entity._creation.get_dataset_endpoint")
-@patch("heritrace.routes.entity._creation.get_provenance_endpoint")
 def test_create_entity_save_default_primary_source(
-    _mock_get_prov,
-    _mock_get_dataset,
     mock_get_form_fields,
     _mock_validate,
     mock_editor,
@@ -556,10 +558,11 @@ def test_create_entity_save_default_primary_source(
 ) -> None:
     """Test saving the primary source as default when creating an entity"""
     mock_get_form_fields.return_value = mock_form_fields
-    app.config["URI_GENERATOR"] = MagicMock()
-    app.config[
-        "URI_GENERATOR"
-    ].generate_uri.return_value = "http://example.org/test/123"
+    uri_generator = MagicMock()
+    uri_generator.generate_uri.return_value = "http://example.org/test/123"
+    app.extensions["heritrace"] = replace(
+        app.extensions["heritrace"], uri_generator=uri_generator
+    )
 
     primary_source_url = "http://valid.source.org/data"
 
@@ -588,10 +591,7 @@ def test_create_entity_save_default_primary_source(
     mock_save_default.assert_called_once_with("0000-0000-0000-0001", primary_source_url)
 
     mock_editor.assert_called_once()
-    call_args, _call_kwargs = mock_editor.call_args
-    # Editor args: (endpoints, counter_handler, resp_agent, source, c_time)
-    assert len(call_args) >= 4
-    assert call_args[3] == URIRef(app.config["PRIMARY_SOURCE"])
+    assert mock_editor.call_args.args[1] == URIRef(app.config["PRIMARY_SOURCE"])
     mock_editor.return_value.set_primary_source.assert_called_once_with(
         URIRef(primary_source_url)
     )

@@ -13,7 +13,7 @@ from rdflib_ocdm.ocdm_graph import OCDMDataset, OCDMGraph
 from SPARQLWrapper import JSON
 
 from heritrace.counter_handler import TransactionalCounterHandler
-from heritrace.editor import Editor, EditorError, EndpointConfig
+from heritrace.editor import Editor, EditorError, TriplestoreBackend
 
 DATASET_ENDPOINT = "http://localhost:9999/blazegraph/sparql"
 PROVENANCE_ENDPOINT = "http://localhost:9998/blazegraph/sparql"
@@ -102,7 +102,7 @@ def mock_storer():
 def editor_instance(mock_counter_handler, mock_reader, mock_storer):
     """Fixture for an Editor instance using real OCDMGraph/ConjunctiveGraph."""
     return Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=DATASET_ENDPOINT,
             provenance=PROVENANCE_ENDPOINT,
             is_quadstore=True,
@@ -116,7 +116,7 @@ def editor_instance(mock_counter_handler, mock_reader, mock_storer):
 def editor_instance_non_quadstore(mock_counter_handler, mock_reader, mock_storer):
     """Fixture for an Editor instance configured for non-quadstore."""
     return Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=DATASET_ENDPOINT,
             provenance=PROVENANCE_ENDPOINT,
             is_quadstore=False,
@@ -132,7 +132,7 @@ def test_save_plugin_runs_after_uploads_and_before_commit(
     events = []
     save_plugin = MagicMock()
     editor = Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=DATASET_ENDPOINT,
             provenance=PROVENANCE_ENDPOINT,
             is_quadstore=True,
@@ -184,7 +184,7 @@ def test_save_commits_transactional_counter_after_graph_commit(mock_storer) -> N
     )
     save_plugin = MagicMock()
     editor = Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=DATASET_ENDPOINT,
             provenance=PROVENANCE_ENDPOINT,
             is_quadstore=True,
@@ -228,7 +228,7 @@ def test_save_rolls_back_transactional_counter_on_failure(mock_storer) -> None:
     save_plugin = MagicMock()
     save_plugin.persist.side_effect = OSError("RDF file write failed")
     editor = Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=DATASET_ENDPOINT,
             provenance=PROVENANCE_ENDPOINT,
             is_quadstore=True,
@@ -275,7 +275,7 @@ def test_save_rejects_failed_triplestore_upload(
     counter_handler = MagicMock(spec=TransactionalCounterHandler)
     save_plugin = MagicMock()
     editor = Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=DATASET_ENDPOINT,
             provenance=PROVENANCE_ENDPOINT,
             is_quadstore=True,
@@ -402,7 +402,7 @@ def test_merge_separates_initial_and_empty_operation_sources(
 ) -> None:
     initial_source = URIRef("https://example.org/initial-dataset")
     editor = Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset=DATASET_ENDPOINT,
             provenance=PROVENANCE_ENDPOINT,
             is_quadstore=True,

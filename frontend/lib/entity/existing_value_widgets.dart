@@ -12,7 +12,7 @@ import '../form/form_model.dart';
 import '../form/widgets/field_group_widget.dart';
 import '../form/widgets/item_widgets.dart';
 import '../i18n/translations.g.dart';
-import '../navigation/app_paths.dart';
+import '../navigation/entity_store.dart';
 import 'edit_session.dart';
 import 'entity_models.dart';
 
@@ -155,7 +155,9 @@ class ExistingValueWidget extends StatelessWidget {
         return SelectionContainer.disabled(
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => context.go(entityPath(triple.externalEntity!)),
+            onTap: () => context.go(
+              context.entityStore.entityPath(triple.externalEntity!),
+            ),
             child: MouseRegion(cursor: SystemMouseCursors.click, child: row),
           ),
         );

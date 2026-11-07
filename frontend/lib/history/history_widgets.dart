@@ -14,7 +14,7 @@ import '../design/app_theme.dart';
 import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../i18n/translations.g.dart';
-import '../navigation/app_paths.dart';
+import '../navigation/entity_store.dart';
 import 'history_models.dart';
 import 'history_repository.dart';
 
@@ -179,6 +179,6 @@ Future<void> restoreVersion(
     action: () => ref.read(historyRepositoryProvider).restore(uri, timestamp),
   );
   if (ok && context.mounted) {
-    context.go(entityPath(uri));
+    context.go(context.entityStore.entityPath(uri));
   }
 }

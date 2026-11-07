@@ -46,7 +46,8 @@ class _FakeCatalogueRepository extends CatalogueRepository {
         CatalogueClass(
           uri: _article,
           label: 'Journal Article',
-          count: '60',
+          count: 60,
+          capped: false,
           shape: null,
         ),
       ],
@@ -55,6 +56,18 @@ class _FakeCatalogueRepository extends CatalogueRepository {
 }
 
 void main() {
+  test('a capped count keeps its plus sign after formatting', () {
+    final capped = CatalogueClass.fromJson({
+      'uri': _article,
+      'label': 'Journal Article',
+      'count': '10000+',
+      'count_numeric': 10000,
+      'shape': null,
+    });
+
+    expect(capped.countText, '10,000+');
+  });
+
   testWidgets('the catalogue loads the next page as the list scrolls', (
     tester,
   ) async {

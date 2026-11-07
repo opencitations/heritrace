@@ -282,9 +282,7 @@ def build_entity_view(subject: str) -> dict:
     entity_key = (highest_priority_class, entity_shape)
     return {
         "uri": subject,
-        "label": custom_filter.human_readable_entity(
-            subject, entity_key, context_snapshot
-        ),
+        "label": custom_filter.entity_title(subject, entity_key, context_snapshot),
         "type": highest_priority_class,
         "type_label": custom_filter.human_readable_class(entity_key),
         "shape": entity_shape,

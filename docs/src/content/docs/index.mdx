@@ -18,7 +18,7 @@ HERITRACE is a web-based semantic data editor. It lets users enrich and edit RDF
 
 ## Setup
 
-This method uses official Docker images published to Docker Hub and GitHub Container Registry. All configuration is done through environment variables in the docker-compose.yml file.
+This method uses official Docker images published to Docker Hub and GitHub Container Registry. Environment variables in the docker-compose.yml file connect HERITRACE to its databases. Administrators edit the rest of the configuration in the app.
 
 ### 1. Download the compose file
 
@@ -34,7 +34,7 @@ curl -o docker-compose.yml https://raw.githubusercontent.com/opencitations/herit
 docker compose up
 ```
 
-The compose file includes two Virtuoso databases and the web application. Once the databases pass their health checks, the application starts automatically.
+The compose file includes two Virtuoso databases and the web application. On the first start, it also copies the example configuration into the `config` folder, where administrators then edit it in the app. Once the databases pass their health checks, the application starts automatically.
 
 HERITRACE runs in demo mode by default (`FLASK_ENV=demo`) for immediate testing without authentication setup.
 
@@ -54,14 +54,14 @@ http://127.0.0.1:5000
 
 ## Configuration
 
-HERITRACE requires two data-model configuration files:
+HERITRACE describes the data model in two places:
 
-- **SHACL schema** (`.ttl`): Defines the data model, classes, and properties. See [SHACL configuration](/heritrace/configuration/shacl/).
+- **SHACL shapes**: Define the data model, classes, and properties. They are stored in the configuration folder and edited in the [configuration editor](/heritrace/configuration/editor/). See [SHACL configuration](/heritrace/configuration/shacl/).
 - **Extra configuration** (`.yaml`): Covers the editor behaviour that SHACL cannot express. See [Extra configuration](/heritrace/configuration/extra/).
 
 The `default_components/` directory contains optional URI generator, counter
 handler, and save plugin implementations. They are distributed with HERITRACE but
-enabled only when selected in the [application settings](/heritrace/configuration/app-settings/).
+enabled only when selected with [environment variables](/heritrace/configuration/app-settings/#components).
 
 The [`example_configurations/`](https://github.com/opencitations/heritrace/tree/main/example_configurations) directory contains examples to use as a starting point, including one based on the <a href="https://doi.org/10.1007/978-3-030-62466-8_28" target="_blank" rel="noopener noreferrer">OpenCitations Data Model (OCDM)</a>.
 

@@ -1,0 +1,214 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix meta: <https://w3id.org/heritrace/meta/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix shui: <http://www.w3.org/ns/shacl-ui/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+meta:ShapesGraph
+  a owl:Ontology ;
+  sh:declare
+    [ sh:prefix "rdf" ; sh:namespace "http://www.w3.org/1999/02/22-rdf-syntax-ns#"^^xsd:anyURI ] ,
+    [ sh:prefix "sh" ; sh:namespace "http://www.w3.org/ns/shacl#"^^xsd:anyURI ] ,
+    [ sh:prefix "shui" ; sh:namespace "http://www.w3.org/ns/shacl-ui/"^^xsd:anyURI ] .
+
+meta:ShapesGraphShape
+  a sh:NodeShape ;
+  sh:name "Entity types"@en, "Tipi di entità"@it ;
+  sh:targetClass sh:ShapesGraph ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue sh:ShapesGraph ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path dcterms:hasPart ;
+    sh:name "Entity types"@en, "Tipi di entità"@it ;
+    sh:order 1 ;
+    sh:node meta:NodeShapeShape ;
+  ] .
+
+meta:NodeShapeShape
+  a sh:NodeShape ;
+  sh:name "Entity type"@en, "Tipo di entità"@it ;
+  sh:targetClass sh:NodeShape ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue sh:NodeShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:prefixes meta:ShapesGraph ;
+      sh:select """
+        SELECT ?label WHERE {
+          {
+            SELECT ?name (COUNT(DISTINCT ?shape) > 1 AS ?shared)
+              (MAX(IF(?shape = $this, ?shortShape, "")) AS ?shortThis)
+            WHERE {
+              ?shape a sh:NodeShape .
+              OPTIONAL { ?shape sh:name ?shapeName }
+              OPTIONAL { ?shape sh:targetClass ?class }
+              OPTIONAL {
+                ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
+                FILTER(STRSTARTS(STR(?shape), STR(?namespace)))
+              }
+              BIND(LCASE(REPLACE(REPLACE(REPLACE(STR(?class), "^.*[/#]", ""), "([A-Z])", " $1"), "^ ", "")) AS ?className)
+              BIND(IF(BOUND(?prefix),
+                CONCAT(?prefix, ":", STRAFTER(STR(?shape), STR(?namespace))),
+                STR(?shape)) AS ?shortShape)
+              BIND(COALESCE(?shapeName, ?className, ?shortShape) AS ?name)
+            }
+            GROUP BY ?name
+            HAVING(SUM(IF(?shape = $this, 1, 0)) > 0)
+          }
+          {
+            SELECT (GROUP_CONCAT(DISTINCT ?fieldName; separator=", ") AS ?fields)
+            WHERE {
+              ?owner sh:property ?field .
+              ?field (sh:qualifiedValueShape|sh:or/rdf:rest*/rdf:first)?/sh:node $this ;
+                sh:name ?fieldName .
+              FILTER(?owner != $this)
+              FILTER NOT EXISTS { $this sh:name ?fieldName }
+            }
+          }
+          {
+            SELECT (GROUP_CONCAT(DISTINCT ?ownerName; separator=", ") AS ?owners)
+            WHERE {
+              ?owner sh:property/(sh:qualifiedValueShape|sh:or/rdf:rest*/rdf:first)?/sh:node $this .
+              FILTER(?owner != $this)
+              OPTIONAL { ?owner sh:name ?ownerLabel }
+              OPTIONAL { ?owner sh:targetClass ?ownerClass }
+              OPTIONAL {
+                ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
+                FILTER(STRSTARTS(STR(?owner), STR(?namespace)))
+              }
+              BIND(LCASE(REPLACE(REPLACE(REPLACE(STR(?ownerClass), "^.*[/#]", ""), "([A-Z])", " $1"), "^ ", "")) AS ?ownerClassName)
+              BIND(IF(BOUND(?prefix),
+                CONCAT(?prefix, ":", STRAFTER(STR(?owner), STR(?namespace))),
+                STR(?owner)) AS ?shortOwner)
+              BIND(COALESCE(?ownerLabel, ?ownerClassName, ?shortOwner) AS ?ownerName)
+            }
+          }
+          BIND(IF(?fields != "", ?fields, IF(?owners != "", ?owners, ?shortThis)) AS ?context)
+          BIND(IF(?shared, CONCAT(?name, " · ", ?context), ?name) AS ?label)
+        }
+        LIMIT 1
+      """ ;
+    ] ;
+  ] ;
+  sh:property [
+    sh:path sh:name ;
+    sh:name "Name"@en, "Nome"@it ;
+    sh:order 1 ;
+    sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:targetClass ;
+    sh:name "Class"@en, "Classe"@it ;
+    sh:order 2 ;
+    sh:nodeKind sh:IRI ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:property ;
+    sh:name "Fields"@en, "Campi"@it ;
+    sh:order 3 ;
+    sh:node meta:PropertyShapeShape ;
+  ] .
+
+meta:PropertyShapeShape
+  a sh:NodeShape ;
+  sh:name "Field"@en, "Campo"@it ;
+  sh:targetClass sh:PropertyShape ;
+  sh:property [
+    sh:path rdf:type ;
+    sh:hasValue sh:PropertyShape ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path rdfs:label ;
+    shui:propertyRole shui:LabelRole ;
+    sh:values [
+      sh:prefixes meta:ShapesGraph ;
+      sh:select """
+        SELECT ?label WHERE {
+          OPTIONAL { $this sh:name ?name }
+          OPTIONAL {
+            $this shui:propertyRole shui:LabelRole .
+            BIND("Display label" AS ?role)
+          }
+          OPTIONAL {
+            $this sh:path ?path .
+            OPTIONAL {
+              ?declaration sh:prefix ?prefix ; sh:namespace ?namespace .
+              FILTER(STRSTARTS(STR(?path), STR(?namespace)))
+            }
+          }
+          BIND(IF(BOUND(?prefix),
+            CONCAT(?prefix, ":", STRAFTER(STR(?path), STR(?namespace))),
+            STR(?path)) AS ?shortPath)
+          BIND(COALESCE(?name, ?role, ?shortPath) AS ?label)
+        }
+        LIMIT 1
+      """ ;
+    ] ;
+  ] ;
+  sh:property [
+    sh:path sh:name ;
+    sh:name "Name"@en, "Nome"@it ;
+    sh:order 1 ;
+    sh:datatype xsd:string ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:path ;
+    sh:name "Property"@en, "Proprietà"@it ;
+    sh:order 2 ;
+    sh:nodeKind sh:IRI ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:order ;
+    sh:name "Position"@en, "Posizione"@it ;
+    sh:order 3 ;
+    sh:datatype xsd:integer ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:minCount ;
+    sh:name "Minimum number of values"@en, "Numero minimo di valori"@it ;
+    sh:order 4 ;
+    sh:datatype xsd:integer ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:maxCount ;
+    sh:name "Maximum number of values"@en, "Numero massimo di valori"@it ;
+    sh:order 5 ;
+    sh:datatype xsd:integer ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:datatype ;
+    sh:name "Datatype"@en, "Tipo di dato"@it ;
+    sh:order 6 ;
+    sh:nodeKind sh:IRI ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:node ;
+    sh:name "Nested entity type"@en, "Tipo di entità annidata"@it ;
+    sh:order 7 ;
+    sh:nodeKind sh:IRI ;
+    sh:maxCount 1 ;
+  ] .

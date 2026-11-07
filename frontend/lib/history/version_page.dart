@@ -12,7 +12,7 @@ import '../design/controls.dart';
 import '../design/spacing.dart';
 import '../form/widgets/field_group_widget.dart';
 import '../i18n/translations.g.dart';
-import '../navigation/app_paths.dart';
+import '../navigation/entity_store.dart';
 import 'history_models.dart';
 import 'history_repository.dart';
 import 'history_widgets.dart';
@@ -54,11 +54,13 @@ class _VersionBody extends ConsumerWidget {
             crumbs: [
               AppBreadcrumb(
                 version.entityLabel,
-                onPressed: () => context.go(entityPath(uri)),
+                onPressed: () =>
+                    context.go(context.entityStore.entityPath(uri)),
               ),
               AppBreadcrumb(
                 t.ui.history.title,
-                onPressed: () => context.go(entityHistoryPath(uri)),
+                onPressed: () =>
+                    context.go(context.entityStore.historyPath(uri)),
               ),
               AppBreadcrumb(t.ui.version.title(number: version.versionNumber)),
             ],
@@ -75,7 +77,8 @@ class _VersionBody extends ConsumerWidget {
             children: [
               AppButton(
                 variant: AppButtonVariant.tinted,
-                onPressed: () => context.go(entityHistoryPath(uri)),
+                onPressed: () =>
+                    context.go(context.entityStore.historyPath(uri)),
                 icon: CupertinoIcons.clock,
                 label: t.ui.history.title,
               ),
@@ -98,7 +101,10 @@ class _VersionBody extends ConsumerWidget {
                     : () => Router.neglect(
                         context,
                         () => context.go(
-                          entityVersionPath(uri, version.prevTimestamp!),
+                          context.entityStore.versionPath(
+                            uri,
+                            version.prevTimestamp!,
+                          ),
                         ),
                       ),
                 icon: CupertinoIcons.arrow_left,
@@ -111,7 +117,10 @@ class _VersionBody extends ConsumerWidget {
                     : () => Router.neglect(
                         context,
                         () => context.go(
-                          entityVersionPath(uri, version.nextTimestamp!),
+                          context.entityStore.versionPath(
+                            uri,
+                            version.nextTimestamp!,
+                          ),
                         ),
                       ),
                 icon: CupertinoIcons.arrow_right,

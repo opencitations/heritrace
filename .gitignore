@@ -13,6 +13,7 @@ frontend/.flutter-plugins-dependencies
 
 # Local configuration
 .env
+/config/
 *.pem
 instance/
 change_tracking.json
@@ -26,6 +27,7 @@ prov_database/*
 !prov_database/virtuoso.ini
 redis-data/
 meta_*_db/
+meta_config/
 rdf/
 
 # User testing packages

@@ -91,16 +91,7 @@ if __name__ == "__main__":
     elif env == "demo":
         run_args.update({"debug": True})
 
-    extra_files = []
-    if app.config.get("SHACL_PATH") and app.config["SHACL_PATH"].exists():
-        extra_files.append(str(app.config["SHACL_PATH"]))
-    if (
-        app.config.get("DISPLAY_RULES_PATH")
-        and app.config["DISPLAY_RULES_PATH"].exists()
-    ):
-        extra_files.append(str(app.config["DISPLAY_RULES_PATH"]))
-
-    if extra_files:
-        run_args["extra_files"] = extra_files
+    if app.config["DISPLAY_RULES_PATH"].exists():
+        run_args["extra_files"] = [str(app.config["DISPLAY_RULES_PATH"])]
 
     app.run(**run_args)

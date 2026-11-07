@@ -1,0 +1,13 @@
+{
+  "appTitle": "ParaText Test",
+  "appSubtitle": "Bibliographical database - Test Environment",
+  "countLimit": 10000,
+  "catalogueDefaultPerPage": 50,
+  "datasetGenerationTime": "2024-01-01T00:00:00+00:00",
+  "primarySource": "https://example.com/test-primary-source",
+  "orcidSafelist": [
+    "0000-0002-1825-0097"
+  ],
+  "orphanHandling": "ASK",
+  "proxyHandling": "ASK"
+}

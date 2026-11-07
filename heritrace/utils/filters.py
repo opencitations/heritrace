@@ -13,11 +13,7 @@ from SPARQLWrapper import JSON
 
 from heritrace.apis.orcid import is_orcid_url, orcid_agent
 from heritrace.apis.zenodo import is_zenodo_url, zenodo_source
-from heritrace.sparql import (
-    SPARQLWrapperWithRetry,
-    get_sparql_bindings,
-    select_results,
-)
+from heritrace.sparql import get_sparql_bindings, select_results
 from heritrace.utils.references import (
     AgentRef,
     SourceRef,
@@ -31,8 +27,11 @@ from heritrace.utils.references import (
 from heritrace.utils.uri_utils import is_valid_url
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from rdflib import Dataset, Graph, URIRef
 
+    from heritrace.sparql import SparqlEndpoint
     from heritrace.utils.shacl_presentation import ShapesPresentation
 
 VERSION_SOURCE_MARKER = "/prov/se/"
@@ -40,17 +39,20 @@ VERSION_SOURCE_MARKER = "/prov/se/"
 
 class Filter:
     def __init__(
-        self, context: dict, presentation: ShapesPresentation, sparql_endpoint: str
+        self,
+        context: dict,
+        presentation: ShapesPresentation,
+        new_sparql: Callable[[], SparqlEndpoint],
     ) -> None:
         self.context = context
         self.presentation = presentation
-        self.sparql_endpoint = sparql_endpoint
+        self.new_sparql = new_sparql
         self._thread_local = threading.local()
         self._query_lock = threading.Lock()
 
-    def _get_sparql(self) -> SPARQLWrapperWithRetry:
+    def _get_sparql(self) -> SparqlEndpoint:
         if not hasattr(self._thread_local, "sparql"):
-            sparql = SPARQLWrapperWithRetry(self.sparql_endpoint, timeout=30.0)
+            sparql = self.new_sparql()
             sparql.setReturnFormat(JSON)
             self._thread_local.sparql = sparql
         return self._thread_local.sparql
@@ -144,6 +146,18 @@ class Filter:
             msg = f"The label query returned no result for {uri_string}"
             raise ValueError(msg)
         return label
+
+    # An entity with a type but no label is named after its type.
+    def entity_title(
+        self,
+        uri: str | URIRef,
+        entity_key: tuple[str | None, str | None],
+        graph: Graph | Dataset | None = None,
+    ) -> str:
+        class_uri, _ = entity_key
+        if class_uri is not None and not self.has_label(self._shape_for(entity_key)):
+            return self.human_readable_class(entity_key)
+        return self.human_readable_entity(uri, entity_key, graph)
 
     def format_source_reference(self, url: str | None) -> SourceRef:
         if not url:

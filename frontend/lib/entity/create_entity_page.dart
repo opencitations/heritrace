@@ -111,7 +111,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
 
   List<ValidationError> _collectErrors() {
     final t = Translations.of(context);
-    final shacl = ref.read(sessionProvider).value!.config.shacl;
+    final shacl = ref.read(sessionProvider).value!.config!.shacl;
     if (!shacl) {
       return [
         if (!_custom.hasAtLeastOneProperty)
@@ -138,7 +138,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
     return errors;
   }
 
-  bool get _hasDraft => ref.read(sessionProvider).value!.config.shacl
+  bool get _hasDraft => ref.read(sessionProvider).value!.config!.shacl
       ? _root != null && hasAnyValue(_root!)
       : _custom.hasAtLeastOneProperty;
 
@@ -175,7 +175,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
     if (choice == null || !mounted) {
       return;
     }
-    final structuredData = session.config.shacl
+    final structuredData = session.config!.shacl
         ? {
             'entity_type': _selectedType!.entityClass,
             'entity_shape': ?_selectedType!.shape,
@@ -211,7 +211,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
     final t = Translations.of(context);
     final session = ref.watch(sessionProvider).value!;
     final types = ref.watch(entityTypesProvider);
-    final canSubmit = !session.config.shacl || _root != null;
+    final canSubmit = !session.config!.shacl || _root != null;
     final margin = pageMargin(context);
     return FormScope(
       notifier: _scope,
@@ -247,7 +247,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
                 SliverPadding(
                   padding: margin.copyWith(top: appSectionSpacing, bottom: 0),
                   sliver: SliverToBoxAdapter(
-                    child: session.config.shacl
+                    child: session.config!.shacl
                         ? AsyncView(
                             value: types,
                             onRetry: () => ref.invalidate(entityTypesProvider),
@@ -292,7 +292,7 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
                           )
                         : CustomPropertiesForm(
                             controller: _custom,
-                            datatypeOptions: session.config.datatypeOptions,
+                            datatypeOptions: session.config!.datatypeOptions,
                           ),
                   ),
                 ),

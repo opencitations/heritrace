@@ -11,12 +11,13 @@ import 'package:heritrace/form/field_def.dart';
 import 'package:heritrace/form/form_repository.dart';
 import 'package:heritrace/navigation/app_paths.dart';
 import 'package:heritrace/navigation/app_router.dart';
+import 'package:heritrace/navigation/entity_store.dart';
 
 import '../form/fixtures.dart';
 import '../helpers.dart';
 
 class _FakeFormRepository extends FormRepository {
-  _FakeFormRepository() : super(Dio());
+  _FakeFormRepository() : super(Dio(), EntityStore.dataset);
 
   @override
   Future<List<EntityTypeOption>> entityTypes() async => const [

@@ -173,3 +173,58 @@ merge:
   deletionText: After the merge, only the resource you keep will remain.
   confirm: Confirm merge
   merging: Merging the resources. Please wait...
+settings:
+  title: Configuration
+  saving: Saving the configuration. Please wait...
+  applying: Applying the configuration. HERITRACE is restarting...
+  saved: Configuration saved
+  restartNeeded: The configuration is saved. Restart HERITRACE to apply it.
+  reloadTimeout: The configuration is saved, but HERITRACE did not restart in time. Check the server logs.
+  invalid: Some values are not valid
+  invalidMessage: Fix the fields marked in red, then save again.
+  setupBanner: HERITRACE is not configured yet. Fill in the system settings, then save.
+  setupError: "The current configuration cannot be used: $error"
+  setupPending: HERITRACE is being configured. Try again later.
+  lockedTitle: Settings being edited
+  lockedMessage: $name ($orcid) is editing the system settings. Try again when they are done.
+  tabs:
+    system: System
+    types: Entity types
+  system:
+    homePage: Home page
+    appTitle: Large title
+    appSubtitle: Sentence under the title
+    provenance: Provenance
+    primarySource: Default primary source
+    primarySourceHint: IRI of the source recorded in the provenance of each change
+    iriInvalid: Enter a full IRI, such as https://example.org/source
+    generationTime: Dataset generation time
+    pickDateTime: Pick a date and time
+    generationTimeHint: Needed only when the dataset already holds data without provenance. If you leave it empty, their creation date becomes the date of their first change
+    lists: Catalogue and recycle bin
+    perPage: Resources per page
+    countLimit: Maximum count per category
+    countLimitHintDefault: Above this number the category shows, for example, "$count+". A higher number gives more precise counts, but counting takes longer
+    countLimitHint: Above this number the category shows "$count+". A higher number gives more precise counts, but counting takes longer
+    deletion: Cleanup after a deletion
+    orphans: Resources left isolated
+    orphansHint: When you delete a resource or a link, the resources it pointed to may no longer be linked to anything.
+    proxies: Linking resources
+    proxiesHint: Some resources only link two others. When you delete one of the two or remove the link, they are no longer needed.
+    proxiesHowTo: How to define them
+    strategyAsk: Ask each time whether to delete them
+    strategyDelete: Always delete them
+    strategyKeep: Always keep them
+    access: Access
+    safelist: Authorized ORCID iDs
+    notSet: Not set
+    safelistEmpty: "No iDs: anyone with an ORCID account can sign in."
+    addOrcid: "Add ORCID iD"
+    removeOrcid: "Remove ORCID iD"
+    orcidInvalid: "This is not a valid ORCID iD. It looks like 0000-0002-1825-0097"
+    orcidChecking: "Checking on ORCID…"
+    orcidNoName: "ORCID account found, but its name is not public"
+    orcidMissing: "No ORCID account has this iD"
+    orcidUnreachable: "ORCID is not responding, so the iD could not be checked"
+    invalidNumber: Enter a whole number
+    invalidDateTime: Enter a date and time, such as 2024-12-25T10:00:00+01:00

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 from rdflib import XSD, Literal, URIRef
 from rdflib_ocdm.counter_handler.counter_handler import CounterHandler
 
-from heritrace.editor import Editor, EndpointConfig
+from heritrace.editor import Editor, TriplestoreBackend
 
 SUBJECT = URIRef("http://example.org/entity")
 TITLE = URIRef("http://purl.org/dc/terms/title")
@@ -16,7 +16,7 @@ AGENT = URIRef("http://example.org/agent")
 
 def _editor() -> Editor:
     return Editor(
-        EndpointConfig(
+        TriplestoreBackend(
             dataset="http://localhost:9999/sparql",
             provenance="http://localhost:9998/sparql",
             is_quadstore=False,

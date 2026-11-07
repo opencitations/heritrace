@@ -52,6 +52,10 @@ ex:BookShape a sh:NodeShape ;
     sh:values [ sh:select "SELECT ?label WHERE { $this ex:title ?label }" ] ;
   ] .
 
+ex:PageShape a sh:NodeShape ;
+  sh:targetClass ex:Page ;
+  sh:name "Page" .
+
 ex:AuthorShape a sh:NodeShape ;
   sh:targetClass ex:Role ;
   sh:property [
@@ -76,7 +80,7 @@ BOOK_KEY = (EX + "Book", EX + "BookShape")
 @pytest.fixture
 def shapes_filter():
     presentation = read_presentation(Graph().parse(data=SHAPES, format="turtle"))
-    return Filter({EX: "ex"}, presentation, "http://example.org/sparql")
+    return Filter({EX: "ex"}, presentation, MagicMock)
 
 
 def test_class_names_come_from_node_shapes(shapes_filter) -> None:
@@ -86,6 +90,16 @@ def test_class_names_come_from_node_shapes(shapes_filter) -> None:
     )
     assert shapes_filter.human_readable_class(None) == "Unknown"
     assert shapes_filter.human_readable_class((None, None)) == "Unknown"
+
+
+def test_entities_without_a_label_are_named_after_their_type(shapes_filter) -> None:
+    book = Graph().parse(data=f'<{EX}book1> <{EX}title> "Dune" .', format="turtle")
+
+    assert shapes_filter.entity_title(EX + "book1", BOOK_KEY, book) == "Dune"
+    assert shapes_filter.entity_title(
+        EX + "page1", (EX + "Page", EX + "PageShape")
+    ) == ("Page")
+    assert shapes_filter.entity_title(EX + "thing", (None, None)) == EX + "thing"
 
 
 def test_predicate_names_depend_on_the_object_shape(shapes_filter) -> None:

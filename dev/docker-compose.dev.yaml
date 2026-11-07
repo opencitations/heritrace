@@ -34,7 +34,21 @@ services:
     volumes:
       - ./data/${DEV_DATASET:?}/provenance:/index
 
+  config-seed:
+    image: heritrace-dev
+    build:
+      context: ..
+      dockerfile: dev/Dockerfile.dev
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    entrypoint: [/app/.venv/bin/python, -m, heritrace.scripts.seed_config]
+    command: [/config, /example]
+    volumes:
+      - ../heritrace:/app/heritrace
+      - ../example_configurations/opencitations_meta:/example:ro
+      - ./data/${DEV_DATASET:?}/config:/config
+
   web:
+    image: heritrace-dev
     build:
       context: ..
       dockerfile: dev/Dockerfile.dev
@@ -45,12 +59,18 @@ services:
     environment:
       - DATASET_DB_URL=http://meta:7101
       - PROVENANCE_DB_URL=http://provenance:7103
+      - CONFIG_DIR=/app/config
+      - BASE_IRI=https://example.org
       - FRONTEND_ORIGIN=https://127.0.0.1:5100
       - HOST_UID=${HOST_UID:-1000}
       - HOST_GID=${HOST_GID:-1000}
     depends_on:
-      - meta
-      - provenance
+      meta:
+        condition: service_started
+      provenance:
+        condition: service_started
+      config-seed:
+        condition: service_completed_successfully
     volumes:
       - ../heritrace:/app/heritrace
       - ../app.py:/app/app.py
@@ -60,4 +80,5 @@ services:
       - ../uv.lock:/app/uv.lock
       - ../example_configurations:/app/example_configurations
       - ./ssl:/app/ssl
+      - ./data/${DEV_DATASET:?}/config:/app/config
       - ./data/${DEV_DATASET:?}/redis:/data

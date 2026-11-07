@@ -12,9 +12,10 @@ import json
 import time
 import uuid
 from collections.abc import Generator
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
@@ -24,12 +25,11 @@ from time_agnostic_library.agnostic_entity import AgnosticEntity
 
 from default_components.meta_counter_handler import MetaCounterHandler
 from default_components.meta_uri_generator import MetaURIGenerator
-from heritrace.editor import Editor, EndpointConfig
+from heritrace.editor import Editor
 from heritrace.extensions import (
+    get_app_state,
     get_change_tracking_config,
-    get_dataset_endpoint,
     get_presentation,
-    get_provenance_endpoint,
 )
 from heritrace.routes.entity import (
     EntityRenderContext,
@@ -41,6 +41,7 @@ from heritrace.routes.entity import (
     validate_entity_data,
 )
 from heritrace.uri_generator.default_uri_generator import DefaultURIGenerator
+from heritrace.uri_generator.uri_generator import URIGenerator
 from heritrace.utils.filters import Filter
 from heritrace.utils.sparql_utils import fetch_data_graph_for_subject
 
@@ -51,11 +52,7 @@ def test_entity(app: Flask) -> Generator[URIRef, None, None]:
     with app.app_context():
         # Create a test entity using the Editor
         editor = Editor(
-            EndpointConfig(
-                dataset=get_dataset_endpoint(),
-                provenance=get_provenance_endpoint(),
-                is_quadstore=app.config["DATASET_IS_QUADSTORE"],
-            ),
+            get_app_state().backend,
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
@@ -106,11 +103,7 @@ def test_entity(app: Flask) -> Generator[URIRef, None, None]:
 
 def _make_editor(app: Flask) -> Editor:
     return Editor(
-        EndpointConfig(
-            dataset=get_dataset_endpoint(),
-            provenance=get_provenance_endpoint(),
-            is_quadstore=app.config["DATASET_IS_QUADSTORE"],
-        ),
+        get_app_state().backend,
         app.config["COUNTER_HANDLER"],
         URIRef("https://orcid.org/0000-0000-0000-0000"),
         app.config["PRIMARY_SOURCE"],
@@ -586,11 +579,7 @@ def test_restore_version(
         time.sleep(1)
 
         editor = Editor(
-            EndpointConfig(
-                dataset=get_dataset_endpoint(),
-                provenance=get_provenance_endpoint(),
-                is_quadstore=True,
-            ),
+            get_app_state().backend,
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
@@ -798,63 +787,26 @@ def test_determine_datatype() -> None:
 
 
 def test_generate_unique_uri(app: Flask) -> None:
-    """Test the generate_unique_uri function."""
+    def use_generator(generator: URIGenerator) -> None:
+        app.extensions["heritrace"] = replace(
+            app.extensions["heritrace"], uri_generator=generator
+        )
+
     with app.app_context():
-        # Create a DefaultURIGenerator instance
-        default_generator = DefaultURIGenerator("http://example.org")
+        use_generator(DefaultURIGenerator("http://example.org"))
+        uri1 = generate_unique_uri()
+        uri2 = generate_unique_uri()
+        assert str(uri1).startswith("http://example.org/")
+        assert str(uri2).startswith("http://example.org/")
+        assert uri1 != uri2
 
-        # Store the original URI generator
-        original_uri_generator = app.config["URI_GENERATOR"]
-
-        try:
-            # Set the DefaultURIGenerator as the application's URI generator
-            app.config["URI_GENERATOR"] = default_generator
-
-            # Generate a URI without entity type
-            uri1 = generate_unique_uri()
-            assert uri1 is not None
-            assert isinstance(uri1, URIRef)
-            assert str(uri1).startswith("http://example.org/")
-
-            # Generate another URI to ensure they're different
-            uri2 = generate_unique_uri()
-            assert uri2 is not None
-            assert isinstance(uri2, URIRef)
-            assert str(uri2).startswith("http://example.org/")
-            assert uri1 != uri2  # URIs should be different
-
-            counter_handler = MetaCounterHandler()
-            counter_handler.port = 17804
-
-            # Create a MetaURIGenerator instance
-            meta_generator = MetaURIGenerator(counter_handler)
-
-            # Set the MetaURIGenerator as the application's URI generator
-            app.config["URI_GENERATOR"] = meta_generator
-
-            # Test with a specific entity type
-            entity_type = "http://purl.org/spar/fabio/JournalArticle"
-
-            # Generate a URI with the entity type
-            uri3 = generate_unique_uri(entity_type)
-            assert uri3 is not None
-            assert isinstance(uri3, URIRef)
-            assert str(uri3).startswith("https://w3id.org/oc/meta/br/09110")
-
-            # Generate another URI to ensure the counter is incremented
-            uri4 = generate_unique_uri(entity_type)
-            assert uri4 is not None
-            assert isinstance(uri4, URIRef)
-            assert str(uri4).startswith("https://w3id.org/oc/meta/br/09110")
-            assert uri3 != uri4  # URIs should be different
-
-        finally:
-            # Restore the original URI generator
-            app.config["URI_GENERATOR"] = original_uri_generator
-
-            # Close the Redis connection
-            if "counter_handler" in locals():
-                counter_handler.close()
+        use_generator(MetaURIGenerator(MetaCounterHandler(port=17804)))
+        entity_type = "http://purl.org/spar/fabio/JournalArticle"
+        uri3 = generate_unique_uri(entity_type)
+        uri4 = generate_unique_uri(entity_type)
+        assert str(uri3).startswith("https://w3id.org/oc/meta/br/09110")
+        assert str(uri4).startswith("https://w3id.org/oc/meta/br/09110")
+        assert uri3 != uri4
 
 
 def test_entity_modification_workflow(app: Flask) -> None:
@@ -870,11 +822,7 @@ def test_entity_modification_workflow(app: Flask) -> None:
     with app.app_context():
         # 1. Crea una nuova entità di test con proprietà specifiche
         editor = Editor(
-            EndpointConfig(
-                dataset=get_dataset_endpoint(),
-                provenance=get_provenance_endpoint(),
-                is_quadstore=app.config["DATASET_IS_QUADSTORE"],
-            ),
+            get_app_state().backend,
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
@@ -919,11 +867,7 @@ def test_entity_modification_workflow(app: Flask) -> None:
         editor = None
         # Create a fresh editor instance to ensure a new version
         editor = Editor(
-            EndpointConfig(
-                dataset=get_dataset_endpoint(),
-                provenance=get_provenance_endpoint(),
-                is_quadstore=app.config["DATASET_IS_QUADSTORE"],
-            ),
+            get_app_state().backend,
             app.config["COUNTER_HANDLER"],
             URIRef("https://orcid.org/0000-0000-0000-0000"),
             app.config["PRIMARY_SOURCE"],
@@ -1101,7 +1045,7 @@ def test_modification_entry(app: Flask) -> None:
         with context_path.open() as config_file:
             context = json.load(config_file)["@context"]
 
-        real_filter = Filter(context, get_presentation(), "http://example.org/sparql")
+        real_filter = Filter(context, get_presentation(), MagicMock)
         subject = URIRef("http://example.org/entity/1")
 
         def _make_ctx(classes_cache=None):

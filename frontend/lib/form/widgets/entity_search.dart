@@ -13,7 +13,7 @@ import '../../design/app_theme.dart';
 import '../../design/controls.dart';
 import '../../design/spacing.dart';
 import '../../i18n/translations.g.dart';
-import '../../navigation/app_paths.dart';
+import '../../navigation/entity_store.dart';
 import '../field_def.dart';
 import '../form_model.dart';
 import '../form_repository.dart';
@@ -204,15 +204,13 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                       ),
                     )
                   else
-                    SelectionContainer.disabled(
-                      child: CupertinoListTile(
-                        leading: const Icon(CupertinoIcons.add_circled),
-                        title: Text(t.ui.form.createNewEntity),
-                        onTap: () {
-                          _target?.clearExisting();
-                          setState(() => _dismissed = true);
-                        },
-                      ),
+                    AppListTile(
+                      leading: const Icon(CupertinoIcons.add_circled),
+                      title: Text(t.ui.form.createNewEntity),
+                      onTap: () {
+                        _target?.clearExisting();
+                        setState(() => _dismissed = true);
+                      },
                     ),
                   for (final result in results)
                     AppListTile(
@@ -221,7 +219,9 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                           ? const CupertinoListTileChevron()
                           : null,
                       onTap: _suggestionsOnly
-                          ? () => openExternal(entityPath(result.uri))
+                          ? () => openExternal(
+                              context.entityStore.entityPath(result.uri),
+                            )
                           : () => _select(result),
                     ),
                 ],
@@ -239,12 +239,10 @@ class _EntitySearchFieldState extends ConsumerState<EntitySearchField> {
                     ),
                   )
                 else if (_hasMore && !_suggestionsOnly)
-                  SelectionContainer.disabled(
-                    child: CupertinoListTile(
-                      leading: const Icon(CupertinoIcons.refresh),
-                      title: Text(t.ui.form.moreResults),
-                      onTap: () => _search(_offset + 5),
-                    ),
+                  AppListTile(
+                    leading: const Icon(CupertinoIcons.refresh),
+                    title: Text(t.ui.form.moreResults),
+                    onTap: () => _search(_offset + 5),
                   ),
               ],
             ),
