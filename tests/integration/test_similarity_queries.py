@@ -60,9 +60,7 @@ def test_similarity_matches_configured_values(
     sparql.query()
     try:
         conditions = [{"and": [predicate]}] if use_and else [predicate]
-        blocks = _build_union_blocks(
-            conditions, {predicate: [value.n3()]}, "urn:source"
-        )
+        blocks = _build_union_blocks(conditions, {predicate: [value.n3()]})
         sparql.setQuery(
             f"SELECT DISTINCT ?similar FROM <{graph_uri}> WHERE {{ "
             + " UNION ".join(blocks)

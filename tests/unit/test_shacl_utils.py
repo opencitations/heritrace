@@ -569,6 +569,7 @@ class TestShaclUtils:
                 return_value=mock_shacl,
             ),
             patch("heritrace.utils.shacl_validation.len", return_value=1),
+            patch("heritrace.utils.display_rules_utils.get_presentation"),
             patch(
                 "heritrace.utils.shacl_validation.get_custom_filter"
             ) as mock_custom_filter,
@@ -803,8 +804,8 @@ class TestDetermineShapeForEntityTriples:
         self.mock_shacl_graph.__len__ = MagicMock(return_value=1)
 
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
-    @patch("heritrace.utils.shacl_utils.get_class_priority")
-    def test_no_shacl_graph(self, _mock_get_priority, mock_get_shacl) -> None:
+    @patch("heritrace.utils.shacl_utils.get_presentation")
+    def test_no_shacl_graph(self, _mock_get_presentation, mock_get_shacl) -> None:
         """Test when no SHACL graph is available."""
         mock_get_shacl.return_value = None
 
@@ -814,8 +815,10 @@ class TestDetermineShapeForEntityTriples:
         assert result is None
 
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
-    @patch("heritrace.utils.shacl_utils.get_class_priority")
-    def test_no_classes_in_triples(self, _mock_get_priority, mock_get_shacl) -> None:
+    @patch("heritrace.utils.shacl_utils.get_presentation")
+    def test_no_classes_in_triples(
+        self, _mock_get_presentation, mock_get_shacl
+    ) -> None:
         """Test when no rdf:type triples are present."""
         mock_get_shacl.return_value = self.mock_shacl_graph
 
@@ -827,8 +830,10 @@ class TestDetermineShapeForEntityTriples:
         assert result is None
 
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
-    @patch("heritrace.utils.shacl_utils.get_class_priority")
-    def test_single_candidate_shape(self, _mock_get_priority, mock_get_shacl) -> None:
+    @patch("heritrace.utils.shacl_utils.get_presentation")
+    def test_single_candidate_shape(
+        self, _mock_get_presentation, mock_get_shacl
+    ) -> None:
         """Test when only one candidate shape exists."""
         mock_get_shacl.return_value = self.mock_shacl_graph
 
@@ -853,10 +858,10 @@ class TestDetermineShapeForEntityTriples:
         assert result == "http://schema.org/JournalShape"
 
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
-    @patch("heritrace.utils.shacl_utils.get_class_priority")
+    @patch("heritrace.utils.shacl_utils.get_presentation")
     @patch("heritrace.utils.shacl_utils._get_shape_properties")
     def test_special_issue_vs_issue_distinction(
-        self, mock_get_properties, mock_get_priority, mock_get_shacl
+        self, mock_get_properties, mock_get_presentation, mock_get_shacl
     ) -> None:
         """
         Test distinguishing between SpecialIssueShape and IssueShape based on
@@ -892,7 +897,7 @@ class TestDetermineShapeForEntityTriples:
 
         mock_get_properties.side_effect = mock_properties_side_effect
 
-        mock_get_priority.return_value = 1
+        mock_get_presentation.return_value.fixed_type_count.return_value = 1
 
         special_issue_triples = [
             (URIRef("http://example.org/entity1"), RDF.type, FABIO.JournalIssue),
@@ -913,8 +918,8 @@ class TestDetermineShapeForEntityTriples:
         assert result == "http://schema.org/SpecialIssueShape"
 
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
-    @patch("heritrace.utils.shacl_utils.get_class_priority")
-    def test_no_candidate_shapes(self, _mock_get_priority, mock_get_shacl) -> None:
+    @patch("heritrace.utils.shacl_utils.get_presentation")
+    def test_no_candidate_shapes(self, _mock_get_presentation, mock_get_shacl) -> None:
         """Test when no shapes are found for the entity classes."""
         mock_get_shacl.return_value = self.mock_shacl_graph
 
@@ -932,9 +937,9 @@ class TestDetermineShapeForEntityTriples:
         assert result is None
 
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
-    @patch("heritrace.utils.shacl_utils.get_class_priority")
+    @patch("heritrace.utils.shacl_utils.get_presentation")
     def test_with_rdflib_graph_iterator(
-        self, _mock_get_priority, mock_get_shacl
+        self, _mock_get_presentation, mock_get_shacl
     ) -> None:
         """Test with actual RDFLib graph iterator (realistic scenario)."""
         mock_get_shacl.return_value = self.mock_shacl_graph
@@ -1843,11 +1848,11 @@ class TestShaclQueryMemoization:
         return graph
 
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
-    @patch("heritrace.utils.shacl_utils.get_class_priority")
+    @patch("heritrace.utils.shacl_utils.get_presentation")
     def test_repeated_calls_query_the_graph_once(
-        self, mock_get_priority, mock_get_shacl
+        self, mock_get_presentation, mock_get_shacl
     ) -> None:
-        mock_get_priority.return_value = 1
+        mock_get_presentation.return_value.fixed_type_count.return_value = 1
         graph = self._mock_graph_with_shape("http://schema.org/JournalShape")
         mock_get_shacl.return_value = graph
 
@@ -1859,11 +1864,11 @@ class TestShaclQueryMemoization:
         assert graph.query.call_count == 1
 
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
-    @patch("heritrace.utils.shacl_utils.get_class_priority")
+    @patch("heritrace.utils.shacl_utils.get_presentation")
     def test_distinct_graphs_have_separate_caches(
-        self, mock_get_priority, mock_get_shacl
+        self, mock_get_presentation, mock_get_shacl
     ) -> None:
-        mock_get_priority.return_value = 1
+        mock_get_presentation.return_value.fixed_type_count.return_value = 1
         graph_a = self._mock_graph_with_shape("http://schema.org/ShapeA")
         graph_b = self._mock_graph_with_shape("http://schema.org/ShapeB")
 

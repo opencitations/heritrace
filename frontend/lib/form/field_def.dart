@@ -82,9 +82,7 @@ class FieldDef {
     required this.conditions,
     required this.inputType,
     required this.orderedBy,
-    required this.supportsSearch,
-    required this.minCharsForSearch,
-    required this.searchTarget,
+    required this.autocomplete,
     required this.nestedShape,
     required this.or,
     required this.intermediateRelation,
@@ -123,9 +121,7 @@ class FieldDef {
           .toList(),
       inputType: json['inputType'] as String? ?? 'text',
       orderedBy: json['orderedBy'] as String?,
-      supportsSearch: json['supportsSearch'] == true,
-      minCharsForSearch: (json['minCharsForSearch'] as num?)?.toInt() ?? 4,
-      searchTarget: json['searchTarget'] as String? ?? 'self',
+      autocomplete: json['autocomplete'] == true,
       nestedShape: (json['nestedShape'] as List<dynamic>?)
           ?.map((e) => FieldDef.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -163,9 +159,7 @@ class FieldDef {
   final List<FieldCondition> conditions;
   final String inputType;
   final String? orderedBy;
-  final bool supportsSearch;
-  final int minCharsForSearch;
-  final String searchTarget;
+  final bool autocomplete;
   final List<FieldDef>? nestedShape;
   final List<FieldDef>? or;
   final IntermediateRelation? intermediateRelation;

@@ -14,7 +14,6 @@ from rdflib import RDF, Graph, Literal, URIRef
 from heritrace.utils.display_rules_utils import (
     GroupingContext,
     find_matching_rule,
-    get_class_priority,
     get_grouped_triples,
     get_highest_priority_class,
     get_similarity_properties,
@@ -33,7 +32,6 @@ def mock_display_rules():
     return [
         {
             "target": {"class": "http://example.org/Person"},
-            "priority": 1,
             "shouldBeDisplayed": True,
             "displayProperties": [
                 {
@@ -52,7 +50,6 @@ def mock_display_rules():
         },
         {
             "target": {"class": "http://example.org/Document"},
-            "priority": 2,
             "shouldBeDisplayed": False,
             "displayProperties": [
                 {
@@ -190,33 +187,6 @@ def mock_historical_snapshot():
         )
     )
     return graph
-
-
-class TestInitialization:
-    """Test the initialization of the module."""
-
-    def test_get_class_priority(self, monkeypatch) -> None:
-        """Test that get_class_priority returns the correct priority."""
-        mock_rules = [
-            {"target": {"class": "http://example.org/Person"}, "priority": 10},
-            {"target": {"class": "http://example.org/Organization"}, "priority": 5},
-        ]
-
-        monkeypatch.setattr(
-            "heritrace.utils.display_rules_utils.get_display_rules", lambda: mock_rules
-        )
-
-        assert get_class_priority(("http://example.org/Person", None)) == 10
-        assert get_class_priority(("http://example.org/Organization", None)) == 5
-        assert get_class_priority(("http://example.org/Unknown", None)) == float("inf")
-
-    def test_get_class_priority_no_rules(self, monkeypatch) -> None:
-        """Test that get_class_priority returns float('inf') when there are no rules."""
-        monkeypatch.setattr(
-            "heritrace.utils.display_rules_utils.get_display_rules", dict
-        )
-
-        assert get_class_priority(("http://example.org/Person", None)) == float("inf")
 
 
 class TestIsEntityTypeVisible:
@@ -401,7 +371,6 @@ class TestGetSortableProperties:
                 "target": {"class": "http://example.org/Person"},
                 "sortableBy": [{"property": "http://example.org/name"}],
                 "displayProperties": [{"property": "http://example.org/name"}],
-                "priority": 1,
                 "shouldBeDisplayed": True,
             }
         ]
@@ -424,7 +393,6 @@ class TestGetSortableProperties:
                 "target": {"class": "http://example.org/Person"},
                 "sortableBy": [{"property": "http://example.org/unknown"}],
                 "displayProperties": [{"property": "http://example.org/unknown"}],
-                "priority": 1,
                 "shouldBeDisplayed": True,
             }
         ]
@@ -558,54 +526,60 @@ class TestGetSortableProperties:
 
 
 class TestGetHighestPriorityClass:
-    @patch("heritrace.utils.shacl_utils.determine_shape_for_classes", return_value=None)
-    @patch("heritrace.utils.display_rules_utils.get_class_priority")
-    def test_get_highest_priority_class(
-        self, mock_get_class_priority, _mock_determine_shape
-    ) -> None:
-        mock_get_class_priority.side_effect = lambda entity_key: {
-            ("http://example.org/Person", None): 1,
-            ("http://example.org/Organization", None): 5,
-            ("http://example.org/Event", None): 10,
-        }.get(entity_key, 100)
+    @staticmethod
+    def _shapes_for(class_uri_counts: dict[str, int]) -> MagicMock:
+        presentation = MagicMock()
+        presentation.fixed_type_count.side_effect = lambda shape: (
+            class_uri_counts[shape] if shape else 0
+        )
+        return presentation
 
-        subject_classes = [
-            "http://example.org/Person",
-            "http://example.org/Organization",
-            "http://example.org/Event",
-        ]
-        result = get_highest_priority_class(subject_classes)
-        assert result == "http://example.org/Person"
+    def test_prefers_the_class_whose_shape_fixes_the_most_types(self) -> None:
+        article = "http://example.org/Article"
+        expression = "http://example.org/Expression"
+        unconfigured = "http://example.org/Unconfigured"
+        shapes = {article: "ArticleShape", expression: "ExpressionShape"}
+        with (
+            patch(
+                "heritrace.utils.shacl_utils.determine_shape_for_classes",
+                side_effect=lambda classes: shapes.get(classes[0]),
+            ),
+            patch(
+                "heritrace.utils.display_rules_utils.get_presentation",
+                return_value=self._shapes_for(
+                    {"ArticleShape": 2, "ExpressionShape": 1}
+                ),
+            ),
+        ):
+            assert (
+                get_highest_priority_class([unconfigured, expression, article])
+                == article
+            )
 
-        subject_classes = [
-            "http://example.org/Event",
-            "http://example.org/Organization",
-            "http://example.org/Person",
-        ]
-        result = get_highest_priority_class(subject_classes)
-        assert result == "http://example.org/Person"
+    def test_returns_none_without_classes(self) -> None:
+        with patch(
+            "heritrace.utils.display_rules_utils.get_presentation",
+            return_value=self._shapes_for({}),
+        ):
+            assert get_highest_priority_class([]) is None
 
-    @patch("heritrace.utils.display_rules_utils.get_class_priority")
-    def test_get_highest_priority_class_empty_list(
-        self, _mock_get_class_priority
-    ) -> None:
-        subject_classes = []
-        result = get_highest_priority_class(subject_classes)
-        assert result is None
-
-    @patch("heritrace.utils.shacl_utils.determine_shape_for_classes", return_value=None)
-    @patch("heritrace.utils.display_rules_utils.get_class_priority")
-    def test_get_highest_priority_class_same_priority(
-        self, mock_get_class_priority, _mock_determine_shape
-    ) -> None:
-        mock_get_class_priority.return_value = 5
-
-        subject_classes = [
-            "http://example.org/Person",
-            "http://example.org/Organization",
-        ]
-        result = get_highest_priority_class(subject_classes)
-        assert result == "http://example.org/Person"  # First one should be returned
+    def test_keeps_the_first_class_on_a_tie(self) -> None:
+        with (
+            patch(
+                "heritrace.utils.shacl_utils.determine_shape_for_classes",
+                return_value=None,
+            ),
+            patch(
+                "heritrace.utils.display_rules_utils.get_presentation",
+                return_value=self._shapes_for({}),
+            ),
+        ):
+            assert (
+                get_highest_priority_class(
+                    ["http://example.org/Person", "http://example.org/Organization"]
+                )
+                == "http://example.org/Person"
+            )
 
 
 class TestProcessOrdering:
@@ -771,7 +745,6 @@ class TestGetSimilarityProperties:
         return [
             {
                 "target": {"class": "http://example.org/Person"},
-                "priority": 1,
                 "similarity_properties": [
                     "http://example.org/name",
                     "http://example.org/email",
@@ -779,21 +752,17 @@ class TestGetSimilarityProperties:
             },
             {
                 "target": {"class": "http://example.org/Organization"},
-                "priority": 2,
                 "similarity_properties": [],  # Empty list
             },
             {
                 "target": {"class": "http://example.org/Document"},
-                "priority": 3,
             },
             {
                 "target": {"class": "http://example.org/Event"},
-                "priority": 4,
                 "similarity_properties": "not a list",  # Invalid format
             },
             {
                 "target": {"class": "http://example.org/Place"},
-                "priority": 5,
                 "similarity_properties": ["prop1", 123],  # Invalid item type
             },
         ]
@@ -881,7 +850,6 @@ class TestGetSimilarityProperties:
         mock_rules_and = [
             {
                 "target": {"class": entity_type},
-                "priority": 1,
                 "similarity_properties": [
                     "prop1",
                     {"and": ["prop2", "prop3"]},  # Valid
@@ -889,17 +857,14 @@ class TestGetSimilarityProperties:
             },
             {
                 "target": {"class": "http://example.org/InvalidAndValue"},
-                "priority": 2,
                 "similarity_properties": [{"and": "not_a_list"}],
             },
             {
                 "target": {"class": "http://example.org/InvalidAndListItem"},
-                "priority": 3,
                 "similarity_properties": [{"and": ["prop4", 555]}],
             },
             {
                 "target": {"class": "http://example.org/InvalidAndDict"},
-                "priority": 4,
                 "similarity_properties": [{"and": ["prop4"], "or": ["prop5"]}],
             },
         ]
@@ -969,7 +934,6 @@ class TestFindMatchingRule:
                     "class": "http://example.org/Document",
                     "shape": "http://example.org/DocumentShape",
                 },
-                "priority": 5,
                 "displayProperties": [],
             },
             {
@@ -977,27 +941,17 @@ class TestFindMatchingRule:
                     "class": "http://example.org/Person",
                     "shape": "http://example.org/PersonShape",
                 },
-                "priority": 10,
                 "displayProperties": [],
             },
             {
                 "target": {"class": "http://example.org/Person"},
-                "priority": 1,  # Lower priority number (better priority)
                 "displayProperties": [],
             },
         ]
 
         result = find_matching_rule(class_uri, shape_uri, mock_rules)
 
-        assert result is not None
-        assert "target" in result
-        assert "class" in result["target"]
-        assert "shape" in result["target"]
-        assert result["target"]["class"] == class_uri
-        assert result["target"]["shape"] == shape_uri
-        assert result["priority"] == 10  # Confirming it's the exact match rule
-
-        assert result["priority"] > mock_rules[2]["priority"]  # 10 > 1
+        assert result == mock_rules[1]
 
 
 GROUPING_SHAPES = """
@@ -1084,7 +1038,9 @@ def test_grouped_triples_follow_the_shapes() -> None:
         patch(f"{module}.get_form_fields", return_value=form_fields),
         patch(f"{module}.get_display_rules", return_value=rules),
         patch("heritrace.utils.shacl_utils.get_shacl_graph", return_value=shapes),
-        patch("heritrace.utils.shacl_utils.get_class_priority", return_value=0),
+        patch(
+            "heritrace.utils.shacl_utils.get_presentation", return_value=presentation
+        ),
     ):
         grouped, relevant = get_grouped_triples(
             article,

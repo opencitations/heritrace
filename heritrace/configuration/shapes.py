@@ -24,7 +24,11 @@ VALUE_KINDS: tuple[ValueKind, ...] = (
     "options",
     "class",
 )
-EDITORS = (str(SHUI.TextFieldEditor), str(SHUI.TextAreaEditor))
+EDITORS = (
+    str(SHUI.TextFieldEditor),
+    str(SHUI.TextAreaEditor),
+    str(SHUI.AutoCompleteEditor),
+)
 
 _SINGLE_VALUE_PREDICATES: dict[ValueKind, URIRef] = {
     "datatype": SH.datatype,
@@ -45,6 +49,7 @@ class PropertyShape:
     editor: str | None = None
     kind: ValueKind = "any"
     values: list[str] = field(default_factory=list)
+    node_classes: dict[str, str] = field(default_factory=dict)
     qualified: bool = False
     label: bool = False
     label_query: str | None = None
@@ -92,7 +97,11 @@ def _iri(graph: Graph, subject: Node, predicate: URIRef) -> str | None:
 
 
 def _only_value(graph: Graph, member: Node, predicate: URIRef) -> str | None:
-    pairs = list(graph.predicate_objects(member))
+    pairs = [
+        (member_predicate, value)
+        for member_predicate, value in graph.predicate_objects(member)
+        if not (predicate == SH.node and member_predicate == SH["class"])
+    ]
     if len(pairs) == 1 and pairs[0][0] == predicate and isinstance(pairs[0][1], URIRef):
         return str(pairs[0][1])
     return None
@@ -122,6 +131,17 @@ def _value_constraint(graph: Graph, target: Node) -> tuple[ValueKind, list[str]]
     return _alternatives(graph, target) or ("any", [])
 
 
+def _node_classes(graph: Graph, target: Node) -> dict[str, str]:
+    head = graph.value(target, SH["or"])
+    members = [target, *(Collection(graph, head) if head is not None else [])]
+    return {
+        str(node): str(node_class)
+        for member in members
+        if isinstance(node := graph.value(member, SH.node), URIRef)
+        and isinstance(node_class := graph.value(member, SH["class"]), URIRef)
+    }
+
+
 def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
     path = _iri(graph, property_shape, SH.path)
     if path is None:
@@ -137,10 +157,12 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
     if qualified_shape is not None:
         prop.qualified = True
         prop.kind, prop.values = _value_constraint(graph, qualified_shape)
+        prop.node_classes = _node_classes(graph, qualified_shape)
         prop.min_count = _integer(graph, property_shape, SH.qualifiedMinCount)
         prop.max_count = _integer(graph, property_shape, SH.qualifiedMaxCount)
     else:
         prop.kind, prop.values = _value_constraint(graph, property_shape)
+        prop.node_classes = _node_classes(graph, property_shape)
         prop.min_count = _integer(graph, property_shape, SH.minCount)
         prop.max_count = _integer(graph, property_shape, SH.maxCount)
     computed = graph.value(property_shape, SH.values)
@@ -230,21 +252,26 @@ def _add_list(graph: Graph, items: list[Node]) -> BNode:
     return head
 
 
+def _add_value(graph: Graph, target: Node, prop: PropertyShape, value: URIRef) -> None:
+    graph.add((target, _SINGLE_VALUE_PREDICATES[prop.kind], value))
+    if str(value) in prop.node_classes:
+        graph.add((target, SH["class"], URIRef(prop.node_classes[str(value)])))
+
+
 def _add_value_constraint(graph: Graph, target: Node, prop: PropertyShape) -> None:
     if prop.kind == "any":
         return
-    values: list[Node] = [URIRef(value) for value in prop.values]
+    values = [URIRef(value) for value in prop.values]
     if prop.kind == "options":
-        graph.add((target, SH["in"], _add_list(graph, values)))
+        graph.add((target, SH["in"], _add_list(graph, list(values))))
         return
-    predicate = _SINGLE_VALUE_PREDICATES[prop.kind]
     if len(values) == 1:
-        graph.add((target, predicate, values[0]))
+        _add_value(graph, target, prop, values[0])
         return
     members: list[Node] = []
     for value in values:
         member = BNode()
-        graph.add((member, predicate, value))
+        _add_value(graph, member, prop, value)
         members.append(member)
     graph.add((target, SH["or"], _add_list(graph, members)))
 

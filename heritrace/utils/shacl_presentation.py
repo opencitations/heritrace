@@ -37,6 +37,10 @@ class ShapesPresentation:
     shape_names: dict[str, str]
     properties: dict[str, list[PropertyPresentation]]
     label_queries: dict[str, str]
+    fixed_type_counts: dict[str, int]
+
+    def fixed_type_count(self, shape: str | None) -> int:
+        return self.fixed_type_counts.get(str(shape), 0)
 
     def shape_name(self, shape: str | None) -> str | None:
         return self.shape_names.get(str(shape)) if shape else None
@@ -148,6 +152,13 @@ def _presentation_sort_key(
     )
 
 
+def _fixed_values(graph: Graph, property_shape: Node) -> set[Node]:
+    fixed = set(graph.objects(property_shape, SH.hasValue))
+    for qualified_shape in graph.objects(property_shape, SH.qualifiedValueShape):
+        fixed |= set(graph.objects(qualified_shape, SH.hasValue))
+    return fixed
+
+
 def is_computed_property(graph: Graph, property_shape: Node) -> bool:
     return (property_shape, SH.values, None) in graph
 
@@ -156,6 +167,7 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
     shape_names: dict[str, str] = {}
     properties: dict[str, list[PropertyPresentation]] = {}
     label_queries: dict[str, str] = {}
+    fixed_type_counts: dict[str, int] = {}
     for shape in set(graph.subjects(SH.targetClass)) | set(
         graph.subjects(RDF.type, SH.NodeShape)
     ):
@@ -165,18 +177,25 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
         if name is not None:
             shape_names[str(shape)] = name
         shape_properties = []
+        fixed_types: set[Node] = set()
         for property_shape in graph.objects(shape, SH.property):
             path = graph.value(property_shape, SH.path)
             if not isinstance(path, URIRef):
                 continue
+            if path == RDF.type:
+                fixed_types |= _fixed_values(graph, property_shape)
             if (property_shape, SHUI.propertyRole, SHUI.LabelRole) in graph:
                 label_queries[str(shape)] = _label_query(graph, property_shape, path)
             if is_computed_property(graph, property_shape):
                 continue
             shape_properties.append(_property_presentation(graph, property_shape, path))
         properties[str(shape)] = sorted(shape_properties, key=_presentation_sort_key)
+        fixed_type_counts[str(shape)] = len(fixed_types)
     return ShapesPresentation(
-        shape_names=shape_names, properties=properties, label_queries=label_queries
+        shape_names=shape_names,
+        properties=properties,
+        label_queries=label_queries,
+        fixed_type_counts=fixed_type_counts,
     )
 
 

@@ -6,33 +6,11 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from flask_login import login_required
 from SPARQLWrapper import JSON
 
-from heritrace.extensions import get_custom_filter, get_sparql
+from heritrace.extensions import get_custom_filter, get_form_fields, get_sparql
 from heritrace.sparql import get_sparql_bindings
-from heritrace.utils.search import ContextConstraint, SearchRequest, build_search_query
-from heritrace.utils.shacl_utils import determine_shape_for_classes
-from heritrace.utils.uri_utils import is_valid_url
+from heritrace.utils.search import SearchRequest, build_search_query, text_paths
 
 search_bp = Blueprint("search", __name__)
-
-
-def _parse_request(data: dict) -> SearchRequest:
-    return SearchRequest(
-        term=data["term"],
-        entity_class=data.get("entity_class"),
-        predicate=data.get("predicate"),
-        search_target=data.get("search_target", "self"),
-        connecting_predicate=data.get("connecting_predicate"),
-        context=[
-            ContextConstraint(
-                predicate=item["predicate"],
-                value=item["value"],
-                datatype=item.get("datatype"),
-            )
-            for item in data.get("context", [])
-        ],
-        offset=int(data.get("offset", 0)),
-        limit=int(data.get("limit", 5)),
-    )
 
 
 @search_bp.route("/search", methods=["POST"])
@@ -41,33 +19,21 @@ def search_entities() -> Response | tuple[Response, int]:
     data = request.get_json()
     if not isinstance(data, dict) or not data.get("term"):
         return jsonify({"status": "error", "message": "A search term is required"}), 400
+    entity_key = (str(data["entity_class"]), str(data["shape"]))
+    form_fields = get_form_fields()
+    if entity_key not in form_fields:
+        return jsonify({"status": "error", "message": "Unknown entity type"}), 400
 
-    search_request = _parse_request(data)
-    iris = [
-        search_request.entity_class,
-        search_request.predicate,
-        search_request.connecting_predicate,
-    ]
-    for constraint in search_request.context:
-        iris.append(constraint.predicate)
-        iris.append(constraint.datatype or constraint.value)
-    if not all(is_valid_url(iri) for iri in iris if iri is not None):
-        return jsonify({"status": "error", "message": "Invalid IRI in request"}), 400
-    if search_request.search_target == "parent" and not (
-        search_request.entity_class
-        and search_request.predicate
-        and search_request.connecting_predicate
-    ):
-        return jsonify(
-            {
-                "status": "error",
-                "message": (
-                    "Parent searches require entity_class, predicate"
-                    " and connecting_predicate"
-                ),
-            }
-        ), 400
-
+    paths = text_paths(form_fields[entity_key])
+    if not paths:
+        return jsonify({"status": "success", "results": [], "has_more": False})
+    search_request = SearchRequest(
+        term=data["term"],
+        entity_class=entity_key[0],
+        paths=paths,
+        offset=int(data["offset"]),
+        limit=int(data["limit"]),
+    )
     query = build_search_query(
         search_request,
         current_app.config["DATASET_DB_TRIPLESTORE"],
@@ -78,17 +44,15 @@ def search_entities() -> Response | tuple[Response, int]:
     sparql.setReturnFormat(JSON)
     bindings = get_sparql_bindings(sparql.query().convert())
     uris = [binding["entity"]["value"] for binding in bindings]
-    has_more = len(uris) > search_request.limit
-    uris = uris[: search_request.limit]
-
     custom_filter = get_custom_filter()
-    entity_class = search_request.entity_class
-    entity_key = (
-        entity_class,
-        determine_shape_for_classes([entity_class]) if entity_class else None,
-    )
     results = [
         {"uri": uri, "label": custom_filter.human_readable_entity(uri, entity_key)}
-        for uri in uris
+        for uri in uris[: search_request.limit]
     ]
-    return jsonify({"status": "success", "results": results, "has_more": has_more})
+    return jsonify(
+        {
+            "status": "success",
+            "results": results,
+            "has_more": len(uris) > search_request.limit,
+        }
+    )

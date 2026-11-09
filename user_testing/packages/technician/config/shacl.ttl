@@ -90,6 +90,8 @@ schema:JournalArticleShape
     sh:name "Journal" ;
     sh:order 6 ;
     sh:node schema:JournalShape ;
+    sh:class fabio:Journal ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
@@ -324,6 +326,8 @@ schema:AuthorShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:AgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;

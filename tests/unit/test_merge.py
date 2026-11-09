@@ -1114,3 +1114,67 @@ def test_find_similar_resources_success_with_and_group(
         + patterns
         + "} } } ORDER BY ?similar OFFSET 0 LIMIT 6"
     )
+
+
+@patch("heritrace.routes.merge._transform_results")
+@patch("heritrace.routes.merge.get_sparql")
+@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("flask_login.utils._get_user")
+def test_similar_draft_matches_values_and_existing_nested_entities(
+    mock_current_user,
+    mock_get_similarity_properties,
+    mock_get_sparql,
+    mock_transform_results,
+    client,
+    mock_user,
+) -> None:
+    mock_current_user.return_value = mock_user
+    title = "http://example.org/title"
+    identifier = "http://example.org/hasIdentifier"
+    value = "http://example.org/value"
+    xsd_string = "http://www.w3.org/2001/XMLSchema#string"
+    mock_get_similarity_properties.return_value = [title, identifier]
+    sparql = MagicMock()
+    sparql.query().convert.side_effect = [
+        {"results": {"bindings": [{"nested": {"value": "http://example.org/id/1"}}]}},
+        {"results": {"bindings": [{"similar": {"value": "http://example.org/br/1"}}]}},
+    ]
+    mock_get_sparql.return_value = sparql
+    mock_transform_results.return_value = [
+        {"uri": "http://example.org/br/1", "label": "An article"}
+    ]
+
+    response = client.post(
+        "/api/merge/similar/draft",
+        json={
+            "entity_type": "http://example.org/Article",
+            "shape_uri": "http://example.org/ArticleShape",
+            "values": {
+                title: [{"value": 'A "title"', "datatype": xsd_string}],
+                identifier: [
+                    {
+                        "fields": [
+                            {
+                                "predicate": value,
+                                "value": "10.1/x",
+                                "datatype": xsd_string,
+                            }
+                        ]
+                    }
+                ],
+                "http://example.org/ignored": [{"value": "x"}],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["results"] == [
+        {"uri": "http://example.org/br/1", "label": "An article"}
+    ]
+    nested_query = sparql.setQuery.call_args_list[0].args[0]
+    similar_query = sparql.setQuery.call_args_list[1].args[0]
+    assert f'<{value}> "10.1/x"^^<{xsd_string}>' in nested_query
+    assert '"A \\"title\\""' in similar_query
+    assert "<http://example.org/id/1>" in similar_query
+    assert "ignored" not in similar_query
+    assert "FILTER(?similar !=" not in similar_query

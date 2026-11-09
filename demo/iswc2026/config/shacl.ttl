@@ -90,10 +90,11 @@ schema:JournalArticleShape
     sh:path frbr:partOf ;
     sh:name "Container" ;
     sh:order 6 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:IssueShape ]
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:IssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -273,6 +274,8 @@ schema:VolumeShape
     sh:name "Journal" ;
     sh:order 3 ;
     sh:node schema:JournalShape ;
+    sh:class fabio:Journal ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -323,9 +326,10 @@ schema:IssueShape
     sh:path frbr:partOf ;
     sh:name "Volume" ;
     sh:order 3 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;

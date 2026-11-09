@@ -19,6 +19,7 @@ import '../form/form_scope.dart';
 import '../form/validator.dart';
 import '../form/widgets/custom_properties_form.dart';
 import '../form/widgets/entity_form.dart';
+import '../form/widgets/similar_entities_notice.dart';
 import '../form/widgets/validation_summary.dart';
 import '../i18n/translations.g.dart';
 import '../navigation/app_paths.dart';
@@ -284,8 +285,13 @@ class _CreateEntityPageState extends ConsumerState<CreateEntityPage> {
                                       onRetry: () =>
                                           _selectType(_selectedType!),
                                     )
-                                  else if (_root != null)
+                                  else if (_root != null) ...[
+                                    SimilarEntitiesNotice(
+                                      key: ObjectKey(_root),
+                                      root: _root!,
+                                    ),
                                     EntityForm(node: _root!),
+                                  ],
                                 ],
                               );
                             },

@@ -216,6 +216,7 @@ def _process_or_nodes(
             "objectClass": object_class,
             "optionalValues": parsed.optional_values,
             "conditions": _field_conditions(ctx, parsed),
+            "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
             "shouldBeDisplayed": True,
         }
         if node not in ctx.processed_shapes:
@@ -265,6 +266,7 @@ def _process_single_row(
         "optionalValues": parsed.optional_values,
         "conditions": _field_conditions(ctx, parsed),
         "inputType": determine_input_type(parsed.editor, parsed.datatype),
+        "autocomplete": parsed.editor == str(SHUI.AutoCompleteEditor),
         "shouldBeDisplayed": True,
     }
     if parsed.name is not None:
@@ -500,12 +502,6 @@ def add_display_information(
         field_info["shouldBeDisplayed"] = prop.get("shouldBeDisplayed", True)
     if "orderedBy" in prop:
         field_info["orderedBy"] = prop["orderedBy"]
-    if "supportsSearch" in prop:
-        field_info["supportsSearch"] = prop["supportsSearch"]
-    if "minCharsForSearch" in prop:
-        field_info["minCharsForSearch"] = prop["minCharsForSearch"]
-    if "searchTarget" in prop:
-        field_info["searchTarget"] = prop["searchTarget"]
 
 
 def handle_intermediate_relation(
@@ -557,7 +553,8 @@ def handle_intermediate_relation(
             if (
                 nested_field.get("uri") == connecting_property
                 and "nestedShape" in nested_field
-            ) and "nestedShape" in nested_field:
+            ):
+                field_info["autocomplete"] = nested_field["autocomplete"]
                 for target_field in cast(
                     "list[dict[str, object]]", nested_field["nestedShape"]
                 ):

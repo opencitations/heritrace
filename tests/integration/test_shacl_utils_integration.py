@@ -1796,6 +1796,7 @@ def test_validate_new_triple_with_datatype_conversion_failure() -> None:
                 "heritrace.utils.shacl_validation._query_shacl_constraints",
                 return_value=mock_results,
             ),
+            patch("heritrace.utils.display_rules_utils.get_presentation"),
             patch("validators.url", return_value=False),
             patch(
                 "heritrace.utils.shacl_validation.convert_to_matching_literal",
@@ -1872,6 +1873,7 @@ def test_validate_new_triple_with_invalid_url() -> None:
                 "heritrace.utils.shacl_validation._query_shacl_constraints",
                 return_value=mock_results,
             ),
+            patch("heritrace.utils.display_rules_utils.get_presentation"),
             patch("validators.url", return_value=False),
         ):
             valid_value, _old_value, _error = validate_new_triple(

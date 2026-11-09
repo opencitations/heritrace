@@ -46,24 +46,6 @@ class SearchPage {
   final bool hasMore;
 }
 
-class ContextConstraint {
-  const ContextConstraint({
-    required this.predicate,
-    required this.value,
-    required this.datatype,
-  });
-
-  final String predicate;
-  final String value;
-  final String? datatype;
-
-  Map<String, Object?> toJson() => {
-    'predicate': predicate,
-    'value': value,
-    'datatype': datatype,
-  };
-}
-
 class FormRepository {
   const FormRepository(this._dio, this._store);
 
@@ -103,12 +85,10 @@ class FormRepository {
 
   Future<SearchPage> search({
     required String term,
-    required String? entityClass,
-    required String predicate,
-    required String searchTarget,
-    required String? connectingPredicate,
-    required List<ContextConstraint> context,
+    required String entityClass,
+    required String? shape,
     required int offset,
+    required int limit,
   }) async {
     final response = await apiGuard(
       () => _dio.post<Map<String, dynamic>>(
@@ -116,23 +96,35 @@ class FormRepository {
         data: {
           'term': term,
           'entity_class': entityClass,
-          'predicate': predicate,
-          'search_target': searchTarget,
-          'connecting_predicate': connectingPredicate,
-          'context': context.map((c) => c.toJson()).toList(),
+          'shape': shape,
           'offset': offset,
-          'limit': 5,
+          'limit': limit,
         },
       ),
     );
-    final data = response.data!;
-    return SearchPage(
-      results: (data['results'] as List<dynamic>)
-          .map((e) => SearchResult.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      hasMore: data['has_more'] as bool,
-    );
+    return _searchPage(response.data!);
   }
+
+  Future<SearchPage> similarToDraft({
+    required String entityType,
+    required String? shape,
+    required Map<String, List<Map<String, Object?>>> values,
+  }) async {
+    final response = await apiGuard(
+      () => _dio.post<Map<String, dynamic>>(
+        '/api/merge/similar/draft',
+        data: {'entity_type': entityType, 'shape_uri': shape, 'values': values},
+      ),
+    );
+    return _searchPage(response.data!);
+  }
+
+  SearchPage _searchPage(Map<String, dynamic> data) => SearchPage(
+    results: (data['results'] as List<dynamic>)
+        .map((e) => SearchResult.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    hasMore: data['has_more'] as bool,
+  );
 
   Future<List<String>> validDatatypes(String value) async {
     try {

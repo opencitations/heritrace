@@ -255,8 +255,8 @@ String convertDate(String original, DateType type) {
 }
 
 /// A nested entity, filled in through the nested dialog. Selecting an existing
-/// entity from the search results replaces the child form with a reference
-/// until the child form changes.
+/// entity replaces the child form with a reference until the child form
+/// changes.
 class NestedItem extends FormItem {
   NestedItem({required super.def, required super.depth});
 

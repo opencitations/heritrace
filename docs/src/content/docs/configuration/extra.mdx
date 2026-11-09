@@ -8,7 +8,7 @@ description: Configure the behaviour of the HERITRACE interface that SHACL does 
 ---
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
 
-Unfortunately, SHACL ([SHACL Core](https://w3c.github.io/data-shapes/shacl12-core/), including its extended features for [SPARQL](https://w3c.github.io/data-shapes/shacl12-sparql/) and [node expressions](https://w3c.github.io/data-shapes/shacl12-node-expr/), and [SHACL UI](https://w3c.github.io/data-shapes/shacl12-ui/)) cannot express every aspect of the editor that we consider important. The aspects it leaves out are configured in the YAML file described here: which entity types and fields are visible, how values are ordered and searched, how proxy relationships work, how the catalogue sorts entities and how duplicates are found.
+Unfortunately, SHACL ([SHACL Core](https://w3c.github.io/data-shapes/shacl12-core/), including its extended features for [SPARQL](https://w3c.github.io/data-shapes/shacl12-sparql/) and [node expressions](https://w3c.github.io/data-shapes/shacl12-node-expr/), and [SHACL UI](https://w3c.github.io/data-shapes/shacl12-ui/)) cannot express every aspect of the editor that we consider important. The aspects it leaves out are configured in the YAML file described here: which entity types and fields are visible, how values are ordered, how proxy relationships work, how the catalogue sorts entities and how duplicates are found.
 
 ## File location
 
@@ -58,28 +58,14 @@ For maximum precision, you can target entities that belong to a specific class A
 </TabItem>
 </Tabs>
 
-When an entity could be targeted by multiple rules (e.g., it has multiple types), the rule with the lower `priority` number is applied.
-
-```yaml
-- target:
-    class: "http://purl.org/spar/fabio/JournalArticle"
-  priority: 1 # Higher priority
-  # ...
-- target:
-    class: "http://purl.org/spar/fabio/Expression"
-  priority: 2 # Lower priority
-  # ...
-```
-
 ### Key rule settings
 
 Here are the top-level settings for each rule, listed in order of how they are presented in this documentation:
 
--   `priority`: Decides which rule applies when several rules match an entity. See [Targeting entities](#targeting-entities).
 -   `shouldBeDisplayed`: A boolean that defaults to `true`. If `false`, this entity type does not appear in the catalogue or on the "Add" page.
 -   `displayProperties`: A list defining how each property of the entity should be displayed and behave. See the [Configuring properties](#configuring-properties-displayproperties) section for details.
 -   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting catalogue items](#sorting-catalogue-items-sortableby) section for details.
--   `similarity_properties`: A configuration that defines which properties are used to identify potential duplicate entities. HERITRACE uses these to display "Similar Resources" on entity pages, enabling users to merge duplicates. See the [Similarity properties for duplicate detection](#similarity-properties-for-duplicate-detection) section for details.
+-   `similarity_properties`: A configuration that defines which properties are used to identify potential duplicate entities. HERITRACE uses these to warn about duplicates while an entity is being created and to display "Similar Resources" on entity pages, enabling users to merge duplicates. See the [Similarity properties for duplicate detection](#similarity-properties-for-duplicate-detection) section for details.
 
 ## Configuring properties (`displayProperties`)
 
@@ -92,22 +78,6 @@ This is where you define the behaviour of each field of an entity. Each entry na
 ```
 
 -   `shouldBeDisplayed`: Defaults to `true`. If `false`, the field is hidden in forms.
-
-### Search and disambiguation
-
-You can enable real-time search to prevent duplicate entries.
-
-```yaml
-- property: "http://purl.org/dc/terms/title"
-  supportsSearch: true
-  minCharsForSearch: 3
-```
-
--   `supportsSearch`: Set to `true` to enable search-as-you-type.
--   `minCharsForSearch`: The number of characters a user must type before the search is triggered. Defaults to 4.
--   `searchTarget`:
-    -   `self` (default): Searches for entities of the same type with a matching property value (e.g., finding other articles with a similar title).
-    -   `parent`: Use this when a property links to a separate but related entity. This setting ensures that a search for the related entity's value returns the main (parent) entity. For example, if a bibliographic resource is linked to an `Identifier` entity (which holds a DOI), a search for the DOI value should return the resource itself, not the `Identifier` entity.
 
 ### Ordering items (`orderedBy`)
 
@@ -204,7 +174,7 @@ The `sortableBy` configuration allows users to sort entities in the catalogue vi
 
 ## Similarity properties for duplicate detection
 
-The `similarity_properties` configuration enables HERITRACE to identify potential duplicates when users create or view entities. When configured, the system automatically searches for similar resources based on matching property values and displays them in the ["Similar Resources"](/heritrace/user-guide/merging-records/) section on entity pages, where users can initiate merge operations.
+The `similarity_properties` configuration enables HERITRACE to identify potential duplicates when users create or view entities. While an entity is being created, a warning links to the existing entities that share the values of a rule; for a nested field, such as an identifier, HERITRACE compares the text values of the nested entity. On existing entities, the system searches for similar resources based on matching property values and displays them in the ["Similar Resources"](/heritrace/user-guide/merging-records/) section on entity pages, where users can initiate merge operations.
 
 ### How similarity detection works
 
@@ -266,21 +236,20 @@ To avoid repeating the same property definitions, use YAML anchors (`&`) and ali
 ```yaml
 # 1. Define reusable properties at the top
 common_properties:
-  title_property: &title_property
-    property: "http://purl.org/dc/terms/title"
-    supportsSearch: true
-    minCharsForSearch: 2
+  authors_property: &authors_property
+    property: "http://purl.org/spar/pro/isDocumentContextFor"
+    orderedBy: "https://w3id.org/oc/ontology/hasNext"
 
 # 2. Use aliases in your rules
 rules:
   - target:
       class: "http://purl.org/spar/fabio/JournalArticle"
     displayProperties:
-      - *title_property
+      - *authors_property
   - target:
       class: "http://purl.org/spar/fabio/Book"
     displayProperties:
-      - *title_property
+      - *authors_property
 ```
 
 ## Virtual properties: Bridging user mental models and data models

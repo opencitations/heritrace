@@ -25,7 +25,7 @@ VIRTUOSO_GRANTS = (
 )
 
 
-def _grant_virtuoso_permissions(container: str) -> None:
+def run_isql(container: str, statements: str) -> None:
     subprocess.run(
         [
             "docker",
@@ -36,7 +36,7 @@ def _grant_virtuoso_permissions(container: str) -> None:
             "dba",
             "-P",
             "dba",
-            f"exec={VIRTUOSO_GRANTS}",
+            f"exec={statements}",
         ],
         check=True,
         capture_output=True,
@@ -54,8 +54,8 @@ def docker_services() -> Generator[None, None, None]:
         ["docker", "compose", "-f", COMPOSE_FILE, "up", "-d", "--wait"],
         check=True,
     )
-    _grant_virtuoso_permissions("tests-dataset-db-1")
-    _grant_virtuoso_permissions("tests-provenance-db-1")
+    run_isql("tests-dataset-db-1", VIRTUOSO_GRANTS)
+    run_isql("tests-provenance-db-1", VIRTUOSO_GRANTS)
     write_test_configuration()
     yield
     subprocess.run(

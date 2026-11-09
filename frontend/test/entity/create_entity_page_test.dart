@@ -20,6 +20,13 @@ class _FakeFormRepository extends FormRepository {
   _FakeFormRepository() : super(Dio(), EntityStore.dataset);
 
   @override
+  Future<SearchPage> similarToDraft({
+    required String entityType,
+    required String? shape,
+    required Map<String, List<Map<String, Object?>>> values,
+  }) async => const SearchPage(results: [], hasMore: false);
+
+  @override
   Future<List<EntityTypeOption>> entityTypes() async => const [
     EntityTypeOption(
       entityClass: article,

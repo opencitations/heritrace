@@ -636,6 +636,8 @@ schema:AgentRoleShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -1067,6 +1069,8 @@ schema:ArticleShape
     sh:name "Miscellany" ;
     sh:order 14 ;
     sh:node schema:SeriesShape ;
+    sh:class fabio:Series ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
   ] ;
@@ -1230,11 +1234,12 @@ schema:JournalArticleShape
     sh:path frbr:partOf ;
     sh:name "Container" ;
     sh:order 14 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:IssueShape ]
-      [ sh:node schema:SpecialIssueShape ]
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:IssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -1676,6 +1681,8 @@ schema:ProceedingsPaperShape
     sh:name "Conference Proceedings" ;
     sh:order 14 ;
     sh:node schema:ProceedingsShape ;
+    sh:class fabio:AcademicProceedings ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -2120,6 +2127,8 @@ schema:VolumeShape
     sh:name "Journal" ;
     sh:order 4 ;
     sh:node schema:JournalShape ;
+    sh:class fabio:Journal ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -2205,9 +2214,10 @@ schema:IssueShape
     sh:path frbr:partOf ;
     sh:name "Container" ;
     sh:order 4 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -2301,9 +2311,10 @@ schema:SpecialIssueShape
     sh:path frbr:partOf ;
     sh:name "Container" ;
     sh:order 15 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -2776,11 +2787,12 @@ schema:ReviewShape
     sh:path frbr:partOf ;
     sh:name "Container" ;
     sh:order 14 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:IssueShape ]
-      [ sh:node schema:SpecialIssueShape ]
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:IssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -2954,11 +2966,12 @@ schema:ReviewArticleShape
     sh:path frbr:partOf ;
     sh:name "Container" ;
     sh:order 14 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:IssueShape ]
-      [ sh:node schema:SpecialIssueShape ]
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:IssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -3715,6 +3728,8 @@ schema:AuthorShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -3799,6 +3814,8 @@ schema:EditorShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -3883,6 +3900,8 @@ schema:PublisherShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -3967,6 +3986,8 @@ schema:TranslatorShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -4051,6 +4072,8 @@ schema:CollaboratorShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -4126,18 +4149,19 @@ schema:CitationShape
     sh:path cito:hasCitingEntity ;
     sh:name "Citing Entity" ;
     sh:order 2 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:ArticleShape ]
-      [ sh:node schema:JournalArticleShape ]
-      [ sh:node schema:BookShape ]
-      [ sh:node schema:ProceedingsPaperShape ]
-      [ sh:node schema:ProceedingsShape ]
-      [ sh:node schema:SpecialIssueShape ]
-      [ sh:node schema:ReferenceBookShape ]
-      [ sh:node schema:ReviewShape ]
-      [ sh:node schema:ReviewArticleShape ]
-      [ sh:node schema:ThesisShape ]
-      [ sh:node schema:SeriesShape ]
+      [ sh:node schema:ArticleShape ; sh:class fabio:Article ]
+      [ sh:node schema:JournalArticleShape ; sh:class fabio:JournalArticle ]
+      [ sh:node schema:BookShape ; sh:class fabio:Book ]
+      [ sh:node schema:ProceedingsPaperShape ; sh:class fabio:ProceedingsPaper ]
+      [ sh:node schema:ProceedingsShape ; sh:class fabio:AcademicProceedings ]
+      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:ReferenceBookShape ; sh:class fabio:ReferenceBook ]
+      [ sh:node schema:ReviewShape ; sh:class fabio:Review ]
+      [ sh:node schema:ReviewArticleShape ; sh:class fabio:ReviewArticle ]
+      [ sh:node schema:ThesisShape ; sh:class fabio:Thesis ]
+      [ sh:node schema:SeriesShape ; sh:class fabio:Series ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -4146,18 +4170,19 @@ schema:CitationShape
     sh:path cito:hasCitedEntity ;
     sh:name "Cited Entity" ;
     sh:order 3 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:ArticleShape ]
-      [ sh:node schema:JournalArticleShape ]
-      [ sh:node schema:BookShape ]
-      [ sh:node schema:ProceedingsPaperShape ]
-      [ sh:node schema:ProceedingsShape ]
-      [ sh:node schema:SpecialIssueShape ]
-      [ sh:node schema:ReferenceBookShape ]
-      [ sh:node schema:ReviewShape ]
-      [ sh:node schema:ReviewArticleShape ]
-      [ sh:node schema:ThesisShape ]
-      [ sh:node schema:SeriesShape ]
+      [ sh:node schema:ArticleShape ; sh:class fabio:Article ]
+      [ sh:node schema:JournalArticleShape ; sh:class fabio:JournalArticle ]
+      [ sh:node schema:BookShape ; sh:class fabio:Book ]
+      [ sh:node schema:ProceedingsPaperShape ; sh:class fabio:ProceedingsPaper ]
+      [ sh:node schema:ProceedingsShape ; sh:class fabio:AcademicProceedings ]
+      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:ReferenceBookShape ; sh:class fabio:ReferenceBook ]
+      [ sh:node schema:ReviewShape ; sh:class fabio:Review ]
+      [ sh:node schema:ReviewArticleShape ; sh:class fabio:ReviewArticle ]
+      [ sh:node schema:ThesisShape ; sh:class fabio:Thesis ]
+      [ sh:node schema:SeriesShape ; sh:class fabio:Series ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -4216,18 +4241,19 @@ schema:ReverseCitationShape
     sh:path cito:hasCitedEntity ;
     sh:name "Cited Entity" ;
     sh:order 2 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:ArticleShape ]
-      [ sh:node schema:JournalArticleShape ]
-      [ sh:node schema:BookShape ]
-      [ sh:node schema:ProceedingsPaperShape ]
-      [ sh:node schema:ProceedingsShape ]
-      [ sh:node schema:SpecialIssueShape ]
-      [ sh:node schema:ReferenceBookShape ]
-      [ sh:node schema:ReviewShape ]
-      [ sh:node schema:ReviewArticleShape ]
-      [ sh:node schema:ThesisShape ]
-      [ sh:node schema:SeriesShape ]
+      [ sh:node schema:ArticleShape ; sh:class fabio:Article ]
+      [ sh:node schema:JournalArticleShape ; sh:class fabio:JournalArticle ]
+      [ sh:node schema:BookShape ; sh:class fabio:Book ]
+      [ sh:node schema:ProceedingsPaperShape ; sh:class fabio:ProceedingsPaper ]
+      [ sh:node schema:ProceedingsShape ; sh:class fabio:AcademicProceedings ]
+      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:ReferenceBookShape ; sh:class fabio:ReferenceBook ]
+      [ sh:node schema:ReviewShape ; sh:class fabio:Review ]
+      [ sh:node schema:ReviewArticleShape ; sh:class fabio:ReviewArticle ]
+      [ sh:node schema:ThesisShape ; sh:class fabio:Thesis ]
+      [ sh:node schema:SeriesShape ; sh:class fabio:Series ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -4236,18 +4262,19 @@ schema:ReverseCitationShape
     sh:path cito:hasCitingEntity ;
     sh:name "Citing Entity" ;
     sh:order 3 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:ArticleShape ]
-      [ sh:node schema:JournalArticleShape ]
-      [ sh:node schema:BookShape ]
-      [ sh:node schema:ProceedingsPaperShape ]
-      [ sh:node schema:ProceedingsShape ]
-      [ sh:node schema:SpecialIssueShape ]
-      [ sh:node schema:ReferenceBookShape ]
-      [ sh:node schema:ReviewShape ]
-      [ sh:node schema:ReviewArticleShape ]
-      [ sh:node schema:ThesisShape ]
-      [ sh:node schema:SeriesShape ]
+      [ sh:node schema:ArticleShape ; sh:class fabio:Article ]
+      [ sh:node schema:JournalArticleShape ; sh:class fabio:JournalArticle ]
+      [ sh:node schema:BookShape ; sh:class fabio:Book ]
+      [ sh:node schema:ProceedingsPaperShape ; sh:class fabio:ProceedingsPaper ]
+      [ sh:node schema:ProceedingsShape ; sh:class fabio:AcademicProceedings ]
+      [ sh:node schema:SpecialIssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:ReferenceBookShape ; sh:class fabio:ReferenceBook ]
+      [ sh:node schema:ReviewShape ; sh:class fabio:Review ]
+      [ sh:node schema:ReviewArticleShape ; sh:class fabio:ReviewArticle ]
+      [ sh:node schema:ThesisShape ; sh:class fabio:Thesis ]
+      [ sh:node schema:SeriesShape ; sh:class fabio:Series ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;

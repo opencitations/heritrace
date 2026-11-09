@@ -313,6 +313,19 @@ sh:property [
 ] .
 ```
 
+A link to another entity can reuse the entities that already exist. Give the property shape `shui:AutoCompleteEditor` and declare the class of the linked entity with `sh:class`. The form shows a search field and offers to create a new entity through the `sh:node` shape. When the property has alternatives in `sh:or`, the user first picks the type, so each alternative declares its own `sh:class` and the editor stays on the property.
+
+```ttl
+sh:property [
+    sh:path frbr:partOf ;
+    sh:class fabio:Journal ;
+    sh:node schema:JournalShape ;
+    shui:editor shui:AutoCompleteEditor ;
+] .
+```
+
+The search looks in the text fields of the linked shape and of the shapes nested directly inside it, so a person can be found by name or by ORCID.
+
 ### Entity labels (`shui:LabelRole`)
 
 Each entity is identified by an IRI, such as `https://w3id.org/oc/meta/ra/0601`, which people cannot read. Its label is the text that HERITRACE shows in place of the IRI, such as "Maltezou, Helen C.". To define it, mark one property shape of the node shape with `shui:propertyRole shui:LabelRole`. Without it, HERITRACE shows the IRI.

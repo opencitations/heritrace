@@ -9,7 +9,7 @@ from collections import defaultdict
 import validators
 from flask import Blueprint, Response, current_app, jsonify, request
 from flask_login import current_user, login_required
-from rdflib import RDF, URIRef
+from rdflib import RDF, Literal, URIRef
 from SPARQLWrapper import JSON
 
 from heritrace.apis.orcid import get_responsible_agent_uri
@@ -34,6 +34,8 @@ from heritrace.utils.sparql_utils import get_entity_types, import_entity_graph
 from heritrace.utils.virtuoso_utils import is_virtuoso
 
 merge_bp = Blueprint("merge", __name__)
+
+DRAFT_SIMILAR_LIMIT = 5
 
 
 def _entity_summary(entity_uri: URIRef, entity_types: list[str]) -> dict:
@@ -188,18 +190,23 @@ def _format_rdf_term(node: dict[str, str]) -> str | None:
     return None
 
 
+def _similarity_properties(similarity_config: list) -> set[str]:
+    properties: set[str] = set()
+    for item in similarity_config:
+        if isinstance(item, str):
+            properties.add(item)
+        elif isinstance(item, dict) and "and" in item:
+            properties.update(item["and"])
+    return properties
+
+
 def _fetch_subject_values(
     subject_uri: str,
     similarity_config: list,
 ) -> defaultdict[str, list[str]] | None:
     sparql = get_sparql()
 
-    all_props_in_config: set[str] = set()
-    for item in similarity_config:
-        if isinstance(item, str):
-            all_props_in_config.add(item)
-        elif isinstance(item, dict) and "and" in item:
-            all_props_in_config.update(item["and"])
+    all_props_in_config = _similarity_properties(similarity_config)
 
     if not all_props_in_config:
         current_app.logger.warning(
@@ -253,7 +260,6 @@ def _build_similarity_pattern(prop_uri: str, values: list[str], index: int) -> s
 def _build_union_blocks(
     similarity_config: list,
     subject_values_by_prop: defaultdict[str, list[str]],
-    subject_uri: str,
 ) -> list[str]:
     union_blocks: list[str] = []
     var_counter = 0
@@ -267,7 +273,7 @@ def _build_union_blocks(
                 union_blocks.append(f"  {{ {pattern} }}")
         elif isinstance(condition, dict) and "and" in condition:
             block = _build_and_block(
-                condition["and"], subject_values_by_prop, subject_uri, var_counter
+                condition["and"], subject_values_by_prop, var_counter
             )
             if block is not None:
                 text, var_counter = block
@@ -281,17 +287,9 @@ def _build_union_blocks(
 def _build_and_block(
     and_props: list[str],
     subject_values_by_prop: defaultdict[str, list[str]],
-    subject_uri: str,
     var_counter: int,
 ) -> tuple[str, int] | None:
     if not all(p in subject_values_by_prop for p in and_props):
-        current_app.logger.debug(
-            "Skipping AND group %s because"
-            " subject %s lacks values for"
-            " all its properties.",
-            and_props,
-            subject_uri,
-        )
         return None
 
     and_patterns = []
@@ -309,18 +307,19 @@ def _build_and_block(
 def _execute_similarity_query(
     union_blocks: list[str],
     entity_type: str,
-    subject_uri: str,
+    subject_uri: str | None,
     limit: int,
     offset: int,
 ) -> tuple[list[str], bool]:
     sparql = get_sparql()
     similarity_query_body = " UNION ".join(union_blocks)
+    subject_filter = f"FILTER(?similar != <{subject_uri}>)" if subject_uri else ""
 
     query_limit = limit + 1
     final_query = f"""
     SELECT DISTINCT ?similar WHERE {{
       ?similar a <{entity_type}> .
-      FILTER(?similar != <{subject_uri}>)
+      {subject_filter}
       {{
         {similarity_query_body}
       }}
@@ -396,9 +395,7 @@ def find_similar_resources() -> Response | tuple[Response, int]:  # noqa: PLR091
         if subject_values_by_prop is None:
             return jsonify({"status": "success", "results": [], "has_more": False})
 
-        union_blocks = _build_union_blocks(
-            similarity_config, subject_values_by_prop, subject_uri
-        )
+        union_blocks = _build_union_blocks(similarity_config, subject_values_by_prop)
         if not union_blocks:
             return jsonify({"status": "success", "results": [], "has_more": False})
 
@@ -425,3 +422,66 @@ def find_similar_resources() -> Response | tuple[Response, int]:  # noqa: PLR091
                 "message": "An error occurred while finding similar resources",
             }
         ), 500
+
+
+def _draft_term(value: dict[str, str]) -> str:
+    if "uri" in value:
+        return URIRef(value["uri"]).n3()
+    datatype = URIRef(value["datatype"]) if "datatype" in value else None
+    return Literal(value["value"], datatype=datatype).n3()
+
+
+def _existing_nested_entities(fields: list[dict[str, str]]) -> list[str]:
+    patterns = " ".join(
+        f"?nested {URIRef(field['predicate']).n3()} {_draft_term(field)} ."
+        for field in fields
+    )
+    sparql = get_sparql()
+    sparql.setQuery(f"SELECT DISTINCT ?nested WHERE {{ {patterns} }}")
+    sparql.setReturnFormat(JSON)
+    return [
+        URIRef(binding["nested"]["value"]).n3()
+        for binding in get_sparql_bindings(sparql.query().convert())
+    ]
+
+
+def _draft_values(
+    similarity_config: list, values: dict[str, list[dict]]
+) -> defaultdict[str, list[str]]:
+    draft_values: defaultdict[str, list[str]] = defaultdict(list)
+    for predicate in _similarity_properties(similarity_config) & values.keys():
+        for value in values[predicate]:
+            if "fields" in value:
+                draft_values[predicate].extend(
+                    _existing_nested_entities(value["fields"])
+                )
+            else:
+                draft_values[predicate].append(_draft_term(value))
+    return draft_values
+
+
+@merge_bp.route("/similar/draft", methods=["POST"])
+@login_required
+def find_resources_similar_to_draft() -> Response:
+    data = request.get_json()
+    entity_key = (data["entity_type"], data["shape_uri"])
+    similarity_config = get_similarity_properties(entity_key)
+    if not similarity_config:
+        return jsonify({"status": "success", "results": [], "has_more": False})
+    union_blocks = _build_union_blocks(
+        similarity_config, _draft_values(similarity_config, data["values"])
+    )
+    if not union_blocks:
+        return jsonify({"status": "success", "results": [], "has_more": False})
+    result_uris, has_more = _execute_similarity_query(
+        union_blocks, data["entity_type"], None, DRAFT_SIMILAR_LIMIT, 0
+    )
+    return jsonify(
+        {
+            "status": "success",
+            "results": _transform_results(
+                result_uris, data["entity_type"], data["shape_uri"]
+            ),
+            "has_more": has_more,
+        }
+    )

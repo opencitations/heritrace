@@ -15,6 +15,7 @@ from rdflib.plugins.sparql.parser import parseUpdate
 from SPARQLWrapper import SPARQLWrapper
 
 from heritrace.editor import Editor, TriplestoreBackend
+from heritrace.extensions import get_app_state
 from heritrace.utils import sparql_utils as _su
 from heritrace.utils.sparql_utils import (
     CatalogQuery,
@@ -48,7 +49,7 @@ class TestGetAvailableClassesIntegration:
                 "heritrace.utils.sparql_utils.is_entity_type_visible",
                 lambda _uri: True,
             )
-            _su._cache["available_classes"] = None  # noqa: SLF001
+            get_app_state().class_counts.clear()
 
             classes = get_available_classes()
 
@@ -758,11 +759,13 @@ class TestRecycleBinIntegration:
         delete_editor.delete(volume)
         delete_editor.save()
 
-        _su._cache["deleted_classes"] = None  # noqa: SLF001
+        with app.app_context():
+            get_app_state().class_counts.clear()
 
         yield {"volume": str(volume), "journal": str(journal), "graph": str(graph)}
 
-        _su._cache["deleted_classes"] = None  # noqa: SLF001
+        with app.app_context():
+            get_app_state().class_counts.clear()
         sparql = SPARQLWrapper(TestConfig.DATASET_DB_URL)
         sparql.setMethod("POST")
         sparql.setQuery(f"CLEAR GRAPH <{graph}>")
@@ -820,7 +823,7 @@ class TestRecycleBinIntegration:
             )
             restore_editor.save()
 
-            _su._cache["deleted_classes"] = None  # noqa: SLF001
+            get_app_state().class_counts.clear()
             entities, _, _, _, _, _ = get_deleted_entities_with_filtering(
                 DeletedEntitiesQuery(selected_class=JOURNAL_VOLUME)
             )

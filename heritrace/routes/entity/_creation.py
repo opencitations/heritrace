@@ -21,7 +21,6 @@ from heritrace.routes.entity._blueprint import entity_bp
 from heritrace.routes.entity._validation import validate_entity_data
 from heritrace.utils.datatypes import determine_datatype
 from heritrace.utils.display_rules_utils import (
-    get_class_priority,
     is_entity_type_visible,
 )
 from heritrace.utils.primary_source_utils import save_user_default_primary_source
@@ -260,7 +259,7 @@ def entity_types() -> Response:
         for key in get_form_fields()
         if is_entity_type_visible(key)
     ]
-    labelled_keys.sort(key=lambda item: (-get_class_priority(item[0]), item[1]))
+    labelled_keys.sort(key=lambda item: item[1])
     return jsonify(
         {
             "types": [

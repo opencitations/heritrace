@@ -639,6 +639,8 @@ schema:AgentRoleShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -995,10 +997,11 @@ schema:JournalArticleShape
     sh:path frbr:partOf ;
     sh:name "Container" ;
     sh:order 9 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:IssueShape ]
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:IssueShape ; sh:class fabio:JournalIssue ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 0 ;
     sh:maxCount 1 ;
@@ -1403,6 +1406,8 @@ schema:ProceedingsPaperShape
     sh:name "Conference Proceedings" ;
     sh:order 9 ;
     sh:node schema:ProceedingsShape ;
+    sh:class fabio:AcademicProceedings ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -1788,6 +1793,8 @@ schema:VolumeShape
     sh:name "Journal" ;
     sh:order 3 ;
     sh:node schema:JournalShape ;
+    sh:class fabio:Journal ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -1865,9 +1872,10 @@ schema:IssueShape
     sh:path frbr:partOf ;
     sh:name "Container" ;
     sh:order 3 ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:or (
-      [ sh:node schema:VolumeShape ]
-      [ sh:node schema:JournalShape ]
+      [ sh:node schema:VolumeShape ; sh:class fabio:JournalVolume ]
+      [ sh:node schema:JournalShape ; sh:class fabio:Journal ]
     ) ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
@@ -2495,6 +2503,8 @@ schema:AuthorShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -2589,6 +2599,8 @@ schema:EditorShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;
@@ -2683,6 +2695,8 @@ schema:PublisherShape
     sh:name "Held By" ;
     sh:order 2 ;
     sh:node schema:ResponsibleAgentShape ;
+    sh:class foaf:Agent ;
+    shui:editor shui:AutoCompleteEditor ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
   ] ;

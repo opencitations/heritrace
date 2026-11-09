@@ -12,7 +12,7 @@ import '../../i18n/translations.g.dart';
 import '../field_def.dart';
 import '../form_model.dart';
 import '../form_scope.dart';
-import 'entity_search.dart';
+import 'entity_autocomplete.dart';
 import 'nested_dialog.dart';
 
 class ItemWidget extends StatelessWidget {
@@ -27,13 +27,16 @@ class ItemWidget extends StatelessWidget {
       DateItem() => DateField(item: item as DateItem),
       SelectItem() => SelectField(item: item as SelectItem),
       MandatoryItem() => MandatoryValueField(item: item as MandatoryItem),
+      NestedItem(:final def) when def.autocomplete => EntityAutocompleteField(
+        item: item as NestedItem,
+      ),
       NestedItem() => NestedTile(item: item as NestedItem),
       OrItem() => OrSelector(item: item as OrItem),
     };
   }
 }
 
-String? _errorText(BuildContext context, FormItem item) {
+String? itemErrorText(BuildContext context, FormItem item) {
   final scope = FormScope.of(context);
   if (!scope.showsErrorsFor(item)) {
     return null;
@@ -90,7 +93,7 @@ class _LiteralFieldState extends State<LiteralField> {
   Widget build(BuildContext context) {
     final def = widget.item.def;
     final multiline = def.inputType == 'textarea';
-    final field = AppTextField(
+    return AppTextField(
       controller: _controller,
       focusNode: widget.item.focusNode,
       maxLines: multiline ? 5 : 1,
@@ -104,13 +107,9 @@ class _LiteralFieldState extends State<LiteralField> {
         _ => TextInputType.text,
       },
       placeholder: def.displayName,
-      errorText: _errorText(context, widget.item),
+      errorText: itemErrorText(context, widget.item),
       onChanged: widget.item.setValue,
     );
-    if (def.supportsSearch) {
-      return EntitySearchField(item: widget.item, field: field);
-    }
-    return field;
   }
 }
 
@@ -182,7 +181,7 @@ class _DateFieldState extends State<DateField> {
                 DateType.month => 'YYYY-MM',
                 DateType.year => 'YYYY',
               },
-              errorText: _errorText(context, item),
+              errorText: itemErrorText(context, item),
               suffix: item.dateType == DateType.date
                   ? AppIconButton(
                       label: t.ui.form.pickDate,
@@ -224,7 +223,7 @@ class SelectField extends StatelessWidget {
       builder: (context, _) => AppMenuButton<String?>(
         value: item.value,
         focusNode: item.focusNode,
-        errorText: _errorText(context, item),
+        errorText: itemErrorText(context, item),
         options: [
           AppMenuOption(null, t.ui.form.selectOption),
           for (final value in def.optionalValues)
@@ -307,7 +306,7 @@ class OrSelector extends StatelessWidget {
           AppMenuButton<FieldDef?>(
             value: item.selected,
             focusNode: item.focusNode,
-            errorText: _errorText(context, item),
+            errorText: itemErrorText(context, item),
             options: [
               AppMenuOption(null, t.ui.form.selectOption),
               for (final option in item.def.or!)

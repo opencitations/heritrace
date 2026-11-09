@@ -211,4 +211,18 @@ meta:PropertyShapeShape
     sh:order 7 ;
     sh:nodeKind sh:IRI ;
     sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path sh:class ;
+    sh:name "Class of the linked entity"@en, "Classe dell'entità collegata"@it ;
+    sh:order 8 ;
+    sh:nodeKind sh:IRI ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
+    sh:path shui:editor ;
+    sh:name "Editor"@en, "Editor"@it ;
+    sh:order 9 ;
+    sh:in ( shui:TextFieldEditor shui:TextAreaEditor shui:AutoCompleteEditor ) ;
+    sh:maxCount 1 ;
   ] .

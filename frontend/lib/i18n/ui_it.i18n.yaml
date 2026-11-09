@@ -66,9 +66,10 @@ form:
   dateTypeMonth: Anno e mese
   dateTypeYear: Anno
   pickDate: Scegli una data
-  similarEntities: Trovate $count risorse simili a quella che stai creando
+  similarEntities: Esistono già risorse simili
   noMatchingEntities: Nessuna risorsa corrispondente
   createNewEntity: Crea nuova risorsa
+  searchExistingEntity: Cerca una risorsa
   moreResults: Mostra altri risultati
   customProperty: Proprietà personalizzata
   propertyUri: URI della proprietà

@@ -5,138 +5,69 @@
 rules:
 - target:
     class: http://purl.org/spar/fabio/Expression
-  priority: 2
   shouldBeDisplayed: false
   displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://purl.org/dc/terms/title
-    supportsSearch: true
-    minCharsForSearch: 2
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
     intermediateRelation:
       class: http://purl.org/spar/pro/RoleInTime
       targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - property: http://purl.org/vocab/frbr/core#partOf
-    supportsSearch: true
   similarity_properties:
   - http://purl.org/dc/terms/title
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Book
-  priority: 1
   displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://purl.org/dc/terms/title
-    supportsSearch: true
-    minCharsForSearch: 2
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
     intermediateRelation:
       class: http://purl.org/spar/pro/RoleInTime
       targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - property: http://purl.org/vocab/frbr/core#partOf
-    supportsSearch: true
   similarity_properties:
   - http://purl.org/dc/terms/title
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/JournalArticle
-  priority: 1
   displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://purl.org/dc/terms/title
-    supportsSearch: true
-    minCharsForSearch: 2
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
     intermediateRelation:
       class: http://purl.org/spar/pro/RoleInTime
       targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - property: http://purl.org/vocab/frbr/core#partOf
-    supportsSearch: true
   similarity_properties:
   - http://purl.org/dc/terms/title
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Journal
-  priority: 1
-  displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://purl.org/dc/terms/title
-    supportsSearch: true
-    minCharsForSearch: 2
   similarity_properties:
   - http://purl.org/dc/terms/title
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/JournalVolume
-  priority: 1
-  displayProperties:
-  - property: http://purl.org/spar/fabio/hasSequenceIdentifier
-    supportsSearch: true
-    minCharsForSearch: 1
-  - property: http://purl.org/vocab/frbr/core#partOf
-    supportsSearch: true
   similarity_properties:
   - and:
     - http://purl.org/spar/fabio/hasSequenceIdentifier
     - http://purl.org/vocab/frbr/core#partOf
 - target:
     class: http://purl.org/spar/fabio/JournalIssue
-  priority: 1
-  displayProperties:
-  - property: http://purl.org/spar/fabio/hasSequenceIdentifier
-    supportsSearch: true
-    minCharsForSearch: 1
   similarity_properties:
   - and:
     - http://purl.org/spar/fabio/hasSequenceIdentifier
     - http://purl.org/vocab/frbr/core#partOf
 - target:
     class: http://purl.org/spar/fabio/ProceedingsPaper
-  priority: 1
   displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://purl.org/dc/terms/title
-    supportsSearch: true
-    minCharsForSearch: 2
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
     intermediateRelation:
       class: http://purl.org/spar/pro/RoleInTime
       targetEntityType: http://xmlns.com/foaf/0.1/Agent
-  - property: http://purl.org/vocab/frbr/core#partOf
-    supportsSearch: true
   similarity_properties:
   - http://purl.org/dc/terms/title
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/AcademicProceedings
-  priority: 1
   displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://purl.org/dc/terms/title
-    supportsSearch: true
-    minCharsForSearch: 2
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
     intermediateRelation:
@@ -147,15 +78,7 @@ rules:
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/ReferenceBook
-  priority: 1
   displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://purl.org/dc/terms/title
-    supportsSearch: true
-    minCharsForSearch: 2
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
     intermediateRelation:
@@ -166,15 +89,7 @@ rules:
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Thesis
-  priority: 1
   displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://purl.org/dc/terms/title
-    supportsSearch: true
-    minCharsForSearch: 2
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
     intermediateRelation:
@@ -185,43 +100,20 @@ rules:
   - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/datacite/Identifier
-  priority: 1
   shouldBeDisplayed: false
-  displayProperties:
-  - property: http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
   similarity_properties:
   - and:
     - http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue
     - http://purl.org/spar/datacite/usesIdentifierScheme
 - target:
     class: http://purl.org/spar/fabio/Manifestation
-  priority: 1
   shouldBeDisplayed: false
 - target:
     class: http://purl.org/spar/pro/RoleInTime
-  priority: 1
   shouldBeDisplayed: false
 - target:
     class: http://xmlns.com/foaf/0.1/Agent
-  priority: 1
   shouldBeDisplayed: false
-  displayProperties:
-  - property: http://purl.org/spar/datacite/hasIdentifier
-    supportsSearch: true
-    minCharsForSearch: 3
-    searchTarget: parent
-  - property: http://xmlns.com/foaf/0.1/name
-    supportsSearch: true
-    minCharsForSearch: 3
-  - property: http://xmlns.com/foaf/0.1/givenName
-    supportsSearch: true
-    minCharsForSearch: 3
-  - property: http://xmlns.com/foaf/0.1/familyName
-    supportsSearch: true
-    minCharsForSearch: 3
   similarity_properties:
   - http://xmlns.com/foaf/0.1/name
   - and:

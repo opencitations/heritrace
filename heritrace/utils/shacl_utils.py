@@ -9,9 +9,13 @@ from flask import Flask
 from rdflib import RDF, Graph
 from SPARQLWrapper import JSON
 
-from heritrace.extensions import get_form_fields, get_shacl_graph, get_sparql
+from heritrace.extensions import (
+    get_form_fields,
+    get_presentation,
+    get_shacl_graph,
+    get_sparql,
+)
 from heritrace.sparql import get_sparql_bindings, select_results
-from heritrace.utils.display_rules_utils import get_class_priority
 from heritrace.utils.filters import format_uri_as_readable
 from heritrace.utils.shacl_display import (
     ShaclProcessingContext,
@@ -208,19 +212,21 @@ def determine_shape_for_classes(class_list: list[str]) -> str | None:
         class_list: List of class URIs to find shapes for
 
     Returns:
-        The most appropriate shape URI based on priority, or None if no shapes are found
+        The shape that fixes the most values of rdf:type, or None if no shapes are found
     """
     shacl_graph = get_shacl_graph()
     if not shacl_graph:
         return None
 
-    all_shacl_shapes = []
-
-    for class_uri in class_list:
-        shapes = _get_shapes_for_class(shacl_graph, class_uri)
-        all_shacl_shapes.extend((class_uri, shape) for shape in shapes)
-
-    return _find_highest_priority_shape(all_shacl_shapes)
+    return max(
+        (
+            shape
+            for class_uri in class_list
+            for shape in _get_shapes_for_class(shacl_graph, class_uri)
+        ),
+        key=get_presentation().fixed_type_count,
+        default=None,
+    )
 
 
 def determine_shape_for_entity_triples(entity_triples: Iterable) -> str | None:
@@ -230,7 +236,7 @@ def determine_shape_for_entity_triples(entity_triples: Iterable) -> str | None:
     Uses a multi-criteria scoring system to distinguish between shapes:
     1. sh:hasValue constraint matches (highest priority)
     2. Property matching - number of shape properties present in entity
-    3. Class priority - predefined priority ordering
+    3. Number of rdf:type values the shape fixes
 
     Args:
         entity_triples: List of triples (subject, predicate, object) for the entity
@@ -266,8 +272,9 @@ def determine_shape_for_entity_triples(entity_triples: Iterable) -> str | None:
         return candidate_shapes[0][1]
 
     shape_scores = {}
+    presentation = get_presentation()
 
-    for class_uri, shape_uri in candidate_shapes:
+    for _class_uri, shape_uri in candidate_shapes:
         shape_properties = _get_shape_properties(shacl_graph, shape_uri)
         property_matches = len(entity_properties.intersection(shape_properties))
 
@@ -275,41 +282,14 @@ def determine_shape_for_entity_triples(entity_triples: Iterable) -> str | None:
             shacl_graph, shape_uri, entity_triples
         )
 
-        entity_key = (class_uri, shape_uri)
-        priority = get_class_priority(entity_key)
-
-        # Combined score: (hasvalue_matches, property_matches, -priority)
-        # hasValue matches are most important, then property matches, then priority
-        combined_score = (hasvalue_matches, property_matches, -priority)
+        combined_score = (
+            hasvalue_matches,
+            property_matches,
+            presentation.fixed_type_count(shape_uri),
+        )
         shape_scores[shape_uri] = combined_score
 
     return max(shape_scores.keys(), key=lambda s: shape_scores[s])
-
-
-def _find_highest_priority_shape(
-    class_shape_pairs: list[tuple[str, str]],
-) -> str | None:
-    """
-    Helper function to find the shape with the highest priority from a list of
-    (class_uri, shape) pairs.
-
-    Args:
-        class_shape_pairs: List of tuples (class_uri, shape)
-
-    Returns:
-        The shape with the highest priority, or None if the list is empty
-    """
-    highest_priority = float("inf")
-    highest_priority_shape = None
-
-    for class_uri, shape in class_shape_pairs:
-        entity_key = (class_uri, shape)
-        priority = get_class_priority(entity_key)
-        if priority < highest_priority:
-            highest_priority = priority
-            highest_priority_shape = shape
-
-    return highest_priority_shape
 
 
 def _get_shape_properties(shacl_graph: Graph, shape_uri: str) -> set:

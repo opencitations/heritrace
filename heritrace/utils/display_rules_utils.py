@@ -69,12 +69,8 @@ def find_matching_rule(
     # Initialize variables to track potential matches
     class_match = None
     shape_match = None
-    highest_priority = float("inf")
 
-    # Scan all rules to find the best match based on priority
     for rule in rules:
-        rule_priority = rule.get("priority", 0)
-
         # Case 1: Both class and shape match (exact match)
         if (
             class_uri
@@ -94,9 +90,8 @@ def find_matching_rule(
             and rule["target"]["class"] == str(class_uri)
             and "shape" not in rule["target"]
         ):
-            if class_match is None or rule_priority < highest_priority:
+            if class_match is None:
                 class_match = rule
-                highest_priority = rule_priority
 
         # Case 3: Only shape matches
         elif (
@@ -104,38 +99,13 @@ def find_matching_rule(
             and "shape" in rule["target"]
             and rule["target"]["shape"] == str(shape_uri)
             and "class" not in rule["target"]
-        ) and (shape_match is None or rule_priority < highest_priority):
+        ) and shape_match is None:
             shape_match = rule
-            highest_priority = rule_priority
 
-    # Return the best match based on priority
-    # Shape rules typically have higher specificity,
-    # so prefer them if they have equal priority
-    if shape_match and (
-        class_match is None
-        or shape_match.get("priority", 0) <= class_match.get("priority", 0)
-    ):
+    # Shape rules are more specific than class rules
+    if shape_match:
         return shape_match
-    if class_match:
-        return class_match
-
-    return None
-
-
-def get_class_priority(entity_key: tuple[str, str | None]) -> float:
-    """
-    Returns the priority of a specific entity key (class_uri, shape_uri).
-    Calculates the priority directly from the display rules.
-    Classes without defined rules receive the lowest priority (highest number).
-
-    Args:
-        entity_key: A tuple (class_uri, shape_uri)
-    """
-    class_uri = entity_key[0]
-    shape_uri = entity_key[1]
-
-    rule = find_matching_rule(class_uri, shape_uri)
-    return rule.get("priority", 0) if rule else float("inf")
+    return class_match
 
 
 def is_entity_type_visible(entity_key: tuple[str, str | None]) -> bool:
@@ -219,36 +189,17 @@ def determine_sort_type(field_info: dict) -> str:
 
 
 def get_highest_priority_class(subject_classes: list[str]) -> str | None:
-    """
-    Find the highest priority class from the given list of classes.
-
-    Args:
-        subject_classes: List of class URIs
-
-    Returns:
-        The highest priority class or None if no classes are provided
-    """
+    """Return the class whose shape fixes the most values of rdf:type."""
     from heritrace.utils.shacl_utils import determine_shape_for_classes  # noqa: PLC0415
 
-    if not subject_classes:
-        return None
-
-    highest_priority = float("inf")
-    highest_priority_class = None
-
-    for raw_class_uri in subject_classes:
-        class_uri = str(raw_class_uri)
-        shape = determine_shape_for_classes([class_uri])
-        entity_key = (class_uri, shape)
-        priority = get_class_priority(entity_key)
-        if priority < highest_priority:
-            highest_priority = priority
-            highest_priority_class = class_uri
-
-    if highest_priority_class is None and subject_classes:
-        highest_priority_class = str(subject_classes[0])
-
-    return highest_priority_class
+    presentation = get_presentation()
+    return max(
+        (str(class_uri) for class_uri in subject_classes),
+        key=lambda class_uri: presentation.fixed_type_count(
+            determine_shape_for_classes([class_uri])
+        ),
+        default=None,
+    )
 
 
 def _value_shapes(

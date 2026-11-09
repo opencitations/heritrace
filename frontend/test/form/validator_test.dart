@@ -41,6 +41,58 @@ void main() {
   FieldGroup group(EntityNode node, String uri) =>
       node.groups.firstWhere((g) => g.def.uri == uri);
 
+  EntityNode linkNode({required int min}) => EntityNode(
+    entityType: article,
+    entityShape: articleShape,
+    depth: 0,
+    fields: parseFormFields([
+      [
+        documentContext,
+        [
+          {
+            'uri': documentContext,
+            'displayName': 'Volume',
+            'entityType': article,
+            'subjectShape': articleShape,
+            'nodeShape': volumeShape,
+            'objectClass': volume,
+            'min': min,
+            'autocomplete': true,
+            'nestedShape': [
+              {
+                'uri': sequenceIdentifier,
+                'displayName': 'Number',
+                'entityType': volume,
+                'subjectShape': volumeShape,
+                'datatypes': [xsdString],
+                'min': 1,
+                'max': 1,
+              },
+            ],
+          },
+        ],
+      ],
+    ]),
+  );
+
+  test('an empty optional link is not validated', () {
+    final node = linkNode(min: 0);
+    addTearDown(node.dispose);
+    group(node, documentContext).addItem();
+
+    expect(validateEntity(node, messages, path: ['Article']), isEmpty);
+  });
+
+  test('an empty required link reports the link itself', () {
+    final node = linkNode(min: 1);
+    addTearDown(node.dispose);
+
+    final errors = validateEntity(node, messages, path: ['Article']);
+
+    expect(errors.map((e) => e.fullMessage), ['Volume: required']);
+    expect(errors.single.item, group(node, documentContext).items.single);
+  });
+
   test('required empty fields are reported with their path', () {
     final errors = validateEntity(root, messages, path: ['Journal Article']);
 

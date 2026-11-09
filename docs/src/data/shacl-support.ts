@@ -174,10 +174,14 @@ export const specifications: Specification[] = [
     sets: [
       {
         title: 'Widgets',
-        supported: ['shui:editor', 'shui:TextAreaEditor', 'shui:TextFieldEditor'],
+        supported: [
+          'shui:editor',
+          'shui:AutoCompleteEditor',
+          'shui:TextAreaEditor',
+          'shui:TextFieldEditor',
+        ],
         unsupported: [
           'shui:viewer',
-          'shui:AutoCompleteEditor',
           'shui:BlankNodeEditor',
           'shui:BooleanEditor',
           'shui:DatePickerEditor',

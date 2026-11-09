@@ -11,6 +11,7 @@ from unittest.mock import patch
 import pytest
 from rdflib import RDF, Graph, URIRef
 
+from heritrace.utils.shacl_presentation import read_presentation
 from heritrace.utils.shacl_utils import determine_shape_for_entity_triples
 
 
@@ -54,10 +55,13 @@ def mock_shacl_graph():
 class TestShapeSelection:
     """Test cases for shape selection from entity triples."""
 
-    @patch("heritrace.utils.shacl_utils.get_class_priority", return_value=0)
+    @patch(
+        "heritrace.utils.shacl_utils.get_presentation",
+        return_value=read_presentation(Graph()),
+    )
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
     def test_determine_shape_for_author_role(
-        self, mock_get_shacl_graph, _mock_get_class_priority, mock_shacl_graph
+        self, mock_get_shacl_graph, _mock_get_presentation, mock_shacl_graph
     ) -> None:
         """
         Test that determine_shape_for_entity_triples correctly identifies AuthorShape.
@@ -86,10 +90,13 @@ class TestShapeSelection:
         result = determine_shape_for_entity_triples(author_triples)
         assert result == "http://schema.org/AuthorShape"
 
-    @patch("heritrace.utils.shacl_utils.get_class_priority", return_value=0)
+    @patch(
+        "heritrace.utils.shacl_utils.get_presentation",
+        return_value=read_presentation(Graph()),
+    )
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
     def test_determine_shape_for_editor_role(
-        self, mock_get_shacl_graph, _mock_get_class_priority, mock_shacl_graph
+        self, mock_get_shacl_graph, _mock_get_presentation, mock_shacl_graph
     ) -> None:
         """
         Test that determine_shape_for_entity_triples correctly identifies EditorShape.
@@ -118,10 +125,13 @@ class TestShapeSelection:
         result = determine_shape_for_entity_triples(editor_triples)
         assert result == "http://schema.org/EditorShape"
 
-    @patch("heritrace.utils.shacl_utils.get_class_priority", return_value=0)
+    @patch(
+        "heritrace.utils.shacl_utils.get_presentation",
+        return_value=read_presentation(Graph()),
+    )
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
     def test_determine_shape_for_publisher_role(
-        self, mock_get_shacl_graph, _mock_get_class_priority, mock_shacl_graph
+        self, mock_get_shacl_graph, _mock_get_presentation, mock_shacl_graph
     ) -> None:
         """
         Test that determine_shape_for_entity_triples correctly identifies
@@ -151,10 +161,13 @@ class TestShapeSelection:
         result = determine_shape_for_entity_triples(publisher_triples)
         assert result == "http://schema.org/PublisherShape"
 
-    @patch("heritrace.utils.shacl_utils.get_class_priority", return_value=0)
+    @patch(
+        "heritrace.utils.shacl_utils.get_presentation",
+        return_value=read_presentation(Graph()),
+    )
     @patch("heritrace.utils.shacl_utils.get_shacl_graph")
     def test_hasvalue_constraints_prioritized_over_property_matches(
-        self, mock_get_shacl_graph, _mock_get_class_priority, mock_shacl_graph
+        self, mock_get_shacl_graph, _mock_get_presentation, mock_shacl_graph
     ) -> None:
         """
         Test that hasValue constraints take priority over simple property matching.

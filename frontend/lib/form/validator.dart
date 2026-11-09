@@ -313,6 +313,18 @@ void _validateGroup(
   }
 }
 
+ValidationError _requiredError(
+  FormItem item,
+  ValidationMessages messages,
+  List<String> path,
+) => ValidationError(
+  message: messages.required,
+  path: path,
+  item: item,
+  fieldName: item.def.displayName,
+  required: true,
+);
+
 void _validateItem(
   FormItem item,
   EntityNode node,
@@ -322,6 +334,11 @@ void _validateItem(
 ) {
   final def = item.def;
   switch (item) {
+    case NestedItem()
+        when def.autocomplete && !item.isExisting && !hasAnyValue(item.child):
+      if (def.isRequired) {
+        errors.add(_requiredError(item, messages, path));
+      }
     case NestedItem():
       if (!item.isExisting) {
         errors.addAll(
@@ -337,15 +354,7 @@ void _validateItem(
       if (selected != null) {
         _validateItem(selected, node, messages, path, errors);
       } else if (def.isRequired) {
-        errors.add(
-          ValidationError(
-            message: messages.required,
-            path: path,
-            item: item,
-            fieldName: def.displayName,
-            required: true,
-          ),
-        );
+        errors.add(_requiredError(item, messages, path));
       }
     case MandatoryItem():
       break;
@@ -353,15 +362,7 @@ void _validateItem(
       final value = item.textValue!.trim();
       if (value.isEmpty) {
         if (def.isRequired) {
-          errors.add(
-            ValidationError(
-              message: messages.required,
-              path: path,
-              item: item,
-              fieldName: def.displayName,
-              required: true,
-            ),
-          );
+          errors.add(_requiredError(item, messages, path));
         }
         return;
       }
