@@ -13,7 +13,7 @@ import pytest
 from filelock import Timeout
 from flask import Flask
 from flask.testing import FlaskClient
-from rdflib import DCTERMS, FOAF, Graph, Literal, URIRef
+from rdflib import DCTERMS, FOAF, XSD, Graph, Literal, URIRef
 from rdflib_ocdm.counter_handler.in_memory_counter_handler import InMemoryCounterHandler
 
 from heritrace import create_app, extensions
@@ -23,12 +23,15 @@ from heritrace.configuration.entity import (
     SHAPE_NAMESPACE,
     configuration_lock,
 )
-from heritrace.configuration.vocabulary import SH
+from heritrace.configuration.shapes import read_duplicate_keys
+from heritrace.configuration.vocabulary import DASH, SH
 from heritrace.scripts.seed_config import seed_config
 from tests.test_config import TestConfig, test_example_dir
 
 ADMIN = "0000-0000-0000-0000"
 IDENTIFIER_SHAPE = URIRef("http://schema.org/IdentifierShape")
+JOURNAL_ARTICLE_SHAPE = URIRef("http://schema.org/JournalArticleShape")
+HAS_IDENTIFIER = URIRef("http://purl.org/spar/datacite/hasIdentifier")
 LITERAL_VALUE = URIRef(
     "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue"
 )
@@ -222,6 +225,39 @@ def test_editing_a_field_keeps_its_history(
         "The entity 'Value' was modified.",
         "The entity 'Literal Value' was modified.",
     ]
+
+
+def test_showing_a_hidden_entity_type_keeps_its_duplicate_keys(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    status, _ = _update(admin_client, IDENTIFIER_SHAPE, DASH.hidden, "true", "false")
+
+    data = _data(config_app)
+    assert status == 200
+    shown = Literal("false", datatype=XSD.boolean)
+    assert set(data.objects(IDENTIFIER_SHAPE, DASH.hidden)) == {shown}
+    assert read_duplicate_keys(data, IDENTIFIER_SHAPE) == [
+        [str(LITERAL_VALUE), "http://purl.org/spar/datacite/usesIdentifierScheme"]
+    ]
+
+
+def test_a_field_can_stop_depending_on_its_entity(
+    admin_client: FlaskClient, config_app: Flask
+) -> None:
+    field = next(
+        URIRef(str(property_shape))
+        for property_shape in _data(config_app).objects(
+            JOURNAL_ARTICLE_SHAPE, SH.property
+        )
+        if (property_shape, SH.path, HAS_IDENTIFIER) in _data(config_app)
+    )
+
+    status, _ = _update(admin_client, field, DASH.composite, "true", "false")
+
+    assert status == 200
+    assert set(_data(config_app).objects(field, DASH.composite)) == {
+        Literal("false", datatype=XSD.boolean)
+    }
 
 
 def test_a_change_reads_the_snapshot_counters_while_holding_the_lock(

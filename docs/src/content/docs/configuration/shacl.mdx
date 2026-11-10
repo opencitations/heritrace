@@ -9,11 +9,12 @@ description: Define your data model using SHACL for automatic form generation an
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
 import ShaclSupport from '../../../components/ShaclSupport.astro';
 
-SHACL (Shapes Constraint Language) shapes describe your data model. HERITRACE reads it for three purposes:
+SHACL (Shapes Constraint Language) shapes describe your data model. HERITRACE reads it for four purposes:
 
 -   **Form generation**: each shape becomes a form, and each property shape becomes a field with its input type and validation hints.
 -   **Data validation**: the constraints, such as datatypes and cardinality, are checked on every change.
 -   **Presentation**: names, field order, widgets and entity labels come from the [presentation terms](#presentation) of the shapes.
+-   **Duplicates**: the [duplicate keys](#duplicate-detection-owlhaskey) of a shape tell HERITRACE which entities may describe the same thing.
 
 ## Supported vocabulary
 
@@ -379,9 +380,22 @@ sh:property [
 ] .
 ```
 
-### Hidden fields (`dash:hidden`)
+### Hidden fields and entity types (`dash:hidden`)
 
-`dash:hidden true` removes a field from forms and entity pages. HERITRACE still validates it.
+On a property shape, `dash:hidden true` removes the field from forms and entity pages. On a node shape, it removes the entity type from the catalogue, from the recycle bin and from the types that users can create, although its entities stay reachable from other entities. HERITRACE validates hidden fields and entity types like any other.
+
+```ttl
+schema:IdentifierShape
+    a sh:NodeShape ;
+    sh:targetClass datacite:Identifier ;
+    dash:hidden true .
+```
+
+The **Hidden** option of the [configuration editor](../editor/) sets this term on both fields and entity types.
+
+<Aside type="note" title="dash:hidden on node shapes">
+Although DASH declares `sh:PropertyShape` as the domain of `dash:hidden`, TopQuadrant, which maintains DASH, [applies the term to classes as well](https://github.com/TopQuadrant/shacl/blob/master/src/main/resources/rdf/tosh.ttl). Since HERITRACE applies no RDFS inference to the shapes graph, the declared domain causes no problem here, and HERITRACE follows the same practice.
+</Aside>
 
 ### Entity labels (`shui:LabelRole`)
 
@@ -435,3 +449,25 @@ A select expression can also carry its own `sh:prefixes`. If a label query retur
 <Aside type="caution" title="Labels that follow incoming references">
 A label query can use `$this` as an object and build the label from the entities that point at it. HERITRACE detects this and loads those entities on history pages, which is expensive when an entity has many referrers. Such a label also resolves only for snapshots taken after the referring entity existed, so prefer following references away from the entity.
 </Aside>
+
+## Duplicate detection (`owl:hasKey`)
+
+Each `owl:hasKey` on a node shape is a list of properties. Two entities of the shape match a key when, for every property in the list, they share at least one value. A shape can carry several keys, and matching any one of them is enough.
+
+HERITRACE uses the keys in two places. While an entity is being created, a warning links to the existing entities that match it; for a nested field, HERITRACE compares the text values of the nested entity. On an entity page, the matches appear in the [Similar resources](/heritrace/user-guide/merging-records/) section, where users can merge them.
+
+```ttl
+schema:ResponsibleAgentShape
+    a sh:NodeShape ;
+    sh:targetClass foaf:Agent ;
+    owl:hasKey
+        ( foaf:name ) ,
+        ( foaf:familyName foaf:givenName ) ,
+        ( datacite:hasIdentifier ) .
+```
+
+With these keys, two agents match when they have the same full name, when they have both the same family name and the same given name, or when they share an identifier.
+
+HERITRACE reads `owl:hasKey` on the node shape rather than on its target class, so each shape of a class can carry its own keys. It does not infer `owl:sameAs` from a match: it proposes the two entities for a merge, and the user decides.
+
+The configuration editor does not show duplicate keys yet, so write them in `shacl.ttl`.

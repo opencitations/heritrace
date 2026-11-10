@@ -5,8 +5,11 @@
 from unittest.mock import patch
 
 from flask.testing import FlaskClient
+from rdflib import XSD, Graph, Literal
 
+from heritrace.configuration.vocabulary import DASH, SH
 from heritrace.utils.datatypes import get_datatype_options
+from tests.test_config import TestConfig
 
 
 def test_me_for_anonymous_users_exposes_only_the_config(client: FlaskClient) -> None:
@@ -61,3 +64,16 @@ def test_entity_types_are_listed_with_their_labels(
         "shape": "http://schema.org/JournalArticleShape",
         "label": "Journal Article",
     } in types
+
+
+def test_entity_types_leave_out_hidden_shapes(logged_in_client: FlaskClient) -> None:
+    shapes = Graph().parse(TestConfig.CONFIG_DIR / "shacl.ttl")
+    true = Literal("true", datatype=XSD.boolean)
+    hidden = {str(shape) for shape in shapes.subjects(DASH.hidden, true)}
+    targeted = {str(shape) for shape in shapes.subjects(SH.targetClass)}
+
+    response = logged_in_client.get("/api/entity-types")
+
+    listed = {entry["shape"] for entry in response.get_json()["types"]}
+    assert hidden
+    assert listed == targeted - hidden

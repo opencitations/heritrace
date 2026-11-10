@@ -15,6 +15,7 @@ from SPARQLWrapper import JSON
 from heritrace.apis.orcid import get_responsible_agent_uri
 from heritrace.extensions import (
     get_custom_filter,
+    get_presentation,
     get_primary_source,
     get_sparql,
     new_editor,
@@ -22,10 +23,7 @@ from heritrace.extensions import (
 )
 from heritrace.routes.entity import build_entity_view
 from heritrace.sparql import get_sparql_bindings
-from heritrace.utils.display_rules_utils import (
-    get_highest_priority_class,
-    get_similarity_properties,
-)
+from heritrace.utils.display_rules_utils import get_highest_priority_class
 from heritrace.utils.primary_source_utils import (
     save_user_default_primary_source,
 )
@@ -190,50 +188,29 @@ def _format_rdf_term(node: dict[str, str]) -> str | None:
     return None
 
 
-def _similarity_properties(similarity_config: list) -> set[str]:
-    properties: set[str] = set()
-    for item in similarity_config:
-        if isinstance(item, str):
-            properties.add(item)
-        elif isinstance(item, dict) and "and" in item:
-            properties.update(item["and"])
-    return properties
+def _duplicate_keys(entity_type: str, shape_uri: str | None) -> list[list[str]]:
+    shape = shape_uri or determine_shape_for_classes([entity_type])
+    return get_presentation().shape_duplicate_keys(shape)
+
+
+def _key_properties(duplicate_keys: list[list[str]]) -> set[str]:
+    return {prop for key in duplicate_keys for prop in key}
 
 
 def _fetch_subject_values(
     subject_uri: str,
-    similarity_config: list,
-) -> defaultdict[str, list[str]] | None:
+    duplicate_keys: list[list[str]],
+) -> defaultdict[str, list[str]]:
     sparql = get_sparql()
-
-    all_props_in_config = _similarity_properties(similarity_config)
-
-    if not all_props_in_config:
-        current_app.logger.warning(
-            "Empty properties list derived from similarity config for type %s",
-            subject_uri,
-        )
-        return None
-
-    prop_uris_formatted_for_filter = [f"<{p}>" for p in all_props_in_config]
-    property_filter_for_subject = (
-        f"FILTER(?p IN ({', '.join(prop_uris_formatted_for_filter)}))"
-    )
-
-    fetch_comparison_values_query = f"""
+    property_list = ", ".join(f"<{p}>" for p in _key_properties(duplicate_keys))
+    sparql.setQuery(f"""
     SELECT DISTINCT ?p ?o WHERE {{
         <{subject_uri}> ?p ?o .
-        {property_filter_for_subject}
+        FILTER(?p IN ({property_list}))
     }}
-    """
-
-    sparql.setQuery(fetch_comparison_values_query)
+    """)
     sparql.setReturnFormat(JSON)
-    subject_values_results = sparql.query().convert()
-    subject_bindings = get_sparql_bindings(subject_values_results)
-
-    if not subject_bindings:
-        return None
+    subject_bindings = get_sparql_bindings(sparql.query().convert())
 
     subject_values_by_prop: defaultdict[str, list[str]] = defaultdict(list)
     for binding in subject_bindings:
@@ -258,50 +235,23 @@ def _build_similarity_pattern(prop_uri: str, values: list[str], index: int) -> s
 
 
 def _build_union_blocks(
-    similarity_config: list,
-    subject_values_by_prop: defaultdict[str, list[str]],
+    duplicate_keys: list[list[str]],
+    values_by_prop: defaultdict[str, list[str]],
 ) -> list[str]:
     union_blocks: list[str] = []
     var_counter = 0
-
-    for condition in similarity_config:
-        if isinstance(condition, str):
-            prop_values = subject_values_by_prop.get(condition)
-            if prop_values:
-                var_counter += 1
-                pattern = _build_similarity_pattern(condition, prop_values, var_counter)
-                union_blocks.append(f"  {{ {pattern} }}")
-        elif isinstance(condition, dict) and "and" in condition:
-            block = _build_and_block(
-                condition["and"], subject_values_by_prop, var_counter
+    for key in duplicate_keys:
+        if not all(prop in values_by_prop for prop in key):
+            continue
+        patterns = []
+        for prop_uri in key:
+            var_counter += 1
+            pattern = _build_similarity_pattern(
+                prop_uri, values_by_prop[prop_uri], var_counter
             )
-            if block is not None:
-                text, var_counter = block
-                union_blocks.append(text)
-            else:
-                var_counter += len(condition["and"])
-
+            patterns.append(f"    {pattern}")
+        union_blocks.append("  {\n" + "\n".join(patterns) + "\n  }")
     return union_blocks
-
-
-def _build_and_block(
-    and_props: list[str],
-    subject_values_by_prop: defaultdict[str, list[str]],
-    var_counter: int,
-) -> tuple[str, int] | None:
-    if not all(p in subject_values_by_prop for p in and_props):
-        return None
-
-    and_patterns = []
-    for prop_uri in and_props:
-        prop_values = subject_values_by_prop[prop_uri]
-        var_counter += 1
-        and_patterns.append(
-            f"    {_build_similarity_pattern(prop_uri, prop_values, var_counter)}"
-        )
-
-    patterns_str = "\n".join(and_patterns)
-    return f"  {{\n{patterns_str}\n  }}", var_counter
 
 
 def _execute_similarity_query(
@@ -385,17 +335,13 @@ def find_similar_resources() -> Response | tuple[Response, int]:  # noqa: PLR091
         ), 400
 
     try:
-        entity_key = (entity_type, shape_uri)
-        similarity_config = get_similarity_properties(entity_key)
-
-        if not similarity_config or not isinstance(similarity_config, list):
+        duplicate_keys = _duplicate_keys(entity_type, shape_uri)
+        if not duplicate_keys:
             return jsonify({"status": "success", "results": [], "has_more": False})
 
-        subject_values_by_prop = _fetch_subject_values(subject_uri, similarity_config)
-        if subject_values_by_prop is None:
-            return jsonify({"status": "success", "results": [], "has_more": False})
-
-        union_blocks = _build_union_blocks(similarity_config, subject_values_by_prop)
+        union_blocks = _build_union_blocks(
+            duplicate_keys, _fetch_subject_values(subject_uri, duplicate_keys)
+        )
         if not union_blocks:
             return jsonify({"status": "success", "results": [], "has_more": False})
 
@@ -446,10 +392,10 @@ def _existing_nested_entities(fields: list[dict[str, str]]) -> list[str]:
 
 
 def _draft_values(
-    similarity_config: list, values: dict[str, list[dict]]
+    duplicate_keys: list[list[str]], values: dict[str, list[dict]]
 ) -> defaultdict[str, list[str]]:
     draft_values: defaultdict[str, list[str]] = defaultdict(list)
-    for predicate in _similarity_properties(similarity_config) & values.keys():
+    for predicate in _key_properties(duplicate_keys) & values.keys():
         for value in values[predicate]:
             if "fields" in value:
                 draft_values[predicate].extend(
@@ -464,12 +410,11 @@ def _draft_values(
 @login_required
 def find_resources_similar_to_draft() -> Response:
     data = request.get_json()
-    entity_key = (data["entity_type"], data["shape_uri"])
-    similarity_config = get_similarity_properties(entity_key)
-    if not similarity_config:
+    duplicate_keys = _duplicate_keys(data["entity_type"], data["shape_uri"])
+    if not duplicate_keys:
         return jsonify({"status": "success", "results": [], "has_more": False})
     union_blocks = _build_union_blocks(
-        similarity_config, _draft_values(similarity_config, data["values"])
+        duplicate_keys, _draft_values(duplicate_keys, data["values"])
     )
     if not union_blocks:
         return jsonify({"status": "success", "results": [], "has_more": False})

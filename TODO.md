@@ -23,10 +23,11 @@ The configuration pages do not offer to delete the configuration, an entity type
 
 ## Remove `display_rules.yaml`
 
-Keep the whole configuration in RDF, in the same document as the shapes. These settings still live in the YAML file, and each one needs a decision:
+Keep the whole configuration in RDF, in the same document as the shapes. `orderedBy` and `sortableBy` still live in the YAML file. Choose the term that expresses each one.
 
-- `orderedBy` and `sortableBy`: choose the term that expresses each one.
-- `similarity_properties`: a small extension, or a `sh:sparql` constraint with `sh:severity sh:Warning`.
+## Edit RDF lists in the configuration editor
+
+The configuration editor builds its pages from the meta-shapes and cannot edit RDF lists. The duplicate keys of an entity type (`owl:hasKey`) are lists, which means that they can be changed only in `shacl.ttl` by hand. The same holds for `sh:in` and `sh:or`. Let the editor show and change these lists.
 
 ## Narrow the link search by container
 

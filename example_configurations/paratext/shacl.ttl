@@ -1,3 +1,4 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix dash: <http://datashapes.org/dash#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -39,6 +40,9 @@ schema:IdentifierShape
   a sh:NodeShape ;
   sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -96,6 +100,9 @@ schema:JournalArticleIdentifierShape
   a sh:NodeShape ;
   sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -190,6 +197,9 @@ schema:JournalIdentifierShape
   a sh:NodeShape ;
   sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -284,6 +294,9 @@ schema:SeriesAndProceedingsIdentifierShape
   a sh:NodeShape ;
   sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -390,6 +403,9 @@ schema:BookIdentifierShape
   a sh:NodeShape ;
   sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -496,6 +512,9 @@ schema:AgentIdentifierShape
   a sh:NodeShape ;
   sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -616,6 +635,7 @@ schema:AgentRoleShape
   a sh:NodeShape ;
   sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -687,6 +707,10 @@ schema:ExpressionShape
   a sh:NodeShape ;
   sh:name "Bibliographic Resource" ;
   sh:targetClass fabio:Expression ;
+  dash:hidden true ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -976,6 +1000,9 @@ schema:ArticleShape
   a sh:NodeShape ;
   sh:name "Article" ;
   sh:targetClass fabio:Article ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -1234,6 +1261,9 @@ schema:JournalArticleShape
   a sh:NodeShape ;
   sh:name "Journal Article" ;
   sh:targetClass fabio:JournalArticle ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -1494,6 +1524,9 @@ schema:BookShape
   a sh:NodeShape ;
   sh:name "Monograph" ;
   sh:targetClass fabio:Book ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -1757,6 +1790,9 @@ schema:ProceedingsPaperShape
   a sh:NodeShape ;
   sh:name "Proceedings Paper" ;
   sh:targetClass fabio:ProceedingsPaper ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -1998,6 +2034,9 @@ schema:ProceedingsShape
   a sh:NodeShape ;
   sh:name "Proceedings" ;
   sh:targetClass fabio:AcademicProceedings ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -2213,6 +2252,9 @@ schema:JournalShape
   a sh:NodeShape ;
   sh:name "Journal" ;
   sh:targetClass fabio:Journal ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -2292,6 +2334,8 @@ schema:VolumeShape
   a sh:NodeShape ;
   sh:name "Volume" ;
   sh:targetClass fabio:JournalVolume ;
+  owl:hasKey
+    ( fabio:hasSequenceIdentifier frbr:partOf ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -2380,6 +2424,8 @@ schema:IssueShape
   a sh:NodeShape ;
   sh:name "Issue" ;
   sh:targetClass fabio:JournalIssue ;
+  owl:hasKey
+    ( fabio:hasSequenceIdentifier frbr:partOf ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -2477,6 +2523,9 @@ schema:SpecialIssueShape
   a sh:NodeShape ;
   sh:name "Special Issue" ;
   sh:targetClass fabio:JournalIssue ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier frbr:partOf ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -2697,6 +2746,9 @@ schema:ReferenceBookShape
   a sh:NodeShape ;
   sh:name "Dictionary" ;
   sh:targetClass fabio:ReferenceBook ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -2937,6 +2989,9 @@ schema:ReviewShape
   a sh:NodeShape ;
   sh:name "Review" ;
   sh:targetClass fabio:Review ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -3214,6 +3269,9 @@ schema:ReviewArticleShape
   a sh:NodeShape ;
   sh:name "Review Article" ;
   sh:targetClass fabio:ReviewArticle ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -3484,6 +3542,9 @@ schema:ThesisShape
   a sh:NodeShape ;
   sh:name "Thesis" ;
   sh:targetClass fabio:Thesis ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -3725,6 +3786,9 @@ schema:SeriesShape
   a sh:NodeShape ;
   sh:name "Miscellany" ;
   sh:targetClass fabio:Series ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path [ sh:inversePath cito:hasCitingEntity ] ;
     sh:name "Citations" ;
@@ -3953,6 +4017,7 @@ schema:ResourceEmbodimentShape
   a sh:NodeShape ;
   sh:name "Page" ;
   sh:targetClass fabio:Manifestation ;
+  dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -4016,6 +4081,11 @@ schema:ResponsibleAgentShape
     sh:qualifiedMaxCount 1 ;
   ] ;
   sh:targetClass foaf:Agent ;
+  dash:hidden true ;
+  owl:hasKey
+    ( foaf:name ) ,
+    ( foaf:familyName foaf:givenName ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path datacite:hasIdentifier ;
     dash:composite true ;
@@ -4107,6 +4177,7 @@ schema:AuthorShape
   a sh:NodeShape ;
   sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -4194,6 +4265,7 @@ schema:EditorShape
   a sh:NodeShape ;
   sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -4281,6 +4353,7 @@ schema:PublisherShape
   a sh:NodeShape ;
   sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -4368,6 +4441,7 @@ schema:TranslatorShape
   a sh:NodeShape ;
   sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -4455,6 +4529,7 @@ schema:CollaboratorShape
   a sh:NodeShape ;
   sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;

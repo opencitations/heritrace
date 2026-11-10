@@ -4,9 +4,11 @@
 
 from pathlib import Path
 
-import yaml
 from pyshacl import validate
 from rdflib import RDF, Dataset, Graph, Namespace, URIRef
+
+from heritrace.configuration.shapes import read_duplicate_keys
+from heritrace.configuration.vocabulary import SH
 
 ROOT = Path(__file__).parents[2]
 DEMO_ROOT = ROOT / "demo" / "iswc2026"
@@ -39,15 +41,9 @@ def test_iswc2026_demo_exposes_the_two_documented_merge_candidates() -> None:
     )
     assert conforms is True
 
-    with (DEMO_ROOT / "config" / "display_rules.yaml").open() as stream:
-        display_rules = yaml.safe_load(stream)
-    article_rule = next(
-        rule
-        for rule in display_rules["rules"]
-        if rule["target"]["class"] == str(FABIO.JournalArticle)
-    )
+    shape = next(shacl_graph.subjects(SH.targetClass, FABIO.JournalArticle))
     similarity_properties = [
-        URIRef(property_uri) for property_uri in article_rule["similarity_properties"]
+        URIRef(prop) for [prop] in read_duplicate_keys(shacl_graph, shape)
     ]
 
     articles = set(graph.subjects(RDF.type, FABIO.JournalArticle))

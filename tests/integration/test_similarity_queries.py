@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: ISC
 
+from collections import defaultdict
+
 import pytest
 from rdflib import XSD, Literal, URIRef
 from SPARQLWrapper import JSON, POST, SPARQLWrapper
@@ -11,7 +13,6 @@ from tests.test_config import TestConfig
 
 
 @pytest.mark.parametrize("backend", ["virtuoso", "qlever", "default"])
-@pytest.mark.parametrize("use_and", [False, True])
 @pytest.mark.parametrize(
     ("value", "matching", "different"),
     [
@@ -42,9 +43,7 @@ from tests.test_config import TestConfig
         ),
     ],
 )
-def test_similarity_matches_configured_values(
-    app, backend, value, matching, different, use_and
-):
+def test_similarity_matches_configured_values(app, backend, value, matching, different):
     app.config["DATASET_DB_TRIPLESTORE"] = backend
     predicate = "urn:similarity:property"
     graph_uri = "urn:similarity:test"
@@ -59,8 +58,9 @@ def test_similarity_matches_configured_values(
     """)
     sparql.query()
     try:
-        conditions = [{"and": [predicate]}] if use_and else [predicate]
-        blocks = _build_union_blocks(conditions, {predicate: [value.n3()]})
+        blocks = _build_union_blocks(
+            [[predicate]], defaultdict(list, {predicate: [value.n3()]})
+        )
         sparql.setQuery(
             f"SELECT DISTINCT ?similar FROM <{graph_uri}> WHERE {{ "
             + " UNION ".join(blocks)

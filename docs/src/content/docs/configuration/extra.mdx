@@ -8,7 +8,7 @@ description: Configure the behaviour of the HERITRACE interface that SHACL does 
 ---
 import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
 
-Unfortunately, SHACL ([SHACL Core](https://w3c.github.io/data-shapes/shacl12-core/), including its extended features for [SPARQL](https://w3c.github.io/data-shapes/shacl12-sparql/) and [node expressions](https://w3c.github.io/data-shapes/shacl12-node-expr/), and [SHACL UI](https://w3c.github.io/data-shapes/shacl12-ui/)) cannot express every aspect of the editor that we consider important. The aspects it leaves out are configured in the YAML file described here: how values are ordered, how the catalogue sorts entities and how duplicates are found.
+Unfortunately, SHACL ([SHACL Core](https://w3c.github.io/data-shapes/shacl12-core/), including its extended features for [SPARQL](https://w3c.github.io/data-shapes/shacl12-sparql/) and [node expressions](https://w3c.github.io/data-shapes/shacl12-node-expr/), and [SHACL UI](https://w3c.github.io/data-shapes/shacl12-ui/)) cannot express every aspect of the editor that we consider important. Some of the aspects it leaves out are configured in the YAML file described here: how values are ordered and how the catalogue sorts entities.
 
 ## File location
 
@@ -64,7 +64,6 @@ Here are the top-level settings for each rule, listed in order of how they are p
 
 -   `displayProperties`: A list defining how each property of the entity should be displayed and behave. See the [Configuring properties](#configuring-properties-displayproperties) section for details.
 -   `sortableBy`: A list of properties that users can use to sort items in the catalogue view. See the [Sorting catalogue items](#sorting-catalogue-items-sortableby) section for details.
--   `similarity_properties`: A configuration that defines which properties are used to identify potential duplicate entities. HERITRACE uses these to warn about duplicates while an entity is being created and to display "Similar Resources" on entity pages, enabling users to merge duplicates. See the [Similarity properties for duplicate detection](#similarity-properties-for-duplicate-detection) section for details.
 
 ## Configuring properties (`displayProperties`)
 
@@ -132,63 +131,6 @@ The `sortableBy` configuration allows users to sort entities in the catalogue vi
 <Aside type="tip" title="Performance Optimization: Omitting sortableBy">
 **For large datasets with thousands or millions of entities**, consider omitting the `sortableBy` configuration entirely. When no sorting properties are defined, HERITRACE does not apply any `ORDER BY` clause to the SPARQL queries that retrieve entities for the catalogue view.
 </Aside>
-
-## Similarity properties for duplicate detection
-
-The `similarity_properties` configuration enables HERITRACE to identify potential duplicates when users create or view entities. While an entity is being created, a warning links to the existing entities that share the values of a rule; for a nested field, such as an identifier, HERITRACE compares the text values of the nested entity. On existing entities, the system searches for similar resources based on matching property values and displays them in the ["Similar Resources"](/heritrace/user-guide/merging-records/) section on entity pages, where users can initiate merge operations.
-
-### How similarity detection works
-
-HERITRACE queries the triplestore to find other entities of the same type that share matching values for the configured properties. The configuration supports boolean logic combining OR and AND conditions.
-
-### Basic configuration
-
-The simplest configuration uses OR logic: entities are considered similar if they match on *any* of the specified properties.
-
-```yaml
-- target:
-    class: "http://purl.org/spar/fabio/JournalArticle"
-  similarity_properties:
-    - "http://purl.org/dc/terms/title"
-    - "http://purl.org/spar/datacite/hasIdentifier"
-```
-
-This configuration finds articles that share either the same title or the same identifier. For instance, if a user views an article titled "Machine Learning Applications", HERITRACE will find other articles with that exact title or with matching identifiers.
-
-### AND logic for stricter matching
-
-For more precise duplicate detection, you can require that multiple properties match simultaneously using AND logic.
-
-```yaml
-- target:
-    class: "http://purl.org/spar/fabio/JournalIssue"
-  similarity_properties:
-    - and:
-      - "http://purl.org/spar/fabio/hasSequenceIdentifier"
-      - "http://purl.org/vocab/frbr/core#partOf"
-```
-
-This configuration only considers issues as similar if they have both the same sequence identifier (e.g., issue number) and belong to the same journal. This prevents false positives where different journals might use the same issue numbering scheme.
-
-### Complex matching with combined logic
-
-You can combine OR and AND logic.
-
-```yaml
-- target:
-    class: "http://xmlns.com/foaf/0.1/Agent"
-  similarity_properties:
-    - "http://xmlns.com/foaf/0.1/name"
-    - and:
-        - "http://xmlns.com/foaf/0.1/familyName"
-        - "http://xmlns.com/foaf/0.1/givenName"
-    - "http://purl.org/spar/datacite/hasIdentifier"
-```
-
-This configuration for agents (people or organizations) considers entities similar if they match on:
-- The same full name (`foaf:name`), OR
-- Both the same family name AND given name, OR
-- The same identifier (e.g., ORCID)
 
 ## Best practice: keep it DRY with YAML anchors
 

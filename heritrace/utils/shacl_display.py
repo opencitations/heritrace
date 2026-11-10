@@ -15,6 +15,7 @@ from rdflib.plugins.sparql import prepareQuery
 from rdflib.plugins.sparql.sparql import Query
 from rdflib.query import Result, ResultRow
 
+from heritrace.configuration.vocabulary import DASH, SHUI
 from heritrace.sparql import select_results
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_patterns import (
@@ -22,8 +23,6 @@ from heritrace.utils.shacl_patterns import (
     read_pattern_alternatives,
 )
 from heritrace.utils.shacl_presentation import (
-    DASH,
-    SHUI,
     ShapesPresentation,
     inverse_path_key,
     inverse_predicate,

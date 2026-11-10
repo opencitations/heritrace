@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
@@ -655,74 +654,3 @@ def get_predicate_ordering_info(
             return prop.get("orderedBy")
 
     return None
-
-
-def get_similarity_properties(
-    entity_key: tuple[str, str | None],
-) -> list[str | dict[str, list[str]]] | None:
-    """Gets the similarity properties configuration for a given entity key.
-
-    This configuration specifies which properties should be used for similarity matching
-    using a list-based structure supporting OR logic between elements and
-    nested AND logic within elements.
-
-    Example structures:
-        - ['prop1', 'prop2']                      # prop1 OR prop2
-        - [{'and': ['prop3', 'prop4']}]          # prop3 AND prop4
-        - ['prop1', {'and': ['prop2', 'prop3']}] # prop1 OR (prop2 AND prop3)
-
-    Args:
-        entity_key: A tuple (class_uri, shape_uri)
-
-    Returns:
-        A list where each element is either a property URI string or a dictionary
-        {'and': [list_of_property_uris]}, representing the boolean logic.
-        Returns None if no configuration is found or if the structure is invalid.
-    """
-    class_uri = entity_key[0]
-    shape_uri = entity_key[1]
-
-    # Find the matching rule
-    rule = find_matching_rule(class_uri, shape_uri)
-    if not rule:
-        return None
-
-    similarity_props = rule.get("similarity_properties")
-
-    if not similarity_props or not isinstance(similarity_props, list):
-        return None
-
-    # Validate each element in the list.
-    validated_props = []
-    for item in similarity_props:
-        if isinstance(item, str):
-            validated_props.append(item)
-        elif isinstance(item, dict) and len(item) == 1 and "and" in item:
-            and_list = item["and"]
-            if (
-                isinstance(and_list, list)
-                and and_list
-                and all(isinstance(p, str) for p in and_list)
-            ):
-                validated_props.append(item)
-            else:
-                logging.getLogger(__name__).warning(
-                    "Invalid 'and' group in similarity_properties"
-                    " for class %s. Expected"
-                    " {'and': ['prop_uri', ...]} with"
-                    " a non-empty list of strings.",
-                    class_uri,
-                )
-                return None
-        else:
-            logging.getLogger(__name__).warning(
-                "Invalid item format in similarity_properties"
-                " list for class %s. Expected a property URI"
-                " string or {'and': [...]} dict.",
-                class_uri,
-            )
-            return None
-
-    return (
-        validated_props or None
-    )  # Return validated list or None if empty after validation

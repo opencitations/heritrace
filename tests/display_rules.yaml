@@ -17,9 +17,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Article
   displayProperties:
@@ -34,9 +31,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Series
   displayProperties:
@@ -51,9 +45,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Book
   displayProperties:
@@ -68,9 +59,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/JournalArticle
   displayProperties:
@@ -85,9 +73,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Journal
   sortableBy:
@@ -95,31 +80,11 @@ rules:
     sortOrder:
     - asc
     - desc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
-- target:
-    class: http://purl.org/spar/fabio/JournalVolume
-  similarity_properties:
-  - and:
-    - http://purl.org/spar/fabio/hasSequenceIdentifier
-    - http://purl.org/vocab/frbr/core#partOf
-- target:
-    class: http://purl.org/spar/fabio/JournalIssue
-  similarity_properties:
-  - and:
-    - http://purl.org/spar/fabio/hasSequenceIdentifier
-    - http://purl.org/vocab/frbr/core#partOf
 - target:
     shape: http://schema.org/SpecialIssueShape
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - and:
-    - http://purl.org/spar/datacite/hasIdentifier
-    - http://purl.org/vocab/frbr/core#partOf
 - target:
     class: http://purl.org/spar/fabio/ProceedingsPaper
   displayProperties:
@@ -134,9 +99,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/AcademicProceedings
   displayProperties:
@@ -151,9 +113,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Review
   displayProperties:
@@ -168,9 +127,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/ReviewArticle
   displayProperties:
@@ -185,9 +141,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/ReferenceBook
   displayProperties:
@@ -202,9 +155,6 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
 - target:
     class: http://purl.org/spar/fabio/Thesis
   displayProperties:
@@ -219,20 +169,3 @@ rules:
     sortOrder:
     - desc
     - asc
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier
-- target:
-    class: http://purl.org/spar/datacite/Identifier
-  similarity_properties:
-  - and:
-    - http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue
-    - http://purl.org/spar/datacite/usesIdentifierScheme
-- target:
-    class: http://xmlns.com/foaf/0.1/Agent
-  similarity_properties:
-  - http://xmlns.com/foaf/0.1/name
-  - and:
-    - http://xmlns.com/foaf/0.1/familyName
-    - http://xmlns.com/foaf/0.1/givenName
-  - http://purl.org/spar/datacite/hasIdentifier

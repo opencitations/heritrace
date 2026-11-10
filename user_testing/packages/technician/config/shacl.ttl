@@ -1,3 +1,4 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix dash: <http://datashapes.org/dash#> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -35,6 +36,9 @@ schema:JournalArticleShape
   a sh:NodeShape ;
   sh:name "Journal Article" ;
   sh:targetClass fabio:JournalArticle ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -172,6 +176,9 @@ schema:IdentifierShape
   a sh:NodeShape ;
   sh:name "Identifier" ;
   sh:targetClass datacite:Identifier ;
+  dash:hidden true ;
+  owl:hasKey
+    ( literal:hasLiteralValue datacite:usesIdentifierScheme ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -243,6 +250,10 @@ schema:AgentShape
   a sh:NodeShape ;
   sh:name "Responsible Agent" ;
   sh:targetClass foaf:Agent ;
+  dash:hidden true ;
+  owl:hasKey
+    ( foaf:name ) ,
+    ( foaf:familyName foaf:givenName ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -311,6 +322,7 @@ schema:AuthorShape
   a sh:NodeShape ;
   sh:name "Agent Role" ;
   sh:targetClass pro:RoleInTime ;
+  dash:hidden true ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;
@@ -379,6 +391,9 @@ schema:JournalShape
   a sh:NodeShape ;
   sh:name "Journal" ;
   sh:targetClass fabio:Journal ;
+  owl:hasKey
+    ( dcterms:title ) ,
+    ( datacite:hasIdentifier ) ;
   sh:property [
     sh:path rdf:type ;
     sh:name "Type" ;

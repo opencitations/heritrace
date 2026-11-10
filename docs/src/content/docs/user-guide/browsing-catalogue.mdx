@@ -4,24 +4,24 @@
 # SPDX-License-Identifier: ISC
 
 title: Browsing the catalogue
-description: How to find and view entities in your HERITRACE collection.
+description: How to find and open the resources of your collection in HERITRACE.
 ---
 import { Image } from 'astro:assets';
 import catalogueImage from '../../../assets/catalogue.png';
 
-HERITRACE provides an interface for browsing your collection. It is not a search engine, but it lets you navigate and access metadata records by type.
+The catalogue lists the resources in your collection, grouped by type.
 
-<Image src={catalogueImage} alt="HERITRACE catalogue interface" width={800} height={600} loading="eager" />
+<Image src={catalogueImage} alt="HERITRACE catalogue" width={800} height={600} loading="eager" />
 
-The catalogue is divided into two main panels:
+The catalogue has two parts:
 
-1.  **Categories Panel (Left)**: This panel lists all available entity types in your collection (e.g., "Journal Article," "Book"). Each category shows the total count of items it contains. Click a category to view its items.
+1.  **Categories** (left): the types of resource in your collection, such as "Journal Article" or "Book", each with the number of resources it holds. Click a category to see its resources.
 
-2.  **Items List (Right)**: This area displays the entities for the selected category. You can:
-    - **Sort** the list by different properties using the "Sort by" dropdown.
-    - **Scroll** down to see more items: the next ones load as you reach the end of the list.
-    - Click any item's title to open its detailed view for editing.
+2.  **Resources** (right): the resources of the selected category. Here you can:
+    - change their order with the **Sort by** menu;
+    - scroll down to see more, as the next resources load when you reach the end of the list;
+    - click a title to open the page of that resource.
 
 :::note
-HERITRACE is designed for curation, not for browsing or search. Dedicated search tools will be available in the future.
-::: 
+HERITRACE is designed for curating a collection, and the catalogue offers no search yet.
+:::

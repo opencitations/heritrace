@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Literal as TypingLiteral
 from typing import cast
 
-from rdflib import RDF, XSD, BNode, Graph, Literal, URIRef
+from rdflib import OWL, RDF, XSD, BNode, Graph, Literal, URIRef
 from rdflib.collection import Collection
 from rdflib.compare import isomorphic
 from rdflib.term import Node
@@ -39,7 +39,6 @@ _SINGLE_VALUE_PREDICATES: dict[ValueKind, URIRef] = {
     "class": SH["class"],
 }
 _ALTERNATIVE_KINDS: tuple[ValueKind, ...] = ("datatype", "node", "value", "class")
-_TRUE = Literal("true", datatype=XSD.boolean)
 
 
 @dataclass
@@ -52,8 +51,8 @@ class PropertyShape:
     max_count: int | None = None
     editor: str | None = None
     viewer: str | None = None
-    composite: bool = False
-    hidden: bool = False
+    composite: bool | None = None
+    hidden: bool | None = None
     kind: ValueKind = "any"
     values: list[str] = field(default_factory=list)
     node_classes: dict[str, str] = field(default_factory=dict)
@@ -77,8 +76,10 @@ class NodeShape:
     iri: str
     name: str | None = None
     target_class: str | None = None
+    hidden: bool | None = None
     properties: list[PropertyShape] = field(default_factory=list)
     patterns: list[PatternRule] = field(default_factory=list)
+    duplicate_keys: list[list[str]] = field(default_factory=list)
 
 
 @dataclass
@@ -96,6 +97,13 @@ def _integer(graph: Graph, subject: Node, predicate: URIRef) -> int | None:
     value = graph.value(subject, predicate)
     if isinstance(value, Literal) and isinstance(value.toPython(), int):
         return cast("int", value.toPython())
+    return None
+
+
+def _boolean(graph: Graph, subject: Node, predicate: URIRef) -> bool | None:
+    value = graph.value(subject, predicate)
+    if isinstance(value, Literal) and isinstance(value.toPython(), bool):
+        return cast("bool", value.toPython())
     return None
 
 
@@ -163,8 +171,8 @@ def _read_property(graph: Graph, property_shape: Node) -> PropertyShape | None:
         order=_integer(graph, property_shape, SH.order),
         editor=_iri(graph, property_shape, SHUI.editor),
         viewer=_iri(graph, property_shape, SHUI.viewer),
-        composite=(property_shape, DASH.composite, _TRUE) in graph,
-        hidden=(property_shape, DASH.hidden, _TRUE) in graph,
+        composite=_boolean(graph, property_shape, DASH.composite),
+        hidden=_boolean(graph, property_shape, DASH.hidden),
         label=(property_shape, SHUI.propertyRole, SHUI.LabelRole) in graph,
     )
     if qualified_shape is not None:
@@ -222,6 +230,13 @@ def _read_patterns(graph: Graph, shape: URIRef) -> list[PatternRule]:
     return [rule for rule in rules if rule is not None]
 
 
+def read_duplicate_keys(graph: Graph, shape: Node) -> list[list[str]]:
+    return sorted(
+        [str(prop) for prop in Collection(graph, head)]
+        for head in graph.objects(shape, OWL.hasKey)
+    )
+
+
 def _property_sort_key(prop: PropertyShape) -> tuple[bool, int, str]:
     return (prop.order is None, prop.order or 0, prop.name or prop.path)
 
@@ -257,8 +272,10 @@ def read_shapes(graph: Graph) -> Shapes:
                 iri=str(subject),
                 name=_text(graph, subject, SH.name),
                 target_class=_iri(graph, subject, SH.targetClass),
+                hidden=_boolean(graph, subject, DASH.hidden),
                 properties=sorted(properties, key=_property_sort_key),
                 patterns=_read_patterns(graph, subject),
+                duplicate_keys=read_duplicate_keys(graph, subject),
             )
         )
     return Shapes(prefixes=dict(sorted(prefixes.items())), shapes=shapes)
@@ -308,10 +325,10 @@ def _add_widgets(graph: Graph, node: Node, prop: PropertyShape) -> None:
         graph.add((node, SHUI.editor, URIRef(prop.editor)))
     if prop.viewer is not None:
         graph.add((node, SHUI.viewer, URIRef(prop.viewer)))
-    if prop.composite:
-        graph.add((node, DASH.composite, _TRUE))
-    if prop.hidden:
-        graph.add((node, DASH.hidden, _TRUE))
+    if prop.composite is not None:
+        graph.add((node, DASH.composite, Literal(prop.composite)))
+    if prop.hidden is not None:
+        graph.add((node, DASH.hidden, Literal(prop.hidden)))
     for detail_path in prop.details:
         detail = BNode()
         graph.add((node, SH.property, detail))
@@ -387,6 +404,11 @@ def shapes_to_graph(shapes: Shapes) -> Graph:
             graph.add((subject, SH.name, Literal(shape.name)))
         if shape.target_class is not None:
             graph.add((subject, SH.targetClass, URIRef(shape.target_class)))
+        if shape.hidden is not None:
+            graph.add((subject, DASH.hidden, Literal(shape.hidden)))
+        for key in shape.duplicate_keys:
+            properties: list[Node] = [URIRef(prop) for prop in key]
+            graph.add((subject, OWL.hasKey, _add_list(graph, properties)))
         for prop in shape.properties:
             _add_property(graph, subject, prop)
         if shape.patterns:

@@ -8,6 +8,3 @@ rules:
   displayProperties:
   - property: http://purl.org/spar/pro/isDocumentContextFor
     orderedBy: https://w3id.org/oc/ontology/hasNext
-  similarity_properties:
-  - http://purl.org/dc/terms/title
-  - http://purl.org/spar/datacite/hasIdentifier

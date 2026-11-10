@@ -3,54 +3,47 @@
 #
 # SPDX-License-Identifier: ISC
 
-title: Editing existing records
-description: How to modify metadata and manage relationships for entities in HERITRACE.
+title: Editing resources
+description: How to change a resource, delete it and find similar resources in HERITRACE.
 ---
 import { Image } from 'astro:assets';
 import resourceImage from '../../../assets/resource.png';
 import resourcesReferencingThisImage from '../../../assets/resources_referencing_this.png';
 import similarResourcesImage from '../../../assets/similar_resources.png';
 
-Once you open an entity from the catalogue, you are presented with its detailed record page, where you can manage all its metadata.
+Click a resource in the catalogue to open its page, which shows all its information.
 
-<Image src={resourceImage} alt="HERITRACE resource interface" width={800} height={600} />
+<Image src={resourceImage} alt="Page of a resource in HERITRACE" width={800} height={600} />
 
-### Modifying metadata
+### Changing a resource
 
-On the entity page, you can perform several actions:
+The buttons below the title let you edit the resource, delete it and open its history. In edit mode you can:
 
--   **Inline Editing**: Most fields can be edited directly on the page. Click on the value you want to change to activate the editing controls, such as text inputs or dropdowns.
--   **Add New Fields**: You can add more metadata by selecting new properties to add to the resource.
--   **Manage Relationships**: Link to other entities, or modify existing relationships.
--   **Real-time Validation**: As you edit, the system validates your input, ensuring data consistency.
+-   change a value by clicking it;
+-   add information with **Add property**;
+-   link the resource to other resources, or change the existing links.
 
-:::note
-Entities are managed independently. When you are on a resource's page (e.g., a bibliographic record), you can only edit the metadata directly associated with that resource, such as its title or publication date.
+HERITRACE checks each change as you make it. Click **Save changes** to keep your changes, or **Cancel** to discard them.
 
-You cannot perform nested edits. To modify a linked entity (like an author or an identifier), you must navigate to that entity's specific page.
-:::
+When a field links to another resource, such as an author or an identifier, that resource opens in a window of its own, where you can change it.
 
-### Actions
+### Deleting a resource and viewing its history
 
-The buttons below the title let you edit or delete the entity and open its version history. When editing, the **Save changes** and **Cancel** buttons appear below the record fields.
+- **Delete resource** moves the resource to the [recycle bin](../recycle-bin), from which you can restore it.
+- **Time machine** shows every version of the resource.
 
-- **Delete**: Remove the entity. It will be moved to the [recycle bin](../recycle-bin), not permanently deleted.
-- **Time machine**: Access the entity's complete version history.
+### Resources that link to this one
 
-### Viewing incoming links
+Below the information of the resource, the **Resources referencing this** section lists the other resources that link to the one you are viewing.
 
-Below the main metadata section, you will find the "Resources Referencing This" area. This section is very useful as it shows you all the other items in your collection that link *to* the current entity you are viewing.
+<Image src={resourcesReferencingThisImage} alt="Section listing the resources that link to the current one" width={800} height={600} />
 
-<Image src={resourcesReferencingThisImage} alt="HERITRACE interface showing resources that reference the current entity" width={800} height={600} />
+For example, the page of a journal issue lists the articles published in it. Click one of them to open its page.
 
-For example, if you are viewing a journal issue, this section will list all the articles that are part of that issue. This helps you see the connections between your records and quickly navigate to related items by clicking the "Visit" button. 
+### Similar resources
 
-### Handling duplicates with similar resources
+At the bottom of the page, the **Similar resources** section lists resources that may be duplicates of the one you are viewing.
 
-Finally, at the bottom of the page, the "Similar Resources" section helps you keep your data clean by identifying potential duplicates.
+<Image src={similarResourcesImage} alt="Section listing similar resources, each with a Merge button" width={800} height={600} />
 
-<Image src={similarResourcesImage} alt="HERITRACE interface showing a list of similar resources for potential merging" width={800} height={600} />
-
-This section lists other entities in the collection that appear similar to the one you are viewing. If you find a duplicate, use the "Merge" button to combine it with the current entity.
-
-For more details, see the guide on [Merging Records](../merging-records).
+If one of them describes the same thing, click **Merge** to combine the two. The guide on [merging resources](../merging-records) describes each step.

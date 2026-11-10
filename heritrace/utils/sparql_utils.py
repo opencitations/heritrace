@@ -31,6 +31,7 @@ from heritrace.extensions import (
     get_dataset_version,
     get_display_rules,
     get_form_fields,
+    get_presentation,
     get_provenance_sparql,
     get_shacl_graph,
     get_sparql,
@@ -261,7 +262,7 @@ def _get_entities_with_enhanced_shape_detection(
     shape_to_entities = defaultdict(list)
     for subject_uri, triples in entities_triples.items():
         shape_uri = determine_shape_for_entity_triples(triples)
-        if shape_uri:
+        if shape_uri and not get_presentation().is_hidden(shape_uri):
             shape_to_entities[shape_uri].append(
                 {"uri": subject_uri, "class": class_uri, "shape": shape_uri}
             )
@@ -386,6 +387,8 @@ def get_available_classes() -> list[dict[str, str | int]]:
                     )
         else:
             shape_uri = determine_shape_for_classes([class_uri])
+            if get_presentation().is_hidden(shape_uri):
+                continue
             entity_key = (class_uri, shape_uri)
 
             available_classes.append(
@@ -907,6 +910,8 @@ def get_deleted_available_classes() -> list[dict[str, str | int]]:
     deleted_classes = []
     for class_uri in _get_classes_from_config():
         shape_uri = determine_shape_for_classes([class_uri])
+        if get_presentation().is_hidden(shape_uri):
+            continue
         entity_key = (class_uri, shape_uri)
 
         display_count, numeric_count = _count_deleted_class_instances(

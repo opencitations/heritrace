@@ -13,6 +13,7 @@ from heritrace.editor import Editor, EditorError
 from heritrace.extensions import (
     get_custom_filter,
     get_form_fields,
+    get_presentation,
     get_primary_source,
     new_editor,
     record_dataset_change,
@@ -256,8 +257,11 @@ def create_entity() -> tuple[Response, int]:
 @login_required
 def entity_types() -> Response:
     custom_filter = get_custom_filter()
+    presentation = get_presentation()
     labelled_keys = [
-        (key, custom_filter.human_readable_class(key)) for key in get_form_fields()
+        (key, custom_filter.human_readable_class(key))
+        for key in get_form_fields()
+        if not presentation.is_hidden(key[1])
     ]
     labelled_keys.sort(key=lambda item: item[1])
     return jsonify(

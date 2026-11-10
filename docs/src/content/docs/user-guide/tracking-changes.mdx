@@ -4,49 +4,47 @@
 # SPDX-License-Identifier: ISC
 
 title: Tracking changes
-description: Using the time machine and recycle bin to track history and manage versions in HERITRACE.
+description: How to view the versions of a resource and restore an earlier one in HERITRACE.
 ---
 import { Image } from 'astro:assets';
 import timeMachineImage from '../../../assets/time_machine.png';
 import versionImage from '../../../assets/version.png';
 import viewVersionImage from '../../../assets/view_version.png';
 
-HERITRACE tracks every change made to your data, maintaining a full history for each entity.
+HERITRACE keeps every version of each resource, from its creation onwards.
 
 ### The time machine
 
-The time machine provides a complete version history for each entity. Every time an entity is created, modified, or deleted, HERITRACE generates a new snapshot.
+The time machine of a resource lists its versions. A new version is added each time someone creates, changes or deletes the resource.
 
-<Image src={timeMachineImage} alt="HERITRACE time machine interface" width={800} height={600} />
+<Image src={timeMachineImage} alt="The HERITRACE time machine" width={800} height={600} />
 
-Each snapshot in the timeline contains detailed provenance metadata:
--   **Timestamp**: When the change was made.
--   **Responsible Agent**: Who made the change (logged in via ORCID).
--   **Primary Source**: The data source that informed the change.
--   **Modifications**: A clear list of what was added or removed.
+For each version, the time machine shows:
+-   when the change was made;
+-   **Responsible agent**: who made it, identified by their ORCID iD;
+-   **Primary source**: the source the change was based on, when the person who made it gave one;
+-   **Additions** and **Deletions**: what was added and what was removed.
 
-### How to view and restore a previous version
+### Viewing and restoring an earlier version
 
-Restoring an older version is a safe, two-step process that allows you to inspect a version before you commit to restoring it.
+You can look at a version before deciding whether to restore it.
 
-**Step 1: View a specific version**
+**Step 1: open the version**
 
-From the timeline, find the snapshot you are interested in and click the **"View version"** button.
+In the time machine, find the version you want and click **View version**.
 
-<Image src={viewVersionImage} alt="A snapshot in the time machine timeline with the 'View version' button highlighted." width={800} height={600} />
+<Image src={viewVersionImage} alt="A version in the time machine, with the View version button highlighted" width={800} height={600} />
 
-**Step 2: Inspect and restore**
+**Step 2: check it and restore it**
 
-This will take you to a dedicated page showing the entity *exactly as it existed at that point in time*. The page displays a complete reconstruction of the resource, including all its metadata and linked entities from that specific snapshot.
+The page of the version shows the resource exactly as it was at that moment, together with the resources it was linked to.
 
-<Image src={versionImage} alt="The detailed page for a specific historical version of a resource." width={800} height={600} />
+<Image src={versionImage} alt="Page of an earlier version of a resource" width={800} height={600} />
 
-On this page, you can:
--   Review the historical state of the entity in detail.
--   Click the **"Restore this Version"** button to revert the entity to this state.
+If this is the state you want, click **Restore this version**.
 
-When you restore a version, linked resources are adjusted automatically: changes they received in the same editing operations being undone are reverted as well, while changes they received independently are preserved.
+Restoring a version can affect linked resources too. Changes they received in the same edits are undone as well, while changes made to them separately remain.
 
-### The recycle bin
+### Deleted resources
 
-Deleted entities are not permanently removed. They are moved to the [**recycle bin**](../recycle-bin), where you can browse deleted items, review their history, and restore them.
+A deleted resource stays in the [recycle bin](../recycle-bin), where you can look at it, view its history and restore it.

@@ -53,10 +53,10 @@ export default defineConfig({
 					label: 'User guide',
 					items: [
 						{ label: 'Browsing the catalogue', slug: 'user-guide/browsing-catalogue' },
-						{ label: 'Creating new records', slug: 'user-guide/creating-records' },
-						{ label: 'Editing existing records', slug: 'user-guide/editing-records' },
+						{ label: 'Adding resources', slug: 'user-guide/creating-records' },
+						{ label: 'Editing resources', slug: 'user-guide/editing-records' },
 						{ label: 'Tracking changes', slug: 'user-guide/tracking-changes' },
-						{ label: 'Merging records', slug: 'user-guide/merging-records' },
+						{ label: 'Merging resources', slug: 'user-guide/merging-records' },
 						{ label: 'Using the recycle bin', slug: 'user-guide/recycle-bin' },
 					],
 				},

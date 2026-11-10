@@ -9,20 +9,21 @@ from decimal import Decimal
 from typing import cast
 
 from pyparsing.exceptions import ParseException
-from rdflib import OWL, RDF, BNode, Graph, Literal, Namespace, URIRef
+from rdflib import OWL, RDF, XSD, BNode, Graph, Literal, URIRef
 from rdflib.plugins.sparql.algebra import translateQuery, traverse
 from rdflib.plugins.sparql.parser import parseQuery
 from rdflib.term import Node
 
-SH = Namespace("http://www.w3.org/ns/shacl#")
-SHUI = Namespace("http://www.w3.org/ns/shacl-ui/")
-DASH = Namespace("http://datashapes.org/dash#")
+from heritrace.configuration.shapes import read_duplicate_keys
+from heritrace.configuration.vocabulary import DASH, SH, SHUI
 
 _THIS_VARIABLE = re.compile(r"[?$]this\b")
 
 _INVERSE_PROBE = URIRef("urn:heritrace:inverse-probe")
 
 _INVERSE_PATH_MARK = "^"
+
+_TRUE = Literal("true", datatype=XSD.boolean)
 
 
 def inverse_path_key(predicate: str) -> str:
@@ -53,6 +54,14 @@ class ShapesPresentation:
     properties: dict[str, list[PropertyPresentation]]
     label_queries: dict[str, str]
     fixed_type_counts: dict[str, int]
+    hidden_shapes: frozenset[str]
+    duplicate_keys: dict[str, list[list[str]]]
+
+    def is_hidden(self, shape: str | None) -> bool:
+        return str(shape) in self.hidden_shapes
+
+    def shape_duplicate_keys(self, shape: str | None) -> list[list[str]]:
+        return self.duplicate_keys.get(str(shape), [])
 
     def fixed_type_count(self, shape: str | None) -> int:
         return self.fixed_type_counts.get(str(shape), 0)
@@ -183,11 +192,13 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
     properties: dict[str, list[PropertyPresentation]] = {}
     label_queries: dict[str, str] = {}
     fixed_type_counts: dict[str, int] = {}
-    for shape in set(graph.subjects(SH.targetClass)) | set(
-        graph.subjects(RDF.type, SH.NodeShape)
-    ):
-        if isinstance(shape, BNode):
-            continue
+    shapes = {
+        shape
+        for shape in set(graph.subjects(SH.targetClass))
+        | set(graph.subjects(RDF.type, SH.NodeShape))
+        if not isinstance(shape, BNode)
+    }
+    for shape in shapes:
         name = _literal_text(graph, shape, SH.name)
         if name is not None:
             shape_names[str(shape)] = name
@@ -221,6 +232,14 @@ def read_presentation(graph: Graph) -> ShapesPresentation:
         properties=properties,
         label_queries=label_queries,
         fixed_type_counts=fixed_type_counts,
+        hidden_shapes=frozenset(
+            str(shape) for shape in shapes if (shape, DASH.hidden, _TRUE) in graph
+        ),
+        duplicate_keys={
+            str(shape): keys
+            for shape in shapes
+            if (keys := read_duplicate_keys(graph, shape))
+        },
     )
 
 

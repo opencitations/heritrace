@@ -439,7 +439,7 @@ def similar_test_data():
 
 @patch("heritrace.routes.merge.get_sparql")
 @patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("heritrace.routes.merge._duplicate_keys")
 @patch("heritrace.routes.merge.get_entity_types")
 @patch("flask_login.utils._get_user")
 def test_find_similar_resources_success(
@@ -480,8 +480,10 @@ def test_find_similar_resources_success(
         },
     ]
     mock_get_sparql.return_value = mock_sparql_instance
-    similarity_props = [similar_test_data["prop_name"], similar_test_data["prop_ref"]]
-    mock_get_sim_props.return_value = similarity_props
+    mock_get_sim_props.return_value = [
+        [similar_test_data["prop_name"]],
+        [similar_test_data["prop_ref"]],
+    ]
     mock_filter_instance = MagicMock()
     mock_filter_instance.human_readable_entity.return_value = similar_test_data[
         "similar_label"
@@ -515,7 +517,7 @@ def test_find_similar_resources_success(
 
 
 @patch("heritrace.routes.merge.get_sparql")
-@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("heritrace.routes.merge._duplicate_keys")
 @patch("flask_login.utils._get_user")
 def test_find_similar_resources_no_subject_values(
     mock_current_user,
@@ -530,7 +532,7 @@ def test_find_similar_resources_no_subject_values(
     mock_sparql_instance = MagicMock()
     mock_sparql_instance.query().convert.return_value = {"results": {"bindings": []}}
     mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_sim_props.return_value = [similar_test_data["prop_name"]]
+    mock_get_sim_props.return_value = [[similar_test_data["prop_name"]]]
 
     response = client.get(
         url_for(
@@ -565,7 +567,7 @@ def test_find_similar_resources_missing_params(
 
 
 @patch(
-    "heritrace.routes.merge.get_similarity_properties",
+    "heritrace.routes.merge._duplicate_keys",
     side_effect=Exception("Database connection failed similar"),
 )
 @patch("flask_login.utils._get_user")
@@ -591,7 +593,7 @@ def test_find_similar_resources_exception(
 
 @patch("heritrace.routes.merge.get_sparql")
 @patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("heritrace.routes.merge._duplicate_keys")
 @patch("heritrace.routes.merge.get_entity_types")
 @patch("flask_login.utils._get_user")
 @pytest.mark.parametrize("backend", ["virtuoso", "qlever", "default"])
@@ -658,7 +660,7 @@ def test_find_similar_resources_literal_formatting(
         },
     ]
     mock_get_sparql.return_value = mock_sparql_instance
-    similarity_props = [prop_typed, prop_lang, prop_plain, prop_bnode]
+    similarity_props = [[prop_typed], [prop_lang], [prop_plain], [prop_bnode]]
     mock_get_sim_props.return_value = similarity_props
     mock_filter_instance = MagicMock()
     mock_filter_instance.human_readable_entity.return_value = similar_test_data[
@@ -709,7 +711,7 @@ def test_find_similar_resources_literal_formatting(
 
 
 @patch("heritrace.routes.merge.get_sparql")
-@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("heritrace.routes.merge._duplicate_keys")
 @patch("flask_login.utils._get_user")
 def test_find_similar_resources_no_valid_conditions(
     mock_current_user,
@@ -737,7 +739,7 @@ def test_find_similar_resources_no_valid_conditions(
         }
     }
     mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_sim_props.return_value = [prop_bnode_only]
+    mock_get_sim_props.return_value = [[prop_bnode_only]]
 
     response = client.get(
         url_for(
@@ -827,7 +829,7 @@ def test_find_similar_resources_invalid_limit_offset_value(
 
 
 @patch(
-    "heritrace.routes.merge.get_similarity_properties",
+    "heritrace.routes.merge._duplicate_keys",
     side_effect=Exception("Database connection failed similar"),
 )
 @patch("flask_login.utils._get_user")
@@ -851,14 +853,14 @@ def test_find_similar_resources_database_exception(
     assert "An error occurred while finding similar resources" in json_data["message"]
 
 
-@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("heritrace.routes.merge._duplicate_keys")
 @patch("flask_login.utils._get_user")
 def test_find_similar_resources_no_similarity_config(
     mock_current_user, mock_get_sim_props, client, mock_user, similar_test_data
 ) -> None:
     """Test find_similar_resources when no similarity config is found for the type."""
     mock_current_user.return_value = mock_user
-    mock_get_sim_props.return_value = None  # Simulate no config found
+    mock_get_sim_props.return_value = []
 
     response = client.get(
         url_for(
@@ -873,41 +875,11 @@ def test_find_similar_resources_no_similarity_config(
     assert json_data["status"] == "success"
     assert json_data["results"] == []
     assert not json_data["has_more"]
-    mock_get_sim_props.assert_called_once_with(
-        (similar_test_data["subject_type"], None)
-    )
-
-
-@patch("heritrace.routes.merge.get_similarity_properties")
-@patch("flask_login.utils._get_user")
-def test_find_similar_resources_empty_derived_properties(
-    mock_current_user, mock_get_sim_props, client, mock_user, similar_test_data
-) -> None:
-    """Test find_similar_resources when the derived property set is empty."""
-    mock_current_user.return_value = mock_user
-    # Simulate a config that results in no properties being extracted
-    mock_get_sim_props.return_value = [{"invalid_key": "value"}]
-
-    response = client.get(
-        url_for(
-            "merge.find_similar_resources",
-            subject_uri=similar_test_data["subject_uri"],
-            entity_type=similar_test_data["subject_type"],
-        )
-    )
-
-    assert response.status_code == 200
-    json_data = response.get_json()
-    assert json_data["status"] == "success"
-    assert json_data["results"] == []
-    assert not json_data["has_more"]
-    mock_get_sim_props.assert_called_once_with(
-        (similar_test_data["subject_type"], None)
-    )
+    mock_get_sim_props.assert_called_once_with(similar_test_data["subject_type"], None)
 
 
 @patch("heritrace.routes.merge.get_sparql")
-@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("heritrace.routes.merge._duplicate_keys")
 @patch("flask_login.utils._get_user")
 def test_find_similar_resources_skip_and_group_missing_subject_prop(
     mock_current_user,
@@ -953,7 +925,7 @@ def test_find_similar_resources_skip_and_group_missing_subject_prop(
     ]
     mock_get_sparql.return_value = mock_sparql_instance
     # Config with an AND group requiring propA and propB, and an OR for propC
-    mock_get_sim_props.return_value = [{"and": [prop_a, prop_b]}, prop_c]
+    mock_get_sim_props.return_value = [[prop_a, prop_b], [prop_c]]
 
     response = client.get(
         url_for(
@@ -977,7 +949,7 @@ def test_find_similar_resources_skip_and_group_missing_subject_prop(
 
 
 @patch("heritrace.routes.merge.get_sparql")
-@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("heritrace.routes.merge._duplicate_keys")
 @patch("flask_login.utils._get_user")
 def test_find_similar_resources_no_valid_union_blocks_due_to_formatting(
     mock_current_user,
@@ -1003,7 +975,7 @@ def test_find_similar_resources_no_valid_union_blocks_due_to_formatting(
         }
     }
     mock_get_sparql.return_value = mock_sparql_instance
-    mock_get_sim_props.return_value = [prop_bnode_only]
+    mock_get_sim_props.return_value = [[prop_bnode_only]]
 
     response = client.get(
         url_for(
@@ -1022,7 +994,7 @@ def test_find_similar_resources_no_valid_union_blocks_due_to_formatting(
 
 @patch("heritrace.routes.merge.get_sparql")
 @patch("heritrace.routes.merge.get_custom_filter")
-@patch("heritrace.routes.merge.get_similarity_properties")
+@patch("heritrace.routes.merge._duplicate_keys")
 @patch("heritrace.routes.merge.get_entity_types")
 @patch("flask_login.utils._get_user")
 @pytest.mark.parametrize("backend", ["virtuoso", "qlever", "default"])
@@ -1066,7 +1038,7 @@ def test_find_similar_resources_success_with_and_group(
     ]
     mock_get_sparql.return_value = mock_sparql_instance
     # Configure similarity with an AND group
-    mock_get_sim_props.return_value = [{"and": [prop_a, prop_b]}]
+    mock_get_sim_props.return_value = [[prop_a, prop_b]]
 
     mock_filter_instance = MagicMock()
     mock_filter_instance.human_readable_entity.return_value = "Similar AND Label"
@@ -1118,22 +1090,19 @@ def test_find_similar_resources_success_with_and_group(
 
 @patch("heritrace.routes.merge._transform_results")
 @patch("heritrace.routes.merge.get_sparql")
-@patch("heritrace.routes.merge.get_similarity_properties")
 @patch("flask_login.utils._get_user")
 def test_similar_draft_matches_values_and_existing_nested_entities(
     mock_current_user,
-    mock_get_similarity_properties,
     mock_get_sparql,
     mock_transform_results,
     client,
     mock_user,
 ) -> None:
     mock_current_user.return_value = mock_user
-    title = "http://example.org/title"
-    identifier = "http://example.org/hasIdentifier"
+    title = "http://purl.org/dc/terms/title"
+    identifier = "http://purl.org/spar/datacite/hasIdentifier"
     value = "http://example.org/value"
     xsd_string = "http://www.w3.org/2001/XMLSchema#string"
-    mock_get_similarity_properties.return_value = [title, identifier]
     sparql = MagicMock()
     sparql.query().convert.side_effect = [
         {"results": {"bindings": [{"nested": {"value": "http://example.org/id/1"}}]}},
@@ -1147,8 +1116,8 @@ def test_similar_draft_matches_values_and_existing_nested_entities(
     response = client.post(
         "/api/merge/similar/draft",
         json={
-            "entity_type": "http://example.org/Article",
-            "shape_uri": "http://example.org/ArticleShape",
+            "entity_type": "http://purl.org/spar/fabio/JournalArticle",
+            "shape_uri": "http://schema.org/JournalArticleShape",
             "values": {
                 title: [{"value": 'A "title"', "datatype": xsd_string}],
                 identifier: [

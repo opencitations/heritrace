@@ -44,6 +44,7 @@ from heritrace.configuration.entity import (
 )
 from heritrace.configuration.runtime import SetupRequiredError, request_reload
 from heritrace.configuration.store import SHACL_FILE
+from heritrace.configuration.vocabulary import SH
 from heritrace.counter_handler import CounterInitializationPolicy
 from heritrace.editor import Backend, Editor, FileBackend, TriplestoreBackend
 from heritrace.models import User
@@ -59,7 +60,6 @@ from heritrace.sparql import (
 from heritrace.uri_generator.uri_generator import CounterBasedURIGenerator, URIGenerator
 from heritrace.utils.filters import Filter
 from heritrace.utils.shacl_presentation import (
-    SH,
     ShapesPresentation,
     labels_use_inverse_relations,
     read_presentation,

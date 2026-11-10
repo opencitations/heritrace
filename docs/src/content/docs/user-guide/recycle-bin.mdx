@@ -4,26 +4,25 @@
 # SPDX-License-Identifier: ISC
 
 title: Using the recycle bin
-description: How to manage and restore deleted entities from the recycle bin in HERITRACE.
+description: How to find and restore deleted resources in HERITRACE.
 ---
 import { Image } from 'astro:assets';
 import recycleBinImage from '../../../assets/recycle_bin.png';
 
-The recycle bin is a catalogue of deleted entities. Nothing is permanently lost; any deleted entity can be recovered from here.
+The recycle bin keeps the resources you have deleted, and you can restore any of them.
 
-<Image src={recycleBinImage} alt="The HERITRACE recycle bin interface, showing a list of deleted resources" width={800} height={600} />
+<Image src={recycleBinImage} alt="The HERITRACE recycle bin, listing deleted resources" width={800} height={600} />
 
-### Navigating the recycle bin
+### Finding a deleted resource
 
-The recycle bin's interface is intentionally similar to the main catalogue, making it easy to use:
+The recycle bin looks like the catalogue:
 
--   **Categories Panel**: On the left, you can browse deleted items by their category.
--   **Deleted Resources List**: On the right, you see the list of deleted items for the selected category.
--   **Sorting**: Items are ordered by **Deletion Time**, so the most recently deleted resources come first. You can reverse the direction to start from the oldest.
+-   **Categories** (left): the types of the deleted resources.
+-   **Resources** (right): the deleted resources of the selected category, the most recently deleted first. You can reverse the order to start from the oldest.
 
-### Restoring deleted resources
+### Restoring a resource
 
-For each item in the list, you have two primary actions:
+Each deleted resource has two buttons:
 
--   **View Last Valid Version**: This allows you to see the state of the resource right before it was deleted.
--   **Restore**: This button restores the entity to your collection and removes it from the recycle bin.
+-   **View last version** shows the resource as it was just before it was deleted.
+-   **Restore** brings the resource back to the collection and removes it from the recycle bin.

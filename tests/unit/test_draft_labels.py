@@ -197,6 +197,8 @@ def test_draft_label_query_errors_propagate(app):
         shape_names={},
         properties={},
         fixed_type_counts={},
+        hidden_shapes=frozenset(),
+        duplicate_keys={},
         label_queries={"http://schema.org/AgentIdentifierShape": "invalid SPARQL"},
     )
     with app.app_context(), labels_from(presentation), pytest.raises(ParseException):
@@ -211,6 +213,8 @@ def test_draft_rules_use_field_datatypes(logged_in_client):
         shape_names={},
         properties={},
         fixed_type_counts={},
+        hidden_shapes=frozenset(),
+        duplicate_keys={},
         label_queries={
             entity_shape: """
                 SELECT (STR(?value) AS ?display) WHERE {

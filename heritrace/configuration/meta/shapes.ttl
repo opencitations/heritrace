@@ -121,9 +121,16 @@ meta:NodeShapeShape
     sh:maxCount 1 ;
   ] ;
   sh:property [
+    sh:path dash:hidden ;
+    sh:name "Hidden"@en, "Nascosto"@it ;
+    sh:order 3 ;
+    sh:datatype xsd:boolean ;
+    sh:maxCount 1 ;
+  ] ;
+  sh:property [
     sh:path sh:property ;
     sh:name "Fields"@en, "Campi"@it ;
-    sh:order 3 ;
+    sh:order 4 ;
     sh:node meta:PropertyShapeShape ;
   ] .
 

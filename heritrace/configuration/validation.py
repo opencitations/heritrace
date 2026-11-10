@@ -95,6 +95,12 @@ def _validate_shape(issues: list[Issue], location: str, shape: NodeShape) -> Non
     _check_iri(issues, f"{location}.targetClass", shape.target_class)
     for index, prop in enumerate(shape.properties):
         _validate_property(issues, f"{location}.properties.{index}", prop)
+    for index, key in enumerate(shape.duplicate_keys):
+        key_location = f"{location}.duplicateKeys.{index}"
+        if not key:
+            issues.append(Issue(key_location, "Add at least one property"))
+        for prop in key:
+            _check_iri(issues, key_location, prop)
     for index, rule in enumerate(shape.patterns):
         rule_location = f"{location}.patterns.{index}"
         _check_iri(issues, f"{rule_location}.conditionPath", rule.condition_path)
